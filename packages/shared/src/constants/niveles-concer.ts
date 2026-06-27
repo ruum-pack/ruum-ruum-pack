@@ -61,3 +61,14 @@ export const REQUISITOS_NIVEL_CONCER: Record<NivelCONCER, RequisitosNivel> = {
     rutas_permitidas: ["intraurbana", "interurbana_menos_100km", "interurbana_mas_100km"]
   }
 };
+
+// PRD §4.3 — niveles CONCER con acento correcto. El enum de Postgres y los
+// valores TS (NivelCONCER) son ASCII puro ("basico") porque los identificadores
+// de enum no llevan acento; esta es la única traducción a texto visible que
+// debe usarse en UI en vez de un CSS capitalize() sobre el valor crudo.
+export const ETIQUETA_NIVEL_CONCER: Record<NivelCONCER, string> = {
+  basico: "Básico",
+  ejecutivo: "Ejecutivo",
+  luxury: "Luxury",
+  coleccion: "Colección"
+};

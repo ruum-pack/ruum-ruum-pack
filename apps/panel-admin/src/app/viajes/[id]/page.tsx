@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button, Field, Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
-import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
+import { ETIQUETA_TIPO_VEHICULO, ETIQUETA_NIVEL_CONCER } from "@ruum/shared/constants";
 import { ETIQUETA_ESTADO_TRASLADO, TRANSICIONES } from "@ruum/shared/states";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
@@ -297,7 +297,7 @@ export default function PaginaDetalleViajeAdmin() {
               <option value="">Selecciona un conductor</option>
               {conductores.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.nombre} · {c.nivel_operativo_vigente}
+                  {c.nombre} · {ETIQUETA_NIVEL_CONCER[c.nivel_operativo_vigente]}
                 </option>
               ))}
             </select>
