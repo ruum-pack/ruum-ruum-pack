@@ -1,0 +1,37 @@
+/*
+ * Ruum Ruum — tokens de diseño compartidos.
+ *
+ * Dirección: el producto vende confianza y trazabilidad sobre un traslado
+ * vehicular documentado (PRD §5.1, Pasaporte Digital) gobernado por una
+ * máquina de 32 estados (PRD §6). La paleta y la tipografía vienen de ahí,
+ * no de un default genérico:
+ *   - ink/paper: carbón cálido + papel, evocan el documento físico de un
+ *     pasaporte, no un dashboard SaaS genérico.
+ *   - signal: naranja de señal/chaleco de seguridad — el color que usan los
+ *     conductores certificados en la calle.
+ *   - route: azul de ruta, reservado para todo lo que es "en movimiento"
+ *     (mapa, tracking), nunca para acciones.
+ *   - ok/warn/danger: estados semánticos del traslado, no decoración.
+ */
+@theme {
+  --color-ink: #14181f;
+  --color-ink-soft: #2a313d;
+  --color-paper: #faf8f3;
+  --color-paper-dim: #f0ecE3;
+  --color-signal: #ff5a1f;
+  --color-signal-soft: #ffe4d6;
+  --color-route: #1d5fd6;
+  --color-route-soft: #dce8fc;
+  --color-ok: #1e9e64;
+  --color-ok-soft: #dcf3e7;
+  --color-warn: #b8791f;
+  --color-warn-soft: #faedd2;
+  --color-danger: #c0362d;
+  --color-danger-soft: #fbe2df;
+
+  --font-display: var(--font-display-loaded), "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-body-loaded), "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono-ruum: var(--font-mono-loaded), "IBM Plex Mono", ui-monospace, monospace;
+
+  --radius-card: 1.25rem;
+}
