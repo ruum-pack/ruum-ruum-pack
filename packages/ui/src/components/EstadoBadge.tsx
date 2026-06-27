@@ -5,7 +5,7 @@ import { CATEGORIA_POR_ESTADO, type CategoriaEstado } from "../lib/estado-visual
 const ESTILO_POR_CATEGORIA: Record<CategoriaEstado, string> = {
   inicial: "bg-ink-soft/10 text-ink-soft border-ink-soft/20",
   activo: "bg-route-soft text-route border-route/20",
-  atencion: "bg-warn-soft text-warn border-warn/30",
+  atencion: "bg-warn-soft text-warn border-warn/60",
   completado: "bg-ok-soft text-ok border-ok/20",
   fallido: "bg-danger-soft text-danger border-danger/20"
 };

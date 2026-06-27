@@ -7,8 +7,8 @@ export interface AvisoProps {
 
 const ESTILOS = {
   info: "border-route/30 bg-route-soft text-route",
-  atencion: "border-warn/30 bg-warn-soft text-warn",
-  peligro: "border-danger/30 bg-danger-soft text-danger"
+  atencion: "border-warn/60 bg-warn-soft text-warn",
+  peligro: "border-danger/50 bg-danger-soft text-danger"
 } as const;
 
 /**
