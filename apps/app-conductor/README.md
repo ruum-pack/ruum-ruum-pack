@@ -112,6 +112,10 @@ No se pudo probar un onboarding real de Stripe Connect en este entorno — valid
 `app-usuario` (ver su README para el detalle de `chatDisponible()`). Encontré el mismo bug de "use client"
 faltante que casi rompió el build de las 3 apps al construir esto — ver nota en el README raíz.
 
+Ya está conectado: junto al chat hay un botón **"Llamar"** (Twilio Proxy, vía `crear-llamada-enmascarada`),
+igual criterio que `app-usuario`. `/registro` ahora pide el teléfono real del conductor — sin eso, Twilio no
+tiene a quién relacionar con el número virtual de la sesión.
+
 ## Pendiente (siguientes cortes de Fase 4 / Fase 5)
 
 - Subida real de los bytes de cada foto a Supabase Storage — hoy se encolan localmente (cola offline) y se

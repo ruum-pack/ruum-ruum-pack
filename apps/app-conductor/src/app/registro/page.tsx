@@ -8,6 +8,7 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supab
 export default function PaginaRegistroConductor() {
   const router = useRouter();
   const [nombre, setNombre] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -42,7 +43,8 @@ export default function PaginaRegistroConductor() {
       // registrado (PRD §4.13: validación CONCER antes de operar).
       const { error: errorConductor } = await cliente.from("conductores").insert({
         auth_user_id: datosAuth.user.id,
-        nombre
+        nombre,
+        telefono
       });
       if (errorConductor) throw errorConductor;
 
@@ -81,6 +83,14 @@ export default function PaginaRegistroConductor() {
 
       <form className="mt-8 grid gap-4" onSubmit={crearCuenta}>
         <Field etiqueta="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+        <Field
+          etiqueta="Teléfono (con código de país, ej. +52...)"
+          type="tel"
+          value={telefono}
+          onChange={(e) => setTelefono(e.target.value)}
+          required
+          autoComplete="tel"
+        />
         <Field
           etiqueta="Correo"
           type="email"

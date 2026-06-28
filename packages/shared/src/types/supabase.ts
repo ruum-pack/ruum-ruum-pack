@@ -50,6 +50,7 @@ export interface Database {
           estado_verificacion: Database["public"]["Enums"]["estado_verificacion"];
           traslados_completados_sin_incidencia: number;
           metodo_pago_registrado: boolean;
+          telefono: string | null;
           creado_en: string;
           actualizado_en: string;
         };
@@ -62,6 +63,7 @@ export interface Database {
           estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"];
           traslados_completados_sin_incidencia?: number;
           metodo_pago_registrado?: boolean;
+          telefono?: string | null;
           creado_en?: string;
           actualizado_en?: string;
         };
@@ -74,6 +76,7 @@ export interface Database {
           estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"];
           traslados_completados_sin_incidencia?: number;
           metodo_pago_registrado?: boolean;
+          telefono?: string | null;
           creado_en?: string;
           actualizado_en?: string;
         };
@@ -123,6 +126,7 @@ export interface Database {
           documentos_vigentes: boolean;
           incidencias_graves_6m: number;
           incidencias_graves_12m: number;
+          telefono: string | null;
           // Columna generada (STORED) — ver migración 0003. Solo lectura.
           nivel_operativo_vigente: Database["public"]["Enums"]["nivel_concer"];
           creado_en: string;
@@ -143,6 +147,7 @@ export interface Database {
           documentos_vigentes?: boolean;
           incidencias_graves_6m?: number;
           incidencias_graves_12m?: number;
+          telefono?: string | null;
           creado_en?: string;
           actualizado_en?: string;
         };
@@ -161,6 +166,7 @@ export interface Database {
           documentos_vigentes?: boolean;
           incidencias_graves_6m?: number;
           incidencias_graves_12m?: number;
+          telefono?: string | null;
           creado_en?: string;
           actualizado_en?: string;
         };
@@ -745,6 +751,7 @@ export interface Database {
           duracion_segundos: number | null;
           iniciada_en: string;
           finalizada_en: string | null;
+          sesion_proxy_id: string | null;
         };
         Insert: {
           id?: string;
@@ -754,6 +761,7 @@ export interface Database {
           duracion_segundos?: number | null;
           iniciada_en?: string;
           finalizada_en?: string | null;
+          sesion_proxy_id?: string | null;
         };
         Update: {
           id?: string;
@@ -763,10 +771,57 @@ export interface Database {
           duracion_segundos?: number | null;
           iniciada_en?: string;
           finalizada_en?: string | null;
+          sesion_proxy_id?: string | null;
         };
         Relationships: [
           {
             foreignKeyName: "llamadas_enmascaradas_traslado_id_fkey";
+            columns: ["traslado_id"];
+            referencedRelation: "traslados";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "llamadas_enmascaradas_sesion_proxy_id_fkey";
+            columns: ["sesion_proxy_id"];
+            referencedRelation: "sesiones_proxy_traslado";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      sesiones_proxy_traslado: {
+        Row: {
+          id: string;
+          traslado_id: string;
+          twilio_session_sid: string;
+          numero_virtual: string;
+          participante_usuario_sid: string;
+          participante_conductor_sid: string;
+          creada_en: string;
+          cerrada_en: string | null;
+        };
+        Insert: {
+          id?: string;
+          traslado_id: string;
+          twilio_session_sid: string;
+          numero_virtual: string;
+          participante_usuario_sid: string;
+          participante_conductor_sid: string;
+          creada_en?: string;
+          cerrada_en?: string | null;
+        };
+        Update: {
+          id?: string;
+          traslado_id?: string;
+          twilio_session_sid?: string;
+          numero_virtual?: string;
+          participante_usuario_sid?: string;
+          participante_conductor_sid?: string;
+          creada_en?: string;
+          cerrada_en?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sesiones_proxy_traslado_traslado_id_fkey";
             columns: ["traslado_id"];
             referencedRelation: "traslados";
             referencedColumns: ["id"];
@@ -896,6 +951,10 @@ export interface Database {
       recalcular_calificacion_conductor: {
         Args: { p_conductor_id: string };
         Returns: undefined;
+      };
+      chat_disponible: {
+        Args: { p_estado: Database["public"]["Enums"]["estado_traslado"] };
+        Returns: boolean;
       };
     };
     Enums: {

@@ -10,7 +10,7 @@ flujos, pantallas o manejo offline.
 - **`packages/shared`** — tipos, reglas de negocio puras, estados/transiciones,
   constantes y utilidades, mapeados 1:1 a las secciones del PRD citadas en
   cada archivo. **113 tests unitarios en verde** (`pnpm test:unit`).
-- **`supabase/migrations/0001–0022`** — esquema completo (ver tablas en
+- **`supabase/migrations/0001–0023`** — esquema completo (ver tablas en
   "Fase 1 — COMPLETA", "Fase 1 — Extensión" y "Fase 2" más abajo), validado
   contra una instancia real de Postgres durante el desarrollo, no solo
   escrito.
@@ -240,22 +240,26 @@ pago semanal al conductor. Cierra el "pendiente de modelarse" que dejaron 0007/0
   anticipado y `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` está configurada.
 - `app-conductor`: la pantalla de Ganancias tiene un botón real para conectar Stripe Connect.
 
-Twilio (llamadas enmascaradas, PRD §4.12) queda fuera de este corte a propósito: depende de que exista una
-pantalla de chat primero, que todavía no se ha construido en ninguna de las 3 apps.
+Twilio (llamadas enmascaradas, PRD §4.12) — ver sección "Chat y llamadas enmascaradas" abajo, ya construido en
+este mismo corte.
 
-## Chat (PRD §4.12) — desbloquea Twilio
+## Chat y llamadas enmascaradas (PRD §4.12)
 
-`app-usuario` y `app-conductor` ya tienen chat en vivo (Supabase Realtime) en sus pantallas de detalle de
-viaje/traslado. Nuevo componente `Chat` en `packages/ui`, servicio `packages/api/src/services/chat.ts`, y la
-regla `chatDisponible()` en `packages/shared/src/rules/chat-disponible.ts` (6 tests) que por fin resuelve, en
-código, la contradicción del PRD §5.12 vs §12.4 que dejamos corregida en el documento pero nunca implementada:
-el chat cierra junto con el traslado, no 24 horas después.
+`app-usuario` y `app-conductor` ya tienen chat en vivo (Supabase Realtime) y un botón de llamada enmascarada en
+sus pantallas de detalle de viaje/traslado. Nuevo componente `Chat` en `packages/ui`, servicios en
+`packages/api/src/services/chat.ts`, y la regla `chatDisponible()` en `packages/shared/src/rules/chat-disponible.ts`
+(6 tests) que por fin resuelve, en código, la contradicción del PRD §5.12 vs §12.4 que dejamos corregida en el
+documento pero nunca implementada: el chat (y ahora también la llamada) cierra junto con el traslado, no 24
+horas después. La misma regla vive espejada en SQL (`chat_disponible()`, función de Postgres) para que la Edge
+Function de Twilio pueda usarla sin depender de TypeScript.
 
-Un bug real al construir esto: el componente `Chat` usa `useState` pero le faltó `"use client"` — `tsc` no lo
+Llamadas enmascaradas: nueva Edge Function `crear-llamada-enmascarada` (Twilio Proxy) — ver
+`supabase/functions/README.md` para el detalle completo, incluyendo el gap real que encontramos (ni `usuarios`
+ni `conductores` tenían columna de teléfono) y qué se pudo validar sin credenciales de Twilio (11 tests de
+lógica pura + `deno check`, sin una llamada real a su API).
+
+Un bug real al construir el chat: el componente `Chat` usa `useState` pero le faltó `"use client"` — `tsc` no lo
 detectó (no es un error de tipos), pero `next build` sí, rompiendo las 3 apps a la vez. Corregido.
-
-Con esto, ya hay una pantalla real donde conectar el botón de llamada enmascarada — Twilio es el siguiente paso
-lógico.
 
 ## Termux / Android
 
@@ -320,7 +324,7 @@ packages/
   ui/             ← sistema de diseño compartido (carbon/paper/signal-orange)
   api/            ← cliente Supabase + services
 supabase/
-  migrations/     ← 0001 a 0022 (ver tablas en "Fase 1 — COMPLETA", "Fase 1 — Extensión", "Fase 2", "Login real" y "Fase 6")
+  migrations/     ← 0001 a 0023 (ver tablas en "Fase 1 — COMPLETA", "Fase 1 — Extensión", "Fase 2", "Login real" y "Fase 6")
   functions/      ← Edge Functions de Stripe (Fase 6) — ver supabase/functions/README.md
   seed.sql        ← datos de ejemplo, ciclo completo de un traslado
   config.toml

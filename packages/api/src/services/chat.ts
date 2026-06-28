@@ -43,3 +43,18 @@ export function suscribirseAMensajes(
     )
     .subscribe();
 }
+
+/**
+ * PRD §4.12 — invoca la Edge Function que crea/reutiliza la sesión de
+ * Twilio Proxy y devuelve el número virtual real al que hay que llamar.
+ * El llamado real lo hace el navegador/dispositivo (enlace `tel:`), esto
+ * solo obtiene el número — no hay softphone embebido en la app.
+ */
+export async function crearLlamadaEnmascarada(cliente: Cliente, trasladoId: string): Promise<string> {
+  const { data, error } = await cliente.functions.invoke("crear-llamada-enmascarada", {
+    body: { traslado_id: trasladoId }
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data.numeroProxy as string;
+}

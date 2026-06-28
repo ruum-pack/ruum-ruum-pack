@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Chat, type MensajeChat } from "@ruum/ui";
+import { Chat, type MensajeChat, Button, Aviso } from "@ruum/ui";
 import { chatDisponible } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
-import { obtenerMensajes, enviarMensaje, suscribirseAMensajes } from "@ruum/api/services";
+import { obtenerMensajes, enviarMensaje, suscribirseAMensajes, crearLlamadaEnmascarada } from "@ruum/api/services";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
@@ -64,9 +64,45 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
     // Realtime ya lo va a recibir, igual que le llegaría al usuario.
   }
 
+  const [llamando, setLlamando] = useState(false);
+  const [errorLlamada, setErrorLlamada] = useState<string | null>(null);
+
+  async function manejarLlamada() {
+    setLlamando(true);
+    setErrorLlamada(null);
+
+    if (esDemo) {
+      setErrorLlamada("Las llamadas enmascaradas no están disponibles en modo demo.");
+      setLlamando(false);
+      return;
+    }
+
+    try {
+      const cliente = crearClienteNavegador();
+      const numero = await crearLlamadaEnmascarada(cliente, trasladoId);
+      window.location.href = `tel:${numero}`;
+    } catch (err) {
+      setErrorLlamada(err instanceof Error ? err.message : "No pudimos iniciar la llamada.");
+    } finally {
+      setLlamando(false);
+    }
+  }
+
   return (
     <div className="mt-6">
-      <p className="mb-2 font-body text-xs uppercase tracking-wide text-ink/45">Chat con el usuario</p>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="font-body text-xs uppercase tracking-wide text-ink/45">Chat con el usuario</p>
+        {disponible && (
+          <Button variant="secundario" onClick={manejarLlamada} disabled={llamando}>
+            {llamando ? "Conectando…" : "Llamar"}
+          </Button>
+        )}
+      </div>
+      {errorLlamada && (
+        <div className="mb-2">
+          <Aviso tono="peligro">{errorLlamada}</Aviso>
+        </div>
+      )}
       <Chat
         propio="conductor"
         mensajes={mensajes}

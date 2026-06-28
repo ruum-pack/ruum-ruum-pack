@@ -118,6 +118,7 @@ export const CONDUCTORES_DEMO: ConductorRow[] = [
     documentos_vigentes: true,
     incidencias_graves_6m: 0,
     incidencias_graves_12m: 0,
+    telefono: "+5215511112222",
     creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 200).toISOString(),
     actualizado_en: new Date().toISOString()
   },
@@ -137,6 +138,7 @@ export const CONDUCTORES_DEMO: ConductorRow[] = [
     documentos_vigentes: true,
     incidencias_graves_6m: 0,
     incidencias_graves_12m: 0,
+    telefono: "+5215533334444",
     creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),
     actualizado_en: new Date().toISOString()
   },
@@ -156,6 +158,7 @@ export const CONDUCTORES_DEMO: ConductorRow[] = [
     documentos_vigentes: false,
     incidencias_graves_6m: 0,
     incidencias_graves_12m: 0,
+    telefono: null,
     creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
     actualizado_en: new Date().toISOString()
   }
@@ -171,6 +174,7 @@ export const USUARIOS_DEMO: UsuarioRow[] = [
     estado_verificacion: "verificado",
     traslados_completados_sin_incidencia: 3,
     metodo_pago_registrado: true,
+    telefono: "+5215555556666",
     creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 90).toISOString(),
     actualizado_en: new Date().toISOString()
   },
@@ -183,6 +187,7 @@ export const USUARIOS_DEMO: UsuarioRow[] = [
     estado_verificacion: "en_revision",
     traslados_completados_sin_incidencia: 0,
     metodo_pago_registrado: false,
+    telefono: null,
     creado_en: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
     actualizado_en: new Date().toISOString()
   }

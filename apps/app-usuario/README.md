@@ -86,6 +86,11 @@ revisar el PRD. Fuera de esa ventana, el campo de texto se deshabilita con el mo
 Esto es lo que faltaba para conectar Twilio (llamadas enmascaradas) después — ya hay una pantalla real donde
 agregar el botón de llamada.
 
+Ya está conectado: junto al chat hay un botón **"Llamar"**, visible solo dentro de la misma ventana de
+disponibilidad. Llama a la Edge Function `crear-llamada-enmascarada` (Twilio Proxy) y abre un enlace `tel:` con
+el número virtual que regresa — no hay softphone embebido, es un puente hacia el marcador nativo del teléfono.
+`/registro` ahora pide el teléfono (formato `+52...`), porque sin eso Twilio no tiene a quién llamar.
+
 ## Pendiente (siguientes cortes de Fase 2)
 
 - Pantallas de seguimiento en tiempo real (mapa), chat, calificación y

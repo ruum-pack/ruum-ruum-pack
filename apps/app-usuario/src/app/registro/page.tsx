@@ -10,6 +10,7 @@ export default function PaginaRegistro() {
   const router = useRouter();
   const [tipoCuenta, setTipoCuenta] = useState<"personal" | "empresa">("personal");
   const [nombre, setNombre] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -47,7 +48,8 @@ export default function PaginaRegistro() {
         auth_user_id: datosAuth.user.id,
         tipo_cuenta: tipoCuenta,
         rol: tipoCuenta === "empresa" ? "titular_empresa" : "personal",
-        estado_verificacion: "pendiente"
+        estado_verificacion: "pendiente",
+        telefono
       });
       if (errorUsuario) throw errorUsuario;
 
@@ -113,6 +115,14 @@ export default function PaginaRegistro() {
         </fieldset>
 
         <Field etiqueta="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+        <Field
+          etiqueta="Teléfono (con código de país, ej. +52...)"
+          type="tel"
+          value={telefono}
+          onChange={(e) => setTelefono(e.target.value)}
+          required
+          autoComplete="tel"
+        />
         <Field
           etiqueta="Correo"
           type="email"
