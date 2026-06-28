@@ -1,16 +1,15 @@
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@ruum/shared/types";
+import { crearClienteNavegador as crearCliente } from "@ruum/api/supabase";
 
 export function tieneSupabaseConfigurado(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
 /**
- * Cliente Supabase para el navegador. Lanza un error claro si las
- * variables de entorno no están configuradas en vez de fallar de forma
- * confusa dentro de una llamada de red — las pantallas deben revisar
- * `tieneSupabaseConfigurado()` antes de usarlo y mostrar un estado de
- * "modo demo" en su lugar.
+ * Cliente Supabase para el navegador, con sesión persistida en cookies
+ * (no localStorage) vía @supabase/ssr — necesario para que el middleware y
+ * los Server Components también puedan leer la sesión real. Lanza un error
+ * claro si las variables de entorno no están configuradas; las pantallas
+ * deben revisar `tieneSupabaseConfigurado()` antes de usarlo.
  */
 export function crearClienteNavegador() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -22,5 +21,5 @@ export function crearClienteNavegador() {
     );
   }
 
-  return createClient<Database>(url, anonKey);
+  return crearCliente(url, anonKey);
 }

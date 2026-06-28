@@ -1,13 +1,63 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Field, Aviso } from "@ruum/ui";
 import { HORAS_HABILES_VERIFICACION_CUENTA_NUEVA } from "@ruum/shared/rules";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 export default function PaginaRegistro() {
+  const router = useRouter();
   const [tipoCuenta, setTipoCuenta] = useState<"personal" | "empresa">("personal");
   const [nombre, setNombre] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function crearCuenta(e: React.FormEvent) {
+    e.preventDefault();
+    setEnviando(true);
+    setError(null);
+
+    if (!tieneSupabaseConfigurado()) {
+      // Modo demo: nunca hubo persistencia real aquí tampoco antes de esto.
+      await new Promise((r) => setTimeout(r, 500));
+      setEnviado(true);
+      setEnviando(false);
+      return;
+    }
+
+    try {
+      const cliente = crearClienteNavegador();
+
+      // PRD §4.1 — no hay columna "nombre" en usuarios (ver tabla); se guarda
+      // en los metadatos de Auth en vez de inventar una columna nueva sin
+      // validar primero si hace falta para algo más que mostrarlo en UI.
+      const { data: datosAuth, error: errorAuth } = await cliente.auth.signUp({
+        email,
+        password,
+        options: { data: { nombre } }
+      });
+      if (errorAuth) throw errorAuth;
+      if (!datosAuth.user) throw new Error("No se pudo crear la cuenta. Intenta de nuevo.");
+
+      const { error: errorUsuario } = await cliente.from("usuarios").insert({
+        auth_user_id: datosAuth.user.id,
+        tipo_cuenta: tipoCuenta,
+        rol: tipoCuenta === "empresa" ? "titular_empresa" : "personal",
+        estado_verificacion: "pendiente"
+      });
+      if (errorUsuario) throw errorUsuario;
+
+      setEnviado(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No pudimos crear tu cuenta. Intenta de nuevo.");
+    } finally {
+      setEnviando(false);
+    }
+  }
 
   if (enviado) {
     return (
@@ -17,6 +67,11 @@ export default function PaginaRegistro() {
           Verificamos cuentas nuevas en menos de {HORAS_HABILES_VERIFICACION_CUENTA_NUEVA} horas hábiles. Te
           avisaremos en cuanto esté lista.
         </p>
+        {tieneSupabaseConfigurado() && (
+          <p className="mt-4 font-body text-xs text-ink/45">
+            Si tu proyecto de Supabase exige confirmar el correo, revisa tu bandeja antes de iniciar sesión.
+          </p>
+        )}
       </main>
     );
   }
@@ -29,13 +84,13 @@ export default function PaginaRegistro() {
         adelantado.
       </p>
 
-      <form
-        className="mt-8 grid gap-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setEnviado(true);
-        }}
-      >
+      {!tieneSupabaseConfigurado() && (
+        <div className="mt-4">
+          <Aviso tono="info">Supabase no está configurado: esta cuenta no se guardará de verdad (modo demo).</Aviso>
+        </div>
+      )}
+
+      <form className="mt-8 grid gap-4" onSubmit={crearCuenta}>
         <fieldset className="flex gap-4 font-body text-sm">
           <label className="flex items-center gap-2">
             <input
@@ -58,15 +113,41 @@ export default function PaginaRegistro() {
         </fieldset>
 
         <Field etiqueta="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+        <Field
+          etiqueta="Correo"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+        />
+        <Field
+          etiqueta="Contraseña"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={6}
+          autoComplete="new-password"
+        />
+
+        {error && <Aviso tono="peligro">{error}</Aviso>}
 
         <Aviso tono="info">
           Después de crear tu cuenta te pediremos un documento de identidad para verificarla.
         </Aviso>
 
-        <Button type="submit" className="mt-2">
-          Crear cuenta
+        <Button type="submit" disabled={enviando} className="mt-2">
+          {enviando ? "Creando…" : "Crear cuenta"}
         </Button>
       </form>
+
+      <p className="mt-6 text-center font-body text-sm text-ink/55">
+        ¿Ya tienes cuenta?{" "}
+        <button onClick={() => router.push("/login")} className="font-medium text-route hover:underline">
+          Inicia sesión
+        </button>
+      </p>
     </main>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
 
 // PRD §17.2 — navegación principal completa. Solo las primeras 5 secciones
 // están construidas en este corte; el resto se muestra para reflejar la
@@ -29,6 +31,29 @@ const SECCIONES_PENDIENTES = [
 
 export function BarraLateral() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [sesionReal, setSesionReal] = useState(false);
+
+  useEffect(() => {
+    async function revisar() {
+      if (!tieneSupabaseConfigurado()) return;
+      try {
+        const cliente = crearClienteNavegador();
+        const { data } = await cliente.auth.getUser();
+        setSesionReal(Boolean(data.user));
+      } catch {
+        // Sin sesión real disponible — se queda en false.
+      }
+    }
+    revisar();
+  }, [pathname]);
+
+  async function cerrarSesion() {
+    const cliente = crearClienteNavegador();
+    await cliente.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <aside className="flex h-screen w-60 flex-col border-r border-ink/10 bg-paper">
@@ -63,6 +88,20 @@ export function BarraLateral() {
           ))}
         </div>
       </nav>
+
+      <div className="border-t border-ink/10 px-5 py-4">
+        {sesionReal ? (
+          <button onClick={cerrarSesion} className="font-body text-sm text-ink/55 hover:text-ink">
+            Cerrar sesión
+          </button>
+        ) : (
+          tieneSupabaseConfigurado() && (
+            <Link href="/login" className="font-body text-sm text-ink/55 hover:text-ink">
+              Iniciar sesión
+            </Link>
+          )
+        )}
+      </div>
     </aside>
   );
 }

@@ -9,8 +9,8 @@ flujos, pantallas o manejo offline.
 
 - **`packages/shared`** — tipos, reglas de negocio puras, estados/transiciones,
   constantes y utilidades, mapeados 1:1 a las secciones del PRD citadas en
-  cada archivo. **107 tests unitarios en verde** (`pnpm test:unit`).
-- **`supabase/migrations/0001–0020`** — esquema completo (ver tablas en
+  cada archivo. **113 tests unitarios en verde** (`pnpm test:unit`).
+- **`supabase/migrations/0001–0022`** — esquema completo (ver tablas en
   "Fase 1 — COMPLETA", "Fase 1 — Extensión" y "Fase 2" más abajo), validado
   contra una instancia real de Postgres durante el desarrollo, no solo
   escrito.
@@ -155,6 +155,108 @@ cliente; no fue posible confirmar su contenido post-hidratación con un navegado
 desarrollo (mismo límite que las 2 pantallas equivalentes de `app-conductor` — ver su README). `next build` sí
 se validó con éxito para las 6 rutas.
 
+## Login real (Supabase Auth)
+
+Las 3 apps usan `@supabase/ssr` (ya era dependencia desde Fase 1, nunca se había usado) con sesión persistida en
+cookies — no `localStorage`, necesario para que el middleware y los Server Components también puedan leer la
+sesión. Cada app tiene su propio `middleware.ts` (refresca el token en cada petición) y
+`lib/supabase-server.ts` (cliente de servidor), además del `lib/supabase-browser.ts` ya existente, ahora con
+sesión real en vez de un cliente sin persistencia.
+
+| App | `/login` | `/registro` | Crea fila real en |
+|---|---|---|---|
+| `app-usuario` | Sí | Sí (personal/empresa) | `usuarios` |
+| `app-conductor` | Sí | Sí (certificación CONCER) | `conductores`, queda en `pendiente_verificacion` |
+| `panel-admin` | Sí | **No, a propósito** | — la fila en `admins` se crea a mano, ver su README |
+
+Tres bugs reales encontrados al construir esto, ninguno del código nuevo — todos del esquema de Fase 1, nunca
+antes ejercitado bajo RLS real porque toda la validación previa corrió como superusuario de Postgres:
+
+| Migración | Bug corregido |
+|---|---|
+| `0021_self_registro.sql` | Ni `usuarios` ni `conductores` tenían política de INSERT para autoservicio — el registro nunca podría haber completado bajo RLS real |
+| *(ver "Fase 2" arriba)* `0018`, `0019` | Visibilidad de viajes disponibles y recursión infinita en `usuarios` — encontrados antes, pero confirman el mismo patrón: nada de RLS se había probado con un rol real hasta Fase 2 |
+
+`0021` se probó con dos casos reales bajo un rol no-superusuario: alguien crea su propio registro (funciona) e
+intenta crear el registro de otra persona (se rechaza).
+
+También encontramos, y resolvimos sin necesidad de migración, un desajuste de tipos entre `@supabase/ssr@0.5.2`
+y `@supabase/supabase-js@2.108.2`: ambas resuelven el genérico `SupabaseClient<Database>` de forma distinta
+entre sí (versión con distinta cantidad de parámetros genéricos), aunque el objeto en runtime es idéntico. Se
+resuelve con un cast explícito en `packages/api/src/supabase/{browser,server}-client.ts` — un solo lugar, en vez
+de que cada función de `packages/api/src/services` tuviera que pelear con eso por separado.
+
+## Fase 5 — Capacitor (app-usuario, app-conductor)
+
+**Decisión tomada:** la WebView de cada app carga la app real desde Vercel en vez de un export estático
+embebido. En `app-conductor` esa URL ya está fija en `capacitor.config.ts` (`ruum-ruum-pack.vercel.app`, con
+`RUUM_CAPACITOR_SERVER_URL` como override para otros ambientes) — la primera compilación real cargaba el
+respaldo local sin esto, porque la variable nunca se fijaba antes del build de Gradle. `app-usuario` sigue solo
+con la variable de entorno por ahora, porque todavía no tiene una URL de producción confirmada. Esto preserva
+Server Components, middleware y RLS exactamente como ya están validados en producción. El costo real: ninguna de
+las dos apps abre sin conexión al inicio de sesión — solo afecta la carga de la página, no las llamadas a
+plugins nativos una vez cargada. El detalle completo del tradeoff vive en `apps/app-conductor/README.md`.
+
+`npx cap add android` corrido en ambas — el proyecto en cada `android/` es real, no scaffold. iOS no se agregó
+(requiere macOS/Xcode, no disponible en ningún entorno de esta conversación).
+
+| App | Plugins | Conectado a |
+|---|---|---|
+| `app-conductor` | `@capacitor/camera`, `@capacitor/geolocation`, `@capacitor/preferences`, `@capacitor/app` | `/viajes/[id]/evidencia` — cámara y GPS reales, cola local offline (`lib/cola-offline.ts`) en vez de la captura simulada anterior |
+| `app-usuario` | `@capacitor/geolocation`, `@capacitor/app` | Paso "Origen" del wizard — botón "Usar mi ubicación actual" reemplaza el placeholder `lat/lng = 0` |
+
+La cola offline usa `@capacitor/preferences` (key-value), no SQLite como planteaba la propuesta de arquitectura
+original — simplificación deliberada para este corte, documentada en `app-conductor/lib/cola-offline.ts`.
+
+**Límite honesto:** este entorno de desarrollo no tiene Android SDK ni Gradle completo. Todo lo de arriba está
+validado por `tsc`/`next build` (compila, tipos correctos, permisos agregados a mano en cada
+`AndroidManifest.xml`), no por una compilación nativa real ni una APK probada en un dispositivo. Compilar de
+verdad requiere Android Studio:
+
+```bash
+cd apps/app-conductor   # o apps/app-usuario
+npx cap sync android
+npx cap open android
+```
+
+## Fase 6 — Stripe (cobro real + pago semanal al conductor)
+
+PRD §4.6 — decisiones de producto: **Stripe** para el cobro al usuario, **Stripe Connect (Express)** para el
+pago semanal al conductor. Cierra el "pendiente de modelarse" que dejaron 0007/0012 desde Fase 1.
+
+- `0022_pagos_stripe.sql` — trazabilidad de Stripe en `pagos` (`stripe_payment_intent_id`, `stripe_event_id`,
+  ambos únicos, para idempotencia ante reintentos de webhook), más dos tablas nuevas:
+  `cuentas_conductor_stripe` (cuenta Connect del conductor) y `payouts_conductor` (payout semanal). RLS probado
+  con dos conductores reales bajo un rol no-superusuario: cada uno ve solo su propia cuenta y sus propios
+  payouts.
+- `supabase/functions/` — 3 Edge Functions nuevas (`stripe-webhook`, `crear-payment-intent`,
+  `crear-cuenta-conductor-stripe`). Validadas en tres capas: `deno test` sobre la lógica de decisión (10 casos,
+  sin mocks), `deno check` contra los tipos oficiales de Stripe, y **las tres llamadas reales que hacen contra
+  la API de Stripe ya se probaron en modo de prueba** (PaymentIntent en MXN, cuenta Connect Express en México,
+  Account Link de onboarding — las tres con HTTP 200 y la forma exacta que el código espera). Detalle completo
+  en `supabase/functions/README.md` — incluyendo un hallazgo real de `deno check`: los eventos
+  `transfer.paid`/`transfer.failed` que se habían planeado **no existen** en la API de Stripe.
+- `app-usuario`: el wizard de nuevo traslado ahora puede cobrar de verdad con Stripe Elements cuando el pago es
+  anticipado y `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` está configurada.
+- `app-conductor`: la pantalla de Ganancias tiene un botón real para conectar Stripe Connect.
+
+Twilio (llamadas enmascaradas, PRD §4.12) queda fuera de este corte a propósito: depende de que exista una
+pantalla de chat primero, que todavía no se ha construido en ninguna de las 3 apps.
+
+## Chat (PRD §4.12) — desbloquea Twilio
+
+`app-usuario` y `app-conductor` ya tienen chat en vivo (Supabase Realtime) en sus pantallas de detalle de
+viaje/traslado. Nuevo componente `Chat` en `packages/ui`, servicio `packages/api/src/services/chat.ts`, y la
+regla `chatDisponible()` en `packages/shared/src/rules/chat-disponible.ts` (6 tests) que por fin resuelve, en
+código, la contradicción del PRD §5.12 vs §12.4 que dejamos corregida en el documento pero nunca implementada:
+el chat cierra junto con el traslado, no 24 horas después.
+
+Un bug real al construir esto: el componente `Chat` usa `useState` pero le faltó `"use client"` — `tsc` no lo
+detectó (no es un error de tipos), pero `next build` sí, rompiendo las 3 apps a la vez. Corregido.
+
+Con esto, ya hay una pantalla real donde conectar el botón de llamada enmascarada — Twilio es el siguiente paso
+lógico.
+
 ## Termux / Android
 
 Turborepo se distribuye como binario nativo y no tiene build para
@@ -210,12 +312,16 @@ corregidos aquí:
 ```
 apps/
   app-usuario/  app-conductor/  panel-admin/  ← 5-6 pantallas reales cada una (Fase 2, COMPLETA)
+    android/              ← solo en app-usuario y app-conductor (Fase 5 — Capacitor)
+    capacitor.config.ts   ← solo en app-usuario y app-conductor
+    cap-shell/            ← página de respaldo sin conexión (Capacitor webDir)
 packages/
   shared/         ← núcleo de la Fase 1 (types, rules, states, constants, utils)
   ui/             ← sistema de diseño compartido (carbon/paper/signal-orange)
   api/            ← cliente Supabase + services
 supabase/
-  migrations/     ← 0001 a 0020 (ver tablas en "Fase 1 — COMPLETA", "Fase 1 — Extensión" y "Fase 2")
+  migrations/     ← 0001 a 0022 (ver tablas en "Fase 1 — COMPLETA", "Fase 1 — Extensión", "Fase 2", "Login real" y "Fase 6")
+  functions/      ← Edge Functions de Stripe (Fase 6) — ver supabase/functions/README.md
   seed.sql        ← datos de ejemplo, ciclo completo de un traslado
   config.toml
 ```

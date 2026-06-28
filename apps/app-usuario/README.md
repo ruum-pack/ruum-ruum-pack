@@ -3,23 +3,29 @@
 PRD §14 — instrucción operativa: **"La App Usuario debe enfocarse en
 confianza, visibilidad y cierre documental."**
 
-## Pantallas construidas (Fase 2, primer corte)
+## Pantallas construidas (Fase 2, primer corte + login real)
 
-- `/` — landing con los 3 pilares de confianza del producto (PRD §14) y una
-  vista previa del Pasaporte Digital con datos de ejemplo.
-- `/registro` — alta de cuenta personal/empresa (PRD §3, §4.1).
+- `/` — landing con los 3 pilares de confianza del producto (PRD §14), una
+  vista previa del Pasaporte Digital con datos de ejemplo, y estado de sesión
+  real (Iniciar sesión / Cerrar sesión) verificado en el servidor.
+- `/login` — inicio de sesión real con Supabase Auth (correo + contraseña).
+- `/registro` — alta de cuenta personal/empresa (PRD §3, §4.1), conectado de
+  verdad: `auth.signUp()` + inserción real en `usuarios`. El nombre se guarda
+  en los metadatos de Auth (no existe columna `usuarios.nombre`).
 - `/traslados/nuevo` — wizard de 6 pasos (vehículo → documentos → origen y
   destino → contactos → cotización → confirmación), con las reglas reales de
   `packages/shared` conectadas en vivo: el paso de confirmación muestra el
   momento de pago (`determinarMomentoPago`, PRD §4.6) y el aviso de política
   de cancelación (`calcularCargoCancelacion`, PRD §4.7) calculados de verdad,
-  no texto estático.
+  no texto estático. Si hay sesión real, usa el usuario real (historial real
+  decide pago anticipado vs. al cierre); si Supabase está configurado pero no
+  hay sesión, manda a `/login` en vez de fallar en silencio contra RLS.
 - `/traslados/[id]` — Pasaporte Digital de Traslado (PRD §5.1): estado,
   stepper de las 7 etapas visibles para el usuario, conductor, evidencia y
   pagos, leyendo de la vista `pasaporte_digital`.
 
 Validado con un `next build` + `next start` reales (no solo "se ve bien en
-el código"): las 5 rutas compilan, y se confirmó el contenido en el HTML
+el código"): las 7 rutas compilan, y se confirmó el contenido en el HTML
 real de cada una (incluyendo los valores que vienen de `packages/shared`).
 
 ## Modo demo vs. datos reales
@@ -30,21 +36,69 @@ completamente navegable:
 - `/traslados/demo-0001` siempre muestra el mismo escenario que
   `supabase/seed.sql`, claramente marcado como "Datos de ejemplo".
 - El wizard simula el envío en vez de fallar.
+- `/login` muestra un aviso explicando que el inicio de sesión real no aplica
+  en modo demo, en vez de intentarlo y fallar de forma confusa.
 
-Esto es intencional: no hay pantalla de login todavía (ver "Pendiente" abajo),
-así que aunque conectes Supabase, una lectura protegida por RLS sin sesión
-autenticada no devolverá filas — es el comportamiento correcto de RLS, no un bug.
+## Gap real encontrado al construir esto
+
+Ninguna de las dos tablas (`usuarios`, `conductores`) tenía política de
+**INSERT** para autoservicio — solo SELECT/UPDATE sobre el propio registro
+(0002/0003). El registro nunca podría haber completado bajo RLS real.
+Corregido en `0021_self_registro.sql`, probado con dos casos reales bajo un
+rol no-superusuario: alguien crea su propio registro (funciona) e intenta
+crear el registro de otra persona (se rechaza). `admins` no recibe una
+política equivalente a propósito — ver `panel-admin/README.md`.
+
+## Capacitor (Fase 5)
+
+Misma decisión que `app-conductor` (ver su README para el detalle completo del tradeoff): WebView remota a
+Vercel, no export estático. `npx cap add android` ya corrido.
+
+Esta app no tiene todavía una pantalla que capture evidencia fotográfica (el wizard de nuevo traslado no incluye
+ese paso — ver "Pendiente"), así que no se agregó `@capacitor/camera` aquí; sí se agregó
+`@capacitor/geolocation`: el paso de Origen del wizard tiene un botón "Usar mi ubicación actual" (solo visible
+dentro del shell nativo) que reemplaza el placeholder `lat/lng = 0` con la posición real del dispositivo.
+Geocodificación real de la dirección escrita sigue pendiente — esto solo cubre "dónde está el dispositivo ahora".
+
+Permiso agregado a mano en `android/app/src/main/AndroidManifest.xml`: `ACCESS_FINE_LOCATION` /
+`ACCESS_COARSE_LOCATION`. iOS no se agregó (requiere macOS/Xcode). Igual que en app-conductor: validado por
+`tsc`/`next build`, no por una compilación nativa real en este entorno.
+
+## Fase 6 — Stripe (cobro anticipado real)
+
+PRD §4.6 — decisión de producto: Stripe. El paso de confirmación del wizard ahora puede mostrar un formulario de
+pago real (`PagoStripe.tsx`, Stripe Elements) cuando `momentoPago.momento === "anticipado"` **y**
+`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` está configurada — sin esa variable, sigue el comportamiento anterior
+(éxito inmediato, sin cobro). El traslado se crea primero, y el PaymentIntent se crea contra ese
+`traslado_id` real (vía la Edge Function `crear-payment-intent`, ver `supabase/functions/README.md`).
+
+No se pudo probar un cobro real contra una cuenta de Stripe en este entorno — validado por `tsc`/`next build` y,
+del lado de la función, por `deno check` + `deno test` sobre su lógica de decisión.
+
+## Chat (PRD §4.12)
+
+`/traslados/[id]` ahora tiene chat en vivo con el conductor (componente `Chat` de `@ruum/ui`, Supabase Realtime
+vía `packages/api/src/services/chat.ts`). La ventana de disponibilidad usa la regla ya resuelta y probada
+`chatDisponible()` (`packages/shared/src/rules/chat-disponible.ts`, 6 tests): desde que se asigna conductor
+hasta el cierre del traslado — la versión correcta, no la de "24 horas post-cierre" que quedó descartada al
+revisar el PRD. Fuera de esa ventana, el campo de texto se deshabilita con el motivo visible.
+
+Esto es lo que faltaba para conectar Twilio (llamadas enmascaradas) después — ya hay una pantalla real donde
+agregar el botón de llamada.
 
 ## Pendiente (siguientes cortes de Fase 2)
 
-- Login / sesión de Supabase Auth — sin esto, `usuario_id` en el wizard es
-  un valor de relleno (`USUARIO_NUEVO_DEMO`), documentado en el código.
 - Pantallas de seguimiento en tiempo real (mapa), chat, calificación y
   disputa (PRD §9).
-- Geocodificación real de origen/destino — hoy son campos de texto simples,
-  `lat`/`lng` se envían en 0.
+- Geocodificación real de la dirección escrita — hoy son campos de texto
+  simples. El origen puede usar GPS real dentro del shell nativo (ver
+  Capacitor arriba); el destino sigue enviándose en `lat`/`lng = 0` siempre
+  (no tiene sentido usar la ubicación del dispositivo para "a dónde va el
+  vehículo").
 - Motor de cotización automática — hoy es un monto manual con nota explícita
   en el wizard.
+- Confirmación de correo de Supabase Auth (depende de la configuración del
+  proyecto) — el mensaje post-registro ya avisa de esto si aplica.
 
 ```
 pnpm --filter @ruum/app-usuario dev

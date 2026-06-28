@@ -11,3 +11,4 @@ export * from "./sla-disputas";
 export * from "./sla-verificacion";
 export * from "./limite-empresa";
 export * from "./cancelacion-conductor";
+export * from "./chat-disponible";

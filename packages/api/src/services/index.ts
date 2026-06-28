@@ -4,3 +4,4 @@ export * from "./usuarios";
 export * from "./conductores";
 export * from "./evidencia";
 export * from "./admin";
+export * from "./chat";

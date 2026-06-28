@@ -7,8 +7,9 @@ import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import { esElegibleParaViaje } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
-import { listarViajesDisponibles, listarViajesAceptados, aceptarViaje } from "@ruum/api/services";
+import { listarViajesDisponibles, listarViajesAceptados, aceptarViaje, obtenerConductorActual } from "@ruum/api/services";
 import { CONDUCTOR_DEMO, VIAJES_DISPONIBLES_DEMO, VIAJES_ACEPTADOS_DEMO } from "../../lib/datos-demo";
+import type { Conductor } from "@ruum/shared/types";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
@@ -23,6 +24,7 @@ export default function PaginaViajes() {
   const [cargando, setCargando] = useState(true);
   const [aceptando, setAceptando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [conductor, setConductor] = useState<Conductor>(CONDUCTOR_DEMO);
 
   useEffect(() => {
     async function cargar() {
@@ -36,17 +38,34 @@ export default function PaginaViajes() {
 
       try {
         const cliente = crearClienteNavegador();
-        // Nota: sin login real todavía (ver README), "aceptados" no puede
-        // filtrar por el conductor de la sesión — usa CONDUCTOR_DEMO.id,
-        // que es "" y por tanto no traerá filas reales hasta que exista
-        // sesión. La lista de disponibles SÍ es real (no depende de sesión).
+        const real = await obtenerConductorActual(cliente);
+        const conductorActual: Conductor | null = real
+          ? {
+              id: real.id,
+              nombre: real.nombre,
+              estado: real.estado,
+              calificacion_promedio: real.calificacion_promedio,
+              traslados_completados: real.traslados_completados,
+              suspensiones_activas: real.suspensiones_activas,
+              no_presentaciones_6m: real.no_presentaciones_6m,
+              cancelaciones_sin_justificacion_count: real.cancelaciones_sin_justificacion_count,
+              documentos_vigentes: real.documentos_vigentes,
+              certificaciones: [],
+              incidencias_graves_6m: real.incidencias_graves_6m,
+              incidencias_graves_12m: real.incidencias_graves_12m,
+              creado_en: real.creado_en
+            }
+          : null;
+
+        if (conductorActual) setConductor(conductorActual);
+
         const [listaDisponibles, listaAceptados] = await Promise.all([
           listarViajesDisponibles(cliente),
-          CONDUCTOR_DEMO.id ? listarViajesAceptados(cliente, CONDUCTOR_DEMO.id) : Promise.resolve([])
+          conductorActual ? listarViajesAceptados(cliente, conductorActual.id) : Promise.resolve([])
         ]);
         setDisponibles(listaDisponibles);
         setAceptados(listaAceptados);
-        setEsDemo(false);
+        setEsDemo(!conductorActual);
       } catch {
         setDisponibles(VIAJES_DISPONIBLES_DEMO);
         setAceptados(VIAJES_ACEPTADOS_DEMO);
@@ -72,7 +91,7 @@ export default function PaginaViajes() {
 
     try {
       const cliente = crearClienteNavegador();
-      await aceptarViaje(cliente, trasladoId, CONDUCTOR_DEMO.id);
+      await aceptarViaje(cliente, trasladoId, conductor.id);
       setDisponibles((prev) => prev.filter((v) => v.traslado_id !== trasladoId));
       setAviso("Viaje aceptado.");
     } catch (err) {
@@ -130,7 +149,7 @@ export default function PaginaViajes() {
             // se capturen como lat/lng=0 (placeholder), se asume "intraurbana"
             // para no inventar una clasificación de ruta sin datos reales.
             const elegibilidad = viaje.vehiculo_tipo
-              ? esElegibleParaViaje(CONDUCTOR_DEMO, viaje.vehiculo_tipo, "intraurbana")
+              ? esElegibleParaViaje(conductor, viaje.vehiculo_tipo, "intraurbana")
               : { elegible: true };
 
             return (

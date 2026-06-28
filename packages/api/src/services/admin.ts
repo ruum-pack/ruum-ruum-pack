@@ -11,6 +11,16 @@ type NotaRow = Database["public"]["Tables"]["notas_internas_traslado"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 type EstadoConductor = Database["public"]["Enums"]["estado_conductor"];
 
+/** Admin asociado a la sesión de Supabase Auth actual, si existe (mismo patrón que obtenerUsuarioActual/obtenerConductorActual). */
+export async function obtenerAdminActual(cliente: Cliente) {
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) return null;
+
+  const { data, error } = await cliente.from("admins").select("*").eq("auth_user_id", sesion.user.id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 const ESTADOS_TERMINALES: EstadoTraslado[] = ["servicio_cerrado", "servicio_cancelado", "traslado_fallido"];
 
 export interface MetricasDashboard {

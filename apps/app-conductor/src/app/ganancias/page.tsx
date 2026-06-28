@@ -1,6 +1,13 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Aviso, PassportCard } from "@ruum/ui";
+import { Aviso, Button, PassportCard } from "@ruum/ui";
+import type { Database } from "@ruum/shared/types";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { GANANCIAS_DEMO, RESUMEN_SEMANAL_DEMO } from "../../lib/datos-demo";
+
+type EstadoCuentaStripe = Database["public"]["Enums"]["estado_cuenta_stripe"];
 
 const ETIQUETA_ESTATUS: Record<(typeof GANANCIAS_DEMO)[number]["estatus"], string> = {
   pagado: "Pagado",
@@ -14,7 +21,51 @@ const TONO_ESTATUS: Record<(typeof GANANCIAS_DEMO)[number]["estatus"], "info" | 
   en_revision: "atencion"
 };
 
+const ETIQUETA_CUENTA_STRIPE: Record<EstadoCuentaStripe, string> = {
+  pendiente_onboarding: "Configuración en proceso",
+  activa: "Cuenta activa",
+  rechazada: "Cuenta rechazada por Stripe",
+  deshabilitada: "Cuenta deshabilitada"
+};
+
 export default function PaginaGanancias() {
+  const [estadoCuenta, setEstadoCuenta] = useState<EstadoCuentaStripe | "sin_cuenta" | null>(null);
+  const [conectando, setConectando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function cargar() {
+      if (!tieneSupabaseConfigurado()) return;
+      try {
+        const cliente = crearClienteNavegador();
+        const { data } = await cliente.from("cuentas_conductor_stripe").select("estado").maybeSingle();
+        setEstadoCuenta(data?.estado ?? "sin_cuenta");
+      } catch {
+        // Sin sesión real o sin fila todavía — se trata igual que "sin_cuenta".
+        setEstadoCuenta("sin_cuenta");
+      }
+    }
+    cargar();
+  }, []);
+
+  // PRD §4.6 — Stripe Connect (Express) para el pago semanal al conductor.
+  // No se pudo probar contra una cuenta de Stripe real en este entorno; la
+  // Edge Function (crear-cuenta-conductor-stripe) está validada con
+  // `deno check`, no con un onboarding real completado.
+  async function conectarStripe() {
+    setConectando(true);
+    setError(null);
+    try {
+      const cliente = crearClienteNavegador();
+      const { data, error: errorFuncion } = await cliente.functions.invoke("crear-cuenta-conductor-stripe");
+      if (errorFuncion) throw errorFuncion;
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No pudimos iniciar la conexión con Stripe.");
+      setConectando(false);
+    }
+  }
+
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <Link href="/" className="font-body text-sm text-ink/55 hover:text-ink">
@@ -25,11 +76,38 @@ export default function PaginaGanancias() {
 
       <div className="mt-4">
         <Aviso tono="info">
-          Esta pantalla es 100% datos de ejemplo. El pago semanal al conductor (PRD §4.6) todavía no tiene una tabla
-          propia en el esquema — es un proceso distinto al cobro al usuario (supabase/migrations/0007_pagos.sql) y
-          queda pendiente de modelarse junto con la integración de pagos.
+          El resumen y el detalle por viaje de abajo son 100% datos de ejemplo — los payouts reales (PRD §4.6) se
+          modelan en <code>payouts_conductor</code> (Fase 6), pero todavía no hay transferencias reales que mostrar
+          sin una cuenta de Stripe conectada y traslados cobrados de verdad.
         </Aviso>
       </div>
+
+      {tieneSupabaseConfigurado() && (
+        <section className="mt-6">
+          <PassportCard>
+            <p className="font-body text-xs uppercase tracking-wide text-ink/45">Cuenta de pagos (Stripe)</p>
+            {error && (
+              <div className="mt-2">
+                <Aviso tono="peligro">{error}</Aviso>
+              </div>
+            )}
+            <div className="mt-3 flex items-center justify-between">
+              <p className="font-body text-sm">
+                {estadoCuenta === null
+                  ? "Consultando…"
+                  : estadoCuenta === "sin_cuenta"
+                    ? "Todavía no has conectado una cuenta de pagos."
+                    : ETIQUETA_CUENTA_STRIPE[estadoCuenta]}
+              </p>
+              {(estadoCuenta === "sin_cuenta" || estadoCuenta === "pendiente_onboarding") && (
+                <Button onClick={conectarStripe} disabled={conectando}>
+                  {conectando ? "Conectando…" : estadoCuenta === "sin_cuenta" ? "Conectar Stripe" : "Continuar configuración"}
+                </Button>
+              )}
+            </div>
+          </PassportCard>
+        </section>
+      )}
 
       <section className="mt-6">
         <PassportCard>

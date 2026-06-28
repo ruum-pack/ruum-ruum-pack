@@ -388,6 +388,8 @@ export interface Database {
           estado: Database["public"]["Enums"]["estado_pago"];
           metodo: string;
           registrado_en: string;
+          stripe_payment_intent_id: string | null;
+          stripe_event_id: string | null;
         };
         Insert: {
           id?: string;
@@ -397,6 +399,8 @@ export interface Database {
           estado?: Database["public"]["Enums"]["estado_pago"];
           metodo: string;
           registrado_en?: string;
+          stripe_payment_intent_id?: string | null;
+          stripe_event_id?: string | null;
         };
         Update: {
           id?: string;
@@ -406,12 +410,97 @@ export interface Database {
           estado?: Database["public"]["Enums"]["estado_pago"];
           metodo?: string;
           registrado_en?: string;
+          stripe_payment_intent_id?: string | null;
+          stripe_event_id?: string | null;
         };
         Relationships: [
           {
             foreignKeyName: "pagos_traslado_id_fkey";
             columns: ["traslado_id"];
             referencedRelation: "traslados";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      cuentas_conductor_stripe: {
+        Row: {
+          id: string;
+          conductor_id: string;
+          stripe_account_id: string;
+          estado: Database["public"]["Enums"]["estado_cuenta_stripe"];
+          creado_en: string;
+          actualizado_en: string;
+        };
+        Insert: {
+          id?: string;
+          conductor_id: string;
+          stripe_account_id: string;
+          estado?: Database["public"]["Enums"]["estado_cuenta_stripe"];
+          creado_en?: string;
+          actualizado_en?: string;
+        };
+        Update: {
+          id?: string;
+          conductor_id?: string;
+          stripe_account_id?: string;
+          estado?: Database["public"]["Enums"]["estado_cuenta_stripe"];
+          creado_en?: string;
+          actualizado_en?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cuentas_conductor_stripe_conductor_id_fkey";
+            columns: ["conductor_id"];
+            referencedRelation: "conductores";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      payouts_conductor: {
+        Row: {
+          id: string;
+          conductor_id: string;
+          periodo_inicio: string;
+          periodo_fin: string;
+          monto_bruto: number;
+          ajustes: number;
+          monto_neto: number;
+          estado: Database["public"]["Enums"]["estado_payout"];
+          stripe_transfer_id: string | null;
+          creado_en: string;
+          procesado_en: string | null;
+        };
+        Insert: {
+          id?: string;
+          conductor_id: string;
+          periodo_inicio: string;
+          periodo_fin: string;
+          monto_bruto: number;
+          ajustes?: number;
+          monto_neto: number;
+          estado?: Database["public"]["Enums"]["estado_payout"];
+          stripe_transfer_id?: string | null;
+          creado_en?: string;
+          procesado_en?: string | null;
+        };
+        Update: {
+          id?: string;
+          conductor_id?: string;
+          periodo_inicio?: string;
+          periodo_fin?: string;
+          monto_bruto?: number;
+          ajustes?: number;
+          monto_neto?: number;
+          estado?: Database["public"]["Enums"]["estado_payout"];
+          stripe_transfer_id?: string | null;
+          creado_en?: string;
+          procesado_en?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payouts_conductor_conductor_id_fkey";
+            columns: ["conductor_id"];
+            referencedRelation: "conductores";
             referencedColumns: ["id"];
           }
         ];
@@ -863,6 +952,8 @@ export interface Database {
       angulo_evidencia: "frente" | "lado_piloto" | "lado_copiloto" | "trasera" | "tablero" | "dano_previo" | "adicional";
       momento_pago: "anticipado" | "al_cierre";
       estado_pago: "pendiente" | "completado" | "reembolsado" | "fallido";
+      estado_cuenta_stripe: "pendiente_onboarding" | "activa" | "rechazada" | "deshabilitada";
+      estado_payout: "pendiente" | "procesado" | "fallido";
       tipo_incidencia:
         | "vehiculo_no_enciende"
         | "contacto_no_localizado"

@@ -1,13 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Field, Aviso, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import { determinarMomentoPago, calcularCargoCancelacion } from "@ruum/shared/rules";
 import type { TipoVehiculo } from "@ruum/shared/types";
+import type { TipoCuenta, Usuario } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
-import { crearVehiculo } from "@ruum/api/services";
-import { crearTraslado } from "@ruum/api/services";
+import { crearVehiculo, crearTraslado, obtenerUsuarioActual } from "@ruum/api/services";
+import { esNativo } from "../../../lib/capacitor";
+import { obtenerUbicacionActual } from "../../../lib/ubicacion";
+import { PagoStripe } from "../../PagoStripe";
 
 const PASOS = ["Vehículo", "Documentos", "Origen y destino", "Contactos", "Cotización", "Confirmación"] as const;
 
@@ -25,6 +29,11 @@ interface DatosFormulario {
   // Origen / destino
   origenDireccion: string;
   origenCiudad: string;
+  // Solo se llenan dentro del shell nativo, vía "Usar mi ubicación actual"
+  // (lib/ubicacion.ts). Geocodificación real de la dirección sigue
+  // pendiente — sin esto, origen_lat/lng se siguen enviando en 0.
+  origenLat?: number;
+  origenLng?: number;
   destinoDireccion: string;
   destinoCiudad: string;
   // Contactos — PRD §4.1
@@ -57,9 +66,11 @@ const VALORES_INICIALES: DatosFormulario = {
   precioEstimado: ""
 };
 
-// Usuario sin historial (PRD §4.6): es el caso real de alguien que llena
-// este formulario por primera vez, antes de tener cuenta con historial.
-// Una vez exista login real, este objeto debe venir de la sesión.
+// Usuario sin historial (PRD §4.6): valor de respaldo mientras se confirma
+// si hay sesión real (ver useEffect en el componente). Si Supabase está
+// configurado y hay sesión, se reemplaza por el usuario real de
+// obtenerUsuarioActual(); si no hay sesión, enviarSolicitud() manda a
+// /login en vez de usar este id vacío contra la base real.
 const USUARIO_NUEVO_DEMO = {
   id: "",
   tipo_cuenta: "personal" as const,
@@ -71,12 +82,47 @@ const USUARIO_NUEVO_DEMO = {
 };
 
 export default function PaginaNuevoTraslado() {
+  const router = useRouter();
   const [paso, setPaso] = useState(0);
   const [datos, setDatos] = useState<DatosFormulario>(VALORES_INICIALES);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<{ ok: boolean; mensaje: string } | null>(null);
+  const [trasladoCreadoId, setTrasladoCreadoId] = useState<string | null>(null);
+  const [usuario, setUsuario] = useState<Usuario>(USUARIO_NUEVO_DEMO);
+  const [sesionReal, setSesionReal] = useState(false);
 
-  const momentoPago = useMemo(() => determinarMomentoPago(USUARIO_NUEVO_DEMO), []);
+  // Si hay sesión real, usa el usuario real (PRD §4.6: su historial decide
+  // pago anticipado vs. al cierre); si no, sigue en modo demo como antes.
+  // tipo_cuenta/rol/estado_verificacion se castean desde el tipo de columna
+  // de la base (texto con CHECK, no enum nativo — ver 0002_usuarios.sql) al
+  // tipo conceptual más estrecho que ya usan las reglas de negocio.
+  useEffect(() => {
+    async function cargarUsuario() {
+      if (!tieneSupabaseConfigurado()) return;
+      try {
+        const cliente = crearClienteNavegador();
+        const real = await obtenerUsuarioActual(cliente);
+        if (real) {
+          setUsuario({
+            id: real.id,
+            tipo_cuenta: real.tipo_cuenta as TipoCuenta,
+            rol: real.rol,
+            ...(real.empresa_id ? { empresa_id: real.empresa_id } : {}),
+            estado_verificacion: real.estado_verificacion,
+            traslados_completados_sin_incidencia: real.traslados_completados_sin_incidencia,
+            metodo_pago_registrado: real.metodo_pago_registrado,
+            creado_en: real.creado_en
+          });
+          setSesionReal(true);
+        }
+      } catch {
+        // Sigue en modo demo si algo falla al consultar la sesión.
+      }
+    }
+    cargarUsuario();
+  }, []);
+
+  const momentoPago = useMemo(() => determinarMomentoPago(usuario), [usuario]);
   const politicaCancelacion = useMemo(() => calcularCargoCancelacion(Number(datos.precioEstimado) || 0, 0, false, false), [
     datos.precioEstimado
   ]);
@@ -101,13 +147,19 @@ export default function PaginaNuevoTraslado() {
       return;
     }
 
+    if (!sesionReal) {
+      // Supabase sí está configurado, pero no hay sesión: usuario.id sería
+      // "" y la inserción real fallaría contra RLS (no hay fila propia que
+      // crear/usar). Mejor mandarlo a iniciar sesión que fallar en silencio.
+      setEnviando(false);
+      router.push("/login");
+      return;
+    }
+
     try {
       const cliente = crearClienteNavegador();
-      // Nota: requiere un usuario_id real de una sesión autenticada; el
-      // login todavía no existe en este corte, así que esta rama solo
-      // queda lista para conectarse en cuanto exista auth.
       const vehiculo = await crearVehiculo(cliente, {
-        usuario_id: USUARIO_NUEVO_DEMO.id,
+        usuario_id: usuario.id,
         tipo: datos.tipo,
         marca: datos.marca,
         modelo: datos.modelo,
@@ -118,15 +170,15 @@ export default function PaginaNuevoTraslado() {
         puede_circular_rodando: datos.puedeCircular
       });
 
-      await crearTraslado(cliente, {
-        usuario_id: USUARIO_NUEVO_DEMO.id,
+      const nuevoTraslado = await crearTraslado(cliente, {
+        usuario_id: usuario.id,
         vehiculo_id: vehiculo.id,
         contacto_entrega_nombre: datos.entregaNombre,
         contacto_entrega_telefono: datos.entregaTelefono,
         contacto_recepcion_nombre: datos.recepcionNombre,
         contacto_recepcion_telefono: datos.recepcionTelefono,
-        origen_lat: 0,
-        origen_lng: 0,
+        origen_lat: datos.origenLat ?? 0,
+        origen_lng: datos.origenLng ?? 0,
         origen_direccion: datos.origenDireccion,
         origen_ciudad: datos.origenCiudad,
         destino_lat: 0,
@@ -136,6 +188,16 @@ export default function PaginaNuevoTraslado() {
         precio_cotizado: Number(datos.precioEstimado) || 0,
         tipo_pago: momentoPago.momento
       });
+
+      // PRD §4.6 — pago anticipado real solo si Stripe está configurado;
+      // si no, sigue el comportamiento anterior (éxito inmediato, cobro
+      // pendiente de implementarse). "al_cierre" nunca pasa por aquí — se
+      // cobra hasta el cierre del traslado, no al solicitarlo.
+      if (momentoPago.momento === "anticipado" && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+        setTrasladoCreadoId(nuevoTraslado.id);
+        setEnviando(false);
+        return;
+      }
 
       setResultado({ ok: true, mensaje: "Solicitud creada. Te avisaremos cuando se confirme la cotización." });
     } catch (err) {
@@ -152,6 +214,25 @@ export default function PaginaNuevoTraslado() {
     return (
       <main className="mx-auto max-w-xl px-6 py-20">
         <Aviso tono={resultado.ok ? "info" : "peligro"}>{resultado.mensaje}</Aviso>
+      </main>
+    );
+  }
+
+  if (trasladoCreadoId) {
+    return (
+      <main className="mx-auto max-w-xl px-6 py-12">
+        <h1 className="font-display text-2xl font-semibold">Pago anticipado</h1>
+        <p className="mt-2 font-body text-sm text-ink/60">
+          Tu solicitud ya quedó creada — confirma el pago para enviarla a cotización.
+        </p>
+        <div className="mt-6">
+          <PagoStripe
+            trasladoId={trasladoCreadoId}
+            onPagado={() =>
+              setResultado({ ok: true, mensaje: "Pago confirmado. Te avisaremos cuando se confirme la cotización." })
+            }
+          />
+        </div>
       </main>
     );
   }
@@ -248,6 +329,26 @@ export default function PaginaNuevoTraslado() {
                 value={datos.origenCiudad}
                 onChange={(e) => actualizar("origenCiudad", e.target.value)}
               />
+              {esNativo() && (
+                <div>
+                  <Button
+                    type="button"
+                    variant="secundario"
+                    onClick={async () => {
+                      const coords = await obtenerUbicacionActual();
+                      if (coords) {
+                        actualizar("origenLat", coords.lat);
+                        actualizar("origenLng", coords.lng);
+                      }
+                    }}
+                  >
+                    Usar mi ubicación actual
+                  </Button>
+                  {datos.origenLat !== undefined && (
+                    <p className="mt-1 font-body text-xs text-ink/45">Ubicación capturada ✓</p>
+                  )}
+                </div>
+              )}
               <p className="mt-2 font-body text-sm font-semibold">Destino</p>
               <Field
                 etiqueta="Dirección"

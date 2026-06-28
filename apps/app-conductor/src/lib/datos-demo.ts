@@ -107,6 +107,37 @@ export const VIAJES_ACEPTADOS_DEMO: PasaporteRow[] = [
     evidencia_final_fotos_sincronizadas: 0,
     incidencias_abiertas: 0,
     monto_pagado: 1500
+  },
+  {
+    // Único propósito de este registro: dejar un viaje demo alcanzable
+    // tocando pantalla (Aceptados → Ver detalle → botón) que ya esté en
+    // evidencia_inicial_en_proceso, para poder probar la cámara real sin
+    // depender de que el modo demo avance estados (no lo hace — el botón
+    // "avanzar" en modo demo no modifica datos, ver AccionesViaje.tsx).
+    traslado_id: "demo-aceptado-002",
+    usuario_id: "demo-usuario-5",
+    vehiculo_id: "demo-vehiculo-5",
+    conductor_id: "demo-conductor",
+    estado: "evidencia_inicial_en_proceso",
+    tiene_incidencia_abierta: false,
+    tipo_pago: "anticipado",
+    causa_fallido: null,
+    precio_cotizado: 1200,
+    precio_final: null,
+    creado_en: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    actualizado_en: new Date().toISOString(),
+    vehiculo_tipo: "suv",
+    vehiculo_marca: "Mazda",
+    vehiculo_modelo: "CX-5",
+    vehiculo_anio: 2023,
+    conductor_nombre: "Conductor Demo",
+    conductor_estado: "activo",
+    conductor_nivel: "ejecutivo",
+    conductor_calificacion: 4.6,
+    evidencia_inicial_fotos_sincronizadas: 0,
+    evidencia_final_fotos_sincronizadas: 0,
+    incidencias_abiertas: 0,
+    monto_pagado: 0
   }
 ];
 

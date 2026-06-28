@@ -8,6 +8,10 @@ import { ANGULOS_OBLIGATORIOS } from "@ruum/shared/types";
 import type { AnguloEvidencia, FotoEvidencia, TipoEvidencia } from "@ruum/shared/types";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
+import { esNativo } from "../../../../lib/capacitor";
+import { capturarFoto } from "../../../../lib/camara";
+import { obtenerUbicacionActual } from "../../../../lib/ubicacion";
+import { encolarEvidencia } from "../../../../lib/cola-offline";
 import {
   obtenerPasaporteDigital,
   obtenerEvidenciaDeTraslado,
@@ -122,6 +126,35 @@ export default function PaginaEvidencia() {
       return;
     }
 
+    // Dentro del shell nativo: cámara y GPS reales, encolados localmente
+    // (ver lib/cola-offline.ts) porque Supabase Storage todavía no está
+    // conectado — no hay a dónde subir los bytes de la foto todavía, pero
+    // la captura misma ya no es un botón sin efecto.
+    if (esNativo()) {
+      try {
+        const foto = await capturarFoto();
+        if (!foto) {
+          setAviso("No pudimos abrir la cámara. Intenta de nuevo.");
+          setEnviando(null);
+          return;
+        }
+        const coords = await obtenerUbicacionActual();
+        await encolarEvidencia({
+          localId: crypto.randomUUID(),
+          trasladoId: id,
+          tipo,
+          angulo,
+          dataUrl: foto.dataUrl,
+          ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
+          capturadaEn: new Date().toISOString()
+        });
+      } catch (err) {
+        setAviso(err instanceof Error ? err.message : "No pudimos capturar la foto.");
+        setEnviando(null);
+        return;
+      }
+    }
+
     try {
       const cliente = crearClienteNavegador();
       await registrarAnguloCapturado(cliente, id, tipo, angulo);
@@ -190,7 +223,7 @@ export default function PaginaEvidencia() {
                   <span className="font-body text-xs font-medium text-ok">Capturado</span>
                 ) : (
                   <Button variant="secundario" onClick={() => capturar(angulo)} disabled={enviando === angulo}>
-                    {enviando === angulo ? "Guardando…" : "Marcar capturado"}
+                    {enviando === angulo ? "Guardando…" : esNativo() ? "Tomar foto" : "Marcar capturado"}
                   </Button>
                 )}
               </div>

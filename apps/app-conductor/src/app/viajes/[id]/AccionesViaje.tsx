@@ -22,9 +22,16 @@ const ETIQUETA_SIGUIENTE_PASO: Partial<Record<EstadoTraslado, string>> = {
   conductor_en_camino_al_origen: "Llegué al punto de recolección",
   conductor_en_punto_de_recoleccion: "Iniciar verificación del vehículo",
   verificacion_vehiculo_en_proceso: "Iniciar evidencia inicial",
+  // Bug real: faltaban estos dos. El estado de "...en_proceso" es donde la
+  // pantalla SÍ necesita mostrar el botón hacia /evidencia (lo decide
+  // requiereEvidencia más abajo) — sin una etiqueta aquí, el bail-out
+  // `if (!etiqueta) return null` ocultaba el botón justo cuando debía
+  // aparecer, no solo en el paso anterior que lleva hasta aquí.
+  evidencia_inicial_en_proceso: "Continuar evidencia inicial",
   vehiculo_recibido: "Iniciar traslado",
   traslado_en_curso: "Llegué a destino",
   llegada_a_destino: "Iniciar evidencia final",
+  evidencia_final_en_proceso: "Continuar evidencia final",
   evidencia_final_completada: "Confirmar entrega"
 };
 

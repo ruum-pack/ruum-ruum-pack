@@ -5,6 +5,7 @@ import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import { VIAJES_DISPONIBLES_DEMO, VIAJES_ACEPTADOS_DEMO } from "../../../lib/datos-demo";
 import { AccionesViaje } from "./AccionesViaje";
+import { ChatViaje } from "./ChatViaje";
 
 const TODOS_LOS_DEMO = [...VIAJES_DISPONIBLES_DEMO, ...VIAJES_ACEPTADOS_DEMO];
 
@@ -93,6 +94,8 @@ export default async function PaginaDetalleViaje({ params }: { params: Promise<{
 
         <AccionesViaje trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} esDemo={esDemo} />
       </PassportCard>
+
+      <ChatViaje trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />
     </main>
   );
 }

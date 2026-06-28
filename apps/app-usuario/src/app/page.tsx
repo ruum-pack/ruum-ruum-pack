@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button, EstadoStepper, PassportCard, EstadoBadge } from "@ruum/ui";
 import { PASAPORTE_DEMO } from "../lib/datos-demo";
+import { BotonCerrarSesion } from "./BotonCerrarSesion";
 
 const PILARES = [
   {
@@ -20,14 +21,40 @@ const PILARES = [
   }
 ];
 
-export default function PaginaInicio() {
+async function haySesionReal(): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return false;
+
+  try {
+    const { crearClienteServidor } = await import("../lib/supabase-server");
+    const cliente = await crearClienteServidor();
+    const { data } = await cliente.auth.getUser();
+    return Boolean(data.user);
+  } catch {
+    return false;
+  }
+}
+
+export default async function PaginaInicio() {
+  const sesion = await haySesionReal();
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
       <header className="mb-16 flex items-center justify-between">
         <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
-        <Link href="/traslados/demo-0001" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
-          Ver un traslado de ejemplo
-        </Link>
+        <div className="flex items-center gap-5">
+          <Link href="/traslados/demo-0001" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
+            Ver un traslado de ejemplo
+          </Link>
+          {sesion ? (
+            <BotonCerrarSesion />
+          ) : (
+            <Link href="/login" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
+              Iniciar sesión
+            </Link>
+          )}
+        </div>
       </header>
 
       <section className="grid gap-12 sm:grid-cols-[1.1fr_0.9fr] sm:items-center">
@@ -43,9 +70,11 @@ export default function PaginaInicio() {
             <Link href="/traslados/nuevo">
               <Button>Solicitar traslado</Button>
             </Link>
-            <Link href="/registro" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
-              Crear mi cuenta
-            </Link>
+            {!sesion && (
+              <Link href="/registro" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
+                Crear mi cuenta
+              </Link>
+            )}
           </div>
         </div>
 

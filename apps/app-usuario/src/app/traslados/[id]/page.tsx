@@ -4,6 +4,7 @@ import { obtenerPasaporteDigital } from "@ruum/api/services";
 import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import { PASAPORTE_DEMO } from "../../../lib/datos-demo";
+import { ChatTraslado } from "./ChatTraslado";
 
 async function obtenerDatos(id: string) {
   if (id === "demo-0001") {
@@ -101,6 +102,8 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
           </div>
         </dl>
       </PassportCard>
+
+      <ChatTraslado trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />
     </main>
   );
 }

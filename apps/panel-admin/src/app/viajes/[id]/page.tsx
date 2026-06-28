@@ -14,7 +14,8 @@ import {
   obtenerNotasInternas,
   agregarNotaInterna,
   asignarConductorAdmin,
-  cambiarEstatusAdmin
+  cambiarEstatusAdmin,
+  obtenerAdminActual
 } from "@ruum/api/services";
 import { VIAJES_DEMO, CONDUCTORES_DEMO, ADMIN_DEMO } from "../../../lib/datos-demo";
 
@@ -37,6 +38,7 @@ export default function PaginaDetalleViajeAdmin() {
   const [notaNueva, setNotaNueva] = useState("");
   const [procesando, setProcesando] = useState<"conductor" | "estado" | "nota" | null>(null);
   const [aviso, setAviso] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
+  const [adminId, setAdminId] = useState(ADMIN_DEMO.id);
 
   useEffect(() => {
     async function cargar() {
@@ -52,14 +54,16 @@ export default function PaginaDetalleViajeAdmin() {
 
       try {
         const cliente = crearClienteNavegador();
-        const [p, conds, notasReales] = await Promise.all([
+        const [p, conds, notasReales, adminReal] = await Promise.all([
           obtenerPasaporteDigital(cliente, id),
           listarConductoresAdmin(cliente),
-          obtenerNotasInternas(cliente, id)
+          obtenerNotasInternas(cliente, id),
+          obtenerAdminActual(cliente)
         ]);
         setPasaporte(p);
         setConductores(conds.filter((c) => c.estado === "activo" || c.estado === "modo_prueba_supervisada"));
         setNotas(notasReales);
+        if (adminReal) setAdminId(adminReal.id);
         setEsDemo(false);
       } catch {
         setPasaporte(demo ?? null);
@@ -139,7 +143,7 @@ export default function PaginaDetalleViajeAdmin() {
 
     try {
       const cliente = crearClienteNavegador();
-      await agregarNotaInterna(cliente, pasaporte.traslado_id, ADMIN_DEMO.id, notaNueva);
+      await agregarNotaInterna(cliente, pasaporte.traslado_id, adminId, notaNueva);
       setNotas(await obtenerNotasInternas(cliente, pasaporte.traslado_id));
       setNotaNueva("");
     } catch (err) {
