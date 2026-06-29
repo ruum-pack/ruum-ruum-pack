@@ -107,6 +107,23 @@ disponibilidad. Llama a la Edge Function `crear-llamada-enmascarada` (Twilio Pro
 el número virtual que regresa — no hay softphone embebido, es un puente hacia el marcador nativo del teléfono.
 `/registro` ahora pide el teléfono (formato `+52...`), porque sin eso Twilio no tiene a quién llamar.
 
+## Inicio (Fase 2, segundo corte)
+
+`/` ahora tiene dos caras: la landing pública de siempre para quien no tiene sesión, y la sección de Inicio
+(PRD §14) para quien sí la tiene — mensaje central, viaje activo con su estatus, notificaciones derivadas del
+estado real de los traslados (no hay tabla de notificaciones en el esquema), accesos rápidos, últimos viajes y
+los mismos pilares de confianza. Previsualizable sin sesión real con `/?demo=1`.
+
+## Pago al cierre — gap cerrado
+
+`PagoStripe.tsx` solo se montaba en el wizard de nuevo traslado (pago anticipado); un traslado con pago al
+cierre llegaba a `pago_pendiente` sin ningún botón real para pagar — la Edge Function `crear-payment-intent`
+rechazaba cualquier `tipo_pago` que no fuera `"anticipado"`. Ver el detalle del fix en
+`supabase/functions/README.md`. Del lado de esta app: `traslados/[id]/PagoTraslado.tsx` monta el mismo
+`PagoStripe` dentro del Pasaporte Digital cuando `estado === "pago_pendiente"`, con su propio aviso de modo
+demo/Stripe no configurado (mismo criterio que el wizard).
+
+
 ## Pendiente (siguientes cortes de Fase 2)
 
 - Pantallas de seguimiento en tiempo real (mapa), chat, calificación y

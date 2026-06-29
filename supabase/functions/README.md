@@ -7,7 +7,7 @@ conductor). PRD §4.12 — decisión de producto: **Twilio Proxy** (llamadas enm
 
 | Función | Quién la llama | Qué hace |
 |---|---|---|
-| `crear-payment-intent` | `app-usuario`, wizard de nuevo traslado | Crea un PaymentIntent para el traslado recién creado y registra la fila `pagos` (estado `pendiente`) |
+| `crear-payment-intent` | `app-usuario`: wizard de nuevo traslado (pago anticipado) y `/traslados/[id]` (pago al cierre) | Crea un PaymentIntent para el traslado y registra la fila `pagos` (estado `pendiente`) |
 | `stripe-webhook` | Stripe (servidor a servidor) | Recibe los eventos de Stripe y actualiza `pagos`, `cuentas_conductor_stripe` y `payouts_conductor` |
 | `crear-cuenta-conductor-stripe` | `app-conductor`, pantalla Ganancias | Crea (si no existe) la cuenta Stripe Connect Express del conductor y devuelve la URL de onboarding |
 | `crear-llamada-enmascarada` | Ambas apps, pantalla de chat del traslado | Crea (o reutiliza) la sesión de Twilio Proxy del traslado y devuelve el número virtual al que el cliente abre un enlace `tel:` |
@@ -22,10 +22,20 @@ La lógica de decisión de las 4 funciones está separada en archivos `logica.ts
 Connect Express en México, Account Link de onboarding — las tres con HTTP 200). **Twilio no se pudo probar
 contra su API real** — a diferencia de Stripe, no se compartieron credenciales de Twilio en esta sesión.
 
+**`stripe-webhook/index.ts` (el handler completo, no solo `logica.ts`) ya se ejecutó de verdad**, vía
+`stripe-webhook/integration-test/` (ver su README): un mock local de PostgREST + un evento de Stripe firmado
+con el mismo esquema HMAC que usa Stripe de verdad (sin red hacia Stripe — es matemática local), enviado por
+HTTP al `index.ts` real corriendo con `deno serve`. 6 casos, sobre el handler real: pago al cierre completado
+(el camino que se cerró en este corte), pago anticipado completado (confirma que no se rompió), pago fallido,
+idempotencia ante reintento de Stripe, evento no manejado, y firma inválida — los 6 pasan. Esto es más fuerte
+que solo probar `logica.ts`, pero sigue sin ser un sustituto de probar contra Stripe real: la forma del evento
+se armó a mano siguiendo la documentación pública de Stripe, no se copió de un evento real capturado, y no hay
+Postgres/RLS de verdad detrás del mock.
+
 Lo que **todavía no** se pudo probar para ninguna de las dos integraciones: las funciones desplegadas de verdad
-en Supabase, la verificación de firma del webhook de Stripe contra un evento real, y el flujo completo
-end-to-end desde la UI (incluyendo que un enlace `tel:` realmente abra el marcador nativo con el número de
-Twilio Proxy).
+en Supabase, la verificación de firma del webhook de Stripe contra un evento real *de Stripe* (la de arriba es
+una firma propia, válida criptográficamente pero no emitida por Stripe), y el flujo completo end-to-end desde
+la UI (incluyendo que un enlace `tel:` realmente abra el marcador nativo con el número de Twilio Proxy).
 
 ```bash
 # Stripe — instalar Stripe CLI en tu máquina, luego:
@@ -44,6 +54,21 @@ objeto `Payout` distinto, del lado de la cuenta conectada, no cubierto en este c
 Un gap real encontrado al construir Twilio: **ni `usuarios` ni `conductores` tenían columna de teléfono** — sin
 eso, Twilio Proxy no tiene a quién relacionar con el número virtual. Corregido en `0023_telefonos_twilio.sql`,
 y `/registro` de ambas apps ahora lo captura.
+
+## Gap real encontrado y cerrado: `crear-payment-intent` solo aceptaba pago anticipado
+
+`estadoTrasladoSiguienteTrasPago` (en `stripe-webhook/logica.ts`) ya sabía manejar un pago `al_cierre` desde
+hace tiempo — pero nada del lado del cliente podía llegar a dispararlo: `crear-payment-intent` rechazaba con
+422 cualquier traslado cuyo `tipo_pago` no fuera `"anticipado"`, y `/traslados/[id]` no tenía ningún botón de
+pago. Un traslado con pago al cierre llegaba a `pago_pendiente` y se quedaba ahí, sin manera real de cerrarse.
+
+Corregido: la función ahora acepta `tipo_pago = "al_cierre"` siempre que el traslado esté en estado
+`pago_pendiente` (el único punto del camino feliz donde ese cobro tiene sentido — ver `TRANSICIONES`,
+`entrega_confirmada -> pago_pendiente -> pago_completado`); el pago anticipado sigue funcionando igual que
+antes, sin ese requisito de estado. También empieza a usar `precio_final` si ya existe (en vez de cobrar
+siempre `precio_cotizado`), aunque hoy ninguna pantalla escribe esa columna todavía — queda lista para cuando
+se modele un ajuste de precio al cierre. Del lado de `app-usuario`, `PagoTraslado.tsx` monta el mismo
+`PagoStripe` del wizard dentro del Pasaporte Digital cuando `estado === "pago_pendiente"`.
 
 ## Variables de entorno (Supabase Dashboard → Edge Functions → Secrets, nunca en el repo)
 

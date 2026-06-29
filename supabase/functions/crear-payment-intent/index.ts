@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
 
   const { data: traslado, error: errorTraslado } = await clienteUsuario
     .from("traslados")
-    .select("id, precio_cotizado, tipo_pago")
+    .select("id, precio_cotizado, precio_final, tipo_pago, estado")
     .eq("id", traslado_id)
     .single();
 
@@ -62,12 +62,34 @@ Deno.serve(async (req) => {
     return respuestaJson({ error: "Traslado no encontrado" }, 404);
   }
 
-  if (!traslado.precio_cotizado || traslado.precio_cotizado <= 0) {
-    return respuestaJson({ error: "El traslado no tiene una tarifa cotizada válida" }, 422);
+  // PRD §4.6 — "El precio puede ser dinámico": si ya hay un precio_final
+  // (ajustado al cierre), ese es el monto a cobrar; si no, se usa la
+  // cotización original (mismo criterio que pasaporte_digital/panel-admin).
+  const montoACobrar = traslado.precio_final ?? traslado.precio_cotizado;
+  if (!montoACobrar || montoACobrar <= 0) {
+    return respuestaJson({ error: "El traslado no tiene una tarifa válida para cobrar" }, 422);
   }
 
-  if (traslado.tipo_pago !== "anticipado") {
-    return respuestaJson({ error: "El cobro anticipado solo aplica a traslados con pago anticipado" }, 422);
+  // El cobro anticipado se dispara al crear la solicitud (cualquier estado,
+  // como hasta ahora). El cobro al cierre solo tiene sentido una vez que el
+  // traslado de verdad está esperando ese pago — "pago_pendiente" es el
+  // único estado al que llega esa transición (ver TRANSICIONES,
+  // entrega_confirmada -> pago_pendiente -> pago_completado). Sin este
+  // guard, cualquier traslado "al_cierre" en cualquier estado podría iniciar
+  // un cobro antes de tiempo.
+  const esCobroAnticipadoValido = traslado.tipo_pago === "anticipado";
+  const esCobroAlCierreValido = traslado.tipo_pago === "al_cierre" && traslado.estado === "pago_pendiente";
+
+  if (!esCobroAnticipadoValido && !esCobroAlCierreValido) {
+    return respuestaJson(
+      {
+        error:
+          traslado.tipo_pago === "al_cierre"
+            ? "El pago al cierre solo puede iniciarse cuando el traslado está en estado 'pago_pendiente'"
+            : "Este traslado no tiene un cobro pendiente que iniciar"
+      },
+      422
+    );
   }
 
   const stripe = new Stripe(stripeSecretKey, {
@@ -97,7 +119,7 @@ Deno.serve(async (req) => {
   }
 
   const intent = await stripe.paymentIntents.create({
-    amount: Math.round(traslado.precio_cotizado * 100), // Stripe usa centavos
+    amount: Math.round(montoACobrar * 100), // Stripe usa centavos
     currency: "mxn",
     metadata: { traslado_id: traslado.id },
     automatic_payment_methods: { enabled: true }
@@ -108,7 +130,7 @@ Deno.serve(async (req) => {
   // confianza, no desde el cliente.
   const { error: errorPago } = await clienteServicio.from("pagos").insert({
     traslado_id: traslado.id,
-    monto: traslado.precio_cotizado,
+    monto: montoACobrar,
     momento: traslado.tipo_pago,
     metodo: "tarjeta",
     estado: "pendiente",

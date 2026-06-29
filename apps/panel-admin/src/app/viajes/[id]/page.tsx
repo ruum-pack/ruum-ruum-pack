@@ -15,6 +15,7 @@ import {
   agregarNotaInterna,
   asignarConductorAdmin,
   cambiarEstatusAdmin,
+  ajustarPrecioFinalAdmin,
   obtenerAdminActual
 } from "@ruum/api/services";
 import { VIAJES_DEMO, CONDUCTORES_DEMO, ADMIN_DEMO } from "../../../lib/datos-demo";
@@ -35,8 +36,9 @@ export default function PaginaDetalleViajeAdmin() {
 
   const [conductorSeleccionado, setConductorSeleccionado] = useState("");
   const [estadoSeleccionado, setEstadoSeleccionado] = useState<EstadoTraslado | "">("");
+  const [precioFinalInput, setPrecioFinalInput] = useState("");
   const [notaNueva, setNotaNueva] = useState("");
-  const [procesando, setProcesando] = useState<"conductor" | "estado" | "nota" | null>(null);
+  const [procesando, setProcesando] = useState<"conductor" | "estado" | "precio" | "nota" | null>(null);
   const [aviso, setAviso] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
   const [adminId, setAdminId] = useState(ADMIN_DEMO.id);
 
@@ -47,6 +49,7 @@ export default function PaginaDetalleViajeAdmin() {
         setPasaporte(demo ?? null);
         setConductores(CONDUCTORES_DEMO);
         setNotas([]);
+        setPrecioFinalInput(demo?.precio_final != null ? String(demo.precio_final) : "");
         setEsDemo(true);
         setCargando(false);
         return;
@@ -63,11 +66,13 @@ export default function PaginaDetalleViajeAdmin() {
         setPasaporte(p);
         setConductores(conds.filter((c) => c.estado === "activo" || c.estado === "modo_prueba_supervisada"));
         setNotas(notasReales);
+        setPrecioFinalInput(p?.precio_final != null ? String(p.precio_final) : "");
         if (adminReal) setAdminId(adminReal.id);
         setEsDemo(false);
       } catch {
         setPasaporte(demo ?? null);
         setConductores(CONDUCTORES_DEMO);
+        setPrecioFinalInput("");
         setEsDemo(true);
       } finally {
         setCargando(false);
@@ -120,6 +125,38 @@ export default function PaginaDetalleViajeAdmin() {
       setEstadoSeleccionado("");
     } catch (err) {
       setAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos cambiar el estatus." });
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  async function guardarPrecioFinal() {
+    if (!pasaporte) return;
+
+    const valor = Number(precioFinalInput);
+    if (!precioFinalInput.trim() || Number.isNaN(valor) || valor < 0) {
+      setAviso({ tono: "peligro", texto: "Ingresa un monto válido para la tarifa final." });
+      return;
+    }
+
+    setProcesando("precio");
+    setAviso(null);
+
+    if (esDemo) {
+      await new Promise((r) => setTimeout(r, 400));
+      setPasaporte((prev) => (prev ? { ...prev, precio_final: valor } : prev));
+      setAviso({ tono: "info", texto: "Tarifa final actualizada en modo demo." });
+      setProcesando(null);
+      return;
+    }
+
+    try {
+      const cliente = crearClienteNavegador();
+      await ajustarPrecioFinalAdmin(cliente, pasaporte.traslado_id, valor);
+      setAviso({ tono: "info", texto: "Tarifa final actualizada." });
+      setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
+    } catch (err) {
+      setAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos actualizar la tarifa final." });
     } finally {
       setProcesando(null);
     }
@@ -329,6 +366,33 @@ export default function PaginaDetalleViajeAdmin() {
             </select>
             <Button onClick={cambiarEstatus} disabled={!estadoSeleccionado || procesando === "estado"}>
               {procesando === "estado" ? "…" : "Cambiar"}
+            </Button>
+          </div>
+        </PassportCard>
+      </div>
+
+      {/* Ajuste de tarifa final — PRD §4.6 "el precio puede ser dinámico" */}
+      <div className="mt-6">
+        <PassportCard>
+          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Tarifa final</p>
+          <p className="mt-1 font-body text-xs text-ink/50">
+            Si el monto a cobrar cambió respecto a la cotización (incidencia, ruta, etc.), ajústalo aquí. El cobro
+            al cierre usa esta tarifa en cuanto exista; si se deja vacía, sigue usando la cotización original.
+          </p>
+          <div className="mt-3 flex items-end gap-2">
+            <div className="w-48">
+              <Field
+                etiqueta="Monto (MXN)"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder={pasaporte.precio_cotizado != null ? String(pasaporte.precio_cotizado) : "0"}
+                value={precioFinalInput}
+                onChange={(e) => setPrecioFinalInput(e.target.value)}
+              />
+            </div>
+            <Button onClick={guardarPrecioFinal} disabled={procesando === "precio"}>
+              {procesando === "precio" ? "…" : "Guardar"}
             </Button>
           </div>
         </PassportCard>

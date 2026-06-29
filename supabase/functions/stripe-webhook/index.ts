@@ -8,9 +8,11 @@
 //   SUPABASE_SERVICE_ROLE_KEY — para escribir sin pasar por RLS (es un webhook
 //                               de un servidor de confianza, no de un usuario)
 //
-// No se pudo probar contra un webhook real de Stripe en este entorno (no hay
-// cuenta de Stripe ni acceso a internet hacia su API desde aquí) — la lógica
-// de decisión (logica.ts) sí está probada con `deno test` (ver logica.test.ts).
+// No se pudo probar contra Stripe real ni un proyecto de Supabase desplegado en este entorno (no
+// hay cuenta de Stripe ni acceso a un proyecto real desde aquí). Sí se probó este archivo completo
+// (no solo logica.ts, que también está probada con `deno test`, ver logica.test.ts) corriendo de
+// verdad con `deno serve` contra un mock local de PostgREST, recibiendo un evento firmado con el
+// mismo esquema HMAC que usa Stripe — ver stripe-webhook/integration-test/.
 // Antes de production: `stripe listen --forward-to <url>/stripe-webhook` para
 // probar con eventos reales de Stripe en modo test.
 import Stripe from "npm:stripe@^17";

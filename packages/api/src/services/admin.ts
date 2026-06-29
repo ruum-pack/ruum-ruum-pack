@@ -205,6 +205,26 @@ export async function agregarNotaInterna(cliente: Cliente, trasladoId: string, a
   if (error) throw error;
 }
 
+/**
+ * PRD §4.6 — "El precio puede ser dinámico." Ni el PRD ni el resto del
+ * código definían quién fija `precio_final` ni cuándo — la columna existía
+ * desde la migración inicial (0005) y panel-admin ya la mostraba, pero
+ * siempre en "—" porque nada la escribía. Decisión de UX consistente con
+ * PRD §3 ("el conductor no puede modificar precio"): es un ajuste de Admin,
+ * sin atarlo a un estado específico (puede afinarse en cualquier momento
+ * antes del cierre, ej. al revisar evidencia o resolver una incidencia con
+ * costo). `crear-payment-intent` ya usa `precio_final` en cuanto existe
+ * (en vez de `precio_cotizado`) para el cobro al cierre.
+ */
+export async function ajustarPrecioFinalAdmin(cliente: Cliente, trasladoId: string, precioFinal: number) {
+  if (!Number.isFinite(precioFinal) || precioFinal < 0) {
+    throw new Error("La tarifa final debe ser un número válido mayor o igual a 0.");
+  }
+
+  const { error } = await cliente.from("traslados").update({ precio_final: precioFinal }).eq("id", trasladoId);
+  if (error) throw error;
+}
+
 /** PRD §17.6 — "suspender/reactivar" conductor. */
 export async function cambiarEstadoConductorAdmin(cliente: Cliente, conductorId: string, nuevoEstado: EstadoConductor) {
   const { error } = await cliente.from("conductores").update({ estado: nuevoEstado }).eq("id", conductorId);

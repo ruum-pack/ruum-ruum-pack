@@ -1,59 +1,104 @@
 import Link from "next/link";
 import { Button, EstadoStepper, PassportCard, EstadoBadge } from "@ruum/ui";
-import { PASAPORTE_DEMO } from "../lib/datos-demo";
+import type { Database } from "@ruum/shared/types";
+import { PASAPORTE_DEMO, USUARIO_DEMO, TRASLADOS_DEMO } from "../lib/datos-demo";
+import { PILARES_CONFIANZA } from "../lib/pilares-confianza";
 import { BotonCerrarSesion } from "./BotonCerrarSesion";
+import { InicioUsuario } from "./InicioUsuario";
 
-const PILARES = [
-  {
-    titulo: "Conductores CONCER",
-    cuerpo:
-      "Cuatro niveles de certificación según experiencia, calificación y tipo de vehículo. Nunca asignamos un conductor sin verificar que cumple los requisitos para tu traslado."
-  },
-  {
-    titulo: "Evidencia en cada extremo",
-    cuerpo:
-      "Fotos obligatorias del vehículo antes de salir y al llegar, con los mismos ángulos siempre. Si algo cambió en el camino, queda documentado."
-  },
-  {
-    titulo: "Un Pasaporte por traslado",
-    cuerpo:
-      "Estado, evidencia, pagos y comunicación en un solo expediente digital que puedes exportar a PDF cuando lo necesites."
-  }
-];
+type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
+type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
-async function haySesionReal(): Promise<boolean> {
+interface ContextoSesion {
+  usuario: UsuarioRow | null;
+  traslados: PasaporteRow[];
+}
+
+/**
+ * Trae el usuario real y sus traslados cuando hay una sesión de Supabase
+ * válida. Sin `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` (modo demo) o sin
+ * sesión, regresa null/[] en vez de fallar — la página decide qué mostrar
+ * (landing pública, o el Inicio con `?demo=1`) a partir de eso.
+ */
+async function obtenerContextoSesion(): Promise<ContextoSesion> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return false;
+  if (!url || !anonKey) return { usuario: null, traslados: [] };
 
   try {
     const { crearClienteServidor } = await import("../lib/supabase-server");
+    const { obtenerUsuarioActual, listarTrasladosDeUsuario } = await import("@ruum/api/services");
+
     const cliente = await crearClienteServidor();
-    const { data } = await cliente.auth.getUser();
-    return Boolean(data.user);
+    const usuario = await obtenerUsuarioActual(cliente);
+    if (!usuario) return { usuario: null, traslados: [] };
+
+    const traslados = await listarTrasladosDeUsuario(cliente, usuario.id);
+    return { usuario, traslados };
   } catch {
-    return false;
+    return { usuario: null, traslados: [] };
   }
 }
 
-export default async function PaginaInicio() {
-  const sesion = await haySesionReal();
+export default async function PaginaInicio({
+  searchParams
+}: {
+  searchParams: Promise<{ demo?: string }>;
+}) {
+  const { demo } = await searchParams;
+  const { usuario, traslados } = await obtenerContextoSesion();
+  const sesion = Boolean(usuario);
+  const vistaDemo = !sesion && (demo === "1" || demo === "true");
 
+  // Con sesión real, o previsualizando con `?demo=1`: la sección de Inicio
+  // (PRD §14: confianza + visibilidad) reemplaza la landing de marketing,
+  // que ya no aporta nada a alguien que ya está dentro del producto.
+  if (sesion || vistaDemo) {
+    return (
+      <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
+        <header className="mb-10 flex items-center justify-between">
+          <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
+          <div className="flex items-center gap-5">
+            <Link
+              href="/traslados/demo-0001"
+              className="font-body text-sm text-ink/60 underline-offset-4 hover:underline"
+            >
+              Ver un traslado de ejemplo
+            </Link>
+            {sesion ? (
+              <BotonCerrarSesion />
+            ) : (
+              <Link href="/login" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
+                Iniciar sesión
+              </Link>
+            )}
+          </div>
+        </header>
+
+        <InicioUsuario
+          usuario={sesion ? usuario : USUARIO_DEMO}
+          traslados={sesion ? traslados : TRASLADOS_DEMO}
+          esDemo={vistaDemo}
+        />
+      </main>
+    );
+  }
+
+  // Sin sesión: landing pública con los pilares de confianza del producto.
   return (
     <main className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
       <header className="mb-16 flex items-center justify-between">
         <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
         <div className="flex items-center gap-5">
-          <Link href="/traslados/demo-0001" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
+          <Link
+            href="/traslados/demo-0001"
+            className="font-body text-sm text-ink/60 underline-offset-4 hover:underline"
+          >
             Ver un traslado de ejemplo
           </Link>
-          {sesion ? (
-            <BotonCerrarSesion />
-          ) : (
-            <Link href="/login" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
-              Iniciar sesión
-            </Link>
-          )}
+          <Link href="/login" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
+            Iniciar sesión
+          </Link>
         </div>
       </header>
 
@@ -66,15 +111,16 @@ export default async function PaginaInicio() {
             Conductores certificados, evidencia fotográfica de inicio a fin y un Pasaporte Digital con todo el
             historial de tu traslado. Sabes dónde está tu vehículo y qué le pasó.
           </p>
-          <div className="mt-8 flex items-center gap-4">
+          <div className="mt-8 flex flex-wrap items-center gap-4">
             <Link href="/traslados/nuevo">
               <Button>Solicitar traslado</Button>
             </Link>
-            {!sesion && (
-              <Link href="/registro" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
-                Crear mi cuenta
-              </Link>
-            )}
+            <Link href="/registro" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
+              Crear mi cuenta
+            </Link>
+            <Link href="/?demo=1" className="font-body text-sm text-ink/50 underline-offset-4 hover:underline">
+              Ver el Inicio con datos de ejemplo
+            </Link>
           </div>
         </div>
 
@@ -93,7 +139,7 @@ export default async function PaginaInicio() {
       </section>
 
       <section className="mt-24 grid gap-8 sm:grid-cols-3">
-        {PILARES.map((pilar) => (
+        {PILARES_CONFIANZA.map((pilar) => (
           <div key={pilar.titulo}>
             <h2 className="font-display text-base font-semibold">{pilar.titulo}</h2>
             <p className="mt-2 font-body text-sm leading-relaxed text-ink/60">{pilar.cuerpo}</p>

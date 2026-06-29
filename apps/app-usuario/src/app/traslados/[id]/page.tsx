@@ -4,6 +4,7 @@ import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import { PASAPORTE_DEMO } from "../../../lib/datos-demo";
 import { crearClienteServidor } from "../../../lib/supabase-server";
 import { ChatTraslado } from "./ChatTraslado";
+import { PagoTraslado } from "./PagoTraslado";
 
 async function obtenerDatos(id: string) {
   if (id === "demo-0001") {
@@ -104,6 +105,14 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
             <dd className="mt-0.5 font-mono-ruum">{pasaporte.incidencias_abiertas}</dd>
           </div>
         </dl>
+
+        {pasaporte.estado === "pago_pendiente" && (
+          <PagoTraslado
+            trasladoId={pasaporte.traslado_id}
+            monto={pasaporte.precio_final ?? pasaporte.precio_cotizado ?? 0}
+            esDemo={esDemo}
+          />
+        )}
       </PassportCard>
 
       <ChatTraslado trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />
