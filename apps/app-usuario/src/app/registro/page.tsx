@@ -33,25 +33,20 @@ export default function PaginaRegistro() {
     try {
       const cliente = crearClienteNavegador();
 
-      // PRD §4.1 — no hay columna "nombre" en usuarios (ver tabla); se guarda
-      // en los metadatos de Auth en vez de inventar una columna nueva sin
-      // validar primero si hace falta para algo más que mostrarlo en UI.
+      // 0024_trigger_alta_cuenta.sql crea la fila en usuarios automáticamente
+      // cuando se crea la cuenta — no se hace un insert manual aquí. Esto
+      // resuelve un bug real: con confirmación de correo activada (default
+      // de Supabase), signUp() no devuelve sesión activa de inmediato, así
+      // que un insert manual justo después fallaba contra RLS (auth.uid()
+      // no era nadie todavía). El trigger corre con privilegios elevados, no
+      // depende de que haya sesión.
       const { data: datosAuth, error: errorAuth } = await cliente.auth.signUp({
         email,
         password,
-        options: { data: { nombre } }
+        options: { data: { tipo_registro: "usuario", nombre, telefono, tipo_cuenta: tipoCuenta } }
       });
       if (errorAuth) throw errorAuth;
       if (!datosAuth.user) throw new Error("No se pudo crear la cuenta. Intenta de nuevo.");
-
-      const { error: errorUsuario } = await cliente.from("usuarios").insert({
-        auth_user_id: datosAuth.user.id,
-        tipo_cuenta: tipoCuenta,
-        rol: tipoCuenta === "empresa" ? "titular_empresa" : "personal",
-        estado_verificacion: "pendiente",
-        telefono
-      });
-      if (errorUsuario) throw errorUsuario;
 
       setEnviado(true);
     } catch (err) {

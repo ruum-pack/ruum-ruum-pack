@@ -12,7 +12,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // Gradle desde Windows agrega fricción real sin beneficio para este corte.
 // RUUM_CAPACITOR_SERVER_URL sigue funcionando como override explícito si
 // algún día se necesita apuntar a otro ambiente (staging, por ejemplo).
-const URL_PRODUCCION = "https://ruum-ruum-pack.vercel.app";
+const URL_PRODUCCION = "https://www.concer.ruumruum-moviliax.online";
 
 const config: CapacitorConfig = {
   appId: "com.moviliax.ruumruum.conductor",

@@ -33,20 +33,18 @@ export default function PaginaRegistroConductor() {
       const { data: datosAuth, error: errorAuth } = await cliente.auth.signUp({
         email,
         password,
-        options: { data: { nombre } }
+        options: { data: { tipo_registro: "conductor", nombre, telefono } }
       });
       if (errorAuth) throw errorAuth;
       if (!datosAuth.user) throw new Error("No se pudo crear la cuenta. Intenta de nuevo.");
 
+      // 0024_trigger_alta_cuenta.sql crea la fila en conductores
+      // automáticamente (mismo bug real que app-usuario/registro: con
+      // confirmación de correo activada, signUp() no da sesión de
+      // inmediato, así que un insert manual aquí fallaba contra RLS).
       // conductores.estado ya tiene default 'pendiente_verificacion' (0003)
-      // — no hace falta fijarlo aquí, es el comportamiento correcto recién
-      // registrado (PRD §4.13: validación CONCER antes de operar).
-      const { error: errorConductor } = await cliente.from("conductores").insert({
-        auth_user_id: datosAuth.user.id,
-        nombre,
-        telefono
-      });
-      if (errorConductor) throw errorConductor;
+      // — es el comportamiento correcto recién registrado (PRD §4.13:
+      // validación CONCER antes de operar).
 
       setEnviado(true);
     } catch (err) {

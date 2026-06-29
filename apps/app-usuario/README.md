@@ -49,6 +49,22 @@ rol no-superusuario: alguien crea su propio registro (funciona) e intenta
 crear el registro de otra persona (se rechaza). `admins` no recibe una
 política equivalente a propósito — ver `panel-admin/README.md`.
 
+## Segundo bug real, encontrado probando el registro contra Supabase de verdad
+
+`0021` resolvía el caso bajo RLS, pero asumía que había sesión activa justo
+después de `auth.signUp()` — falso si el proyecto tiene confirmación de
+correo activada (el default de Supabase): `auth.uid()` no es nadie todavía,
+así que el insert manual desde el cliente fallaba. Corregido en
+`0024_trigger_alta_cuenta.sql`: un trigger sobre `auth.users` crea la fila
+en `usuarios` automáticamente, leyendo `tipo_registro`/`tipo_cuenta`/
+`telefono` de los metadatos que ahora manda `signUp()` — corre con
+privilegios elevados, no depende de sesión. Probado con tres casos reales:
+alta personal, alta empresa (verifica que `rol` quede en `titular_empresa`),
+y un `signUp` sin `tipo_registro` que no debe crear nada (caso de un futuro
+admin). También se atrapó ahí un bug de tipos real: un `CASE` en PL/pgSQL
+devuelve texto plano por defecto, pero `rol` es un enum — necesitaba cast
+explícito.
+
 ## Capacitor (Fase 5)
 
 Misma decisión que `app-conductor` (ver su README para el detalle completo del tradeoff): WebView remota a

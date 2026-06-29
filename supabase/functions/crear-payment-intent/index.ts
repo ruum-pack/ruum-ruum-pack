@@ -1,19 +1,12 @@
 // Edge Function: crea un PaymentIntent de Stripe para el cobro de un
-// traslado (PRD §4.6). Llamada desde app-usuario al confirmar un traslado
-// con pago anticipado.
-//
-// Variables de entorno requeridas (Supabase Dashboard → Edge Functions →
-// Secrets): STRIPE_SECRET_KEY, SUPABASE_URL, SUPABASE_ANON_KEY,
-// SUPABASE_SERVICE_ROLE_KEY.
-//
-// No se pudo probar contra una cuenta de Stripe real en este entorno — sin
-// acceso a internet hacia su API desde aquí. Antes de producción: probar
-// con una clave de prueba (sk_test_...) real.
+
 import Stripe from "npm:stripe@^17";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
-  apiVersion: "2025-02-24.acacia"
+  apiVersion: "2025-02-24.acacia",
+  httpClient: Stripe.createFetchHttpClient()
 });
 
 const CABECERAS_CORS = {
@@ -37,7 +30,7 @@ Deno.serve(async (req) => {
     global: { headers: { Authorization: autorizacion } }
   });
 
-  const { traslado_id } = await req.json();
+  const { traslado_id } = (await req.json()) as { traslado_id?: string | number };
   if (!traslado_id) {
     return new Response(JSON.stringify({ error: "Falta traslado_id" }), { status: 400, headers: CABECERAS_CORS });
   }

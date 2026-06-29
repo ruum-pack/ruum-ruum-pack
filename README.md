@@ -10,7 +10,7 @@ flujos, pantallas o manejo offline.
 - **`packages/shared`** — tipos, reglas de negocio puras, estados/transiciones,
   constantes y utilidades, mapeados 1:1 a las secciones del PRD citadas en
   cada archivo. **113 tests unitarios en verde** (`pnpm test:unit`).
-- **`supabase/migrations/0001–0023`** — esquema completo (ver tablas en
+- **`supabase/migrations/0001–0024`** — esquema completo (ver tablas en
   "Fase 1 — COMPLETA", "Fase 1 — Extensión" y "Fase 2" más abajo), validado
   contra una instancia real de Postgres durante el desarrollo, no solo
   escrito.
@@ -169,16 +169,21 @@ sesión real en vez de un cliente sin persistencia.
 | `app-conductor` | Sí | Sí (certificación CONCER) | `conductores`, queda en `pendiente_verificacion` |
 | `panel-admin` | Sí | **No, a propósito** | — la fila en `admins` se crea a mano, ver su README |
 
-Tres bugs reales encontrados al construir esto, ninguno del código nuevo — todos del esquema de Fase 1, nunca
-antes ejercitado bajo RLS real porque toda la validación previa corrió como superusuario de Postgres:
+**Cuatro** bugs reales encontrados en total al construir esto y al probarlo después contra un proyecto real de
+Supabase, ninguno del código de las apps — todos del esquema, nunca antes ejercitado bajo RLS real ni contra un
+flujo de registro real de punta a punta:
 
 | Migración | Bug corregido |
 |---|---|
 | `0021_self_registro.sql` | Ni `usuarios` ni `conductores` tenían política de INSERT para autoservicio — el registro nunca podría haber completado bajo RLS real |
 | *(ver "Fase 2" arriba)* `0018`, `0019` | Visibilidad de viajes disponibles y recursión infinita en `usuarios` — encontrados antes, pero confirman el mismo patrón: nada de RLS se había probado con un rol real hasta Fase 2 |
+| `0024_trigger_alta_cuenta.sql` | `0021` resolvía el caso bajo RLS, pero asumía sesión activa justo después de `signUp()` — falso con confirmación de correo activada (default de Supabase). Encontrado probando el registro real contra Supabase, no en este sandbox — reemplazado por un trigger sobre `auth.users` que no depende de sesión |
 
 `0021` se probó con dos casos reales bajo un rol no-superusuario: alguien crea su propio registro (funciona) e
-intenta crear el registro de otra persona (se rechaza).
+intenta crear el registro de otra persona (se rechaza). `0024` se probó con tres casos: alta personal, alta
+empresa (verifica `rol = titular_empresa`), y un `signUp` sin `tipo_registro` que no debe crear nada — y de
+paso atrapó un bug de tipos real (un `CASE` en PL/pgSQL devuelve texto plano, `rol` es un enum, necesitaba cast
+explícito).
 
 También encontramos, y resolvimos sin necesidad de migración, un desajuste de tipos entre `@supabase/ssr@0.5.2`
 y `@supabase/supabase-js@2.108.2`: ambas resuelven el genérico `SupabaseClient<Database>` de forma distinta
@@ -189,7 +194,7 @@ de que cada función de `packages/api/src/services` tuviera que pelear con eso p
 ## Fase 5 — Capacitor (app-usuario, app-conductor)
 
 **Decisión tomada:** la WebView de cada app carga la app real desde Vercel en vez de un export estático
-embebido. En `app-conductor` esa URL ya está fija en `capacitor.config.ts` (`ruum-ruum-pack.vercel.app`, con
+embebido. En `app-conductor` esa URL ya está fija en `capacitor.config.ts` (`www.concer.ruumruum-moviliax.online`, con
 `RUUM_CAPACITOR_SERVER_URL` como override para otros ambientes) — la primera compilación real cargaba el
 respaldo local sin esto, porque la variable nunca se fijaba antes del build de Gradle. `app-usuario` sigue solo
 con la variable de entorno por ahora, porque todavía no tiene una URL de producción confirmada. Esto preserva
@@ -324,7 +329,7 @@ packages/
   ui/             ← sistema de diseño compartido (carbon/paper/signal-orange)
   api/            ← cliente Supabase + services
 supabase/
-  migrations/     ← 0001 a 0023 (ver tablas en "Fase 1 — COMPLETA", "Fase 1 — Extensión", "Fase 2", "Login real" y "Fase 6")
+  migrations/     ← 0001 a 0024 (ver tablas en "Fase 1 — COMPLETA", "Fase 1 — Extensión", "Fase 2", "Login real" y "Fase 6")
   functions/      ← Edge Functions de Stripe (Fase 6) — ver supabase/functions/README.md
   seed.sql        ← datos de ejemplo, ciclo completo de un traslado
   config.toml

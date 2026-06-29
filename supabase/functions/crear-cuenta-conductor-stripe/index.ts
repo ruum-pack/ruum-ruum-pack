@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const urlBase = Deno.env.get("RUUM_APP_CONDUCTOR_URL") ?? "https://ruum-ruum-pack.vercel.app";
+  const urlBase = Deno.env.get("RUUM_APP_CONDUCTOR_URL") ?? "https://www.concer.ruumruum-moviliax.online";
   const enlace = await stripe.accountLinks.create({
     account: stripeAccountId,
     type: "account_onboarding",

@@ -62,7 +62,7 @@ navegable con datos de ejemplo, siempre marcados como tales.
 
 ## Capacitor (Fase 5)
 
-**Decisión tomada:** la WebView carga la app real desde Vercel (`https://ruum-ruum-pack.vercel.app`, fija en
+**Decisión tomada:** la WebView carga la app real desde Vercel (`https://www.concer.ruumruum-moviliax.online`, fija en
 `capacitor.config.ts` con `RUUM_CAPACITOR_SERVER_URL` como override opcional para otros ambientes) en vez de un
 export estático embebido. Esto preserva Server Components, middleware y RLS exactamente como ya están validados
 en producción — el costo real es que la app **no abre sin conexión al inicio** (solo afecta la carga de la

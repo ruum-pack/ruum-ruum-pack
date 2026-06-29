@@ -56,7 +56,7 @@ TWILIO_PROXY_SERVICE_SID     KS... (del Proxy Service que crees en Twilio Consol
 SUPABASE_URL                 ya disponible automáticamente en Edge Functions
 SUPABASE_ANON_KEY            idem
 SUPABASE_SERVICE_ROLE_KEY    idem
-RUUM_APP_CONDUCTOR_URL       https://ruum-ruum-pack.vercel.app (o tu dominio)
+RUUM_APP_CONDUCTOR_URL       https://www.concer.ruumruum-moviliax.online (o tu dominio)
 ```
 
 ## Desplegar
