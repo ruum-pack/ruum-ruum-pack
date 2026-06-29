@@ -30,8 +30,8 @@ describe("calcularCalificacionPromedio — PRD §4.13", () => {
     expect(calcularCalificacionPromedio(calificaciones)).toBe(5);
   });
 
-  it("sin calificaciones en la ventana retorna 0", () => {
-    expect(calcularCalificacionPromedio([calRecienteHace(400, 5)])).toBe(0);
+  it("sin calificaciones en la ventana retorna 5.0 (arranca al máximo, no penaliza falta de datos)", () => {
+    expect(calcularCalificacionPromedio([calRecienteHace(400, 5)])).toBe(5);
   });
 
   it("limita a los 100 más recientes dentro de la ventana", () => {

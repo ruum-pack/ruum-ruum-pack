@@ -10,7 +10,7 @@ flujos, pantallas o manejo offline.
 - **`packages/shared`** — tipos, reglas de negocio puras, estados/transiciones,
   constantes y utilidades, mapeados 1:1 a las secciones del PRD citadas en
   cada archivo. **113 tests unitarios en verde** (`pnpm test:unit`).
-- **`supabase/migrations/0001–0025`** — esquema completo (ver tablas en
+- **`supabase/migrations/0001–0026`** — esquema completo (ver tablas en
   "Fase 1 — COMPLETA", "Fase 1 — Extensión" y "Fase 2" más abajo), validado
   contra una instancia real de Postgres durante el desarrollo, no solo
   escrito.
@@ -179,6 +179,7 @@ flujo de registro real de punta a punta:
 | *(ver "Fase 2" arriba)* `0018`, `0019` | Visibilidad de viajes disponibles y recursión infinita en `usuarios` — encontrados antes, pero confirman el mismo patrón: nada de RLS se había probado con un rol real hasta Fase 2 |
 | `0024_trigger_alta_cuenta.sql` | `0021` resolvía el caso bajo RLS, pero asumía sesión activa justo después de `signUp()` — falso con confirmación de correo activada (default de Supabase). Encontrado probando el registro real contra Supabase, no en este sandbox — reemplazado por un trigger sobre `auth.users` que no depende de sesión |
 | `0025_nombre_usuario.sql` | `usuarios` nunca tuvo columna `nombre` (a diferencia de `conductores`, que sí la tiene desde `0003`). El formulario de registro de `app-usuario` siempre mandó `nombre` en la metadata de `signUp()`, pero el trigger de `0024` no tenía dónde insertarlo para esa rama. Encontrado por el usuario viendo panel-admin con datos reales, no en este sandbox |
+| `0026_calificacion_inicial_maxima.sql` | `conductores.calificacion_promedio` arrancaba en `0`, pero el nivel Básico exige `>= 4.0` (§4.13) — ningún conductor nuevo podía aceptar su primer viaje, ni siquiera en `modo_prueba_supervisada`, porque el piso de calificación se evalúa igual sin importar el estado. Decisión de producto: arranca en el máximo (5.0), decae solo con desempeño real registrado. Encontrado por el usuario al intentar aceptar un viaje real con un conductor recién creado |
 
 `0021` se probó con dos casos reales bajo un rol no-superusuario: alguien crea su propio registro (funciona) e
 intenta crear el registro de otra persona (se rechaza). `0024` se probó con tres casos: alta personal, alta
@@ -334,7 +335,7 @@ packages/
   ui/             ← sistema de diseño compartido (carbon/paper/signal-orange)
   api/            ← cliente Supabase + services
 supabase/
-  migrations/     ← 0001 a 0025 (ver tablas en "Fase 1 — COMPLETA", "Fase 1 — Extensión", "Fase 2", "Login real" y "Fase 6")
+  migrations/     ← 0001 a 0026 (ver tablas en "Fase 1 — COMPLETA", "Fase 1 — Extensión", "Fase 2", "Login real" y "Fase 6")
   functions/      ← Edge Functions de Stripe (Fase 6) — ver supabase/functions/README.md
   seed.sql        ← datos de ejemplo, ciclo completo de un traslado
   config.toml

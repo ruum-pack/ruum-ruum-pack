@@ -18,6 +18,11 @@ export function nivelPorCalificacion(calificacionPromedio: number): NivelCONCER 
  * PRD §4.13 — "Calificación promedio del conductor se calcula sobre los
  * traslados completados en los últimos 6 meses, considerando como máximo
  * los 100 más recientes dentro de esa ventana."
+ *
+ * Sin calificaciones en la ventana (conductor nuevo, o su historial real
+ * salió por completo de los 6 meses) se devuelve 5.0 — el conductor inicia
+ * en la calificación máxima y solo decae con desempeño real registrado
+ * (ver migración 0026_calificacion_inicial_maxima.sql, mismo fallback).
  */
 export function calcularCalificacionPromedio(
   calificaciones: CalificacionTraslado[],
@@ -31,7 +36,7 @@ export function calcularCalificacionPromedio(
     .sort((a, b) => new Date(b.calificado_en).getTime() - new Date(a.calificado_en).getTime())
     .slice(0, 100);
 
-  if (dentroDeVentana.length === 0) return 0;
+  if (dentroDeVentana.length === 0) return 5.0;
 
   const suma = dentroDeVentana.reduce((acc, c) => acc + c.estrellas, 0);
   return Math.round((suma / dentroDeVentana.length) * 100) / 100;

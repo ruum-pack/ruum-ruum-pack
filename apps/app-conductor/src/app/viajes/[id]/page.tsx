@@ -1,9 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@ruum/shared/types";
 import { obtenerPasaporteDigital } from "@ruum/api/services";
 import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import { VIAJES_DISPONIBLES_DEMO, VIAJES_ACEPTADOS_DEMO } from "../../../lib/datos-demo";
+import { crearClienteServidor } from "../../../lib/supabase-server";
 import { AccionesViaje } from "./AccionesViaje";
 import { ChatViaje } from "./ChatViaje";
 
@@ -21,7 +20,15 @@ async function obtenerDatos(id: string) {
     return { pasaporte: null, esDemo: false };
   }
 
-  const cliente = createClient<Database>(url, anonKey);
+  // Bug real encontrado en producción (2026-06-29): un cliente anónimo (sin
+  // cookies, sin sesión) sí podía ver viajes disponibles sin asignar
+  // (política RLS abierta por estado), pero en cuanto el conductor acepta
+  // uno, solo aplica "conductor_ve_sus_traslados_asignados" — que exige
+  // auth.uid() real. Sin sesión, esa consulta nunca encontraba la fila, y
+  // la pantalla mostraba "No encontramos ese viaje" justo después de
+  // aceptar. Se usa el cliente de servidor con cookies (sesión real) en su
+  // lugar, mismo patrón que ya usan las acciones de aceptar/evidencia.
+  const cliente = await crearClienteServidor();
   const pasaporte = await obtenerPasaporteDigital(cliente, id);
   return { pasaporte, esDemo: false };
 }

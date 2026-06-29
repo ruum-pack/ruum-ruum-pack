@@ -1,9 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@ruum/shared/types";
 import { obtenerPasaporteDigital } from "@ruum/api/services";
 import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import { PASAPORTE_DEMO } from "../../../lib/datos-demo";
+import { crearClienteServidor } from "../../../lib/supabase-server";
 import { ChatTraslado } from "./ChatTraslado";
 
 async function obtenerDatos(id: string) {
@@ -17,7 +16,11 @@ async function obtenerDatos(id: string) {
     return { pasaporte: null, esDemo: false };
   }
 
-  const cliente = createClient<Database>(url, anonKey);
+  // Mismo bug que en app-conductor/viajes/[id] (ver su comentario): un
+  // cliente anónimo no puede leer un traslado propio bajo RLS real
+  // ("usuario_ve_sus_traslados" exige auth.uid() real). Se usa el cliente
+  // de servidor con cookies en su lugar.
+  const cliente = await crearClienteServidor();
   const pasaporte = await obtenerPasaporteDigital(cliente, id);
   return { pasaporte, esDemo: false };
 }
