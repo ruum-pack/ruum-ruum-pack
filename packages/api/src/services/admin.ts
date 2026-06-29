@@ -98,14 +98,35 @@ export async function listarIncidenciasAdmin(cliente: Cliente): Promise<Incidenc
   return data ?? [];
 }
 
+// PRD §6 — único camino real hacia "conductor_asignado" (sin atajos, ver
+// TRANSICIONES). Antes de la decisión de producto del 2026-06-29, asignar
+// un conductor en cualquier estado anterior a pendiente_de_conductor dejaba
+// el viaje en un limbo: conductor_id quedaba asignado, pero el estado nunca
+// avanzaba, así que el conductor no veía ninguna acción disponible en su
+// pantalla (encontrado probando con un conductor y usuario reales).
+const CADENA_HASTA_CONDUCTOR_ASIGNADO: EstadoTraslado[] = [
+  "solicitud_creada",
+  "documentacion_pendiente",
+  "documentacion_en_revision",
+  "documentacion_validada",
+  "cotizacion_generada",
+  "servicio_confirmado",
+  "pendiente_de_conductor",
+  "conductor_asignado"
+];
+
 /**
- * PRD §17.4 — "asignar o cambiar conductor". A diferencia de
- * services/traslados.ts::aceptarViaje (autoservicio del conductor, limitado
- * por RLS a pendiente_de_conductor), esto es la acción de Admin: puede
- * asignar o reasignar sin esa restricción, porque admin_acceso_total_traslados
- * (0005) ya le da acceso total vía es_admin(). Si el traslado todavía no
- * tiene conductor, también avanza el estado; si ya lo tenía (reasignación),
- * solo cambia conductor_id sin tocar estado.
+ * Decisión de producto (2026-06-29): al asignar un conductor desde
+ * panel-admin, el viaje SIEMPRE avanza hasta "conductor_asignado" — sin
+ * importar en qué paso intermedio estuviera (documentación, cotización,
+ * etc.). Recorre la cadena real un salto a la vez (cada uno válido contra
+ * el mismo trigger de Postgres que ya protege la tabla), en vez de saltar
+ * directo — así nunca se viola la máquina de estados real.
+ *
+ * Si el viaje ya pasó "conductor_asignado" (ya está en tránsito o más
+ * adelante), o está en una rama terminal (cancelado/fallido), se rechaza
+ * explícitamente: reasignar conductor a media ruta es un caso distinto,
+ * fuera de alcance de este fix.
  */
 export async function asignarConductorAdmin(
   cliente: Cliente,
@@ -113,13 +134,40 @@ export async function asignarConductorAdmin(
   conductorId: string,
   estadoActual: EstadoTraslado
 ) {
-  const cambios: { conductor_id: string; estado?: EstadoTraslado } = { conductor_id: conductorId };
-  if (estadoActual === "pendiente_de_conductor") {
-    cambios.estado = "conductor_asignado";
+  if (estadoActual === "conductor_asignado") {
+    // Reasignación pura: el viaje ya está en el paso correcto, solo cambia
+    // a quién pertenece — no hay ningún estado que avanzar.
+    const { error } = await cliente.from("traslados").update({ conductor_id: conductorId }).eq("id", trasladoId);
+    if (error) throw error;
+    return;
   }
 
-  const { error } = await cliente.from("traslados").update(cambios).eq("id", trasladoId);
-  if (error) throw error;
+  const indiceActual = CADENA_HASTA_CONDUCTOR_ASIGNADO.indexOf(estadoActual);
+  if (indiceActual === -1) {
+    throw new Error(
+      `No se puede asignar conductor desde el estado "${estadoActual}" — ese estado no forma parte del camino hacia conductor_asignado (¿el viaje ya está en tránsito, cancelado, o fallido?).`
+    );
+  }
+
+  // conductor_id se fija desde el primer salto: si algo falla a media
+  // cadena, el viaje queda con dueño claro y un admin puede seguir
+  // avanzándolo a mano desde donde se quedó, en vez de perder el dato.
+  let primero = true;
+  for (let i = indiceActual; i < CADENA_HASTA_CONDUCTOR_ASIGNADO.length - 1; i++) {
+    const siguiente = CADENA_HASTA_CONDUCTOR_ASIGNADO[i + 1];
+    if (!siguiente) {
+      // No debería pasar nunca dado el límite del for — si pasa, es un bug
+      // real en CADENA_HASTA_CONDUCTOR_ASIGNADO, no un caso de negocio.
+      throw new Error("Error interno: cadena de transición hacia conductor_asignado mal formada.");
+    }
+    const cambios: { conductor_id?: string; estado: EstadoTraslado } = { estado: siguiente };
+    if (primero) {
+      cambios.conductor_id = conductorId;
+      primero = false;
+    }
+    const { error } = await cliente.from("traslados").update(cambios).eq("id", trasladoId);
+    if (error) throw error;
+  }
 }
 
 /**
