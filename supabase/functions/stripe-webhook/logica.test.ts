@@ -1,5 +1,13 @@
+/// <reference lib="deno.ns" />
+
 import { assertEquals } from "jsr:@std/assert@1";
-import { esEventoYaProcesado, extraerTrasladoId, cuentaConductorEstaActiva, esEventoManejado } from "./logica.ts";
+import {
+  esEventoYaProcesado,
+  extraerTrasladoId,
+  cuentaConductorEstaActiva,
+  esEventoManejado,
+  estadoTrasladoSiguienteTrasPago
+} from "./logica.ts";
 
 Deno.test("esEventoYaProcesado: false cuando nunca se guardó un evento", () => {
   assertEquals(esEventoYaProcesado("evt_123", null), false);
@@ -48,4 +56,11 @@ Deno.test("esEventoManejado: reconoce los 5 tipos de evento que sí procesamos",
 Deno.test("esEventoManejado: rechaza tipos de evento que no manejamos", () => {
   assertEquals(esEventoManejado("charge.refunded"), false);
   assertEquals(esEventoManejado("customer.created"), false);
+});
+
+Deno.test("estadoTrasladoSiguienteTrasPago: avanza solo desde estados válidos", () => {
+  assertEquals(estadoTrasladoSiguienteTrasPago("entrega_confirmada", "anticipado", "completado"), "pago_completado");
+  assertEquals(estadoTrasladoSiguienteTrasPago("pago_pendiente", "al_cierre", "completado"), "pago_completado");
+  assertEquals(estadoTrasladoSiguienteTrasPago("pendiente_de_conductor", "anticipado", "completado"), null);
+  assertEquals(estadoTrasladoSiguienteTrasPago("entrega_confirmada", "anticipado", "fallido"), null);
 });

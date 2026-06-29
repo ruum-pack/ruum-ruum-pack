@@ -52,3 +52,18 @@ const EVENTOS_MANEJADOS: readonly TipoEventoManejado[] = [
 export function esEventoManejado(tipo: string): tipo is TipoEventoManejado {
   return (EVENTOS_MANEJADOS as readonly string[]).includes(tipo);
 }
+
+export function estadoTrasladoSiguienteTrasPago(
+  estadoActual: string | null | undefined,
+  tipoPago: string | null | undefined,
+  estadoPago: "pendiente" | "completado" | "reembolsado" | "fallido"
+): string | null {
+  if (estadoPago !== "completado") return null;
+  if (tipoPago !== "anticipado" && tipoPago !== "al_cierre") return null;
+
+  if (estadoActual === "entrega_confirmada" || estadoActual === "pago_pendiente") {
+    return "pago_completado";
+  }
+
+  return null;
+}

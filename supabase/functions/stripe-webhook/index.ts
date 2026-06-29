@@ -19,7 +19,8 @@ import {
   esEventoYaProcesado,
   extraerTrasladoId,
   cuentaConductorEstaActiva,
-  esEventoManejado
+  esEventoManejado,
+  estadoTrasladoSiguienteTrasPago
 } from "./logica.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
@@ -70,7 +71,7 @@ Deno.serve(async (req) => {
 
         const { data: pagoExistente } = await supabase
           .from("pagos")
-          .select("stripe_event_id")
+          .select("stripe_event_id, traslado_id")
           .eq("stripe_payment_intent_id", intent.id)
           .maybeSingle();
 
@@ -81,6 +82,24 @@ Deno.serve(async (req) => {
           .from("pagos")
           .update({ estado: nuevoEstado, stripe_event_id: evento.id })
           .eq("stripe_payment_intent_id", intent.id);
+
+        if (pagoExistente?.traslado_id) {
+          const { data: traslado } = await supabase
+            .from("traslados")
+            .select("estado, tipo_pago")
+            .eq("id", pagoExistente.traslado_id)
+            .maybeSingle();
+
+          const siguienteEstado = estadoTrasladoSiguienteTrasPago(
+            traslado?.estado,
+            traslado?.tipo_pago,
+            nuevoEstado
+          );
+
+          if (siguienteEstado) {
+            await supabase.from("traslados").update({ estado: siguienteEstado }).eq("id", pagoExistente.traslado_id);
+          }
+        }
         break;
       }
 

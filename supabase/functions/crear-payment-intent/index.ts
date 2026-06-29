@@ -53,6 +53,13 @@ Deno.serve(async (req) => {
     });
   }
 
+  if (traslado.tipo_pago !== "anticipado") {
+    return new Response(JSON.stringify({ error: "El cobro anticipado solo aplica a traslados con pago anticipado" }), {
+      status: 422,
+      headers: CABECERAS_CORS
+    });
+  }
+
   const intent = await stripe.paymentIntents.create({
     amount: Math.round(traslado.precio_cotizado * 100), // Stripe usa centavos
     currency: "mxn",
