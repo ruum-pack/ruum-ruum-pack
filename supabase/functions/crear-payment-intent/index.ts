@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     .eq("traslado_id", traslado.id)
     .eq("estado", "pendiente")
     .not("stripe_payment_intent_id", "is", null)
-    .order("creado_en", { ascending: false })
+    .order("registrado_en", { ascending: false })
     .limit(1)
     .maybeSingle();
 

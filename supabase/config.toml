@@ -32,3 +32,6 @@ enable_confirmations = false
 
 [storage]
 enabled = true
+
+[functions.crear-payment-intent]
+verify_jwt = false

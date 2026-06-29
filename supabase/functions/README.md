@@ -68,6 +68,10 @@ supabase functions deploy crear-cuenta-conductor-stripe
 supabase functions deploy crear-llamada-enmascarada
 ```
 
+`crear-payment-intent` está configurada con `verify_jwt = false` en `supabase/config.toml` para que el gateway de
+Supabase deje pasar el preflight `OPTIONS` desde el navegador. La función sigue exigiendo `Authorization` dentro del
+handler y valida el traslado con RLS antes de crear el cobro.
+
 Después de desplegar `stripe-webhook`, registra su URL en Stripe Dashboard → Developers → Webhooks, suscrita a:
 `payment_intent.succeeded`, `payment_intent.payment_failed`, `account.updated`, `transfer.created`,
 `transfer.reversed`.
@@ -80,4 +84,3 @@ Después de desplegar `stripe-webhook`, registra su URL en Stripe Dashboard → 
   de status callback de Twilio Voice, no cubierto en este corte.
 - Cerrar la sesión de Proxy cuando el traslado se cierra (`sesiones_proxy_traslado.cerrada_en`) — hoy se crea
   pero nada la cierra automáticamente todavía.
-
