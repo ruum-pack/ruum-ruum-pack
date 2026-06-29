@@ -84,8 +84,8 @@ Permiso agregado a mano en `android/app/src/main/AndroidManifest.xml`: `ACCESS_F
 
 PRD §4.6 — decisión de producto: Stripe. El paso de confirmación del wizard ahora puede mostrar un formulario de
 pago real (`PagoStripe.tsx`, Stripe Elements) cuando `momentoPago.momento === "anticipado"` **y**
-`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` está configurada — sin esa variable, sigue el comportamiento anterior
-(éxito inmediato, sin cobro). El traslado se crea primero, y el PaymentIntent se crea contra ese
+`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` está configurada. Sin esa variable, el flujo de pago anticipado
+se detiene con un error visible para no crear una solicitud sin cobro. El traslado se crea primero, y el PaymentIntent se crea contra ese
 `traslado_id` real (vía la Edge Function `crear-payment-intent`, ver `supabase/functions/README.md`).
 
 No se pudo probar un cobro real contra una cuenta de Stripe en este entorno — validado por `tsc`/`next build` y,

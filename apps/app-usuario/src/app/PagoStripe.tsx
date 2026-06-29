@@ -8,17 +8,63 @@ import { crearClienteNavegador } from "../lib/supabase-browser";
 
 const clavePublica = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = clavePublica ? loadStripe(clavePublica) : null;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export interface PagoStripeProps {
   trasladoId: string;
   onPagado: () => void;
 }
 
+async function crearPaymentIntent(trasladoId: string): Promise<string> {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase no está configurado para iniciar el cobro.");
+  }
+
+  const cliente = crearClienteNavegador();
+  const { data: sesion, error: errorSesion } = await cliente.auth.getSession();
+  if (errorSesion) throw errorSesion;
+
+  const token = sesion.session?.access_token;
+  if (!token) {
+    throw new Error("Tu sesión expiró. Inicia sesión de nuevo para pagar.");
+  }
+
+  const respuesta = await fetch(`${supabaseUrl}/functions/v1/crear-payment-intent`, {
+    method: "POST",
+    headers: {
+      apikey: supabaseAnonKey,
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ traslado_id: trasladoId })
+  });
+
+  const texto = await respuesta.text();
+  let data: { clientSecret?: string; error?: string } | null = null;
+  if (texto) {
+    try {
+      data = JSON.parse(texto) as { clientSecret?: string; error?: string };
+    } catch {
+      throw new Error(`La función de pago respondió con un formato inválido (${respuesta.status}).`);
+    }
+  }
+
+  if (!respuesta.ok) {
+    throw new Error(data?.error ?? `No pudimos iniciar el cobro (${respuesta.status}).`);
+  }
+
+  if (!data?.clientSecret) {
+    throw new Error("La función de pago no devolvió clientSecret.");
+  }
+
+  return data.clientSecret;
+}
+
 /**
- * PRD §4.6 — cobro anticipado real. Solo se monta cuando hay sesión real y
- * NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY está configurada (ver .env.local.example);
- * sin eso, traslados/nuevo/page.tsx no llega a renderizar este componente y
- * sigue el flujo de éxito inmediato que ya existía.
+ * PRD §4.6 — cobro anticipado real. Solo se monta cuando hay sesión real,
+ * traslado persistido y NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY está configurada
+ * (ver .env.local.example).
  *
  * No se pudo probar contra una cuenta de Stripe real en este entorno — la
  * Edge Function que esto invoca (crear-payment-intent) está validada con
@@ -31,12 +77,8 @@ export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
   useEffect(() => {
     async function iniciar() {
       try {
-        const cliente = crearClienteNavegador();
-        const { data, error: errorFuncion } = await cliente.functions.invoke("crear-payment-intent", {
-          body: { traslado_id: trasladoId }
-        });
-        if (errorFuncion) throw errorFuncion;
-        setClientSecret(data.clientSecret);
+        const clientSecret = await crearPaymentIntent(trasladoId);
+        setClientSecret(clientSecret);
       } catch (err) {
         setError(err instanceof Error ? err.message : "No pudimos iniciar el cobro.");
       }

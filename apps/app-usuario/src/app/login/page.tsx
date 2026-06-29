@@ -22,7 +22,9 @@ export default function PaginaLogin() {
       const cliente = crearClienteNavegador();
       const { error: errorAuth } = await cliente.auth.signInWithPassword({ email, password });
       if (errorAuth) throw errorAuth;
-      router.push("/");
+      const searchParams = new URLSearchParams(window.location.search);
+      const next = searchParams.get("next");
+      router.push(next?.startsWith("/") && !next.startsWith("//") ? next : "/");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No pudimos iniciar tu sesión.");

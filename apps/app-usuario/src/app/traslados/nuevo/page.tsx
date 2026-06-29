@@ -90,6 +90,7 @@ export default function PaginaNuevoTraslado() {
   const [trasladoCreadoId, setTrasladoCreadoId] = useState<string | null>(null);
   const [usuario, setUsuario] = useState<Usuario>(USUARIO_NUEVO_DEMO);
   const [sesionReal, setSesionReal] = useState(false);
+  const [cargandoSesion, setCargandoSesion] = useState(tieneSupabaseConfigurado());
 
   // Si hay sesión real, usa el usuario real (PRD §4.6: su historial decide
   // pago anticipado vs. al cierre); si no, sigue en modo demo como antes.
@@ -98,7 +99,10 @@ export default function PaginaNuevoTraslado() {
   // tipo conceptual más estrecho que ya usan las reglas de negocio.
   useEffect(() => {
     async function cargarUsuario() {
-      if (!tieneSupabaseConfigurado()) return;
+      if (!tieneSupabaseConfigurado()) {
+        setCargandoSesion(false);
+        return;
+      }
       try {
         const cliente = crearClienteNavegador();
         const real = await obtenerUsuarioActual(cliente);
@@ -115,8 +119,13 @@ export default function PaginaNuevoTraslado() {
           });
           setSesionReal(true);
         }
-      } catch {
-        // Sigue en modo demo si algo falla al consultar la sesión.
+      } catch (err) {
+        setResultado({
+          ok: false,
+          mensaje: err instanceof Error ? err.message : "No pudimos validar tu sesión. Intenta iniciar sesión de nuevo."
+        });
+      } finally {
+        setCargandoSesion(false);
       }
     }
     cargarUsuario();
@@ -147,12 +156,18 @@ export default function PaginaNuevoTraslado() {
       return;
     }
 
+    if (cargandoSesion) {
+      setEnviando(false);
+      setResultado({ ok: false, mensaje: "Estamos validando tu sesión. Espera unos segundos e intenta de nuevo." });
+      return;
+    }
+
     if (!sesionReal) {
       // Supabase sí está configurado, pero no hay sesión: usuario.id sería
       // "" y la inserción real fallaría contra RLS (no hay fila propia que
       // crear/usar). Mejor mandarlo a iniciar sesión que fallar en silencio.
       setEnviando(false);
-      router.push("/login");
+      router.push("/login?next=/traslados/nuevo");
       return;
     }
 
@@ -205,18 +220,18 @@ export default function PaginaNuevoTraslado() {
         tipo_pago: momentoPago.momento
       });
 
-      // DIAGNÓSTICO TEMPORAL (quitar una vez resuelto) — para confirmar qué
-      // ve el código realmente desplegado en este punto exacto, sin
-      // depender de inferencias indirectas desde la pestaña Network.
-      console.log("[ruum-debug] momentoPago.momento =", momentoPago.momento);
-      console.log("[ruum-debug] tiene clave Stripe =", Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY));
-      console.log("[ruum-debug] entra a Stripe =", momentoPago.momento === "anticipado" && Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY));
-
-      // PRD §4.6 — pago anticipado real solo si Stripe está configurado;
-      // si no, sigue el comportamiento anterior (éxito inmediato, cobro
-      // pendiente de implementarse). "al_cierre" nunca pasa por aquí — se
-      // cobra hasta el cierre del traslado, no al solicitarlo.
-      if (momentoPago.momento === "anticipado" && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+      // PRD §4.6 — el pago anticipado es obligatorio para usuarios sin
+      // historial suficiente; no debe continuar como éxito si Stripe no está
+      // disponible, porque entonces la solicitud queda creada sin cobro.
+      if (momentoPago.momento === "anticipado") {
+        if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+          setResultado({
+            ok: false,
+            mensaje:
+              "Stripe no está configurado. Define NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY y vuelve a compilar la app para capturar el pago anticipado."
+          });
+          return;
+        }
         setTrasladoCreadoId(nuevoTraslado.id);
         setEnviando(false);
         return;
@@ -462,8 +477,8 @@ export default function PaginaNuevoTraslado() {
         {paso < PASOS.length - 1 ? (
           <Button onClick={() => setPaso((p) => p + 1)}>Continuar</Button>
         ) : (
-          <Button onClick={enviarSolicitud} disabled={enviando}>
-            {enviando ? "Enviando…" : "Confirmar solicitud"}
+          <Button onClick={enviarSolicitud} disabled={enviando || cargandoSesion}>
+            {enviando ? "Enviando…" : cargandoSesion ? "Validando sesión…" : "Confirmar solicitud"}
           </Button>
         )}
       </div>

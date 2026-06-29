@@ -61,6 +61,10 @@ export function estadoTrasladoSiguienteTrasPago(
   if (estadoPago !== "completado") return null;
   if (tipoPago !== "anticipado" && tipoPago !== "al_cierre") return null;
 
+  if (estadoActual === "solicitud_creada" && tipoPago === "anticipado") {
+    return "documentacion_pendiente";
+  }
+
   if (estadoActual === "entrega_confirmada" || estadoActual === "pago_pendiente") {
     return "pago_completado";
   }
