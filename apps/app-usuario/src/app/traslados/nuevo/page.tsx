@@ -13,14 +13,24 @@ import { esNativo } from "../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { PagoStripe, tieneStripePublicoConfigurado } from "../../PagoStripe";
 
-const PASOS = ["Vehículo", "Documentos", "Origen y destino", "Contactos", "Cotización", "Confirmación"] as const;
+const PASOS = ["Vehículo", "Ruta", "Agenda", "Servicio"] as const;
+type TransmisionVehiculo = "manual" | "automatica";
+type ModalidadProgramacion = "lo_antes_posible" | "programado";
+type TipoRutaTraslado = "local" | "foraneo";
+type TipoServicioTraslado = "personal" | "empresarial" | "agencia" | "lote" | "flotilla";
+type MotivoServicioTraslado = "entrega_cliente" | "recuperacion" | "traslado_especial";
 
 interface DatosFormulario {
   // Vehículo — PRD §4.2
   tipo: TipoVehiculo;
+  transmision: TransmisionVehiculo;
   marca: string;
   modelo: string;
   anio: string;
+  color: string;
+  placas: string;
+  vin: string;
+  estadoGeneral: string;
   // Documentos — PRD §4.2
   tieneTarjeta: boolean;
   tieneVerificacion: boolean;
@@ -29,6 +39,7 @@ interface DatosFormulario {
   // Origen / destino
   origenDireccion: string;
   origenCiudad: string;
+  origenReferencias: string;
   // Solo se llenan dentro del shell nativo, vía "Usar mi ubicación actual"
   // (lib/ubicacion.ts). Geocodificación real de la dirección sigue
   // pendiente — sin esto, origen_lat/lng se siguen enviando en 0.
@@ -36,11 +47,20 @@ interface DatosFormulario {
   origenLng?: number;
   destinoDireccion: string;
   destinoCiudad: string;
+  destinoReferencias: string;
   // Contactos — PRD §4.1
   entregaNombre: string;
   entregaTelefono: string;
   recepcionNombre: string;
   recepcionTelefono: string;
+  instruccionesEspeciales: string;
+  modalidadProgramacion: ModalidadProgramacion;
+  fechaHoraProgramada: string;
+  tipoRuta: TipoRutaTraslado;
+  ventanaRecoleccion: string;
+  ventanaEntrega: string;
+  tipoServicio: TipoServicioTraslado;
+  motivoServicio: MotivoServicioTraslado;
   // Cotización — motor automático es fase posterior; por ahora es una
   // estimación manual que el equipo de operaciones ajusta.
   precioEstimado: string;
@@ -48,21 +68,36 @@ interface DatosFormulario {
 
 const VALORES_INICIALES: DatosFormulario = {
   tipo: "sedan",
+  transmision: "automatica",
   marca: "",
   modelo: "",
   anio: "",
+  color: "",
+  placas: "",
+  vin: "",
+  estadoGeneral: "",
   tieneTarjeta: false,
   tieneVerificacion: false,
   tienePlacas: false,
   puedeCircular: false,
   origenDireccion: "",
   origenCiudad: "",
+  origenReferencias: "",
   destinoDireccion: "",
   destinoCiudad: "",
+  destinoReferencias: "",
   entregaNombre: "",
   entregaTelefono: "",
   recepcionNombre: "",
   recepcionTelefono: "",
+  instruccionesEspeciales: "",
+  modalidadProgramacion: "lo_antes_posible",
+  fechaHoraProgramada: "",
+  tipoRuta: "local",
+  ventanaRecoleccion: "",
+  ventanaEntrega: "",
+  tipoServicio: "personal",
+  motivoServicio: "entrega_cliente",
   precioEstimado: ""
 };
 
@@ -192,9 +227,14 @@ export default function PaginaNuevoTraslado() {
       const vehiculo = await crearVehiculo(cliente, {
         usuario_id: usuario.id,
         tipo: datos.tipo,
+        transmision: datos.transmision,
         marca: datos.marca,
         modelo: datos.modelo,
         anio: Number(datos.anio),
+        color: datos.color,
+        placas: datos.placas,
+        vin: datos.vin,
+        estado_general_declarado: datos.estadoGeneral,
         tiene_tarjeta_circulacion: datos.tieneTarjeta,
         tiene_verificacion: datos.tieneVerificacion,
         tiene_placas: datos.tienePlacas,
@@ -212,10 +252,20 @@ export default function PaginaNuevoTraslado() {
         origen_lng: datos.origenLng ?? 0,
         origen_direccion: datos.origenDireccion,
         origen_ciudad: datos.origenCiudad,
+        origen_referencias: datos.origenReferencias,
         destino_lat: 0,
         destino_lng: 0,
         destino_direccion: datos.destinoDireccion,
         destino_ciudad: datos.destinoCiudad,
+        destino_referencias: datos.destinoReferencias,
+        instrucciones_especiales: datos.instruccionesEspeciales,
+        modalidad_programacion: datos.modalidadProgramacion,
+        fecha_hora_programada: datos.fechaHoraProgramada ? new Date(datos.fechaHoraProgramada).toISOString() : null,
+        tipo_ruta: datos.tipoRuta,
+        ventana_recoleccion: datos.ventanaRecoleccion,
+        ventana_entrega: datos.ventanaEntrega,
+        tipo_servicio: datos.tipoServicio,
+        motivo_servicio: datos.motivoServicio,
         precio_cotizado: Number(datos.precioEstimado) || 0,
         tipo_pago: momentoPago.momento
       });
@@ -291,6 +341,7 @@ export default function PaginaNuevoTraslado() {
         {paso === 0 && (
           <PassportCard>
             <div className="grid gap-4">
+              <p className="font-body text-sm font-semibold">¿Qué vehículo vamos a mover?</p>
               <label className="flex flex-col gap-1.5">
                 <span className="font-body text-sm font-medium">Tipo de vehículo</span>
                 <select
@@ -305,6 +356,17 @@ export default function PaginaNuevoTraslado() {
                   ))}
                 </select>
               </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="font-body text-sm font-medium">Transmisión</span>
+                <select
+                  value={datos.transmision}
+                  onChange={(e) => actualizar("transmision", e.target.value as TransmisionVehiculo)}
+                  className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm"
+                >
+                  <option value="automatica">Automática</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </label>
               <Field etiqueta="Marca" value={datos.marca} onChange={(e) => actualizar("marca", e.target.value)} />
               <Field etiqueta="Modelo" value={datos.modelo} onChange={(e) => actualizar("modelo", e.target.value)} />
               <Field
@@ -315,59 +377,70 @@ export default function PaginaNuevoTraslado() {
                 value={datos.anio}
                 onChange={(e) => actualizar("anio", e.target.value)}
               />
+              <Field etiqueta="Color" value={datos.color} onChange={(e) => actualizar("color", e.target.value)} />
+              <Field etiqueta="Placas" value={datos.placas} onChange={(e) => actualizar("placas", e.target.value)} />
+              <Field
+                etiqueta="Número de serie / VIN"
+                value={datos.vin}
+                onChange={(e) => actualizar("vin", e.target.value)}
+              />
+              <label className="flex flex-col gap-1.5">
+                <span className="font-body text-sm font-medium">Estado general declarado</span>
+                <textarea
+                  value={datos.estadoGeneral}
+                  onChange={(e) => actualizar("estadoGeneral", e.target.value)}
+                  className="min-h-24 rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                />
+              </label>
+              <div className="grid gap-3 border-t border-ink/10 pt-4">
+                <p className="font-body text-sm font-semibold">Documentación y condición mínima</p>
+                {(
+                  [
+                    ["tieneTarjeta", "Tarjeta de circulación vigente"],
+                    ["tieneVerificacion", "Verificación vehicular vigente"],
+                    ["tienePlacas", "Ambas placas instaladas"],
+                    ["puedeCircular", "El vehículo enciende y puede circular rodando"]
+                  ] as const
+                ).map(([campo, etiqueta]) => (
+                  <label key={campo} className="flex items-center gap-2.5 font-body text-sm">
+                    <input
+                      type="checkbox"
+                      checked={datos[campo]}
+                      onChange={(e) => actualizar(campo, e.target.checked)}
+                      className="size-4 rounded border-ink/30 text-signal focus-visible:outline-route"
+                    />
+                    {etiqueta}
+                  </label>
+                ))}
+                {!datos.puedeCircular && (
+                  <Aviso tono="atencion">
+                    Ruum Ruum no realiza arrastres como servicio estándar. Si el vehículo no puede circular rodando,
+                    contáctanos antes de continuar.
+                  </Aviso>
+                )}
+              </div>
             </div>
           </PassportCard>
         )}
 
         {paso === 1 && (
           <PassportCard>
-            <p className="mb-4 font-body text-sm text-ink/60">
-              Documentación obligatoria, salvo que tengas un permiso especial vigente para circular sin ella.
-            </p>
-            <div className="grid gap-3">
-              {(
-                [
-                  ["tieneTarjeta", "Tarjeta de circulación vigente"],
-                  ["tieneVerificacion", "Verificación vehicular vigente"],
-                  ["tienePlacas", "Ambas placas instaladas"],
-                  ["puedeCircular", "El vehículo enciende y puede circular rodando"]
-                ] as const
-              ).map(([campo, etiqueta]) => (
-                <label key={campo} className="flex items-center gap-2.5 font-body text-sm">
-                  <input
-                    type="checkbox"
-                    checked={datos[campo]}
-                    onChange={(e) => actualizar(campo, e.target.checked)}
-                    className="size-4 rounded border-ink/30 text-signal focus-visible:outline-route"
-                  />
-                  {etiqueta}
-                </label>
-              ))}
-            </div>
-            {!datos.puedeCircular && (
-              <div className="mt-4">
-                <Aviso tono="atencion">
-                  Ruum Ruum no realiza arrastres como servicio estándar. Si el vehículo no puede circular rodando,
-                  contáctanos antes de continuar.
-                </Aviso>
-              </div>
-            )}
-          </PassportCard>
-        )}
-
-        {paso === 2 && (
-          <PassportCard>
             <div className="grid gap-4">
-              <p className="font-body text-sm font-semibold">Origen</p>
+              <p className="font-body text-sm font-semibold">¿De dónde sale y a dónde llega?</p>
               <Field
-                etiqueta="Dirección"
+                etiqueta="Dirección de origen"
                 value={datos.origenDireccion}
                 onChange={(e) => actualizar("origenDireccion", e.target.value)}
               />
               <Field
-                etiqueta="Ciudad"
+                etiqueta="Ciudad de origen"
                 value={datos.origenCiudad}
                 onChange={(e) => actualizar("origenCiudad", e.target.value)}
+              />
+              <Field
+                etiqueta="Referencias de origen"
+                value={datos.origenReferencias}
+                onChange={(e) => actualizar("origenReferencias", e.target.value)}
               />
               {esNativo() && (
                 <div>
@@ -389,24 +462,21 @@ export default function PaginaNuevoTraslado() {
                   )}
                 </div>
               )}
-              <p className="mt-2 font-body text-sm font-semibold">Destino</p>
               <Field
-                etiqueta="Dirección"
+                etiqueta="Dirección de destino"
                 value={datos.destinoDireccion}
                 onChange={(e) => actualizar("destinoDireccion", e.target.value)}
               />
               <Field
-                etiqueta="Ciudad"
+                etiqueta="Ciudad de destino"
                 value={datos.destinoCiudad}
                 onChange={(e) => actualizar("destinoCiudad", e.target.value)}
               />
-            </div>
-          </PassportCard>
-        )}
-
-        {paso === 3 && (
-          <PassportCard>
-            <div className="grid gap-4">
+              <Field
+                etiqueta="Referencias de destino"
+                value={datos.destinoReferencias}
+                onChange={(e) => actualizar("destinoReferencias", e.target.value)}
+              />
               <p className="font-body text-sm font-semibold">Quien entrega el vehículo</p>
               <Field
                 etiqueta="Nombre"
@@ -429,24 +499,108 @@ export default function PaginaNuevoTraslado() {
                 value={datos.recepcionTelefono}
                 onChange={(e) => actualizar("recepcionTelefono", e.target.value)}
               />
+              <label className="flex flex-col gap-1.5">
+                <span className="font-body text-sm font-medium">Instrucciones especiales</span>
+                <textarea
+                  value={datos.instruccionesEspeciales}
+                  onChange={(e) => actualizar("instruccionesEspeciales", e.target.value)}
+                  className="min-h-24 rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                />
+              </label>
             </div>
           </PassportCard>
         )}
 
-        {paso === 4 && (
+        {paso === 2 && (
           <PassportCard>
-            <Field
-              etiqueta="Monto estimado (MXN)"
-              type="number"
-              value={datos.precioEstimado}
-              onChange={(e) => actualizar("precioEstimado", e.target.value)}
-              ayuda="Estimación manual. El motor de cotización automática llega en una fase posterior."
-            />
+            <div className="grid gap-4">
+              <p className="font-body text-sm font-semibold">¿Cuándo lo necesitas?</p>
+              <label className="flex flex-col gap-1.5">
+                <span className="font-body text-sm font-medium">Disponibilidad</span>
+                <select
+                  value={datos.modalidadProgramacion}
+                  onChange={(e) => actualizar("modalidadProgramacion", e.target.value as ModalidadProgramacion)}
+                  className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm"
+                >
+                  <option value="lo_antes_posible">Lo antes posible</option>
+                  <option value="programado">Programar fecha y hora</option>
+                </select>
+              </label>
+              {datos.modalidadProgramacion === "programado" && (
+                <Field
+                  etiqueta="Fecha y hora programada"
+                  type="datetime-local"
+                  value={datos.fechaHoraProgramada}
+                  onChange={(e) => actualizar("fechaHoraProgramada", e.target.value)}
+                />
+              )}
+              <label className="flex flex-col gap-1.5">
+                <span className="font-body text-sm font-medium">Tipo de traslado</span>
+                <select
+                  value={datos.tipoRuta}
+                  onChange={(e) => actualizar("tipoRuta", e.target.value as TipoRutaTraslado)}
+                  className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm"
+                >
+                  <option value="local">Local</option>
+                  <option value="foraneo">Foráneo</option>
+                </select>
+              </label>
+              <Field
+                etiqueta="Ventana de recolección"
+                value={datos.ventanaRecoleccion}
+                onChange={(e) => actualizar("ventanaRecoleccion", e.target.value)}
+                placeholder="Ej. 09:00 a 12:00"
+              />
+              <Field
+                etiqueta="Ventana de entrega"
+                value={datos.ventanaEntrega}
+                onChange={(e) => actualizar("ventanaEntrega", e.target.value)}
+                placeholder="Ej. Mismo día por la tarde"
+              />
+            </div>
           </PassportCard>
         )}
 
-        {paso === 5 && (
+        {paso === 3 && (
           <div className="space-y-4">
+            <PassportCard>
+              <div className="grid gap-4">
+                <p className="font-body text-sm font-semibold">Tipo de servicio</p>
+                <label className="flex flex-col gap-1.5">
+                  <span className="font-body text-sm font-medium">Servicio</span>
+                  <select
+                    value={datos.tipoServicio}
+                    onChange={(e) => actualizar("tipoServicio", e.target.value as TipoServicioTraslado)}
+                    className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm"
+                  >
+                    <option value="personal">Traslado personal</option>
+                    <option value="empresarial">Traslado empresarial</option>
+                    <option value="agencia">Para agencia</option>
+                    <option value="lote">Para lote</option>
+                    <option value="flotilla">Para flotilla</option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="font-body text-sm font-medium">Motivo</span>
+                  <select
+                    value={datos.motivoServicio}
+                    onChange={(e) => actualizar("motivoServicio", e.target.value as MotivoServicioTraslado)}
+                    className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm"
+                  >
+                    <option value="entrega_cliente">Entrega a cliente</option>
+                    <option value="recuperacion">Recuperación</option>
+                    <option value="traslado_especial">Traslado especial</option>
+                  </select>
+                </label>
+                <Field
+                  etiqueta="Monto estimado (MXN)"
+                  type="number"
+                  value={datos.precioEstimado}
+                  onChange={(e) => actualizar("precioEstimado", e.target.value)}
+                  ayuda="Estimación manual. El motor de cotización automática llega en una fase posterior."
+                />
+              </div>
+            </PassportCard>
             <PassportCard>
               <dl className="grid grid-cols-2 gap-3 font-body text-sm">
                 <dt className="text-ink/45">Vehículo</dt>
@@ -457,6 +611,10 @@ export default function PaginaNuevoTraslado() {
                 <dd>
                   {datos.origenCiudad} → {datos.destinoCiudad}
                 </dd>
+                <dt className="text-ink/45">Agenda</dt>
+                <dd>{datos.modalidadProgramacion === "programado" ? datos.fechaHoraProgramada : "Lo antes posible"}</dd>
+                <dt className="text-ink/45">Servicio</dt>
+                <dd>{datos.tipoServicio.replace("_", " ")}</dd>
                 <dt className="text-ink/45">Monto estimado</dt>
                 <dd>${Number(datos.precioEstimado || 0).toLocaleString("es-MX")}</dd>
                 <dt className="text-ink/45">Momento de pago</dt>

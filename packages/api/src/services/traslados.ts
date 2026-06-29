@@ -22,6 +22,16 @@ export interface DatosNuevoTraslado {
   destino_lng: number;
   destino_direccion: string;
   destino_ciudad: string;
+  origen_referencias?: string | null;
+  destino_referencias?: string | null;
+  instrucciones_especiales?: string | null;
+  modalidad_programacion?: string | null;
+  fecha_hora_programada?: string | null;
+  tipo_ruta?: string | null;
+  ventana_recoleccion?: string | null;
+  ventana_entrega?: string | null;
+  tipo_servicio?: string | null;
+  motivo_servicio?: string | null;
   precio_cotizado: number;
   tipo_pago: TipoPago;
 }

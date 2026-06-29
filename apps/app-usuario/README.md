@@ -12,8 +12,8 @@ confianza, visibilidad y cierre documental."**
 - `/registro` — alta de cuenta personal/empresa (PRD §3, §4.1), conectado de
   verdad: `auth.signUp()` + inserción real en `usuarios`. El nombre se guarda
   en los metadatos de Auth (no existe columna `usuarios.nombre`).
-- `/traslados/nuevo` — wizard de 6 pasos (vehículo → documentos → origen y
-  destino → contactos → cotización → confirmación), con las reglas reales de
+- `/traslados/nuevo` — wizard de 4 pasos (vehículo → ruta → agenda →
+  servicio), con las reglas reales de
   `packages/shared` conectadas en vivo: el paso de confirmación muestra el
   momento de pago (`determinarMomentoPago`, PRD §4.6) y el aviso de política
   de cancelación (`calcularCargoCancelacion`, PRD §4.7) calculados de verdad,
