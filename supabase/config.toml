@@ -35,3 +35,12 @@ enabled = true
 
 [functions.crear-payment-intent]
 verify_jwt = false
+
+# Stripe llama a este endpoint directamente desde sus servidores — nunca
+# manda un JWT de Supabase, manda su propia firma (Stripe-Signature), que
+# la función ya valida internamente con stripe.webhooks.constructEventAsync.
+# Sin esto, el gateway de Supabase rechaza la llamada antes de que la
+# función corra (confirmado en producción: 401 "Missing authorization
+# header" al llamar la función sin sesión, igual que rechazaría a Stripe).
+[functions.stripe-webhook]
+verify_jwt = false
