@@ -23,7 +23,8 @@ import {
 } from "./logica.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
-  apiVersion: "2025-02-24.acacia"
+  apiVersion: "2025-02-24.acacia",
+  httpClient: Stripe.createFetchHttpClient()
 });
 
 const supabase = createClient(

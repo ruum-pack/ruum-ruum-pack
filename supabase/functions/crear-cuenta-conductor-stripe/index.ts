@@ -11,7 +11,8 @@ import Stripe from "npm:stripe@^17";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
-  apiVersion: "2025-02-24.acacia"
+  apiVersion: "2025-02-24.acacia",
+  httpClient: Stripe.createFetchHttpClient()
 });
 
 const CABECERAS_CORS = {
