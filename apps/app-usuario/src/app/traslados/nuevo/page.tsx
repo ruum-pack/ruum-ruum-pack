@@ -11,7 +11,7 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/su
 import { crearVehiculo, crearTraslado, obtenerUsuarioActual } from "@ruum/api/services";
 import { esNativo } from "../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
-import { PagoStripe } from "../../PagoStripe";
+import { PagoStripe, tieneStripePublicoConfigurado } from "../../PagoStripe";
 
 const PASOS = ["Vehículo", "Documentos", "Origen y destino", "Contactos", "Cotización", "Confirmación"] as const;
 
@@ -224,7 +224,7 @@ export default function PaginaNuevoTraslado() {
       // historial suficiente; no debe continuar como éxito si Stripe no está
       // disponible, porque entonces la solicitud queda creada sin cobro.
       if (momentoPago.momento === "anticipado") {
-        if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+        if (!tieneStripePublicoConfigurado()) {
           setResultado({
             ok: false,
             mensaje:

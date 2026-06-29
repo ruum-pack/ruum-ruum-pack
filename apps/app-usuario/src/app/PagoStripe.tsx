@@ -11,6 +11,10 @@ const stripePromise = clavePublica ? loadStripe(clavePublica) : null;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+export function tieneStripePublicoConfigurado(): boolean {
+  return Boolean(clavePublica);
+}
+
 export interface PagoStripeProps {
   trasladoId: string;
   onPagado: () => void;
