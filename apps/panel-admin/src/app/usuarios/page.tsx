@@ -57,6 +57,7 @@ export default function PaginaUsuariosAdmin() {
         <table className="w-full font-body text-sm">
           <thead>
             <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-ink/45">
+              <th className="px-4 py-3">Nombre</th>
               <th className="px-4 py-3">Tipo de cuenta</th>
               <th className="px-4 py-3">Rol</th>
               <th className="px-4 py-3">Verificación</th>
@@ -68,13 +69,16 @@ export default function PaginaUsuariosAdmin() {
           <tbody>
             {cargando ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink/50">
+                <td colSpan={7} className="px-4 py-6 text-center text-ink/50">
                   Cargando…
                 </td>
               </tr>
             ) : (
               usuarios.map((u) => (
                 <tr key={u.id} className="border-b border-ink/5 last:border-0">
+                  <td className="px-4 py-3 font-medium">
+                    {u.nombre ?? <span className="text-ink/40">Sin nombre</span>}
+                  </td>
                   <td className="px-4 py-3 capitalize">{u.tipo_cuenta}</td>
                   <td className="px-4 py-3 capitalize">{u.rol.replace("_", " ")}</td>
                   <td className="px-4 py-3">{ETIQUETA_VERIFICACION[u.estado_verificacion]}</td>

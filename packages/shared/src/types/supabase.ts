@@ -44,6 +44,7 @@ export interface Database {
         Row: {
           id: string;
           auth_user_id: string | null;
+          nombre: string | null;
           tipo_cuenta: string;
           rol: Database["public"]["Enums"]["rol_usuario"];
           empresa_id: string | null;
@@ -57,6 +58,7 @@ export interface Database {
         Insert: {
           id?: string;
           auth_user_id?: string | null;
+          nombre?: string | null;
           tipo_cuenta: string;
           rol?: Database["public"]["Enums"]["rol_usuario"];
           empresa_id?: string | null;
@@ -70,6 +72,7 @@ export interface Database {
         Update: {
           id?: string;
           auth_user_id?: string | null;
+          nombre?: string | null;
           tipo_cuenta?: string;
           rol?: Database["public"]["Enums"]["rol_usuario"];
           empresa_id?: string | null;

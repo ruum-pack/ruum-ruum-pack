@@ -168,6 +168,7 @@ export const USUARIOS_DEMO: UsuarioRow[] = [
   {
     id: "demo-usuario-1",
     auth_user_id: null,
+    nombre: "Daniela Fuentes",
     tipo_cuenta: "personal",
     rol: "personal",
     empresa_id: null,
@@ -181,6 +182,7 @@ export const USUARIOS_DEMO: UsuarioRow[] = [
   {
     id: "demo-usuario-4",
     auth_user_id: null,
+    nombre: "Ricardo Cervantes",
     tipo_cuenta: "personal",
     rol: "personal",
     empresa_id: null,
