@@ -156,6 +156,22 @@ export default function PaginaNuevoTraslado() {
       return;
     }
 
+    // Bug real encontrado en producción (2026-06-29): un campo "Año" vacío
+    // o fuera de rango llegaba intacto hasta Postgres y tronaba con el
+    // mensaje crudo de la constraint (vehiculos_anio_check), sin que la
+    // persona supiera qué corregir. Se valida aquí antes de gastar un
+    // insert real.
+    const anioNumerico = Number(datos.anio);
+    const anioMaximo = new Date().getFullYear() + 1;
+    if (!datos.anio || !Number.isInteger(anioNumerico) || anioNumerico < 1980 || anioNumerico > anioMaximo) {
+      setEnviando(false);
+      setResultado({
+        ok: false,
+        mensaje: `El año del vehículo debe ser un número entre 1980 y ${anioMaximo}.`
+      });
+      return;
+    }
+
     try {
       const cliente = crearClienteNavegador();
       const vehiculo = await crearVehiculo(cliente, {
@@ -188,6 +204,13 @@ export default function PaginaNuevoTraslado() {
         precio_cotizado: Number(datos.precioEstimado) || 0,
         tipo_pago: momentoPago.momento
       });
+
+      // DIAGNÓSTICO TEMPORAL (quitar una vez resuelto) — para confirmar qué
+      // ve el código realmente desplegado en este punto exacto, sin
+      // depender de inferencias indirectas desde la pestaña Network.
+      console.log("[ruum-debug] momentoPago.momento =", momentoPago.momento);
+      console.log("[ruum-debug] tiene clave Stripe =", Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY));
+      console.log("[ruum-debug] entra a Stripe =", momentoPago.momento === "anticipado" && Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY));
 
       // PRD §4.6 — pago anticipado real solo si Stripe está configurado;
       // si no, sigue el comportamiento anterior (éxito inmediato, cobro
@@ -272,6 +295,8 @@ export default function PaginaNuevoTraslado() {
               <Field
                 etiqueta="Año"
                 type="number"
+                min={1980}
+                max={new Date().getFullYear() + 1}
                 value={datos.anio}
                 onChange={(e) => actualizar("anio", e.target.value)}
               />
