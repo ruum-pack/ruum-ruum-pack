@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { obtenerPasaporteDigital } from "@ruum/api/services";
 import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_INCIDENCIA, ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
@@ -645,6 +646,11 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
               Usa el chat del traslado para mensajes operativos. Si hay una incidencia abierta, soporte dará seguimiento
               desde este mismo expediente.
             </p>
+            <div className="mt-4">
+              <Link href={`/soporte?viaje=${pasaporte.traslado_id}`} className="font-body text-sm font-medium text-signal">
+                Abrir soporte del viaje
+              </Link>
+            </div>
           </div>
         </PassportCard>
       </section>

@@ -45,6 +45,7 @@ export interface Database {
           id: string;
           auth_user_id: string | null;
           nombre: string | null;
+          foto_url: string | null;
           tipo_cuenta: string;
           rol: Database["public"]["Enums"]["rol_usuario"];
           empresa_id: string | null;
@@ -52,6 +53,17 @@ export interface Database {
           traslados_completados_sin_incidencia: number;
           metodo_pago_registrado: boolean;
           telefono: string | null;
+          pais: string | null;
+          estado: string | null;
+          direccion_principal: string | null;
+          correo_facturacion: string | null;
+          notificaciones_push: boolean;
+          notificaciones_email: boolean;
+          notificaciones_sms_whatsapp: boolean;
+          alertas_viaje: boolean;
+          alertas_pago: boolean;
+          alertas_evidencia: boolean;
+          notificaciones_promocionales: boolean;
           creado_en: string;
           actualizado_en: string;
         };
@@ -59,6 +71,7 @@ export interface Database {
           id?: string;
           auth_user_id?: string | null;
           nombre?: string | null;
+          foto_url?: string | null;
           tipo_cuenta: string;
           rol?: Database["public"]["Enums"]["rol_usuario"];
           empresa_id?: string | null;
@@ -66,6 +79,17 @@ export interface Database {
           traslados_completados_sin_incidencia?: number;
           metodo_pago_registrado?: boolean;
           telefono?: string | null;
+          pais?: string | null;
+          estado?: string | null;
+          direccion_principal?: string | null;
+          correo_facturacion?: string | null;
+          notificaciones_push?: boolean;
+          notificaciones_email?: boolean;
+          notificaciones_sms_whatsapp?: boolean;
+          alertas_viaje?: boolean;
+          alertas_pago?: boolean;
+          alertas_evidencia?: boolean;
+          notificaciones_promocionales?: boolean;
           creado_en?: string;
           actualizado_en?: string;
         };
@@ -73,6 +97,7 @@ export interface Database {
           id?: string;
           auth_user_id?: string | null;
           nombre?: string | null;
+          foto_url?: string | null;
           tipo_cuenta?: string;
           rol?: Database["public"]["Enums"]["rol_usuario"];
           empresa_id?: string | null;
@@ -80,6 +105,17 @@ export interface Database {
           traslados_completados_sin_incidencia?: number;
           metodo_pago_registrado?: boolean;
           telefono?: string | null;
+          pais?: string | null;
+          estado?: string | null;
+          direccion_principal?: string | null;
+          correo_facturacion?: string | null;
+          notificaciones_push?: boolean;
+          notificaciones_email?: boolean;
+          notificaciones_sms_whatsapp?: boolean;
+          alertas_viaje?: boolean;
+          alertas_pago?: boolean;
+          alertas_evidencia?: boolean;
+          notificaciones_promocionales?: boolean;
           creado_en?: string;
           actualizado_en?: string;
         };
@@ -96,18 +132,36 @@ export interface Database {
         Row: {
           id: string;
           nombre: string;
+          rfc: string | null;
+          razon_social: string | null;
+          regimen_fiscal: string | null;
+          codigo_postal_fiscal: string | null;
+          uso_cfdi: string | null;
+          correo_facturacion: string | null;
           creado_en: string;
           actualizado_en: string;
         };
         Insert: {
           id?: string;
           nombre: string;
+          rfc?: string | null;
+          razon_social?: string | null;
+          regimen_fiscal?: string | null;
+          codigo_postal_fiscal?: string | null;
+          uso_cfdi?: string | null;
+          correo_facturacion?: string | null;
           creado_en?: string;
           actualizado_en?: string;
         };
         Update: {
           id?: string;
           nombre?: string;
+          rfc?: string | null;
+          razon_social?: string | null;
+          regimen_fiscal?: string | null;
+          codigo_postal_fiscal?: string | null;
+          uso_cfdi?: string | null;
+          correo_facturacion?: string | null;
           creado_en?: string;
           actualizado_en?: string;
         };
@@ -180,6 +234,7 @@ export interface Database {
           id: string;
           usuario_id: string;
           tipo: Database["public"]["Enums"]["tipo_vehiculo"];
+          alias: string | null;
           marca: string;
           modelo: string;
           anio: number;
@@ -187,6 +242,7 @@ export interface Database {
           color: string | null;
           placas: string | null;
           vin: string | null;
+          fotos_urls: string[];
           estado_general_declarado: string | null;
           tiene_tarjeta_circulacion: boolean;
           tiene_verificacion: boolean;
@@ -199,6 +255,7 @@ export interface Database {
           id?: string;
           usuario_id: string;
           tipo: Database["public"]["Enums"]["tipo_vehiculo"];
+          alias?: string | null;
           marca: string;
           modelo: string;
           anio: number;
@@ -206,6 +263,7 @@ export interface Database {
           color?: string | null;
           placas?: string | null;
           vin?: string | null;
+          fotos_urls?: string[];
           estado_general_declarado?: string | null;
           tiene_tarjeta_circulacion?: boolean;
           tiene_verificacion?: boolean;
@@ -218,6 +276,7 @@ export interface Database {
           id?: string;
           usuario_id?: string;
           tipo?: Database["public"]["Enums"]["tipo_vehiculo"];
+          alias?: string | null;
           marca?: string;
           modelo?: string;
           anio?: number;
@@ -225,6 +284,7 @@ export interface Database {
           color?: string | null;
           placas?: string | null;
           vin?: string | null;
+          fotos_urls?: string[];
           estado_general_declarado?: string | null;
           tiene_tarjeta_circulacion?: boolean;
           tiene_verificacion?: boolean;

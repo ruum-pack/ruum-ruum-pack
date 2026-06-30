@@ -65,6 +65,15 @@ export default async function PaginaInicio({
             >
               Ver un traslado de ejemplo
             </Link>
+            <Link href="/cuenta" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
+              Cuenta
+            </Link>
+            <Link href="/mis-viajes" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
+              Mis viajes
+            </Link>
+            <Link href="/soporte" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
+              Soporte
+            </Link>
             {sesion ? (
               <BotonCerrarSesion />
             ) : (
@@ -95,6 +104,15 @@ export default async function PaginaInicio({
             className="font-body text-sm text-ink/60 underline-offset-4 hover:underline"
           >
             Ver un traslado de ejemplo
+          </Link>
+          <Link href="/cuenta" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
+            Cuenta
+          </Link>
+          <Link href="/mis-viajes" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
+            Mis viajes
+          </Link>
+          <Link href="/soporte" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
+            Soporte
           </Link>
           <Link href="/login" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
             Iniciar sesión
