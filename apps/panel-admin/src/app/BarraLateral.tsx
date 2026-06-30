@@ -5,28 +5,23 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
 
-// PRD §17.2 — navegación principal completa. Solo las primeras 5 secciones
-// están construidas en este corte; el resto se muestra para reflejar la
-// arquitectura de información real del producto, marcadas "Próximamente" en
-// vez de omitirse u ocultarse — así nadie confunde "no implementado todavía"
-// con "no existe en el plan".
 const SECCIONES_CONSTRUIDAS = [
   { href: "/", etiqueta: "Dashboard" },
   { href: "/viajes", etiqueta: "Viajes" },
   { href: "/conductores", etiqueta: "Conductores" },
   { href: "/usuarios", etiqueta: "Usuarios" },
-  { href: "/incidencias", etiqueta: "Incidencias" }
+  { href: "/incidencias", etiqueta: "Incidencias" },
+  { href: "/pagos", etiqueta: "Pagos" },
+  { href: "/documentos", etiqueta: "Documentos" },
+  { href: "/tarifas", etiqueta: "Tarifas" },
+  { href: "/empresas", etiqueta: "Empresas" },
+  { href: "/reportes", etiqueta: "Reportes" },
+  { href: "/configuracion", etiqueta: "Configuración" }
 ] as const;
 
 const SECCIONES_PENDIENTES = [
   "Evidencia",
-  "Pagos",
-  "Documentos",
-  "Tarifas",
-  "Empresas",
-  "Reportes",
-  "Auditoría",
-  "Configuración"
+  "Auditoría"
 ] as const;
 
 export function BarraLateral() {

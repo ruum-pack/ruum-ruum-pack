@@ -59,12 +59,7 @@ export default async function PaginaInicio({
         <header className="mb-10 flex items-center justify-between">
           <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
           <div className="flex items-center gap-5">
-            <Link
-              href="/traslados/demo-0001"
-              className="font-body text-sm text-ink/60 underline-offset-4 hover:underline"
-            >
-              Ver un traslado de ejemplo
-            </Link>
+           
             <Link href="/cuenta" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
               Cuenta
             </Link>
@@ -99,12 +94,7 @@ export default async function PaginaInicio({
       <header className="mb-16 flex items-center justify-between">
         <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
         <div className="flex items-center gap-5">
-          <Link
-            href="/traslados/demo-0001"
-            className="font-body text-sm text-ink/60 underline-offset-4 hover:underline"
-          >
-            Ver un traslado de ejemplo
-          </Link>
+       
           <Link href="/cuenta" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
             Cuenta
           </Link>
