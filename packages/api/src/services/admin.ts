@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
 import { transicionValida } from "@ruum/shared/states";
+import { evidenciaCompleta } from "@ruum/shared/rules";
+import type { FotoEvidencia } from "@ruum/shared/types";
 
 type Cliente = SupabaseClient<Database>;
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -8,8 +10,10 @@ type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 type IncidenciaRow = Database["public"]["Tables"]["incidencias"]["Row"];
 type NotaRow = Database["public"]["Tables"]["notas_internas_traslado"]["Row"];
+type EvidenciaRow = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 type EstadoConductor = Database["public"]["Enums"]["estado_conductor"];
+type TipoEvidencia = Database["public"]["Enums"]["tipo_evidencia"];
 
 /** Admin asociado a la sesión de Supabase Auth actual, si existe (mismo patrón que obtenerUsuarioActual/obtenerConductorActual). */
 export async function obtenerAdminActual(cliente: Cliente) {
@@ -22,6 +26,63 @@ export async function obtenerAdminActual(cliente: Cliente) {
 }
 
 const ESTADOS_TERMINALES: EstadoTraslado[] = ["servicio_cerrado", "servicio_cancelado", "traslado_fallido"];
+
+function aFotoEvidencia(fila: EvidenciaRow): FotoEvidencia {
+  return {
+    id: fila.id,
+    traslado_id: fila.traslado_id,
+    tipo: fila.tipo,
+    angulo: fila.angulo,
+    ...(fila.url ? { url: fila.url } : {}),
+    ...(fila.local_path ? { local_path: fila.local_path } : {}),
+    timestamp: fila.capturada_en,
+    ...(fila.lat !== null ? { lat: fila.lat } : {}),
+    ...(fila.lng !== null ? { lng: fila.lng } : {}),
+    sincronizada: fila.sincronizada
+  };
+}
+
+async function validarEvidenciaCompletaParaAdmin(cliente: Cliente, trasladoId: string, tipo: TipoEvidencia) {
+  const { data, error } = await cliente
+    .from("evidencia_fotos")
+    .select("*")
+    .eq("traslado_id", trasladoId)
+    .eq("tipo", tipo);
+
+  if (error) throw error;
+
+  const resultado = evidenciaCompleta((data ?? []).map(aFotoEvidencia), tipo);
+  if (!resultado.completa) {
+    throw new Error(`No se puede cambiar a evidencia_${tipo}_completada: faltan ${resultado.angulosFaltantes.join(", ")}.`);
+  }
+}
+
+async function validarPagoCompletadoParaAdmin(cliente: Cliente, trasladoId: string) {
+  const { data, error } = await cliente
+    .from("pagos")
+    .select("id")
+    .eq("traslado_id", trasladoId)
+    .eq("estado", "completado")
+    .limit(1);
+
+  if (error) throw error;
+
+  if ((data ?? []).length === 0) {
+    throw new Error("No se puede cambiar a pago_completado: no existe un pago con estado completado para este viaje.");
+  }
+}
+
+async function validarPrerequisitosEstatusAdmin(cliente: Cliente, trasladoId: string, nuevoEstado: EstadoTraslado) {
+  if (nuevoEstado === "evidencia_inicial_completada") {
+    await validarEvidenciaCompletaParaAdmin(cliente, trasladoId, "inicial");
+  }
+  if (nuevoEstado === "evidencia_final_completada") {
+    await validarEvidenciaCompletaParaAdmin(cliente, trasladoId, "final");
+  }
+  if (nuevoEstado === "pago_completado") {
+    await validarPagoCompletadoParaAdmin(cliente, trasladoId);
+  }
+}
 
 export interface MetricasDashboard {
   viajesActivos: number;
@@ -184,6 +245,8 @@ export async function cambiarEstatusAdmin(
   if (!transicionValida(estadoActual, nuevoEstado)) {
     throw new Error(`Transición no permitida: ${estadoActual} -> ${nuevoEstado}`);
   }
+
+  await validarPrerequisitosEstatusAdmin(cliente, trasladoId, nuevoEstado);
 
   const { error } = await cliente.from("traslados").update({ estado: nuevoEstado }).eq("id", trasladoId).eq("estado", estadoActual);
   if (error) throw error;
