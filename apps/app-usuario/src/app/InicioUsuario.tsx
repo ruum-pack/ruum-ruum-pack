@@ -50,13 +50,13 @@ function AccesoRapido({
   );
 
   if (!href) {
-    return <div className="rounded-card border border-ink/10 bg-paper-dim/50 p-4 opacity-60">{contenido}</div>;
+    return <div className="rounded-card border border-ink/10 bg-mist-dim/50 p-4 opacity-60">{contenido}</div>;
   }
 
   return (
     <Link
       href={href}
-      className="block rounded-card border border-ink/10 bg-paper p-4 transition-colors hover:border-signal/40 hover:bg-signal-soft/30"
+      className="block rounded-card border border-ink/10 bg-mist p-4 transition-colors hover:border-signal/40 hover:bg-signal-soft/30"
     >
       {contenido}
     </Link>

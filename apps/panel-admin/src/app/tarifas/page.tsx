@@ -46,7 +46,7 @@ export default function PaginaTarifasAdmin() {
           <h2 className="font-display text-xl font-semibold">Funciones principales</h2>
           <div className="mt-4 flex flex-wrap gap-2">
             {FUNCIONES.map((item) => (
-              <span key={item} className="rounded-full border border-ink/10 bg-paper px-3 py-1.5 font-body text-xs font-semibold text-ink/65">
+              <span key={item} className="rounded-full border border-ink/10 bg-mist px-3 py-1.5 font-body text-xs font-semibold text-ink/65">
                 {item}
               </span>
             ))}

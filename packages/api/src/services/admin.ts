@@ -234,7 +234,12 @@ export async function asignarConductorAdmin(
 /**
  * PRD §17.4 — "cambiar estatus". Valida contra TRANSICIONES (mismo mapa que
  * el trigger de Postgres en 0005) antes de intentarlo, para dar un mensaje
- * claro en vez de depender solo del error crudo de la base.
+ * claro en vez de depender solo del error crudo de la base. También valida
+ * los prerequisitos de contenido real (evidencia completa, pago completado)
+ * antes de aplicar el cambio — cierra el hueco donde este selector genérico
+ * podía marcar evidencia_*_completada o pago_completado sin que existiera
+ * evidencia o pago real detrás (mismo criterio que ya aplicaban
+ * evidencia.ts::confirmarEvidenciaCompleta y el webhook de Stripe).
  */
 export async function cambiarEstatusAdmin(
   cliente: Cliente,

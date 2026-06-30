@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, EstadoStepper, PassportCard, EstadoBadge } from "@ruum/ui";
+import { Button, EstadoStepper, PassportCard, EstadoBadge, LogoMarca } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { PASAPORTE_DEMO, USUARIO_DEMO, TRASLADOS_DEMO } from "../lib/datos-demo";
 import { PILARES_CONFIANZA } from "../lib/pilares-confianza";
@@ -57,7 +57,10 @@ export default async function PaginaInicio({
     return (
       <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
         <header className="mb-10 flex items-center justify-between">
-          <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
+          <span className="flex items-center gap-2">
+            <LogoMarca tamano={24} color="route" />
+            <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
+          </span>
           <div className="flex items-center gap-5">
            
             <Link href="/cuenta" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
@@ -92,7 +95,10 @@ export default async function PaginaInicio({
   return (
     <main className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
       <header className="mb-16 flex items-center justify-between">
-        <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
+        <span className="flex items-center gap-2">
+            <LogoMarca tamano={24} color="route" />
+            <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
+          </span>
         <div className="flex items-center gap-5">
        
           <Link href="/cuenta" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">

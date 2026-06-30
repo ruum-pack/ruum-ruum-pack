@@ -38,7 +38,7 @@ export function Chat({ propio, mensajes, onEnviar, deshabilitado, mensajeDeshabi
   }
 
   return (
-    <div className="flex flex-col rounded-card border border-ink/10 bg-paper">
+    <div className="flex flex-col rounded-card border border-ink/10 bg-mist">
       <div className="flex-1 space-y-3 overflow-y-auto p-4" style={{ maxHeight: 360, minHeight: 180 }}>
         {mensajes.length === 0 ? (
           <p className="font-body text-sm text-ink/40">Todavía no hay mensajes.</p>
@@ -50,11 +50,11 @@ export function Chat({ propio, mensajes, onEnviar, deshabilitado, mensajeDeshabi
                 <div
                   className={[
                     "max-w-[75%] rounded-xl px-3.5 py-2 font-body text-sm",
-                    esPropio ? "bg-signal text-paper" : "bg-ink/[0.06] text-ink"
+                    esPropio ? "bg-signal text-mist" : "bg-ink/[0.06] text-ink"
                   ].join(" ")}
                 >
                   <p>{m.contenido}</p>
-                  <p className={`mt-1 text-[10px] ${esPropio ? "text-paper/70" : "text-ink/40"}`}>
+                  <p className={`mt-1 text-[10px] ${esPropio ? "text-mist/70" : "text-ink/40"}`}>
                     {new Date(m.enviado_en).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
@@ -70,7 +70,7 @@ export function Chat({ propio, mensajes, onEnviar, deshabilitado, mensajeDeshabi
           onChange={(e) => setBorrador(e.target.value)}
           disabled={deshabilitado}
           placeholder={deshabilitado ? mensajeDeshabilitado ?? "Chat no disponible" : "Escribe un mensaje"}
-          className="flex-1 rounded-lg border border-ink/15 bg-paper px-3 py-2 font-body text-sm disabled:opacity-50"
+          className="flex-1 rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm disabled:opacity-50"
         />
         <Button type="submit" disabled={deshabilitado || enviando || !borrador.trim()}>
           Enviar

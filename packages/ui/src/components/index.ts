@@ -1,3 +1,4 @@
+export * from "./LogoMarca";
 export * from "./Button";
 export * from "./Field";
 export * from "./Aviso";

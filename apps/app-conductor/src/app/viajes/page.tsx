@@ -290,14 +290,14 @@ export default function PaginaViajes() {
                 key={dia.toISOString()}
                 className={[
                   "min-h-28 rounded-lg border px-3 py-3",
-                  viajes.length > 0 ? "border-signal/30 bg-signal-soft/40" : "border-ink/10 bg-paper"
+                  viajes.length > 0 ? "border-signal/30 bg-signal-soft/40" : "border-ink/10 bg-mist"
                 ].join(" ")}
               >
                 <p className="font-body text-xs font-semibold capitalize">{formatearFecha(dia.toISOString())}</p>
                 <p className="mt-1 font-mono-ruum text-xs text-ink/45">{viajes.length} viaje(s)</p>
                 <div className="mt-3 grid gap-1">
                   {viajes.slice(0, 2).map(({ viaje, tipo }) => (
-                    <span key={`${tipo}-${viaje.traslado_id}`} className="truncate rounded bg-paper px-2 py-1 font-body text-[11px] text-ink/65">
+                    <span key={`${tipo}-${viaje.traslado_id}`} className="truncate rounded bg-mist px-2 py-1 font-body text-[11px] text-ink/65">
                       {tipo}: {nombreVehiculo(viaje)}
                     </span>
                   ))}

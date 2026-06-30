@@ -17,7 +17,7 @@ export function Field({ etiqueta, error, ayuda, id, className = "", ...props }: 
       <input
         id={inputId}
         className={[
-          "rounded-lg border bg-paper px-3.5 py-2.5 font-body text-sm text-ink",
+          "rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink",
           "placeholder:text-ink/35",
           "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route",
           error ? "border-danger" : "border-ink/15",

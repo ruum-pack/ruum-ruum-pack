@@ -53,7 +53,7 @@ export default function PaginaUsuariosAdmin() {
         </div>
       )}
 
-      <div className="mt-6 overflow-hidden rounded-card border border-ink/10 bg-paper">
+      <div className="mt-6 overflow-hidden rounded-card border border-ink/10 bg-mist">
         <table className="w-full font-body text-sm">
           <thead>
             <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-ink/45">
@@ -85,7 +85,7 @@ export default function PaginaUsuariosAdmin() {
                   <td className="px-4 py-3 font-mono-ruum">{u.traslados_completados_sin_incidencia}</td>
                   <td className="px-4 py-3">
                     {u.metodo_pago_registrado ? (
-                      <span className="text-ok">Registrado</span>
+                      <span className="text-control">Registrado</span>
                     ) : (
                       <span className="text-ink/40">Sin registrar</span>
                     )}

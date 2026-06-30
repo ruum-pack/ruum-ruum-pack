@@ -306,7 +306,7 @@ function EvidenciaMomento({
       {fotos.length > 0 ? (
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {fotos.map((foto) => (
-            <div key={foto.id} className="overflow-hidden rounded-lg border border-ink/10 bg-paper">
+            <div key={foto.id} className="overflow-hidden rounded-lg border border-ink/10 bg-mist">
               {foto.url?.startsWith("http") ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={foto.url} alt={ETIQUETA_ANGULO[foto.angulo]} className="aspect-[4/3] w-full object-cover" />
@@ -481,7 +481,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
         <PassportCard>
           <h2 className="font-display text-xl font-semibold">Conductor asignado</h2>
           <div className="mt-5 flex items-center gap-4">
-            <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-ink text-paper font-display text-xl">
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-ink text-mist font-display text-xl">
               {iniciales(conductor?.nombre ?? pasaporte.conductor_nombre)}
             </div>
             <div>
@@ -530,7 +530,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
             ].map(([etiqueta, listo]) => (
               <div key={String(etiqueta)} className="flex items-center justify-between border-t border-ink/10 py-2 first:border-t-0">
                 <span>{etiqueta}</span>
-                <span className={listo ? "text-ok" : "text-ink/45"}>{listo ? "Confirmado" : "Pendiente"}</span>
+                <span className={listo ? "text-control" : "text-ink/45"}>{listo ? "Confirmado" : "Pendiente"}</span>
               </div>
             ))}
           </div>
@@ -547,10 +547,10 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
                     className={[
                       "mt-0.5 size-3 shrink-0 rounded-full border",
                       estado === "completado"
-                        ? "border-ok bg-ok"
+                        ? "border-control bg-control"
                         : estado === "actual"
                           ? "border-signal bg-signal"
-                          : "border-ink/20 bg-paper"
+                          : "border-ink/20 bg-mist"
                     ].join(" ")}
                   />
                   <div>
@@ -601,7 +601,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
                 <div key={incidencia.id} className="rounded-lg border border-ink/10 px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <p className="font-body text-sm font-semibold">{ETIQUETA_TIPO_INCIDENCIA[incidencia.tipo]}</p>
-                    <span className={incidencia.resuelta ? "font-body text-xs text-ok" : "font-body text-xs text-warn"}>
+                    <span className={incidencia.resuelta ? "font-body text-xs text-control" : "font-body text-xs text-warn"}>
                       {incidencia.resuelta ? "Resuelta" : "Abierta"}
                     </span>
                   </div>

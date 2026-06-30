@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { LogoMarca } from "@ruum/ui";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
 
 const SECCIONES_CONSTRUIDAS = [
@@ -51,9 +52,12 @@ export function BarraLateral() {
   }
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r border-ink/10 bg-paper">
+    <aside className="flex h-screen w-60 flex-col border-r border-ink/10 bg-mist">
       <div className="px-5 py-6">
-        <span className="font-display text-base font-semibold tracking-tight">Ruum Ruum</span>
+        <span className="flex items-center gap-2">
+          <LogoMarca tamano={26} color="control" />
+          <span className="font-display text-base font-semibold tracking-tight">Ruum Ruum</span>
+        </span>
         <p className="font-mono-ruum text-[10px] uppercase tracking-wide text-ink/45">Torre de Control</p>
       </div>
 

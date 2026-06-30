@@ -124,7 +124,7 @@ function Campo({ etiqueta, valor, tipo = "text" }: { etiqueta: string; valor?: s
       <input
         type={tipo}
         defaultValue={valor ?? ""}
-        className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+        className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
         placeholder="Pendiente"
       />
     </label>
@@ -189,7 +189,7 @@ export default async function PaginaCuenta() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={usuario.foto_url} alt="Foto de perfil" className="size-20 rounded-full object-cover" />
               ) : (
-                <div className="flex size-20 items-center justify-center rounded-full bg-ink font-display text-2xl text-paper">
+                <div className="flex size-20 items-center justify-center rounded-full bg-ink font-display text-2xl text-mist">
                   {iniciales(usuario.nombre)}
                 </div>
               )}
@@ -269,7 +269,7 @@ export default async function PaginaCuenta() {
           <div className="grid gap-4 md:grid-cols-2">
             {vehiculos.length > 0 ? (
               vehiculos.map((vehiculo) => (
-                <div key={vehiculo.id} className="rounded-lg border border-ink/10 bg-paper px-4 py-4">
+                <div key={vehiculo.id} className="rounded-lg border border-ink/10 bg-mist px-4 py-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="font-body text-xs uppercase tracking-wide text-ink/45">

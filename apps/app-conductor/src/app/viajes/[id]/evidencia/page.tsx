@@ -220,7 +220,7 @@ export default function PaginaEvidencia() {
               <div key={angulo} className="flex items-center justify-between gap-4 border-b border-ink/10 pb-3 last:border-0 last:pb-0">
                 <span className="font-body text-sm">{ETIQUETA_ANGULO[angulo]}</span>
                 {yaCapturado ? (
-                  <span className="font-body text-xs font-medium text-ok">Capturado</span>
+                  <span className="font-body text-xs font-medium text-control">Capturado</span>
                 ) : (
                   <Button variant="secundario" onClick={() => capturar(angulo)} disabled={enviando === angulo}>
                     {enviando === angulo ? "Guardando…" : esNativo() ? "Tomar foto" : "Marcar capturado"}

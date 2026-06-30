@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Aviso, PassportCard, EstadoBadge } from "@ruum/ui";
+import { Button, Aviso, PassportCard, EstadoBadge, LogoMarca } from "@ruum/ui";
 import type { Conductor } from "@ruum/shared/types";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
@@ -31,7 +31,7 @@ const ETIQUETA_DISPONIBILIDAD: Record<Disponibilidad, string> = {
 };
 
 const ESTILO_DISPONIBILIDAD: Record<Disponibilidad, string> = {
-  disponible: "border-ok/30 bg-ok-soft text-ok",
+  disponible: "border-control/30 bg-control-soft text-control",
   no_disponible: "border-ink/15 bg-ink/[0.03] text-ink/55",
   en_viaje: "border-route/30 bg-route-soft text-route",
   pausado: "border-warn/40 bg-warn-soft text-warn"
@@ -174,7 +174,10 @@ export default function PaginaPanel() {
     <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
       <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum Conductor</span>
+          <span className="flex items-center gap-2">
+            <LogoMarca tamano={24} color="signal" />
+            <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum Conductor</span>
+          </span>
           <h1 className="mt-2 font-display text-3xl font-semibold leading-tight">Panel</h1>
           <p className="mt-1 font-body text-sm text-ink/55">Hola, {conductor.nombre}</p>
         </div>

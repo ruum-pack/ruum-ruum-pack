@@ -347,7 +347,7 @@ export default function PaginaNuevoTraslado() {
                 <select
                   value={datos.tipo}
                   onChange={(e) => actualizar("tipo", e.target.value as TipoVehiculo)}
-                  className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm"
+                  className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
                 >
                   {Object.entries(ETIQUETA_TIPO_VEHICULO).map(([valor, etiqueta]) => (
                     <option key={valor} value={valor}>
@@ -361,7 +361,7 @@ export default function PaginaNuevoTraslado() {
                 <select
                   value={datos.transmision}
                   onChange={(e) => actualizar("transmision", e.target.value as TransmisionVehiculo)}
-                  className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm"
+                  className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
                 >
                   <option value="automatica">Automática</option>
                   <option value="manual">Manual</option>
@@ -389,7 +389,7 @@ export default function PaginaNuevoTraslado() {
                 <textarea
                   value={datos.estadoGeneral}
                   onChange={(e) => actualizar("estadoGeneral", e.target.value)}
-                  className="min-h-24 rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                  className="min-h-24 rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
                 />
               </label>
               <div className="grid gap-3 border-t border-ink/10 pt-4">
@@ -504,7 +504,7 @@ export default function PaginaNuevoTraslado() {
                 <textarea
                   value={datos.instruccionesEspeciales}
                   onChange={(e) => actualizar("instruccionesEspeciales", e.target.value)}
-                  className="min-h-24 rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                  className="min-h-24 rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
                 />
               </label>
             </div>
@@ -520,7 +520,7 @@ export default function PaginaNuevoTraslado() {
                 <select
                   value={datos.modalidadProgramacion}
                   onChange={(e) => actualizar("modalidadProgramacion", e.target.value as ModalidadProgramacion)}
-                  className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm"
+                  className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
                 >
                   <option value="lo_antes_posible">Lo antes posible</option>
                   <option value="programado">Programar fecha y hora</option>
@@ -539,7 +539,7 @@ export default function PaginaNuevoTraslado() {
                 <select
                   value={datos.tipoRuta}
                   onChange={(e) => actualizar("tipoRuta", e.target.value as TipoRutaTraslado)}
-                  className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm"
+                  className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
                 >
                   <option value="local">Local</option>
                   <option value="foraneo">Foráneo</option>
@@ -571,7 +571,7 @@ export default function PaginaNuevoTraslado() {
                   <select
                     value={datos.tipoServicio}
                     onChange={(e) => actualizar("tipoServicio", e.target.value as TipoServicioTraslado)}
-                    className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm"
+                    className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
                   >
                     <option value="personal">Traslado personal</option>
                     <option value="empresarial">Traslado empresarial</option>
@@ -585,7 +585,7 @@ export default function PaginaNuevoTraslado() {
                   <select
                     value={datos.motivoServicio}
                     onChange={(e) => actualizar("motivoServicio", e.target.value as MotivoServicioTraslado)}
-                    className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm"
+                    className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
                   >
                     <option value="entrega_cliente">Entrega a cliente</option>
                     <option value="recuperacion">Recuperación</option>

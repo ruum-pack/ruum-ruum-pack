@@ -52,7 +52,7 @@ const ETIQUETA_ESTATUS: Record<EstatusEconomico, string> = {
 };
 
 const ESTILO_ESTATUS: Record<EstatusEconomico, string> = {
-  pagado: "bg-ok-soft text-ok border-ok/25",
+  pagado: "bg-control-soft text-control border-control/25",
   pendiente: "bg-warn-soft text-warn border-warn/40",
   revocado: "bg-danger-soft text-danger border-danger/25",
   en_revision: "bg-route-soft text-route border-route/25",

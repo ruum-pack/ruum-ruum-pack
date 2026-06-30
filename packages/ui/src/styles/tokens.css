@@ -1,33 +1,49 @@
 /*
  * Ruum Ruum — tokens de diseño compartidos.
  *
- * Dirección: el producto vende confianza y trazabilidad sobre un traslado
- * vehicular documentado (PRD §5.1, Pasaporte Digital) gobernado por una
- * máquina de 32 estados (PRD §6). La paleta y la tipografía vienen de ahí,
- * no de un default genérico:
- *   - ink/paper: carbón cálido + papel, evocan el documento físico de un
- *     pasaporte, no un dashboard SaaS genérico.
- *   - signal: naranja de señal/chaleco de seguridad — el color que usan los
- *     conductores certificados en la calle.
- *   - route: azul de ruta, reservado para todo lo que es "en movimiento"
- *     (mapa, tracking), nunca para acciones.
- *   - ok/warn/danger: estados semánticos del traslado, no decoración.
+ * Dirección (revisión 2026-06-29, "Anillo de control"): el concepto rector
+ * es "no solo movemos autos, damos control sobre cada traslado" — una
+ * plataforma digital de control en tiempo real sobre un Pasaporte Digital
+ * (PRD §5.1) gobernado por una máquina de 32 estados (PRD §6), no una
+ * empresa de transporte tradicional. La paleta evoluciona desde la versión
+ * anterior (carbón + papel envejecido, más "documento físico") hacia algo
+ * más tecnológico, vistoso y nítido, sin perder la lógica de origen:
+ *   - ink/mist: tinta casi negra + niebla neutra fría — ya no "papel", sigue
+ *     evocando el expediente del Pasaporte pero sin sensación vintage.
+ *   - signal: naranja de señal/chaleco de seguridad, más saturado — sigue
+ *     siendo el color de los conductores certificados en la calle, el único
+ *     color reservado para acciones primarias.
+ *   - route: azul de ruta más vívido, reservado para todo lo "en
+ *     movimiento" (mapa, tracking en vivo), nunca para acciones.
+ *   - control: verde vivo nuevo — específicamente para estados verificados/
+ *     completos del Pasaporte (usuario verificado, evidencia completa,
+ *     documentación validada). Antes ese rol lo cubría "ok" con un verde más
+ *     institucional; "control" es el mismo rol, renombrado y resaturado
+ *     para que la palabra del concepto rector quede en el propio token.
+ *   - warn/danger: estados semánticos de incidente, no decoración.
  */
 @theme {
-  --color-ink: #14181f;
+  --color-ink: #14171c;
   --color-ink-soft: #2a313d;
-  --color-paper: #faf8f3;
-  --color-paper-dim: #f0ecE3;
-  --color-signal: #ff5a1f;
-  --color-signal-soft: #ffe4d6;
-  --color-route: #1d5fd6;
-  --color-route-soft: #dce8fc;
-  --color-ok: #1e9e64;
-  --color-ok-soft: #dcf3e7;
+  --color-mist: #f5f4f1;
+  --color-mist-dim: #e9e7e0;
+  --color-signal: #ff4d1d;
+  --color-signal-soft: #ffe0d2;
+  --color-route: #1758f2;
+  --color-route-soft: #dbe7fd;
+  --color-control: #16b378;
+  --color-control-soft: #d7f3e7;
   --color-warn: #b8791f;
   --color-warn-soft: #f3dba0;
-  --color-danger: #c0362d;
-  --color-danger-soft: #fbe2df;
+  --color-danger: #e23d3d;
+  --color-danger-soft: #fbdcdc;
+
+  /* Alias de compatibilidad: el código existente sigue usando paper/ok,
+     no hace falta tocar cada componente para adoptar la nueva paleta. */
+  --color-paper: var(--color-mist);
+  --color-paper-dim: var(--color-mist-dim);
+  --color-ok: var(--color-control);
+  --color-ok-soft: var(--color-control-soft);
 
   --font-display: var(--font-display-loaded), "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-body-loaded), "Inter", ui-sans-serif, system-ui, sans-serif;

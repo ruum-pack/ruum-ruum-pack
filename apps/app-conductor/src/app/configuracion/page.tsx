@@ -25,7 +25,7 @@ const DOCUMENTOS: { nombre: string; estado: EstadoDocumento; vigencia: string; n
 const ESTADO_DOCUMENTO: Record<EstadoDocumento, { texto: string; clase: string }> = {
   pendiente: { texto: "Pendiente de carga", clase: "border-ink/15 bg-ink/[0.04] text-ink/60" },
   revision: { texto: "En revisión", clase: "border-route/30 bg-route-soft text-route" },
-  aprobado: { texto: "Aprobado", clase: "border-ok/30 bg-ok-soft text-ok" },
+  aprobado: { texto: "Aprobado", clase: "border-control/30 bg-control-soft text-control" },
   rechazado: { texto: "Rechazado", clase: "border-danger/25 bg-danger-soft text-danger" },
   vencido: { texto: "Vencido", clase: "border-danger/25 bg-danger-soft text-danger" },
   actualizacion: { texto: "Requiere actualización", clase: "border-warn/40 bg-warn-soft text-warn" }
@@ -111,7 +111,7 @@ export default function PaginaConfiguracion() {
             onClick={() => setBloque(item.id)}
             className={[
               "rounded-lg border px-4 py-3 text-left transition-colors",
-              bloque === item.id ? "border-signal bg-signal-soft text-signal" : "border-ink/10 bg-paper text-ink/65 hover:border-ink/25"
+              bloque === item.id ? "border-signal bg-signal-soft text-signal" : "border-ink/10 bg-mist text-ink/65 hover:border-ink/25"
             ].join(" ")}
           >
             <span className="block font-body text-sm font-semibold">{item.titulo}</span>
@@ -196,7 +196,7 @@ export default function PaginaConfiguracion() {
                 <p className="font-body text-xs uppercase tracking-wide text-ink/45">Documentos principales</p>
                 <h2 className="mt-1 font-display text-xl font-semibold">Expediente del conductor</h2>
               </div>
-              <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-signal bg-signal px-4 py-2 font-body text-sm font-semibold text-paper">
+              <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-signal bg-signal px-4 py-2 font-body text-sm font-semibold text-mist">
                 Subir archivo o fotografía
                 <input type="file" accept="image/*,.pdf" className="sr-only" onChange={() => setMensaje("Archivo recibido en modo demo.")} />
               </label>

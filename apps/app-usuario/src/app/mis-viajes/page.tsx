@@ -272,7 +272,7 @@ function ViajeCard({ viaje }: { viaje: ViajeLista }) {
     pasaporte.evidencia_inicial_fotos_sincronizadas > 0 || pasaporte.evidencia_final_fotos_sincronizadas > 0;
 
   return (
-    <div className="rounded-lg border border-ink/10 bg-paper px-4 py-4">
+    <div className="rounded-lg border border-ink/10 bg-mist px-4 py-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">

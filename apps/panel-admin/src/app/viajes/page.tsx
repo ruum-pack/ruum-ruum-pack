@@ -82,7 +82,7 @@ export default function PaginaViajesAdmin() {
         ))}
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-card border border-ink/10 bg-paper">
+      <div className="mt-4 overflow-hidden rounded-card border border-ink/10 bg-mist">
         <table className="w-full font-body text-sm">
           <thead>
             <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-ink/45">

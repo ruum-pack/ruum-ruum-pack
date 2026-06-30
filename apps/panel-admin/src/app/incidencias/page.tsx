@@ -24,7 +24,7 @@ const ESTILO: Record<EstatusIncidencia, string> = {
   "En revisión": "border-route/30 bg-route-soft text-route",
   "Requiere información": "border-warn/40 bg-warn-soft text-warn",
   "En seguimiento": "border-signal/30 bg-signal-soft text-signal",
-  Resuelta: "border-ok/30 bg-ok-soft text-ok",
+  Resuelta: "border-control/30 bg-control-soft text-control",
   Cerrada: "border-ink/15 bg-ink/[0.04] text-ink/55",
   Escalada: "border-danger/25 bg-danger-soft text-danger"
 };

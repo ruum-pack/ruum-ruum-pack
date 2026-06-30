@@ -67,7 +67,7 @@ export function AccionesCuenta({ esDemo }: { esDemo: boolean }) {
           <input
             value={textoEliminar}
             onChange={(e) => setTextoEliminar(e.target.value)}
-            className="rounded-lg border border-danger/30 bg-paper px-3.5 py-2.5 font-body text-sm"
+            className="rounded-lg border border-danger/30 bg-mist px-3.5 py-2.5 font-body text-sm"
           />
         </label>
         <div className="mt-4">

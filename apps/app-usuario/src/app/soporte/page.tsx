@@ -84,14 +84,14 @@ function CampoReporte({ etiqueta, children }: { etiqueta: string; children: Reac
 }
 
 function SelectBase({ children }: { children: React.ReactNode }) {
-  return <select className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm">{children}</select>;
+  return <select className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm">{children}</select>;
 }
 
 function TextAreaBase() {
   return (
     <textarea
       rows={4}
-      className="rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 font-body text-sm"
+      className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
       placeholder="Describe lo que pasó, incluye ubicación aproximada, hora y cualquier evidencia relevante."
     />
   );

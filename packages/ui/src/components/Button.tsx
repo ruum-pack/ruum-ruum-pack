@@ -6,10 +6,10 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const ESTILOS: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  primario: "bg-signal text-paper hover:bg-signal/90 focus-visible:outline-signal",
-  secundario: "bg-ink text-paper hover:bg-ink/90 focus-visible:outline-ink",
+  primario: "bg-signal text-mist hover:bg-signal/90 focus-visible:outline-signal",
+  secundario: "bg-ink text-mist hover:bg-ink/90 focus-visible:outline-ink",
   fantasma: "bg-transparent text-ink hover:bg-ink/5 focus-visible:outline-ink",
-  peligro: "bg-danger text-paper hover:bg-danger/90 focus-visible:outline-danger"
+  peligro: "bg-danger text-mist hover:bg-danger/90 focus-visible:outline-danger"
 };
 
 export function Button({ variant = "primario", className = "", children, ...props }: ButtonProps) {
