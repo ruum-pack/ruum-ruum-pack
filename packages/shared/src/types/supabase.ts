@@ -1064,6 +1064,28 @@ export interface Database {
         Args: { p_estado: Database["public"]["Enums"]["estado_traslado"] };
         Returns: boolean;
       };
+      conductor_avanza_traslado: {
+        Args: { p_traslado_id: string; p_evento: string };
+        Returns: Database["public"]["Enums"]["estado_traslado"];
+      };
+      traslado_tiene_metodo_pago_registrado: {
+        Args: { p_traslado_id: string };
+        Returns: boolean;
+      };
+      crear_incidencia_sistema_dano_no_reportado: {
+        Args: { p_traslado_id: string; p_descripcion: string };
+        Returns: string;
+      };
+      usuario_cancela_traslado: {
+        Args: {
+          p_traslado_id: string;
+          p_motivo: string;
+          p_porcentaje_cargo: number;
+          p_monto_cargo: number;
+          p_mensaje: string;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       rol_usuario: "personal" | "titular_empresa" | "usuario_autorizado";

@@ -46,6 +46,21 @@ Deno.serve(async (req) => {
     global: { headers: { Authorization: autorizacion } }
   });
 
+  const { data: sesion, error: errorSesion } = await clienteUsuario.auth.getUser();
+  if (errorSesion || !sesion.user) {
+    return respuestaJson({ error: "Sesión inválida" }, 401);
+  }
+
+  const { data: usuarioActual, error: errorUsuarioActual } = await clienteUsuario
+    .from("usuarios")
+    .select("id, tipo_cuenta, rol, empresa_id")
+    .eq("auth_user_id", sesion.user.id)
+    .single();
+
+  if (errorUsuarioActual || !usuarioActual) {
+    return respuestaJson({ error: "Usuario no encontrado" }, 404);
+  }
+
   const { traslado_id } = (await req.json()) as { traslado_id?: string | number };
   if (!traslado_id) {
     return respuestaJson({ error: "Falta traslado_id" }, 400);
@@ -53,13 +68,34 @@ Deno.serve(async (req) => {
 
   const { data: traslado, error: errorTraslado } = await clienteUsuario
     .from("traslados")
-    .select("id, precio_cotizado, precio_final, tipo_pago, estado")
+    .select("id, usuario_id, precio_cotizado, precio_final, tipo_pago, estado")
     .eq("id", traslado_id)
     .single();
 
   if (errorTraslado || !traslado) {
     // RLS ya filtró esto: si no es tuyo, no existe para esta consulta.
     return respuestaJson({ error: "Traslado no encontrado" }, 404);
+  }
+
+  const { data: solicitante, error: errorSolicitante } = await clienteUsuario
+    .from("usuarios")
+    .select("id, tipo_cuenta, rol, empresa_id")
+    .eq("id", traslado.usuario_id)
+    .single();
+
+  if (errorSolicitante || !solicitante) {
+    return respuestaJson({ error: "No se pudo validar la cuenta que solicitó el traslado" }, 403);
+  }
+
+  const esTrasladoEmpresa =
+    solicitante.tipo_cuenta === "empresa" ||
+    (solicitante.empresa_id !== null && solicitante.empresa_id === usuarioActual.empresa_id);
+
+  if (esTrasladoEmpresa && usuarioActual.rol !== "titular_empresa") {
+    return respuestaJson(
+      { error: "Necesitas autorización del titular de la empresa para iniciar este pago." },
+      403
+    );
   }
 
   // PRD §4.6 — "El precio puede ser dinámico": si ya hay un precio_final

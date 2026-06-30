@@ -4,12 +4,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Aviso, PassportCard } from "@ruum/ui";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
-import { obtenerMetricasDashboard, listarIncidenciasAdmin, listarConductoresAdmin, type MetricasDashboard } from "@ruum/api/services";
+import {
+  obtenerMetricasDashboard,
+  listarIncidenciasAdmin,
+  listarConductoresAdmin,
+  obtenerAlertasEmergenciaAdmin,
+  type MetricasDashboard
+} from "@ruum/api/services";
 import { METRICAS_DEMO, INCIDENCIAS_DEMO, CONDUCTORES_DEMO } from "../lib/datos-demo";
 import type { Database } from "@ruum/shared/types";
 
 type IncidenciaRow = Database["public"]["Tables"]["incidencias"]["Row"];
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
+type AuditoriaRow = Database["public"]["Tables"]["registro_auditoria"]["Row"];
 
 const ETIQUETA_METRICA: Record<keyof MetricasDashboard, string> = {
   viajesActivos: "Viajes activos",
@@ -22,6 +29,7 @@ const ETIQUETA_METRICA: Record<keyof MetricasDashboard, string> = {
 export default function PaginaDashboard() {
   const [metricas, setMetricas] = useState<MetricasDashboard | null>(null);
   const [incidencias, setIncidencias] = useState<IncidenciaRow[]>([]);
+  const [emergencias, setEmergencias] = useState<AuditoriaRow[]>([]);
   const [conductoresDocVencido, setConductoresDocVencido] = useState<ConductorRow[]>([]);
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
@@ -31,6 +39,7 @@ export default function PaginaDashboard() {
       if (!tieneSupabaseConfigurado()) {
         setMetricas(METRICAS_DEMO);
         setIncidencias(INCIDENCIAS_DEMO);
+        setEmergencias([]);
         setConductoresDocVencido(CONDUCTORES_DEMO.filter((c) => !c.documentos_vigentes));
         setEsDemo(true);
         setCargando(false);
@@ -39,18 +48,21 @@ export default function PaginaDashboard() {
 
       try {
         const cliente = crearClienteNavegador();
-        const [m, inc, conds] = await Promise.all([
+        const [m, inc, conds, emergenciasPrioritarias] = await Promise.all([
           obtenerMetricasDashboard(cliente),
           listarIncidenciasAdmin(cliente),
-          listarConductoresAdmin(cliente)
+          listarConductoresAdmin(cliente),
+          obtenerAlertasEmergenciaAdmin(cliente)
         ]);
         setMetricas(m);
         setIncidencias(inc.filter((i) => !i.resuelta));
+        setEmergencias(emergenciasPrioritarias);
         setConductoresDocVencido(conds.filter((c) => !c.documentos_vigentes));
         setEsDemo(false);
       } catch {
         setMetricas(METRICAS_DEMO);
         setIncidencias(INCIDENCIAS_DEMO);
+        setEmergencias([]);
         setConductoresDocVencido(CONDUCTORES_DEMO.filter((c) => !c.documentos_vigentes));
         setEsDemo(true);
       } finally {
@@ -84,6 +96,24 @@ export default function PaginaDashboard() {
                 </PassportCard>
               ))}
           </section>
+
+          {emergencias.length > 0 && (
+            <section className="mt-8">
+              <h2 className="font-display text-base font-semibold text-danger">Emergencias prioritarias</h2>
+              <div className="mt-3 space-y-2">
+                {emergencias.map((evento) => (
+                  <Link key={evento.id} href={evento.traslado_id ? `/viajes/${evento.traslado_id}` : "/viajes"} className="block">
+                    <div className="rounded-lg border border-danger/25 bg-danger-soft px-4 py-3">
+                      <p className="font-body text-sm font-semibold text-danger">Emergencia / 911 activada por conductor</p>
+                      <p className="mt-1 font-body text-xs text-ink/65">
+                        Traslado {evento.traslado_id?.slice(0, 8).toUpperCase() ?? "sin folio"} · {new Date(evento.timestamp).toLocaleString("es-MX")}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="mt-8 grid grid-cols-2 gap-6">
             <div>

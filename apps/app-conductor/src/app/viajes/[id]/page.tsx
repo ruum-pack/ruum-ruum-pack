@@ -5,6 +5,8 @@ import { VIAJES_DISPONIBLES_DEMO, VIAJES_ACEPTADOS_DEMO } from "../../../lib/dat
 import { crearClienteServidor } from "../../../lib/supabase-server";
 import { AccionesViaje } from "./AccionesViaje";
 import { ChatViaje } from "./ChatViaje";
+import { ReportarIncidencia } from "./ReportarIncidencia";
+import { Emergencia911 } from "./Emergencia911";
 
 const TODOS_LOS_DEMO = [...VIAJES_DISPONIBLES_DEMO, ...VIAJES_ACEPTADOS_DEMO];
 
@@ -54,6 +56,8 @@ export default async function PaginaDetalleViaje({ params }: { params: Promise<{
         </div>
       )}
 
+      <Emergencia911 trasladoId={pasaporte.traslado_id} esDemo={esDemo} />
+
       <PassportCard folio={pasaporte.traslado_id.slice(0, 8).toUpperCase()}>
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -100,6 +104,7 @@ export default async function PaginaDetalleViaje({ params }: { params: Promise<{
         </dl>
 
         <AccionesViaje trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} esDemo={esDemo} />
+        <ReportarIncidencia trasladoId={pasaporte.traslado_id} esDemo={esDemo} />
       </PassportCard>
 
       <ChatViaje trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />

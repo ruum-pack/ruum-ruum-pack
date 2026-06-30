@@ -1,13 +1,27 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
-import { evidenciaCompleta, type ResultadoEvidencia } from "@ruum/shared/rules";
+import { debeAbrirIncidenciaDanoNoReportado, evidenciaCompleta, type ResultadoEvidencia } from "@ruum/shared/rules";
 import type { FotoEvidencia } from "@ruum/shared/types";
+import { registrarEvento } from "./auditoria";
+import { crearIncidenciaSistemaDanoNoReportado } from "./incidencias";
 
 type Cliente = SupabaseClient<Database>;
 type EvidenciaRow = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
 type AnguloEvidencia = Database["public"]["Enums"]["angulo_evidencia"];
 type TipoEvidencia = Database["public"]["Enums"]["tipo_evidencia"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
+
+async function obtenerConductorIdActual(cliente: Cliente): Promise<string> {
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) {
+    throw new Error("No hay sesión de conductor para registrar auditoría.");
+  }
+
+  const { data, error } = await cliente.from("conductores").select("id").eq("auth_user_id", sesion.user.id).maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("No se encontró el conductor para registrar auditoría.");
+  return data.id;
+}
 
 function aFotoEvidencia(fila: EvidenciaRow): FotoEvidencia {
   return {
@@ -76,6 +90,45 @@ export async function evaluarCompletitud(
   return evidenciaCompleta(fotos, tipo);
 }
 
+async function evaluarDanoNoReportado(cliente: Cliente, trasladoId: string) {
+  const [inicial, final, incidencias] = await Promise.all([
+    obtenerEvidenciaDeTraslado(cliente, trasladoId, "inicial"),
+    obtenerEvidenciaDeTraslado(cliente, trasladoId, "final"),
+    cliente.from("incidencias").select("id, tipo").eq("traslado_id", trasladoId).eq("resuelta", false)
+  ]);
+
+  if (incidencias.error) throw incidencias.error;
+
+  const danoDetectadoEnFinal = final.some((foto) => foto.angulo === "dano_previo" && foto.sincronizada);
+  const danoPresenteEnInicial = inicial.some((foto) => foto.angulo === "dano_previo" && foto.sincronizada);
+  const incidenciaYaReportadaDuranteTraslado = (incidencias.data ?? []).some((incidencia) => incidencia.tipo !== "dano_no_reportado");
+
+  if (
+    debeAbrirIncidenciaDanoNoReportado(
+      danoDetectadoEnFinal,
+      danoPresenteEnInicial,
+      incidenciaYaReportadaDuranteTraslado
+    )
+  ) {
+    await crearIncidenciaSistemaDanoNoReportado(
+      cliente,
+      trasladoId,
+      "La evidencia final incluye daño visible que no aparece en la evidencia inicial y no fue reportado durante el traslado."
+    );
+  }
+}
+
+async function validarMetodoPagoParaEvidenciaInicial(cliente: Cliente, trasladoId: string) {
+  const { data, error } = await cliente.rpc("traslado_tiene_metodo_pago_registrado", {
+    p_traslado_id: trasladoId
+  });
+
+  if (error) throw error;
+  if (!data) {
+    throw new Error("No se puede completar evidencia inicial: falta método de pago registrado.");
+  }
+}
+
 /**
  * PRD §4.4 — "El viaje no puede iniciar sin evidencia inicial completa" /
  * "El servicio no puede cerrarse sin evidencia final completa." Solo avanza
@@ -90,20 +143,48 @@ export async function confirmarEvidenciaCompleta(
   estadoActual: EstadoTraslado,
   tipo: TipoEvidencia
 ) {
+  if (tipo === "inicial") {
+    await validarMetodoPagoParaEvidenciaInicial(cliente, trasladoId);
+  }
+
   const resultado = await evaluarCompletitud(cliente, trasladoId, tipo);
   if (!resultado.completa) {
     throw new Error(`Evidencia ${tipo} incompleta: faltan ${resultado.angulosFaltantes.join(", ")}`);
   }
 
+  const estadoEsperado: EstadoTraslado = tipo === "inicial" ? "evidencia_inicial_en_proceso" : "evidencia_final_en_proceso";
+  if (estadoActual !== estadoEsperado) {
+    throw new Error(`No se puede confirmar evidencia ${tipo} desde ${estadoActual}`);
+  }
+
   const siguienteEstado: EstadoTraslado =
     tipo === "inicial" ? "evidencia_inicial_completada" : "evidencia_final_completada";
 
-  const { error } = await cliente
-    .from("traslados")
-    .update({ estado: siguienteEstado })
-    .eq("id", trasladoId)
-    .eq("estado", estadoActual);
+  const evento = tipo === "inicial" ? "evidencia_inicial_completada" : "evidencia_final_completada";
+  const { data, error } = await cliente.rpc("conductor_avanza_traslado", {
+    p_traslado_id: trasladoId,
+    p_evento: evento
+  });
 
   if (error) throw error;
-  return siguienteEstado;
+
+  const conductorId = await obtenerConductorIdActual(cliente);
+  await registrarEvento(
+    cliente,
+    tipo === "inicial" ? "captura_evidencia_inicial" : "captura_evidencia_final",
+    "conductor",
+    conductorId,
+    {
+      traslado_id: trasladoId,
+      tipo,
+      estado_anterior: estadoActual,
+      estado_nuevo: data ?? siguienteEstado
+    }
+  );
+
+  if (tipo === "final") {
+    await evaluarDanoNoReportado(cliente, trasladoId);
+  }
+
+  return data ?? siguienteEstado;
 }

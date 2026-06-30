@@ -16,14 +16,26 @@ import {
   asignarConductorAdmin,
   cambiarEstatusAdmin,
   ajustarPrecioFinalAdmin,
-  obtenerAdminActual
+  obtenerAdminActual,
+  obtenerAuditoriaTraslado,
+  marcarTrasladoFallido
 } from "@ruum/api/services";
 import { VIAJES_DEMO, CONDUCTORES_DEMO, ADMIN_DEMO } from "../../../lib/datos-demo";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
 type NotaRow = Database["public"]["Tables"]["notas_internas_traslado"]["Row"];
+type AuditoriaRow = Database["public"]["Tables"]["registro_auditoria"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
+type CausaFallido = Database["public"]["Enums"]["causa_fallido"];
+
+const CAUSAS_FALLIDO: { valor: CausaFallido; etiqueta: string }[] = [
+  { valor: "imputable_cliente", etiqueta: "Imputable al cliente" },
+  { valor: "operativo", etiqueta: "Operativo" },
+  { valor: "fuerza_mayor", etiqueta: "Fuerza mayor" },
+  { valor: "documentacion", etiqueta: "Documentación" },
+  { valor: "vehiculo_no_circulable", etiqueta: "Vehículo no circulable" }
+];
 
 export default function PaginaDetalleViajeAdmin() {
   const { id } = useParams<{ id: string }>();
@@ -31,14 +43,16 @@ export default function PaginaDetalleViajeAdmin() {
   const [pasaporte, setPasaporte] = useState<PasaporteRow | null>(null);
   const [conductores, setConductores] = useState<ConductorRow[]>([]);
   const [notas, setNotas] = useState<NotaRow[]>([]);
+  const [auditoria, setAuditoria] = useState<AuditoriaRow[]>([]);
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
 
   const [conductorSeleccionado, setConductorSeleccionado] = useState("");
   const [estadoSeleccionado, setEstadoSeleccionado] = useState<EstadoTraslado | "">("");
   const [precioFinalInput, setPrecioFinalInput] = useState("");
+  const [causaFallido, setCausaFallido] = useState<CausaFallido>("operativo");
   const [notaNueva, setNotaNueva] = useState("");
-  const [procesando, setProcesando] = useState<"conductor" | "estado" | "precio" | "nota" | null>(null);
+  const [procesando, setProcesando] = useState<"conductor" | "estado" | "precio" | "nota" | "fallido" | null>(null);
   const [aviso, setAviso] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
   const [adminId, setAdminId] = useState(ADMIN_DEMO.id);
 
@@ -49,6 +63,7 @@ export default function PaginaDetalleViajeAdmin() {
         setPasaporte(demo ?? null);
         setConductores(CONDUCTORES_DEMO);
         setNotas([]);
+        setAuditoria([]);
         setPrecioFinalInput(demo?.precio_final != null ? String(demo.precio_final) : "");
         setEsDemo(true);
         setCargando(false);
@@ -57,21 +72,24 @@ export default function PaginaDetalleViajeAdmin() {
 
       try {
         const cliente = crearClienteNavegador();
-        const [p, conds, notasReales, adminReal] = await Promise.all([
+        const [p, conds, notasReales, auditoriaReal, adminReal] = await Promise.all([
           obtenerPasaporteDigital(cliente, id),
           listarConductoresAdmin(cliente),
           obtenerNotasInternas(cliente, id),
+          obtenerAuditoriaTraslado(cliente, id),
           obtenerAdminActual(cliente)
         ]);
         setPasaporte(p);
         setConductores(conds.filter((c) => c.estado === "activo" || c.estado === "modo_prueba_supervisada"));
         setNotas(notasReales);
+        setAuditoria(auditoriaReal);
         setPrecioFinalInput(p?.precio_final != null ? String(p.precio_final) : "");
         if (adminReal) setAdminId(adminReal.id);
         setEsDemo(false);
       } catch {
         setPasaporte(demo ?? null);
         setConductores(CONDUCTORES_DEMO);
+        setAuditoria([]);
         setPrecioFinalInput("");
         setEsDemo(true);
       } finally {
@@ -98,6 +116,7 @@ export default function PaginaDetalleViajeAdmin() {
       await asignarConductorAdmin(cliente, pasaporte.traslado_id, conductorSeleccionado, pasaporte.estado);
       setAviso({ tono: "info", texto: "Conductor asignado." });
       setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
+      setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
     } catch (err) {
       setAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos asignar el conductor." });
     } finally {
@@ -122,6 +141,7 @@ export default function PaginaDetalleViajeAdmin() {
       await cambiarEstatusAdmin(cliente, pasaporte.traslado_id, pasaporte.estado, estadoSeleccionado);
       setAviso({ tono: "info", texto: "Estatus actualizado." });
       setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
+      setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
       setEstadoSeleccionado("");
     } catch (err) {
       setAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos cambiar el estatus." });
@@ -155,8 +175,35 @@ export default function PaginaDetalleViajeAdmin() {
       await ajustarPrecioFinalAdmin(cliente, pasaporte.traslado_id, valor);
       setAviso({ tono: "info", texto: "Tarifa final actualizada." });
       setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
+      setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
     } catch (err) {
       setAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos actualizar la tarifa final." });
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  async function marcarFallido() {
+    if (!pasaporte) return;
+    setProcesando("fallido");
+    setAviso(null);
+
+    if (esDemo) {
+      await new Promise((r) => setTimeout(r, 400));
+      setPasaporte((prev) => (prev ? { ...prev, estado: "traslado_fallido", causa_fallido: causaFallido } : prev));
+      setAviso({ tono: "info", texto: "Traslado marcado como fallido en modo demo." });
+      setProcesando(null);
+      return;
+    }
+
+    try {
+      const cliente = crearClienteNavegador();
+      const resultado = await marcarTrasladoFallido(cliente, pasaporte.traslado_id, causaFallido);
+      setAviso({ tono: "info", texto: resultado.mensaje });
+      setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
+      setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
+    } catch (err) {
+      setAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos marcar el traslado como fallido." });
     } finally {
       setProcesando(null);
     }
@@ -398,6 +445,31 @@ export default function PaginaDetalleViajeAdmin() {
         </PassportCard>
       </div>
 
+      <div className="mt-6">
+        <PassportCard>
+          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Traslado fallido</p>
+          <p className="mt-1 font-body text-xs text-ink/50">
+            Usa esta acción cuando el viaje no puede continuar. Se calcula cargo, reagendamiento y descuento con la regla PRD §4.11.
+          </p>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <select
+              value={causaFallido}
+              onChange={(e) => setCausaFallido(e.target.value as CausaFallido)}
+              className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm"
+            >
+              {CAUSAS_FALLIDO.map((causa) => (
+                <option key={causa.valor} value={causa.valor}>
+                  {causa.etiqueta}
+                </option>
+              ))}
+            </select>
+            <Button onClick={marcarFallido} disabled={procesando === "fallido" || pasaporte.estado === "traslado_fallido"}>
+              {procesando === "fallido" ? "…" : "Marcar fallido"}
+            </Button>
+          </div>
+        </PassportCard>
+      </div>
+
       {/* Bloque 7 — Notas internas */}
       <div className="mt-6">
         <PassportCard>
@@ -432,10 +504,39 @@ export default function PaginaDetalleViajeAdmin() {
         </PassportCard>
       </div>
 
-      <p className="mt-6 font-body text-xs text-ink/40">
-        Bloque 6 — Línea de tiempo: pendiente de un visor dedicado sobre registro_auditoria (0014); por ahora el
-        stepper de arriba y el estatus actual cubren el avance del traslado.
-      </p>
+      {/* Bloque 6 — Línea de tiempo */}
+      <div className="mt-6">
+        <PassportCard>
+          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Línea de tiempo</p>
+          <h2 className="mt-1 font-display text-lg font-semibold">Registro de auditoría</h2>
+          <div className="mt-4 space-y-3">
+            {auditoria.length === 0 ? (
+              <p className="font-body text-sm text-ink/45">
+                Sin eventos registrados todavía. Las acciones críticas nuevas escribirán aquí.
+              </p>
+            ) : (
+              auditoria.map((evento) => (
+                <div key={evento.id} className="rounded-lg border border-ink/10 px-4 py-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="font-body text-sm font-semibold">{evento.evento.replaceAll("_", " ")}</p>
+                      <p className="mt-1 font-body text-xs text-ink/50">
+                        Actor: {evento.actor} · {evento.actor_id}
+                      </p>
+                    </div>
+                    <p className="font-mono-ruum text-[10px] uppercase tracking-wide text-ink/40">
+                      {new Date(evento.timestamp).toLocaleString("es-MX")}
+                    </p>
+                  </div>
+                  <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-ink/[0.04] p-3 font-mono-ruum text-[11px] text-ink/60">
+                    {JSON.stringify(evento.datos, null, 2)}
+                  </pre>
+                </div>
+              ))
+            )}
+          </div>
+        </PassportCard>
+      </div>
     </main>
   );
 }

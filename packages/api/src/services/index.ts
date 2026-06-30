@@ -5,3 +5,6 @@ export * from "./conductores";
 export * from "./evidencia";
 export * from "./admin";
 export * from "./chat";
+export * from "./auditoria";
+export * from "./incidencias";
+export * from "./soporte";

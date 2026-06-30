@@ -7,6 +7,7 @@ import { USUARIO_DEMO } from "../../lib/datos-demo";
 type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 type Vehiculo = Database["public"]["Tables"]["vehiculos"]["Row"];
 type Empresa = Database["public"]["Tables"]["empresas"]["Row"];
+type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
 const VEHICULOS_DEMO: Vehiculo[] = [
   {
@@ -66,22 +67,89 @@ const EMPRESA_DEMO: Empresa = {
   actualizado_en: new Date().toISOString()
 };
 
+const HISTORIAL_EMPRESA_DEMO: PasaporteRow[] = [
+  {
+    traslado_id: "demo-empresa-001",
+    usuario_id: "demo-autorizado",
+    vehiculo_id: "demo-vehiculo-empresa-1",
+    conductor_id: "demo-conductor",
+    estado: "traslado_en_curso",
+    tiene_incidencia_abierta: false,
+    tipo_pago: "anticipado",
+    causa_fallido: null,
+    precio_cotizado: 2850,
+    precio_final: null,
+    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+    actualizado_en: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
+    vehiculo_tipo: "suv",
+    vehiculo_marca: "Toyota",
+    vehiculo_modelo: "RAV4",
+    vehiculo_anio: 2023,
+    conductor_nombre: "Conductor asignado",
+    conductor_estado: "activo",
+    conductor_nivel: "ejecutivo",
+    conductor_calificacion: 4.9,
+    evidencia_inicial_fotos_sincronizadas: 5,
+    evidencia_final_fotos_sincronizadas: 0,
+    incidencias_abiertas: 0,
+    monto_pagado: 2850
+  },
+  {
+    traslado_id: "demo-empresa-002",
+    usuario_id: "demo-titular",
+    vehiculo_id: "demo-vehiculo-empresa-2",
+    conductor_id: null,
+    estado: "pendiente_de_conductor",
+    tiene_incidencia_abierta: false,
+    tipo_pago: "al_cierre",
+    causa_fallido: null,
+    precio_cotizado: 1900,
+    precio_final: null,
+    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 28).toISOString(),
+    actualizado_en: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
+    vehiculo_tipo: "sedan",
+    vehiculo_marca: "Nissan",
+    vehiculo_modelo: "Sentra",
+    vehiculo_anio: 2022,
+    conductor_nombre: null,
+    conductor_estado: null,
+    conductor_nivel: null,
+    conductor_calificacion: null,
+    evidencia_inicial_fotos_sincronizadas: 0,
+    evidencia_final_fotos_sincronizadas: 0,
+    incidencias_abiertas: 0,
+    monto_pagado: 0
+  }
+];
+
 async function obtenerCuenta() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
-    return { usuario: USUARIO_DEMO, vehiculos: VEHICULOS_DEMO, empresa: EMPRESA_DEMO, esDemo: true };
+    return {
+      usuario: { ...USUARIO_DEMO, tipo_cuenta: "empresa" as const, rol: "titular_empresa" as const, empresa_id: EMPRESA_DEMO.id },
+      vehiculos: VEHICULOS_DEMO,
+      empresa: EMPRESA_DEMO,
+      historialEmpresa: HISTORIAL_EMPRESA_DEMO,
+      esDemo: true
+    };
   }
 
   try {
     const { crearClienteServidor } = await import("../../lib/supabase-server");
-    const { obtenerUsuarioActual } = await import("@ruum/api/services");
+    const { listarTrasladosDeEmpresa, obtenerUsuarioActual } = await import("@ruum/api/services");
     const cliente = await crearClienteServidor();
     const usuario = await obtenerUsuarioActual(cliente);
 
     if (!usuario) {
-      return { usuario: USUARIO_DEMO, vehiculos: VEHICULOS_DEMO, empresa: EMPRESA_DEMO, esDemo: true };
+      return {
+        usuario: { ...USUARIO_DEMO, tipo_cuenta: "empresa" as const, rol: "titular_empresa" as const, empresa_id: EMPRESA_DEMO.id },
+        vehiculos: VEHICULOS_DEMO,
+        empresa: EMPRESA_DEMO,
+        historialEmpresa: HISTORIAL_EMPRESA_DEMO,
+        esDemo: true
+      };
     }
 
     const [vehiculosRes, empresaRes] = await Promise.all([
@@ -92,14 +160,26 @@ async function obtenerCuenta() {
     if (vehiculosRes.error) throw vehiculosRes.error;
     if (empresaRes?.error) throw empresaRes.error;
 
+    const historialEmpresa =
+      usuario.rol === "titular_empresa" && usuario.empresa_id
+        ? await listarTrasladosDeEmpresa(cliente, usuario.empresa_id)
+        : [];
+
     return {
       usuario,
       vehiculos: vehiculosRes.data ?? [],
       empresa: empresaRes?.data ?? null,
+      historialEmpresa,
       esDemo: false
     };
   } catch {
-    return { usuario: USUARIO_DEMO, vehiculos: VEHICULOS_DEMO, empresa: EMPRESA_DEMO, esDemo: true };
+    return {
+      usuario: { ...USUARIO_DEMO, tipo_cuenta: "empresa" as const, rol: "titular_empresa" as const, empresa_id: EMPRESA_DEMO.id },
+      vehiculos: VEHICULOS_DEMO,
+      empresa: EMPRESA_DEMO,
+      historialEmpresa: HISTORIAL_EMPRESA_DEMO,
+      esDemo: true
+    };
   }
 }
 
@@ -115,6 +195,14 @@ function iniciales(nombre: string | null | undefined) {
 
 function dato(valor: string | number | null | undefined) {
   return valor ? String(valor) : "Pendiente";
+}
+
+function fechaCorta(fechaIso: string) {
+  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(fechaIso));
+}
+
+function dinero(valor: number | null | undefined) {
+  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(valor ?? 0);
 }
 
 function Campo({ etiqueta, valor, tipo = "text" }: { etiqueta: string; valor?: string | null | undefined; tipo?: string }) {
@@ -152,9 +240,10 @@ function Seccion({
 }
 
 export default async function PaginaCuenta() {
-  const { usuario, vehiculos, empresa, esDemo } = await obtenerCuenta();
+  const { usuario, vehiculos, empresa, historialEmpresa, esDemo } = await obtenerCuenta();
   const correo = usuario.correo_facturacion ?? "correo@pendiente.com";
   const esEmpresa = usuario.tipo_cuenta === "empresa" || usuario.rol === "titular_empresa";
+  const esTitularEmpresa = usuario.rol === "titular_empresa" && Boolean(usuario.empresa_id);
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
@@ -331,6 +420,53 @@ export default async function PaginaCuenta() {
           </div>
         </Seccion>
       </section>
+
+      {esTitularEmpresa && (
+        <section className="mt-6">
+          <Seccion
+            titulo="Historial de empresa"
+            descripcion="Traslados creados por la cuenta titular y por usuarios autorizados de la misma empresa."
+          >
+            <div className="grid gap-3">
+              {historialEmpresa.length > 0 ? (
+                historialEmpresa.slice(0, 6).map((traslado) => (
+                  <div
+                    key={traslado.traslado_id}
+                    className="grid gap-4 rounded-lg border border-ink/10 bg-mist px-4 py-4 md:grid-cols-[1.2fr_1fr_auto]"
+                  >
+                    <div>
+                      <p className="font-body text-xs uppercase tracking-wide text-ink/45">
+                        {traslado.estado.replaceAll("_", " ")}
+                      </p>
+                      <h3 className="mt-1 font-display text-lg font-semibold">
+                        {dato(traslado.vehiculo_marca)} {dato(traslado.vehiculo_modelo)}
+                      </h3>
+                      <p className="mt-1 font-body text-sm text-ink/55">{fechaCorta(traslado.creado_en)}</p>
+                    </div>
+                    <div className="grid gap-1 font-body text-sm text-ink/65">
+                      <span>Conductor: {dato(traslado.conductor_nombre)}</span>
+                      <span>Pago: {traslado.tipo_pago.replace("_", " ")}</span>
+                      <span>Evidencia inicial: {traslado.evidencia_inicial_fotos_sincronizadas}/5</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 md:flex-col md:items-end md:justify-center">
+                      <span className="font-body text-sm font-semibold">
+                        {dinero(traslado.precio_final ?? traslado.precio_cotizado)}
+                      </span>
+                      <Link href={`/traslados/${traslado.traslado_id}`}>
+                        <Button variant="secundario">Ver detalle</Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-lg border border-dashed border-ink/15 px-4 py-6 font-body text-sm text-ink/55">
+                  Aún no hay traslados empresariales para mostrar.
+                </div>
+              )}
+            </div>
+          </Seccion>
+        </section>
+      )}
     </main>
   );
 }

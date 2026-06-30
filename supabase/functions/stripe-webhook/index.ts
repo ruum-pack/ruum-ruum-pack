@@ -35,6 +35,23 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
 
+const SISTEMA_ACTOR_ID = "00000000-0000-0000-0000-000000000000";
+
+async function registrarEventoWebhook(
+  evento: string,
+  datos: Record<string, unknown>,
+  trasladoId: string | null = null
+) {
+  const { error } = await supabase.from("registro_auditoria").insert({
+    traslado_id: trasladoId,
+    evento,
+    actor: "sistema",
+    actor_id: SISTEMA_ACTOR_ID,
+    datos
+  });
+  if (error) throw error;
+}
+
 Deno.serve(async (req) => {
   const firma = req.headers.get("stripe-signature");
   const cuerpo = await req.text();
@@ -85,6 +102,17 @@ Deno.serve(async (req) => {
           .update({ estado: nuevoEstado, stripe_event_id: evento.id })
           .eq("stripe_payment_intent_id", intent.id);
 
+        await registrarEventoWebhook(
+          "registro_pago",
+          {
+            stripe_event_id: evento.id,
+            stripe_payment_intent_id: intent.id,
+            estado_pago: nuevoEstado,
+            traslado_id: pagoExistente?.traslado_id ?? trasladoId
+          },
+          pagoExistente?.traslado_id ?? trasladoId
+        );
+
         if (pagoExistente?.traslado_id) {
           const { data: traslado } = await supabase
             .from("traslados")
@@ -100,6 +128,16 @@ Deno.serve(async (req) => {
 
           if (siguienteEstado) {
             await supabase.from("traslados").update({ estado: siguienteEstado }).eq("id", pagoExistente.traslado_id);
+            await registrarEventoWebhook(
+              "registro_pago",
+              {
+                stripe_event_id: evento.id,
+                estado_anterior: traslado?.estado,
+                estado_nuevo: siguienteEstado,
+                tipo_pago: traslado?.tipo_pago
+              },
+              pagoExistente.traslado_id
+            );
           }
         }
         break;
@@ -112,6 +150,11 @@ Deno.serve(async (req) => {
           .from("cuentas_conductor_stripe")
           .update({ estado: activa ? "activa" : "pendiente_onboarding" })
           .eq("stripe_account_id", cuenta.id);
+        await registrarEventoWebhook("verificacion_cuenta", {
+          stripe_event_id: evento.id,
+          stripe_account_id: cuenta.id,
+          cuenta_activa: activa
+        });
         break;
       }
 
@@ -131,6 +174,11 @@ Deno.serve(async (req) => {
             procesado_en: new Date().toISOString()
           })
           .eq("stripe_transfer_id", transferencia.id);
+        await registrarEventoWebhook("registro_pago", {
+          stripe_event_id: evento.id,
+          stripe_transfer_id: transferencia.id,
+          estado_payout: evento.type === "transfer.created" ? "procesado" : "fallido"
+        });
         break;
       }
     }

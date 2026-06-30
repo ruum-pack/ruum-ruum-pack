@@ -8,6 +8,8 @@ import { PASAPORTE_DEMO } from "../../../lib/datos-demo";
 import { crearClienteServidor } from "../../../lib/supabase-server";
 import { ChatTraslado } from "./ChatTraslado";
 import { PagoTraslado } from "./PagoTraslado";
+import { ReportarIncidenciaUsuario } from "./ReportarIncidencia";
+import { CancelarTraslado } from "./CancelarTraslado";
 
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type Traslado = Pick<
@@ -20,6 +22,7 @@ type Traslado = Pick<
   | "contacto_entrega_telefono"
   | "contacto_recepcion_nombre"
   | "contacto_recepcion_telefono"
+  | "fecha_hora_programada"
 >;
 type Vehiculo = Pick<
   Database["public"]["Tables"]["vehiculos"]["Row"],
@@ -102,7 +105,8 @@ const DEMO_TRASLADO: Traslado = {
   contacto_entrega_nombre: "Cliente Demo",
   contacto_entrega_telefono: "+52 55 0000 0000",
   contacto_recepcion_nombre: "Recepción Demo",
-  contacto_recepcion_telefono: "+52 55 1111 1111"
+  contacto_recepcion_telefono: "+52 55 1111 1111",
+  fecha_hora_programada: new Date(Date.now() + 1000 * 60 * 60 * 6).toISOString()
 };
 
 const DEMO_VEHICULO: Vehiculo = {
@@ -236,7 +240,7 @@ async function obtenerDatos(id: string) {
     cliente
       .from("traslados")
       .select(
-        "origen_direccion, origen_ciudad, destino_direccion, destino_ciudad, contacto_entrega_nombre, contacto_entrega_telefono, contacto_recepcion_nombre, contacto_recepcion_telefono"
+        "origen_direccion, origen_ciudad, destino_direccion, destino_ciudad, contacto_entrega_nombre, contacto_entrega_telefono, contacto_recepcion_nombre, contacto_recepcion_telefono, fecha_hora_programada"
       )
       .eq("id", id)
       .maybeSingle(),
@@ -617,6 +621,15 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
               No hay incidencias reportadas para este traslado.
             </p>
           )}
+          <ReportarIncidenciaUsuario trasladoId={pasaporte.traslado_id} esDemo={esDemo} />
+          <CancelarTraslado
+            trasladoId={pasaporte.traslado_id}
+            estado={pasaporte.estado}
+            precio={precioBase}
+            fechaProgramada={traslado?.fecha_hora_programada ?? null}
+            conductorAsignado={Boolean(pasaporte.conductor_id)}
+            esDemo={esDemo}
+          />
         </PassportCard>
 
         <PassportCard>

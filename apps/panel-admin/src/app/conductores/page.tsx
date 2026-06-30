@@ -5,7 +5,12 @@ import { ETIQUETA_NIVEL_CONCER } from "@ruum/shared/constants";
 import { Aviso, Button } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
-import { listarConductoresAdmin, cambiarEstadoConductorAdmin } from "@ruum/api/services";
+import {
+  listarConductoresAdmin,
+  cambiarEstadoConductorAdmin,
+  registrarNoPresentacionConductor,
+  registrarCancelacionConductor
+} from "@ruum/api/services";
 import { CONDUCTORES_DEMO } from "../../lib/datos-demo";
 
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
@@ -26,6 +31,7 @@ export default function PaginaConductoresAdmin() {
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   async function cargar() {
     if (!tieneSupabaseConfigurado()) {
@@ -74,6 +80,44 @@ export default function PaginaConductoresAdmin() {
     }
   }
 
+  async function aplicarNoPresentacion(c: ConductorRow) {
+    setProcesando(c.id);
+    setAviso(null);
+    if (esDemo) {
+      await new Promise((r) => setTimeout(r, 300));
+      setAviso("No presentación registrada en modo demo.");
+      setProcesando(null);
+      return;
+    }
+    try {
+      const cliente = crearClienteNavegador();
+      const resultado = await registrarNoPresentacionConductor(cliente, c.id);
+      setAviso(resultado.mensaje);
+      await cargar();
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  async function aplicarCancelacion(c: ConductorRow, conJustificacion: boolean) {
+    setProcesando(c.id);
+    setAviso(null);
+    if (esDemo) {
+      await new Promise((r) => setTimeout(r, 300));
+      setAviso(conJustificacion ? "Cancelación justificada registrada en modo demo." : "Cancelación sin justificación registrada en modo demo.");
+      setProcesando(null);
+      return;
+    }
+    try {
+      const cliente = crearClienteNavegador();
+      const resultado = await registrarCancelacionConductor(cliente, c.id, conJustificacion);
+      setAviso(resultado?.mensaje ?? "Cancelación justificada registrada sin consecuencia.");
+      await cargar();
+    } finally {
+      setProcesando(null);
+    }
+  }
+
   return (
     <main className="mx-auto max-w-5xl px-8 py-10">
       <h1 className="font-display text-2xl font-semibold">Conductores</h1>
@@ -81,6 +125,11 @@ export default function PaginaConductoresAdmin() {
       {esDemo && (
         <div className="mt-4">
           <Aviso tono="info">Estás viendo datos de ejemplo, no conductores reales.</Aviso>
+        </div>
+      )}
+      {aviso && (
+        <div className="mt-4">
+          <Aviso tono="info">{aviso}</Aviso>
         </div>
       )}
 
@@ -119,12 +168,23 @@ export default function PaginaConductoresAdmin() {
                     )}
                   </td>
                   <td className="px-4 py-3">{ETIQUETA_ESTADO[c.estado]}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3">
                     {(c.estado === "activo" || c.estado === "suspendido_indefinido") && (
                       <Button variant="secundario" onClick={() => alternarSuspension(c)} disabled={procesando === c.id}>
                         {c.estado === "activo" ? "Suspender" : "Reactivar"}
                       </Button>
                     )}
+                    <div className="mt-2 flex flex-wrap justify-end gap-2">
+                      <Button variant="fantasma" onClick={() => aplicarNoPresentacion(c)} disabled={procesando === c.id}>
+                        No presentación
+                      </Button>
+                      <Button variant="fantasma" onClick={() => aplicarCancelacion(c, false)} disabled={procesando === c.id}>
+                        Canceló sin justificación
+                      </Button>
+                      <Button variant="fantasma" onClick={() => aplicarCancelacion(c, true)} disabled={procesando === c.id}>
+                        Canceló justificado
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))

@@ -38,11 +38,11 @@ const HISTORIAL = [
 ];
 
 const SOPORTE = [
-  "Preguntas frecuentes",
-  "Contacto con soporte",
-  "Reportar problema",
-  "Ayuda con pagos y documentos",
-  "Términos y aviso de privacidad"
+  { etiqueta: "Preguntas frecuentes", href: "#preguntas-frecuentes" },
+  { etiqueta: "Contacto con soporte", href: "tel:+525500004911" },
+  { etiqueta: "Reportar problema", href: "/viajes" },
+  { etiqueta: "Ayuda con pagos y documentos", href: "mailto:soporte-conductores@ruumruum.mx?subject=Ayuda%20con%20pagos%20o%20documentos" },
+  { etiqueta: "Términos y aviso de privacidad", href: "https://ruumruum.mx/legal" }
 ];
 
 function dato(label: string, valor: string) {
@@ -285,10 +285,20 @@ export default function PaginaConfiguracion() {
             <h2 className="mt-1 font-display text-xl font-semibold">Ayuda operativa</h2>
             <div className="mt-5 grid gap-3">
               {SOPORTE.map((opcion) => (
-                <button key={opcion} className="rounded-lg border border-ink/10 px-4 py-3 text-left font-body text-sm font-medium text-ink/70 hover:border-ink/25">
-                  {opcion}
-                </button>
+                <a
+                  key={opcion.etiqueta}
+                  href={opcion.href}
+                  className="rounded-lg border border-ink/10 px-4 py-3 text-left font-body text-sm font-medium text-ink/70 hover:border-ink/25"
+                >
+                  {opcion.etiqueta}
+                </a>
               ))}
+            </div>
+            <div id="preguntas-frecuentes" className="mt-5 rounded-lg border border-ink/10 px-4 py-3">
+              <p className="font-body text-sm font-semibold">Preguntas frecuentes</p>
+              <p className="mt-1 font-body text-sm text-ink/60">
+                Para urgencias operativas usa Contacto con soporte. Para emergencias reales, usa el botón Emergencia / 911 dentro del viaje activo.
+              </p>
             </div>
           </PassportCard>
 

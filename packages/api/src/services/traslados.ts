@@ -1,11 +1,26 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@ruum/shared/types";
+import type { Conductor, Database } from "@ruum/shared/types";
 import { TRANSICIONES } from "@ruum/shared/states";
+import { esElegibleParaViaje, type TipoRuta } from "@ruum/shared/rules";
+import { calcularCargoCancelacion } from "@ruum/shared/rules";
+import { registrarEvento } from "./auditoria";
 
 type Cliente = SupabaseClient<Database>;
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
+type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
+type TrasladoRow = Database["public"]["Tables"]["traslados"]["Row"];
 type TipoPago = Database["public"]["Enums"]["tipo_pago"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
+type EventoConductorTraslado =
+  | "conductor_en_camino"
+  | "llegada_origen"
+  | "iniciar_verificacion"
+  | "iniciar_evidencia_inicial"
+  | "vehiculo_recibido"
+  | "iniciar_traslado"
+  | "llegada_destino"
+  | "iniciar_evidencia_final"
+  | "confirmar_entrega";
 
 export interface DatosNuevoTraslado {
   usuario_id: string;
@@ -72,13 +87,45 @@ export async function listarTrasladosDeUsuario(cliente: Cliente, usuarioId: stri
   return data ?? [];
 }
 
+/** PRD §4.1 — historial empresarial visible para el titular de la empresa. */
+export async function listarTrasladosDeEmpresa(cliente: Cliente, empresaId: string): Promise<PasaporteRow[]> {
+  const { data: titular, error: errorTitular } = await cliente
+    .from("usuarios")
+    .select("id")
+    .eq("empresa_id", empresaId)
+    .eq("rol", "titular_empresa")
+    .maybeSingle();
+
+  if (errorTitular) throw errorTitular;
+  if (!titular) {
+    throw new Error("Solo el titular de la empresa puede consultar este historial.");
+  }
+
+  const { data: traslados, error: errorTraslados } = await cliente
+    .from("traslados")
+    .select("id, creado_en")
+    .order("creado_en", { ascending: false });
+
+  if (errorTraslados) throw errorTraslados;
+
+  const ids = (traslados ?? []).map((traslado) => traslado.id);
+  if (ids.length === 0) return [];
+
+  const { data, error } = await cliente
+    .from("pasaporte_digital")
+    .select("*")
+    .in("traslado_id", ids)
+    .order("creado_en", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
 /**
  * PRD §16.3 — Pestaña 1 "Viajes solicitados": viajes ofertados/disponibles
- * para aceptación. Visibilidad mínima por RLS (sección
- * conductor_ve_viajes_disponibles, migración 0018); el filtro de
- * ELEGIBILIDAD real (nivel CONCER, tipo de vehículo, ruta) es responsabilidad
- * de la app, vía rules/elegibilidad-conductor.ts — esta función solo trae
- * los candidatos visibles, no decide quién puede aceptarlos.
+ * para aceptación. Visibilidad mínima por RLS (migración 0018). Esta lista
+ * puede traer candidatos visibles; la aceptación se revalida en aceptarViaje()
+ * con esElegibleParaViaje() antes de tocar el traslado.
  */
 export async function listarViajesDisponibles(cliente: Cliente): Promise<PasaporteRow[]> {
   const { data, error } = await cliente
@@ -104,6 +151,54 @@ export async function listarViajesAceptados(cliente: Cliente, conductorId: strin
   return data ?? [];
 }
 
+function aConductorRegla(fila: ConductorRow): Conductor {
+  return {
+    id: fila.id,
+    nombre: fila.nombre,
+    estado: fila.estado,
+    calificacion_promedio: fila.calificacion_promedio,
+    traslados_completados: fila.traslados_completados,
+    suspensiones_activas: fila.suspensiones_activas,
+    no_presentaciones_6m: fila.no_presentaciones_6m,
+    cancelaciones_sin_justificacion_count: fila.cancelaciones_sin_justificacion_count,
+    documentos_vigentes: fila.documentos_vigentes,
+    certificaciones: [],
+    incidencias_graves_6m: fila.incidencias_graves_6m,
+    incidencias_graves_12m: fila.incidencias_graves_12m,
+    creado_en: fila.creado_en
+  };
+}
+
+function tipoRutaParaElegibilidad(tipoRuta: TrasladoRow["tipo_ruta"]): TipoRuta {
+  if (tipoRuta === "foraneo") return "interurbana_mas_100km";
+  if (tipoRuta === "local" || tipoRuta === null) return "intraurbana";
+  throw new Error(`Tipo de ruta no soportado para elegibilidad: ${tipoRuta}`);
+}
+
+async function validarElegibilidadAceptacion(cliente: Cliente, trasladoId: string, conductorId: string) {
+  const [{ data: conductor, error: errorConductor }, { data: traslado, error: errorTraslado }, pasaporte] = await Promise.all([
+    cliente.from("conductores").select("*").eq("id", conductorId).maybeSingle(),
+    cliente.from("traslados").select("*").eq("id", trasladoId).maybeSingle(),
+    obtenerPasaporteDigital(cliente, trasladoId)
+  ]);
+
+  if (errorConductor) throw errorConductor;
+  if (errorTraslado) throw errorTraslado;
+  if (!conductor) throw new Error("No se encontró el conductor para validar elegibilidad.");
+  if (!traslado) throw new Error("No se encontró el traslado para validar elegibilidad.");
+  if (traslado.estado !== "pendiente_de_conductor" || traslado.conductor_id !== null) {
+    throw new Error("El viaje ya no está disponible para aceptación.");
+  }
+  if (!pasaporte?.vehiculo_tipo) {
+    throw new Error("No se pudo validar elegibilidad: el viaje no tiene tipo de vehículo.");
+  }
+
+  const resultado = esElegibleParaViaje(aConductorRegla(conductor), pasaporte.vehiculo_tipo, tipoRutaParaElegibilidad(traslado.tipo_ruta));
+  if (!resultado.elegible) {
+    throw new Error(`Conductor no elegible para este viaje: ${resultado.motivo ?? "no cumple los requisitos"}`);
+  }
+}
+
 /**
  * PRD §16.3 — botón "aceptar" sobre un viaje disponible. Transición
  * pendiente_de_conductor -> conductor_asignado (ver TRANSICIONES, único
@@ -111,6 +206,8 @@ export async function listarViajesAceptados(cliente: Cliente, conductorId: strin
  * corresponde a una acción del conductor).
  */
 export async function aceptarViaje(cliente: Cliente, trasladoId: string, conductorId: string) {
+  await validarElegibilidadAceptacion(cliente, trasladoId, conductorId);
+
   const { error } = await cliente
     .from("traslados")
     .update({ estado: "conductor_asignado", conductor_id: conductorId })
@@ -118,17 +215,69 @@ export async function aceptarViaje(cliente: Cliente, trasladoId: string, conduct
     .eq("estado", "pendiente_de_conductor");
 
   if (error) throw error;
+
+  await registrarEvento(cliente, "aceptacion_traslado_conductor", "conductor", conductorId, {
+    traslado_id: trasladoId,
+    estado_nuevo: "conductor_asignado"
+  });
 }
+
+function horasRestantes(fechaIso: string | null) {
+  if (!fechaIso) return Number.POSITIVE_INFINITY;
+  return Math.max(0, (new Date(fechaIso).getTime() - Date.now()) / (1000 * 60 * 60));
+}
+
+export async function cancelarTraslado(cliente: Cliente, trasladoId: string, motivo: string) {
+  const { data: traslado, error } = await cliente
+    .from("traslados")
+    .select("id, estado, conductor_id, fecha_hora_programada, precio_cotizado, precio_final")
+    .eq("id", trasladoId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!traslado) throw new Error("No se encontró el traslado para cancelar.");
+
+  const cargo = calcularCargoCancelacion(
+    Number(traslado.precio_final ?? traslado.precio_cotizado ?? 0),
+    horasRestantes(traslado.fecha_hora_programada),
+    Boolean(traslado.conductor_id),
+    traslado.estado === "conductor_en_punto_de_recoleccion" ||
+      traslado.estado === "verificacion_vehiculo_en_proceso" ||
+      traslado.estado === "evidencia_inicial_en_proceso"
+  );
+
+  const { error: rpcError } = await cliente.rpc("usuario_cancela_traslado", {
+    p_traslado_id: trasladoId,
+    p_motivo: motivo.trim() || "Cancelación solicitada por usuario",
+    p_porcentaje_cargo: cargo.porcentaje_cargo,
+    p_monto_cargo: cargo.monto_cargo,
+    p_mensaje: cargo.mensaje
+  });
+
+  if (rpcError) throw rpcError;
+  return cargo;
+}
+
+const EVENTO_CONDUCTOR_POR_ESTADO: Partial<Record<EstadoTraslado, EventoConductorTraslado>> = {
+  conductor_asignado: "conductor_en_camino",
+  conductor_en_camino_al_origen: "llegada_origen",
+  conductor_en_punto_de_recoleccion: "iniciar_verificacion",
+  verificacion_vehiculo_en_proceso: "iniciar_evidencia_inicial",
+  evidencia_inicial_completada: "vehiculo_recibido",
+  vehiculo_recibido: "iniciar_traslado",
+  traslado_en_curso: "llegada_destino",
+  llegada_a_destino: "iniciar_evidencia_final",
+  evidencia_final_completada: "confirmar_entrega"
+};
 
 /**
  * Avanza el traslado al siguiente paso del camino feliz (primer elemento de
- * TRANSICIONES[estadoActual] — mismo mapa que valida el trigger de Postgres
- * en 0005, así que un intento inválido se rechaza ahí aunque esta función
- * tenga un bug). No se usa para los pasos que requieren evidencia completa
- * (verificacion_vehiculo_en_proceso, evidencia_inicial_en_proceso,
- * llegada_a_destino, evidencia_final_en_proceso): esos viven en
- * services/evidencia.ts porque están condicionados a
- * evidenciaCompleta() (PRD §4.4), no son un simple "siguiente paso".
+ * TRANSICIONES[estadoActual]), pero sin UPDATE directo sobre traslados desde
+ * el cliente conductor. La RPC security definer valida que el conductor
+ * autenticado esté asignado, actualiza solo `estado` y escribe auditoría.
+ * No se usa para completar evidencia: esos pasos viven en services/evidencia.ts
+ * porque primero revalidan evidenciaCompleta() en aplicación y luego pasan por
+ * la misma RPC dedicada.
  */
 export async function avanzarEstadoTraslado(cliente: Cliente, trasladoId: string, estadoActual: EstadoTraslado) {
   const siguiente = TRANSICIONES[estadoActual]?.[0];
@@ -136,12 +285,16 @@ export async function avanzarEstadoTraslado(cliente: Cliente, trasladoId: string
     throw new Error(`No hay siguiente paso del camino feliz desde ${estadoActual}`);
   }
 
-  const { error } = await cliente
-    .from("traslados")
-    .update({ estado: siguiente })
-    .eq("id", trasladoId)
-    .eq("estado", estadoActual);
+  const evento = EVENTO_CONDUCTOR_POR_ESTADO[estadoActual];
+  if (!evento) {
+    throw new Error(`El estado ${estadoActual} no corresponde a un evento directo del conductor`);
+  }
+
+  const { data, error } = await cliente.rpc("conductor_avanza_traslado", {
+    p_traslado_id: trasladoId,
+    p_evento: evento
+  });
 
   if (error) throw error;
-  return siguiente;
+  return data ?? siguiente;
 }

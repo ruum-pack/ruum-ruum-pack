@@ -2,7 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
 import { transicionValida } from "@ruum/shared/states";
 import { evidenciaCompleta } from "@ruum/shared/rules";
+import { consecuenciaCancelacionConductor, consecuenciaNoPresentacion, clasificarTrasladoFallido } from "@ruum/shared/rules";
 import type { FotoEvidencia } from "@ruum/shared/types";
+import { registrarEvento } from "./auditoria";
 
 type Cliente = SupabaseClient<Database>;
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -14,6 +16,7 @@ type EvidenciaRow = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 type EstadoConductor = Database["public"]["Enums"]["estado_conductor"];
 type TipoEvidencia = Database["public"]["Enums"]["tipo_evidencia"];
+type CausaFallido = Database["public"]["Enums"]["causa_fallido"];
 
 /** Admin asociado a la sesión de Supabase Auth actual, si existe (mismo patrón que obtenerUsuarioActual/obtenerConductorActual). */
 export async function obtenerAdminActual(cliente: Cliente) {
@@ -23,6 +26,14 @@ export async function obtenerAdminActual(cliente: Cliente) {
   const { data, error } = await cliente.from("admins").select("*").eq("auth_user_id", sesion.user.id).maybeSingle();
   if (error) throw error;
   return data;
+}
+
+async function obtenerAdminIdParaAuditoria(cliente: Cliente): Promise<string> {
+  const admin = await obtenerAdminActual(cliente);
+  if (!admin) {
+    throw new Error("No se encontró un admin autenticado para registrar auditoría.");
+  }
+  return admin.id;
 }
 
 const ESTADOS_TERMINALES: EstadoTraslado[] = ["servicio_cerrado", "servicio_cancelado", "traslado_fallido"];
@@ -195,11 +206,19 @@ export async function asignarConductorAdmin(
   conductorId: string,
   estadoActual: EstadoTraslado
 ) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+
   if (estadoActual === "conductor_asignado") {
     // Reasignación pura: el viaje ya está en el paso correcto, solo cambia
     // a quién pertenece — no hay ningún estado que avanzar.
     const { error } = await cliente.from("traslados").update({ conductor_id: conductorId }).eq("id", trasladoId);
     if (error) throw error;
+    await registrarEvento(cliente, "asignacion_conductor", "admin", adminId, {
+      traslado_id: trasladoId,
+      conductor_id: conductorId,
+      estado_anterior: estadoActual,
+      estado_nuevo: estadoActual
+    });
     return;
   }
 
@@ -229,6 +248,13 @@ export async function asignarConductorAdmin(
     const { error } = await cliente.from("traslados").update(cambios).eq("id", trasladoId);
     if (error) throw error;
   }
+
+  await registrarEvento(cliente, "asignacion_conductor", "admin", adminId, {
+    traslado_id: trasladoId,
+    conductor_id: conductorId,
+    estado_anterior: estadoActual,
+    estado_nuevo: "conductor_asignado"
+  });
 }
 
 /**
@@ -247,6 +273,8 @@ export async function cambiarEstatusAdmin(
   estadoActual: EstadoTraslado,
   nuevoEstado: EstadoTraslado
 ) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+
   if (!transicionValida(estadoActual, nuevoEstado)) {
     throw new Error(`Transición no permitida: ${estadoActual} -> ${nuevoEstado}`);
   }
@@ -255,6 +283,12 @@ export async function cambiarEstatusAdmin(
 
   const { error } = await cliente.from("traslados").update({ estado: nuevoEstado }).eq("id", trasladoId).eq("estado", estadoActual);
   if (error) throw error;
+
+  await registrarEvento(cliente, "modificacion_traslado_activo", "admin", adminId, {
+    traslado_id: trasladoId,
+    estado_anterior: estadoActual,
+    estado_nuevo: nuevoEstado
+  });
 }
 
 /** PRD §17.4, bloque 7 — notas internas, visibles solo para el equipo de operación. */
@@ -289,12 +323,147 @@ export async function ajustarPrecioFinalAdmin(cliente: Cliente, trasladoId: stri
     throw new Error("La tarifa final debe ser un número válido mayor o igual a 0.");
   }
 
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
   const { error } = await cliente.from("traslados").update({ precio_final: precioFinal }).eq("id", trasladoId);
   if (error) throw error;
+
+  await registrarEvento(cliente, "modificacion_traslado_activo", "admin", adminId, {
+    traslado_id: trasladoId,
+    precio_final: precioFinal
+  });
 }
 
 /** PRD §17.6 — "suspender/reactivar" conductor. */
 export async function cambiarEstadoConductorAdmin(cliente: Cliente, conductorId: string, nuevoEstado: EstadoConductor) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
   const { error } = await cliente.from("conductores").update({ estado: nuevoEstado }).eq("id", conductorId);
   if (error) throw error;
+
+  await registrarEvento(cliente, "suspension_conductor", "admin", adminId, {
+    conductor_id: conductorId,
+    estado_nuevo: nuevoEstado
+  });
+}
+
+export async function registrarNoPresentacionConductor(cliente: Cliente, conductorId: string) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+  const { data: conductor, error: errorConductor } = await cliente
+    .from("conductores")
+    .select("id, no_presentaciones_6m")
+    .eq("id", conductorId)
+    .maybeSingle();
+
+  if (errorConductor) throw errorConductor;
+  if (!conductor) throw new Error("No se encontró el conductor.");
+
+  const ocurrencias = conductor.no_presentaciones_6m + 1;
+  const consecuencia = consecuenciaNoPresentacion(ocurrencias);
+  const { error } = await cliente
+    .from("conductores")
+    .update({ no_presentaciones_6m: ocurrencias, estado: consecuencia.nuevoEstado })
+    .eq("id", conductorId);
+
+  if (error) throw error;
+
+  await registrarEvento(cliente, "suspension_conductor", "admin", adminId, {
+    conductor_id: conductorId,
+    tipo: "no_presentacion",
+    ocurrencias_6m: ocurrencias,
+    estado_nuevo: consecuencia.nuevoEstado,
+    dias_suspension: consecuencia.diasSuspension ?? null,
+    mensaje: consecuencia.mensaje
+  });
+
+  return consecuencia;
+}
+
+export async function registrarCancelacionConductor(cliente: Cliente, conductorId: string, conJustificacion: boolean) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+
+  if (conJustificacion) {
+    await registrarEvento(cliente, "suspension_conductor", "admin", adminId, {
+      conductor_id: conductorId,
+      tipo: "cancelacion_conductor",
+      con_justificacion: true,
+      mensaje: "Cancelación de conductor registrada con justificación; no aplica consecuencia."
+    });
+    return null;
+  }
+
+  const { data: conductor, error: errorConductor } = await cliente
+    .from("conductores")
+    .select("id, cancelaciones_sin_justificacion_count")
+    .eq("id", conductorId)
+    .maybeSingle();
+
+  if (errorConductor) throw errorConductor;
+  if (!conductor) throw new Error("No se encontró el conductor.");
+
+  const cancelaciones = conductor.cancelaciones_sin_justificacion_count + 1;
+  const consecuencia = consecuenciaCancelacionConductor(cancelaciones);
+  const { error } = await cliente
+    .from("conductores")
+    .update({ cancelaciones_sin_justificacion_count: cancelaciones, estado: consecuencia.nuevoEstado })
+    .eq("id", conductorId);
+
+  if (error) throw error;
+
+  await registrarEvento(cliente, "suspension_conductor", "admin", adminId, {
+    conductor_id: conductorId,
+    tipo: "cancelacion_conductor",
+    con_justificacion: false,
+    cancelaciones_sin_justificacion: cancelaciones,
+    estado_nuevo: consecuencia.nuevoEstado,
+    dias_suspension: consecuencia.diasSuspension ?? null,
+    mensaje: consecuencia.mensaje
+  });
+
+  return consecuencia;
+}
+
+export async function marcarTrasladoFallido(cliente: Cliente, trasladoId: string, causa: CausaFallido) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+  const resultado = clasificarTrasladoFallido(causa);
+
+  const { data: traslado, error: errorTraslado } = await cliente
+    .from("traslados")
+    .select("id, estado, precio_cotizado, precio_final")
+    .eq("id", trasladoId)
+    .maybeSingle();
+
+  if (errorTraslado) throw errorTraslado;
+  if (!traslado) throw new Error("No se encontró el traslado.");
+
+  const { error } = await cliente
+    .from("traslados")
+    .update({ estado: "traslado_fallido", causa_fallido: causa })
+    .eq("id", trasladoId)
+    .eq("estado", traslado.estado);
+
+  if (error) throw error;
+
+  if (resultado.cargo_aplica_cliente) {
+    const { error: pagoError } = await cliente.from("pagos").insert({
+      traslado_id: trasladoId,
+      monto: Number(traslado.precio_final ?? traslado.precio_cotizado ?? 0),
+      momento: "al_cierre",
+      estado: "pendiente",
+      metodo: "cargo_traslado_fallido"
+    });
+    if (pagoError) throw pagoError;
+  }
+
+  await registrarEvento(cliente, "modificacion_traslado_activo", "admin", adminId, {
+    traslado_id: trasladoId,
+    tipo: "traslado_fallido",
+    causa,
+    estado_anterior: traslado.estado,
+    estado_nuevo: "traslado_fallido",
+    cargo_aplica_cliente: resultado.cargo_aplica_cliente,
+    requiere_reagendamiento: resultado.requiere_reagendamiento,
+    porcentaje_descuento_segundo_intento: resultado.porcentaje_descuento_segundo_intento ?? null,
+    mensaje: resultado.mensaje
+  });
+
+  return resultado;
 }

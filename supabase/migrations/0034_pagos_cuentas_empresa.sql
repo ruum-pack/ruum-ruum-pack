@@ -1,0 +1,217 @@
+-- Fase 6 — pagos y cuentas empresa.
+-- 1) La evidencia inicial no puede completarse si el traslado no tiene un
+-- método de pago registrado por el solicitante o por el titular de la empresa.
+-- 2) El titular de empresa puede consultar traslados de usuarios autorizados
+-- de su misma empresa.
+
+create or replace function public.traslado_tiene_metodo_pago_registrado(
+  p_traslado_id uuid
+)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select coalesce((
+    select case
+      when solicitante.metodo_pago_registrado then true
+      when solicitante.empresa_id is not null then exists (
+        select 1
+        from public.usuarios titular
+        where titular.empresa_id = solicitante.empresa_id
+          and titular.rol = 'titular_empresa'
+          and titular.metodo_pago_registrado = true
+      )
+      else false
+    end
+    from public.traslados traslado
+    join public.usuarios solicitante on solicitante.id = traslado.usuario_id
+    where traslado.id = p_traslado_id
+  ), false);
+$$;
+
+revoke all on function public.traslado_tiene_metodo_pago_registrado(uuid) from public;
+grant execute on function public.traslado_tiene_metodo_pago_registrado(uuid) to authenticated;
+
+create policy "titular_ve_traslados_de_empresa"
+  on public.traslados for select
+  using (
+    exists (
+      select 1
+      from public.usuarios titular
+      join public.usuarios solicitante on solicitante.empresa_id = titular.empresa_id
+      where titular.auth_user_id = auth.uid()
+        and titular.rol = 'titular_empresa'
+        and titular.empresa_id is not null
+        and solicitante.id = traslados.usuario_id
+    )
+  );
+
+create or replace function public.conductor_avanza_traslado(
+  p_traslado_id uuid,
+  p_evento text
+)
+returns public.estado_traslado
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_conductor_id uuid;
+  v_estado_actual public.estado_traslado;
+  v_estado_siguiente public.estado_traslado;
+  v_evento_auditoria public.evento_auditable;
+begin
+  select id into v_conductor_id
+  from public.conductores
+  where auth_user_id = auth.uid();
+
+  if v_conductor_id is null then
+    raise exception 'Solo un conductor autenticado puede avanzar el traslado.';
+  end if;
+
+  select estado into v_estado_actual
+  from public.traslados
+  where id = p_traslado_id
+    and conductor_id = v_conductor_id
+  for update;
+
+  if v_estado_actual is null then
+    raise exception 'El traslado no existe o no está asignado al conductor autenticado.';
+  end if;
+
+  case p_evento
+    when 'conductor_en_camino' then
+      if v_estado_actual <> 'conductor_asignado' then
+        raise exception 'Evento no permitido desde estado %', v_estado_actual;
+      end if;
+      v_estado_siguiente := 'conductor_en_camino_al_origen';
+      v_evento_auditoria := 'modificacion_traslado_activo';
+
+    when 'llegada_origen' then
+      if v_estado_actual <> 'conductor_en_camino_al_origen' then
+        raise exception 'Evento no permitido desde estado %', v_estado_actual;
+      end if;
+      v_estado_siguiente := 'conductor_en_punto_de_recoleccion';
+      v_evento_auditoria := 'llegada_conductor_origen';
+
+    when 'iniciar_verificacion' then
+      if v_estado_actual <> 'conductor_en_punto_de_recoleccion' then
+        raise exception 'Evento no permitido desde estado %', v_estado_actual;
+      end if;
+      v_estado_siguiente := 'verificacion_vehiculo_en_proceso';
+      v_evento_auditoria := 'modificacion_traslado_activo';
+
+    when 'iniciar_evidencia_inicial' then
+      if v_estado_actual <> 'verificacion_vehiculo_en_proceso' then
+        raise exception 'Evento no permitido desde estado %', v_estado_actual;
+      end if;
+      v_estado_siguiente := 'evidencia_inicial_en_proceso';
+      v_evento_auditoria := 'captura_evidencia_inicial';
+
+    when 'evidencia_inicial_completada' then
+      if v_estado_actual <> 'evidencia_inicial_en_proceso' then
+        raise exception 'Evento no permitido desde estado %', v_estado_actual;
+      end if;
+      if not public.traslado_tiene_metodo_pago_registrado(p_traslado_id) then
+        raise exception 'No se puede completar evidencia inicial: falta método de pago registrado.';
+      end if;
+      if (
+        select count(distinct angulo)
+        from public.evidencia_fotos
+        where traslado_id = p_traslado_id
+          and tipo = 'inicial'
+          and sincronizada = true
+          and angulo in ('frente', 'lado_piloto', 'lado_copiloto', 'trasera', 'tablero')
+      ) < 5 then
+        raise exception 'Evidencia inicial incompleta.';
+      end if;
+      v_estado_siguiente := 'evidencia_inicial_completada';
+      v_evento_auditoria := 'captura_evidencia_inicial';
+
+    when 'vehiculo_recibido' then
+      if v_estado_actual <> 'evidencia_inicial_completada' then
+        raise exception 'Evento no permitido desde estado %', v_estado_actual;
+      end if;
+      v_estado_siguiente := 'vehiculo_recibido';
+      v_evento_auditoria := 'confirmacion_vehiculo_recibido';
+
+    when 'iniciar_traslado' then
+      if v_estado_actual <> 'vehiculo_recibido' then
+        raise exception 'Evento no permitido desde estado %', v_estado_actual;
+      end if;
+      v_estado_siguiente := 'traslado_en_curso';
+      v_evento_auditoria := 'inicio_traslado';
+
+    when 'llegada_destino' then
+      if v_estado_actual <> 'traslado_en_curso' then
+        raise exception 'Evento no permitido desde estado %', v_estado_actual;
+      end if;
+      v_estado_siguiente := 'llegada_a_destino';
+      v_evento_auditoria := 'llegada_destino';
+
+    when 'iniciar_evidencia_final' then
+      if v_estado_actual <> 'llegada_a_destino' then
+        raise exception 'Evento no permitido desde estado %', v_estado_actual;
+      end if;
+      v_estado_siguiente := 'evidencia_final_en_proceso';
+      v_evento_auditoria := 'captura_evidencia_final';
+
+    when 'evidencia_final_completada' then
+      if v_estado_actual <> 'evidencia_final_en_proceso' then
+        raise exception 'Evento no permitido desde estado %', v_estado_actual;
+      end if;
+      if (
+        select count(distinct angulo)
+        from public.evidencia_fotos
+        where traslado_id = p_traslado_id
+          and tipo = 'final'
+          and sincronizada = true
+          and angulo in ('frente', 'lado_piloto', 'lado_copiloto', 'trasera', 'tablero')
+      ) < 5 then
+        raise exception 'Evidencia final incompleta.';
+      end if;
+      v_estado_siguiente := 'evidencia_final_completada';
+      v_evento_auditoria := 'captura_evidencia_final';
+
+    when 'confirmar_entrega' then
+      if v_estado_actual <> 'evidencia_final_completada' then
+        raise exception 'Evento no permitido desde estado %', v_estado_actual;
+      end if;
+      v_estado_siguiente := 'entrega_confirmada';
+      v_evento_auditoria := 'confirmacion_entrega';
+
+    else
+      raise exception 'Evento de conductor no soportado: %', p_evento;
+  end case;
+
+  update public.traslados
+  set estado = v_estado_siguiente
+  where id = p_traslado_id
+    and conductor_id = v_conductor_id
+    and estado = v_estado_actual;
+
+  insert into public.registro_auditoria (
+    traslado_id,
+    evento,
+    actor,
+    actor_id,
+    datos
+  ) values (
+    p_traslado_id,
+    v_evento_auditoria,
+    'conductor',
+    v_conductor_id,
+    jsonb_build_object(
+      'evento_conductor', p_evento,
+      'estado_anterior', v_estado_actual,
+      'estado_nuevo', v_estado_siguiente
+    )
+  );
+
+  return v_estado_siguiente;
+end;
+$$;
+
+revoke all on function public.conductor_avanza_traslado(uuid, text) from public;
+grant execute on function public.conductor_avanza_traslado(uuid, text) to authenticated;
