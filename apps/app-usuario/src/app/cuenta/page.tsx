@@ -1,0 +1,334 @@
+import Link from "next/link";
+import { Aviso, Button, PassportCard } from "@ruum/ui";
+import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
+import type { Database } from "@ruum/shared/types";
+import { PerfilCuentaForm } from "./PerfilCuentaForm";
+
+type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
+type Vehiculo = Database["public"]["Tables"]["vehiculos"]["Row"];
+type Empresa = Database["public"]["Tables"]["empresas"]["Row"];
+type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
+
+interface CuentaReal {
+  usuario: Usuario;
+  vehiculos: Vehiculo[];
+  empresa: Empresa | null;
+  historialEmpresa: PasaporteRow[];
+}
+
+async function obtenerCuenta(): Promise<CuentaReal | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return null;
+
+  try {
+    const { crearClienteServidor } = await import("../../lib/supabase-server");
+    const { listarTrasladosDeEmpresa, obtenerUsuarioActual } = await import("@ruum/api/services");
+    const cliente = await crearClienteServidor();
+    const usuario = await obtenerUsuarioActual(cliente);
+    if (!usuario) return null;
+
+    const [vehiculosRes, empresaRes] = await Promise.all([
+      cliente.from("vehiculos").select("*").eq("usuario_id", usuario.id).order("creado_en", { ascending: false }),
+      usuario.empresa_id ? cliente.from("empresas").select("*").eq("id", usuario.empresa_id).maybeSingle() : null
+    ]);
+
+    if (vehiculosRes.error) throw vehiculosRes.error;
+    if (empresaRes?.error) throw empresaRes.error;
+
+    const historialEmpresa =
+      usuario.rol === "titular_empresa" && usuario.empresa_id
+        ? await listarTrasladosDeEmpresa(cliente, usuario.empresa_id)
+        : [];
+
+    return {
+      usuario,
+      vehiculos: vehiculosRes.data ?? [],
+      empresa: empresaRes?.data ?? null,
+      historialEmpresa
+    };
+  } catch {
+    return null;
+  }
+}
+
+function iniciales(nombre: string | null | undefined) {
+  if (!nombre) return "RR";
+  return nombre
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((parte) => parte[0]?.toUpperCase())
+    .join("");
+}
+
+function dato(valor: string | number | null | undefined) {
+  return valor ? String(valor) : "Pendiente";
+}
+
+function fechaCorta(fechaIso: string) {
+  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(fechaIso));
+}
+
+function dinero(valor: number | null | undefined) {
+  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(valor ?? 0);
+}
+
+function Campo({ etiqueta, valor }: { etiqueta: string; valor?: string | null | undefined }) {
+  return (
+    <div>
+      <dt className="font-body text-xs uppercase tracking-wide text-ink/45">{etiqueta}</dt>
+      <dd className="mt-1 font-body text-sm font-medium">{dato(valor)}</dd>
+    </div>
+  );
+}
+
+function Seccion({
+  titulo,
+  descripcion,
+  children
+}: {
+  titulo: string;
+  descripcion?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <PassportCard>
+      <div className="flex flex-col gap-1">
+        <h2 className="font-display text-xl font-semibold">{titulo}</h2>
+        {descripcion && <p className="font-body text-sm text-ink/55">{descripcion}</p>}
+      </div>
+      <div className="mt-6">{children}</div>
+    </PassportCard>
+  );
+}
+
+export default async function PaginaCuenta() {
+  const cuenta = await obtenerCuenta();
+
+  if (!cuenta) {
+    return (
+      <main className="mx-auto max-w-xl px-6 py-20">
+        <Aviso tono="info">Inicia sesión para consultar y actualizar los datos de tu cuenta.</Aviso>
+        <div className="mt-6 flex gap-3">
+          <Link href="/login?next=/cuenta">
+            <Button>Iniciar sesión</Button>
+          </Link>
+          <Link href="/registro">
+            <Button variant="secundario">Crear cuenta</Button>
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const { usuario, vehiculos, empresa, historialEmpresa } = cuenta;
+  const esEmpresa = usuario.tipo_cuenta === "empresa" || usuario.rol === "titular_empresa";
+  const esTitularEmpresa = usuario.rol === "titular_empresa" && Boolean(usuario.empresa_id);
+
+  return (
+    <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
+      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <Link href="/" className="font-body text-sm text-ink/55 underline-offset-4 hover:underline">
+            Inicio
+          </Link>
+          <h1 className="mt-2 font-display text-3xl font-semibold leading-tight">Cuenta</h1>
+          <p className="mt-2 max-w-2xl font-body text-sm text-ink/60">
+            Administra tu perfil, vehículos frecuentes, métodos de pago y datos de facturación.
+          </p>
+        </div>
+        <Link href="/traslados/nuevo">
+          <Button>Solicitar traslado</Button>
+        </Link>
+      </header>
+
+      <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        <Seccion titulo="Perfil del usuario" descripcion="Datos visibles y de contacto de la cuenta.">
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center gap-4">
+              {usuario.foto_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={usuario.foto_url} alt="Foto de perfil" className="size-20 rounded-full object-cover" />
+              ) : (
+                <div className="flex size-20 items-center justify-center rounded-full bg-ink font-display text-2xl text-mist">
+                  {iniciales(usuario.nombre)}
+                </div>
+              )}
+              <div>
+                <p className="font-body text-lg font-semibold">{dato(usuario.nombre)}</p>
+                <p className="mt-1 font-body text-sm text-ink/55">
+                  {usuario.tipo_cuenta === "empresa" ? "Cuenta empresarial" : "Cuenta personal"} ·{" "}
+                  {usuario.estado_verificacion.replace("_", " ")}
+                </p>
+              </div>
+            </div>
+
+            <PerfilCuentaForm usuario={usuario} />
+
+            <div className="rounded-lg border border-ink/10 px-4 py-4">
+              <p className="font-body text-sm font-semibold">Verificación de identidad</p>
+              <p className="mt-1 font-body text-sm text-ink/55">
+                Estado actual: {usuario.estado_verificacion.replace("_", " ")}.
+              </p>
+              <div className="mt-4">
+                <Link href="/verificacion">
+                  <Button variant="secundario">
+                    {usuario.doc_identidad_url ? "Actualizar identificación" : "Subir identificación"}
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-ink/10 px-4 py-4">
+              <p className="font-body text-sm font-semibold">Contraseña</p>
+              <p className="mt-1 font-body text-sm text-ink/55">
+                El cambio de contraseña se realiza con Supabase Auth para no manejar credenciales dentro de la app.
+              </p>
+              <div className="mt-4">
+                <Button variant="secundario" disabled>
+                  Enviar correo de cambio
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Seccion>
+
+        <Seccion
+          titulo="Métodos de pago y facturación"
+          descripcion="Ruum Ruum solo usa métodos electrónicos; no se guarda información completa de tarjeta."
+        >
+          <div className="grid gap-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                ["Tarjeta bancaria", usuario.metodo_pago_registrado ? "Registrada" : "Pendiente"],
+                ["Transferencia", "Disponible"],
+                ["Pago empresarial", esEmpresa ? "Activo" : "Requiere cuenta empresa"]
+              ].map(([titulo, estado]) => (
+                <div key={titulo} className="rounded-lg border border-ink/10 px-4 py-4">
+                  <p className="font-body text-sm font-semibold">{titulo}</p>
+                  <p className="mt-1 font-body text-xs text-ink/55">{estado}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-ink/10 pt-5">
+              <p className="font-body text-sm font-semibold">Datos de facturación empresarial</p>
+              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Campo etiqueta="RFC" valor={empresa?.rfc} />
+                <Campo etiqueta="Razón social" valor={empresa?.razon_social ?? empresa?.nombre} />
+                <Campo etiqueta="Régimen fiscal" valor={empresa?.regimen_fiscal} />
+                <Campo etiqueta="Código postal fiscal" valor={empresa?.codigo_postal_fiscal} />
+                <Campo etiqueta="Uso de CFDI" valor={empresa?.uso_cfdi} />
+                <Campo etiqueta="Correo para facturación" valor={empresa?.correo_facturacion ?? usuario.correo_facturacion} />
+              </dl>
+            </div>
+          </div>
+        </Seccion>
+      </section>
+
+      <section className="mt-6">
+        <Seccion titulo="Mis vehículos" descripcion="Guarda vehículos frecuentes para acelerar solicitudes futuras.">
+          <div className="grid gap-4 md:grid-cols-2">
+            {vehiculos.length > 0 ? (
+              vehiculos.map((vehiculo) => (
+                <div key={vehiculo.id} className="rounded-lg border border-ink/10 bg-mist px-4 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-body text-xs uppercase tracking-wide text-ink/45">
+                        {vehiculo.alias || "Vehículo frecuente"}
+                      </p>
+                      <h3 className="mt-1 font-display text-lg font-semibold">
+                        {vehiculo.marca} {vehiculo.modelo} {vehiculo.anio}
+                      </h3>
+                    </div>
+                    <span className="rounded-full border border-ink/10 px-2.5 py-1 font-body text-xs text-ink/55">
+                      {ETIQUETA_TIPO_VEHICULO[vehiculo.tipo]}
+                    </span>
+                  </div>
+
+                  {vehiculo.fotos_urls.length > 0 ? (
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      {vehiculo.fotos_urls.slice(0, 3).map((foto) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={foto} src={foto} alt={vehiculo.alias ?? vehiculo.modelo} className="aspect-[4/3] rounded-lg object-cover" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-4 flex aspect-[5/2] items-center justify-center rounded-lg border border-dashed border-ink/15 bg-ink/[0.02] font-body text-sm text-ink/45">
+                      Sin fotografías guardadas
+                    </div>
+                  )}
+
+                  <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <Campo etiqueta="Color" valor={vehiculo.color} />
+                    <Campo etiqueta="Placas" valor={vehiculo.placas} />
+                    <Campo etiqueta="VIN" valor={vehiculo.vin} />
+                    <Campo etiqueta="Transmisión" valor={vehiculo.transmision} />
+                  </dl>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-lg border border-dashed border-ink/15 px-4 py-6 font-body text-sm text-ink/55">
+                Aún no tienes vehículos frecuentes guardados.
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5">
+            <Link href="/traslados/nuevo">
+              <Button variant="secundario">Agregar desde una solicitud</Button>
+            </Link>
+          </div>
+        </Seccion>
+      </section>
+
+      {esTitularEmpresa && (
+        <section className="mt-6">
+          <Seccion
+            titulo="Historial de empresa"
+            descripcion="Traslados creados por la cuenta titular y por usuarios autorizados de la misma empresa."
+          >
+            <div className="grid gap-3">
+              {historialEmpresa.length > 0 ? (
+                historialEmpresa.slice(0, 6).map((traslado) => (
+                  <div
+                    key={traslado.traslado_id}
+                    className="grid gap-4 rounded-lg border border-ink/10 bg-mist px-4 py-4 md:grid-cols-[1.2fr_1fr_auto]"
+                  >
+                    <div>
+                      <p className="font-body text-xs uppercase tracking-wide text-ink/45">
+                        {traslado.estado.replaceAll("_", " ")}
+                      </p>
+                      <h3 className="mt-1 font-display text-lg font-semibold">
+                        {dato(traslado.vehiculo_marca)} {dato(traslado.vehiculo_modelo)}
+                      </h3>
+                      <p className="mt-1 font-body text-sm text-ink/55">{fechaCorta(traslado.creado_en)}</p>
+                    </div>
+                    <div className="grid gap-1 font-body text-sm text-ink/65">
+                      <span>Conductor: {dato(traslado.conductor_nombre)}</span>
+                      <span>Pago: {traslado.tipo_pago.replace("_", " ")}</span>
+                      <span>Evidencia inicial: {traslado.evidencia_inicial_fotos_sincronizadas}/5</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 md:flex-col md:items-end md:justify-center">
+                      <span className="font-body text-sm font-semibold">
+                        {dinero(traslado.precio_final ?? traslado.precio_cotizado)}
+                      </span>
+                      <Link href={`/traslados/${traslado.traslado_id}`}>
+                        <Button variant="secundario">Ver detalle</Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-lg border border-dashed border-ink/15 px-4 py-6 font-body text-sm text-ink/55">
+                  Aún no hay traslados empresariales para mostrar.
+                </div>
+              )}
+            </div>
+          </Seccion>
+        </section>
+      )}
+    </main>
+  );
+}

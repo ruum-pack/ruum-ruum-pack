@@ -1,0 +1,25 @@
+{
+  "name": "ruum-ruum",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:unit": "turbo run test --filter=./packages/*",
+    "db:start": "supabase start --workdir supabase",
+    "db:stop": "supabase stop --workdir supabase",
+    "db:reset": "supabase db reset --workdir supabase",
+    "db:push": "supabase db push --workdir supabase",
+    "db:types": "supabase gen types typescript --local --workdir supabase > packages/shared/src/types/supabase.ts",
+    "typecheck:android": "pnpm -r run typecheck",
+    "test:unit:android": "pnpm --filter \"./packages/*\" run test"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}
