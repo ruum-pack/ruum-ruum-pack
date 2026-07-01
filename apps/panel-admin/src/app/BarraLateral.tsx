@@ -23,6 +23,8 @@ const SECCIONES_CONSTRUIDAS = [
 ] as const;
 
 const SECCIONES_PENDIENTES = [
+  "Mapa operativo",
+  "Alertas SLA verificación",
   "Evidencia",
   "Auditoría"
 ] as const;

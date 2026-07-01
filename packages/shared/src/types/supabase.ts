@@ -138,6 +138,8 @@ export interface Database {
           codigo_postal_fiscal: string | null;
           uso_cfdi: string | null;
           correo_facturacion: string | null;
+          estado_verificacion: Database["public"]["Enums"]["estado_verificacion"];
+          condiciones_pago: string | null;
           creado_en: string;
           actualizado_en: string;
         };
@@ -150,6 +152,8 @@ export interface Database {
           codigo_postal_fiscal?: string | null;
           uso_cfdi?: string | null;
           correo_facturacion?: string | null;
+          estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"];
+          condiciones_pago?: string | null;
           creado_en?: string;
           actualizado_en?: string;
         };
@@ -162,6 +166,8 @@ export interface Database {
           codigo_postal_fiscal?: string | null;
           uso_cfdi?: string | null;
           correo_facturacion?: string | null;
+          estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"];
+          condiciones_pago?: string | null;
           creado_en?: string;
           actualizado_en?: string;
         };

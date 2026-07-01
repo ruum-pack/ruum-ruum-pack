@@ -219,6 +219,10 @@ plugins nativos una vez cargada. El detalle completo del tradeoff vive en `apps/
 La cola offline usa `@capacitor/preferences` (key-value), no SQLite como planteaba la propuesta de arquitectura
 original — simplificación deliberada para este corte, documentada en `app-conductor/lib/cola-offline.ts`.
 
+**5.2 Panel-admin /empresas:** la pantalla dejó de depender del array demo y ahora consulta `empresas`,
+`usuarios` empresariales y `traslados` reales. La validación documental de empresa persiste
+`estado_verificacion` y `condiciones_pago` en `empresas` y audita la acción como `validacion_documentos`.
+
 **Límite honesto:** este entorno de desarrollo no tiene Android SDK ni Gradle completo. Todo lo de arriba está
 validado por `tsc`/`next build` (compila, tipos correctos, permisos agregados a mano en cada
 `AndroidManifest.xml`), no por una compilación nativa real ni una APK probada en un dispositivo. Compilar de

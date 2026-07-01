@@ -10,6 +10,7 @@ type Cliente = SupabaseClient<Database>;
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
+type EmpresaRow = Database["public"]["Tables"]["empresas"]["Row"];
 type IncidenciaRow = Database["public"]["Tables"]["incidencias"]["Row"];
 type DisputaRow = Database["public"]["Tables"]["disputas"]["Row"];
 type ReclamoSeguroRow = Database["public"]["Tables"]["reclamos_seguro"]["Row"];
@@ -18,6 +19,7 @@ type PayoutRow = Database["public"]["Tables"]["payouts_conductor"]["Row"];
 type CuentaStripeConductorRow = Database["public"]["Tables"]["cuentas_conductor_stripe"]["Row"];
 type NotaRow = Database["public"]["Tables"]["notas_internas_traslado"]["Row"];
 type EvidenciaRow = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
+type TrasladoRow = Database["public"]["Tables"]["traslados"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 type EstadoConductor = Database["public"]["Enums"]["estado_conductor"];
 type TipoEvidencia = Database["public"]["Enums"]["tipo_evidencia"];
@@ -33,6 +35,12 @@ export interface DatosPagosAdmin {
   payoutsConductores: PayoutRow[];
   cuentasStripeConductores: CuentaStripeConductorRow[];
   conductores: ConductorRow[];
+}
+
+export interface DatosEmpresasAdmin {
+  empresas: EmpresaRow[];
+  usuarios: UsuarioRow[];
+  traslados: TrasladoRow[];
 }
 
 /** Admin asociado a la sesión de Supabase Auth actual, si existe (mismo patrón que obtenerUsuarioActual/obtenerConductorActual). */
@@ -202,6 +210,29 @@ export async function listarPagosAdmin(cliente: Cliente): Promise<DatosPagosAdmi
   };
 }
 
+export async function listarEmpresasAdmin(cliente: Cliente): Promise<DatosEmpresasAdmin> {
+  const [empresas, usuarios, traslados] = await Promise.all([
+    cliente.from("empresas").select("*").order("creado_en", { ascending: false }),
+    cliente
+      .from("usuarios")
+      .select("*")
+      .not("empresa_id", "is", null)
+      .in("rol", ["titular_empresa", "usuario_autorizado"])
+      .order("creado_en", { ascending: false }),
+    cliente.from("traslados").select("*").order("creado_en", { ascending: false })
+  ]);
+
+  for (const resultado of [empresas, usuarios, traslados]) {
+    if (resultado.error) throw resultado.error;
+  }
+
+  return {
+    empresas: empresas.data ?? [],
+    usuarios: usuarios.data ?? [],
+    traslados: traslados.data ?? []
+  };
+}
+
 export async function validarDocumentoUsuario(cliente: Cliente, usuarioId: string, estadoVerificacion: EstadoVerificacion) {
   const adminId = await obtenerAdminIdParaAuditoria(cliente);
   const { error } = await cliente
@@ -229,6 +260,30 @@ export async function validarDocumentoConductor(cliente: Cliente, conductorId: s
   await registrarEvento(cliente, "validacion_documentos", "admin", adminId, {
     conductor_id: conductorId,
     documentos_vigentes: aprobado
+  });
+}
+
+export async function validarDocumentoEmpresa(
+  cliente: Cliente,
+  empresaId: string,
+  estadoVerificacion: EstadoVerificacion,
+  condicionesPago: string
+) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+  const { error } = await cliente
+    .from("empresas")
+    .update({
+      estado_verificacion: estadoVerificacion,
+      condiciones_pago: condicionesPago.trim() || null
+    })
+    .eq("id", empresaId);
+
+  if (error) throw error;
+
+  await registrarEvento(cliente, "validacion_documentos", "admin", adminId, {
+    empresa_id: empresaId,
+    estado_verificacion: estadoVerificacion,
+    condiciones_pago: condicionesPago.trim() || null
   });
 }
 
