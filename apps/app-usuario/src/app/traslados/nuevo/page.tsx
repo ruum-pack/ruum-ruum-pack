@@ -142,7 +142,15 @@ export default function PaginaNuevoTraslado() {
       try {
         const cliente = crearClienteNavegador();
         const real = await obtenerUsuarioActual(cliente);
+        if (!real) {
+          router.replace("/login?next=/traslados/nuevo");
+          return;
+        }
         if (real) {
+          if (real.estado_verificacion !== "verificado") {
+            router.replace("/verificacion?next=/traslados/nuevo");
+            return;
+          }
           setUsuario({
             id: real.id,
             tipo_cuenta: real.tipo_cuenta as TipoCuenta,
@@ -154,10 +162,6 @@ export default function PaginaNuevoTraslado() {
             creado_en: real.creado_en
           });
           setSesionReal(true);
-          if (real.estado_verificacion === "pendiente" && !real.doc_identidad_url) {
-            router.push("/verificacion?next=/traslados/nuevo");
-            return;
-          }
         }
       } catch (err) {
         setResultado({

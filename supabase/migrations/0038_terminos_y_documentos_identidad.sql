@@ -47,6 +47,49 @@ create policy "admin_ve_todos_los_documentos_identidad"
 alter type public.evento_auditable add value if not exists 'aceptacion_terminos';
 alter type public.evento_auditable add value if not exists 'carga_documento_identidad';
 
+create or replace function public.proteger_verificacion_usuario()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if public.es_admin() then
+    return new;
+  end if;
+
+  if auth.uid() is null or auth.uid() <> old.auth_user_id then
+    return new;
+  end if;
+
+  if new.auth_user_id is distinct from old.auth_user_id
+    or new.tipo_cuenta is distinct from old.tipo_cuenta
+    or new.rol is distinct from old.rol
+    or new.empresa_id is distinct from old.empresa_id
+    or new.traslados_completados_sin_incidencia is distinct from old.traslados_completados_sin_incidencia
+    or new.metodo_pago_registrado is distinct from old.metodo_pago_registrado
+    or new.creado_en is distinct from old.creado_en then
+    raise exception 'No puedes modificar campos administrativos de la cuenta.';
+  end if;
+
+  if new.estado_verificacion is distinct from old.estado_verificacion
+    and not (
+      new.estado_verificacion = 'en_revision'
+      and new.doc_identidad_url is not null
+      and new.doc_identidad_subido_en is not null
+    ) then
+    raise exception 'La verificación de cuenta solo puede aprobarla o rechazarla un administrador.';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists proteger_verificacion_usuario on public.usuarios;
+create trigger proteger_verificacion_usuario
+  before update on public.usuarios
+  for each row execute function public.proteger_verificacion_usuario();
+
 create or replace function public.manejar_nuevo_usuario_auth()
 returns trigger
 language plpgsql
