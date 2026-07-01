@@ -63,6 +63,8 @@ const EMPRESA_DEMO: Empresa = {
   codigo_postal_fiscal: "06600",
   uso_cfdi: "G03 - Gastos en general",
   correo_facturacion: "facturacion@demo.ruum.mx",
+  estado_verificacion: "verificado",
+  condiciones_pago: "al_cierre",
   creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
   actualizado_en: new Date().toISOString()
 };
@@ -300,6 +302,20 @@ export default async function PaginaCuenta() {
               <Campo etiqueta="Estado" valor={usuario.estado} />
               <div className="sm:col-span-2">
                 <Campo etiqueta="Dirección principal" valor={usuario.direccion_principal} />
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-ink/10 px-4 py-4">
+              <p className="font-body text-sm font-semibold">Verificacion de identidad</p>
+              <p className="mt-1 font-body text-sm text-ink/55">
+                Estado actual: {usuario.estado_verificacion.replace("_", " ")}.
+              </p>
+              <div className="mt-4">
+                <Link href="/verificacion">
+                  <Button variant="secundario">
+                    {usuario.doc_identidad_url ? "Actualizar identificacion" : "Subir identificacion"}
+                  </Button>
+                </Link>
               </div>
             </div>
 

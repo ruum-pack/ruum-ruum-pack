@@ -6,6 +6,7 @@ import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { listarUsuariosAdmin } from "@ruum/api/services";
 import { USUARIOS_DEMO } from "../../lib/datos-demo";
+import { AccionesVerificacion } from "./AccionesVerificacion";
 
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 
@@ -21,25 +22,26 @@ export default function PaginaUsuariosAdmin() {
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
 
-  useEffect(() => {
-    async function cargar() {
-      if (!tieneSupabaseConfigurado()) {
-        setUsuarios(USUARIOS_DEMO);
-        setEsDemo(true);
-        setCargando(false);
-        return;
-      }
-      try {
-        const cliente = crearClienteNavegador();
-        setUsuarios(await listarUsuariosAdmin(cliente));
-        setEsDemo(false);
-      } catch {
-        setUsuarios(USUARIOS_DEMO);
-        setEsDemo(true);
-      } finally {
-        setCargando(false);
-      }
+  async function cargar() {
+    if (!tieneSupabaseConfigurado()) {
+      setUsuarios(USUARIOS_DEMO);
+      setEsDemo(true);
+      setCargando(false);
+      return;
     }
+    try {
+      const cliente = crearClienteNavegador();
+      setUsuarios(await listarUsuariosAdmin(cliente));
+      setEsDemo(false);
+    } catch {
+      setUsuarios(USUARIOS_DEMO);
+      setEsDemo(true);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  useEffect(() => {
     cargar();
   }, []);
 
@@ -64,12 +66,13 @@ export default function PaginaUsuariosAdmin() {
               <th className="px-4 py-3">Traslados sin incidencia</th>
               <th className="px-4 py-3">Método de pago</th>
               <th className="px-4 py-3">Registrado</th>
+              <th className="px-4 py-3">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {cargando ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-ink/50">
+                <td colSpan={8} className="px-4 py-6 text-center text-ink/50">
                   Cargando…
                 </td>
               </tr>
@@ -91,6 +94,11 @@ export default function PaginaUsuariosAdmin() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-ink/55">{new Date(u.creado_en).toLocaleDateString("es-MX")}</td>
+                  <td className="px-4 py-3">
+                    {(u.estado_verificacion === "pendiente" || u.estado_verificacion === "en_revision") && (
+                      <AccionesVerificacion usuario={u} onActualizado={cargar} />
+                    )}
+                  </td>
                 </tr>
               ))
             )}

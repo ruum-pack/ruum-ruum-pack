@@ -154,6 +154,10 @@ export default function PaginaNuevoTraslado() {
             creado_en: real.creado_en
           });
           setSesionReal(true);
+          if (real.estado_verificacion === "pendiente" && !real.doc_identidad_url) {
+            router.push("/verificacion?next=/traslados/nuevo");
+            return;
+          }
         }
       } catch (err) {
         setResultado({
@@ -165,7 +169,7 @@ export default function PaginaNuevoTraslado() {
       }
     }
     cargarUsuario();
-  }, []);
+  }, [router]);
 
   const momentoPago = useMemo(() => determinarMomentoPago(usuario), [usuario]);
   const politicaCancelacion = useMemo(() => calcularCargoCancelacion(Number(datos.precioEstimado) || 0, 0, false, false), [

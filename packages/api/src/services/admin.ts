@@ -720,6 +720,21 @@ export interface TrasladoMapa {
   actualizado_en: string;
 }
 
+type TrasladoActivoMapaRow = {
+  id: string;
+  estado: EstadoTraslado;
+  tiene_incidencia_abierta: boolean;
+  actualizado_en: string;
+  origen_lat: number;
+  origen_lng: number;
+  origen_ciudad: string;
+  destino_lat: number;
+  destino_lng: number;
+  destino_ciudad: string;
+  conductores: { nombre: string } | null;
+  vehiculos: { marca: string; modelo: string } | null;
+};
+
 const ESTADOS_ACTIVOS: EstadoTraslado[] = [
   "conductor_asignado",
   "conductor_en_camino_al_origen",
@@ -760,7 +775,9 @@ export async function listarTrasladosActivosMapa(cliente: Cliente): Promise<Tras
 
   if (error) throw error;
 
-  return (data ?? []).map((t) => ({
+  const traslados = (data ?? []) as unknown as TrasladoActivoMapaRow[];
+
+  return traslados.map((t) => ({
     traslado_id: t.id,
     estado: t.estado,
     conductor_nombre: (t.conductores as { nombre: string } | null)?.nombre ?? null,

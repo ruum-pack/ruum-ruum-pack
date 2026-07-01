@@ -64,6 +64,10 @@ export interface Database {
           alertas_pago: boolean;
           alertas_evidencia: boolean;
           notificaciones_promocionales: boolean;
+          version_terminos_aceptada: number | null;
+          terminos_aceptados_en: string | null;
+          doc_identidad_url: string | null;
+          doc_identidad_subido_en: string | null;
           creado_en: string;
           actualizado_en: string;
         };
@@ -90,6 +94,10 @@ export interface Database {
           alertas_pago?: boolean;
           alertas_evidencia?: boolean;
           notificaciones_promocionales?: boolean;
+          version_terminos_aceptada?: number | null;
+          terminos_aceptados_en?: string | null;
+          doc_identidad_url?: string | null;
+          doc_identidad_subido_en?: string | null;
           creado_en?: string;
           actualizado_en?: string;
         };
@@ -116,6 +124,10 @@ export interface Database {
           alertas_pago?: boolean;
           alertas_evidencia?: boolean;
           notificaciones_promocionales?: boolean;
+          version_terminos_aceptada?: number | null;
+          terminos_aceptados_en?: string | null;
+          doc_identidad_url?: string | null;
+          doc_identidad_subido_en?: string | null;
           creado_en?: string;
           actualizado_en?: string;
         };
@@ -1192,7 +1204,9 @@ export interface Database {
       evento_auditable:
         | "creacion_cuenta"
         | "verificacion_cuenta"
+        | "aceptacion_terminos"
         | "carga_documentos"
+        | "carga_documento_identidad"
         | "validacion_documentos"
         | "creacion_solicitud_traslado"
         | "generacion_cotizacion"

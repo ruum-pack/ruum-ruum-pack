@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
+import { VERSION_TERMINOS_VIGENTE } from "@ruum/shared/constants";
+import { registrarEvento } from "./auditoria";
 
 type Cliente = SupabaseClient<Database>;
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
@@ -39,7 +41,9 @@ export async function obtenerUsuarioActual(cliente: Cliente) {
       rol: tipoCuenta === "empresa" ? "titular_empresa" : "personal",
       estado_verificacion: "pendiente",
       telefono: typeof sesion.user.user_metadata?.telefono === "string" ? sesion.user.user_metadata.telefono : null,
-      nombre: typeof sesion.user.user_metadata?.nombre === "string" ? sesion.user.user_metadata.nombre : null
+      nombre: typeof sesion.user.user_metadata?.nombre === "string" ? sesion.user.user_metadata.nombre : null,
+      version_terminos_aceptada: VERSION_TERMINOS_VIGENTE,
+      terminos_aceptados_en: new Date().toISOString()
     })
     .select("*")
     .single();
@@ -50,4 +54,62 @@ export async function obtenerUsuarioActual(cliente: Cliente) {
   if (usuarioCreadoEnParalelo) return usuarioCreadoEnParalelo;
 
   throw errorInsert;
+}
+
+/**
+ * Registra que el usuario aceptó la versión actual de los términos.
+ * Se llama después de signUp() como respaldo del trigger de alta.
+ *
+ * Se usa un UPDATE con .eq("auth_user_id", authUserId) en vez de la sesión
+ * porque el trigger de 0024/0031 ya creó la fila en usuarios con ese id.
+ */
+export async function registrarAceptacionTerminos(
+  cliente: Cliente,
+  authUserId: string
+): Promise<void> {
+  const { error } = await cliente
+    .from("usuarios")
+    .update({
+      version_terminos_aceptada: VERSION_TERMINOS_VIGENTE,
+      terminos_aceptados_en: new Date().toISOString()
+    })
+    .eq("auth_user_id", authUserId);
+
+  if (error) throw error;
+}
+
+/**
+ * Sube el documento de identidad del usuario al bucket privado
+ * "documentos-identidad" y guarda el path relativo en usuarios.
+ */
+export async function subirDocumentoIdentidad(cliente: Cliente, archivo: File): Promise<void> {
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) throw new Error("Sin sesión activa.");
+
+  const ext = archivo.name.split(".").pop()?.toLowerCase() ?? "jpg";
+  const path = `${sesion.user.id}/identidad.${ext}`;
+
+  const { error: errorStorage } = await cliente.storage
+    .from("documentos-identidad")
+    .upload(path, archivo, { upsert: true, contentType: archivo.type });
+
+  if (errorStorage) throw errorStorage;
+
+  const { data: usuario, error: errorUsuario } = await cliente
+    .from("usuarios")
+    .update({
+      doc_identidad_url: path,
+      doc_identidad_subido_en: new Date().toISOString(),
+      estado_verificacion: "en_revision"
+    })
+    .eq("auth_user_id", sesion.user.id)
+    .select("id")
+    .single();
+
+  if (errorUsuario) throw errorUsuario;
+
+  await registrarEvento(cliente, "carga_documento_identidad", "usuario", usuario.id, {
+    path,
+    tipo_archivo: archivo.type
+  });
 }

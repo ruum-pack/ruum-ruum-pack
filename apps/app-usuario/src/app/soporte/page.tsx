@@ -251,12 +251,28 @@ export default async function PaginaSoporte({
             <Link href="#privacidad" className="rounded-lg border border-ink/10 px-4 py-3 hover:border-ink/25">
               Aviso de privacidad
             </Link>
-            <p id="terminos" className="pt-3 text-ink/60">
-              Los términos completos se publicarán aquí antes de operar servicios productivos.
-            </p>
-            <p id="privacidad" className="text-ink/60">
-              El aviso de privacidad debe explicar tratamiento de identidad, vehículos, pagos, evidencia y soporte.
-            </p>
+            <div id="terminos" className="mt-4 rounded-xl border border-ink/10 bg-mist p-5">
+              <p className="mb-3 font-mono-ruum text-xs text-ink/40">Versión 1 · Vigente desde [fecha de publicación]</p>
+              <div className="space-y-3 font-body text-sm text-ink/70">
+                <p>Términos y condiciones completos — pendiente de redacción legal.</p>
+                <p>
+                  La versión final debe cubrir objeto del servicio, uso permitido, responsabilidades de cada parte,
+                  política de cancelación, manejo de incidencias, seguro de traslado, pagos sin efectivo, conducta del
+                  conductor y resolución de disputas.
+                </p>
+              </div>
+            </div>
+
+            <div id="privacidad" className="mt-4 rounded-xl border border-ink/10 bg-mist p-5">
+              <p className="mb-3 font-mono-ruum text-xs text-ink/40">Versión 1 · Vigente desde [fecha de publicación]</p>
+              <div className="space-y-3 font-body text-sm text-ink/70">
+                <p>Aviso de privacidad completo — pendiente de redacción legal.</p>
+                <p>
+                  La versión final debe cubrir responsable del tratamiento, finalidades, datos tratados, base legal,
+                  derechos ARCO, retención, transferencias a Supabase, Stripe, Twilio y aseguradoras, conforme a LFPDPPP.
+                </p>
+              </div>
+            </div>
           </div>
         </Seccion>
 

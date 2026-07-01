@@ -3,13 +3,9 @@
 import { useEffect, useState, useTransition } from "react";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
-import {
-  listarConductoresAdmin,
-  listarUsuariosAdmin,
-  validarDocumentoConductor,
-  validarDocumentoUsuario
-} from "@ruum/api/services";
+import { listarConductoresAdmin, listarUsuariosAdmin, validarDocumentoConductor } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { AccionesVerificacion } from "../usuarios/AccionesVerificacion";
 
 type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 type Conductor = Database["public"]["Tables"]["conductores"]["Row"];
@@ -42,34 +38,6 @@ function Badge({ estado }: { estado: string }) {
         ? "border-danger/25 bg-danger-soft text-danger"
         : "border-warn/40 bg-warn-soft text-warn";
   return <span className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold ${clase}`}>{estado}</span>;
-}
-
-function AccionesUsuario({ usuario, onActualizado }: { usuario: Usuario; onActualizado: () => void }) {
-  const [mensaje, setMensaje] = useState<string | null>(null);
-  const [pendiente, startTransition] = useTransition();
-
-  function cambiar(estado: EstadoVerificacion) {
-    setMensaje(null);
-    startTransition(async () => {
-      try {
-        const cliente = crearClienteNavegador();
-        await validarDocumentoUsuario(cliente, usuario.id, estado);
-        setMensaje("Usuario actualizado.");
-        onActualizado();
-      } catch (error) {
-        setMensaje(error instanceof Error ? error.message : "No se pudo actualizar el usuario.");
-      }
-    });
-  }
-
-  return (
-    <div className="mt-4 flex flex-wrap items-center gap-2">
-      <Button variant="fantasma" onClick={() => cambiar("verificado")} disabled={pendiente}>Aprobar</Button>
-      <Button variant="fantasma" onClick={() => cambiar("rechazado")} disabled={pendiente}>Rechazar</Button>
-      <Button variant="fantasma" onClick={() => cambiar("en_revision")} disabled={pendiente}>Solicitar actualización</Button>
-      {mensaje && <span className="font-body text-sm text-ink/60">{mensaje}</span>}
-    </div>
-  );
 }
 
 function AccionesConductor({ conductor, onActualizado }: { conductor: Conductor; onActualizado: () => void }) {
@@ -193,7 +161,7 @@ export default function PaginaDocumentosAdmin() {
                       </div>
                       <Badge estado={estadoUsuario(usuario)} />
                     </div>
-                    <AccionesUsuario usuario={usuario} onActualizado={cargar} />
+                    <AccionesVerificacion usuario={usuario} onActualizado={cargar} />
                   </div>
                 ))
               )}

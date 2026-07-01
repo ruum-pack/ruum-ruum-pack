@@ -4,3 +4,4 @@ export * from "./tipos-vehiculo";
 export * from "./tipos-disputa";
 export * from "./tipos-incidencia";
 export * from "./metodos-pago";
+export * from "./terminos";
