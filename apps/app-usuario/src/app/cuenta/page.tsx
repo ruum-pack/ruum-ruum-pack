@@ -2,157 +2,31 @@ import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
-import { USUARIO_DEMO } from "../../lib/datos-demo";
+import { PerfilCuentaForm } from "./PerfilCuentaForm";
 
 type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 type Vehiculo = Database["public"]["Tables"]["vehiculos"]["Row"];
 type Empresa = Database["public"]["Tables"]["empresas"]["Row"];
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
-const VEHICULOS_DEMO: Vehiculo[] = [
-  {
-    id: "demo-vehiculo-1",
-    usuario_id: "demo-usuario",
-    tipo: "suv",
-    alias: "Mi camioneta",
-    marca: "Honda",
-    modelo: "CR-V",
-    anio: 2021,
-    transmision: "automatica",
-    color: "Gris",
-    placas: "ABC-123-D",
-    vin: "3HGRU5H59MM000001",
-    fotos_urls: [],
-    estado_general_declarado: "Uso familiar, sin daños visibles relevantes.",
-    tiene_tarjeta_circulacion: true,
-    tiene_verificacion: true,
-    tiene_placas: true,
-    permiso_especial_vigente: null,
-    puede_circular_rodando: true,
-    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString()
-  },
-  {
-    id: "demo-vehiculo-2",
-    usuario_id: "demo-usuario",
-    tipo: "sedan",
-    alias: "Auto de oficina",
-    marca: "Nissan",
-    modelo: "Versa",
-    anio: 2022,
-    transmision: "manual",
-    color: "Blanco",
-    placas: "XYZ-987-A",
-    vin: "3N1CN8AE9NL000002",
-    fotos_urls: [],
-    estado_general_declarado: "Unidad operativa para traslados locales.",
-    tiene_tarjeta_circulacion: true,
-    tiene_verificacion: true,
-    tiene_placas: true,
-    permiso_especial_vigente: null,
-    puede_circular_rodando: true,
-    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8).toISOString()
-  }
-];
+interface CuentaReal {
+  usuario: Usuario;
+  vehiculos: Vehiculo[];
+  empresa: Empresa | null;
+  historialEmpresa: PasaporteRow[];
+}
 
-const EMPRESA_DEMO: Empresa = {
-  id: "demo-empresa",
-  nombre: "Ruum Demo Operadora",
-  rfc: "RDO260101AB1",
-  razon_social: "Ruum Demo Operadora S.A. de C.V.",
-  regimen_fiscal: "601 - General de Ley Personas Morales",
-  codigo_postal_fiscal: "06600",
-  uso_cfdi: "G03 - Gastos en general",
-  correo_facturacion: "facturacion@demo.ruum.mx",
-  estado_verificacion: "verificado",
-  condiciones_pago: "al_cierre",
-  creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
-  actualizado_en: new Date().toISOString()
-};
-
-const HISTORIAL_EMPRESA_DEMO: PasaporteRow[] = [
-  {
-    traslado_id: "demo-empresa-001",
-    usuario_id: "demo-autorizado",
-    vehiculo_id: "demo-vehiculo-empresa-1",
-    conductor_id: "demo-conductor",
-    estado: "traslado_en_curso",
-    tiene_incidencia_abierta: false,
-    tipo_pago: "anticipado",
-    causa_fallido: null,
-    precio_cotizado: 2850,
-    precio_final: null,
-    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
-    actualizado_en: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
-    vehiculo_tipo: "suv",
-    vehiculo_marca: "Toyota",
-    vehiculo_modelo: "RAV4",
-    vehiculo_anio: 2023,
-    conductor_nombre: "Conductor asignado",
-    conductor_estado: "activo",
-    conductor_nivel: "ejecutivo",
-    conductor_calificacion: 4.9,
-    evidencia_inicial_fotos_sincronizadas: 5,
-    evidencia_final_fotos_sincronizadas: 0,
-    incidencias_abiertas: 0,
-    monto_pagado: 2850
-  },
-  {
-    traslado_id: "demo-empresa-002",
-    usuario_id: "demo-titular",
-    vehiculo_id: "demo-vehiculo-empresa-2",
-    conductor_id: null,
-    estado: "pendiente_de_conductor",
-    tiene_incidencia_abierta: false,
-    tipo_pago: "al_cierre",
-    causa_fallido: null,
-    precio_cotizado: 1900,
-    precio_final: null,
-    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 28).toISOString(),
-    actualizado_en: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
-    vehiculo_tipo: "sedan",
-    vehiculo_marca: "Nissan",
-    vehiculo_modelo: "Sentra",
-    vehiculo_anio: 2022,
-    conductor_nombre: null,
-    conductor_estado: null,
-    conductor_nivel: null,
-    conductor_calificacion: null,
-    evidencia_inicial_fotos_sincronizadas: 0,
-    evidencia_final_fotos_sincronizadas: 0,
-    incidencias_abiertas: 0,
-    monto_pagado: 0
-  }
-];
-
-async function obtenerCuenta() {
+async function obtenerCuenta(): Promise<CuentaReal | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    return {
-      usuario: { ...USUARIO_DEMO, tipo_cuenta: "empresa" as const, rol: "titular_empresa" as const, empresa_id: EMPRESA_DEMO.id },
-      vehiculos: VEHICULOS_DEMO,
-      empresa: EMPRESA_DEMO,
-      historialEmpresa: HISTORIAL_EMPRESA_DEMO,
-      esDemo: true
-    };
-  }
+  if (!url || !anonKey) return null;
 
   try {
     const { crearClienteServidor } = await import("../../lib/supabase-server");
     const { listarTrasladosDeEmpresa, obtenerUsuarioActual } = await import("@ruum/api/services");
     const cliente = await crearClienteServidor();
     const usuario = await obtenerUsuarioActual(cliente);
-
-    if (!usuario) {
-      return {
-        usuario: { ...USUARIO_DEMO, tipo_cuenta: "empresa" as const, rol: "titular_empresa" as const, empresa_id: EMPRESA_DEMO.id },
-        vehiculos: VEHICULOS_DEMO,
-        empresa: EMPRESA_DEMO,
-        historialEmpresa: HISTORIAL_EMPRESA_DEMO,
-        esDemo: true
-      };
-    }
+    if (!usuario) return null;
 
     const [vehiculosRes, empresaRes] = await Promise.all([
       cliente.from("vehiculos").select("*").eq("usuario_id", usuario.id).order("creado_en", { ascending: false }),
@@ -171,17 +45,10 @@ async function obtenerCuenta() {
       usuario,
       vehiculos: vehiculosRes.data ?? [],
       empresa: empresaRes?.data ?? null,
-      historialEmpresa,
-      esDemo: false
+      historialEmpresa
     };
   } catch {
-    return {
-      usuario: { ...USUARIO_DEMO, tipo_cuenta: "empresa" as const, rol: "titular_empresa" as const, empresa_id: EMPRESA_DEMO.id },
-      vehiculos: VEHICULOS_DEMO,
-      empresa: EMPRESA_DEMO,
-      historialEmpresa: HISTORIAL_EMPRESA_DEMO,
-      esDemo: true
-    };
+    return null;
   }
 }
 
@@ -207,17 +74,12 @@ function dinero(valor: number | null | undefined) {
   return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(valor ?? 0);
 }
 
-function Campo({ etiqueta, valor, tipo = "text" }: { etiqueta: string; valor?: string | null | undefined; tipo?: string }) {
+function Campo({ etiqueta, valor }: { etiqueta: string; valor?: string | null | undefined }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="font-body text-sm font-medium text-ink">{etiqueta}</span>
-      <input
-        type={tipo}
-        defaultValue={valor ?? ""}
-        className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
-        placeholder="Pendiente"
-      />
-    </label>
+    <div>
+      <dt className="font-body text-xs uppercase tracking-wide text-ink/45">{etiqueta}</dt>
+      <dd className="mt-1 font-body text-sm font-medium">{dato(valor)}</dd>
+    </div>
   );
 }
 
@@ -242,8 +104,25 @@ function Seccion({
 }
 
 export default async function PaginaCuenta() {
-  const { usuario, vehiculos, empresa, historialEmpresa, esDemo } = await obtenerCuenta();
-  const correo = usuario.correo_facturacion ?? "correo@pendiente.com";
+  const cuenta = await obtenerCuenta();
+
+  if (!cuenta) {
+    return (
+      <main className="mx-auto max-w-xl px-6 py-20">
+        <Aviso tono="info">Inicia sesión para consultar y actualizar los datos de tu cuenta.</Aviso>
+        <div className="mt-6 flex gap-3">
+          <Link href="/login?next=/cuenta">
+            <Button>Iniciar sesión</Button>
+          </Link>
+          <Link href="/registro">
+            <Button variant="secundario">Crear cuenta</Button>
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const { usuario, vehiculos, empresa, historialEmpresa } = cuenta;
   const esEmpresa = usuario.tipo_cuenta === "empresa" || usuario.rol === "titular_empresa";
   const esTitularEmpresa = usuario.rol === "titular_empresa" && Boolean(usuario.empresa_id);
 
@@ -263,14 +142,6 @@ export default async function PaginaCuenta() {
           <Button>Solicitar traslado</Button>
         </Link>
       </header>
-
-      {esDemo && (
-        <div className="mb-6">
-          <Aviso tono="info">
-            Estás viendo la cuenta con datos de ejemplo. Inicia sesión para editar tu información real.
-          </Aviso>
-        </div>
-      )}
 
       <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <Seccion titulo="Perfil del usuario" descripcion="Datos visibles y de contacto de la cuenta.">
@@ -293,27 +164,17 @@ export default async function PaginaCuenta() {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Campo etiqueta="Nombre completo" valor={usuario.nombre} />
-              <Campo etiqueta="Fotografía" valor={usuario.foto_url} />
-              <Campo etiqueta="Correo electrónico" valor={correo} tipo="email" />
-              <Campo etiqueta="Teléfono" valor={usuario.telefono} />
-              <Campo etiqueta="País" valor={usuario.pais} />
-              <Campo etiqueta="Estado" valor={usuario.estado} />
-              <div className="sm:col-span-2">
-                <Campo etiqueta="Dirección principal" valor={usuario.direccion_principal} />
-              </div>
-            </div>
+            <PerfilCuentaForm usuario={usuario} />
 
             <div className="rounded-lg border border-ink/10 px-4 py-4">
-              <p className="font-body text-sm font-semibold">Verificacion de identidad</p>
+              <p className="font-body text-sm font-semibold">Verificación de identidad</p>
               <p className="mt-1 font-body text-sm text-ink/55">
                 Estado actual: {usuario.estado_verificacion.replace("_", " ")}.
               </p>
               <div className="mt-4">
                 <Link href="/verificacion">
                   <Button variant="secundario">
-                    {usuario.doc_identidad_url ? "Actualizar identificacion" : "Subir identificacion"}
+                    {usuario.doc_identidad_url ? "Actualizar identificación" : "Subir identificación"}
                   </Button>
                 </Link>
               </div>
@@ -353,24 +214,21 @@ export default async function PaginaCuenta() {
 
             <div className="border-t border-ink/10 pt-5">
               <p className="font-body text-sm font-semibold">Datos de facturación empresarial</p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
                 <Campo etiqueta="RFC" valor={empresa?.rfc} />
                 <Campo etiqueta="Razón social" valor={empresa?.razon_social ?? empresa?.nombre} />
                 <Campo etiqueta="Régimen fiscal" valor={empresa?.regimen_fiscal} />
                 <Campo etiqueta="Código postal fiscal" valor={empresa?.codigo_postal_fiscal} />
                 <Campo etiqueta="Uso de CFDI" valor={empresa?.uso_cfdi} />
                 <Campo etiqueta="Correo para facturación" valor={empresa?.correo_facturacion ?? usuario.correo_facturacion} />
-              </div>
+              </dl>
             </div>
           </div>
         </Seccion>
       </section>
 
       <section className="mt-6">
-        <Seccion
-          titulo="Mis vehículos"
-          descripcion="Guarda vehículos frecuentes para acelerar solicitudes futuras."
-        >
+        <Seccion titulo="Mis vehículos" descripcion="Guarda vehículos frecuentes para acelerar solicitudes futuras.">
           <div className="grid gap-4 md:grid-cols-2">
             {vehiculos.length > 0 ? (
               vehiculos.map((vehiculo) => (
@@ -403,22 +261,10 @@ export default async function PaginaCuenta() {
                   )}
 
                   <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <dt className="font-body text-xs text-ink/45">Color</dt>
-                      <dd className="font-body text-sm font-medium">{dato(vehiculo.color)}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-body text-xs text-ink/45">Placas</dt>
-                      <dd className="font-body text-sm font-medium">{dato(vehiculo.placas)}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-body text-xs text-ink/45">VIN</dt>
-                      <dd className="font-body text-sm font-medium">{dato(vehiculo.vin)}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-body text-xs text-ink/45">Transmisión</dt>
-                      <dd className="font-body text-sm font-medium">{dato(vehiculo.transmision)}</dd>
-                    </div>
+                    <Campo etiqueta="Color" valor={vehiculo.color} />
+                    <Campo etiqueta="Placas" valor={vehiculo.placas} />
+                    <Campo etiqueta="VIN" valor={vehiculo.vin} />
+                    <Campo etiqueta="Transmisión" valor={vehiculo.transmision} />
                   </dl>
                 </div>
               ))

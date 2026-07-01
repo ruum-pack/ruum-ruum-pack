@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
-import { TRASLADOS_DEMO, USUARIO_DEMO } from "../../lib/datos-demo";
 import { esTrasladoActivo } from "../../lib/inicio";
 import { AccionesCuenta } from "./AccionesCuenta";
 
@@ -38,7 +37,7 @@ async function obtenerContexto() {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
-    return { usuario: USUARIO_DEMO, traslados: TRASLADOS_DEMO, esDemo: true };
+    return { usuario: null as Usuario | null, traslados: [] as Pasaporte[] };
   }
 
   try {
@@ -46,11 +45,11 @@ async function obtenerContexto() {
     const { obtenerUsuarioActual, listarTrasladosDeUsuario } = await import("@ruum/api/services");
     const cliente = await crearClienteServidor();
     const usuario = await obtenerUsuarioActual(cliente);
-    if (!usuario) return { usuario: USUARIO_DEMO, traslados: TRASLADOS_DEMO, esDemo: true };
+    if (!usuario) return { usuario: null as Usuario | null, traslados: [] as Pasaporte[] };
     const traslados = await listarTrasladosDeUsuario(cliente, usuario.id);
-    return { usuario, traslados, esDemo: false };
+    return { usuario, traslados };
   } catch {
-    return { usuario: USUARIO_DEMO, traslados: TRASLADOS_DEMO, esDemo: true };
+    return { usuario: null as Usuario | null, traslados: [] as Pasaporte[] };
   }
 }
 
@@ -112,7 +111,7 @@ export default async function PaginaSoporte({
   searchParams: Promise<{ viaje?: string }>;
 }) {
   const { viaje } = await searchParams;
-  const { usuario, traslados, esDemo } = await obtenerContexto();
+  const { usuario, traslados } = await obtenerContexto();
   const viajeActivo = traslados.find((t) => t.traslado_id === viaje) ?? traslados.find((t) => esTrasladoActivo(t.estado));
 
   return (
@@ -131,12 +130,6 @@ export default async function PaginaSoporte({
           <Button variant="secundario">Mis viajes</Button>
         </Link>
       </header>
-
-      {esDemo && (
-        <div className="mb-6">
-          <Aviso tono="info">Estás viendo soporte con datos de ejemplo. Inicia sesión para levantar solicitudes reales.</Aviso>
-        </div>
-      )}
 
       {viajeActivo && (
         <section className="mb-6">
@@ -231,13 +224,19 @@ export default async function PaginaSoporte({
 
         <Seccion titulo="Configuración de notificaciones">
           <div>
-            <TogglePreferencia etiqueta="Push" activo={usuario.notificaciones_push} />
-            <TogglePreferencia etiqueta="Correo electrónico" activo={usuario.notificaciones_email} />
-            <TogglePreferencia etiqueta="SMS / WhatsApp" activo={usuario.notificaciones_sms_whatsapp} />
-            <TogglePreferencia etiqueta="Alertas de viaje" activo={usuario.alertas_viaje} />
-            <TogglePreferencia etiqueta="Alertas de pago" activo={usuario.alertas_pago} />
-            <TogglePreferencia etiqueta="Alertas de evidencia" activo={usuario.alertas_evidencia} />
-            <TogglePreferencia etiqueta="Promocionales" activo={usuario.notificaciones_promocionales} />
+            {usuario ? (
+              <>
+                <TogglePreferencia etiqueta="Push" activo={usuario.notificaciones_push} />
+                <TogglePreferencia etiqueta="Correo electrónico" activo={usuario.notificaciones_email} />
+                <TogglePreferencia etiqueta="SMS / WhatsApp" activo={usuario.notificaciones_sms_whatsapp} />
+                <TogglePreferencia etiqueta="Alertas de viaje" activo={usuario.alertas_viaje} />
+                <TogglePreferencia etiqueta="Alertas de pago" activo={usuario.alertas_pago} />
+                <TogglePreferencia etiqueta="Alertas de evidencia" activo={usuario.alertas_evidencia} />
+                <TogglePreferencia etiqueta="Promocionales" activo={usuario.notificaciones_promocionales} />
+              </>
+            ) : (
+              <Aviso tono="info">Inicia sesión para consultar y actualizar tus preferencias.</Aviso>
+            )}
           </div>
         </Seccion>
       </section>
@@ -277,7 +276,7 @@ export default async function PaginaSoporte({
         </Seccion>
 
         <Seccion titulo="Cuenta y seguridad" descripcion="Acciones sensibles con confirmación y advertencias.">
-          <AccionesCuenta esDemo={esDemo} />
+          <AccionesCuenta />
         </Seccion>
       </section>
     </main>

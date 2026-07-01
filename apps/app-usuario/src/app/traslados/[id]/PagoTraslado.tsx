@@ -10,8 +10,6 @@ import { PagoStripe, tieneStripePublicoConfigurado } from "../../PagoStripe";
 export interface PagoTrasladoProps {
   trasladoId: string;
   monto: number;
-  /** /traslados/demo-0001 u otro modo sin Supabase: nunca hay cobro real aquí. */
-  esDemo: boolean;
 }
 
 /**
@@ -22,7 +20,7 @@ export interface PagoTrasladoProps {
  * donde tiene sentido: el Pasaporte Digital del traslado que ya está
  * esperando ese pago.
  */
-export function PagoTraslado({ trasladoId, monto, esDemo }: PagoTrasladoProps) {
+export function PagoTraslado({ trasladoId, monto }: PagoTrasladoProps) {
   const router = useRouter();
   const [pagado, setPagado] = useState(false);
 
@@ -46,8 +44,8 @@ export function PagoTraslado({ trasladoId, monto, esDemo }: PagoTrasladoProps) {
         <p className="font-mono-ruum text-sm font-medium text-ink/80">{formatearPrecio(monto)}</p>
       </div>
 
-      {esDemo || !tieneSupabaseConfigurado() ? (
-        <Aviso tono="info">El cobro real no está disponible en modo demo.</Aviso>
+      {!tieneSupabaseConfigurado() ? (
+        <Aviso tono="peligro">Supabase no está configurado. No se puede capturar el pago.</Aviso>
       ) : !tieneStripePublicoConfigurado() ? (
         <Aviso tono="info">
           Stripe no está configurado — el cobro real no está disponible en este entorno.

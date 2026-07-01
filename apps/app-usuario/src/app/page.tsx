@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { Button, EstadoStepper, PassportCard, EstadoBadge, LogoMarca } from "@ruum/ui";
+import { Button, LogoMarca } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
-import { PASAPORTE_DEMO, USUARIO_DEMO, TRASLADOS_DEMO } from "../lib/datos-demo";
 import { PILARES_CONFIANZA } from "../lib/pilares-confianza";
 import { BotonCerrarSesion } from "./BotonCerrarSesion";
 import { InicioUsuario } from "./InicioUsuario";
@@ -33,17 +32,11 @@ async function obtenerContextoSesion(): Promise<ContextoSesion> {
   }
 }
 
-export default async function PaginaInicio({
-  searchParams
-}: {
-  searchParams: Promise<{ demo?: string }>;
-}) {
-  const { demo } = await searchParams;
+export default async function PaginaInicio() {
   const { usuario, traslados } = await obtenerContextoSesion();
   const sesion = Boolean(usuario);
-  const vistaDemo = !sesion && (demo === "1" || demo === "true");
 
-  if (sesion || vistaDemo) {
+  if (sesion) {
     return (
       <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
         <header className="mb-10 flex items-center justify-between">
@@ -64,11 +57,7 @@ export default async function PaginaInicio({
             )}
           </div>
         </header>
-        <InicioUsuario
-          usuario={sesion ? usuario : USUARIO_DEMO}
-          traslados={sesion ? traslados : TRASLADOS_DEMO}
-          esDemo={vistaDemo}
-        />
+        <InicioUsuario usuario={usuario} traslados={traslados} />
       </main>
     );
   }
@@ -106,18 +95,18 @@ export default async function PaginaInicio({
           </div>
         </div>
 
-        <PassportCard folio="RR-DEMO">
-          <div className="flex items-center justify-between">
-            <p className="font-body text-xs uppercase tracking-wide text-ink/45">Traslado de ejemplo</p>
-            <EstadoBadge estado={PASAPORTE_DEMO.estado} />
-          </div>
-          <p className="mt-3 font-mono-ruum text-sm text-ink/70">
-            {PASAPORTE_DEMO.vehiculo_marca} {PASAPORTE_DEMO.vehiculo_modelo} {PASAPORTE_DEMO.vehiculo_anio}
+        <div className="rounded-lg border border-ink/10 bg-mist p-6">
+          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Primer paso</p>
+          <h2 className="mt-2 font-display text-2xl font-semibold">Crea una cuenta verificada</h2>
+          <p className="mt-3 font-body text-sm leading-6 text-ink/60">
+            Captura tus datos, sube tu identificación y solicita traslados reales desde tu cuenta.
           </p>
-          <div className="mt-5">
-            <EstadoStepper estado={PASAPORTE_DEMO.estado} />
+          <div className="mt-6">
+            <Link href="/registro">
+              <Button>Crear cuenta</Button>
+            </Link>
           </div>
-        </PassportCard>
+        </div>
       </section>
 
       <section className="mt-24 grid gap-8 sm:grid-cols-3">

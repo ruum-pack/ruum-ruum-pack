@@ -21,15 +21,13 @@ export function CancelarTraslado({
   estado,
   precio,
   fechaProgramada,
-  conductorAsignado,
-  esDemo
+  conductorAsignado
 }: {
   trasladoId: string;
   estado: EstadoTraslado;
   precio: number;
   fechaProgramada: string | null;
   conductorAsignado: boolean;
-  esDemo: boolean;
 }) {
   const router = useRouter();
   const [motivo, setMotivo] = useState("");
@@ -49,9 +47,8 @@ export function CancelarTraslado({
     setProcesando(true);
     setMensaje(null);
     try {
-      if (esDemo || !tieneSupabaseConfigurado()) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        setMensaje({ tono: "info", texto: "Traslado cancelado en modo demo." });
+      if (!tieneSupabaseConfigurado()) {
+        setMensaje({ tono: "peligro", texto: "Supabase no está configurado. No se puede cancelar el traslado." });
         return;
       }
       const cliente = crearClienteNavegador();

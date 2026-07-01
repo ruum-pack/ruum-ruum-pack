@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { Aviso, Button, PassportCard } from "@ruum/ui";
+import { Button, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
-import { TRASLADOS_DEMO } from "../../lib/datos-demo";
 
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type Traslado = Pick<
@@ -60,107 +59,6 @@ const ESTATUS_USUARIO: Record<EstadoTraslado, string> = {
   disputa_resuelta: "Viaje finalizado"
 };
 
-const DEMO_RUTAS: Record<string, Traslado> = {
-  "demo-0001": {
-    id: "demo-0001",
-    origen_direccion: "Av. Insurgentes Sur 1234",
-    origen_ciudad: "Ciudad de México",
-    destino_direccion: "Blvd. Manuel Ávila Camacho 88",
-    destino_ciudad: "Naucalpan"
-  },
-  "demo-0002": {
-    id: "demo-0002",
-    origen_direccion: "Av. Patria 201",
-    origen_ciudad: "Guadalajara",
-    destino_direccion: "Av. López Mateos 1900",
-    destino_ciudad: "Zapopan"
-  },
-  "demo-0003": {
-    id: "demo-0003",
-    origen_direccion: "Paseo de la Reforma 222",
-    origen_ciudad: "Ciudad de México",
-    destino_direccion: "Av. Universidad 3000",
-    destino_ciudad: "Coyoacán"
-  },
-  "demo-0004": {
-    id: "demo-0004",
-    origen_direccion: "Blvd. Díaz Ordaz 100",
-    origen_ciudad: "Monterrey",
-    destino_direccion: "Carretera Nacional 500",
-    destino_ciudad: "Santiago"
-  },
-  "demo-0005": {
-    id: "demo-0005",
-    origen_direccion: "Av. Juárez 45",
-    origen_ciudad: "Puebla",
-    destino_direccion: "Centro Comercial Angelópolis",
-    destino_ciudad: "Puebla"
-  },
-  "demo-0006": {
-    id: "demo-0006",
-    origen_direccion: "Av. Constituyentes 900",
-    origen_ciudad: "Querétaro",
-    destino_direccion: "Parque Industrial Benito Juárez",
-    destino_ciudad: "Querétaro"
-  }
-};
-
-const TRASLADOS_DEMO_MIS_VIAJES: Pasaporte[] = [
-  ...TRASLADOS_DEMO,
-  {
-    traslado_id: "demo-0005",
-    usuario_id: "demo-usuario",
-    vehiculo_id: "demo-vehiculo-5",
-    conductor_id: null,
-    estado: "servicio_confirmado",
-    tiene_incidencia_abierta: false,
-    tipo_pago: "anticipado",
-    causa_fallido: null,
-    precio_cotizado: 1350,
-    precio_final: null,
-    creado_en: new Date(Date.now() + 1000 * 60 * 60 * 22).toISOString(),
-    actualizado_en: new Date().toISOString(),
-    vehiculo_tipo: "van",
-    vehiculo_marca: "Toyota",
-    vehiculo_modelo: "Hiace",
-    vehiculo_anio: 2023,
-    conductor_nombre: null,
-    conductor_estado: null,
-    conductor_nivel: null,
-    conductor_calificacion: null,
-    evidencia_inicial_fotos_sincronizadas: 0,
-    evidencia_final_fotos_sincronizadas: 0,
-    incidencias_abiertas: 0,
-    monto_pagado: 1350
-  },
-  {
-    traslado_id: "demo-0006",
-    usuario_id: "demo-usuario",
-    vehiculo_id: "demo-vehiculo-6",
-    conductor_id: null,
-    estado: "servicio_cancelado",
-    tiene_incidencia_abierta: false,
-    tipo_pago: "anticipado",
-    causa_fallido: null,
-    precio_cotizado: 780,
-    precio_final: null,
-    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 16).toISOString(),
-    actualizado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(),
-    vehiculo_tipo: "sedan",
-    vehiculo_marca: "Mazda",
-    vehiculo_modelo: "3",
-    vehiculo_anio: 2020,
-    conductor_nombre: null,
-    conductor_estado: null,
-    conductor_nivel: null,
-    conductor_calificacion: null,
-    evidencia_inicial_fotos_sincronizadas: 0,
-    evidencia_final_fotos_sincronizadas: 0,
-    incidencias_abiertas: 0,
-    monto_pagado: 0
-  }
-];
-
 const ESTATUS_VISIBLES = [
   "Solicitud recibida",
   "En revisión",
@@ -205,19 +103,11 @@ function pestañaDeViaje(pasaporte: Pasaporte): PestañaViajes {
   return "activos";
 }
 
-async function obtenerViajes(): Promise<{ viajes: ViajeLista[]; esDemo: boolean }> {
+async function obtenerViajes(): Promise<ViajeLista[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!url || !anonKey) {
-    return {
-      viajes: TRASLADOS_DEMO_MIS_VIAJES.map((pasaporte) => ({
-        pasaporte,
-        traslado: DEMO_RUTAS[pasaporte.traslado_id] ?? null
-      })),
-      esDemo: true
-    };
-  }
+  if (!url || !anonKey) return [];
 
   try {
     const { crearClienteServidor } = await import("../../lib/supabase-server");
@@ -225,15 +115,7 @@ async function obtenerViajes(): Promise<{ viajes: ViajeLista[]; esDemo: boolean 
     const cliente = await crearClienteServidor();
     const usuario = await obtenerUsuarioActual(cliente);
 
-    if (!usuario) {
-      return {
-        viajes: TRASLADOS_DEMO_MIS_VIAJES.map((pasaporte) => ({
-          pasaporte,
-          traslado: DEMO_RUTAS[pasaporte.traslado_id] ?? null
-        })),
-        esDemo: true
-      };
-    }
+    if (!usuario) return [];
 
     const pasaportes = await listarTrasladosDeUsuario(cliente, usuario.id);
     const ids = pasaportes.map((pasaporte) => pasaporte.traslado_id);
@@ -248,21 +130,12 @@ async function obtenerViajes(): Promise<{ viajes: ViajeLista[]; esDemo: boolean 
     if (trasladosRes.error) throw trasladosRes.error;
 
     const trasladosPorId = new Map((trasladosRes.data ?? []).map((traslado) => [traslado.id, traslado]));
-    return {
-      viajes: pasaportes.map((pasaporte) => ({
-        pasaporte,
-        traslado: trasladosPorId.get(pasaporte.traslado_id) ?? null
-      })),
-      esDemo: false
-    };
+    return pasaportes.map((pasaporte) => ({
+      pasaporte,
+      traslado: trasladosPorId.get(pasaporte.traslado_id) ?? null
+    }));
   } catch {
-    return {
-      viajes: TRASLADOS_DEMO_MIS_VIAJES.map((pasaporte) => ({
-        pasaporte,
-        traslado: DEMO_RUTAS[pasaporte.traslado_id] ?? null
-      })),
-      esDemo: true
-    };
+    return [];
   }
 }
 
@@ -358,7 +231,7 @@ export default async function PaginaMisViajes({
 }) {
   const { tab } = await searchParams;
   const pestañaActiva = PESTANAS.some((pestaña) => pestaña.id === tab) ? (tab as PestañaViajes) : "activos";
-  const { viajes, esDemo } = await obtenerViajes();
+  const viajes = await obtenerViajes();
   const viajesPorPestaña = viajes.filter((viaje) => pestañaDeViaje(viaje.pasaporte) === pestañaActiva);
 
   return (
@@ -377,12 +250,6 @@ export default async function PaginaMisViajes({
           <Button>Solicitar traslado</Button>
         </Link>
       </header>
-
-      {esDemo && (
-        <div className="mb-6">
-          <Aviso tono="info">Estás viendo viajes de ejemplo. Inicia sesión para consultar tus viajes reales.</Aviso>
-        </div>
-      )}
 
       <PassportCard>
         <nav className="grid gap-2 sm:grid-cols-4" aria-label="Filtros de viajes">

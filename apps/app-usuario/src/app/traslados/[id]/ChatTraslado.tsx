@@ -10,36 +10,30 @@ import { obtenerMensajes, enviarMensaje, suscribirseAMensajes, crearLlamadaEnmas
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
-const MENSAJES_DEMO: MensajeChat[] = [
-  { id: "demo-1", remitente: "usuario", contenido: "Hola, ¿cómo va el traslado?", enviado_en: new Date(Date.now() - 1000 * 60 * 8).toISOString() },
-  { id: "demo-2", remitente: "conductor", contenido: "Todo bien, voy en camino al punto de recolección.", enviado_en: new Date(Date.now() - 1000 * 60 * 6).toISOString() }
-];
-
 export function ChatTraslado({ trasladoId, estado }: { trasladoId: string; estado: EstadoTraslado }) {
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
-  const [esDemo, setEsDemo] = useState(true);
   const clienteRef = useRef<ReturnType<typeof crearClienteNavegador> | null>(null);
+  const [errorChat, setErrorChat] = useState<string | null>(null);
 
   const disponible = chatDisponible(estado);
 
   useEffect(() => {
     if (!disponible) return;
 
-    if (!tieneSupabaseConfigurado() || trasladoId === "demo-0001") {
-      setMensajes(MENSAJES_DEMO);
-      setEsDemo(true);
+    if (!tieneSupabaseConfigurado()) {
+      setErrorChat("Supabase no está configurado. El chat no está disponible.");
       return;
     }
 
     const cliente = crearClienteNavegador();
     clienteRef.current = cliente;
-    setEsDemo(false);
+    setErrorChat(null);
 
     obtenerMensajes(cliente, trasladoId)
       .then(setMensajes)
       .catch(() => {
-        setMensajes(MENSAJES_DEMO);
-        setEsDemo(true);
+        setMensajes([]);
+        setErrorChat("No pudimos cargar los mensajes del traslado.");
       });
 
     const canal = suscribirseAMensajes(cliente, trasladoId, (nuevo) => {
@@ -52,11 +46,8 @@ export function ChatTraslado({ trasladoId, estado }: { trasladoId: string; estad
   }, [trasladoId, disponible]);
 
   async function manejarEnvio(contenido: string) {
-    if (esDemo) {
-      setMensajes((prev) => [
-        ...prev,
-        { id: `demo-${Date.now()}`, remitente: "usuario", contenido, enviado_en: new Date().toISOString() }
-      ]);
+    if (!tieneSupabaseConfigurado()) {
+      setErrorChat("Supabase no está configurado. No se puede enviar el mensaje.");
       return;
     }
     if (!clienteRef.current) return;
@@ -70,8 +61,8 @@ export function ChatTraslado({ trasladoId, estado }: { trasladoId: string; estad
     setLlamando(true);
     setErrorLlamada(null);
 
-    if (esDemo) {
-      setErrorLlamada("Las llamadas enmascaradas no están disponibles en modo demo.");
+    if (!tieneSupabaseConfigurado()) {
+      setErrorLlamada("Supabase no está configurado. No se puede iniciar la llamada.");
       setLlamando(false);
       return;
     }
@@ -100,6 +91,11 @@ export function ChatTraslado({ trasladoId, estado }: { trasladoId: string; estad
       {errorLlamada && (
         <div className="mb-2">
           <Aviso tono="peligro">{errorLlamada}</Aviso>
+        </div>
+      )}
+      {errorChat && (
+        <div className="mb-2">
+          <Aviso tono="peligro">{errorChat}</Aviso>
         </div>
       )}
       {disponible && (

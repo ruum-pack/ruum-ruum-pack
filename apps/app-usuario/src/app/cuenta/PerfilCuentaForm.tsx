@@ -98,7 +98,7 @@ async function consultarCpZippopotam(cp: string): Promise<DatosCodigoPostal | nu
   };
 }
 
-export function PerfilCuentaForm({ usuario, esDemo }: { usuario: Usuario; esDemo: boolean }) {
+export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
   const [nombre, setNombre] = useState(usuario.nombre ?? "");
   const [fotoUrl, setFotoUrl] = useState(usuario.foto_url ?? "");
   const [telefono, setTelefono] = useState(telefonoLocalMx(usuario.telefono));
@@ -159,8 +159,8 @@ export function PerfilCuentaForm({ usuario, esDemo }: { usuario: Usuario; esDemo
       return;
     }
 
-    if (esDemo || !tieneSupabaseConfigurado()) {
-      setMensaje({ tono: "info", texto: "Modo demo: los cambios no se guardan en Supabase." });
+    if (!tieneSupabaseConfigurado()) {
+      setMensaje({ tono: "peligro", texto: "Supabase no está configurado. No se pueden guardar cambios." });
       return;
     }
 

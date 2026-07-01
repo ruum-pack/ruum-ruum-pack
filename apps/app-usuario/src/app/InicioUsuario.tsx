@@ -21,8 +21,6 @@ type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 export interface InicioUsuarioProps {
   usuario: UsuarioRow | null;
   traslados: PasaporteRow[];
-  /** Si es true, muestra el aviso obligatorio de "Datos de ejemplo" (igual que /traslados/demo-0001). */
-  esDemo?: boolean;
 }
 
 function tarjetaVehiculo(t: PasaporteRow): string {
@@ -67,7 +65,7 @@ function SeccionTitulo({ children }: { children: ReactNode }) {
   return <h2 className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">{children}</h2>;
 }
 
-export function InicioUsuario({ usuario, traslados, esDemo = false }: InicioUsuarioProps) {
+export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
   const viajeActivo = obtenerViajeActivo(traslados);
   const historial = obtenerHistorial(traslados).filter((t) => t.traslado_id !== viajeActivo?.traslado_id);
   const notificaciones = construirNotificaciones(usuario, traslados);
@@ -75,18 +73,6 @@ export function InicioUsuario({ usuario, traslados, esDemo = false }: InicioUsua
 
   return (
     <div>
-      {esDemo && (
-        <div className="mb-8">
-          <Aviso tono="info">
-            Estás viendo el Inicio con datos de ejemplo, no traslados reales.{" "}
-            <Link href="/login" className="font-medium underline underline-offset-2">
-              Inicia sesión
-            </Link>{" "}
-            para ver los tuyos.
-          </Aviso>
-        </div>
-      )}
-
       {/* Mensaje central + botón principal */}
       <section className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>

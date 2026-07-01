@@ -26,7 +26,7 @@ const MOMENTOS: { valor: MomentoIncidencia; etiqueta: string }[] = [
   { valor: "post_cierre", etiqueta: "Post cierre" }
 ];
 
-export function ReportarIncidenciaUsuario({ trasladoId, esDemo }: { trasladoId: string; esDemo: boolean }) {
+export function ReportarIncidenciaUsuario({ trasladoId }: { trasladoId: string }) {
   const router = useRouter();
   const [tipo, setTipo] = useState<TipoIncidencia>("contacto_no_localizado");
   const [momento, setMomento] = useState<MomentoIncidencia>("durante_traslado");
@@ -38,10 +38,8 @@ export function ReportarIncidenciaUsuario({ trasladoId, esDemo }: { trasladoId: 
     setProcesando(true);
     setMensaje(null);
     try {
-      if (esDemo || !tieneSupabaseConfigurado()) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        setMensaje({ tono: "info", texto: "Incidencia registrada en modo demo." });
-        setDescripcion("");
+      if (!tieneSupabaseConfigurado()) {
+        setMensaje({ tono: "peligro", texto: "Supabase no está configurado. No se puede reportar la incidencia." });
         return;
       }
       const cliente = crearClienteNavegador();

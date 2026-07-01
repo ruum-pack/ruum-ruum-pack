@@ -121,12 +121,9 @@ const VALORES_INICIALES: DatosFormulario = {
   precioEstimado: ""
 };
 
-// Usuario sin historial (PRD §4.6): valor de respaldo mientras se confirma
-// si hay sesión real (ver useEffect en el componente). Si Supabase está
-// configurado y hay sesión, se reemplaza por el usuario real de
-// obtenerUsuarioActual(); si no hay sesión, enviarSolicitud() manda a
-// /login en vez de usar este id vacío contra la base real.
-const USUARIO_NUEVO_DEMO = {
+// Usuario sin historial (PRD §4.6): valor temporal mientras se confirma
+// la sesión real. Nunca se usa para insertar registros.
+const USUARIO_PENDIENTE = {
   id: "",
   tipo_cuenta: "personal" as const,
   rol: "personal" as const,
@@ -201,7 +198,7 @@ export default function PaginaNuevoTraslado() {
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<{ ok: boolean; mensaje: string } | null>(null);
   const [trasladoCreadoId, setTrasladoCreadoId] = useState<string | null>(null);
-  const [usuario, setUsuario] = useState<Usuario>(USUARIO_NUEVO_DEMO);
+  const [usuario, setUsuario] = useState<Usuario>(USUARIO_PENDIENTE);
   const [sesionReal, setSesionReal] = useState(false);
   const [cargandoSesion, setCargandoSesion] = useState(tieneSupabaseConfigurado());
   const [aceptaPoliticasPagoCancelacion, setAceptaPoliticasPagoCancelacion] = useState(false);
@@ -210,7 +207,7 @@ export default function PaginaNuevoTraslado() {
   const [errorPaso, setErrorPaso] = useState<string | null>(null);
 
   // Si hay sesión real, usa el usuario real (PRD §4.6: su historial decide
-  // pago anticipado vs. al cierre); si no, sigue en modo demo como antes.
+  // pago anticipado vs. al cierre).
   // tipo_cuenta/rol/estado_verificacion se castean desde el tipo de columna
   // de la base (texto con CHECK, no enum nativo — ver 0002_usuarios.sql) al
   // tipo conceptual más estrecho que ya usan las reglas de negocio.
@@ -366,13 +363,10 @@ export default function PaginaNuevoTraslado() {
     setResultado(null);
 
     if (!tieneSupabaseConfigurado()) {
-      // Modo demo: no hay proyecto de Supabase conectado todavía.
-      await new Promise((r) => setTimeout(r, 600));
       setEnviando(false);
       setResultado({
-        ok: true,
-        mensaje:
-          "Solicitud capturada en modo demo (Supabase no está configurado). Conecta NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY para guardarla de verdad."
+        ok: false,
+        mensaje: "Supabase no está configurado. No se puede crear una solicitud real en este entorno."
       });
       return;
     }

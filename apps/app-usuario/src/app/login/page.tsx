@@ -38,9 +38,8 @@ export default function PaginaLogin() {
       <main className="mx-auto max-w-md px-6 py-20 text-center">
         <h1 className="font-display text-2xl font-semibold">Iniciar sesión</h1>
         <div className="mt-6">
-          <Aviso tono="info">
-            Supabase no está configurado todavía — el inicio de sesión real no está disponible en este entorno de
-            demo. El resto de la app sigue navegable con datos de ejemplo.
+          <Aviso tono="peligro">
+            Supabase no está configurado todavía. El inicio de sesión no está disponible en este entorno.
           </Aviso>
         </div>
       </main>

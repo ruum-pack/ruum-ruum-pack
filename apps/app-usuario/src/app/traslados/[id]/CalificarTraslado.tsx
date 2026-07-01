@@ -9,13 +9,11 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/su
 export function CalificarTraslado({
   trasladoId,
   conductorId,
-  mostrar,
-  esDemo
+  mostrar
 }: {
   trasladoId: string;
   conductorId: string | null;
   mostrar: boolean;
-  esDemo: boolean;
 }) {
   const [estrellas, setEstrellas] = useState(5);
   const [comentario, setComentario] = useState("");
@@ -29,9 +27,8 @@ export function CalificarTraslado({
     setMensaje(null);
     startTransition(async () => {
       try {
-        if (esDemo || !tieneSupabaseConfigurado()) {
-          setEnviado(true);
-          setMensaje("Calificación registrada en modo demo.");
+        if (!tieneSupabaseConfigurado()) {
+          setMensaje("Supabase no está configurado. No se puede registrar la calificación.");
           return;
         }
         const cliente = crearClienteNavegador();

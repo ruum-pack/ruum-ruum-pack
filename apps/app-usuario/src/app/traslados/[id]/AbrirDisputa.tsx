@@ -19,12 +19,10 @@ const TIPOS: TipoDisputa[] = [
 
 export function AbrirDisputa({
   trasladoId,
-  disponible,
-  esDemo
+  disponible
 }: {
   trasladoId: string;
   disponible: boolean;
-  esDemo: boolean;
 }) {
   const [tipo, setTipo] = useState<TipoDisputa>("cobro_incorrecto");
   const [descripcion, setDescripcion] = useState("");
@@ -38,9 +36,8 @@ export function AbrirDisputa({
     setMensaje(null);
     startTransition(async () => {
       try {
-        if (esDemo || !tieneSupabaseConfigurado()) {
-          setEnviada(true);
-          setMensaje("Disputa registrada en modo demo.");
+        if (!tieneSupabaseConfigurado()) {
+          setMensaje("Supabase no está configurado. No se puede abrir la disputa.");
           return;
         }
         const cliente = crearClienteNavegador();

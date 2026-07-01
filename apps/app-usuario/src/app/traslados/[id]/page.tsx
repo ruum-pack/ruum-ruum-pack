@@ -4,7 +4,6 @@ import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_INCIDENCIA, ETIQUETA_TIPO_VEHICULO, MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
 import type { Database } from "@ruum/shared/types";
-import { PASAPORTE_DEMO } from "../../../lib/datos-demo";
 import { crearClienteServidor } from "../../../lib/supabase-server";
 import { ChatTraslado } from "./ChatTraslado";
 import { PagoTraslado } from "./PagoTraslado";
@@ -105,57 +104,6 @@ const ETIQUETA_ANGULO: Record<FotoEvidencia["angulo"], string> = {
   adicional: "Adicional"
 };
 
-const DEMO_TRASLADO: Traslado = {
-  origen_direccion: "Av. Insurgentes Sur 1234",
-  origen_ciudad: "Ciudad de México",
-  destino_direccion: "Blvd. Manuel Ávila Camacho 88",
-  destino_ciudad: "Naucalpan",
-  contacto_entrega_nombre: "Cliente Demo",
-  contacto_entrega_telefono: "+52 55 0000 0000",
-  contacto_recepcion_nombre: "Recepción Demo",
-  contacto_recepcion_telefono: "+52 55 1111 1111",
-  fecha_hora_programada: new Date(Date.now() + 1000 * 60 * 60 * 6).toISOString()
-};
-
-const DEMO_VEHICULO: Vehiculo = {
-  tipo: "sedan",
-  marca: "Nissan",
-  modelo: "Versa",
-  anio: 2022,
-  tiene_tarjeta_circulacion: true,
-  tiene_verificacion: true,
-  tiene_placas: true,
-  puede_circular_rodando: true
-};
-
-const DEMO_CONDUCTOR: Conductor = {
-  id: "demo-conductor",
-  nombre: "Conductor Demo",
-  estado: "activo",
-  nivel_operativo_vigente: "ejecutivo",
-  calificacion_promedio: 4.8,
-  traslados_completados: 42
-};
-
-const DEMO_EVIDENCIA: FotoEvidencia[] = [
-  "frente",
-  "lado_piloto",
-  "lado_copiloto",
-  "trasera",
-  "tablero"
-].map((angulo, i) => ({
-  id: `demo-evidencia-${angulo}`,
-  traslado_id: "demo-0001",
-  tipo: "inicial",
-  angulo: angulo as FotoEvidencia["angulo"],
-  url: `pendiente-storage://demo/inicial/${angulo}`,
-  local_path: null,
-  capturada_en: new Date(Date.now() - 1000 * 60 * (80 - i * 4)).toISOString(),
-  lat: null,
-  lng: null,
-  sincronizada: true
-}));
-
 function formatoFecha(fecha: string | null | undefined) {
   if (!fecha) return "Pendiente";
   return new Intl.DateTimeFormat("es-MX", {
@@ -189,34 +137,6 @@ function estadoDePaso(estadoActual: EstadoTraslado, estadoPaso: EstadoTraslado) 
 }
 
 async function obtenerDatos(id: string) {
-  if (id === "demo-0001") {
-    return {
-      pasaporte: PASAPORTE_DEMO,
-      traslado: DEMO_TRASLADO,
-      vehiculo: DEMO_VEHICULO,
-      conductor: DEMO_CONDUCTOR,
-      evidencia: DEMO_EVIDENCIA,
-      incidencias: [] as Incidencia[],
-      disputas: [] as Disputa[],
-      reclamosSeguro: [] as ReclamoSeguroUsuario[],
-      calificacion: null as Calificacion | null,
-      pagos: [
-        {
-          id: "demo-pago",
-          traslado_id: "demo-0001",
-          monto: 1500,
-          momento: "anticipado",
-          estado: "completado",
-          metodo: "tarjeta",
-          registrado_en: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-          stripe_payment_intent_id: null,
-          stripe_event_id: null
-        } satisfies Pago
-      ],
-      esDemo: true
-    };
-  }
-
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {
@@ -230,8 +150,7 @@ async function obtenerDatos(id: string) {
       disputas: [] as Disputa[],
       reclamosSeguro: [] as ReclamoSeguroUsuario[],
       calificacion: null as Calificacion | null,
-      pagos: [] as Pago[],
-      esDemo: false
+      pagos: [] as Pago[]
     };
   }
 
@@ -248,8 +167,7 @@ async function obtenerDatos(id: string) {
       disputas: [] as Disputa[],
       reclamosSeguro: [] as ReclamoSeguroUsuario[],
       calificacion: null as Calificacion | null,
-      pagos: [] as Pago[],
-      esDemo: false
+      pagos: [] as Pago[]
     };
   }
 
@@ -301,8 +219,7 @@ async function obtenerDatos(id: string) {
     disputas: disputasRes.data ?? [],
     reclamosSeguro: reclamosSeguroRes.data ?? [],
     calificacion: calificacionRes.data ?? null,
-    pagos: pagosRes.data ?? [],
-    esDemo: false
+    pagos: pagosRes.data ?? []
   };
 }
 
@@ -417,7 +334,7 @@ function EvidenciaDurante({
 
 export default async function PaginaTraslado({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { pasaporte, traslado, vehiculo, conductor, evidencia, incidencias, disputas, reclamosSeguro, calificacion, pagos, esDemo } = await obtenerDatos(id);
+  const { pasaporte, traslado, vehiculo, conductor, evidencia, incidencias, disputas, reclamosSeguro, calificacion, pagos } = await obtenerDatos(id);
 
   if (!pasaporte) {
     return (
@@ -446,12 +363,6 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
-      {esDemo && (
-        <div className="mb-6">
-          <Aviso tono="info">Estás viendo datos de ejemplo, no un traslado real.</Aviso>
-        </div>
-      )}
-
       <PassportCard folio={pasaporte.traslado_id.slice(0, 8).toUpperCase()}>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -553,7 +464,6 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
             trasladoId={pasaporte.traslado_id}
             conductorId={pasaporte.conductor_id}
             mostrar={mostrarPromptCalificacion}
-            esDemo={esDemo}
           />
         </PassportCard>
       </section>
@@ -666,15 +576,14 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
               No hay incidencias reportadas para este traslado.
             </p>
           )}
-          <ReportarIncidenciaUsuario trasladoId={pasaporte.traslado_id} esDemo={esDemo} />
-          <AbrirDisputa trasladoId={pasaporte.traslado_id} disponible={puedeAbrirDisputa} esDemo={esDemo} />
+          <ReportarIncidenciaUsuario trasladoId={pasaporte.traslado_id} />
+          <AbrirDisputa trasladoId={pasaporte.traslado_id} disponible={puedeAbrirDisputa} />
           <CancelarTraslado
             trasladoId={pasaporte.traslado_id}
             estado={pasaporte.estado}
             precio={precioBase}
             fechaProgramada={traslado?.fecha_hora_programada ?? null}
             conductorAsignado={Boolean(pasaporte.conductor_id)}
-            esDemo={esDemo}
           />
         </PassportCard>
 
@@ -698,7 +607,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
             </div>
           )}
           {pasaporte.estado === "pago_pendiente" && (
-            <PagoTraslado trasladoId={pasaporte.traslado_id} monto={precioBase} esDemo={esDemo} />
+            <PagoTraslado trasladoId={pasaporte.traslado_id} monto={precioBase} />
           )}
           <div className="mt-6 rounded-lg border border-ink/10 px-4 py-4">
             <p className="font-body text-sm font-semibold">Contacto con soporte</p>

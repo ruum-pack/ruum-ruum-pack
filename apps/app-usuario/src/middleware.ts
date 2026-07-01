@@ -5,7 +5,7 @@ import { crearClienteServidor } from "@ruum/api/supabase";
  * Refresca el token de sesión en cada petición — sin esto, una sesión larga
  * termina expirando a la mitad de la navegación aunque el usuario siga
  * activo. Patrón estándar de @supabase/ssr para Next.js App Router.
- * Si Supabase no está configurado (modo demo), no hay nada que refrescar.
+ * Si Supabase no está configurado, no hay nada que refrescar.
  */
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });

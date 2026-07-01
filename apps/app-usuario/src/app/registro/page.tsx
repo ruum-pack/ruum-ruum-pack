@@ -194,8 +194,7 @@ export default function PaginaRegistro() {
     setEnviando(true);
 
     if (!tieneSupabaseConfigurado()) {
-      await new Promise((r) => setTimeout(r, 500));
-      setEnviado(true);
+      setError("Supabase no está configurado. No se puede crear una cuenta real en este entorno.");
       setEnviando(false);
       return;
     }
@@ -286,7 +285,7 @@ export default function PaginaRegistro() {
 
       {!tieneSupabaseConfigurado() && (
         <div className="mt-4">
-          <Aviso tono="info">Supabase no está configurado: esta cuenta no se guardará de verdad (modo demo).</Aviso>
+          <Aviso tono="peligro">Supabase no está configurado. No es posible crear cuentas reales en este entorno.</Aviso>
         </div>
       )}
 

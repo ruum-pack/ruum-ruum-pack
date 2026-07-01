@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, Aviso } from "@ruum/ui";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
-export function AccionesCuenta({ esDemo }: { esDemo: boolean }) {
+export function AccionesCuenta() {
   const router = useRouter();
   const [confirmarCerrar, setConfirmarCerrar] = useState(false);
   const [textoEliminar, setTextoEliminar] = useState("");
@@ -13,8 +13,8 @@ export function AccionesCuenta({ esDemo }: { esDemo: boolean }) {
 
   async function cerrarSesion() {
     setMensaje(null);
-    if (esDemo || !tieneSupabaseConfigurado()) {
-      router.push("/");
+    if (!tieneSupabaseConfigurado()) {
+      setMensaje("Supabase no está configurado; no hay una sesión real que cerrar.");
       return;
     }
     const cliente = crearClienteNavegador();
