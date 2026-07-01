@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@ruum/ui";
 import { abrirDisputa } from "@ruum/api/services";
-import { ETIQUETA_TIPO_DISPUTA } from "@ruum/shared/constants";
+import { ETIQUETA_TIPO_DISPUTA, MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 
@@ -56,6 +56,7 @@ export function AbrirDisputaConductor({
   return (
     <div className="mt-5 rounded-lg border border-warn/25 bg-warn-soft/35 px-4 py-4">
       <p className="font-body text-sm font-semibold">Abrir disputa post-cierre</p>
+      <p className="mt-1 font-body text-sm text-ink/65">{MENSAJES_CLAVE_UX.disputa}</p>
       <div className="mt-3 grid gap-3">
         <select
           value={tipo}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Aviso, Button, Field } from "@ruum/ui";
+import { MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { calcularCargoCancelacion } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
 import { cancelarTraslado } from "@ruum/api/services";
@@ -69,7 +70,9 @@ export function CancelarTraslado({
   return (
     <div className="mt-5 rounded-lg border border-danger/25 bg-danger-soft px-4 py-4">
       <p className="font-body text-sm font-semibold text-danger">Cancelar viaje</p>
-      <p className="mt-1 font-body text-sm text-ink/65">{cargo.mensaje}</p>
+      <p className="mt-1 font-body text-sm text-ink/65">
+        {MENSAJES_CLAVE_UX.cancelacion} {cargo.mensaje}
+      </p>
       {mensaje && (
         <div className="mt-3">
           <Aviso tono={mensaje.tono}>{mensaje.texto}</Aviso>

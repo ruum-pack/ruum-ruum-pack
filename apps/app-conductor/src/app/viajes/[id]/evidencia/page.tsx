@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Aviso, PassportCard } from "@ruum/ui";
+import { MENSAJE_EVIDENCIA_SINCRONIZANDO, MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { evidenciaCompleta } from "@ruum/shared/rules";
 import { ANGULOS_OBLIGATORIOS } from "@ruum/shared/types";
 import type { AnguloEvidencia, FotoEvidencia, TipoEvidencia } from "@ruum/shared/types";
@@ -11,7 +12,12 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib
 import { esNativo } from "../../../../lib/capacitor";
 import { capturarFoto } from "../../../../lib/camara";
 import { obtenerUbicacionActual } from "../../../../lib/ubicacion";
-import { encolarEvidencia } from "../../../../lib/cola-offline";
+import {
+  contarColaEvidencia,
+  encolarEvidencia,
+  leerColaEvidenciaDeTraslado,
+  sincronizarColaEvidencia
+} from "../../../../lib/cola-offline";
 import {
   obtenerPasaporteDigital,
   obtenerEvidenciaDeTraslado,
@@ -48,7 +54,64 @@ export default function PaginaEvidencia() {
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
   const [enviando, setEnviando] = useState<AnguloEvidencia | "confirmar" | null>(null);
+  const [sincronizando, setSincronizando] = useState(false);
+  const [pendientesSubida, setPendientesSubida] = useState(0);
   const [aviso, setAviso] = useState<string | null>(null);
+
+  const cargarPendientesLocales = useCallback(async () => {
+    const pendientes = await leerColaEvidenciaDeTraslado(id);
+    setPendientesSubida(pendientes.length);
+    return pendientes.map(
+      (item): FotoEvidencia => ({
+        id: item.localId,
+        traslado_id: item.trasladoId,
+        tipo: item.tipo,
+        angulo: item.angulo as AnguloEvidencia,
+        local_path: item.dataUrl,
+        timestamp: item.capturadaEn,
+        ...(item.lat !== undefined ? { lat: item.lat } : {}),
+        ...(item.lng !== undefined ? { lng: item.lng } : {}),
+        sincronizada: false
+      })
+    );
+  }, [id]);
+
+  const refrescarEvidencia = useCallback(async () => {
+    if (!tipo || !tieneSupabaseConfigurado()) return;
+    const cliente = crearClienteNavegador();
+    const [remotas, locales] = await Promise.all([
+      obtenerEvidenciaDeTraslado(cliente, id, tipo),
+      cargarPendientesLocales()
+    ]);
+    setFotos([...remotas, ...locales.filter((local) => !remotas.some((remota) => remota.id === local.id))]);
+  }, [cargarPendientesLocales, id, tipo]);
+
+  const drenarCola = useCallback(async () => {
+    if (!tipo || esDemo || !tieneSupabaseConfigurado() || (typeof navigator !== "undefined" && !navigator.onLine)) return;
+    const pendientes = await contarColaEvidencia(id);
+    setPendientesSubida(pendientes);
+    if (pendientes === 0) return;
+
+    setSincronizando(true);
+    setAviso(null);
+    try {
+      const cliente = crearClienteNavegador();
+      const subidas = await sincronizarColaEvidencia(cliente, {
+        trasladoId: id,
+        onItemSincronizado: async () => {
+          setPendientesSubida(await contarColaEvidencia(id));
+        }
+      });
+      await refrescarEvidencia();
+      if (subidas > 0) {
+        setAviso(`${subidas} foto${subidas === 1 ? "" : "s"} sincronizada${subidas === 1 ? "" : "s"}.`);
+      }
+    } catch (err) {
+      setAviso(err instanceof Error ? err.message : "No pudimos sincronizar la evidencia pendiente.");
+    } finally {
+      setSincronizando(false);
+    }
+  }, [esDemo, id, refrescarEvidencia, tipo]);
 
   useEffect(() => {
     async function cargar() {
@@ -76,7 +139,9 @@ export default function PaginaEvidencia() {
         setEstadoActual(pasaporte.estado);
         setTipo(tipoDetectado);
         if (tipoDetectado) {
-          setFotos(await obtenerEvidenciaDeTraslado(cliente, id, tipoDetectado));
+          const remotas = await obtenerEvidenciaDeTraslado(cliente, id, tipoDetectado);
+          const locales = await cargarPendientesLocales();
+          setFotos([...remotas, ...locales.filter((local) => local.tipo === tipoDetectado && !remotas.some((remota) => remota.id === local.id))]);
         }
         setEsDemo(false);
       } catch {
@@ -89,7 +154,18 @@ export default function PaginaEvidencia() {
       }
     }
     cargar();
-  }, [id]);
+  }, [cargarPendientesLocales, id]);
+
+  useEffect(() => {
+    if (!tipo) return;
+    void drenarCola();
+    window.addEventListener("online", drenarCola);
+    window.addEventListener("ruum:evidencia-sincronizada", refrescarEvidencia);
+    return () => {
+      window.removeEventListener("online", drenarCola);
+      window.removeEventListener("ruum:evidencia-sincronizada", refrescarEvidencia);
+    };
+  }, [drenarCola, refrescarEvidencia, tipo]);
 
   if (cargando) {
     return (
@@ -139,8 +215,9 @@ export default function PaginaEvidencia() {
           return;
         }
         const coords = await obtenerUbicacionActual();
+        const localId = crypto.randomUUID();
         await encolarEvidencia({
-          localId: crypto.randomUUID(),
+          localId,
           trasladoId: id,
           tipo,
           angulo,
@@ -148,6 +225,12 @@ export default function PaginaEvidencia() {
           ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
           capturadaEn: new Date().toISOString()
         });
+        const locales = await cargarPendientesLocales();
+        setFotos((prev) => [...prev.filter((foto) => foto.id !== localId), ...locales.filter((local) => local.tipo === tipo)]);
+        setAviso("Foto guardada en este dispositivo. Se subirá automáticamente al recuperar señal.");
+        setEnviando(null);
+        void drenarCola();
+        return;
       } catch (err) {
         setAviso(err instanceof Error ? err.message : "No pudimos capturar la foto.");
         setEnviando(null);
@@ -196,7 +279,7 @@ export default function PaginaEvidencia() {
       </h1>
       <p className="mt-2 font-body text-sm text-ink/60">
         {tipo === "inicial"
-          ? "Documenta el estado del vehículo antes de salir. Los 5 ángulos son obligatorios."
+          ? `${MENSAJES_CLAVE_UX.evidencia_inicial} Los 5 ángulos son obligatorios.`
           : "Documenta el estado del vehículo al llegar, para comparar contra la evidencia inicial."}
       </p>
 
@@ -212,15 +295,27 @@ export default function PaginaEvidencia() {
         </div>
       )}
 
+      {pendientesSubida > 0 && (
+        <div className="mt-4">
+          <Aviso tono="atencion">
+            {pendientesSubida} foto{pendientesSubida === 1 ? "" : "s"} pendiente{pendientesSubida === 1 ? "" : "s"} de subir.
+            {sincronizando ? ` ${MENSAJE_EVIDENCIA_SINCRONIZANDO}.` : " Se sincronizarán automáticamente al recuperar conexión."}
+          </Aviso>
+        </div>
+      )}
+
       <PassportCard className="mt-6">
         <div className="space-y-3">
           {ANGULOS_OBLIGATORIOS.map((angulo) => {
+            const foto = fotos.find((item) => item.angulo === angulo);
             const yaCapturado = capturados.has(angulo);
             return (
               <div key={angulo} className="flex items-center justify-between gap-4 border-b border-ink/10 pb-3 last:border-0 last:pb-0">
                 <span className="font-body text-sm">{ETIQUETA_ANGULO[angulo]}</span>
                 {yaCapturado ? (
-                  <span className="font-body text-xs font-medium text-control">Capturado</span>
+                  <span className={foto?.sincronizada ? "font-body text-xs font-medium text-control" : "font-body text-xs font-medium text-warn"}>
+                    {foto?.sincronizada ? "Sincronizada" : "Pendiente de subir"}
+                  </span>
                 ) : (
                   <Button variant="secundario" onClick={() => capturar(angulo)} disabled={enviando === angulo}>
                     {enviando === angulo ? "Guardando…" : esNativo() ? "Tomar foto" : "Marcar capturado"}

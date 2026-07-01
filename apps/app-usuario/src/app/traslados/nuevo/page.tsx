@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Aviso, PassportCard } from "@ruum/ui";
-import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
+import { ETIQUETA_TIPO_VEHICULO, MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { determinarMomentoPago, calcularCargoCancelacion } from "@ruum/shared/rules";
 import type { TipoVehiculo } from "@ruum/shared/types";
 import type { TipoCuenta, Usuario } from "@ruum/shared/types";
@@ -126,6 +126,7 @@ export default function PaginaNuevoTraslado() {
   const [usuario, setUsuario] = useState<Usuario>(USUARIO_NUEVO_DEMO);
   const [sesionReal, setSesionReal] = useState(false);
   const [cargandoSesion, setCargandoSesion] = useState(tieneSupabaseConfigurado());
+  const [aceptaPoliticasPagoCancelacion, setAceptaPoliticasPagoCancelacion] = useState(false);
 
   // Si hay sesión real, usa el usuario real (PRD §4.6: su historial decide
   // pago anticipado vs. al cierre); si no, sigue en modo demo como antes.
@@ -176,6 +177,14 @@ export default function PaginaNuevoTraslado() {
   }
 
   async function enviarSolicitud() {
+    if (!aceptaPoliticasPagoCancelacion) {
+      setResultado({
+        ok: false,
+        mensaje: "Debes aceptar la política de cancelación y que el pago es solo por medios electrónicos."
+      });
+      return;
+    }
+
     setEnviando(true);
     setResultado(null);
 
@@ -414,8 +423,7 @@ export default function PaginaNuevoTraslado() {
                 ))}
                 {!datos.puedeCircular && (
                   <Aviso tono="atencion">
-                    Ruum Ruum no realiza arrastres como servicio estándar. Si el vehículo no puede circular rodando,
-                    contáctanos antes de continuar.
+                    {MENSAJES_CLAVE_UX.antes_de_confirmar_traslado}
                   </Aviso>
                 )}
               </div>
@@ -622,8 +630,21 @@ export default function PaginaNuevoTraslado() {
               </dl>
             </PassportCard>
 
-            <Aviso tono="info">{momentoPago.razon}</Aviso>
-            <Aviso tono="atencion">{politicaCancelacion.mensaje}</Aviso>
+            <Aviso tono="info">
+              {MENSAJES_CLAVE_UX.pago} {momentoPago.razon}
+            </Aviso>
+            <Aviso tono="atencion">
+              {MENSAJES_CLAVE_UX.cancelacion} {politicaCancelacion.mensaje}
+            </Aviso>
+            <label className="flex items-start gap-2.5 rounded-lg border border-ink/10 bg-mist px-4 py-3 font-body text-sm">
+              <input
+                type="checkbox"
+                checked={aceptaPoliticasPagoCancelacion}
+                onChange={(e) => setAceptaPoliticasPagoCancelacion(e.target.checked)}
+                className="mt-0.5 size-4 rounded border-ink/30 text-signal focus-visible:outline-route"
+              />
+              <span>Acepto la política de cancelación y que el pago es solo por medios electrónicos.</span>
+            </label>
           </div>
         )}
       </div>
@@ -635,7 +656,7 @@ export default function PaginaNuevoTraslado() {
         {paso < PASOS.length - 1 ? (
           <Button onClick={() => setPaso((p) => p + 1)}>Continuar</Button>
         ) : (
-          <Button onClick={enviarSolicitud} disabled={enviando || cargandoSesion}>
+          <Button onClick={enviarSolicitud} disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}>
             {enviando ? "Enviando…" : cargandoSesion ? "Validando sesión…" : "Confirmar solicitud"}
           </Button>
         )}

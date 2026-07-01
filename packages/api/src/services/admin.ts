@@ -13,6 +13,9 @@ type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 type IncidenciaRow = Database["public"]["Tables"]["incidencias"]["Row"];
 type DisputaRow = Database["public"]["Tables"]["disputas"]["Row"];
 type ReclamoSeguroRow = Database["public"]["Tables"]["reclamos_seguro"]["Row"];
+type PagoRow = Database["public"]["Tables"]["pagos"]["Row"];
+type PayoutRow = Database["public"]["Tables"]["payouts_conductor"]["Row"];
+type CuentaStripeConductorRow = Database["public"]["Tables"]["cuentas_conductor_stripe"]["Row"];
 type NotaRow = Database["public"]["Tables"]["notas_internas_traslado"]["Row"];
 type EvidenciaRow = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -22,6 +25,15 @@ type CausaFallido = Database["public"]["Enums"]["causa_fallido"];
 type EstadoDisputa = Database["public"]["Enums"]["estado_disputa"];
 type ResolucionDisputa = Database["public"]["Enums"]["resolucion_disputa"];
 type EstadoReclamoSeguro = Database["public"]["Enums"]["estado_reclamo_seguro"];
+type EstadoVerificacion = Database["public"]["Enums"]["estado_verificacion"];
+
+export interface DatosPagosAdmin {
+  pagosUsuarios: PagoRow[];
+  pasaportes: PasaporteRow[];
+  payoutsConductores: PayoutRow[];
+  cuentasStripeConductores: CuentaStripeConductorRow[];
+  conductores: ConductorRow[];
+}
 
 /** Admin asociado a la sesión de Supabase Auth actual, si existe (mismo patrón que obtenerUsuarioActual/obtenerConductorActual). */
 export async function obtenerAdminActual(cliente: Cliente) {
@@ -166,6 +178,58 @@ export async function listarUsuariosAdmin(cliente: Cliente): Promise<UsuarioRow[
   const { data, error } = await cliente.from("usuarios").select("*").order("creado_en", { ascending: false });
   if (error) throw error;
   return data ?? [];
+}
+
+export async function listarPagosAdmin(cliente: Cliente): Promise<DatosPagosAdmin> {
+  const [pagos, pasaportes, payouts, cuentasStripe, conductores] = await Promise.all([
+    cliente.from("pagos").select("*").order("registrado_en", { ascending: false }),
+    cliente.from("pasaporte_digital").select("*").order("creado_en", { ascending: false }),
+    cliente.from("payouts_conductor").select("*").order("periodo_inicio", { ascending: false }),
+    cliente.from("cuentas_conductor_stripe").select("*").order("actualizado_en", { ascending: false }),
+    cliente.from("conductores").select("*").order("creado_en", { ascending: false })
+  ]);
+
+  for (const resultado of [pagos, pasaportes, payouts, cuentasStripe, conductores]) {
+    if (resultado.error) throw resultado.error;
+  }
+
+  return {
+    pagosUsuarios: pagos.data ?? [],
+    pasaportes: pasaportes.data ?? [],
+    payoutsConductores: payouts.data ?? [],
+    cuentasStripeConductores: cuentasStripe.data ?? [],
+    conductores: conductores.data ?? []
+  };
+}
+
+export async function validarDocumentoUsuario(cliente: Cliente, usuarioId: string, estadoVerificacion: EstadoVerificacion) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+  const { error } = await cliente
+    .from("usuarios")
+    .update({ estado_verificacion: estadoVerificacion })
+    .eq("id", usuarioId);
+
+  if (error) throw error;
+
+  await registrarEvento(cliente, "validacion_documentos", "admin", adminId, {
+    usuario_id: usuarioId,
+    estado_verificacion: estadoVerificacion
+  });
+}
+
+export async function validarDocumentoConductor(cliente: Cliente, conductorId: string, aprobado: boolean) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+  const { error } = await cliente
+    .from("conductores")
+    .update({ documentos_vigentes: aprobado })
+    .eq("id", conductorId);
+
+  if (error) throw error;
+
+  await registrarEvento(cliente, "validacion_documentos", "admin", adminId, {
+    conductor_id: conductorId,
+    documentos_vigentes: aprobado
+  });
 }
 
 /** PRD §17.8 — lista de incidencias. */

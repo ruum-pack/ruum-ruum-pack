@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@ruum/ui";
+import { MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { crearCalificacion } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 
@@ -45,7 +46,7 @@ export function CalificarTraslado({
 
   return (
     <div className="mt-6 rounded-lg border border-signal/20 bg-signal-soft/35 px-4 py-4">
-      <p className="font-body text-sm font-semibold">Califica tu experiencia con el conductor</p>
+      <p className="font-body text-sm font-semibold">{MENSAJES_CLAVE_UX.calificacion}</p>
       <div className="mt-3 flex gap-1" aria-label="Calificación">
         {[1, 2, 3, 4, 5].map((valor) => (
           <button

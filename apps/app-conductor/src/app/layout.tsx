@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import { SincronizadorEvidenciaOffline } from "./SincronizadorEvidenciaOffline";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className={`${spaceGrotesk.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
+        <SincronizadorEvidenciaOffline />
         {children}
       </body>
     </html>

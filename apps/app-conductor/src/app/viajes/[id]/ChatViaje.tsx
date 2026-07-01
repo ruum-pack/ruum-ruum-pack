@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Chat, type MensajeChat, Button, Aviso } from "@ruum/ui";
+import { MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { chatDisponible } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
@@ -101,6 +102,11 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
       {errorLlamada && (
         <div className="mb-2">
           <Aviso tono="peligro">{errorLlamada}</Aviso>
+        </div>
+      )}
+      {disponible && (
+        <div className="mb-2">
+          <Aviso tono="info">{MENSAJES_CLAVE_UX.comunicacion}</Aviso>
         </div>
       )}
       <Chat

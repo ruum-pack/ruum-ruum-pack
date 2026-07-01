@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { obtenerPasaporteDigital } from "@ruum/api/services";
 import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
-import { ETIQUETA_TIPO_INCIDENCIA, ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
+import { ETIQUETA_TIPO_INCIDENCIA, ETIQUETA_TIPO_VEHICULO, MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
 import type { Database } from "@ruum/shared/types";
 import { PASAPORTE_DEMO } from "../../../lib/datos-demo";
@@ -483,6 +483,12 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
           </div>
         )}
 
+        {pasaporte.estado === "servicio_cerrado" && (
+          <div className="mt-6">
+            <Aviso tono="info">{MENSAJES_CLAVE_UX.cierre}</Aviso>
+          </div>
+        )}
+
         <dl className="mt-8 grid gap-4 border-t border-ink/10 pt-6 sm:grid-cols-4">
           <Dato etiqueta="Estado actual" valor={ETIQUETA_ESTADO_TRASLADO[pasaporte.estado]} />
           <Dato etiqueta="Conductor" valor={pasaporte.conductor_nombre ?? "Por asignar"} />
@@ -541,8 +547,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
             <Dato etiqueta="Canal autorizado" valor={conductor ? "Chat y llamada enmascarada" : "Pendiente"} />
           </dl>
           <p className="mt-5 font-body text-xs leading-5 text-ink/50">
-            La fotografía pública del conductor se mostrará cuando exista en el perfil verificado. El contacto se mantiene
-            dentro de canales autorizados de Ruum Ruum.
+            {pasaporte.conductor_id ? MENSAJES_CLAVE_UX.conductor_asignado : "Se mostrará cuando sea asignado."}
           </p>
           <CalificarTraslado
             trasladoId={pasaporte.traslado_id}
@@ -623,7 +628,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
           <div className="mt-6 space-y-6">
             <EvidenciaMomento
               titulo="Evidencia inicial"
-              descripcion="Fotos exteriores e interiores, kilometraje, combustible, tablero, placas, daños visibles, observaciones y confirmación inicial cuando aplique."
+              descripcion={MENSAJES_CLAVE_UX.evidencia_inicial}
               fotos={evidenciaInicial}
             />
             <EvidenciaDurante pasaporte={pasaporte} traslado={traslado} incidencias={incidencias} />
@@ -675,6 +680,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
 
         <PassportCard>
           <h2 className="font-display text-xl font-semibold">Pago y soporte</h2>
+          <p className="mt-1 font-body text-sm text-ink/55">{MENSAJES_CLAVE_UX.pago}</p>
           <dl className="mt-5 grid gap-4 sm:grid-cols-2">
             <Dato etiqueta="Tipo de pago" valor={pasaporte.tipo_pago.replace("_", " ")} />
             <Dato etiqueta="Precio cotizado" valor={formatoMoneda(pasaporte.precio_cotizado)} />
@@ -697,8 +703,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
           <div className="mt-6 rounded-lg border border-ink/10 px-4 py-4">
             <p className="font-body text-sm font-semibold">Contacto con soporte</p>
             <p className="mt-1 font-body text-sm text-ink/60">
-              Usa el chat del traslado para mensajes operativos. Si hay una incidencia abierta, soporte dará seguimiento
-              desde este mismo expediente.
+              {MENSAJES_CLAVE_UX.comunicacion} Si hay una incidencia abierta, soporte dará seguimiento desde este mismo expediente.
             </p>
             <div className="mt-4">
               <Link href={`/soporte?viaje=${pasaporte.traslado_id}`} className="font-body text-sm font-medium text-signal">

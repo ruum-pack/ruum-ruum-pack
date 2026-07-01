@@ -1,29 +1,51 @@
-import { Aviso, Button, PassportCard } from "@ruum/ui";
+"use client";
 
-const ESTADOS = ["Pendiente", "En revisión", "Aprobado", "Rechazado", "Pagado", "Revocado", "Ajustado"];
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Aviso, PassportCard } from "@ruum/ui";
+import { listarPagosAdmin, type DatosPagosAdmin } from "@ruum/api/services";
+import type { Database } from "@ruum/shared/types";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
-const PAGOS_USUARIOS = [
-  ["RR-TR-10291", "Daniela Fuentes", "Personal", "$1,800", "Tarjeta ****4242", "Pagado", "2026-06-29", "Factura pendiente"],
-  ["RR-TR-10302", "Agencia Norte", "Agencia Norte SA", "$3,450", "Transferencia", "En revisión", "2026-06-30", "CFDI solicitado"],
-  ["RR-TR-10309", "Ricardo Cervantes", "Personal", "$950", "Tarjeta ****1881", "Pendiente", "Sin pago", "No aplica"]
-];
+type Pago = Database["public"]["Tables"]["pagos"]["Row"];
+type Payout = Database["public"]["Tables"]["payouts_conductor"]["Row"];
+type CuentaStripe = Database["public"]["Tables"]["cuentas_conductor_stripe"]["Row"];
+type Conductor = Database["public"]["Tables"]["conductores"]["Row"];
+type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
-const PAGOS_CONDUCTORES = [
-  ["Conductor Demo", "Semana 26", "5", "$6,300", "$420 / $300", "$-150", "$6,450", "2026-07-03", "Pendiente"],
-  ["Conductora Demo 2", "Semana 26", "3", "$4,100", "$80 / $80", "$0", "$4,180", "2026-07-03", "Aprobado"],
-  ["Conductor Norte", "Semana 25", "4", "$5,200", "$300 / $300", "$-200", "$5,300", "2026-06-26", "Pagado"]
-];
+const DATOS_DEMO: DatosPagosAdmin = {
+  pagosUsuarios: [
+    {
+      id: "demo-pago-1",
+      traslado_id: "demo-admin-002",
+      monto: 1800,
+      momento: "anticipado",
+      estado: "completado",
+      metodo: "tarjeta",
+      registrado_en: new Date().toISOString(),
+      stripe_payment_intent_id: "pi_demo_4242",
+      stripe_event_id: "evt_demo_paid"
+    }
+  ],
+  pasaportes: [],
+  payoutsConductores: [],
+  cuentasStripeConductores: [],
+  conductores: []
+};
 
-const GASTOS = [
-  ["Peaje", "RR-TR-10291", "ticket-peaje.pdf", "$180", "Aprobado", "Finanzas"],
-  ["Combustible", "RR-TR-10302", "foto-ticket.jpg", "$240", "En revisión", "Pendiente"],
-  ["Estacionamiento", "RR-TR-10309", "sin comprobante", "$90", "Rechazado", "Finanzas"]
-];
+function moneda(monto: number | null | undefined) {
+  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(monto ?? 0);
+}
 
-function Tabla({ columnas, filas }: { columnas: string[]; filas: string[][] }) {
+function fecha(fechaIso: string | null | undefined) {
+  if (!fechaIso) return "Pendiente";
+  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(fechaIso));
+}
+
+function Tabla({ columnas, children }: { columnas: string[]; children: React.ReactNode }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] border-separate border-spacing-0 font-body text-sm">
+      <table className="w-full min-w-[860px] border-separate border-spacing-0 font-body text-sm">
         <thead>
           <tr>
             {columnas.map((columna) => (
@@ -33,63 +55,146 @@ function Tabla({ columnas, filas }: { columnas: string[]; filas: string[][] }) {
             ))}
           </tr>
         </thead>
-        <tbody>
-          {filas.map((fila) => (
-            <tr key={fila.join("-")} className="align-top">
-              {fila.map((celda) => (
-                <td key={celda} className="border-b border-ink/10 px-3 py-3 text-ink/70">
-                  {celda}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
+        <tbody>{children}</tbody>
       </table>
     </div>
   );
 }
 
+function Badge({ children }: { children: React.ReactNode }) {
+  return <span className="rounded-full border border-route/30 bg-route-soft px-2.5 py-1 font-body text-xs font-semibold text-route">{children}</span>;
+}
+
 export default function PaginaPagosAdmin() {
+  const [datos, setDatos] = useState<DatosPagosAdmin>(DATOS_DEMO);
+  const [esDemo, setEsDemo] = useState(true);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    async function cargar() {
+      if (!tieneSupabaseConfigurado()) {
+        setDatos(DATOS_DEMO);
+        setEsDemo(true);
+        setCargando(false);
+        return;
+      }
+
+      try {
+        const cliente = crearClienteNavegador();
+        setDatos(await listarPagosAdmin(cliente));
+        setEsDemo(false);
+      } catch {
+        setDatos(DATOS_DEMO);
+        setEsDemo(true);
+      } finally {
+        setCargando(false);
+      }
+    }
+    cargar();
+  }, []);
+
+  const pasaportePorId = useMemo(() => new Map<string, Pasaporte>(datos.pasaportes.map((p) => [p.traslado_id, p])), [datos.pasaportes]);
+  const conductorPorId = useMemo(() => new Map<string, Conductor>(datos.conductores.map((c) => [c.id, c])), [datos.conductores]);
+  const cuentaPorConductor = useMemo(
+    () => new Map<string, CuentaStripe>(datos.cuentasStripeConductores.map((cuenta) => [cuenta.conductor_id, cuenta])),
+    [datos.cuentasStripeConductores]
+  );
+
+  const pagos = datos.pagosUsuarios;
+  const payouts = datos.payoutsConductores;
+
   return (
     <main className="mx-auto max-w-6xl px-8 py-10">
       <h1 className="font-display text-2xl font-semibold">Pagos</h1>
-      <p className="mt-1 font-body text-sm text-ink/55">Cobros de usuarios, pagos a conductores y control de gastos.</p>
+      <p className="mt-1 font-body text-sm text-ink/55">Cobros reales de usuarios, Stripe y payouts de conductores.</p>
 
-      <div className="mt-4">
-        <Aviso tono="info">Estados disponibles: {ESTADOS.join(", ")}.</Aviso>
-      </div>
+      {esDemo && (
+        <div className="mt-4">
+          <Aviso tono="info">No se pudieron cargar datos reales de Supabase; se muestra un registro de ejemplo.</Aviso>
+        </div>
+      )}
 
-      <section className="mt-6 grid gap-6">
-        <PassportCard>
-          <div className="flex items-center justify-between gap-4">
+      {cargando ? (
+        <p className="mt-8 font-body text-sm text-ink/50">Cargando pagos...</p>
+      ) : (
+        <section className="mt-6 grid gap-6">
+          <PassportCard>
             <h2 className="font-display text-xl font-semibold">Pagos de usuarios</h2>
-            <Button variant="secundario">Conciliar pagos</Button>
-          </div>
-          <Tabla
-            columnas={["Viaje", "Usuario", "Empresa", "Tarifa", "Método de pago", "Estatus", "Fecha de pago", "Facturación"]}
-            filas={PAGOS_USUARIOS}
-          />
-        </PassportCard>
+            <Tabla columnas={["Viaje", "Vehículo", "Tarifa", "Método", "Estatus", "Stripe PaymentIntent", "Evento Stripe", "Fecha"]}>
+              {pagos.length === 0 ? (
+                <tr><td colSpan={8} className="px-3 py-6 text-ink/50">No hay pagos registrados.</td></tr>
+              ) : (
+                pagos.map((pago: Pago) => {
+                  const pasaporte = pasaportePorId.get(pago.traslado_id);
+                  const vehiculo = pasaporte ? [pasaporte.vehiculo_marca, pasaporte.vehiculo_modelo].filter(Boolean).join(" ") : "Sin pasaporte";
+                  return (
+                    <tr key={pago.id} className="align-top">
+                      <td className="border-b border-ink/10 px-3 py-3">
+                        <Link href={`/viajes/${pago.traslado_id}`} className="text-signal">
+                          {pago.traslado_id.slice(0, 8).toUpperCase()}
+                        </Link>
+                      </td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{vehiculo}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(pago.monto)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{pago.metodo} · {pago.momento.replace("_", " ")}</td>
+                      <td className="border-b border-ink/10 px-3 py-3"><Badge>{pago.estado}</Badge></td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{pago.stripe_payment_intent_id ?? "Pendiente"}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{pago.stripe_event_id ?? "Sin evento"}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{fecha(pago.registrado_en)}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </Tabla>
+          </PassportCard>
 
-        <PassportCard>
-          <div className="flex items-center justify-between gap-4">
+          <PassportCard>
             <h2 className="font-display text-xl font-semibold">Pagos a conductores</h2>
-            <Button variant="secundario">Preparar depósito semanal</Button>
-          </div>
-          <Tabla
-            columnas={["Conductor", "Semana", "Viajes", "Ganancias", "Gastos rep./aut.", "Ajustes", "Depósito esperado", "Fecha de pago", "Estatus"]}
-            filas={PAGOS_CONDUCTORES}
-          />
-        </PassportCard>
+            <Tabla columnas={["Conductor", "Periodo", "Bruto", "Ajustes", "Depósito neto", "Estatus", "Stripe Transfer", "Procesado"]}>
+              {payouts.length === 0 ? (
+                <tr><td colSpan={8} className="px-3 py-6 text-ink/50">No hay payouts registrados.</td></tr>
+              ) : (
+                payouts.map((payout: Payout) => {
+                  const conductor = conductorPorId.get(payout.conductor_id);
+                  return (
+                    <tr key={payout.id} className="align-top">
+                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{conductor?.nombre ?? payout.conductor_id.slice(0, 8)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{payout.periodo_inicio} → {payout.periodo_fin}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(payout.monto_bruto)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(payout.ajustes)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(payout.monto_neto)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3"><Badge>{payout.estado}</Badge></td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{payout.stripe_transfer_id ?? "Pendiente"}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{fecha(payout.procesado_en)}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </Tabla>
+          </PassportCard>
 
-        <PassportCard>
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="font-display text-xl font-semibold">Gastos</h2>
-            <Button variant="fantasma">Aprobar o rechazar</Button>
-          </div>
-          <Tabla columnas={["Tipo de gasto", "Viaje relacionado", "Comprobante", "Monto", "Estatus", "Aprobado por"]} filas={GASTOS} />
-        </PassportCard>
-      </section>
+          <PassportCard>
+            <h2 className="font-display text-xl font-semibold">Cuentas Stripe Connect</h2>
+            <Tabla columnas={["Conductor", "Stripe Account", "Estado", "Actualizado"]}>
+              {datos.cuentasStripeConductores.length === 0 ? (
+                <tr><td colSpan={4} className="px-3 py-6 text-ink/50">No hay cuentas Stripe Connect registradas.</td></tr>
+              ) : (
+                datos.cuentasStripeConductores.map((cuenta) => {
+                  const conductor = conductorPorId.get(cuenta.conductor_id);
+                  return (
+                    <tr key={cuenta.id} className="align-top">
+                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{conductor?.nombre ?? cuenta.conductor_id.slice(0, 8)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{cuenta.stripe_account_id}</td>
+                      <td className="border-b border-ink/10 px-3 py-3"><Badge>{cuenta.estado.replace("_", " ")}</Badge></td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{fecha(cuenta.actualizado_en)}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </Tabla>
+          </PassportCard>
+        </section>
+      )}
     </main>
   );
 }
