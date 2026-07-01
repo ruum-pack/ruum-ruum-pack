@@ -197,7 +197,7 @@ function TarjetaSLA({
       <div className="mt-3 flex items-center gap-2">
         <Link
           href={RUTA_DESTINO[alerta.tipo]}
-          className="flex-1 rounded-lg border border-ink/15 bg-mist py-2 text-center font-body text-xs text-ink/65 hover:bg-mist-dim transition-colors"
+          className="flex-1 rounded-lg border border-ink/50 bg-mist py-2 text-center font-body text-xs text-ink/65 hover:bg-mist-dim transition-colors"
         >
           {esUsuario ? "Ver usuario" : "Ver conductor"} →
         </Link>

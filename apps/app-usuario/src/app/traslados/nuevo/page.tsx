@@ -19,6 +19,7 @@ type ModalidadProgramacion = "lo_antes_posible" | "programado";
 type TipoRutaTraslado = "local" | "foraneo";
 type TipoServicioTraslado = "personal" | "empresarial" | "agencia" | "lote" | "flotilla";
 type MotivoServicioTraslado = "entrega_cliente" | "recuperacion" | "traslado_especial";
+type ErroresFormulario = Partial<Record<keyof DatosFormulario, string>>;
 
 interface DatosFormulario {
   // Vehículo — PRD §4.2
@@ -205,6 +206,7 @@ export default function PaginaNuevoTraslado() {
   const [cpConsultando, setCpConsultando] = useState<PrefijoDomicilio | null>(null);
   const [cpAviso, setCpAviso] = useState<Record<PrefijoDomicilio, string | null>>({ origen: null, destino: null });
   const [errorPaso, setErrorPaso] = useState<string | null>(null);
+  const [errores, setErrores] = useState<ErroresFormulario>({});
 
   // Si hay sesión real, usa el usuario real (PRD §4.6: su historial decide
   // pago anticipado vs. al cierre).
@@ -260,6 +262,12 @@ export default function PaginaNuevoTraslado() {
 
   function actualizar<K extends keyof DatosFormulario>(campo: K, valor: DatosFormulario[K]) {
     setErrorPaso(null);
+    setErrores((prev) => {
+      if (!prev[campo]) return prev;
+      const siguiente = { ...prev };
+      delete siguiente[campo];
+      return siguiente;
+    });
     setDatos((prev) => ({ ...prev, [campo]: valor }));
   }
 
@@ -310,44 +318,77 @@ export default function PaginaNuevoTraslado() {
     }
   }
 
+  function claseControl(campo: keyof DatosFormulario) {
+    return errores[campo] ? "border-danger" : "border-ink/50";
+  }
+
   function validarPasoActual() {
-    if (paso !== 1) return true;
+    const siguientesErrores: ErroresFormulario = {};
+    const agregarRequerido = (campo: keyof DatosFormulario, mensaje = "Completa este campo.") => {
+      const valor = datos[campo];
+      if (typeof valor === "string" && !valor.trim()) siguientesErrores[campo] = mensaje;
+    };
 
-    const requeridos = [
-      datos.origenCodigoPostal,
-      datos.origenEstado,
-      datos.origenCiudad,
-      datos.origenColonia,
-      datos.origenCalle,
-      datos.origenNumero,
-      datos.destinoCodigoPostal,
-      datos.destinoEstado,
-      datos.destinoCiudad,
-      datos.destinoColonia,
-      datos.destinoCalle,
-      datos.destinoNumero,
-      datos.entregaNombre,
-      datos.entregaApellido,
-      datos.recepcionNombre,
-      datos.recepcionApellido
-    ];
+    if (paso === 0) {
+      agregarRequerido("marca");
+      agregarRequerido("modelo");
+      agregarRequerido("color");
+      agregarRequerido("placas");
+      agregarRequerido("vin");
+      agregarRequerido("estadoGeneral", "Describe el estado general del vehículo.");
 
-    if (requeridos.some((valor) => !valor.trim())) {
-      setErrorPaso("Completa nombre, apellido, teléfonos y todos los campos de domicilio de origen y destino.");
-      return false;
+      const anioNumerico = Number(datos.anio);
+      const anioMaximo = new Date().getFullYear() + 1;
+      if (!datos.anio.trim()) {
+        siguientesErrores.anio = "Completa este campo.";
+      } else if (!Number.isInteger(anioNumerico) || anioNumerico < 1980 || anioNumerico > anioMaximo) {
+        siguientesErrores.anio = `Usa un año entre 1980 y ${anioMaximo}.`;
+      }
+
+      if (!datos.tieneTarjeta) siguientesErrores.tieneTarjeta = "Confirma que cuenta con tarjeta de circulación vigente.";
+      if (!datos.tieneVerificacion) siguientesErrores.tieneVerificacion = "Confirma que cuenta con verificación vigente.";
+      if (!datos.tienePlacas) siguientesErrores.tienePlacas = "Confirma que ambas placas están instaladas.";
+      if (!datos.puedeCircular) siguientesErrores.puedeCircular = "Confirma que el vehículo puede circular rodando.";
     }
 
-    if (datos.origenCodigoPostal.length !== 5 || datos.destinoCodigoPostal.length !== 5) {
-      setErrorPaso("El Código Postal debe tener 5 dígitos en origen y destino.");
-      return false;
+    if (paso === 1) {
+      ([
+        "origenCodigoPostal",
+        "origenEstado",
+        "origenCiudad",
+        "origenColonia",
+        "origenCalle",
+        "origenNumero",
+        "destinoCodigoPostal",
+        "destinoEstado",
+        "destinoCiudad",
+        "destinoColonia",
+        "destinoCalle",
+        "destinoNumero",
+        "entregaNombre",
+        "entregaApellido",
+        "recepcionNombre",
+        "recepcionApellido"
+      ] as const).forEach((campo) => agregarRequerido(campo));
+
+      if (datos.origenCodigoPostal && datos.origenCodigoPostal.length !== 5) {
+        siguientesErrores.origenCodigoPostal = "El Código Postal debe tener 5 dígitos.";
+      }
+      if (datos.destinoCodigoPostal && datos.destinoCodigoPostal.length !== 5) {
+        siguientesErrores.destinoCodigoPostal = "El Código Postal debe tener 5 dígitos.";
+      }
+      if (datos.entregaTelefono.length !== 10) {
+        siguientesErrores.entregaTelefono = "Captura 10 dígitos; el prefijo +52 ya está aplicado.";
+      }
+      if (datos.recepcionTelefono.length !== 10) {
+        siguientesErrores.recepcionTelefono = "Captura 10 dígitos; el prefijo +52 ya está aplicado.";
+      }
     }
 
-    if (datos.entregaTelefono.length !== 10 || datos.recepcionTelefono.length !== 10) {
-      setErrorPaso("Los teléfonos deben capturarse a 10 dígitos; el prefijo +52 ya está aplicado.");
-      return false;
-    }
-
-    return true;
+    const totalErrores = Object.keys(siguientesErrores).length;
+    setErrores(siguientesErrores);
+    setErrorPaso(totalErrores ? `${totalErrores} ${totalErrores === 1 ? "campo requiere" : "campos requieren"} atención.` : null);
+    return totalErrores === 0;
   }
 
   async function enviarSolicitud() {
@@ -537,60 +578,72 @@ export default function PaginaNuevoTraslado() {
       <div className="mt-8">
         {paso === 0 && (
           <PassportCard>
-            <div className="grid gap-4">
-              <p className="font-body text-sm font-semibold">¿Qué vehículo vamos a mover?</p>
-              <label className="flex flex-col gap-1.5">
-                <span className="font-body text-sm font-medium">Tipo de vehículo</span>
-                <select
-                  value={datos.tipo}
-                  onChange={(e) => actualizar("tipo", e.target.value as TipoVehiculo)}
-                  className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
-                >
-                  {Object.entries(ETIQUETA_TIPO_VEHICULO).map(([valor, etiqueta]) => (
-                    <option key={valor} value={valor}>
-                      {etiqueta}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className="font-body text-sm font-medium">Transmisión</span>
-                <select
-                  value={datos.transmision}
-                  onChange={(e) => actualizar("transmision", e.target.value as TransmisionVehiculo)}
-                  className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
-                >
-                  <option value="automatica">Automática</option>
-                  <option value="manual">Manual</option>
-                </select>
-              </label>
-              <Field etiqueta="Marca" value={datos.marca} onChange={(e) => actualizar("marca", e.target.value)} />
-              <Field etiqueta="Modelo" value={datos.modelo} onChange={(e) => actualizar("modelo", e.target.value)} />
-              <Field
-                etiqueta="Año"
-                type="number"
-                min={1980}
-                max={new Date().getFullYear() + 1}
-                value={datos.anio}
-                onChange={(e) => actualizar("anio", e.target.value)}
-              />
-              <Field etiqueta="Color" value={datos.color} onChange={(e) => actualizar("color", e.target.value)} />
-              <Field etiqueta="Placas" value={datos.placas} onChange={(e) => actualizar("placas", e.target.value)} />
-              <Field
-                etiqueta="Número de serie / VIN"
-                value={datos.vin}
-                onChange={(e) => actualizar("vin", e.target.value)}
-              />
-              <label className="flex flex-col gap-1.5">
-                <span className="font-body text-sm font-medium">Estado general declarado</span>
-                <textarea
-                  value={datos.estadoGeneral}
-                  onChange={(e) => actualizar("estadoGeneral", e.target.value)}
-                  className="min-h-24 rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+            <div className="grid gap-6">
+              <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
+                <div>
+                  <p className="font-body text-sm font-semibold">Datos del vehículo</p>
+                  <p className="mt-1 font-body text-xs text-ink/65">Identificación básica para cotizar y documentar el traslado.</p>
+                </div>
+                <label className="flex flex-col gap-1.5">
+                  <span className="font-body text-sm font-medium">Tipo de vehículo</span>
+                  <select
+                    value={datos.tipo}
+                    onChange={(e) => actualizar("tipo", e.target.value as TipoVehiculo)}
+                    className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
+                  >
+                    {Object.entries(ETIQUETA_TIPO_VEHICULO).map(([valor, etiqueta]) => (
+                      <option key={valor} value={valor}>
+                        {etiqueta}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="font-body text-sm font-medium">Transmisión</span>
+                  <select
+                    value={datos.transmision}
+                    onChange={(e) => actualizar("transmision", e.target.value as TransmisionVehiculo)}
+                    className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
+                  >
+                    <option value="automatica">Automática</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                </label>
+                <Field etiqueta="Marca" value={datos.marca} onChange={(e) => actualizar("marca", e.target.value)} error={errores.marca} />
+                <Field etiqueta="Modelo" value={datos.modelo} onChange={(e) => actualizar("modelo", e.target.value)} error={errores.modelo} />
+                <Field
+                  etiqueta="Año"
+                  type="number"
+                  min={1980}
+                  max={new Date().getFullYear() + 1}
+                  value={datos.anio}
+                  onChange={(e) => actualizar("anio", e.target.value)}
+                  error={errores.anio}
                 />
-              </label>
-              <div className="grid gap-3 border-t border-ink/10 pt-4">
-                <p className="font-body text-sm font-semibold">Documentación y condición mínima</p>
+                <Field etiqueta="Color" value={datos.color} onChange={(e) => actualizar("color", e.target.value)} error={errores.color} />
+                <Field etiqueta="Placas" value={datos.placas} onChange={(e) => actualizar("placas", e.target.value)} error={errores.placas} />
+                <Field
+                  etiqueta="Número de serie / VIN"
+                  value={datos.vin}
+                  onChange={(e) => actualizar("vin", e.target.value)}
+                  error={errores.vin}
+                />
+                <label className="flex flex-col gap-1.5">
+                  <span className="font-body text-sm font-medium">Estado general declarado</span>
+                  <textarea
+                    value={datos.estadoGeneral}
+                    onChange={(e) => actualizar("estadoGeneral", e.target.value)}
+                    className={`min-h-24 rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route ${claseControl("estadoGeneral")}`}
+                    aria-invalid={Boolean(errores.estadoGeneral)}
+                  />
+                  {errores.estadoGeneral && <p className="font-body text-xs text-danger">{errores.estadoGeneral}</p>}
+                </label>
+              </div>
+              <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
+                <div>
+                  <p className="font-body text-sm font-semibold">Documentación mínima requerida</p>
+                  <p className="mt-1 font-body text-xs text-ink/65">Confirma los requisitos para que el conductor pueda recibir el vehículo.</p>
+                </div>
                 {(
                   [
                     ["tieneTarjeta", "Tarjeta de circulación vigente"],
@@ -599,15 +652,19 @@ export default function PaginaNuevoTraslado() {
                     ["puedeCircular", "El vehículo enciende y puede circular rodando"]
                   ] as const
                 ).map(([campo, etiqueta]) => (
-                  <label key={campo} className="flex items-center gap-2.5 font-body text-sm">
-                    <input
-                      type="checkbox"
-                      checked={datos[campo]}
-                      onChange={(e) => actualizar(campo, e.target.checked)}
-                      className="size-4 rounded border-ink/30 text-signal focus-visible:outline-route"
-                    />
-                    {etiqueta}
-                  </label>
+                  <div key={campo} className="grid gap-1">
+                    <label className="flex items-center gap-2.5 font-body text-sm">
+                      <input
+                        type="checkbox"
+                        checked={datos[campo]}
+                        onChange={(e) => actualizar(campo, e.target.checked)}
+                        className={`size-5 rounded text-signal focus-visible:outline-route ${errores[campo] ? "border-danger" : "border-ink/50"}`}
+                        aria-invalid={Boolean(errores[campo])}
+                      />
+                      {etiqueta}
+                    </label>
+                    {errores[campo] && <p className="pl-7 font-body text-xs text-danger">{errores[campo]}</p>}
+                  </div>
                 ))}
                 {!datos.puedeCircular && (
                   <Aviso tono="atencion">
@@ -634,31 +691,37 @@ export default function PaginaNuevoTraslado() {
                     inputMode="numeric"
                     maxLength={5}
                     ayuda={cpConsultando === "origen" ? "Consultando CP..." : cpAviso.origen}
+                    error={errores.origenCodigoPostal}
                   />
                   <Field
                     etiqueta="Estado"
                     value={datos.origenEstado}
                     onChange={(e) => actualizar("origenEstado", e.target.value)}
+                    error={errores.origenEstado}
                   />
                   <Field
                     etiqueta="Ciudad"
                     value={datos.origenCiudad}
                     onChange={(e) => actualizar("origenCiudad", e.target.value)}
+                    error={errores.origenCiudad}
                   />
                   <Field
                     etiqueta="Colonia"
                     value={datos.origenColonia}
                     onChange={(e) => actualizar("origenColonia", e.target.value)}
+                    error={errores.origenColonia}
                   />
                   <Field
                     etiqueta="Calle"
                     value={datos.origenCalle}
                     onChange={(e) => actualizar("origenCalle", e.target.value)}
+                    error={errores.origenCalle}
                   />
                   <Field
                     etiqueta="Número"
                     value={datos.origenNumero}
                     onChange={(e) => actualizar("origenNumero", e.target.value)}
+                    error={errores.origenNumero}
                   />
                 </div>
                 <Field
@@ -699,31 +762,37 @@ export default function PaginaNuevoTraslado() {
                     inputMode="numeric"
                     maxLength={5}
                     ayuda={cpConsultando === "destino" ? "Consultando CP..." : cpAviso.destino}
+                    error={errores.destinoCodigoPostal}
                   />
                   <Field
                     etiqueta="Estado"
                     value={datos.destinoEstado}
                     onChange={(e) => actualizar("destinoEstado", e.target.value)}
+                    error={errores.destinoEstado}
                   />
                   <Field
                     etiqueta="Ciudad"
                     value={datos.destinoCiudad}
                     onChange={(e) => actualizar("destinoCiudad", e.target.value)}
+                    error={errores.destinoCiudad}
                   />
                   <Field
                     etiqueta="Colonia"
                     value={datos.destinoColonia}
                     onChange={(e) => actualizar("destinoColonia", e.target.value)}
+                    error={errores.destinoColonia}
                   />
                   <Field
                     etiqueta="Calle"
                     value={datos.destinoCalle}
                     onChange={(e) => actualizar("destinoCalle", e.target.value)}
+                    error={errores.destinoCalle}
                   />
                   <Field
                     etiqueta="Número"
                     value={datos.destinoNumero}
                     onChange={(e) => actualizar("destinoNumero", e.target.value)}
+                    error={errores.destinoNumero}
                   />
                 </div>
                 <Field
@@ -739,16 +808,18 @@ export default function PaginaNuevoTraslado() {
                   etiqueta="Nombre"
                   value={datos.entregaNombre}
                   onChange={(e) => actualizar("entregaNombre", e.target.value)}
+                  error={errores.entregaNombre}
                 />
                 <Field
                   etiqueta="Apellido"
                   value={datos.entregaApellido}
                   onChange={(e) => actualizar("entregaApellido", e.target.value)}
+                  error={errores.entregaApellido}
                 />
               </div>
               <label className="flex flex-col gap-1.5">
                 <span className="font-body text-sm font-medium">Teléfono</span>
-                <div className="flex overflow-hidden rounded-lg border border-ink/15 bg-mist">
+                <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("entregaTelefono")}`}>
                   <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">
                     +52
                   </span>
@@ -757,10 +828,12 @@ export default function PaginaNuevoTraslado() {
                     onChange={(e) => actualizarTelefono("entregaTelefono", e.target.value)}
                     inputMode="numeric"
                     maxLength={10}
-                    className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                    className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
                     placeholder="10 dígitos"
+                    aria-invalid={Boolean(errores.entregaTelefono)}
                   />
                 </div>
+                {errores.entregaTelefono && <p className="font-body text-xs text-danger">{errores.entregaTelefono}</p>}
               </label>
               <p className="mt-2 font-body text-sm font-semibold">Quien recibe el vehículo</p>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -768,16 +841,18 @@ export default function PaginaNuevoTraslado() {
                   etiqueta="Nombre"
                   value={datos.recepcionNombre}
                   onChange={(e) => actualizar("recepcionNombre", e.target.value)}
+                  error={errores.recepcionNombre}
                 />
                 <Field
                   etiqueta="Apellido"
                   value={datos.recepcionApellido}
                   onChange={(e) => actualizar("recepcionApellido", e.target.value)}
+                  error={errores.recepcionApellido}
                 />
               </div>
               <label className="flex flex-col gap-1.5">
                 <span className="font-body text-sm font-medium">Teléfono</span>
-                <div className="flex overflow-hidden rounded-lg border border-ink/15 bg-mist">
+                <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("recepcionTelefono")}`}>
                   <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">
                     +52
                   </span>
@@ -786,17 +861,19 @@ export default function PaginaNuevoTraslado() {
                     onChange={(e) => actualizarTelefono("recepcionTelefono", e.target.value)}
                     inputMode="numeric"
                     maxLength={10}
-                    className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                    className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
                     placeholder="10 dígitos"
+                    aria-invalid={Boolean(errores.recepcionTelefono)}
                   />
                 </div>
+                {errores.recepcionTelefono && <p className="font-body text-xs text-danger">{errores.recepcionTelefono}</p>}
               </label>
               <label className="flex flex-col gap-1.5">
                 <span className="font-body text-sm font-medium">Instrucciones especiales</span>
                 <textarea
                   value={datos.instruccionesEspeciales}
                   onChange={(e) => actualizar("instruccionesEspeciales", e.target.value)}
-                  className="min-h-24 rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                  className="min-h-24 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
                 />
               </label>
             </div>
@@ -812,7 +889,7 @@ export default function PaginaNuevoTraslado() {
                 <select
                   value={datos.modalidadProgramacion}
                   onChange={(e) => actualizar("modalidadProgramacion", e.target.value as ModalidadProgramacion)}
-                  className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
+                  className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
                 >
                   <option value="lo_antes_posible">Lo antes posible</option>
                   <option value="programado">Programar fecha y hora</option>
@@ -831,7 +908,7 @@ export default function PaginaNuevoTraslado() {
                 <select
                   value={datos.tipoRuta}
                   onChange={(e) => actualizar("tipoRuta", e.target.value as TipoRutaTraslado)}
-                  className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
+                  className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
                 >
                   <option value="local">Local</option>
                   <option value="foraneo">Foráneo</option>
@@ -863,7 +940,7 @@ export default function PaginaNuevoTraslado() {
                   <select
                     value={datos.tipoServicio}
                     onChange={(e) => actualizar("tipoServicio", e.target.value as TipoServicioTraslado)}
-                    className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
+                    className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
                   >
                     <option value="personal">Traslado personal</option>
                     <option value="empresarial">Traslado empresarial</option>
@@ -877,7 +954,7 @@ export default function PaginaNuevoTraslado() {
                   <select
                     value={datos.motivoServicio}
                     onChange={(e) => actualizar("motivoServicio", e.target.value as MotivoServicioTraslado)}
-                    className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
+                    className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
                   >
                     <option value="entrega_cliente">Entrega a cliente</option>
                     <option value="recuperacion">Recuperación</option>
@@ -925,7 +1002,7 @@ export default function PaginaNuevoTraslado() {
                 type="checkbox"
                 checked={aceptaPoliticasPagoCancelacion}
                 onChange={(e) => setAceptaPoliticasPagoCancelacion(e.target.checked)}
-                className="mt-0.5 size-4 rounded border-ink/30 text-signal focus-visible:outline-route"
+                className="mt-0.5 size-5 rounded border-ink/50 text-signal focus-visible:outline-route"
               />
               <span>Acepto la política de cancelación y que el pago es solo por medios electrónicos.</span>
             </label>

@@ -380,7 +380,7 @@ export default function PaginaDetalleViajeAdmin() {
             <select
               value={conductorSeleccionado}
               onChange={(e) => setConductorSeleccionado(e.target.value)}
-              className="flex-1 rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm"
+              className="flex-1 rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm"
             >
               <option value="">Selecciona un conductor</option>
               {conductores.map((c) => (
@@ -401,7 +401,7 @@ export default function PaginaDetalleViajeAdmin() {
             <select
               value={estadoSeleccionado}
               onChange={(e) => setEstadoSeleccionado(e.target.value as EstadoTraslado)}
-              className="flex-1 rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm"
+              className="flex-1 rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm"
               disabled={siguientesEstados.length === 0}
             >
               <option value="">{siguientesEstados.length === 0 ? "Sin transiciones disponibles" : "Selecciona el nuevo estatus"}</option>
@@ -455,7 +455,7 @@ export default function PaginaDetalleViajeAdmin() {
             <select
               value={causaFallido}
               onChange={(e) => setCausaFallido(e.target.value as CausaFallido)}
-              className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm"
+              className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm"
             >
               {CAUSAS_FALLIDO.map((causa) => (
                 <option key={causa.valor} value={causa.valor}>

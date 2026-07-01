@@ -77,7 +77,7 @@ function AccionesEmpresa({ empresa, onActualizado }: { empresa: Empresa; onActua
         <textarea
           value={condicionesPago}
           onChange={(e) => setCondicionesPago(e.target.value)}
-          className="min-h-20 rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+          className="min-h-20 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
           placeholder="Ej. Pago por transferencia semanal, 7 días contra factura"
         />
       </label>

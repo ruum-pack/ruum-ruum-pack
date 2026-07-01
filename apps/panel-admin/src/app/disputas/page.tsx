@@ -81,17 +81,17 @@ function AccionDisputa({ disputa, onActualizada }: { disputa: Disputa; onActuali
 
   return (
     <div className="mt-5 grid gap-3 border-t border-ink/10 pt-4 md:grid-cols-[1fr_1fr_1.5fr_auto]">
-      <select value={estado} onChange={(evento) => setEstado(evento.target.value as EstadoDisputa)} className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm">
+      <select value={estado} onChange={(evento) => setEstado(evento.target.value as EstadoDisputa)} className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm">
         {["abierta", "en_revision", "resuelta", "escalada", "resuelta_senior"].map((valor) => (
           <option key={valor} value={valor}>{valor.replaceAll("_", " ")}</option>
         ))}
       </select>
-      <select value={resolucion} onChange={(evento) => setResolucion(evento.target.value as ResolucionDisputa)} className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm">
+      <select value={resolucion} onChange={(evento) => setResolucion(evento.target.value as ResolucionDisputa)} className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm">
         {["favor_reclamante", "en_contra", "solucion_parcial"].map((valor) => (
           <option key={valor} value={valor}>{valor.replaceAll("_", " ")}</option>
         ))}
       </select>
-      <input value={detalle} onChange={(evento) => setDetalle(evento.target.value)} className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm" placeholder="Detalle de resolución" />
+      <input value={detalle} onChange={(evento) => setDetalle(evento.target.value)} className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm" placeholder="Detalle de resolución" />
       <Button onClick={guardar} disabled={pendiente}>{pendiente ? "Guardando..." : "Guardar"}</Button>
       {mensaje && <p className="md:col-span-4 font-body text-sm text-ink/60">{mensaje}</p>}
     </div>

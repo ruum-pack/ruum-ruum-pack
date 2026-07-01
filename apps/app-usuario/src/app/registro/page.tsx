@@ -317,7 +317,7 @@ export default function PaginaRegistro() {
         </div>
         <label className="flex flex-col gap-1.5">
           <span className="font-body text-sm font-medium">Teléfono</span>
-          <div className="flex overflow-hidden rounded-lg border border-ink/15 bg-mist">
+          <div className="flex overflow-hidden rounded-lg border border-ink/50 bg-mist">
             <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">
               +52
             </span>
@@ -329,7 +329,7 @@ export default function PaginaRegistro() {
               maxLength={10}
               required
               autoComplete="tel-national"
-              className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+              className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
               placeholder="10 dígitos"
             />
           </div>
@@ -366,7 +366,7 @@ export default function PaginaRegistro() {
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5">
             <span className="font-body text-sm font-medium">Contraseña</span>
-            <div className="flex overflow-hidden rounded-lg border border-ink/15 bg-mist">
+            <div className="flex overflow-hidden rounded-lg border border-ink/50 bg-mist">
               <input
                 type={mostrarPassword ? "text" : "password"}
                 value={password}
@@ -374,13 +374,13 @@ export default function PaginaRegistro() {
                 required
                 minLength={6}
                 autoComplete="new-password"
-                className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
               />
             </div>
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="font-body text-sm font-medium">Confirmar contraseña</span>
-            <div className="flex overflow-hidden rounded-lg border border-ink/15 bg-mist">
+            <div className="flex overflow-hidden rounded-lg border border-ink/50 bg-mist">
               <input
                 type={mostrarPassword ? "text" : "password"}
                 value={confirmarPassword}
@@ -388,7 +388,7 @@ export default function PaginaRegistro() {
                 required
                 minLength={6}
                 autoComplete="new-password"
-                className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
               />
             </div>
           </label>
@@ -398,7 +398,7 @@ export default function PaginaRegistro() {
             type="checkbox"
             checked={mostrarPassword}
             onChange={(e) => setMostrarPassword(e.target.checked)}
-            className="size-4 rounded border-ink/30 accent-signal"
+            className="size-5 rounded border-ink/50 accent-signal"
           />
           Mostrar contraseña
         </label>
@@ -407,7 +407,7 @@ export default function PaginaRegistro() {
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
-              className="mt-0.5 h-4 w-4 rounded border-ink/30 accent-signal"
+              className="mt-0.5 h-5 w-5 rounded border-ink/50 accent-signal"
               checked={aceptaTerminos}
               onChange={(e) => setAceptaTerminos(e.target.checked)}
               required

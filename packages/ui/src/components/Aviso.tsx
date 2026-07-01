@@ -19,7 +19,7 @@ const ESTILOS = {
  */
 export function Aviso({ tono = "info", children }: AvisoProps) {
   return (
-    <div role="status" className={`rounded-lg border px-3.5 py-3 font-body text-sm ${ESTILOS[tono]}`}>
+    <div role={tono === "peligro" ? "alert" : "status"} className={`rounded-lg border px-3.5 py-3 font-body text-sm ${ESTILOS[tono]}`}>
       {children}
     </div>
   );

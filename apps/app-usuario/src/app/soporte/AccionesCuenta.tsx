@@ -45,7 +45,7 @@ export function AccionesCuenta() {
             type="checkbox"
             checked={confirmarCerrar}
             onChange={(e) => setConfirmarCerrar(e.target.checked)}
-            className="size-4 rounded border-ink/30 text-signal"
+            className="size-5 rounded border-ink/50 text-signal"
           />
           Confirmo que quiero cerrar sesión.
         </label>

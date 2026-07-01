@@ -63,14 +63,14 @@ export function ReportarIncidenciaUsuario({ trasladoId }: { trasladoId: string }
         </div>
       )}
       <div className="mt-4 grid gap-3">
-        <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoIncidencia)} className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm">
+        <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoIncidencia)} className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm">
           {TIPOS.map((opcion) => (
             <option key={opcion} value={opcion}>
               {ETIQUETA_TIPO_INCIDENCIA[opcion]}
             </option>
           ))}
         </select>
-        <select value={momento} onChange={(e) => setMomento(e.target.value as MomentoIncidencia)} className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm">
+        <select value={momento} onChange={(e) => setMomento(e.target.value as MomentoIncidencia)} className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm">
           {MOMENTOS.map((opcion) => (
             <option key={opcion.valor} value={opcion.valor}>
               {opcion.etiqueta}

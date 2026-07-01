@@ -69,17 +69,17 @@ function AccionReclamo({ reclamo, onActualizado }: { reclamo: Reclamo; onActuali
 
   return (
     <div className="mt-5 grid gap-3 border-t border-ink/10 pt-4 md:grid-cols-[1fr_1fr_1.5fr_auto]">
-      <select value={estado} onChange={(evento) => setEstado(evento.target.value as EstadoReclamo)} className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm">
+      <select value={estado} onChange={(evento) => setEstado(evento.target.value as EstadoReclamo)} className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm">
         {["abierto", "en_revision", "resuelto"].map((valor) => (
           <option key={valor} value={valor}>{valor.replaceAll("_", " ")}</option>
         ))}
       </select>
-      <select value={responsable} onChange={(evento) => setResponsable(evento.target.value as ResponsablePago | "")} className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm">
+      <select value={responsable} onChange={(evento) => setResponsable(evento.target.value as ResponsablePago | "")} className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm">
         <option value="">Responsable pendiente</option>
         <option value="aplicacion">Aplicación</option>
         <option value="conductor">Conductor</option>
       </select>
-      <input value={notas} onChange={(evento) => setNotas(evento.target.value)} className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm" placeholder="Notas internas" />
+      <input value={notas} onChange={(evento) => setNotas(evento.target.value)} className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm" placeholder="Notas internas" />
       <Button onClick={guardar} disabled={pendiente}>{pendiente ? "Guardando..." : "Guardar"}</Button>
       {mensaje && <p className="md:col-span-4 font-body text-sm text-ink/60">{mensaje}</p>}
     </div>

@@ -195,7 +195,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
       <Field etiqueta="Fotografía" value={fotoUrl} onChange={(e) => setFotoUrl(e.target.value)} placeholder="URL de foto" />
       <label className="flex flex-col gap-1.5">
         <span className="font-body text-sm font-medium">Teléfono</span>
-        <div className="flex overflow-hidden rounded-lg border border-ink/15 bg-mist">
+        <div className="flex overflow-hidden rounded-lg border border-ink/50 bg-mist">
           <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">+52</span>
           <input
             type="tel"
@@ -205,7 +205,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
             maxLength={10}
             required
             autoComplete="tel-national"
-            className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+            className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
             placeholder="10 dígitos"
           />
         </div>

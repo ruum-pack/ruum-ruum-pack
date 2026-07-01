@@ -31,11 +31,11 @@
   --color-signal-soft: #ffe0d2;
   --color-route: #1758f2;
   --color-route-soft: #dbe7fd;
-  --color-control: #16b378;
+  --color-control: #08734f;
   --color-control-soft: #d7f3e7;
-  --color-warn: #b8791f;
+  --color-warn: #76500e;
   --color-warn-soft: #f3dba0;
-  --color-danger: #e23d3d;
+  --color-danger: #b32626;
   --color-danger-soft: #fbdcdc;
 
   /* Alias de compatibilidad: el código existente sigue usando paper/ok,

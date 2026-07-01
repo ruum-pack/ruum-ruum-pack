@@ -83,14 +83,14 @@ function CampoReporte({ etiqueta, children }: { etiqueta: string; children: Reac
 }
 
 function SelectBase({ children }: { children: React.ReactNode }) {
-  return <select className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm">{children}</select>;
+  return <select className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm">{children}</select>;
 }
 
 function TextAreaBase() {
   return (
     <textarea
       rows={4}
-      className="rounded-lg border border-ink/15 bg-mist px-3.5 py-2.5 font-body text-sm"
+      className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
       placeholder="Describe lo que pasó, incluye ubicación aproximada, hora y cualquier evidencia relevante."
     />
   );
@@ -100,7 +100,7 @@ function TogglePreferencia({ etiqueta, activo }: { etiqueta: string; activo: boo
   return (
     <label className="flex items-center justify-between gap-4 border-t border-ink/10 py-3 first:border-t-0">
       <span className="font-body text-sm text-ink">{etiqueta}</span>
-      <input type="checkbox" defaultChecked={activo} className="size-5 rounded border-ink/30 text-signal" />
+      <input type="checkbox" defaultChecked={activo} className="size-5 rounded border-ink/50 text-signal" />
     </label>
   );
 }

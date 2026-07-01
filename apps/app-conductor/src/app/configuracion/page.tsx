@@ -196,7 +196,7 @@ export default function PaginaConfiguracion() {
                 <p className="font-body text-xs uppercase tracking-wide text-ink/45">Documentos principales</p>
                 <h2 className="mt-1 font-display text-xl font-semibold">Expediente del conductor</h2>
               </div>
-              <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-signal bg-signal px-4 py-2 font-body text-sm font-semibold text-mist">
+              <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-signal bg-signal px-4 py-2 font-body text-sm font-semibold text-ink">
                 Subir archivo o fotografía
                 <input type="file" accept="image/*,.pdf" className="sr-only" onChange={() => setMensaje("Archivo recibido en modo demo.")} />
               </label>

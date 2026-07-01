@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body className={`${spaceGrotesk.variable} ${inter.variable} ${plexMono.variable} flex min-h-screen`}>
         <BarraLateral />
-        <div className="flex-1 overflow-y-auto">{children}</div>
+        <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
       </body>
     </html>
   );

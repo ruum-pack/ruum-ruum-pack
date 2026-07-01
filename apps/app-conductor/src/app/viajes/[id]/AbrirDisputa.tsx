@@ -61,7 +61,7 @@ export function AbrirDisputaConductor({
         <select
           value={tipo}
           onChange={(evento) => setTipo(evento.target.value as TipoDisputa)}
-          className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm"
+          className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm"
         >
           {TIPOS.map((valor) => (
             <option key={valor} value={valor}>
@@ -72,7 +72,7 @@ export function AbrirDisputaConductor({
         <textarea
           value={descripcion}
           onChange={(evento) => setDescripcion(evento.target.value)}
-          className="min-h-24 rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm"
+          className="min-h-24 rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm"
           placeholder="Describe qué debe revisar operación"
         />
       </div>

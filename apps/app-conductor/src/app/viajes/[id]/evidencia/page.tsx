@@ -44,6 +44,39 @@ function tipoEvidenciaPorEstado(estado: EstadoTraslado): TipoEvidencia | null {
   return null;
 }
 
+function IconoCheck() {
+  return (
+    <svg viewBox="0 0 20 20" className="size-4 shrink-0" aria-hidden>
+      <circle cx="10" cy="10" r="9" fill="currentColor" />
+      <path d="M6 10.2 8.6 13 14.2 7" fill="none" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function IconoReloj() {
+  return (
+    <svg viewBox="0 0 20 20" className="size-4 shrink-0" aria-hidden>
+      <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path d="M10 5.8v4.6l3 1.8" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function BadgeSincronizacion({ sincronizada }: { sincronizada: boolean }) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1",
+        "font-body text-xs font-semibold",
+        sincronizada ? "border-control/30 bg-control-soft text-control" : "border-warn/40 bg-warn-soft text-warn"
+      ].join(" ")}
+    >
+      {sincronizada ? <IconoCheck /> : <IconoReloj />}
+      {sincronizada ? "Sincronizada" : "Pendiente de subir"}
+    </span>
+  );
+}
+
 export default function PaginaEvidencia() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -313,11 +346,9 @@ export default function PaginaEvidencia() {
               <div key={angulo} className="flex items-center justify-between gap-4 border-b border-ink/10 pb-3 last:border-0 last:pb-0">
                 <span className="font-body text-sm">{ETIQUETA_ANGULO[angulo]}</span>
                 {yaCapturado ? (
-                  <span className={foto?.sincronizada ? "font-body text-xs font-medium text-control" : "font-body text-xs font-medium text-warn"}>
-                    {foto?.sincronizada ? "Sincronizada" : "Pendiente de subir"}
-                  </span>
+                  <BadgeSincronizacion sincronizada={Boolean(foto?.sincronizada)} />
                 ) : (
-                  <Button variant="secundario" onClick={() => capturar(angulo)} disabled={enviando === angulo}>
+                  <Button variant="secundario" onClick={() => capturar(angulo)} loading={enviando === angulo}>
                     {enviando === angulo ? "Guardando…" : esNativo() ? "Tomar foto" : "Marcar capturado"}
                   </Button>
                 )}
@@ -331,7 +362,7 @@ export default function PaginaEvidencia() {
         <p className="font-mono-ruum text-xs uppercase tracking-wide text-ink/50">
           {ANGULOS_OBLIGATORIOS.length - resultado.angulosFaltantes.length} / {ANGULOS_OBLIGATORIOS.length} ángulos
         </p>
-        <Button onClick={confirmar} disabled={!resultado.completa || enviando === "confirmar"}>
+        <Button onClick={confirmar} disabled={!resultado.completa} loading={enviando === "confirmar"}>
           {enviando === "confirmar" ? "Confirmando…" : "Confirmar evidencia completa"}
         </Button>
       </div>

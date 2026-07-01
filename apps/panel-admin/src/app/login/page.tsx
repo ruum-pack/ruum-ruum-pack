@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Aviso } from "@ruum/ui";
+import { traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 /**
@@ -30,7 +31,7 @@ export default function PaginaLogin() {
       router.push("/");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos iniciar tu sesión.");
+      setError(traducirErrorAuth(err));
     } finally {
       setEnviando(false);
     }

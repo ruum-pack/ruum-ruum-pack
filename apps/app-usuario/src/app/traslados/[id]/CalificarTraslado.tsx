@@ -60,7 +60,7 @@ export function CalificarTraslado({
       <textarea
         value={comentario}
         onChange={(evento) => setComentario(evento.target.value)}
-        className="mt-3 min-h-24 w-full rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+        className="mt-3 min-h-24 w-full rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
         placeholder="Comentario opcional"
       />
       <div className="mt-3 flex items-center gap-3">
