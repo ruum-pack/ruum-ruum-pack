@@ -11,12 +11,17 @@ type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 type IncidenciaRow = Database["public"]["Tables"]["incidencias"]["Row"];
+type DisputaRow = Database["public"]["Tables"]["disputas"]["Row"];
+type ReclamoSeguroRow = Database["public"]["Tables"]["reclamos_seguro"]["Row"];
 type NotaRow = Database["public"]["Tables"]["notas_internas_traslado"]["Row"];
 type EvidenciaRow = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 type EstadoConductor = Database["public"]["Enums"]["estado_conductor"];
 type TipoEvidencia = Database["public"]["Enums"]["tipo_evidencia"];
 type CausaFallido = Database["public"]["Enums"]["causa_fallido"];
+type EstadoDisputa = Database["public"]["Enums"]["estado_disputa"];
+type ResolucionDisputa = Database["public"]["Enums"]["resolucion_disputa"];
+type EstadoReclamoSeguro = Database["public"]["Enums"]["estado_reclamo_seguro"];
 
 /** Admin asociado a la sesión de Supabase Auth actual, si existe (mismo patrón que obtenerUsuarioActual/obtenerConductorActual). */
 export async function obtenerAdminActual(cliente: Cliente) {
@@ -168,6 +173,116 @@ export async function listarIncidenciasAdmin(cliente: Cliente): Promise<Incidenc
   const { data, error } = await cliente.from("incidencias").select("*").order("creada_en", { ascending: false });
   if (error) throw error;
   return data ?? [];
+}
+
+export async function listarDisputasAdmin(cliente: Cliente): Promise<DisputaRow[]> {
+  const { data, error } = await cliente.from("disputas").select("*").order("abierta_en", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function resolverDisputaAdmin(
+  cliente: Cliente,
+  disputaId: string,
+  estado: EstadoDisputa,
+  resolucion: ResolucionDisputa | null,
+  detalle: string
+) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+  const { data: disputa, error: errorDisputa } = await cliente
+    .from("disputas")
+    .select("*")
+    .eq("id", disputaId)
+    .maybeSingle();
+
+  if (errorDisputa) throw errorDisputa;
+  if (!disputa) throw new Error("No se encontró la disputa.");
+
+  const esEstadoResuelto = estado === "resuelta" || estado === "resuelta_senior";
+  if (esEstadoResuelto && !resolucion) {
+    throw new Error("Selecciona una resolución para cerrar la disputa.");
+  }
+
+  const { error } = await cliente
+    .from("disputas")
+    .update({
+      estado,
+      resolucion: esEstadoResuelto ? resolucion : null,
+      resolucion_detalle: detalle.trim() || null,
+      resuelta_en: esEstadoResuelto ? new Date().toISOString() : null
+    })
+    .eq("id", disputaId);
+
+  if (error) throw error;
+
+  if (esEstadoResuelto) {
+    const { data: traslado } = await cliente.from("traslados").select("estado").eq("id", disputa.traslado_id).maybeSingle();
+    if (traslado?.estado === "disputa_abierta") {
+      await cliente.from("traslados").update({ estado: "disputa_resuelta" }).eq("id", disputa.traslado_id);
+    }
+  }
+
+  await registrarEvento(cliente, "resolucion_disputa", "admin", adminId, {
+    traslado_id: disputa.traslado_id,
+    disputa_id: disputaId,
+    estado,
+    resolucion,
+    detalle: detalle.trim() || null
+  });
+}
+
+export async function listarReclamosSeguroAdmin(cliente: Cliente): Promise<ReclamoSeguroRow[]> {
+  const { data, error } = await cliente.from("reclamos_seguro").select("*").order("abierto_en", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function actualizarReclamoSeguroAdmin(
+  cliente: Cliente,
+  reclamoId: string,
+  estado: EstadoReclamoSeguro,
+  responsablePago: "aplicacion" | "conductor" | null,
+  notasAdmin: string
+) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+  const { data: reclamo, error: errorReclamo } = await cliente
+    .from("reclamos_seguro")
+    .select("*")
+    .eq("id", reclamoId)
+    .maybeSingle();
+
+  if (errorReclamo) throw errorReclamo;
+  if (!reclamo) throw new Error("No se encontró el reclamo.");
+  if (estado === "resuelto" && !responsablePago) {
+    throw new Error("Selecciona responsable de pago antes de resolver el reclamo.");
+  }
+
+  const { error } = await cliente
+    .from("reclamos_seguro")
+    .update({
+      estado,
+      responsable_pago: responsablePago,
+      notas_admin: notasAdmin.trim() || null,
+      resuelto_en: estado === "resuelto" ? new Date().toISOString() : null
+    })
+    .eq("id", reclamoId);
+
+  if (error) throw error;
+
+  if (estado === "resuelto") {
+    const { data: traslado } = await cliente.from("traslados").select("estado").eq("id", reclamo.traslado_id).maybeSingle();
+    if (traslado?.estado === "reclamo_abierto") {
+      await cliente.from("traslados").update({ estado: "reclamo_resuelto" }).eq("id", reclamo.traslado_id);
+    }
+  }
+
+  await registrarEvento(cliente, estado === "resuelto" ? "resolucion_reclamo_seguro" : "apertura_reclamo_seguro", "admin", adminId, {
+    traslado_id: reclamo.traslado_id,
+    reclamo_id: reclamoId,
+    estado,
+    responsable_pago: responsablePago,
+    notas: notasAdmin.trim() || null
+  });
 }
 
 // PRD §6 — único camino real hacia "conductor_asignado" (sin atajos, ver

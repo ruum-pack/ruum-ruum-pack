@@ -10,6 +10,8 @@ import { ChatTraslado } from "./ChatTraslado";
 import { PagoTraslado } from "./PagoTraslado";
 import { ReportarIncidenciaUsuario } from "./ReportarIncidencia";
 import { CancelarTraslado } from "./CancelarTraslado";
+import { CalificarTraslado } from "./CalificarTraslado";
+import { AbrirDisputa } from "./AbrirDisputa";
 
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type Traslado = Pick<
@@ -42,6 +44,12 @@ type Conductor = Pick<
 type FotoEvidencia = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
 type Incidencia = Database["public"]["Tables"]["incidencias"]["Row"];
 type Pago = Database["public"]["Tables"]["pagos"]["Row"];
+type Calificacion = Database["public"]["Tables"]["calificaciones_traslado"]["Row"];
+type Disputa = Database["public"]["Tables"]["disputas"]["Row"];
+type ReclamoSeguroUsuario = Pick<
+  Database["public"]["Tables"]["reclamos_seguro"]["Row"],
+  "id" | "traslado_id" | "estado" | "abierto_en" | "resuelto_en"
+>;
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
 const LINEA_TIEMPO: { estado: EstadoTraslado; etiqueta: string }[] = [
@@ -189,6 +197,9 @@ async function obtenerDatos(id: string) {
       conductor: DEMO_CONDUCTOR,
       evidencia: DEMO_EVIDENCIA,
       incidencias: [] as Incidencia[],
+      disputas: [] as Disputa[],
+      reclamosSeguro: [] as ReclamoSeguroUsuario[],
+      calificacion: null as Calificacion | null,
       pagos: [
         {
           id: "demo-pago",
@@ -216,6 +227,9 @@ async function obtenerDatos(id: string) {
       conductor: null,
       evidencia: [] as FotoEvidencia[],
       incidencias: [] as Incidencia[],
+      disputas: [] as Disputa[],
+      reclamosSeguro: [] as ReclamoSeguroUsuario[],
+      calificacion: null as Calificacion | null,
       pagos: [] as Pago[],
       esDemo: false
     };
@@ -231,12 +245,15 @@ async function obtenerDatos(id: string) {
       conductor: null,
       evidencia: [] as FotoEvidencia[],
       incidencias: [] as Incidencia[],
+      disputas: [] as Disputa[],
+      reclamosSeguro: [] as ReclamoSeguroUsuario[],
+      calificacion: null as Calificacion | null,
       pagos: [] as Pago[],
       esDemo: false
     };
   }
 
-  const [trasladoRes, vehiculoRes, conductorRes, evidenciaRes, incidenciasRes, pagosRes] = await Promise.all([
+  const [trasladoRes, vehiculoRes, conductorRes, evidenciaRes, incidenciasRes, disputasRes, reclamosSeguroRes, calificacionRes, pagosRes] = await Promise.all([
     cliente
       .from("traslados")
       .select(
@@ -260,10 +277,17 @@ async function obtenerDatos(id: string) {
       : Promise.resolve({ data: null, error: null }),
     cliente.from("evidencia_fotos").select("*").eq("traslado_id", id).order("capturada_en", { ascending: true }),
     cliente.from("incidencias").select("*").eq("traslado_id", id).order("creada_en", { ascending: false }),
+    cliente.from("disputas").select("*").eq("traslado_id", id).order("abierta_en", { ascending: false }),
+    cliente
+      .from("reclamos_seguro")
+      .select("id, traslado_id, estado, abierto_en, resuelto_en")
+      .eq("traslado_id", id)
+      .order("abierto_en", { ascending: false }),
+    cliente.from("calificaciones_traslado").select("*").eq("traslado_id", id).maybeSingle(),
     cliente.from("pagos").select("*").eq("traslado_id", id).order("registrado_en", { ascending: false })
   ]);
 
-  for (const resultado of [trasladoRes, vehiculoRes, conductorRes, evidenciaRes, incidenciasRes, pagosRes]) {
+  for (const resultado of [trasladoRes, vehiculoRes, conductorRes, evidenciaRes, incidenciasRes, disputasRes, reclamosSeguroRes, calificacionRes, pagosRes]) {
     if (resultado.error) throw resultado.error;
   }
 
@@ -274,6 +298,9 @@ async function obtenerDatos(id: string) {
     conductor: conductorRes.data,
     evidencia: evidenciaRes.data ?? [],
     incidencias: incidenciasRes.data ?? [],
+    disputas: disputasRes.data ?? [],
+    reclamosSeguro: reclamosSeguroRes.data ?? [],
+    calificacion: calificacionRes.data ?? null,
     pagos: pagosRes.data ?? [],
     esDemo: false
   };
@@ -390,7 +417,7 @@ function EvidenciaDurante({
 
 export default async function PaginaTraslado({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { pasaporte, traslado, vehiculo, conductor, evidencia, incidencias, pagos, esDemo } = await obtenerDatos(id);
+  const { pasaporte, traslado, vehiculo, conductor, evidencia, incidencias, disputas, reclamosSeguro, calificacion, pagos, esDemo } = await obtenerDatos(id);
 
   if (!pasaporte) {
     return (
@@ -409,6 +436,13 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
   const vehiculoNombre = [pasaporte.vehiculo_marca, pasaporte.vehiculo_modelo, pasaporte.vehiculo_anio]
     .filter(Boolean)
     .join(" ");
+  const horasDesdeCierre = (Date.now() - new Date(pasaporte.actualizado_en).getTime()) / (1000 * 60 * 60);
+  const dentroDeVentanaPostCierre = horasDesdeCierre <= 72;
+  const mostrarPromptCalificacion =
+    pasaporte.estado === "servicio_cerrado" && !calificacion && Boolean(pasaporte.conductor_id) && dentroDeVentanaPostCierre;
+  const puedeAbrirDisputa =
+    ["servicio_cerrado", "reclamo_resuelto", "cierre_operativo_con_incidencia_abierta"].includes(pasaporte.estado) &&
+    dentroDeVentanaPostCierre;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
@@ -510,6 +544,12 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
             La fotografía pública del conductor se mostrará cuando exista en el perfil verificado. El contacto se mantiene
             dentro de canales autorizados de Ruum Ruum.
           </p>
+          <CalificarTraslado
+            trasladoId={pasaporte.traslado_id}
+            conductorId={pasaporte.conductor_id}
+            mostrar={mostrarPromptCalificacion}
+            esDemo={esDemo}
+          />
         </PassportCard>
       </section>
 
@@ -622,6 +662,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
             </p>
           )}
           <ReportarIncidenciaUsuario trasladoId={pasaporte.traslado_id} esDemo={esDemo} />
+          <AbrirDisputa trasladoId={pasaporte.traslado_id} disponible={puedeAbrirDisputa} esDemo={esDemo} />
           <CancelarTraslado
             trasladoId={pasaporte.traslado_id}
             estado={pasaporte.estado}
@@ -667,6 +708,43 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
           </div>
         </PassportCard>
       </section>
+
+      {(disputas.length > 0 || reclamosSeguro.length > 0) && (
+        <section className="mt-6">
+          <PassportCard>
+            <h2 className="font-display text-xl font-semibold">Disputas, reclamos y resoluciones</h2>
+            <div className="mt-5 space-y-3">
+              {disputas.map((disputa) => (
+                <div key={disputa.id} className="rounded-lg border border-ink/10 px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-body text-sm font-semibold">{disputa.tipo.replaceAll("_", " ")}</p>
+                    <span className="font-body text-xs text-ink/50">{disputa.estado.replaceAll("_", " ")}</span>
+                  </div>
+                  <p className="mt-2 font-body text-sm text-ink/65">{disputa.descripcion}</p>
+                  {disputa.resolucion && (
+                    <p className="mt-2 font-body text-sm text-control">
+                      Resolución: {disputa.resolucion.replaceAll("_", " ")}
+                      {disputa.resolucion_detalle ? ` · ${disputa.resolucion_detalle}` : ""}
+                    </p>
+                  )}
+                </div>
+              ))}
+              {reclamosSeguro.map((reclamo) => (
+                <div key={reclamo.id} className="rounded-lg border border-ink/10 px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-body text-sm font-semibold">Reclamo de seguro</p>
+                    <span className="font-body text-xs text-ink/50">{reclamo.estado.replaceAll("_", " ")}</span>
+                  </div>
+                  <p className="mt-2 font-body text-sm text-ink/65">
+                    Abierto {formatoFecha(reclamo.abierto_en)}
+                    {reclamo.resuelto_en ? ` · Resuelto ${formatoFecha(reclamo.resuelto_en)}` : ""}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </PassportCard>
+        </section>
+      )}
 
       <ChatTraslado trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />
     </main>

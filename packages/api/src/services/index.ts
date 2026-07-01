@@ -8,3 +8,4 @@ export * from "./chat";
 export * from "./auditoria";
 export * from "./incidencias";
 export * from "./soporte";
+export * from "./disputas";

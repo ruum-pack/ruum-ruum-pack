@@ -744,6 +744,8 @@ export interface Database {
           tipo: Database["public"]["Enums"]["tipo_disputa"];
           estado: Database["public"]["Enums"]["estado_disputa"];
           resolucion: Database["public"]["Enums"]["resolucion_disputa"] | null;
+          descripcion: string;
+          resolucion_detalle: string | null;
           abierta_en: string;
           resuelta_en: string | null;
           escalada_en: string | null;
@@ -755,6 +757,8 @@ export interface Database {
           tipo: Database["public"]["Enums"]["tipo_disputa"];
           estado?: Database["public"]["Enums"]["estado_disputa"];
           resolucion?: Database["public"]["Enums"]["resolucion_disputa"] | null;
+          descripcion: string;
+          resolucion_detalle?: string | null;
           abierta_en?: string;
           resuelta_en?: string | null;
           escalada_en?: string | null;
@@ -766,6 +770,8 @@ export interface Database {
           tipo?: Database["public"]["Enums"]["tipo_disputa"];
           estado?: Database["public"]["Enums"]["estado_disputa"];
           resolucion?: Database["public"]["Enums"]["resolucion_disputa"] | null;
+          descripcion?: string;
+          resolucion_detalle?: string | null;
           abierta_en?: string;
           resuelta_en?: string | null;
           escalada_en?: string | null;
@@ -1067,6 +1073,15 @@ export interface Database {
       conductor_avanza_traslado: {
         Args: { p_traslado_id: string; p_evento: string };
         Returns: Database["public"]["Enums"]["estado_traslado"];
+      };
+      abrir_disputa_traslado: {
+        Args: {
+          p_traslado_id: string;
+          p_abierta_por: Database["public"]["Enums"]["abierta_por_actor"];
+          p_tipo: Database["public"]["Enums"]["tipo_disputa"];
+          p_descripcion: string;
+        };
+        Returns: string;
       };
       traslado_tiene_metodo_pago_registrado: {
         Args: { p_traslado_id: string };

@@ -22,6 +22,18 @@ type EventoConductorTraslado =
   | "iniciar_evidencia_final"
   | "confirmar_entrega";
 
+async function obtenerUsuarioIdActual(cliente: Cliente): Promise<string> {
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) {
+    throw new Error("No hay sesión de usuario para registrar la acción.");
+  }
+
+  const { data, error } = await cliente.from("usuarios").select("id").eq("auth_user_id", sesion.user.id).maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("No se encontró el usuario autenticado.");
+  return data.id;
+}
+
 export interface DatosNuevoTraslado {
   usuario_id: string;
   vehiculo_id: string;
@@ -256,6 +268,51 @@ export async function cancelarTraslado(cliente: Cliente, trasladoId: string, mot
 
   if (rpcError) throw rpcError;
   return cargo;
+}
+
+export async function crearCalificacion(
+  cliente: Cliente,
+  trasladoId: string,
+  conductorId: string,
+  estrellas: number,
+  comentario?: string | null
+) {
+  if (!Number.isInteger(estrellas) || estrellas < 1 || estrellas > 5) {
+    throw new Error("La calificación debe estar entre 1 y 5 estrellas.");
+  }
+
+  const { data: traslado, error: errorTraslado } = await cliente
+    .from("traslados")
+    .select("id, estado, actualizado_en")
+    .eq("id", trasladoId)
+    .maybeSingle();
+
+  if (errorTraslado) throw errorTraslado;
+  if (!traslado) throw new Error("No se encontró el traslado a calificar.");
+  if (traslado.estado !== "servicio_cerrado") {
+    throw new Error("Solo se puede calificar un traslado finalizado.");
+  }
+
+  const horasDesdeCierre = (Date.now() - new Date(traslado.actualizado_en).getTime()) / (1000 * 60 * 60);
+  if (horasDesdeCierre > 72) {
+    throw new Error("El plazo de 72 horas para calificar este traslado ya venció.");
+  }
+
+  const { error } = await cliente.from("calificaciones_traslado").insert({
+    traslado_id: trasladoId,
+    conductor_id: conductorId,
+    estrellas,
+    comentario: comentario?.trim() || null
+  });
+
+  if (error) throw error;
+
+  const usuarioId = await obtenerUsuarioIdActual(cliente);
+  await registrarEvento(cliente, "calificacion_conductor", "usuario", usuarioId, {
+    traslado_id: trasladoId,
+    conductor_id: conductorId,
+    estrellas
+  });
 }
 
 const EVENTO_CONDUCTOR_POR_ESTADO: Partial<Record<EstadoTraslado, EventoConductorTraslado>> = {

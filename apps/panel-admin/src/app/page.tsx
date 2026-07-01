@@ -158,6 +158,16 @@ export default function PaginaDashboard() {
                     <p className="font-body text-sm font-medium">Ver incidencias</p>
                   </PassportCard>
                 </Link>
+                <Link href="/disputas">
+                  <PassportCard className="hover:border-signal/40">
+                    <p className="font-body text-sm font-medium">Ver disputas</p>
+                  </PassportCard>
+                </Link>
+                <Link href="/reclamos-seguro">
+                  <PassportCard className="hover:border-signal/40">
+                    <p className="font-body text-sm font-medium">Ver reclamos</p>
+                  </PassportCard>
+                </Link>
               </div>
             </div>
           </section>

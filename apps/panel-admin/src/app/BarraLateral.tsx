@@ -12,6 +12,8 @@ const SECCIONES_CONSTRUIDAS = [
   { href: "/conductores", etiqueta: "Conductores" },
   { href: "/usuarios", etiqueta: "Usuarios" },
   { href: "/incidencias", etiqueta: "Incidencias" },
+  { href: "/disputas", etiqueta: "Disputas" },
+  { href: "/reclamos-seguro", etiqueta: "Reclamos seguro" },
   { href: "/pagos", etiqueta: "Pagos" },
   { href: "/documentos", etiqueta: "Documentos" },
   { href: "/tarifas", etiqueta: "Tarifas" },

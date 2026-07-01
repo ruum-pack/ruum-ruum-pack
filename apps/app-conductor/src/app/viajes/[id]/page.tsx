@@ -7,6 +7,7 @@ import { AccionesViaje } from "./AccionesViaje";
 import { ChatViaje } from "./ChatViaje";
 import { ReportarIncidencia } from "./ReportarIncidencia";
 import { Emergencia911 } from "./Emergencia911";
+import { AbrirDisputaConductor } from "./AbrirDisputa";
 
 const TODOS_LOS_DEMO = [...VIAJES_DISPONIBLES_DEMO, ...VIAJES_ACEPTADOS_DEMO];
 
@@ -47,6 +48,11 @@ export default async function PaginaDetalleViaje({ params }: { params: Promise<{
       </main>
     );
   }
+
+  const horasDesdeCierre = (Date.now() - new Date(pasaporte.actualizado_en).getTime()) / (1000 * 60 * 60);
+  const puedeAbrirDisputa =
+    ["servicio_cerrado", "reclamo_resuelto", "cierre_operativo_con_incidencia_abierta"].includes(pasaporte.estado) &&
+    horasDesdeCierre <= 72;
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
@@ -105,6 +111,7 @@ export default async function PaginaDetalleViaje({ params }: { params: Promise<{
 
         <AccionesViaje trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} esDemo={esDemo} />
         <ReportarIncidencia trasladoId={pasaporte.traslado_id} esDemo={esDemo} />
+        <AbrirDisputaConductor trasladoId={pasaporte.traslado_id} disponible={puedeAbrirDisputa} esDemo={esDemo} />
       </PassportCard>
 
       <ChatViaje trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />
