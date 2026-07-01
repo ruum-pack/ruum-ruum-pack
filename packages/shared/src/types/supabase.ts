@@ -55,6 +55,12 @@ export interface Database {
           telefono: string | null;
           pais: string | null;
           estado: string | null;
+          codigo_postal: string | null;
+          ciudad: string | null;
+          colonia: string | null;
+          calle: string | null;
+          numero: string | null;
+          referencias: string | null;
           direccion_principal: string | null;
           correo_facturacion: string | null;
           notificaciones_push: boolean;
@@ -85,6 +91,12 @@ export interface Database {
           telefono?: string | null;
           pais?: string | null;
           estado?: string | null;
+          codigo_postal?: string | null;
+          ciudad?: string | null;
+          colonia?: string | null;
+          calle?: string | null;
+          numero?: string | null;
+          referencias?: string | null;
           direccion_principal?: string | null;
           correo_facturacion?: string | null;
           notificaciones_push?: boolean;
@@ -115,6 +127,12 @@ export interface Database {
           telefono?: string | null;
           pais?: string | null;
           estado?: string | null;
+          codigo_postal?: string | null;
+          ciudad?: string | null;
+          colonia?: string | null;
+          calle?: string | null;
+          numero?: string | null;
+          referencias?: string | null;
           direccion_principal?: string | null;
           correo_facturacion?: string | null;
           notificaciones_push?: boolean;

@@ -37,21 +37,31 @@ interface DatosFormulario {
   tienePlacas: boolean;
   puedeCircular: boolean;
   // Origen / destino
-  origenDireccion: string;
+  origenCodigoPostal: string;
+  origenEstado: string;
   origenCiudad: string;
+  origenColonia: string;
+  origenCalle: string;
+  origenNumero: string;
   origenReferencias: string;
   // Solo se llenan dentro del shell nativo, vía "Usar mi ubicación actual"
   // (lib/ubicacion.ts). Geocodificación real de la dirección sigue
   // pendiente — sin esto, origen_lat/lng se siguen enviando en 0.
   origenLat?: number;
   origenLng?: number;
-  destinoDireccion: string;
+  destinoCodigoPostal: string;
+  destinoEstado: string;
   destinoCiudad: string;
+  destinoColonia: string;
+  destinoCalle: string;
+  destinoNumero: string;
   destinoReferencias: string;
   // Contactos — PRD §4.1
   entregaNombre: string;
+  entregaApellido: string;
   entregaTelefono: string;
   recepcionNombre: string;
+  recepcionApellido: string;
   recepcionTelefono: string;
   instruccionesEspeciales: string;
   modalidadProgramacion: ModalidadProgramacion;
@@ -80,15 +90,25 @@ const VALORES_INICIALES: DatosFormulario = {
   tieneVerificacion: false,
   tienePlacas: false,
   puedeCircular: false,
-  origenDireccion: "",
+  origenCodigoPostal: "",
+  origenEstado: "",
   origenCiudad: "",
+  origenColonia: "",
+  origenCalle: "",
+  origenNumero: "",
   origenReferencias: "",
-  destinoDireccion: "",
+  destinoCodigoPostal: "",
+  destinoEstado: "",
   destinoCiudad: "",
+  destinoColonia: "",
+  destinoCalle: "",
+  destinoNumero: "",
   destinoReferencias: "",
   entregaNombre: "",
+  entregaApellido: "",
   entregaTelefono: "",
   recepcionNombre: "",
+  recepcionApellido: "",
   recepcionTelefono: "",
   instruccionesEspeciales: "",
   modalidadProgramacion: "lo_antes_posible",
@@ -116,6 +136,64 @@ const USUARIO_NUEVO_DEMO = {
   creado_en: new Date().toISOString()
 };
 
+type PrefijoDomicilio = "origen" | "destino";
+
+function soloDigitos(valor: string, maximo?: number) {
+  const limpio = valor.replace(/\D/g, "");
+  return maximo ? limpio.slice(0, maximo) : limpio;
+}
+
+function telefonoLocalMx(valor: string) {
+  const limpio = soloDigitos(valor);
+  const sinCodigoPais = limpio.length > 10 && limpio.startsWith("52") ? limpio.slice(2) : limpio;
+  return sinCodigoPais.slice(0, 10);
+}
+
+function telefonoMx(diezDigitos: string) {
+  const telefono = soloDigitos(diezDigitos, 10);
+  return telefono ? `+52${telefono}` : "";
+}
+
+function nombreCompleto(nombre: string, apellido: string) {
+  return [nombre.trim(), apellido.trim()].filter(Boolean).join(" ");
+}
+
+function domicilioCompleto({
+  calle,
+  numero,
+  colonia,
+  codigoPostal,
+  ciudad,
+  estado
+}: {
+  calle: string;
+  numero: string;
+  colonia: string;
+  codigoPostal: string;
+  ciudad: string;
+  estado: string;
+}) {
+  return [
+    [calle.trim(), numero.trim()].filter(Boolean).join(" "),
+    colonia.trim() ? `Col. ${colonia.trim()}` : "",
+    codigoPostal.trim() ? `CP ${codigoPostal.trim()}` : "",
+    ciudad.trim(),
+    estado.trim()
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function referenciasDomicilio(referencias: string, estado: string, codigoPostal: string) {
+  return [
+    referencias.trim(),
+    estado.trim() ? `Estado: ${estado.trim()}` : "",
+    codigoPostal.trim() ? `CP: ${codigoPostal.trim()}` : ""
+  ]
+    .filter(Boolean)
+    .join(" | ");
+}
+
 export default function PaginaNuevoTraslado() {
   const router = useRouter();
   const [paso, setPaso] = useState(0);
@@ -127,6 +205,9 @@ export default function PaginaNuevoTraslado() {
   const [sesionReal, setSesionReal] = useState(false);
   const [cargandoSesion, setCargandoSesion] = useState(tieneSupabaseConfigurado());
   const [aceptaPoliticasPagoCancelacion, setAceptaPoliticasPagoCancelacion] = useState(false);
+  const [cpConsultando, setCpConsultando] = useState<PrefijoDomicilio | null>(null);
+  const [cpAviso, setCpAviso] = useState<Record<PrefijoDomicilio, string | null>>({ origen: null, destino: null });
+  const [errorPaso, setErrorPaso] = useState<string | null>(null);
 
   // Si hay sesión real, usa el usuario real (PRD §4.6: su historial decide
   // pago anticipado vs. al cierre); si no, sigue en modo demo como antes.
@@ -181,7 +262,95 @@ export default function PaginaNuevoTraslado() {
   ]);
 
   function actualizar<K extends keyof DatosFormulario>(campo: K, valor: DatosFormulario[K]) {
+    setErrorPaso(null);
     setDatos((prev) => ({ ...prev, [campo]: valor }));
+  }
+
+  function actualizarTelefono(campo: "entregaTelefono" | "recepcionTelefono", valor: string) {
+    actualizar(campo, telefonoLocalMx(valor));
+  }
+
+  function actualizarCodigoPostal(prefijo: PrefijoDomicilio, valor: string) {
+    const cp = soloDigitos(valor, 5);
+    actualizar(`${prefijo}CodigoPostal` as keyof DatosFormulario, cp as never);
+    if (cp.length === 5) void consultarCodigoPostal(prefijo, cp);
+  }
+
+  async function consultarCodigoPostal(prefijo: PrefijoDomicilio, codigoPostal: string) {
+    const cp = soloDigitos(codigoPostal, 5);
+    actualizar(`${prefijo}CodigoPostal` as keyof DatosFormulario, cp as never);
+
+    if (cp.length !== 5) {
+      setCpAviso((prev) => ({ ...prev, [prefijo]: null }));
+      return;
+    }
+
+    setCpConsultando(prefijo);
+    setCpAviso((prev) => ({ ...prev, [prefijo]: null }));
+
+    try {
+      const respuesta = await fetch(`https://api.zippopotam.us/mx/${cp}`);
+      if (!respuesta.ok) throw new Error("CP no encontrado");
+      const data = (await respuesta.json()) as {
+        places?: Array<{ "place name"?: string; state?: string }>;
+      };
+      const lugar = data.places?.[0];
+      if (!lugar) throw new Error("CP no encontrado");
+
+      setDatos((prev) => ({
+        ...prev,
+        [`${prefijo}Estado`]: lugar.state ?? prev[`${prefijo}Estado` as keyof DatosFormulario],
+        [`${prefijo}Ciudad`]: lugar["place name"] ?? prev[`${prefijo}Ciudad` as keyof DatosFormulario],
+        [`${prefijo}Colonia`]: lugar["place name"] ?? prev[`${prefijo}Colonia` as keyof DatosFormulario]
+      }));
+    } catch {
+      setCpAviso((prev) => ({
+        ...prev,
+        [prefijo]: "No pudimos encontrar ese CP. Captura estado, ciudad y colonia manualmente."
+      }));
+    } finally {
+      setCpConsultando(null);
+    }
+  }
+
+  function validarPasoActual() {
+    if (paso !== 1) return true;
+
+    const requeridos = [
+      datos.origenCodigoPostal,
+      datos.origenEstado,
+      datos.origenCiudad,
+      datos.origenColonia,
+      datos.origenCalle,
+      datos.origenNumero,
+      datos.destinoCodigoPostal,
+      datos.destinoEstado,
+      datos.destinoCiudad,
+      datos.destinoColonia,
+      datos.destinoCalle,
+      datos.destinoNumero,
+      datos.entregaNombre,
+      datos.entregaApellido,
+      datos.recepcionNombre,
+      datos.recepcionApellido
+    ];
+
+    if (requeridos.some((valor) => !valor.trim())) {
+      setErrorPaso("Completa nombre, apellido, teléfonos y todos los campos de domicilio de origen y destino.");
+      return false;
+    }
+
+    if (datos.origenCodigoPostal.length !== 5 || datos.destinoCodigoPostal.length !== 5) {
+      setErrorPaso("El Código Postal debe tener 5 dígitos en origen y destino.");
+      return false;
+    }
+
+    if (datos.entregaTelefono.length !== 10 || datos.recepcionTelefono.length !== 10) {
+      setErrorPaso("Los teléfonos deben capturarse a 10 dígitos; el prefijo +52 ya está aplicado.");
+      return false;
+    }
+
+    return true;
   }
 
   async function enviarSolicitud() {
@@ -241,6 +410,23 @@ export default function PaginaNuevoTraslado() {
 
     try {
       const cliente = crearClienteNavegador();
+      const origenDireccion = domicilioCompleto({
+        calle: datos.origenCalle,
+        numero: datos.origenNumero,
+        colonia: datos.origenColonia,
+        codigoPostal: datos.origenCodigoPostal,
+        ciudad: datos.origenCiudad,
+        estado: datos.origenEstado
+      });
+      const destinoDireccion = domicilioCompleto({
+        calle: datos.destinoCalle,
+        numero: datos.destinoNumero,
+        colonia: datos.destinoColonia,
+        codigoPostal: datos.destinoCodigoPostal,
+        ciudad: datos.destinoCiudad,
+        estado: datos.destinoEstado
+      });
+
       const vehiculo = await crearVehiculo(cliente, {
         usuario_id: usuario.id,
         tipo: datos.tipo,
@@ -261,20 +447,20 @@ export default function PaginaNuevoTraslado() {
       const nuevoTraslado = await crearTraslado(cliente, {
         usuario_id: usuario.id,
         vehiculo_id: vehiculo.id,
-        contacto_entrega_nombre: datos.entregaNombre,
-        contacto_entrega_telefono: datos.entregaTelefono,
-        contacto_recepcion_nombre: datos.recepcionNombre,
-        contacto_recepcion_telefono: datos.recepcionTelefono,
+        contacto_entrega_nombre: nombreCompleto(datos.entregaNombre, datos.entregaApellido),
+        contacto_entrega_telefono: telefonoMx(datos.entregaTelefono),
+        contacto_recepcion_nombre: nombreCompleto(datos.recepcionNombre, datos.recepcionApellido),
+        contacto_recepcion_telefono: telefonoMx(datos.recepcionTelefono),
         origen_lat: datos.origenLat ?? 0,
         origen_lng: datos.origenLng ?? 0,
-        origen_direccion: datos.origenDireccion,
+        origen_direccion: origenDireccion,
         origen_ciudad: datos.origenCiudad,
-        origen_referencias: datos.origenReferencias,
+        origen_referencias: referenciasDomicilio(datos.origenReferencias, datos.origenEstado, datos.origenCodigoPostal),
         destino_lat: 0,
         destino_lng: 0,
-        destino_direccion: datos.destinoDireccion,
+        destino_direccion: destinoDireccion,
         destino_ciudad: datos.destinoCiudad,
-        destino_referencias: datos.destinoReferencias,
+        destino_referencias: referenciasDomicilio(datos.destinoReferencias, datos.destinoEstado, datos.destinoCodigoPostal),
         instrucciones_especiales: datos.instruccionesEspeciales,
         modalidad_programacion: datos.modalidadProgramacion,
         fecha_hora_programada: datos.fechaHoraProgramada ? new Date(datos.fechaHoraProgramada).toISOString() : null,
@@ -443,21 +629,51 @@ export default function PaginaNuevoTraslado() {
           <PassportCard>
             <div className="grid gap-4">
               <p className="font-body text-sm font-semibold">¿De dónde sale y a dónde llega?</p>
-              <Field
-                etiqueta="Dirección de origen"
-                value={datos.origenDireccion}
-                onChange={(e) => actualizar("origenDireccion", e.target.value)}
-              />
-              <Field
-                etiqueta="Ciudad de origen"
-                value={datos.origenCiudad}
-                onChange={(e) => actualizar("origenCiudad", e.target.value)}
-              />
-              <Field
-                etiqueta="Referencias de origen"
-                value={datos.origenReferencias}
-                onChange={(e) => actualizar("origenReferencias", e.target.value)}
-              />
+              <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
+                <p className="font-body text-sm font-semibold">Domicilio de origen</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    etiqueta="Código Postal"
+                    value={datos.origenCodigoPostal}
+                    onChange={(e) => actualizarCodigoPostal("origen", e.target.value)}
+                    onBlur={(e) => consultarCodigoPostal("origen", e.target.value)}
+                    inputMode="numeric"
+                    maxLength={5}
+                    ayuda={cpConsultando === "origen" ? "Consultando CP..." : cpAviso.origen}
+                  />
+                  <Field
+                    etiqueta="Estado"
+                    value={datos.origenEstado}
+                    onChange={(e) => actualizar("origenEstado", e.target.value)}
+                  />
+                  <Field
+                    etiqueta="Ciudad"
+                    value={datos.origenCiudad}
+                    onChange={(e) => actualizar("origenCiudad", e.target.value)}
+                  />
+                  <Field
+                    etiqueta="Colonia"
+                    value={datos.origenColonia}
+                    onChange={(e) => actualizar("origenColonia", e.target.value)}
+                  />
+                  <Field
+                    etiqueta="Calle"
+                    value={datos.origenCalle}
+                    onChange={(e) => actualizar("origenCalle", e.target.value)}
+                  />
+                  <Field
+                    etiqueta="Número"
+                    value={datos.origenNumero}
+                    onChange={(e) => actualizar("origenNumero", e.target.value)}
+                  />
+                </div>
+                <Field
+                  etiqueta="Referencias"
+                  value={datos.origenReferencias}
+                  onChange={(e) => actualizar("origenReferencias", e.target.value)}
+                  placeholder="Entre calles, color de fachada, acceso, piso, etc."
+                />
+              </div>
               {esNativo() && (
                 <div>
                   <Button
@@ -478,43 +694,109 @@ export default function PaginaNuevoTraslado() {
                   )}
                 </div>
               )}
-              <Field
-                etiqueta="Dirección de destino"
-                value={datos.destinoDireccion}
-                onChange={(e) => actualizar("destinoDireccion", e.target.value)}
-              />
-              <Field
-                etiqueta="Ciudad de destino"
-                value={datos.destinoCiudad}
-                onChange={(e) => actualizar("destinoCiudad", e.target.value)}
-              />
-              <Field
-                etiqueta="Referencias de destino"
-                value={datos.destinoReferencias}
-                onChange={(e) => actualizar("destinoReferencias", e.target.value)}
-              />
+              <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
+                <p className="font-body text-sm font-semibold">Domicilio de destino</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    etiqueta="Código Postal"
+                    value={datos.destinoCodigoPostal}
+                    onChange={(e) => actualizarCodigoPostal("destino", e.target.value)}
+                    onBlur={(e) => consultarCodigoPostal("destino", e.target.value)}
+                    inputMode="numeric"
+                    maxLength={5}
+                    ayuda={cpConsultando === "destino" ? "Consultando CP..." : cpAviso.destino}
+                  />
+                  <Field
+                    etiqueta="Estado"
+                    value={datos.destinoEstado}
+                    onChange={(e) => actualizar("destinoEstado", e.target.value)}
+                  />
+                  <Field
+                    etiqueta="Ciudad"
+                    value={datos.destinoCiudad}
+                    onChange={(e) => actualizar("destinoCiudad", e.target.value)}
+                  />
+                  <Field
+                    etiqueta="Colonia"
+                    value={datos.destinoColonia}
+                    onChange={(e) => actualizar("destinoColonia", e.target.value)}
+                  />
+                  <Field
+                    etiqueta="Calle"
+                    value={datos.destinoCalle}
+                    onChange={(e) => actualizar("destinoCalle", e.target.value)}
+                  />
+                  <Field
+                    etiqueta="Número"
+                    value={datos.destinoNumero}
+                    onChange={(e) => actualizar("destinoNumero", e.target.value)}
+                  />
+                </div>
+                <Field
+                  etiqueta="Referencias"
+                  value={datos.destinoReferencias}
+                  onChange={(e) => actualizar("destinoReferencias", e.target.value)}
+                  placeholder="Entre calles, color de fachada, acceso, piso, etc."
+                />
+              </div>
               <p className="font-body text-sm font-semibold">Quien entrega el vehículo</p>
-              <Field
-                etiqueta="Nombre"
-                value={datos.entregaNombre}
-                onChange={(e) => actualizar("entregaNombre", e.target.value)}
-              />
-              <Field
-                etiqueta="Teléfono"
-                value={datos.entregaTelefono}
-                onChange={(e) => actualizar("entregaTelefono", e.target.value)}
-              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  etiqueta="Nombre"
+                  value={datos.entregaNombre}
+                  onChange={(e) => actualizar("entregaNombre", e.target.value)}
+                />
+                <Field
+                  etiqueta="Apellido"
+                  value={datos.entregaApellido}
+                  onChange={(e) => actualizar("entregaApellido", e.target.value)}
+                />
+              </div>
+              <label className="flex flex-col gap-1.5">
+                <span className="font-body text-sm font-medium">Teléfono</span>
+                <div className="flex overflow-hidden rounded-lg border border-ink/15 bg-mist">
+                  <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">
+                    +52
+                  </span>
+                  <input
+                    value={datos.entregaTelefono}
+                    onChange={(e) => actualizarTelefono("entregaTelefono", e.target.value)}
+                    inputMode="numeric"
+                    maxLength={10}
+                    className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                    placeholder="10 dígitos"
+                  />
+                </div>
+              </label>
               <p className="mt-2 font-body text-sm font-semibold">Quien recibe el vehículo</p>
-              <Field
-                etiqueta="Nombre"
-                value={datos.recepcionNombre}
-                onChange={(e) => actualizar("recepcionNombre", e.target.value)}
-              />
-              <Field
-                etiqueta="Teléfono"
-                value={datos.recepcionTelefono}
-                onChange={(e) => actualizar("recepcionTelefono", e.target.value)}
-              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  etiqueta="Nombre"
+                  value={datos.recepcionNombre}
+                  onChange={(e) => actualizar("recepcionNombre", e.target.value)}
+                />
+                <Field
+                  etiqueta="Apellido"
+                  value={datos.recepcionApellido}
+                  onChange={(e) => actualizar("recepcionApellido", e.target.value)}
+                />
+              </div>
+              <label className="flex flex-col gap-1.5">
+                <span className="font-body text-sm font-medium">Teléfono</span>
+                <div className="flex overflow-hidden rounded-lg border border-ink/15 bg-mist">
+                  <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">
+                    +52
+                  </span>
+                  <input
+                    value={datos.recepcionTelefono}
+                    onChange={(e) => actualizarTelefono("recepcionTelefono", e.target.value)}
+                    inputMode="numeric"
+                    maxLength={10}
+                    className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                    placeholder="10 dígitos"
+                  />
+                </div>
+              </label>
               <label className="flex flex-col gap-1.5">
                 <span className="font-body text-sm font-medium">Instrucciones especiales</span>
                 <textarea
@@ -657,12 +939,25 @@ export default function PaginaNuevoTraslado() {
         )}
       </div>
 
+      {errorPaso && (
+        <div className="mt-6">
+          <Aviso tono="peligro">{errorPaso}</Aviso>
+        </div>
+      )}
+
       <div className="mt-8 flex justify-between">
         <Button variant="fantasma" disabled={paso === 0} onClick={() => setPaso((p) => p - 1)}>
           Atrás
         </Button>
         {paso < PASOS.length - 1 ? (
-          <Button onClick={() => setPaso((p) => p + 1)}>Continuar</Button>
+          <Button
+            onClick={() => {
+              if (!validarPasoActual()) return;
+              setPaso((p) => p + 1);
+            }}
+          >
+            Continuar
+          </Button>
         ) : (
           <Button onClick={enviarSolicitud} disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}>
             {enviando ? "Enviando…" : cargandoSesion ? "Validando sesión…" : "Confirmar solicitud"}

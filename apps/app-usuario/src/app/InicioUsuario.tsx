@@ -168,19 +168,8 @@ export function InicioUsuario({ usuario, traslados, esDemo = false }: InicioUsua
       <section className="mt-10">
         <SeccionTitulo>Accesos rápidos</SeccionTitulo>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <AccesoRapido titulo="Solicitar traslado" descripcion="Pide un nuevo servicio" href="/traslados/nuevo" />
           <AccesoRapido titulo="Cuenta" descripcion="Perfil, vehículos y facturación" href="/cuenta" />
           <AccesoRapido titulo="Mis viajes" descripcion="Activos, programados e historial" href="/mis-viajes" />
-          <AccesoRapido
-            titulo="Soporte"
-            descripcion={viajeActivo ? "Ayuda visible durante tu viaje" : "Preguntas y reportes"}
-            href={viajeActivo ? `/soporte?viaje=${viajeActivo.traslado_id}` : "/soporte"}
-          />
-          <AccesoRapido
-            titulo="Ver viaje activo"
-            descripcion={viajeActivo ? "Sigue su progreso" : "No tienes uno en curso"}
-            href={viajeActivo ? `/traslados/${viajeActivo.traslado_id}` : undefined}
-          />
           <AccesoRapido
             titulo="Consultar evidencia"
             descripcion={viajeActivo ? "Fotos del Pasaporte Digital" : "Disponible con un viaje activo"}
@@ -191,11 +180,7 @@ export function InicioUsuario({ usuario, traslados, esDemo = false }: InicioUsua
             descripcion={viajeActivo ? "Reporta pagos, evidencia o incidentes" : "Centro de ayuda"}
             href={viajeActivo ? `/soporte?viaje=${viajeActivo.traslado_id}` : "/soporte"}
           />
-          <AccesoRapido
-            titulo="Ver historial"
-            descripcion={historial.length > 0 ? `${historial.length} traslado(s)` : "Aún no tienes traslados"}
-            href={historial.length > 0 ? "#ultimos-viajes" : undefined}
-          />
+        
         </div>
       </section>
 

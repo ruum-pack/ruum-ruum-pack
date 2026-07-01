@@ -112,6 +112,9 @@ begin
       rol,
       estado_verificacion,
       telefono,
+      pais,
+      estado,
+      direccion_principal,
       version_terminos_aceptada,
       terminos_aceptados_en
     )
@@ -122,6 +125,9 @@ begin
       (case when v_tipo_cuenta = 'empresa' then 'titular_empresa' else 'personal' end)::rol_usuario,
       'pendiente',
       new.raw_user_meta_data->>'telefono',
+      coalesce(new.raw_user_meta_data->>'pais', 'México'),
+      new.raw_user_meta_data->>'estado',
+      new.raw_user_meta_data->>'direccion_principal',
       v_version_terminos,
       v_terminos_aceptados_en
     )

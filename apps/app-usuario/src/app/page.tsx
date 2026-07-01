@@ -13,13 +13,6 @@ interface ContextoSesion {
   usuario: UsuarioRow | null;
   traslados: PasaporteRow[];
 }
-
-/**
- * Trae el usuario real y sus traslados cuando hay una sesión de Supabase
- * válida. Sin `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` (modo demo) o sin
- * sesión, regresa null/[] en vez de fallar — la página decide qué mostrar
- * (landing pública, o el Inicio con `?demo=1`) a partir de eso.
- */
 async function obtenerContextoSesion(): Promise<ContextoSesion> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -50,9 +43,6 @@ export default async function PaginaInicio({
   const sesion = Boolean(usuario);
   const vistaDemo = !sesion && (demo === "1" || demo === "true");
 
-  // Con sesión real, o previsualizando con `?demo=1`: la sección de Inicio
-  // (PRD §14: confianza + visibilidad) reemplaza la landing de marketing,
-  // que ya no aporta nada a alguien que ya está dentro del producto.
   if (sesion || vistaDemo) {
     return (
       <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
@@ -62,13 +52,6 @@ export default async function PaginaInicio({
             <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
           </span>
           <div className="flex items-center gap-5">
-           
-            <Link href="/cuenta" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
-              Cuenta
-            </Link>
-            <Link href="/mis-viajes" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
-              Mis viajes
-            </Link>
             <Link href="/soporte" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
               Soporte
             </Link>
@@ -81,7 +64,6 @@ export default async function PaginaInicio({
             )}
           </div>
         </header>
-
         <InicioUsuario
           usuario={sesion ? usuario : USUARIO_DEMO}
           traslados={sesion ? traslados : TRASLADOS_DEMO}
@@ -100,23 +82,12 @@ export default async function PaginaInicio({
             <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
           </span>
         <div className="flex items-center gap-5">
-       
-          <Link href="/cuenta" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
-            Cuenta
-          </Link>
-          <Link href="/mis-viajes" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
-            Mis viajes
-          </Link>
-          <Link href="/soporte" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
-            Soporte
-          </Link>
-          <Link href="/login" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
+         <Link href="/login" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
             Iniciar sesión
           </Link>
         </div>
       </header>
-
-      <section className="grid gap-12 sm:grid-cols-[1.1fr_0.9fr] sm:items-center">
+        <section className="grid gap-12 sm:grid-cols-[1.1fr_0.9fr] sm:items-center">
         <div>
           <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
             Tu vehículo, documentado en cada kilómetro.
@@ -125,15 +96,12 @@ export default async function PaginaInicio({
             Conductores certificados, evidencia fotográfica de inicio a fin y un Pasaporte Digital con todo el
             historial de tu traslado. Sabes dónde está tu vehículo y qué le pasó.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-4">
-            <Link href="/traslados/nuevo">
-              <Button>Solicitar traslado</Button>
+          <div className="mt-8 flex flex-wrap items-center gap-16">
+            <Link href="/registro">
+              <Button>Crear mi cuenta</Button>
             </Link>
-            <Link href="/registro" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
-              Crear mi cuenta
-            </Link>
-            <Link href="/?demo=1" className="font-body text-sm text-ink/50 underline-offset-4 hover:underline">
-              Ver el Inicio con datos de ejemplo
+            <Link href="/login">
+              <Button>Iniciar sesión</Button>
             </Link>
           </div>
         </div>

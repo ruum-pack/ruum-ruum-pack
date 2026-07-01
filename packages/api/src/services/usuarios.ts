@@ -10,6 +10,10 @@ function tipoCuentaDesdeMetadata(valor: unknown): "personal" | "empresa" {
   return valor === "empresa" ? "empresa" : "personal";
 }
 
+function metadataString(metadata: Record<string, unknown> | undefined, campo: string) {
+  return typeof metadata?.[campo] === "string" ? metadata[campo] : null;
+}
+
 async function buscarUsuarioPorAuthId(cliente: Cliente, authUserId: string): Promise<UsuarioRow | null> {
   const { data, error } = await cliente
     .from("usuarios")
@@ -33,6 +37,7 @@ export async function obtenerUsuarioActual(cliente: Cliente) {
   // o en entornos donde las migraciones aún no corrieron completas. La policy
   // 0021 permite insertar solo la fila propia (auth.uid() = auth_user_id).
   const tipoCuenta = tipoCuentaDesdeMetadata(sesion.user.user_metadata?.tipo_cuenta);
+  const metadata = sesion.user.user_metadata;
   const { data: creado, error: errorInsert } = await cliente
     .from("usuarios")
     .insert({
@@ -40,8 +45,17 @@ export async function obtenerUsuarioActual(cliente: Cliente) {
       tipo_cuenta: tipoCuenta,
       rol: tipoCuenta === "empresa" ? "titular_empresa" : "personal",
       estado_verificacion: "pendiente",
-      telefono: typeof sesion.user.user_metadata?.telefono === "string" ? sesion.user.user_metadata.telefono : null,
-      nombre: typeof sesion.user.user_metadata?.nombre === "string" ? sesion.user.user_metadata.nombre : null,
+      telefono: metadataString(metadata, "telefono"),
+      nombre: metadataString(metadata, "nombre"),
+      pais: metadataString(metadata, "pais"),
+      estado: metadataString(metadata, "estado"),
+      codigo_postal: metadataString(metadata, "codigo_postal"),
+      ciudad: metadataString(metadata, "ciudad"),
+      colonia: metadataString(metadata, "colonia"),
+      calle: metadataString(metadata, "calle"),
+      numero: metadataString(metadata, "numero"),
+      referencias: metadataString(metadata, "referencias"),
+      direccion_principal: metadataString(metadata, "direccion_principal"),
       version_terminos_aceptada: VERSION_TERMINOS_VIGENTE,
       terminos_aceptados_en: new Date().toISOString()
     })
@@ -76,6 +90,38 @@ export async function registrarAceptacionTerminos(
     .eq("auth_user_id", authUserId);
 
   if (error) throw error;
+}
+
+export type PerfilUsuarioActualizable = Pick<
+  Database["public"]["Tables"]["usuarios"]["Update"],
+  | "nombre"
+  | "foto_url"
+  | "telefono"
+  | "pais"
+  | "estado"
+  | "codigo_postal"
+  | "ciudad"
+  | "colonia"
+  | "calle"
+  | "numero"
+  | "referencias"
+  | "direccion_principal"
+  | "correo_facturacion"
+>;
+
+export async function actualizarPerfilUsuario(cliente: Cliente, datos: PerfilUsuarioActualizable): Promise<UsuarioRow> {
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) throw new Error("Sin sesión activa.");
+
+  const { data, error } = await cliente
+    .from("usuarios")
+    .update(datos)
+    .eq("auth_user_id", sesion.user.id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data;
 }
 
 /**
