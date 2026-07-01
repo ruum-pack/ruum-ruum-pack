@@ -701,3 +701,195 @@ export async function marcarTrasladoFallido(cliente: Cliente, trasladoId: string
 
   return resultado;
 }
+
+// ─── Mapa operativo ──────────────────────────────────────────────────────────
+
+export interface TrasladoMapa {
+  traslado_id: string;
+  estado: EstadoTraslado;
+  conductor_nombre: string | null;
+  vehiculo_marca: string | null;
+  vehiculo_modelo: string | null;
+  tiene_incidencia_abierta: boolean;
+  origen_lat: number;
+  origen_lng: number;
+  origen_ciudad: string;
+  destino_lat: number;
+  destino_lng: number;
+  destino_ciudad: string;
+  actualizado_en: string;
+}
+
+const ESTADOS_ACTIVOS: EstadoTraslado[] = [
+  "conductor_asignado",
+  "conductor_en_camino_al_origen",
+  "conductor_en_punto_de_recoleccion",
+  "verificacion_vehiculo_en_proceso",
+  "evidencia_inicial_en_proceso",
+  "evidencia_inicial_completada",
+  "vehiculo_recibido",
+  "traslado_en_curso",
+  "incidencia_reportada",
+  "llegada_a_destino",
+  "evidencia_final_en_proceso",
+  "evidencia_final_completada",
+  "entrega_confirmada",
+  "pago_pendiente",
+  "pago_completado"
+];
+
+/**
+ * PRD §10.3 — Mapa operativo: traslados activos con coordenadas de origen y
+ * destino para pintarlos en el mapa de la Torre de Control.
+ * La vista pasaporte_digital no incluye lat/lng (son datos operativos del
+ * traslado, no del pasaporte); se consultan directamente de la tabla traslados
+ * unida con conductores y vehículos.
+ */
+export async function listarTrasladosActivosMapa(cliente: Cliente): Promise<TrasladoMapa[]> {
+  const { data, error } = await cliente
+    .from("traslados")
+    .select(
+      `id, estado, tiene_incidencia_abierta, actualizado_en,
+       origen_lat, origen_lng, origen_ciudad,
+       destino_lat, destino_lng, destino_ciudad,
+       conductores(nombre),
+       vehiculos(marca, modelo)`
+    )
+    .in("estado", ESTADOS_ACTIVOS)
+    .order("actualizado_en", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((t) => ({
+    traslado_id: t.id,
+    estado: t.estado,
+    conductor_nombre: (t.conductores as { nombre: string } | null)?.nombre ?? null,
+    vehiculo_marca: (t.vehiculos as { marca: string; modelo: string } | null)?.marca ?? null,
+    vehiculo_modelo: (t.vehiculos as { marca: string; modelo: string } | null)?.modelo ?? null,
+    tiene_incidencia_abierta: t.tiene_incidencia_abierta,
+    origen_lat: t.origen_lat,
+    origen_lng: t.origen_lng,
+    origen_ciudad: t.origen_ciudad,
+    destino_lat: t.destino_lat,
+    destino_lng: t.destino_lng,
+    destino_ciudad: t.destino_ciudad,
+    actualizado_en: t.actualizado_en
+  }));
+}
+
+// ─── Alertas SLA ─────────────────────────────────────────────────────────────
+
+export type TipoSLA =
+  | "cuenta_nueva_usuario"
+  | "documentos_usuario"
+  | "conductor_primera_vez"
+  | "documentos_conductor";
+
+export interface AlertaSLA {
+  id: string;
+  tipo: TipoSLA;
+  nombre: string;
+  creado_en: string;
+  horas_transcurridas: number;
+  horas_limite: number;
+  porcentaje_consumido: number;
+  requiere_alerta: boolean;     // ≥80% del SLA
+  vencido: boolean;             // >100% del SLA
+}
+
+/** Calcula horas hábiles transcurridas desde una fecha ISO.
+ *  Aproximación pragmática: L-V 09:00-18:00 hora local (9h/día).
+ *  Suficiente para el propósito de alertas de SLA operativo. */
+function horasHabilesDesde(fechaIso: string): number {
+  const inicio = new Date(fechaIso);
+  const ahora = new Date();
+  let horas = 0;
+  const cursor = new Date(inicio);
+
+  while (cursor < ahora) {
+    const diaSemana = cursor.getDay(); // 0=dom, 6=sab
+    const horaActual = cursor.getHours();
+    if (diaSemana >= 1 && diaSemana <= 5 && horaActual >= 9 && horaActual < 18) {
+      horas += 1;
+    }
+    cursor.setHours(cursor.getHours() + 1);
+  }
+  return horas;
+}
+
+/**
+ * PRD §4.1 — SLAs de verificación. Admin recibe alerta cuando un usuario o
+ * conductor supera el 80% del SLA sin resolución. Esta función devuelve todos
+ * los pendientes con su porcentaje de consumo para mostrarlos como panel de
+ * alertas en Torre de Control.
+ */
+export async function listarAlertasSLA(cliente: Cliente): Promise<AlertaSLA[]> {
+  const LIMITE: Record<TipoSLA, number> = {
+    cuenta_nueva_usuario: 2,
+    documentos_usuario: 4,
+    conductor_primera_vez: 24,
+    documentos_conductor: 24
+  };
+
+  const [usuarios, conductores] = await Promise.all([
+    cliente
+      .from("usuarios")
+      .select("id, nombre, estado_verificacion, creado_en")
+      .in("estado_verificacion", ["pendiente", "en_revision"])
+      .order("creado_en", { ascending: true }),
+    cliente
+      .from("conductores")
+      .select("id, nombre, estado, documentos_vigentes, creado_en, traslados_completados")
+      .eq("estado", "pendiente_verificacion")
+      .order("creado_en", { ascending: true })
+  ]);
+
+  if (usuarios.error) throw usuarios.error;
+  if (conductores.error) throw conductores.error;
+
+  const alertas: AlertaSLA[] = [];
+
+  for (const u of usuarios.data ?? []) {
+    const tipo: TipoSLA =
+      u.estado_verificacion === "pendiente" ? "cuenta_nueva_usuario" : "documentos_usuario";
+    const limite = LIMITE[tipo];
+    const horas = horasHabilesDesde(u.creado_en);
+    const porcentaje = Math.min(Math.round((horas / limite) * 100), 999);
+    alertas.push({
+      id: u.id,
+      tipo,
+      nombre: u.nombre ?? "Usuario sin nombre",
+      creado_en: u.creado_en,
+      horas_transcurridas: horas,
+      horas_limite: limite,
+      porcentaje_consumido: porcentaje,
+      requiere_alerta: porcentaje >= 80 && horas <= limite,
+      vencido: horas > limite
+    });
+  }
+
+  for (const c of conductores.data ?? []) {
+    const tipo: TipoSLA =
+      (c.traslados_completados ?? 0) === 0 ? "conductor_primera_vez" : "documentos_conductor";
+    const limite = LIMITE[tipo];
+    const horas = horasHabilesDesde(c.creado_en);
+    const porcentaje = Math.min(Math.round((horas / limite) * 100), 999);
+    alertas.push({
+      id: c.id,
+      tipo,
+      nombre: c.nombre ?? "Conductor sin nombre",
+      creado_en: c.creado_en,
+      horas_transcurridas: horas,
+      horas_limite: limite,
+      porcentaje_consumido: porcentaje,
+      requiere_alerta: porcentaje >= 80 && horas <= limite,
+      vencido: horas > limite
+    });
+  }
+
+  // Primero vencidos, luego por porcentaje consumido descendente
+  return alertas.sort((a, b) => {
+    if (a.vencido !== b.vencido) return a.vencido ? -1 : 1;
+    return b.porcentaje_consumido - a.porcentaje_consumido;
+  });
+}

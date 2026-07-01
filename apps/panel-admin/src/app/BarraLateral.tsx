@@ -9,6 +9,8 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase
 const SECCIONES_CONSTRUIDAS = [
   { href: "/", etiqueta: "Dashboard" },
   { href: "/viajes", etiqueta: "Viajes" },
+  { href: "/mapa", etiqueta: "Mapa operativo" },
+  { href: "/alertas-sla", etiqueta: "Alertas SLA" },
   { href: "/conductores", etiqueta: "Conductores" },
   { href: "/usuarios", etiqueta: "Usuarios" },
   { href: "/incidencias", etiqueta: "Incidencias" },
@@ -23,8 +25,6 @@ const SECCIONES_CONSTRUIDAS = [
 ] as const;
 
 const SECCIONES_PENDIENTES = [
-  "Mapa operativo",
-  "Alertas SLA verificación",
   "Evidencia",
   "Auditoría"
 ] as const;
