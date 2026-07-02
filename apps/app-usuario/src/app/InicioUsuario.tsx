@@ -154,13 +154,13 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
       <section className="mt-10">
         <SeccionTitulo>Accesos rápidos</SeccionTitulo>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <AccesoRapido titulo="Cuenta" descripcion="Perfil, vehículos y facturación" href="/cuenta" />
-          <AccesoRapido titulo="Mis viajes" descripcion="Activos, programados e historial" href="/mis-viajes" />
           <AccesoRapido
-            titulo="Consultar evidencia"
-            descripcion={viajeActivo ? "Fotos del Pasaporte Digital" : "Disponible con un viaje activo"}
+            titulo="Pasaporte Digital"
+            descripcion={viajeActivo ? "Consulta tuPasaporte Digital" : "Disponible con un viaje activo"}
             href={viajeActivo ? `/traslados/${viajeActivo.traslado_id}` : undefined}
           />
+          <AccesoRapido titulo="Mis viajes" descripcion="Activos, programados e historial" href="/mis-viajes" />
+          <AccesoRapido titulo="Cuenta" descripcion="Perfil, vehículos y facturación" href="/cuenta" />
           <AccesoRapido
             titulo="Contactar soporte"
             descripcion={viajeActivo ? "Reporta pagos, evidencia o incidentes" : "Centro de ayuda"}
