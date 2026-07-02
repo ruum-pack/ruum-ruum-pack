@@ -135,7 +135,7 @@ export async function subirFotoPerfil(cliente: Cliente, archivo: File): Promise<
   const { data } = cliente.storage.from(foto.bucket).getPublicUrl(foto.path);
   const fotoUrl = `${data.publicUrl}?v=${Date.now()}`;
 
-  await actualizarPerfilUsuario(cliente, { foto_url: fotoUrl });
+  await actualizarPerfilUsuario(cliente, { foto_url: fotoUrl } as PerfilUsuarioActualizable);
   return fotoUrl;
 }
 
