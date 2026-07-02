@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Button, LogoMarca } from "@ruum/ui";
+import { LogoMarca } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
-import { PILARES_CONFIANZA } from "../lib/pilares-confianza";
 import { BotonCerrarSesion } from "./BotonCerrarSesion";
 import { InicioUsuario } from "./InicioUsuario";
+import { botonAzul, botonContorno, LogoRuum, PantallaPublica } from "./experiencia-publica";
 
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -64,59 +64,36 @@ export default async function PaginaInicio() {
     );
   }
 
-  // Sin sesión: landing pública con los pilares de confianza del producto.
+  // Sin sesión: entrada móvil pública alineada con el onboarding.
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
-      <header className="mb-16 flex items-center justify-between">
-        <span className="flex items-center gap-2.5">
-            <LogoMarca tamano={26} color="signal" />
-            <span className="font-display text-lg font-bold tracking-tight">
-              <span className="text-signal">ruum</span>ruum
-            </span>
-          </span>
-        <div className="flex items-center gap-5">
-         <Link href="/soporte" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
-            ¿Necesitas ayuda?
-          </Link>
+    <PantallaPublica>
+      <section className="flex min-h-screen flex-col px-5 pb-10 pt-14">
+        <LogoRuum className="mx-auto text-center" />
+
+        <div className="mt-10 overflow-hidden rounded-xl border border-[#113259] bg-[#030817] shadow-[0_0_45px_rgba(22,131,255,0.16)]">
+          <img
+            src="/imagenes/seguridad-traslado.png"
+            alt="Traslado vehicular protegido con verificacion de identidad"
+            className="aspect-[1.06] w-full object-cover object-[44%_54%]"
+          />
         </div>
-      </header>
-        <section className="grid gap-12 sm:grid-cols-[1.1fr_0.9fr] sm:items-center">
-        <div>
-          <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
-            Tu vehículo, documentado en cada kilómetro.
+
+        <div className="mt-auto">
+          <h1 className="font-display text-[22px] font-extrabold leading-tight tracking-[-0.01em] text-white">
+            Bienvenido
           </h1>
-          <p className="mt-5 max-w-md font-body text-base text-ink/65">
-            Conductores certificados, evidencia fotográfica de inicio a fin y un Pasaporte Digital con todo el
-            historial de tu traslado. Sabes dónde está tu vehículo y qué le pasó.
-          </p>
-         
-        </div>
+          <p className="mt-2 font-body text-xs text-[#90a8c5]">Inicia sesión para continuar</p>
 
-        <div className="rounded-lg border border-ink/10 bg-mist p-6">
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Primer paso</p>
-          <h2 className="mt-2 font-display text-2xl font-semibold">Crea una cuenta verificada</h2>
-          <p className="mt-3 font-body text-sm leading-6 text-ink/60">
-            Captura tus datos, sube tu identificación y solicita traslados reales desde tu cuenta.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center gap-16">
-            <Link href="/registro">
-              <Button>Crear mi cuenta</Button>
+          <div className="mt-5 grid gap-2.5">
+            <Link href="/login" className={botonAzul}>
+              Iniciar sesión
             </Link>
-            <Link href="/login">
-              <Button>Iniciar sesión</Button>
+            <Link href="/registro" className={botonContorno}>
+              Registrarme
             </Link>
           </div>
         </div>
       </section>
-
-      <section className="mt-24 grid gap-8 sm:grid-cols-3">
-        {PILARES_CONFIANZA.map((pilar) => (
-          <div key={pilar.titulo}>
-            <h2 className="font-display text-base font-semibold">{pilar.titulo}</h2>
-            <p className="mt-2 font-body text-sm leading-relaxed text-ink/60">{pilar.cuerpo}</p>
-          </div>
-        ))}
-      </section>
-    </main>
+    </PantallaPublica>
   );
 }

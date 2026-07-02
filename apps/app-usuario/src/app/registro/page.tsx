@@ -2,12 +2,25 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Field, Aviso } from "@ruum/ui";
+import { Aviso } from "@ruum/ui";
 import { VERSION_TERMINOS_VIGENTE } from "@ruum/shared/constants";
 import { HORAS_HABILES_VERIFICACION_CUENTA_NUEVA } from "@ruum/shared/rules";
-import { registrarAceptacionTerminos } from "@ruum/api/services";
+import { registrarAceptacionTerminos, subirDocumentoIdentidad } from "@ruum/api/services";
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import {
+  botonAzul,
+  botonContorno,
+  campoOscuro,
+  CampoOscuro,
+  etiquetaOscura,
+  IconoLinea,
+  LogoRuum,
+  PantallaPublica
+} from "../experiencia-publica";
+
+const TIPOS_ACEPTADOS = ["image/jpeg", "image/png", "image/heic", "application/pdf"];
+const TAMANO_MAXIMO_MB = 10;
 
 function soloDigitos(valor: string, maximo?: number) {
   const limpio = valor.replace(/\D/g, "");
@@ -60,6 +73,7 @@ function domicilioCompleto({
 
 export default function PaginaRegistro() {
   const router = useRouter();
+  const [paso, setPaso] = useState<1 | 2 | 3>(1);
   const [tipoCuenta, setTipoCuenta] = useState<"personal" | "empresa">("personal");
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
@@ -74,10 +88,11 @@ export default function PaginaRegistro() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmarPassword, setConfirmarPassword] = useState("");
-  const [mostrarPassword, setMostrarPassword] = useState(false);
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
+  const [documento, setDocumento] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [documentoEnviado, setDocumentoEnviado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cpConsultando, setCpConsultando] = useState(false);
   const [cpAviso, setCpAviso] = useState<string | null>(null);
@@ -108,33 +123,49 @@ export default function PaginaRegistro() {
       setCiudad(datosCp.ciudades[0] ?? "");
       setColonia(datosCp.colonias[0] ?? "");
       if (datosCp.ciudades.length > 1 || datosCp.colonias.length > 1) {
-        setCpAviso("Selecciona la ciudad o municipio y la colonia que correspondan al CP.");
+        setCpAviso("Selecciona ciudad/municipio y colonia.");
       } else if (!datosCp.ciudades.length || !datosCp.colonias.length) {
-        setCpAviso("Captura manualmente los campos que no se prellenaron con el CP.");
+        setCpAviso("Captura manualmente los campos que falten.");
       }
     } catch {
       setCiudadesCp([]);
       setColoniasCp([]);
-      setCpAviso("No pudimos encontrar ese CP. Captura estado, ciudad y colonia manualmente.");
+      setCpAviso("No encontramos ese CP. Captura los datos manualmente.");
     } finally {
       setCpConsultando(false);
     }
   }
 
-  async function crearCuenta(e: React.FormEvent) {
-    e.preventDefault();
+  function seleccionarDocumento(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0] ?? null;
+    if (!archivo) return;
+
+    if (!TIPOS_ACEPTADOS.includes(archivo.type)) {
+      setError("Solo se aceptan imágenes JPG, PNG, HEIC o PDF.");
+      setDocumento(null);
+      return;
+    }
+
+    if (archivo.size > TAMANO_MAXIMO_MB * 1024 * 1024) {
+      setError(`El archivo no puede superar ${TAMANO_MAXIMO_MB} MB.`);
+      setDocumento(null);
+      return;
+    }
+
     setError(null);
+    setDocumento(archivo);
+  }
 
-    if (!nombre.trim() || !apellido.trim()) {
-      setError("Captura nombre y apellido.");
-      return;
-    }
+  function validarPasoUno() {
+    if (!nombre.trim() || !apellido.trim()) return "Captura nombre y apellido.";
+    if (telefono.length !== 10) return "El teléfono debe tener 10 dígitos; el prefijo +52 ya está aplicado.";
+    if (!email.trim()) return "Captura tu correo electrónico.";
+    if (password.length < 8) return "La contraseña debe tener mínimo 8 caracteres.";
+    if (password !== confirmarPassword) return "La contraseña y la confirmación no coinciden.";
+    return null;
+  }
 
-    if (telefono.length !== 10) {
-      setError("El teléfono debe tener 10 dígitos; el prefijo +52 ya está aplicado.");
-      return;
-    }
-
+  function validarPasoDos() {
     if (
       codigoPostal.length !== 5 ||
       !estado.trim() ||
@@ -143,12 +174,36 @@ export default function PaginaRegistro() {
       !calle.trim() ||
       !numero.trim()
     ) {
-      setError("Completa Código Postal, estado, ciudad, colonia, calle y número.");
+      return "Completa Código Postal, estado, ciudad, colonia, calle y número.";
+    }
+    return null;
+  }
+
+  function avanzar() {
+    const validacion = paso === 1 ? validarPasoUno() : validarPasoDos();
+    if (validacion) {
+      setError(validacion);
       return;
     }
 
-    if (password !== confirmarPassword) {
-      setError("La contraseña y la confirmación no coinciden.");
+    setError(null);
+    setPaso(paso === 1 ? 2 : 3);
+  }
+
+  async function crearCuenta(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    const errorPasoUno = validarPasoUno();
+    const errorPasoDos = validarPasoDos();
+    if (errorPasoUno || errorPasoDos) {
+      setError(errorPasoUno ?? errorPasoDos);
+      setPaso(errorPasoUno ? 1 : 2);
+      return;
+    }
+
+    if (!documento) {
+      setError("Sube una identificación oficial para enviar tu cuenta a revisión.");
       return;
     }
 
@@ -157,13 +212,12 @@ export default function PaginaRegistro() {
       return;
     }
 
-    setEnviando(true);
-
     if (!tieneSupabaseConfigurado()) {
       setError("Supabase no está configurado. No se puede crear una cuenta real en este entorno.");
-      setEnviando(false);
       return;
     }
+
+    setEnviando(true);
 
     try {
       const cliente = crearClienteNavegador();
@@ -210,7 +264,14 @@ export default function PaginaRegistro() {
       try {
         await registrarAceptacionTerminos(cliente, datosAuth.user.id);
       } catch {
-        // La cuenta ya existe; si este update falla se puede corregir desde soporte/admin.
+        // Si falla, el trigger/metadata conserva la versión aceptada para soporte.
+      }
+
+      try {
+        await subirDocumentoIdentidad(cliente, documento);
+        setDocumentoEnviado(true);
+      } catch {
+        setDocumentoEnviado(false);
       }
 
       setEnviado(true);
@@ -223,235 +284,230 @@ export default function PaginaRegistro() {
 
   if (enviado) {
     return (
-      <main className="mx-auto max-w-md px-6 py-20 text-center">
-        <h1 className="font-display text-2xl font-semibold">Cuenta en revisión</h1>
-        <p className="mt-3 font-body text-sm text-ink/60">
-          Verificamos cuentas nuevas en menos de {HORAS_HABILES_VERIFICACION_CUENTA_NUEVA} horas hábiles. Te
-          avisaremos en cuanto esté lista.
-        </p>
-        <div className="mt-6">
-          <Button onClick={() => router.push("/verificacion")}>Subir identificación</Button>
-        </div>
-        {tieneSupabaseConfigurado() && (
-          <p className="mt-4 font-body text-xs text-ink/45">
-            Si tu proyecto de Supabase exige confirmar el correo, revisa tu bandeja antes de iniciar sesión.
+      <PantallaPublica>
+        <section className="flex min-h-screen flex-col px-5 py-10 text-center">
+          <LogoRuum className="mx-auto" />
+          <div className="mx-auto mt-16">
+            <IconoLinea tipo={documentoEnviado ? "escudo" : "documento"} />
+          </div>
+          <h1 className="mt-6 font-display text-[24px] font-extrabold leading-tight text-white">Cuenta en revisión</h1>
+          <p className="mx-auto mt-3 max-w-[285px] font-body text-xs leading-5 text-[#9db2cf]">
+            Verificamos cuentas nuevas en menos de {HORAS_HABILES_VERIFICACION_CUENTA_NUEVA} horas hábiles. Te
+            avisaremos en cuanto esté lista.
           </p>
-        )}
-      </main>
+          <div className="mt-7 rounded-xl border border-[#223553] bg-[#0a1429] p-4 text-left">
+            <p className="font-display text-sm font-bold text-white">
+              {documentoEnviado ? "Identificación recibida" : "Identificación pendiente"}
+            </p>
+            <p className="mt-1 font-body text-xs leading-5 text-[#90a8c5]">
+              {documentoEnviado
+                ? "Tu documento fue cargado y queda ligado a esta solicitud."
+                : "Si tu correo requiere confirmación, inicia sesión después y sube tu identificación desde verificación."}
+            </p>
+          </div>
+          <button onClick={() => router.push(documentoEnviado ? "/login" : "/verificacion")} className={`${botonAzul} mt-7`}>
+            {documentoEnviado ? "Ir a iniciar sesión" : "Subir identificación"}
+          </button>
+        </section>
+      </PantallaPublica>
     );
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <h1 className="font-display text-2xl font-semibold">Crear cuenta</h1>
-      <p className="mt-2 font-body text-sm text-ink/60">
-        Una cuenta verificada te permite solicitar traslados y, con historial, pagar al cierre en vez de por
-        adelantado.
-      </p>
-
-      {!tieneSupabaseConfigurado() && (
-        <div className="mt-4">
-          <Aviso tono="peligro">Supabase no está configurado. No es posible crear cuentas reales en este entorno.</Aviso>
-        </div>
-      )}
-
-      <form className="mt-8 grid gap-4" onSubmit={crearCuenta}>
-        <fieldset className="flex gap-4 font-body text-sm">
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="tipo_cuenta"
-              checked={tipoCuenta === "personal"}
-              onChange={() => setTipoCuenta("personal")}
-            />
-            Personal
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="tipo_cuenta"
-              checked={tipoCuenta === "empresa"}
-              onChange={() => setTipoCuenta("empresa")}
-            />
-            Empresa
-          </label>
-        </fieldset>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required autoComplete="given-name" />
-          <Field etiqueta="Apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} required autoComplete="family-name" />
-        </div>
-        <label className="flex flex-col gap-1.5">
-          <span className="font-body text-sm font-medium">Teléfono</span>
-          <div className="flex overflow-hidden rounded-lg border border-ink/50 bg-mist">
-            <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">
-              +52
-            </span>
-            <input
-              type="tel"
-              value={telefono}
-              onChange={(e) => setTelefono(telefonoLocalMx(e.target.value))}
-              inputMode="numeric"
-              maxLength={10}
-              required
-              autoComplete="tel-national"
-              className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
-              placeholder="10 dígitos"
-            />
-          </div>
-        </label>
-
-        <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
-          <p className="font-body text-sm font-semibold">Domicilio</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              etiqueta="Código Postal"
-              value={codigoPostal}
-              onChange={(e) => void consultarCodigoPostal(e.target.value)}
-              onBlur={(e) => consultarCodigoPostal(e.target.value)}
-              inputMode="numeric"
-              maxLength={5}
-              required
-              ayuda={cpConsultando ? "Consultando CP..." : cpAviso}
-            />
-            <Field etiqueta="Estado" value={estado} onChange={(e) => setEstado(e.target.value)} required />
-            <label className="flex flex-col gap-1.5">
-              <span className="font-body text-sm font-medium">Ciudad o municipio</span>
-              {ciudadesCp.length > 0 ? (
-                <select
-                  value={ciudad}
-                  onChange={(e) => setCiudad(e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
-                >
-                  {ciudadesCp.map((opcion) => (
-                    <option key={opcion} value={opcion}>
-                      {opcion}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  value={ciudad}
-                  onChange={(e) => setCiudad(e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
-                />
-              )}
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="font-body text-sm font-medium">Colonia</span>
-              {coloniasCp.length > 0 ? (
-                <select
-                  value={colonia}
-                  onChange={(e) => setColonia(e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
-                >
-                  {coloniasCp.map((opcion) => (
-                    <option key={opcion} value={opcion}>
-                      {opcion}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  value={colonia}
-                  onChange={(e) => setColonia(e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
-                />
-              )}
-            </label>
-            <Field etiqueta="Calle" value={calle} onChange={(e) => setCalle(e.target.value)} required />
-            <Field etiqueta="Número" value={numero} onChange={(e) => setNumero(e.target.value)} required />
-          </div>
-          <Field
-            etiqueta="Referencias"
-            value={referencias}
-            onChange={(e) => setReferencias(e.target.value)}
-            placeholder="Entre calles, color de fachada, acceso, piso, etc."
-          />
-        </div>
-
-        <Field etiqueta="Correo" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5">
-            <span className="font-body text-sm font-medium">Contraseña</span>
-            <div className="flex overflow-hidden rounded-lg border border-ink/50 bg-mist">
-              <input
-                type={mostrarPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-                className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
-              />
-            </div>
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="font-body text-sm font-medium">Confirmar contraseña</span>
-            <div className="flex overflow-hidden rounded-lg border border-ink/50 bg-mist">
-              <input
-                type={mostrarPassword ? "text" : "password"}
-                value={confirmarPassword}
-                onChange={(e) => setConfirmarPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-                className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
-              />
-            </div>
-          </label>
-        </div>
-        <label className="flex items-center gap-2 font-body text-sm text-ink/65">
-          <input
-            type="checkbox"
-            checked={mostrarPassword}
-            onChange={(e) => setMostrarPassword(e.target.checked)}
-            className="size-5 rounded border-ink/50 accent-signal"
-          />
-          Mostrar contraseña
-        </label>
-
-        <div className="mt-2 rounded-xl border border-ink/10 bg-mist p-4">
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              className="mt-0.5 h-5 w-5 rounded border-ink/50 accent-signal"
-              checked={aceptaTerminos}
-              onChange={(e) => setAceptaTerminos(e.target.checked)}
-              required
-            />
-            <span className="font-body text-sm leading-snug text-ink/70">
-              He leído y acepto los{" "}
-              <a href="/soporte#terminos" target="_blank" className="font-medium text-route underline-offset-2 hover:underline">
-                Términos y condiciones
-              </a>{" "}
-              y el{" "}
-              <a href="/soporte#privacidad" target="_blank" className="font-medium text-route underline-offset-2 hover:underline">
-                Aviso de privacidad
-              </a>{" "}
-              de Ruum Ruum.
-            </span>
-          </label>
-        </div>
-
-        {error && <Aviso tono="peligro">{error}</Aviso>}
-        <Aviso tono="info">Después de crear tu cuenta te pediremos un documento de identidad para verificarla.</Aviso>
-
-        <Button type="submit" disabled={enviando || !aceptaTerminos} className="mt-2">
-          {enviando ? "Creando…" : "Crear cuenta"}
-        </Button>
-      </form>
-
-      <p className="mt-6 text-center font-body text-sm text-ink/55">
-        ¿Ya tienes cuenta?{" "}
-        <button onClick={() => router.push("/login")} className="font-medium text-route hover:underline">
-          Inicia sesión
+    <PantallaPublica>
+      <section className="min-h-screen px-4 py-5">
+        <button onClick={() => (paso === 1 ? router.push("/") : setPaso(paso === 2 ? 1 : 2))} className="font-body text-xs text-[#8fb9ef] transition hover:text-white">
+          ← Atrás
         </button>
-      </p>
-    </main>
+
+        <form onSubmit={crearCuenta} className="mx-auto mt-3 rounded-[14px] border border-[#223553] bg-[#0a1429] px-5 py-7 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
+          <span className="inline-flex rounded-full bg-[#0d2d61] px-3 py-1 font-display text-[10px] font-bold text-[#1683ff]">
+            Paso {paso} de 3
+          </span>
+
+          {paso === 1 && (
+            <div className="mt-5">
+              <h1 className="font-display text-[21px] font-extrabold leading-tight text-white">Crea tu cuenta</h1>
+              <p className="mt-4 font-body text-xs leading-5 text-[#90a8c5]">
+                Registra tus datos para gestionar tus traslados.
+              </p>
+
+              <div className="mt-5 grid gap-3">
+                <div className="grid grid-cols-2 gap-2 rounded-lg border border-[#223553] bg-[#050b1a] p-1">
+                  {(["personal", "empresa"] as const).map((opcion) => (
+                    <button
+                      key={opcion}
+                      type="button"
+                      onClick={() => setTipoCuenta(opcion)}
+                      className={`rounded-md px-3 py-2 font-display text-xs font-bold capitalize transition ${
+                        tipoCuenta === opcion ? "bg-[#1683ff] text-white" : "text-[#8fb9ef] hover:bg-[#1683ff]/10"
+                      }`}
+                    >
+                      {opcion}
+                    </button>
+                  ))}
+                </div>
+                <CampoOscuro etiqueta="Nombre(s)" value={nombre} onChange={(e) => setNombre(e.target.value)} required autoComplete="given-name" placeholder="JUAN CARLOS" />
+                <CampoOscuro etiqueta="Apellido(s)" value={apellido} onChange={(e) => setApellido(e.target.value)} required autoComplete="family-name" placeholder="GARCIA LOPEZ" />
+                <label className="flex flex-col gap-1.5">
+                  <span className={etiquetaOscura}>Teléfono</span>
+                  <div className="flex overflow-hidden rounded-lg border border-[#223553] bg-[#050b1a] focus-within:border-[#1683ff] focus-within:ring-2 focus-within:ring-[#1683ff]/20">
+                    <span className="flex items-center border-r border-[#223553] px-3 font-body text-sm font-semibold text-[#74a2d7]">
+                      +52
+                    </span>
+                    <input
+                      type="tel"
+                      value={telefono}
+                      onChange={(e) => setTelefono(telefonoLocalMx(e.target.value))}
+                      inputMode="numeric"
+                      maxLength={10}
+                      required
+                      autoComplete="tel-national"
+                      className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-white outline-none placeholder:text-white/35"
+                      placeholder="55 0000 0000"
+                    />
+                  </div>
+                </label>
+                <CampoOscuro etiqueta="Correo electrónico" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" placeholder="correo@ejemplo.com" />
+                <CampoOscuro etiqueta="Contraseña" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" placeholder="Mínimo 8 caracteres" />
+                <CampoOscuro etiqueta="Confirmar contraseña" type="password" value={confirmarPassword} onChange={(e) => setConfirmarPassword(e.target.value)} required minLength={8} autoComplete="new-password" placeholder="Repite tu contraseña" />
+              </div>
+            </div>
+          )}
+
+          {paso === 2 && (
+            <div className="mt-5">
+              <h1 className="font-display text-[21px] font-extrabold leading-tight text-white">¿Dónde vives?</h1>
+              <p className="mt-4 font-body text-xs leading-5 text-[#90a8c5]">
+                Estos datos ayudan a validar tu cuenta y agilizar futuros traslados.
+              </p>
+
+              <div className="mt-5 grid gap-3">
+                <CampoOscuro
+                  etiqueta="Código Postal"
+                  value={codigoPostal}
+                  onChange={(e) => void consultarCodigoPostal(e.target.value)}
+                  onBlur={(e) => consultarCodigoPostal(e.target.value)}
+                  inputMode="numeric"
+                  maxLength={5}
+                  required
+                  ayuda={cpConsultando ? "Consultando CP..." : cpAviso}
+                  placeholder="00000"
+                />
+                <CampoOscuro etiqueta="Estado" value={estado} onChange={(e) => setEstado(e.target.value)} required placeholder="Estado" />
+                <label className="flex flex-col gap-1.5">
+                  <span className={etiquetaOscura}>Ciudad o municipio</span>
+                  {ciudadesCp.length > 0 ? (
+                    <select value={ciudad} onChange={(e) => setCiudad(e.target.value)} required className={campoOscuro}>
+                      {ciudadesCp.map((opcion) => (
+                        <option key={opcion} value={opcion}>
+                          {opcion}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input value={ciudad} onChange={(e) => setCiudad(e.target.value)} required className={campoOscuro} />
+                  )}
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className={etiquetaOscura}>Colonia</span>
+                  {coloniasCp.length > 0 ? (
+                    <select value={colonia} onChange={(e) => setColonia(e.target.value)} required className={campoOscuro}>
+                      {coloniasCp.map((opcion) => (
+                        <option key={opcion} value={opcion}>
+                          {opcion}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input value={colonia} onChange={(e) => setColonia(e.target.value)} required className={campoOscuro} />
+                  )}
+                </label>
+                <div className="grid grid-cols-[1fr_92px] gap-3">
+                  <CampoOscuro etiqueta="Calle" value={calle} onChange={(e) => setCalle(e.target.value)} required placeholder="Calle" />
+                  <CampoOscuro etiqueta="Número" value={numero} onChange={(e) => setNumero(e.target.value)} required placeholder="123" />
+                </div>
+                <CampoOscuro etiqueta="Referencias" value={referencias} onChange={(e) => setReferencias(e.target.value)} placeholder="Entre calles, fachada, acceso..." />
+              </div>
+            </div>
+          )}
+
+          {paso === 3 && (
+            <div className="mt-5">
+              <h1 className="font-display text-[21px] font-extrabold leading-tight text-white">Cuenta en revisión</h1>
+              <p className="mt-4 font-body text-xs leading-5 text-[#90a8c5]">
+                Sube tu identificación y acepta términos para enviar la solicitud.
+              </p>
+
+              <div className="mt-5 grid gap-4">
+                <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[#2f4a72] bg-[#050b1a] px-4 py-7 text-center transition hover:border-[#1683ff] hover:bg-[#1683ff]/10">
+                  <IconoLinea tipo="documento" />
+                  <span className="font-display text-sm font-bold text-white">
+                    {documento ? documento.name : "Subir identificación"}
+                  </span>
+                  <span className="font-body text-[11px] leading-4 text-[#90a8c5]">JPG, PNG, HEIC o PDF. Máx. 10 MB.</span>
+                  <input type="file" accept={TIPOS_ACEPTADOS.join(",")} className="hidden" onChange={seleccionarDocumento} />
+                </label>
+
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#223553] bg-[#050b1a] p-4">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 size-5 rounded border-[#2f4a72] accent-[#1683ff]"
+                    checked={aceptaTerminos}
+                    onChange={(e) => setAceptaTerminos(e.target.checked)}
+                    required
+                  />
+                  <span className="font-body text-xs leading-5 text-[#b8c9df]">
+                    Acepto los{" "}
+                    <a href="/soporte#terminos" target="_blank" className="font-semibold text-[#1683ff] hover:underline">
+                      Términos y condiciones
+                    </a>{" "}
+                    y el{" "}
+                    <a href="/soporte#privacidad" target="_blank" className="font-semibold text-[#1683ff] hover:underline">
+                      Aviso de privacidad
+                    </a>{" "}
+                    de Ruum Ruum.
+                  </span>
+                </label>
+
+                <div className="rounded-xl border border-[#223553] bg-[#071226] p-4">
+                  <p className="font-display text-sm font-bold text-white">Revisión final</p>
+                  <p className="mt-1 font-body text-xs leading-5 text-[#90a8c5]">
+                    Revisaremos tu cuenta antes de habilitar solicitudes reales de traslado.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-4">
+              <Aviso tono="peligro">{error}</Aviso>
+            </div>
+          )}
+
+          {!tieneSupabaseConfigurado() && (
+            <div className="mt-4">
+              <Aviso tono="peligro">Supabase no está configurado. No es posible crear cuentas reales en este entorno.</Aviso>
+            </div>
+          )}
+
+          <div className="mt-5 grid gap-3">
+            {paso < 3 ? (
+              <button type="button" onClick={avanzar} className={botonAzul}>
+                Continuar →
+              </button>
+            ) : (
+              <button type="submit" disabled={enviando || !aceptaTerminos || !documento} className={botonAzul}>
+                {enviando ? "Enviando..." : "Enviar a revisión"}
+              </button>
+            )}
+            <button type="button" onClick={() => router.push("/login")} className="font-body text-xs font-semibold text-[#1683ff] hover:underline">
+              Ya tengo cuenta
+            </button>
+          </div>
+        </form>
+      </section>
+    </PantallaPublica>
   );
 }
