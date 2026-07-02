@@ -2,7 +2,7 @@
 
 /**
  * PRD §10.3 — Mapa operativo. Muestra todos los traslados activos con pin
- * de origen (azul ruta) y pin de destino (naranja señal), línea punteada de
+ * de origen (azul trazabilidad) y pin de destino (amarillo ruta), línea punteada de
  * ruta, y panel lateral de selección. Usa Leaflet via CDN (OSM, sin API key).
  *
  * Nota: la ubicación en tiempo real del conductor no está disponible hasta
@@ -170,21 +170,21 @@ export default function PaginaMapaOperativo() {
 
       const iconOrigen = (incidencia: boolean) =>
         L.divIcon({
-          html: `<div style="width:13px;height:13px;border-radius:50%;background:${incidencia ? "#e23d3d" : "#1758f2"};border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
+          html: `<div style="width:13px;height:13px;border-radius:50%;background:${incidencia ? "#b32626" : "#1e88e5"};border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
           className: "",
           iconSize: [13, 13],
           iconAnchor: [6, 6]
         });
 
       const iconDestino = L.divIcon({
-        html: `<div style="width:13px;height:13px;border-radius:50%;background:#ff4d1d;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
+        html: `<div style="width:13px;height:13px;border-radius:50%;background:#ffc400;border:2.5px solid #151515;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
         className: "",
         iconSize: [13, 13],
         iconAnchor: [6, 6]
       });
 
       for (const t of traslados) {
-        const color = t.tiene_incidencia_abierta ? "#e23d3d" : "#1758f2";
+        const color = t.tiene_incidencia_abierta ? "#b32626" : "#1e88e5";
         L.polyline(
           [[t.origen_lat, t.origen_lng], [t.destino_lat, t.destino_lng]],
           { color, weight: 1.5, opacity: 0.45, dashArray: "5 4" }
@@ -231,8 +231,8 @@ export default function PaginaMapaOperativo() {
           <p className="font-display text-2xl font-semibold text-route">{traslados.length}</p>
         </div>
         <div className="rounded-xl bg-signal-soft px-4 py-3">
-          <p className="font-mono-ruum text-xs text-signal/70">En ruta</p>
-          <p className="font-display text-2xl font-semibold text-signal">{enRuta}</p>
+          <p className="font-mono-ruum text-xs text-ink/60">En ruta</p>
+          <p className="font-display text-2xl font-semibold text-ink">{enRuta}</p>
         </div>
         <div className={`rounded-xl px-4 py-3 ${conInc > 0 ? "bg-danger-soft" : "bg-mist-dim"}`}>
           <p className={`font-mono-ruum text-xs ${conInc > 0 ? "text-danger/70" : "text-ink/45"}`}>Con incidencia</p>
@@ -258,9 +258,9 @@ export default function PaginaMapaOperativo() {
             <p className="mb-2 font-mono-ruum text-[10px] uppercase tracking-widest text-ink/40">Leyenda</p>
             <div className="flex flex-col gap-1.5">
               {[
-                ["#1758f2", "Origen activo"],
-                ["#ff4d1d", "Destino"],
-                ["#e23d3d", "Con incidencia"]
+                ["#1e88e5", "Origen activo"],
+                ["#ffc400", "Destino"],
+                ["#b32626", "Con incidencia"]
               ].map(([color, label]) => (
                 <div key={label} className="flex items-center gap-2">
                   <span style={{ background: color }} className="h-3 w-3 rounded-full border-2 border-white" />

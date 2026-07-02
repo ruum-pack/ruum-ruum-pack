@@ -7,7 +7,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const ESTILOS: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  primario: "bg-signal text-ink hover:bg-signal/90 focus-visible:outline-signal",
+  primario: "bg-signal text-ink hover:bg-signal/85 focus-visible:outline-signal",
   secundario: "bg-ink text-mist hover:bg-ink/90 focus-visible:outline-ink",
   fantasma: "bg-transparent text-ink hover:bg-ink/5 focus-visible:outline-ink",
   peligro: "bg-danger text-mist hover:bg-danger/90 focus-visible:outline-danger"
@@ -17,8 +17,8 @@ export function Button({ variant = "primario", loading = false, disabled, classN
   return (
     <button
       className={[
-        "inline-flex items-center justify-center gap-2 rounded-full px-5 py-3",
-        "font-body text-sm font-medium transition-colors",
+        "inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3",
+        "font-display text-sm font-semibold transition-colors",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-40",
         ESTILOS[variant],

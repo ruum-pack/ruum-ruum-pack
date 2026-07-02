@@ -625,7 +625,7 @@ export default function PaginaNuevoTraslado() {
 
       <ol className="mt-6 flex gap-2 font-mono-ruum text-[10px] uppercase tracking-wide text-ink/40">
         {PASOS.map((etiqueta, i) => (
-          <li key={etiqueta} className={i === paso ? "font-semibold text-signal" : i < paso ? "text-ink" : ""}>
+          <li key={etiqueta} className={i === paso ? "font-semibold text-ink" : i < paso ? "text-ink" : ""}>
             {String(i + 1).padStart(2, "0")} {etiqueta}
           </li>
         ))}

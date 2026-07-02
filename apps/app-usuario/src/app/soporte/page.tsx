@@ -136,7 +136,7 @@ export default async function PaginaSoporte({
           <PassportCard folio={viajeActivo.traslado_id.slice(0, 8).toUpperCase()}>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-body text-xs uppercase tracking-wide text-signal">Soporte durante viaje activo</p>
+                <p className="font-body text-xs uppercase tracking-wide text-ink">Soporte durante viaje activo</p>
                 <h2 className="mt-1 font-display text-xl font-semibold">
                   {viajeActivo.vehiculo_marca} {viajeActivo.vehiculo_modelo} {viajeActivo.vehiculo_anio}
                 </h2>

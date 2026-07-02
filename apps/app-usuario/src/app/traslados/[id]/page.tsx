@@ -516,7 +516,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
                     <p className={estado === "pendiente" ? "font-body text-sm text-ink/45" : "font-body text-sm font-medium"}>
                       {paso.etiqueta}
                     </p>
-                    {estado === "actual" && <p className="mt-0.5 font-body text-xs text-signal">Estado actual</p>}
+                    {estado === "actual" && <p className="mt-0.5 font-body text-xs text-ink">Estado actual</p>}
                   </div>
                 </li>
               );
@@ -615,7 +615,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
               {MENSAJES_CLAVE_UX.comunicacion} Si hay una incidencia abierta, soporte dará seguimiento desde este mismo expediente.
             </p>
             <div className="mt-4">
-              <Link href={`/soporte?viaje=${pasaporte.traslado_id}`} className="font-body text-sm font-medium text-signal">
+              <Link href={`/soporte?viaje=${pasaporte.traslado_id}`} className="font-body text-sm font-medium text-route">
                 Abrir soporte del viaje
               </Link>
             </div>

@@ -316,7 +316,7 @@ export default function PaginaViajes() {
               onClick={() => setPestana(p.id)}
               className={[
                 "rounded-lg border px-4 py-3 text-left font-body text-sm transition-colors",
-                pestana === p.id ? "border-signal bg-signal-soft text-signal" : "border-ink/10 text-ink/60 hover:border-ink/25"
+                pestana === p.id ? "border-signal bg-signal-soft text-ink" : "border-ink/10 text-ink/60 hover:border-ink/25"
               ].join(" ")}
             >
               <span className="font-semibold">{p.etiqueta}</span>
@@ -413,10 +413,10 @@ export default function PaginaViajes() {
                     </Link>
                     {pestana === "aceptados" && (
                       <>
-                        <Link href={`/viajes/${viaje.traslado_id}`} className="font-body text-sm font-medium text-signal">
+                        <Link href={`/viajes/${viaje.traslado_id}`} className="font-body text-sm font-medium text-route">
                           Iniciar / consultar estatus
                         </Link>
-                        <Link href={`/viajes/${viaje.traslado_id}/evidencia`} className="font-body text-sm font-medium text-signal">
+                        <Link href={`/viajes/${viaje.traslado_id}/evidencia`} className="font-body text-sm font-medium text-route">
                           Cargar evidencia
                         </Link>
                         <Link href={`/viajes/${viaje.traslado_id}`} className="font-body text-sm font-medium text-ink/60 hover:text-ink">

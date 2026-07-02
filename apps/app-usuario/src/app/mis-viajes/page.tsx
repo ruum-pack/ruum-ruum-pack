@@ -262,7 +262,7 @@ export default async function PaginaMisViajes({
                 href={`/mis-viajes?tab=${pestaña.id}`}
                 className={[
                   "rounded-lg border px-4 py-3 font-body text-sm transition-colors",
-                  activa ? "border-signal bg-signal-soft text-signal" : "border-ink/10 text-ink/65 hover:border-ink/25"
+                  activa ? "border-signal bg-signal-soft text-ink" : "border-ink/10 text-ink/65 hover:border-ink/25"
                 ].join(" ")}
               >
                 <span className="font-medium">{pestaña.etiqueta}</span>

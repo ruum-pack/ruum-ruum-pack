@@ -2,35 +2,27 @@ export interface LogoMarcaProps {
   /** Tamaño en px del ícono cuadrado. */
   tamano?: number;
   /**
-   * Color del arco activo. Por defecto signal (acción/conductor), pero cada
-   * app lee el anillo distinto: app-usuario lo usa en route (avance del
-   * Pasaporte que el cliente sigue), panel-admin en control (salud agregada
-   * de la flota). Ver propuesta de identidad, 2026-06-29.
+   * Color de apoyo para el punto de destino. La ruta y el check permanecen
+   * en amarillo ruta, como define el brand book.
    */
   color?: "signal" | "route" | "control";
-  /** Proporción del anillo que aparece "llena" (0 a 1). Puramente decorativo por defecto. */
+  /** Conservado por compatibilidad; el símbolo oficial no usa progreso. */
   progreso?: number;
   className?: string;
 }
 
 const COLOR_HEX: Record<NonNullable<LogoMarcaProps["color"]>, string> = {
-  signal: "#ff4d1d",
-  route: "#1758f2",
-  control: "#16b378"
+  signal: "#ffc400",
+  route: "#1e88e5",
+  control: "#08734f"
 };
 
 /**
- * El elemento de firma de la marca: un anillo segmentado que representa el
- * avance del Pasaporte Digital de Traslado. No es un ícono de auto, ruta o
- * pin de mapa — es deliberadamente abstracto para no leerse como una
- * empresa de transporte tradicional. Funciona como ícono de marca, como
- * loader, y como medidor de estatus, según el contexto en el que se use.
+ * Símbolo compacto de Ruum Ruum: monograma RR, ruta amarilla, origen,
+ * destino y check de confirmación. Está pensado para avatar, favicon,
+ * cabeceras pequeñas y estados donde el logo completo no cabe.
  */
-export function LogoMarca({ tamano = 28, color = "signal", progreso = 0.62, className = "" }: LogoMarcaProps) {
-  const radio = 22;
-  const circunferencia = 2 * Math.PI * radio;
-  const arco = Math.max(0, Math.min(1, progreso)) * circunferencia;
-
+export function LogoMarca({ tamano = 28, color = "signal", className = "" }: LogoMarcaProps) {
   return (
     <svg
       width={tamano}
@@ -40,19 +32,29 @@ export function LogoMarca({ tamano = 28, color = "signal", progreso = 0.62, clas
       aria-label="Ruum Ruum"
       className={className}
     >
-      <circle cx="32" cy="32" r="28" fill="var(--color-ink)" />
-      <circle cx="32" cy="32" r={radio} fill="none" stroke="var(--color-ink-soft)" strokeWidth="6" />
-      <circle
-        cx="32"
-        cy="32"
-        r={radio}
+      <circle cx="32" cy="32" r="29" fill="var(--color-asphalt)" />
+      <circle cx="32" cy="32" r="26" fill="none" stroke="var(--color-signal)" strokeWidth="3" />
+      <text
+        x="17"
+        y="37"
+        fill="var(--color-mist)"
+        fontFamily="var(--font-display)"
+        fontSize="18"
+        fontWeight="800"
+        letterSpacing="-1"
+      >
+        RR
+      </text>
+      <path
+        d="M14 44 C22 30 31 49 39 31 C43 23 48 23 52 26"
         fill="none"
-        stroke={COLOR_HEX[color]}
-        strokeWidth="6"
+        stroke="var(--color-signal)"
+        strokeWidth="5"
         strokeLinecap="round"
-        strokeDasharray={`${arco} ${circunferencia}`}
-        transform="rotate(-90 32 32)"
       />
+      <circle cx="14" cy="44" r="4.5" fill="var(--color-asphalt)" stroke="var(--color-signal)" strokeWidth="3" />
+      <circle cx="52" cy="26" r="4.5" fill={COLOR_HEX[color]} />
+      <path d="M43 43 L50 50 L58 37" fill="none" stroke="var(--color-signal)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -74,7 +74,7 @@ export default function PaginaViajesAdmin() {
             onClick={() => setPestana(p.id)}
             className={[
               "px-4 py-2.5 font-body text-sm font-medium transition-colors",
-              pestana === p.id ? "border-b-2 border-signal text-signal" : "text-ink/55 hover:text-ink"
+              pestana === p.id ? "border-b-2 border-signal text-ink" : "text-ink/55 hover:text-ink"
             ].join(" ")}
           >
             {p.etiqueta}

@@ -111,7 +111,7 @@ export default function PaginaConfiguracion() {
             onClick={() => setBloque(item.id)}
             className={[
               "rounded-lg border px-4 py-3 text-left transition-colors",
-              bloque === item.id ? "border-signal bg-signal-soft text-signal" : "border-ink/10 bg-mist text-ink/65 hover:border-ink/25"
+              bloque === item.id ? "border-signal bg-signal-soft text-ink" : "border-ink/10 bg-mist text-ink/65 hover:border-ink/25"
             ].join(" ")}
           >
             <span className="block font-body text-sm font-semibold">{item.titulo}</span>
@@ -125,7 +125,7 @@ export default function PaginaConfiguracion() {
           <PassportCard>
             <p className="font-body text-xs uppercase tracking-wide text-ink/45">Perfil del conductor</p>
             <div className="mt-4 flex flex-col gap-5 sm:flex-row">
-              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-signal-soft font-display text-3xl font-semibold text-signal">
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-signal-soft font-display text-3xl font-semibold text-ink">
                 CD
               </div>
               <dl className="grid flex-1 gap-4 sm:grid-cols-2">
@@ -163,7 +163,7 @@ export default function PaginaConfiguracion() {
                 <p className="font-body text-xs uppercase tracking-wide text-ink/45">Historial de viajes</p>
                 <h2 className="mt-1 font-display text-xl font-semibold">Filtros operativos</h2>
               </div>
-              <Link href="/viajes" className="font-body text-sm font-medium text-signal">
+              <Link href="/viajes" className="font-body text-sm font-medium text-route">
                 Ver todos
               </Link>
             </div>

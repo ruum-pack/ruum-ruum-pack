@@ -16,7 +16,7 @@ export interface PassportCardProps {
 export function PassportCard({ children, folio, className = "" }: PassportCardProps) {
   return (
     <div
-      className={`relative overflow-hidden rounded-card border border-ink/10 bg-mist shadow-[0_1px_0_rgba(20,24,31,0.04)] ${className}`}
+      className={`relative overflow-hidden rounded-card border border-steel/20 bg-mist shadow-[0_1px_0_rgba(21,21,21,0.04)] ${className}`}
     >
       {folio && (
         <div

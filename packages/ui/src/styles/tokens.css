@@ -1,36 +1,28 @@
 /*
  * Ruum Ruum — tokens de diseño compartidos.
  *
- * Dirección (revisión 2026-06-29, "Anillo de control"): el concepto rector
- * es "no solo movemos autos, damos control sobre cada traslado" — una
- * plataforma digital de control en tiempo real sobre un Pasaporte Digital
- * (PRD §5.1) gobernado por una máquina de 32 estados (PRD §6), no una
- * empresa de transporte tradicional. La paleta evoluciona desde la versión
- * anterior (carbón + papel envejecido, más "documento físico") hacia algo
- * más tecnológico, vistoso y nítido, sin perder la lógica de origen:
- *   - ink/mist: tinta casi negra + niebla neutra fría — ya no "papel", sigue
- *     evocando el expediente del Pasaporte pero sin sensación vintage.
- *   - signal: naranja de señal/chaleco de seguridad, más saturado — sigue
- *     siendo el color de los conductores certificados en la calle, el único
- *     color reservado para acciones primarias.
- *   - route: azul de ruta más vívido, reservado para todo lo "en
- *     movimiento" (mapa, tracking en vivo), nunca para acciones.
- *   - control: verde vivo nuevo — específicamente para estados verificados/
- *     completos del Pasaporte (usuario verificado, evidencia completa,
- *     documentación validada). Antes ese rol lo cubría "ok" con un verde más
- *     institucional; "control" es el mismo rol, renombrado y resaturado
- *     para que la palabra del concepto rector quede en el propio token.
- *   - warn/danger: estados semánticos de incidente, no decoración.
+ * Brand book Ruum Ruum V1: traslado vehicular con conductores certificados,
+ * seguridad, evidencia y trazabilidad en cada viaje.
+ *
+ * Roles de color:
+ *   - ink/asphalt: negro asfalto, presencia institucional y control.
+ *   - signal: amarillo ruta, reservado para ruta, check, botones y CTA.
+ *   - mist/paper: blanco evidencia, formularios y lectura.
+ *   - steel: gris acero, datos técnicos, líneas y texto secundario.
+ *   - route: azul trazabilidad, mapas, ubicación y estados de seguimiento.
+ *   - control/warn/danger: semánticos operativos para validado, atención y riesgo.
  */
 @theme {
-  --color-ink: #14171c;
-  --color-ink-soft: #2a313d;
-  --color-mist: #f5f4f1;
-  --color-mist-dim: #e9e7e0;
-  --color-signal: #ff4d1d;
-  --color-signal-soft: #ffe0d2;
-  --color-route: #1758f2;
-  --color-route-soft: #dbe7fd;
+  --color-ink: #151515;
+  --color-ink-soft: #2a2a2a;
+  --color-asphalt: #151515;
+  --color-steel: #5f6368;
+  --color-mist: #f8f8f5;
+  --color-mist-dim: #ebebe6;
+  --color-signal: #ffc400;
+  --color-signal-soft: #fff2b8;
+  --color-route: #1e88e5;
+  --color-route-soft: #dceeff;
   --color-control: #08734f;
   --color-control-soft: #d7f3e7;
   --color-warn: #76500e;
@@ -38,16 +30,16 @@
   --color-danger: #b32626;
   --color-danger-soft: #fbdcdc;
 
-  /* Alias de compatibilidad: el código existente sigue usando paper/ok,
-     no hace falta tocar cada componente para adoptar la nueva paleta. */
+  /* Alias de compatibilidad para componentes ya escritos. */
   --color-paper: var(--color-mist);
   --color-paper-dim: var(--color-mist-dim);
+  --color-evidence: var(--color-mist);
   --color-ok: var(--color-control);
   --color-ok-soft: var(--color-control-soft);
 
-  --font-display: var(--font-display-loaded), "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-loaded), "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-body-loaded), "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono-ruum: var(--font-mono-loaded), "IBM Plex Mono", ui-monospace, monospace;
 
-  --radius-card: 1.25rem;
+  --radius-card: 0.75rem;
 }

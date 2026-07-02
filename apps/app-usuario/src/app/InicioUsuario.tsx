@@ -123,7 +123,7 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
             <p className="font-body text-sm text-ink/60">Aún no tienes ningún traslado en curso.</p>
             <Link
               href="/traslados/nuevo"
-              className="mt-2 inline-block font-body text-sm font-medium text-signal hover:underline"
+              className="mt-2 inline-block font-body text-sm font-medium text-route hover:underline"
             >
               Solicita tu primer traslado
             </Link>

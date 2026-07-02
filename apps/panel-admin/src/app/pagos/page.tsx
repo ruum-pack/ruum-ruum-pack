@@ -130,7 +130,7 @@ export default function PaginaPagosAdmin() {
                   return (
                     <tr key={pago.id} className="align-top">
                       <td className="border-b border-ink/10 px-3 py-3">
-                        <Link href={`/viajes/${pago.traslado_id}`} className="text-signal">
+                        <Link href={`/viajes/${pago.traslado_id}`} className="text-route">
                           {pago.traslado_id.slice(0, 8).toUpperCase()}
                         </Link>
                       </td>

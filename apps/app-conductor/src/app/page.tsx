@@ -298,7 +298,7 @@ export default function PaginaPanel() {
               </p>
             </div>
           </div>
-          <Link href="/ganancias" className="mt-5 inline-block font-body text-sm font-medium text-signal">
+          <Link href="/ganancias" className="mt-5 inline-block font-body text-sm font-medium text-route">
             Ver desglose de ganancias
           </Link>
         </PassportCard>

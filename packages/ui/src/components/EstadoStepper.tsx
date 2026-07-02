@@ -35,7 +35,7 @@ export function EstadoStepper({ estado }: EstadoStepperProps) {
             <p
               className={[
                 "mt-1.5 font-mono-ruum text-[10px] uppercase tracking-wide",
-                actual ? "text-signal" : sellada ? "text-ink" : "text-ink/40"
+                actual ? "text-ink" : sellada ? "text-ink" : "text-ink/40"
               ].join(" ")}
             >
               {String(i + 1).padStart(2, "0")} {etapa.etiqueta}

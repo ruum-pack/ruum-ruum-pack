@@ -23,7 +23,7 @@ const ESTILO: Record<EstatusIncidencia, string> = {
   Nueva: "border-danger/25 bg-danger-soft text-danger",
   "En revisión": "border-route/30 bg-route-soft text-route",
   "Requiere información": "border-warn/40 bg-warn-soft text-warn",
-  "En seguimiento": "border-signal/30 bg-signal-soft text-signal",
+  "En seguimiento": "border-signal/30 bg-signal-soft text-ink",
   Resuelta: "border-control/30 bg-control-soft text-control",
   Cerrada: "border-ink/15 bg-ink/[0.04] text-ink/55",
   Escalada: "border-danger/25 bg-danger-soft text-danger"
@@ -115,7 +115,7 @@ export default function PaginaIncidenciasAdmin() {
                 onClick={() => setTipo(item)}
                 className={[
                   "rounded-full border px-3 py-1.5 font-body text-xs font-semibold",
-                  tipo === item ? "border-signal bg-signal-soft text-signal" : "border-ink/10 text-ink/60 hover:border-ink/25"
+                  tipo === item ? "border-signal bg-signal-soft text-ink" : "border-ink/10 text-ink/60 hover:border-ink/25"
                 ].join(" ")}
               >
                 {item}
@@ -141,7 +141,7 @@ export default function PaginaIncidenciasAdmin() {
               <div>
                 <dt className="font-body text-xs uppercase tracking-wide text-ink/45">Viaje relacionado</dt>
                 <dd className="mt-1 font-body text-sm font-medium">
-                  <Link href={`/viajes/${incidencia.trasladoId}`} className="text-signal">
+                  <Link href={`/viajes/${incidencia.trasladoId}`} className="text-route">
                     {incidencia.viaje}
                   </Link>
                 </dd>
