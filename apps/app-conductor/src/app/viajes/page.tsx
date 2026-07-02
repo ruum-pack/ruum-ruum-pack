@@ -290,7 +290,7 @@ export default function PaginaViajes() {
                 key={dia.toISOString()}
                 className={[
                   "min-h-28 rounded-lg border px-3 py-3",
-                  viajes.length > 0 ? "border-signal/30 bg-signal-soft/40" : "border-ink/10 bg-mist"
+                  viajes.length > 0 ? "border-signal/50 bg-signal-soft/50" : "border-ink/10 bg-mist"
                 ].join(" ")}
               >
                 <p className="font-body text-xs font-semibold capitalize">{formatearFecha(dia.toISOString())}</p>
@@ -315,8 +315,8 @@ export default function PaginaViajes() {
               key={p.id}
               onClick={() => setPestana(p.id)}
               className={[
-                "rounded-lg border px-4 py-3 text-left font-body text-sm transition-colors",
-                pestana === p.id ? "border-signal bg-signal-soft text-ink" : "border-ink/10 text-ink/60 hover:border-ink/25"
+                "rounded-lg border px-4 py-3 text-left font-body text-sm font-medium transition-colors",
+                pestana === p.id ? "border-signal bg-signal text-ink shadow-sm" : "border-ink/10 bg-mist text-ink/60 hover:border-signal/40 hover:bg-signal-soft/40"
               ].join(" ")}
             >
               <span className="font-semibold">{p.etiqueta}</span>

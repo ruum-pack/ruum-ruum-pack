@@ -74,8 +74,18 @@ export default function PaginaDashboard() {
 
   return (
     <main className="mx-auto max-w-5xl px-8 py-10">
-      <h1 className="font-display text-2xl font-semibold">Dashboard</h1>
-      <p className="mt-1 font-body text-sm text-ink/55">Qué está pasando en la operación y qué necesita atención.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Dashboard Operativo</h1>
+          <p className="mt-1 font-body text-sm text-ink/50">Panel de operaciones · actualizado en tiempo real</p>
+        </div>
+        <a
+          href="/viajes/nuevo"
+          className="inline-flex items-center gap-2 rounded-lg bg-signal px-4 py-2.5 font-body text-sm font-semibold text-ink shadow-sm transition-colors hover:bg-signal/90"
+        >
+          + Nuevo viaje
+        </a>
+      </div>
 
       {esDemo && (
         <div className="mt-4">
@@ -90,9 +100,9 @@ export default function PaginaDashboard() {
           <section className="mt-8 grid grid-cols-5 gap-4">
             {metricas &&
               (Object.keys(ETIQUETA_METRICA) as (keyof MetricasDashboard)[]).map((clave) => (
-                <PassportCard key={clave}>
-                  <p className="font-body text-xs uppercase tracking-wide text-ink/45">{ETIQUETA_METRICA[clave]}</p>
-                  <p className="mt-2 font-display text-3xl font-semibold">{metricas[clave]}</p>
+                <PassportCard key={clave} acento>
+                  <p className="font-body text-xs font-medium uppercase tracking-wide text-ink/45">{ETIQUETA_METRICA[clave]}</p>
+                  <p className="mt-2 font-display text-3xl font-bold text-ink">{metricas[clave]}</p>
                 </PassportCard>
               ))}
           </section>
@@ -139,32 +149,32 @@ export default function PaginaDashboard() {
               <h2 className="font-display text-base font-semibold">Accesos rápidos</h2>
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <Link href="/viajes">
-                  <PassportCard className="hover:border-signal/40">
+                  <PassportCard className="transition-shadow hover:shadow-md hover:border-signal/40">
                     <p className="font-body text-sm font-medium">Ver viajes</p>
                   </PassportCard>
                 </Link>
                 <Link href="/conductores">
-                  <PassportCard className="hover:border-signal/40">
+                  <PassportCard className="transition-shadow hover:shadow-md hover:border-signal/40">
                     <p className="font-body text-sm font-medium">Ver conductores</p>
                   </PassportCard>
                 </Link>
                 <Link href="/usuarios">
-                  <PassportCard className="hover:border-signal/40">
+                  <PassportCard className="transition-shadow hover:shadow-md hover:border-signal/40">
                     <p className="font-body text-sm font-medium">Ver usuarios</p>
                   </PassportCard>
                 </Link>
                 <Link href="/incidencias">
-                  <PassportCard className="hover:border-signal/40">
+                  <PassportCard className="transition-shadow hover:shadow-md hover:border-signal/40">
                     <p className="font-body text-sm font-medium">Ver incidencias</p>
                   </PassportCard>
                 </Link>
                 <Link href="/disputas">
-                  <PassportCard className="hover:border-signal/40">
+                  <PassportCard className="transition-shadow hover:shadow-md hover:border-signal/40">
                     <p className="font-body text-sm font-medium">Ver disputas</p>
                   </PassportCard>
                 </Link>
                 <Link href="/reclamos-seguro">
-                  <PassportCard className="hover:border-signal/40">
+                  <PassportCard className="transition-shadow hover:shadow-md hover:border-signal/40">
                     <p className="font-body text-sm font-medium">Ver reclamos</p>
                   </PassportCard>
                 </Link>

@@ -89,29 +89,32 @@ export function BarraLateral() {
   }
 
   return (
-    <aside className={`flex h-screen shrink-0 flex-col border-r border-ink/10 bg-mist transition-[width] ${colapsada ? "w-16" : "w-16 lg:w-60"}`}>
-      <div className={colapsada ? "px-3 py-6" : "px-3 py-6 lg:px-5"}>
-        <span className="flex items-center gap-2">
-          <LogoMarca tamano={26} color="control" />
-          <span className={`font-display text-base font-semibold tracking-tight ${colapsada ? "hidden" : "hidden lg:inline"}`}>Ruum Ruum</span>
+    <aside className={`flex h-screen shrink-0 flex-col bg-ink transition-[width] ${colapsada ? "w-16" : "w-16 lg:w-60"}`}>
+      {/* Logo + marca */}
+      <div className={colapsada ? "px-3 py-5" : "px-3 py-5 lg:px-5"}>
+        <span className="flex items-center gap-2.5">
+          <LogoMarca tamano={28} color="signal" />
+          <span className={`font-display text-base font-bold tracking-tight text-mist ${colapsada ? "hidden" : "hidden lg:inline"}`}>
+            <span className="text-signal">ruum</span>ruum
+          </span>
         </span>
-        <p className={`font-mono-ruum text-[10px] uppercase tracking-wide text-ink/45 ${colapsada ? "hidden" : "hidden lg:block"}`}>
+        <p className={`mt-0.5 font-mono-ruum text-[10px] uppercase tracking-widest text-mist/35 ${colapsada ? "hidden" : "hidden lg:block"}`}>
           Torre de Control
         </p>
         <button
           type="button"
           onClick={alternarColapso}
-          className="mt-4 hidden rounded-lg border border-ink/50 px-2.5 py-1.5 font-mono-ruum text-[10px] uppercase tracking-wide text-ink/65 transition-colors hover:bg-ink/5 hover:text-ink lg:block"
+          className="mt-4 hidden rounded-md border border-mist/15 px-2.5 py-1.5 font-mono-ruum text-[10px] uppercase tracking-wide text-mist/45 transition-colors hover:bg-mist/5 hover:text-mist/70 lg:block"
           aria-label={colapsada ? "Expandir navegación" : "Colapsar navegación"}
         >
           {colapsada ? ">>" : "<<"}
         </button>
       </div>
 
-      <nav className="flex-1 space-y-4 overflow-y-auto px-3 pb-3">
+      <nav className="flex-1 space-y-5 overflow-y-auto px-2 pb-3 lg:px-3">
         {GRUPOS_NAVEGACION.map((grupo) => (
           <div key={grupo.titulo}>
-            <p className={`mb-1 px-2 font-mono-ruum text-[10px] uppercase tracking-wide text-ink/45 ${colapsada ? "hidden" : "hidden lg:block"}`}>
+            <p className={`mb-1.5 px-2 font-mono-ruum text-[10px] uppercase tracking-widest text-mist/30 ${colapsada ? "hidden" : "hidden lg:block"}`}>
               {grupo.titulo}
             </p>
             <div className="space-y-0.5">
@@ -124,11 +127,16 @@ export function BarraLateral() {
                     title={s.etiqueta}
                     aria-current={activo ? "page" : undefined}
                     className={[
-                      "flex items-center gap-2 rounded-lg px-2 py-2 font-body text-sm font-medium transition-colors",
-                      activo ? "bg-signal-soft text-ink" : "text-ink/65 hover:bg-ink/5 hover:text-ink"
+                      "flex items-center gap-2.5 rounded-lg px-2 py-2 font-body text-sm font-medium transition-colors",
+                      activo
+                        ? "bg-signal text-ink"
+                        : "text-mist/60 hover:bg-white/8 hover:text-mist"
                     ].join(" ")}
                   >
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-current/20 font-mono-ruum text-[10px]">
+                    <span className={[
+                      "flex size-7 shrink-0 items-center justify-center rounded-md font-mono-ruum text-[11px] font-medium",
+                      activo ? "bg-black/15 text-ink" : "bg-white/8 text-current"
+                    ].join(" ")}>
                       {s.icono}
                     </span>
                     <span className={colapsada ? "hidden" : "hidden lg:inline"}>{s.etiqueta}</span>
@@ -139,10 +147,10 @@ export function BarraLateral() {
           </div>
         ))}
 
-        <div className="mt-4 border-t border-ink/10 pt-4">
+        <div className="border-t border-mist/10 pt-4">
           {SECCIONES_PENDIENTES.map((s) => (
-            <div key={s.etiqueta} title={s.etiqueta} className="flex items-center gap-2 rounded-lg px-2 py-2 font-body text-sm text-ink/35">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-current/20 font-mono-ruum text-[10px]">
+            <div key={s.etiqueta} title={s.etiqueta} className="flex items-center gap-2.5 rounded-lg px-2 py-2 font-body text-sm text-mist/25">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white/5 font-mono-ruum text-[11px]">
                 {s.icono}
               </span>
               <span className={colapsada ? "hidden" : "hidden lg:inline"}>{s.etiqueta}</span>
@@ -154,15 +162,24 @@ export function BarraLateral() {
         </div>
       </nav>
 
-      <div className={colapsada ? "border-t border-ink/10 px-3 py-4" : "border-t border-ink/10 px-3 py-4 lg:px-5"}>
+      {/* Footer sesión */}
+      <div className={`border-t border-mist/10 ${colapsada ? "px-3 py-4" : "px-3 py-4 lg:px-5"}`}>
         {sesionReal ? (
-          <button onClick={cerrarSesion} className="font-body text-sm text-ink/55 hover:text-ink" title="Cerrar sesión">
+          <button
+            onClick={cerrarSesion}
+            className="w-full rounded-lg border border-mist/15 px-3 py-2 font-body text-sm font-medium text-mist/60 transition-colors hover:bg-white/5 hover:text-mist"
+            title="Cerrar sesión"
+          >
             <span className={colapsada ? "hidden" : "hidden lg:inline"}>Cerrar sesión</span>
             <span className={`font-mono-ruum text-xs ${colapsada ? "inline" : "lg:hidden"}`}>CS</span>
           </button>
         ) : (
           tieneSupabaseConfigurado() && (
-            <Link href="/login" className="font-body text-sm text-ink/55 hover:text-ink" title="Iniciar sesión">
+            <Link
+              href="/login"
+              className="block rounded-lg border border-mist/15 px-3 py-2 text-center font-body text-sm font-medium text-mist/60 transition-colors hover:bg-white/5 hover:text-mist"
+              title="Iniciar sesión"
+            >
               <span className={colapsada ? "hidden" : "hidden lg:inline"}>Iniciar sesión</span>
               <span className={`font-mono-ruum text-xs ${colapsada ? "inline" : "lg:hidden"}`}>IS</span>
             </Link>

@@ -2,7 +2,7 @@
 @import "@ruum/ui/styles/tokens.css";
 
 body {
-  background-color: var(--color-paper);
+  background-color: var(--color-mist-dim);
   color: var(--color-ink);
   font-family: var(--font-body);
 }

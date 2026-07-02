@@ -54,7 +54,7 @@ function AccesoRapido({
   return (
     <Link
       href={href}
-      className="block rounded-card border border-ink/10 bg-mist p-4 transition-colors hover:border-signal/40 hover:bg-signal-soft/30"
+      className="block rounded-card border border-ink/10 bg-mist p-4 transition-all hover:border-signal/60 hover:bg-signal-soft/40 hover:shadow-sm"
     >
       {contenido}
     </Link>

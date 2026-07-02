@@ -40,9 +40,11 @@ export default async function PaginaInicio() {
     return (
       <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
         <header className="mb-10 flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <LogoMarca tamano={24} color="route" />
-            <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
+          <span className="flex items-center gap-2.5">
+            <LogoMarca tamano={26} color="signal" />
+            <span className="font-display text-lg font-bold tracking-tight">
+              <span className="text-signal">ruum</span>ruum
+            </span>
           </span>
           <div className="flex items-center gap-5">
             <Link href="/soporte" className="font-body text-sm text-ink/60 underline-offset-4 hover:underline">
@@ -66,9 +68,11 @@ export default async function PaginaInicio() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
       <header className="mb-16 flex items-center justify-between">
-        <span className="flex items-center gap-2">
-            <LogoMarca tamano={24} color="route" />
-            <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
+        <span className="flex items-center gap-2.5">
+            <LogoMarca tamano={26} color="signal" />
+            <span className="font-display text-lg font-bold tracking-tight">
+              <span className="text-signal">ruum</span>ruum
+            </span>
           </span>
         <div className="flex items-center gap-5">
          <Link href="/soporte" className="font-body text-sm font-medium text-ink/70 hover:text-ink">

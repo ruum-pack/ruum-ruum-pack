@@ -174,9 +174,11 @@ export default function PaginaPanel() {
     <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
       <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="flex items-center gap-2">
-            <LogoMarca tamano={24} color="signal" />
-            <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum Conductor</span>
+          <span className="flex items-center gap-2.5">
+            <LogoMarca tamano={26} color="signal" />
+            <span className="font-display text-lg font-bold tracking-tight">
+              <span className="text-signal">ruum</span>ruum
+            </span>
           </span>
           <h1 className="mt-2 font-display text-3xl font-semibold leading-tight">Panel</h1>
           <p className="mt-1 font-body text-sm text-ink/55">Hola, {conductor.nombre}</p>
@@ -244,24 +246,24 @@ export default function PaginaPanel() {
       </section>
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <PassportCard>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Viajes realizados</p>
-          <p className="mt-2 font-display text-3xl font-semibold">{resumen.realizados}</p>
+        <PassportCard acento>
+          <p className="font-body text-xs font-medium uppercase tracking-wide text-ink/45">Viajes realizados</p>
+          <p className="mt-2 font-display text-3xl font-bold">{resumen.realizados}</p>
           <p className="font-body text-xs text-ink/45">esta semana</p>
         </PassportCard>
-        <PassportCard>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Activos</p>
-          <p className="mt-2 font-display text-3xl font-semibold">{resumen.activos}</p>
+        <PassportCard acento>
+          <p className="font-body text-xs font-medium uppercase tracking-wide text-ink/45">Activos</p>
+          <p className="mt-2 font-display text-3xl font-bold">{resumen.activos}</p>
           <p className="font-body text-xs text-ink/45">en seguimiento</p>
         </PassportCard>
-        <PassportCard>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Pendientes</p>
-          <p className="mt-2 font-display text-3xl font-semibold">{resumen.pendientes}</p>
+        <PassportCard acento>
+          <p className="font-body text-xs font-medium uppercase tracking-wide text-ink/45">Pendientes</p>
+          <p className="mt-2 font-display text-3xl font-bold">{resumen.pendientes}</p>
           <p className="font-body text-xs text-ink/45">por aceptar</p>
         </PassportCard>
-        <PassportCard>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Ganancias</p>
-          <p className="mt-2 font-display text-3xl font-semibold">{formatearMoneda(resumen.gananciasSemana)}</p>
+        <PassportCard acento>
+          <p className="font-body text-xs font-medium uppercase tracking-wide text-ink/45">Ganancias</p>
+          <p className="mt-2 font-display text-3xl font-bold">{formatearMoneda(resumen.gananciasSemana)}</p>
           <p className="font-body text-xs text-ink/45">acumuladas de la semana</p>
         </PassportCard>
       </section>
@@ -270,7 +272,7 @@ export default function PaginaPanel() {
         <PassportCard>
           <p className="font-body text-xs uppercase tracking-wide text-ink/45">Vehículos trasladados</p>
           <div className="mt-4 flex items-end gap-4">
-            <p className="font-display text-5xl font-semibold leading-none">{resumen.vehiculosTrasladados}</p>
+            <p className="font-display text-5xl font-bold leading-none">{resumen.vehiculosTrasladados}</p>
             <div className="mb-1 h-16 w-full rounded-lg bg-ink/[0.04]">
               <div
                 className="h-full rounded-lg bg-signal"
