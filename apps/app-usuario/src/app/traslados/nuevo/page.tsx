@@ -14,12 +14,68 @@ import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { PagoStripe, tieneStripePublicoConfigurado } from "../../PagoStripe";
 
 const PASOS = ["Vehículo", "Ruta", "Agenda", "Servicio"] as const;
-type TransmisionVehiculo = "manual" | "automatica";
+type TransmisionVehiculo = "manual" | "automatica" | "electrica";
 type ModalidadProgramacion = "lo_antes_posible" | "programado";
 type TipoRutaTraslado = "local" | "foraneo";
 type TipoServicioTraslado = "personal" | "empresarial" | "agencia" | "lote" | "flotilla";
 type MotivoServicioTraslado = "entrega_cliente" | "recuperacion" | "traslado_especial";
 type ErroresFormulario = Partial<Record<keyof DatosFormulario, string>>;
+
+const MARCAS_AUTOS_MEXICO = [
+  "Acura",
+  "Audi",
+  "BMW",
+  "BYD",
+  "Cadillac",
+  "Changan",
+  "Chevrolet",
+  "Chirey",
+  "Chrysler",
+  "Cupra",
+  "Dodge",
+  "Fiat",
+  "Ford",
+  "GAC",
+  "GMC",
+  "Honda",
+  "Hyundai",
+  "Infiniti",
+  "JAC",
+  "Jaecoo",
+  "Jeep",
+  "Kia",
+  "Land Rover",
+  "Lexus",
+  "Lincoln",
+  "Mazda",
+  "Mercedes-Benz",
+  "MG",
+  "MINI",
+  "Mitsubishi",
+  "Nissan",
+  "Omoda",
+  "Peugeot",
+  "Porsche",
+  "RAM",
+  "Renault",
+  "SEAT",
+  "Subaru",
+  "Suzuki",
+  "Tesla",
+  "Toyota",
+  "Volkswagen",
+  "Volvo"
+] as const;
+
+const ESTADOS_GENERALES_VEHICULO = [
+  "Excelente, sin daños visibles",
+  "Buen estado, desgaste normal",
+  "Detalles estéticos menores",
+  "Rayones o golpes visibles",
+  "Requiere revisión mecánica",
+  "No enciende",
+  "No puede circular rodando"
+] as const;
 
 interface DatosFormulario {
   // Vehículo — PRD §4.2
@@ -607,9 +663,26 @@ export default function PaginaNuevoTraslado() {
                   >
                     <option value="automatica">Automática</option>
                     <option value="manual">Manual</option>
+                    <option value="electrica">Eléctrica</option>
                   </select>
                 </label>
-                <Field etiqueta="Marca" value={datos.marca} onChange={(e) => actualizar("marca", e.target.value)} error={errores.marca} />
+                <label className="flex flex-col gap-1.5">
+                  <span className="font-body text-sm font-medium">Marca</span>
+                  <select
+                    value={datos.marca}
+                    onChange={(e) => actualizar("marca", e.target.value)}
+                    className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm ${claseControl("marca")}`}
+                    aria-invalid={Boolean(errores.marca)}
+                  >
+                    <option value="">Selecciona marca</option>
+                    {MARCAS_AUTOS_MEXICO.map((marca) => (
+                      <option key={marca} value={marca}>
+                        {marca}
+                      </option>
+                    ))}
+                  </select>
+                  {errores.marca && <p className="font-body text-xs text-danger">{errores.marca}</p>}
+                </label>
                 <Field etiqueta="Modelo" value={datos.modelo} onChange={(e) => actualizar("modelo", e.target.value)} error={errores.modelo} />
                 <Field
                   etiqueta="Año"
@@ -630,12 +703,19 @@ export default function PaginaNuevoTraslado() {
                 />
                 <label className="flex flex-col gap-1.5">
                   <span className="font-body text-sm font-medium">Estado general declarado</span>
-                  <textarea
+                  <select
                     value={datos.estadoGeneral}
                     onChange={(e) => actualizar("estadoGeneral", e.target.value)}
-                    className={`min-h-24 rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route ${claseControl("estadoGeneral")}`}
+                    className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route ${claseControl("estadoGeneral")}`}
                     aria-invalid={Boolean(errores.estadoGeneral)}
-                  />
+                  >
+                    <option value="">Selecciona estado</option>
+                    {ESTADOS_GENERALES_VEHICULO.map((estado) => (
+                      <option key={estado} value={estado}>
+                        {estado}
+                      </option>
+                    ))}
+                  </select>
                   {errores.estadoGeneral && <p className="font-body text-xs text-danger">{errores.estadoGeneral}</p>}
                 </label>
               </div>

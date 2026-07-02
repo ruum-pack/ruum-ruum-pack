@@ -6,6 +6,7 @@ import { Button, Field, Aviso } from "@ruum/ui";
 import { VERSION_TERMINOS_VIGENTE } from "@ruum/shared/constants";
 import { HORAS_HABILES_VERIFICACION_CUENTA_NUEVA } from "@ruum/shared/rules";
 import { registrarAceptacionTerminos } from "@ruum/api/services";
+import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 function soloDigitos(valor: string, maximo?: number) {
@@ -57,51 +58,6 @@ function domicilioCompleto({
     .join(", ");
 }
 
-type DatosCodigoPostal = {
-  estado: string;
-  ciudad: string;
-  colonia: string;
-};
-
-async function consultarCpCopomex(cp: string): Promise<DatosCodigoPostal | null> {
-  const respuesta = await fetch(`https://api.copomex.com/query/info_cp/${cp}?token=pruebas`);
-  if (!respuesta.ok) return null;
-
-  const data = (await respuesta.json()) as {
-    response?: {
-      estado?: string;
-      ciudad?: string;
-      municipio?: string;
-      asentamiento?: string;
-    };
-  };
-
-  if (!data.response?.estado) return null;
-
-  return {
-    estado: data.response.estado,
-    ciudad: data.response.ciudad || data.response.municipio || "",
-    colonia: data.response.asentamiento || ""
-  };
-}
-
-async function consultarCpZippopotam(cp: string): Promise<DatosCodigoPostal | null> {
-  const respuesta = await fetch(`https://api.zippopotam.us/mx/${cp}`);
-  if (!respuesta.ok) return null;
-
-  const data = (await respuesta.json()) as {
-    places?: Array<{ "place name"?: string; state?: string }>;
-  };
-  const lugar = data.places?.[0];
-  if (!lugar?.state) return null;
-
-  return {
-    estado: lugar.state,
-    ciudad: "",
-    colonia: lugar["place name"] ?? ""
-  };
-}
-
 export default function PaginaRegistro() {
   const router = useRouter();
   const [tipoCuenta, setTipoCuenta] = useState<"personal" | "empresa">("personal");
@@ -125,6 +81,8 @@ export default function PaginaRegistro() {
   const [error, setError] = useState<string | null>(null);
   const [cpConsultando, setCpConsultando] = useState(false);
   const [cpAviso, setCpAviso] = useState<string | null>(null);
+  const [ciudadesCp, setCiudadesCp] = useState<string[]>([]);
+  const [coloniasCp, setColoniasCp] = useState<string[]>([]);
 
   async function consultarCodigoPostal(valor: string) {
     const cp = soloDigitos(valor, 5);
@@ -132,6 +90,8 @@ export default function PaginaRegistro() {
 
     if (cp.length !== 5) {
       setCpAviso(null);
+      setCiudadesCp([]);
+      setColoniasCp([]);
       return;
     }
 
@@ -139,16 +99,22 @@ export default function PaginaRegistro() {
     setCpAviso(null);
 
     try {
-      const datosCp = (await consultarCpCopomex(cp)) ?? (await consultarCpZippopotam(cp));
+      const datosCp = await consultarCodigoPostalMx(cp);
       if (!datosCp) throw new Error("CP no encontrado");
 
       setEstado(datosCp.estado);
-      setCiudad(datosCp.ciudad);
-      setColonia(datosCp.colonia);
-      if (!datosCp.ciudad || !datosCp.colonia) {
+      setCiudadesCp(datosCp.ciudades);
+      setColoniasCp(datosCp.colonias);
+      setCiudad(datosCp.ciudades[0] ?? "");
+      setColonia(datosCp.colonias[0] ?? "");
+      if (datosCp.ciudades.length > 1 || datosCp.colonias.length > 1) {
+        setCpAviso("Selecciona la ciudad o municipio y la colonia que correspondan al CP.");
+      } else if (!datosCp.ciudades.length || !datosCp.colonias.length) {
         setCpAviso("Captura manualmente los campos que no se prellenaron con el CP.");
       }
     } catch {
+      setCiudadesCp([]);
+      setColoniasCp([]);
       setCpAviso("No pudimos encontrar ese CP. Captura estado, ciudad y colonia manualmente.");
     } finally {
       setCpConsultando(false);
@@ -349,8 +315,54 @@ export default function PaginaRegistro() {
               ayuda={cpConsultando ? "Consultando CP..." : cpAviso}
             />
             <Field etiqueta="Estado" value={estado} onChange={(e) => setEstado(e.target.value)} required />
-            <Field etiqueta="Ciudad" value={ciudad} onChange={(e) => setCiudad(e.target.value)} required />
-            <Field etiqueta="Colonia" value={colonia} onChange={(e) => setColonia(e.target.value)} required />
+            <label className="flex flex-col gap-1.5">
+              <span className="font-body text-sm font-medium">Ciudad o municipio</span>
+              {ciudadesCp.length > 0 ? (
+                <select
+                  value={ciudad}
+                  onChange={(e) => setCiudad(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                >
+                  {ciudadesCp.map((opcion) => (
+                    <option key={opcion} value={opcion}>
+                      {opcion}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={ciudad}
+                  onChange={(e) => setCiudad(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                />
+              )}
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="font-body text-sm font-medium">Colonia</span>
+              {coloniasCp.length > 0 ? (
+                <select
+                  value={colonia}
+                  onChange={(e) => setColonia(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                >
+                  {coloniasCp.map((opcion) => (
+                    <option key={opcion} value={opcion}>
+                      {opcion}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={colonia}
+                  onChange={(e) => setColonia(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+                />
+              )}
+            </label>
             <Field etiqueta="Calle" value={calle} onChange={(e) => setCalle(e.target.value)} required />
             <Field etiqueta="Número" value={numero} onChange={(e) => setNumero(e.target.value)} required />
           </div>

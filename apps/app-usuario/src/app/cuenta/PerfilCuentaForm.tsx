@@ -1,18 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Aviso, Button, Field } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
-import { actualizarPerfilUsuario } from "@ruum/api/services";
+import { actualizarPerfilUsuario, subirFotoPerfil } from "@ruum/api/services";
+import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
-
-type DatosCodigoPostal = {
-  estado: string;
-  ciudad: string;
-  colonia: string;
-};
 
 function soloDigitos(valor: string, maximo?: number) {
   const limpio = valor.replace(/\D/g, "");
@@ -28,6 +23,27 @@ function telefonoLocalMx(valor: string | null) {
 function telefonoMx(diezDigitos: string) {
   const telefono = soloDigitos(diezDigitos, 10);
   return telefono ? `+52${telefono}` : "";
+}
+
+function separarNombreApellido(nombreCompleto: string | null) {
+  const partes = (nombreCompleto ?? "").trim().split(/\s+/).filter(Boolean);
+  if (partes.length <= 1) return { nombre: partes[0] ?? "", apellido: "" };
+  return {
+    nombre: partes.slice(0, -1).join(" "),
+    apellido: partes.at(-1) ?? ""
+  };
+}
+
+function nombreCompleto(nombre: string, apellido: string) {
+  return [nombre.trim(), apellido.trim()].filter(Boolean).join(" ");
+}
+
+function iniciales(nombre: string, apellido: string) {
+  return [nombre, apellido]
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((parte) => parte.trim()[0]?.toUpperCase())
+    .join("") || "RR";
 }
 
 function domicilioCompleto({
@@ -59,47 +75,10 @@ function domicilioCompleto({
     .join(", ");
 }
 
-async function consultarCpCopomex(cp: string): Promise<DatosCodigoPostal | null> {
-  const respuesta = await fetch(`https://api.copomex.com/query/info_cp/${cp}?token=pruebas`);
-  if (!respuesta.ok) return null;
-
-  const data = (await respuesta.json()) as {
-    response?: {
-      estado?: string;
-      ciudad?: string;
-      municipio?: string;
-      asentamiento?: string;
-    };
-  };
-
-  if (!data.response?.estado) return null;
-
-  return {
-    estado: data.response.estado,
-    ciudad: data.response.ciudad || data.response.municipio || "",
-    colonia: data.response.asentamiento || ""
-  };
-}
-
-async function consultarCpZippopotam(cp: string): Promise<DatosCodigoPostal | null> {
-  const respuesta = await fetch(`https://api.zippopotam.us/mx/${cp}`);
-  if (!respuesta.ok) return null;
-
-  const data = (await respuesta.json()) as {
-    places?: Array<{ "place name"?: string; state?: string }>;
-  };
-  const lugar = data.places?.[0];
-  if (!lugar?.state) return null;
-
-  return {
-    estado: lugar.state,
-    ciudad: "",
-    colonia: lugar["place name"] ?? ""
-  };
-}
-
 export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
-  const [nombre, setNombre] = useState(usuario.nombre ?? "");
+  const nombreInicial = separarNombreApellido(usuario.nombre);
+  const [nombre, setNombre] = useState(nombreInicial.nombre);
+  const [apellido, setApellido] = useState(nombreInicial.apellido);
   const [fotoUrl, setFotoUrl] = useState(usuario.foto_url ?? "");
   const [telefono, setTelefono] = useState(telefonoLocalMx(usuario.telefono));
   const [pais, setPais] = useState(usuario.pais ?? "México");
@@ -115,6 +94,15 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
   const [mensaje, setMensaje] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
   const [cpConsultando, setCpConsultando] = useState(false);
   const [cpAviso, setCpAviso] = useState<string | null>(null);
+  const [ciudadesCp, setCiudadesCp] = useState<string[]>(usuario.ciudad ? [usuario.ciudad] : []);
+  const [coloniasCp, setColoniasCp] = useState<string[]>(usuario.colonia ? [usuario.colonia] : []);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+
+  useEffect(() => {
+    if (codigoPostal.length === 5) void consultarCodigoPostal(codigoPostal);
+    // Solo precarga las listas del CP inicial al montar el formulario.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function consultarCodigoPostal(valor: string) {
     const cp = soloDigitos(valor, 5);
@@ -122,6 +110,8 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
 
     if (cp.length !== 5) {
       setCpAviso(null);
+      setCiudadesCp([]);
+      setColoniasCp([]);
       return;
     }
 
@@ -129,16 +119,22 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
     setCpAviso(null);
 
     try {
-      const datosCp = (await consultarCpCopomex(cp)) ?? (await consultarCpZippopotam(cp));
+      const datosCp = await consultarCodigoPostalMx(cp);
       if (!datosCp) throw new Error("CP no encontrado");
 
       setEstado(datosCp.estado);
-      setCiudad(datosCp.ciudad);
-      setColonia(datosCp.colonia);
-      if (!datosCp.ciudad || !datosCp.colonia) {
+      setCiudadesCp(datosCp.ciudades);
+      setColoniasCp(datosCp.colonias);
+      setCiudad(datosCp.ciudades[0] ?? "");
+      setColonia(datosCp.colonias[0] ?? "");
+      if (datosCp.ciudades.length > 1 || datosCp.colonias.length > 1) {
+        setCpAviso("Selecciona la ciudad o municipio y la colonia que correspondan al CP.");
+      } else if (!datosCp.ciudades.length || !datosCp.colonias.length) {
         setCpAviso("Captura manualmente los campos que no se prellenaron con el CP.");
       }
     } catch {
+      setCiudadesCp([]);
+      setColoniasCp([]);
       setCpAviso("No pudimos encontrar ese CP. Captura estado, ciudad y colonia manualmente.");
     } finally {
       setCpConsultando(false);
@@ -154,8 +150,17 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
       return;
     }
 
-    if (!nombre.trim() || codigoPostal.length !== 5 || !estado.trim() || !ciudad.trim() || !colonia.trim() || !calle.trim() || !numero.trim()) {
-      setMensaje({ tono: "peligro", texto: "Completa nombre, teléfono y domicilio antes de guardar." });
+    if (
+      !nombre.trim() ||
+      !apellido.trim() ||
+      codigoPostal.length !== 5 ||
+      !estado.trim() ||
+      !ciudad.trim() ||
+      !colonia.trim() ||
+      !calle.trim() ||
+      !numero.trim()
+    ) {
+      setMensaje({ tono: "peligro", texto: "Completa nombre, apellido, teléfono y domicilio antes de guardar." });
       return;
     }
 
@@ -167,7 +172,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
     setGuardando(true);
     try {
       await actualizarPerfilUsuario(crearClienteNavegador(), {
-        nombre: nombre.trim(),
+        nombre: nombreCompleto(nombre, apellido),
         foto_url: fotoUrl.trim() || null,
         telefono: telefonoMx(telefono),
         pais: pais.trim() || "México",
@@ -189,10 +194,71 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
     }
   }
 
+  async function cargarFoto(archivo: File | undefined) {
+    if (!archivo) return;
+    setMensaje(null);
+
+    if (!archivo.type.startsWith("image/")) {
+      setMensaje({ tono: "peligro", texto: "Selecciona una imagen para la fotografía de perfil." });
+      return;
+    }
+
+    if (!tieneSupabaseConfigurado()) {
+      setMensaje({ tono: "peligro", texto: "Supabase no está configurado. No se puede subir la fotografía." });
+      return;
+    }
+
+    setSubiendoFoto(true);
+    try {
+      const nuevaFotoUrl = await subirFotoPerfil(crearClienteNavegador(), archivo);
+      setFotoUrl(nuevaFotoUrl);
+      setMensaje({ tono: "info", texto: "Fotografía actualizada." });
+    } catch (err) {
+      setMensaje({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos subir la fotografía." });
+    } finally {
+      setSubiendoFoto(false);
+    }
+  }
+
   return (
     <form className="grid gap-4" onSubmit={guardar}>
-      <Field etiqueta="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
-      <Field etiqueta="Fotografía" value={fotoUrl} onChange={(e) => setFotoUrl(e.target.value)} placeholder="URL de foto" />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+        <Field etiqueta="Apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} required />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="flex flex-col gap-1.5">
+          <span className="font-body text-sm font-medium">Tipo de cuenta</span>
+          <input
+            value={usuario.tipo_cuenta === "empresa" ? "Empresa" : "Personal"}
+            disabled
+            className="w-full rounded-lg border border-ink/20 bg-ink/[0.03] px-3.5 py-2.5 font-body text-sm text-ink/65"
+          />
+        </label>
+      </div>
+      <div className="grid gap-3 rounded-lg border border-ink/10 p-4 sm:grid-cols-[auto_1fr] sm:items-center">
+        {fotoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={fotoUrl} alt="Fotografía de perfil" className="size-20 rounded-full object-cover" />
+        ) : (
+          <div className="flex size-20 items-center justify-center rounded-full bg-ink font-display text-xl text-mist">
+            {iniciales(nombre, apellido)}
+          </div>
+        )}
+        <label className="flex flex-col gap-1.5">
+          <span className="font-body text-sm font-medium">Fotografía</span>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => void cargarFoto(e.target.files?.[0])}
+            disabled={subiendoFoto}
+            className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+          />
+          <span className="font-body text-xs text-ink/65">
+            {subiendoFoto ? "Subiendo fotografía..." : "Puedes subir una imagen nueva cuando quieras."}
+          </span>
+        </label>
+      </div>
       <label className="flex flex-col gap-1.5">
         <span className="font-body text-sm font-medium">Teléfono</span>
         <div className="flex overflow-hidden rounded-lg border border-ink/50 bg-mist">
@@ -225,8 +291,54 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
             ayuda={cpConsultando ? "Consultando CP..." : cpAviso}
           />
           <Field etiqueta="Estado" value={estado} onChange={(e) => setEstado(e.target.value)} required />
-          <Field etiqueta="Ciudad" value={ciudad} onChange={(e) => setCiudad(e.target.value)} required />
-          <Field etiqueta="Colonia" value={colonia} onChange={(e) => setColonia(e.target.value)} required />
+          <label className="flex flex-col gap-1.5">
+            <span className="font-body text-sm font-medium">Ciudad o municipio</span>
+            {ciudadesCp.length > 0 ? (
+              <select
+                value={ciudad}
+                onChange={(e) => setCiudad(e.target.value)}
+                required
+                className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+              >
+                {ciudadesCp.map((opcion) => (
+                  <option key={opcion} value={opcion}>
+                    {opcion}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={ciudad}
+                onChange={(e) => setCiudad(e.target.value)}
+                required
+                className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+              />
+            )}
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="font-body text-sm font-medium">Colonia</span>
+            {coloniasCp.length > 0 ? (
+              <select
+                value={colonia}
+                onChange={(e) => setColonia(e.target.value)}
+                required
+                className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+              >
+                {coloniasCp.map((opcion) => (
+                  <option key={opcion} value={opcion}>
+                    {opcion}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={colonia}
+                onChange={(e) => setColonia(e.target.value)}
+                required
+                className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route"
+              />
+            )}
+          </label>
           <Field etiqueta="Calle" value={calle} onChange={(e) => setCalle(e.target.value)} required />
           <Field etiqueta="Número" value={numero} onChange={(e) => setNumero(e.target.value)} required />
           <Field etiqueta="Correo para facturación" type="email" value={correoFacturacion} onChange={(e) => setCorreoFacturacion(e.target.value)} />

@@ -124,6 +124,48 @@ export async function actualizarPerfilUsuario(cliente: Cliente, datos: PerfilUsu
   return data;
 }
 
+export async function subirFotoPerfil(cliente: Cliente, archivo: File): Promise<string> {
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) throw new Error("Sin sesión activa.");
+
+  const ext = archivo.name.split(".").pop()?.toLowerCase() ?? "jpg";
+  const path = `${sesion.user.id}/perfil.${ext}`;
+  const foto = await subirArchivoPerfil(cliente, "fotos-perfil", path, archivo);
+
+  const { data } = cliente.storage.from(foto.bucket).getPublicUrl(foto.path);
+  const fotoUrl = `${data.publicUrl}?v=${Date.now()}`;
+
+  await actualizarPerfilUsuario(cliente, { foto_url: fotoUrl });
+  return fotoUrl;
+}
+
+async function subirArchivoPerfil(
+  cliente: Cliente,
+  bucket: string,
+  path: string,
+  archivo: File
+): Promise<{ bucket: string; path: string }> {
+  const { error } = await cliente.storage.from(bucket).upload(path, archivo, {
+    upsert: true,
+    contentType: archivo.type
+  });
+
+  if (!error) return { bucket, path };
+
+  const mensaje = error.message.toLowerCase();
+  if (bucket === "fotos-perfil" && mensaje.includes("bucket not found")) {
+    const pathRespaldo = `perfiles/${path}`;
+    const { error: errorRespaldo } = await cliente.storage.from("evidencia").upload(pathRespaldo, archivo, {
+      upsert: true,
+      contentType: archivo.type
+    });
+    if (errorRespaldo) throw errorRespaldo;
+    return { bucket: "evidencia", path: pathRespaldo };
+  }
+
+  throw error;
+}
+
 /**
  * Sube el documento de identidad del usuario al bucket privado
  * "documentos-identidad" y guarda el path relativo en usuarios.

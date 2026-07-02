@@ -71,8 +71,8 @@ export default async function PaginaInicio() {
             <span className="font-display text-lg font-semibold tracking-tight">Ruum Ruum</span>
           </span>
         <div className="flex items-center gap-5">
-         <Link href="/login" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
-            Iniciar sesión
+         <Link href="/soporte" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
+            ¿Necesitas ayuda?
           </Link>
         </div>
       </header>
@@ -85,14 +85,7 @@ export default async function PaginaInicio() {
             Conductores certificados, evidencia fotográfica de inicio a fin y un Pasaporte Digital con todo el
             historial de tu traslado. Sabes dónde está tu vehículo y qué le pasó.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-16">
-            <Link href="/registro">
-              <Button>Crear mi cuenta</Button>
-            </Link>
-            <Link href="/login">
-              <Button>Iniciar sesión</Button>
-            </Link>
-          </div>
+         
         </div>
 
         <div className="rounded-lg border border-ink/10 bg-mist p-6">
@@ -101,9 +94,12 @@ export default async function PaginaInicio() {
           <p className="mt-3 font-body text-sm leading-6 text-ink/60">
             Captura tus datos, sube tu identificación y solicita traslados reales desde tu cuenta.
           </p>
-          <div className="mt-6">
+          <div className="mt-8 flex flex-wrap items-center gap-16">
             <Link href="/registro">
-              <Button>Crear cuenta</Button>
+              <Button>Crear mi cuenta</Button>
+            </Link>
+            <Link href="/login">
+              <Button>Iniciar sesión</Button>
             </Link>
           </div>
         </div>

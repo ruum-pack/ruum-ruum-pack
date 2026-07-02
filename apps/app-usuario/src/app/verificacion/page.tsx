@@ -94,10 +94,14 @@ export default function PaginaVerificacion() {
   if (exito) {
     return (
       <main className="mx-auto max-w-md px-6 py-16 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-control-soft">
-          <span className="text-2xl">OK</span>
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-control-soft text-route">
+          <span className="font-display text-2xl font-semibold">✓</span>
         </div>
         <h1 className="font-display text-2xl font-semibold">Documento enviado</h1>
+        <div className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full border border-route/20 bg-route-soft px-4 py-2 font-body text-sm font-semibold text-route">
+          <span aria-hidden>✓</span>
+          Documento cargado correctamente
+        </div>
         <p className="mt-3 font-body text-sm text-ink/60">
           El equipo de Ruum Ruum revisará tu identificación en menos de 2 horas hábiles. Te avisaremos cuando tu
           cuenta esté verificada.
@@ -165,6 +169,18 @@ export default function PaginaVerificacion() {
       </p>
 
       <div className="mt-8 flex flex-col gap-4">
+        {documentoSubido && (
+          <div className="flex items-center gap-3 rounded-lg border border-route/20 bg-route-soft px-4 py-3">
+            <span className="flex size-8 items-center justify-center rounded-full bg-route font-display text-lg font-semibold text-mist">
+              ✓
+            </span>
+            <div>
+              <p className="font-body text-sm font-semibold text-route">Documento cargado correctamente</p>
+              <p className="font-body text-xs text-ink/55">Tu identificación está guardada en la cuenta.</p>
+            </div>
+          </div>
+        )}
+
         {estadoCuenta === "en_revision" && documentoSubido ? (
           <Aviso tono="info">
             Tu documento ya está en revisión. El equipo administrativo debe aprobar la cuenta antes de que puedas
