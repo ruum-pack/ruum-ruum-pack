@@ -1,0 +1,140 @@
+import Link from "next/link";
+import { NavegacionUsuario } from "../../NavegacionUsuario";
+
+export const metadata = {
+  title: "Términos y condiciones — Ruum Ruum",
+};
+
+export default function PaginaTerminos() {
+  return (
+    <main className="app-page">
+      <NavegacionUsuario />
+      <div className="app-container py-10 sm:py-14">
+        <div className="mb-6">
+          <Link
+            href="/cuenta/legal"
+            className="font-body text-sm text-ink/55 underline-offset-4 hover:underline"
+          >
+            ← Volver a Legal
+          </Link>
+        </div>
+
+        <article className="app-card mx-auto max-w-3xl px-6 py-8 sm:px-10">
+          <header className="mb-8 border-b border-ink/10 pb-6">
+            <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/40">
+              Documento legal
+            </p>
+            <h1 className="mt-2 font-display text-2xl font-semibold">
+              Términos y condiciones
+            </h1>
+            <p className="mt-1 font-body text-sm text-ink/50">
+              Ruum Ruum — vigentes desde el 3 de julio de 2026
+            </p>
+          </header>
+
+          <div className="prose-ruum space-y-6 font-body text-sm leading-7 text-ink/80">
+            <p>
+              El presente documento establece los términos y condiciones bajo los cuales Moviliax
+              S.A. de C.V. (&quot;Ruum Ruum&quot;) presta el servicio de traslado vehicular
+              con conductor certificado a través de su plataforma digital.
+            </p>
+
+            <section>
+              <h2 className="mb-3 font-display text-base font-semibold text-ink">
+                1. Definiciones
+              </h2>
+              <p>
+                <strong>Plataforma:</strong> La aplicación móvil y web de Ruum Ruum disponible
+                para usuarios registrados.
+              </p>
+              <p className="mt-2">
+                <strong>Usuario:</strong> Persona física o moral que solicita el servicio de
+                traslado vehicular a través de la Plataforma.
+              </p>
+              <p className="mt-2">
+                <strong>Conductor:</strong> Persona física certificada por Ruum Ruum para
+                realizar traslados vehiculares.
+              </p>
+              <p className="mt-2">
+                <strong>Pasaporte Digital:</strong> Documento digital generado por la Plataforma
+                que contiene la evidencia fotográfica, el estado del vehículo y la trazabilidad
+                del traslado.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="mb-3 font-display text-base font-semibold text-ink">
+                2. Uso del servicio
+              </h2>
+              <p>
+                El Usuario acepta utilizar la Plataforma únicamente para fines lícitos y
+                conforme a las disposiciones establecidas en los presentes Términos. Queda
+                prohibido el uso de la Plataforma para solicitar traslados de vehículos cuya
+                propiedad o posesión no le corresponda al Usuario.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="mb-3 font-display text-base font-semibold text-ink">
+                3. Registro y verificación de identidad
+              </h2>
+              <p>
+                Para acceder al servicio, el Usuario debe proporcionar información verídica y
+                actualizada. Ruum Ruum se reserva el derecho de solicitar documentación
+                adicional para verificar la identidad del Usuario antes de autorizar el primer
+                traslado. La verificación de identidad no es requisito para crear una cuenta,
+                pero sí para activar el servicio de traslado.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="mb-3 font-display text-base font-semibold text-ink">
+                4. Pagos y cancelaciones
+              </h2>
+              <p>
+                Ruum Ruum no acepta pagos en efectivo. Todos los traslados se liquidan a través
+                de los métodos de pago registrados en la Plataforma. Las cancelaciones
+                realizadas después de que el conductor haya sido asignado pueden generar un
+                cargo según la política de cancelación vigente.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="mb-3 font-display text-base font-semibold text-ink">
+                5. Evidencia y responsabilidad
+              </h2>
+              <p>
+                El Pasaporte Digital constituye evidencia del estado del vehículo al inicio y
+                al final de cada traslado. Cualquier reclamación por daños debe realizarse
+                dentro de las 24 horas siguientes a la entrega del vehículo, con referencia al
+                folio del traslado.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="mb-3 font-display text-base font-semibold text-ink">
+                6. Modificaciones
+              </h2>
+              <p>
+                Ruum Ruum se reserva el derecho de modificar los presentes Términos. Las
+                modificaciones serán notificadas a través de la Plataforma con al menos 15 días
+                de anticipación. El uso continuado de la Plataforma constituye la aceptación de
+                los nuevos Términos.
+              </p>
+            </section>
+          </div>
+
+          <div className="mt-8 border-t border-ink/10 pt-6">
+            <a
+              href="/docs-legales/terminos-y-condiciones-ruum-ruum.docx"
+              download
+              className="font-body text-sm text-route-dark underline-offset-4 hover:underline"
+            >
+              Descargar documento completo (.docx)
+            </a>
+          </div>
+        </article>
+      </div>
+    </main>
+  );
+}

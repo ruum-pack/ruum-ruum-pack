@@ -1,0 +1,144 @@
+@import "tailwindcss";
+@import "@ruum/ui/styles/tokens.css";
+
+/* Torre de Control: información densa, legible y con estados operativos
+   consistentes. La navegación oscura es la única superficie de control. */
+.admin-content {
+  min-height: 100vh;
+  background: var(--ruum-canvas);
+}
+
+.admin-auth-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 84% 12%, rgba(245, 166, 35, 0.14), transparent 30%),
+    var(--ruum-surface-strong);
+}
+
+.admin-auth-card {
+  width: min(100% - 32px, 448px);
+  border: 1px solid rgba(214, 218, 227, 0.18);
+  border-radius: var(--ruum-radius-modal);
+  background: var(--ruum-surface);
+  color: var(--ruum-text);
+  box-shadow: var(--ruum-shadow-4);
+}
+
+/* La información tabular conserva su estructura y gana desplazamiento
+   horizontal cuando no cabe en una pantalla pequeña. */
+@media (max-width: 767px) {
+  .admin-content .overflow-hidden:has(table) {
+    overflow-x: auto;
+  }
+
+  .admin-content table {
+    min-width: 640px;
+  }
+}
+
+/* Skip link de accesibilidad — oculto hasta recibir foco de teclado */
+.ruum-skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: #ffffff;
+  color: #0e5cab;
+  border: 2px solid #0e5cab;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: top 150ms ease;
+}
+
+.ruum-skip-link:focus {
+  top: 1rem;
+}
+
+/* Clase de accesibilidad — oculta visualmente, visible para lectores de pantalla */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/*
+ * NOMENCLATURA DE TOKENS — panel-admin Torre de Control
+ *
+ * Tokens semánticos de @ruum/ui (no redefinir aquí):
+ *   --ruum-canvas, --ruum-surface, --ruum-surface-subtle, --ruum-surface-strong
+ *   --ruum-text, --ruum-text-secondary, --ruum-text-tertiary
+ *   --ruum-shadow-{1-4}, --ruum-radius-{field,card,modal}
+ *   --ruum-action (color signal/amber)
+ *
+ * Clases Tailwind extendidas por @ruum/ui (bg-mist, rounded-card, etc.):
+ *   bg-mist (31 usos), text-route-dark (13), bg-signal (10), rounded-card (3)
+ *   bg-danger-soft, bg-signal-soft, text-control, text-danger, text-warn
+ *
+ * Clases locales definidas en este archivo:
+ *   .admin-content, .admin-auth-shell, .admin-auth-card
+ *   .ruum-skip-link, .sr-only
+ *
+ * ruum-container: viene de @ruum/ui — width: min(100%-32px, 1200px)
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Tokens locales del admin adaptados a dark mode.
+   * Los tokens --ruum-* de @ruum/ui no tienen dark mode propio —
+   * se sobreescriben aquí para las superficies claras del contenido. */
+  :root {
+    --ruum-canvas: #0f1117;
+    --ruum-surface: #1a1f2e;
+    --ruum-surface-subtle: #232a3a;
+    --ruum-text: #e6e9ef;
+    --ruum-text-secondary: #c9cfda;
+    --ruum-text-tertiary: #8d96a8;
+    --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.35);
+    --ruum-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.5);
+    --ruum-shadow-4: 0 24px 64px rgba(0, 0, 0, 0.6);
+  }
+
+  /* La superficie oscura de la sidebar (bg-ink) ya es correcta en dark mode.
+   * Solo ajustamos el contenido claro y la auth card. */
+  .admin-content {
+    background: var(--ruum-canvas);
+  }
+
+  .admin-auth-card {
+    background: var(--ruum-surface);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: var(--ruum-text);
+  }
+
+  input,
+  select,
+  textarea {
+    color-scheme: dark;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #687287;
+  }
+}

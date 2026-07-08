@@ -1,0 +1,254 @@
+import type { Database } from "@ruum/shared/types";
+
+type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
+type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
+type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
+type IncidenciaRow = Database["public"]["Tables"]["incidencias"]["Row"];
+
+// Mismo criterio que las otras dos apps: estas pantallas SIEMPRE muestran el
+// aviso "Datos de ejemplo" cuando se usa este archivo.
+
+// PRD §3 — admin de relleno mientras no exista login real (ver "Pendiente"
+// en este README). Id vacío a propósito, igual que CONDUCTOR_DEMO.
+export const ADMIN_DEMO = { id: "", nombre: "Admin Demo" };
+
+export const METRICAS_DEMO = {
+  viajesActivos: 7,
+  pendientesAsignacion: 2,
+  cerradosHoy: 3,
+  conductoresActivos: 11,
+  incidenciasAbiertas: 1
+};
+
+export const VIAJES_DEMO: PasaporteRow[] = [
+  {
+    traslado_id: "demo-admin-001",
+    usuario_id: "demo-usuario-1",
+    vehiculo_id: "demo-vehiculo-1",
+    conductor_id: null,
+    estado: "pendiente_de_conductor",
+    tiene_incidencia_abierta: false,
+    tipo_pago: "anticipado",
+    causa_fallido: null,
+    precio_cotizado: 1800,
+    precio_final: null,
+    creado_en: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    actualizado_en: new Date().toISOString(),
+    vehiculo_tipo: "suv",
+    vehiculo_marca: "Honda",
+    vehiculo_modelo: "CR-V",
+    vehiculo_anio: 2023,
+    conductor_nombre: null,
+    conductor_estado: null,
+    conductor_nivel: null,
+    conductor_calificacion: null,
+    evidencia_inicial_fotos_sincronizadas: 0,
+    evidencia_final_fotos_sincronizadas: 0,
+    incidencias_abiertas: 0,
+    monto_pagado: 0
+  },
+  {
+    traslado_id: "demo-admin-002",
+    usuario_id: "demo-usuario-2",
+    vehiculo_id: "demo-vehiculo-2",
+    conductor_id: "demo-conductor-2",
+    estado: "traslado_en_curso",
+    tiene_incidencia_abierta: true,
+    tipo_pago: "anticipado",
+    causa_fallido: null,
+    precio_cotizado: 1500,
+    precio_final: null,
+    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    actualizado_en: new Date().toISOString(),
+    vehiculo_tipo: "sedan",
+    vehiculo_marca: "Nissan",
+    vehiculo_modelo: "Versa",
+    vehiculo_anio: 2022,
+    conductor_nombre: "Conductor Demo",
+    conductor_estado: "activo",
+    conductor_nivel: "ejecutivo",
+    conductor_calificacion: 4.6,
+    evidencia_inicial_fotos_sincronizadas: 5,
+    evidencia_final_fotos_sincronizadas: 0,
+    incidencias_abiertas: 1,
+    monto_pagado: 1500
+  },
+  {
+    traslado_id: "demo-admin-003",
+    usuario_id: "demo-usuario-3",
+    vehiculo_id: "demo-vehiculo-3",
+    conductor_id: "demo-conductor-3",
+    estado: "servicio_cerrado",
+    tiene_incidencia_abierta: false,
+    tipo_pago: "al_cierre",
+    causa_fallido: null,
+    precio_cotizado: 950,
+    precio_final: 950,
+    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 30).toISOString(),
+    actualizado_en: new Date().toISOString(),
+    vehiculo_tipo: "sedan",
+    vehiculo_marca: "Toyota",
+    vehiculo_modelo: "Corolla",
+    vehiculo_anio: 2021,
+    conductor_nombre: "Conductora Demo 2",
+    conductor_estado: "activo",
+    conductor_nivel: "basico",
+    conductor_calificacion: 4.9,
+    evidencia_inicial_fotos_sincronizadas: 5,
+    evidencia_final_fotos_sincronizadas: 5,
+    incidencias_abiertas: 0,
+    monto_pagado: 950
+  }
+];
+
+export const CONDUCTORES_DEMO: ConductorRow[] = [
+  {
+    id: "demo-conductor-2",
+    auth_user_id: null,
+    nombre: "Conductor Demo",
+    nivel_por_experiencia: "ejecutivo",
+    nivel_por_calificacion: "ejecutivo",
+    nivel_operativo_vigente: "ejecutivo",
+    estado: "activo",
+    calificacion_promedio: 4.6,
+    traslados_completados: 12,
+    suspensiones_activas: 0,
+    no_presentaciones_6m: 0,
+    cancelaciones_sin_justificacion_count: 0,
+    documentos_vigentes: true,
+    incidencias_graves_6m: 0,
+    incidencias_graves_12m: 0,
+    telefono: "+5215511112222",
+    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 200).toISOString(),
+    actualizado_en: new Date().toISOString()
+  },
+  {
+    id: "demo-conductor-3",
+    auth_user_id: null,
+    nombre: "Conductora Demo 2",
+    nivel_por_experiencia: "basico",
+    nivel_por_calificacion: "basico",
+    nivel_operativo_vigente: "basico",
+    estado: "activo",
+    calificacion_promedio: 4.9,
+    traslados_completados: 4,
+    suspensiones_activas: 0,
+    no_presentaciones_6m: 0,
+    cancelaciones_sin_justificacion_count: 0,
+    documentos_vigentes: true,
+    incidencias_graves_6m: 0,
+    incidencias_graves_12m: 0,
+    telefono: "+5215533334444",
+    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),
+    actualizado_en: new Date().toISOString()
+  },
+  {
+    id: "demo-conductor-4",
+    auth_user_id: null,
+    nombre: "Conductor con documentos vencidos",
+    nivel_por_experiencia: "basico",
+    nivel_por_calificacion: "basico",
+    nivel_operativo_vigente: "basico",
+    estado: "pendiente_verificacion",
+    calificacion_promedio: 0,
+    traslados_completados: 0,
+    suspensiones_activas: 0,
+    no_presentaciones_6m: 0,
+    cancelaciones_sin_justificacion_count: 0,
+    documentos_vigentes: false,
+    incidencias_graves_6m: 0,
+    incidencias_graves_12m: 0,
+    telefono: null,
+    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+    actualizado_en: new Date().toISOString()
+  }
+];
+
+export const USUARIOS_DEMO: UsuarioRow[] = [
+  {
+    id: "demo-usuario-1",
+    auth_user_id: null,
+    nombre: "Daniela Fuentes",
+    foto_url: null,
+    tipo_cuenta: "personal",
+    rol: "personal",
+    empresa_id: null,
+    estado_verificacion: "verificado",
+    traslados_completados_sin_incidencia: 3,
+    metodo_pago_registrado: true,
+    version_terminos_aceptada: 1,
+    terminos_aceptados_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 90).toISOString(),
+    doc_identidad_url: "demo-usuario-1/identidad.pdf",
+    doc_identidad_subido_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 89).toISOString(),
+    telefono: "+5215555556666",
+    pais: "México",
+    estado: "Ciudad de México",
+    codigo_postal: "06700",
+    ciudad: "Cuauhtémoc",
+    colonia: "Roma Norte",
+    calle: "Orizaba",
+    numero: "42",
+    referencias: "Timbre 2",
+    direccion_principal: "Roma Norte, Cuauhtémoc, CDMX",
+    correo_facturacion: "facturacion@demo.mx",
+    notificaciones_push: true,
+    notificaciones_email: true,
+    notificaciones_sms_whatsapp: true,
+    alertas_viaje: true,
+    alertas_pago: true,
+    alertas_evidencia: true,
+    notificaciones_promocionales: false,
+    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 90).toISOString(),
+    actualizado_en: new Date().toISOString()
+  },
+  {
+    id: "demo-usuario-4",
+    auth_user_id: null,
+    nombre: "Ricardo Cervantes",
+    foto_url: null,
+    tipo_cuenta: "personal",
+    rol: "personal",
+    empresa_id: null,
+    estado_verificacion: "en_revision",
+    traslados_completados_sin_incidencia: 0,
+    metodo_pago_registrado: false,
+    version_terminos_aceptada: 1,
+    terminos_aceptados_en: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+    doc_identidad_url: "demo-usuario-4/identidad.pdf",
+    doc_identidad_subido_en: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+    telefono: null,
+    pais: "México",
+    estado: "Querétaro",
+    codigo_postal: "76000",
+    ciudad: "Querétaro",
+    colonia: "Centro",
+    calle: "Corregidora",
+    numero: "10",
+    referencias: null,
+    direccion_principal: null,
+    correo_facturacion: null,
+    notificaciones_push: true,
+    notificaciones_email: true,
+    notificaciones_sms_whatsapp: false,
+    alertas_viaje: true,
+    alertas_pago: true,
+    alertas_evidencia: true,
+    notificaciones_promocionales: false,
+    creado_en: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+    actualizado_en: new Date().toISOString()
+  }
+];
+
+export const INCIDENCIAS_DEMO: IncidenciaRow[] = [
+  {
+    id: "demo-incidencia-1",
+    traslado_id: "demo-admin-002",
+    tipo: "descompostura_en_ruta",
+    momento: "durante_traslado",
+    reportada_por: "conductor",
+    descripcion: "El vehículo presentó una falla en el sistema de frenos a medio camino.",
+    resuelta: false,
+    creada_en: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    resuelta_en: null
+  }
+];

@@ -1,0 +1,262 @@
+@import "tailwindcss";
+@import "@ruum/ui/styles/tokens.css";
+
+/*
+ * App Usuario — capa visual local
+ *
+ * Los tokens de marca viven en @ruum/ui. Esta aplicación no los redefine:
+ * así evita divergencias con el sistema compartido y solamente agrega reglas
+ * de superficie, foco y comportamiento propio de la experiencia de usuario.
+ */
+:root {
+  --app-canvas: #f4f5f7;
+  --app-surface: #ffffff;
+  --app-surface-subtle: #f8f9fb;
+  --app-border: #d6dae3;
+  --app-border-strong: #aeb6c5;
+  --app-text-secondary: #4d5668;
+  --app-text-tertiary: #687287;
+  --app-focus: #0e5cab;
+  --app-focus-ring: rgba(14, 92, 171, 0.22);
+  --app-shadow-1: 0 1px 2px rgba(26, 31, 46, 0.08);
+  --app-shadow-2: 0 6px 16px rgba(26, 31, 46, 0.1);
+  --app-shadow-3: 0 16px 40px rgba(26, 31, 46, 0.18);
+}
+
+html {
+  background: var(--app-canvas);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  background: var(--app-canvas);
+  color: #1a1f2e;
+  font-family: var(--font-body);
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: #f5a623;
+  color: #1a1f2e;
+}
+
+a {
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  color-scheme: light;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #687287;
+  opacity: 1;
+}
+
+:focus-visible {
+  outline: 3px solid var(--app-focus);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--app-focus);
+  outline-offset: 2px;
+}
+
+/* Formularios nativos: misma altura táctil y lectura consistente en toda la app. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,
+textarea {
+  min-height: 48px;
+  border-color: var(--app-border-strong);
+  border-radius: 10px;
+}
+
+textarea {
+  min-height: 112px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #0e5cab;
+}
+
+/* Superficies reutilizables de la app usuario. */
+.app-page {
+  min-height: 100vh;
+  background: var(--app-canvas);
+}
+
+.app-container {
+  width: min(100% - 32px, 1200px);
+  margin-inline: auto;
+}
+
+.app-card {
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-1);
+}
+
+.app-card-interactive {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.app-card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: #0e5cab;
+  box-shadow: var(--app-shadow-2);
+}
+
+.app-status-strip {
+  border: 1px solid #f3dba0;
+  border-radius: 12px;
+  background: #fef3dc;
+}
+
+/* Las vistas de acceso son la única excepción: usan una superficie de control oscura. */
+.ruum-auth-shell input,
+.ruum-auth-shell select,
+.ruum-auth-shell textarea {
+  color-scheme: dark;
+}
+
+.ruum-auth-shell :focus-visible {
+  outline-color: #f5a623;
+}
+
+@media (min-width: 640px) {
+  .app-container {
+    width: min(100% - 48px, 1200px);
+  }
+}
+
+/* Skip link de accesibilidad — oculto hasta recibir foco de teclado */
+.ruum-skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--app-surface);
+  color: var(--app-focus);
+  border: 2px solid var(--app-focus);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: top 150ms ease;
+}
+
+.ruum-skip-link:focus {
+  top: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-canvas: #0f1117;
+    --app-surface: #1a1f2e;
+    --app-surface-subtle: #232a3a;
+    --app-border: rgba(255, 255, 255, 0.09);
+    --app-border-strong: rgba(255, 255, 255, 0.18);
+    --app-text-secondary: #c9cfda;
+    --app-text-tertiary: #8d96a8;
+    --app-focus: #4da3ff;
+    --app-focus-ring: rgba(77, 163, 255, 0.28);
+    --app-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --app-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.35);
+    --app-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  body {
+    color: #e6e9ef;
+  }
+
+  input,
+  select,
+  textarea {
+    color-scheme: dark;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #687287;
+  }
+
+  .app-card {
+    background: var(--app-surface);
+    border-color: var(--app-border);
+  }
+
+  .app-card-interactive:hover {
+    border-color: #4da3ff;
+  }
+
+  .app-status-strip {
+    border-color: rgba(243, 187, 64, 0.3);
+    background: rgba(254, 243, 220, 0.08);
+  }
+
+  /* Los menús dropdown en NavegacionUsuario */
+  nav [role="menu"] {
+    background: var(--app-surface);
+    border-color: var(--app-border);
+    box-shadow: var(--app-shadow-2);
+  }
+}
+
+/* Documentación de tokens externos importados de @ruum/ui/styles/tokens.css.
+ * No redefinir aquí — si @ruum/ui cambia un valor, la app lo hereda.
+ * Tokens de @ruum/ui usados en app-usuario (77 referencias):
+ *   bg-mist (43), text-route-dark (20), bg-signal (13), border-route (11),
+ *   bg-route-soft (9), rounded-card (8), text-signal (5), bg-signal-soft (3),
+ *   bg-danger-soft (2), bg-mist-dim (1)
+ */
+@keyframes ruum-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

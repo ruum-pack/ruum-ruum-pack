@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ruum Ruum</string>
+    <string name="title_activity_main">Ruum Ruum</string>
+    <string name="package_name">com.moviliax.ruumruum.usuario</string>
+    <string name="custom_url_scheme">com.moviliax.ruumruum.usuario</string>
+</resources>
