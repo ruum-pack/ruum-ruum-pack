@@ -1,6 +1,5 @@
 "use client";
 
-"use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Aviso, PassportCard } from "@ruum/ui";
@@ -80,11 +79,12 @@ export default function PaginaDashboard() {
           <h1 className="font-display text-2xl font-bold">Dashboard Operativo</h1>
           <p className="mt-1 font-body text-sm text-ink/50">Panel de operaciones · actualizado en tiempo real</p>
         </div>
-        <link href="/viajes/nuevo"
+        <Link
+          href="/viajes/nuevo"
           className="inline-flex items-center gap-2 rounded-lg bg-signal px-4 py-2.5 font-body text-sm font-semibold text-ink shadow-sm transition-colors hover:bg-signal/90"
         >
           + Nuevo viaje
-        </link>
+        </Link>
       </div>
 
       {esDemo && (
