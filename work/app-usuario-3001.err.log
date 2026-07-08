@@ -1,0 +1,14 @@
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\ruum-ruum2\apps\app-usuario\.next\cache\webpack\client-development\2.pack.gz_' -> 'C:\ruum-ruum2\apps\app-usuario\.next\cache\webpack\client-development\2.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\ruum-ruum2\apps\app-usuario\.next\cache\webpack\server-development\8.pack.gz_' -> 'C:\ruum-ruum2\apps\app-usuario\.next\cache\webpack\server-development\8.pack.gz'
+ ⨯ TypeError: __webpack_require__.C is not a function
+    at <unknown> (C:\ruum-ruum2\apps\app-usuario\.next\server\app\soporte\page.js:762:21)
+    at Object.<anonymous> (C:\ruum-ruum2\apps\app-usuario\.next\server\app\soporte\page.js:767:3) {
+  page: '/soporte'
+}
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
+ ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...

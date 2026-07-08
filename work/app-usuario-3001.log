@@ -1,0 +1,108 @@
+   ▲ Next.js 15.5.19
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.1.3:3001
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 7.8s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1445ms (171 modules)
+ ○ Compiling /cuenta ...
+ ✓ Compiled /cuenta in 14.5s (959 modules)
+ GET /cuenta 200 in 18052ms
+ ○ Compiling /cuenta/perfil ...
+ ✓ Compiled /cuenta/perfil in 5.2s (961 modules)
+ GET /cuenta/perfil 200 in 9389ms
+ ○ Compiling /cuenta/vehiculos ...
+ ✓ Compiled /cuenta/vehiculos in 3s (963 modules)
+ GET /cuenta/vehiculos 200 in 4982ms
+ ○ Compiling /cuenta/metodos-pago ...
+ ✓ Compiled /cuenta/metodos-pago in 1577ms (965 modules)
+ GET /cuenta/metodos-pago 200 in 2893ms
+ ○ Compiling /cuenta/facturacion ...
+ ✓ Compiled /cuenta/facturacion in 2.9s (967 modules)
+ GET /cuenta/facturacion 200 in 3942ms
+ ○ Compiling /cuenta/preferencias ...
+ ✓ Compiled /cuenta/preferencias in 2.2s (969 modules)
+ GET /cuenta/preferencias 200 in 3085ms
+ ○ Compiling /cuenta/legal ...
+ ✓ Compiled /cuenta/legal in 3.3s (971 modules)
+ GET /cuenta/legal 200 in 4252ms
+ ✓ Compiled in 3.6s (357 modules)
+ ✓ Compiled in 1112ms (357 modules)
+ ✓ Compiled in 2.7s (357 modules)
+ ✓ Compiled in 899ms (357 modules)
+ ✓ Compiled in 1675ms (357 modules)
+ ✓ Compiled in 821ms (357 modules)
+ ✓ Compiled in 929ms (357 modules)
+ ✓ Compiled in 1234ms (357 modules)
+ ✓ Compiled in 1475ms (357 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 5.7s (935 modules)
+ ✓ Compiled in 2.1s (360 modules)
+ GET / 200 in 8133ms
+ ○ Compiling /icon.svg ...
+ ✓ Compiled /icon.svg in 546ms (592 modules)
+ GET /icon.svg?a81a0d4676b9e4ec 200 in 966ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 1623ms (973 modules)
+ GET /login 200 in 1967ms
+ ✓ Compiled in 4.1s (1141 modules)
+ ✓ Compiled in 2.1s (1141 modules)
+ ○ Compiling /soporte ...
+ ✓ Compiled /soporte in 3.8s (964 modules)
+ GET /soporte 200 in 6047ms
+ ✓ Compiled in 3.4s (972 modules)
+ ○ Compiling /soporte ...
+ ✓ Compiled /soporte in 1452ms (607 modules)
+ GET /soporte 200 in 3886ms
+ GET /soporte 200 in 1504ms
+ ✓ Compiled in 3.8s (961 modules)
+ GET /soporte 200 in 3403ms
+ ○ Compiling /icon.svg ...
+ ✓ Compiled /icon.svg in 3s (622 modules)
+ GET /icon.svg?a81a0d4676b9e4ec 200 in 3511ms
+ ✓ Compiled in 6.4s (978 modules)
+ GET /soporte 200 in 1065ms
+ GET /soporte 200 in 1263ms
+ ○ Compiling /icon.svg ...
+ ✓ Compiled /icon.svg in 548ms (624 modules)
+ GET /icon.svg?a81a0d4676b9e4ec 200 in 879ms
+ ✓ Compiled in 2.6s (978 modules)
+ GET /soporte 200 in 2749ms
+ ○ Compiling /icon.svg ...
+ ✓ Compiled /icon.svg in 854ms (624 modules)
+ GET /icon.svg?a81a0d4676b9e4ec 200 in 1305ms
+ ✓ Compiled in 3.9s (975 modules)
+ GET /soporte 200 in 1222ms
+ ✓ Compiled in 4.5s (975 modules)
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 9s (1322 modules)
+ GET /soporte 500 in 10806ms
+ GET /soporte 200 in 1073ms
+ GET /soporte 200 in 285ms
+ GET /soporte 200 in 282ms
+ GET /soporte 200 in 1138ms
+ ✓ Compiled in 3.4s (1226 modules)
+ GET /soporte 200 in 2202ms
+ GET /soporte 200 in 1000ms
+ ○ Compiling /icon.svg ...
+ ✓ Compiled /icon.svg in 1381ms (721 modules)
+ GET /icon.svg?a81a0d4676b9e4ec 200 in 1824ms
+ ✓ Compiled in 1208ms (522 modules)
+ GET /soporte 200 in 508ms
+   ▲ Next.js 15.5.19
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.1.3:3001
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 6.3s
+   ▲ Next.js 15.5.19
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.1.3:3001
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 4.8s
+[?25h

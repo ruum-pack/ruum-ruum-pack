@@ -1,0 +1,46 @@
+src/app/conductores/page.tsx(6,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+src/app/conductores/page.tsx(160,46): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<NivelCONCER, string>'.
+src/app/disputas/page.tsx(8,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+src/app/disputas/page.tsx(151,78): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<TipoDisputa, string>'.
+src/app/documentos/page.tsx(5,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+src/app/documentos/page.tsx(162,30): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/empresas/page.tsx(6,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+src/app/page.tsx(15,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+src/app/pagos/page.tsx(7,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+src/app/reclamos-seguro/page.tsx(7,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+src/app/usuarios/AccionesVerificacion.tsx(5,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+src/app/usuarios/page.tsx(5,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+src/app/viajes/[id]/page.tsx(9,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+src/app/viajes/[id]/page.tsx(83,38): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/app/viajes/[id]/page.tsx(167,21): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/app/viajes/[id]/page.tsx(193,21): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/app/viajes/[id]/page.tsx(259,29): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<EstadoTraslado, EstadoTraslado[]>'.
+src/app/viajes/[id]/page.tsx(327,46): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<TipoVehiculo, string>'.
+src/app/viajes/[id]/page.tsx(388,33): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<NivelCONCER, string>'.
+src/app/viajes/[id]/page.tsx(408,39): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/viajes/[id]/page.tsx(410,20): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<EstadoTraslado, string>'.
+src/app/viajes/page.tsx(7,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+src/app/viajes/page.tsx(119,75): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<TipoVehiculo, string>'.
+src/lib/datos-demo.ts(1,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/services/admin.ts(2,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/services/auditoria.ts(2,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/services/auditoria.ts(2,25): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Json'.
+../../packages/api/src/services/chat.ts(3,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/services/conductores.ts(2,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/services/disputas.ts(2,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/services/evidencia.ts(2,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/services/incidencias.ts(2,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/services/soporte.ts(2,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/services/traslados.ts(2,26): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/services/traslados.ts(340,21): error TS7053: Element implicitly has an 'any' type because expression of type 'Database' can't be used to index type 'Record<EstadoTraslado, EstadoTraslado[]>'.
+../../packages/api/src/services/usuarios.ts(2,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/services/usuarios.ts(138,42): error TS2345: Argument of type '{ foto_url: string; }' is not assignable to parameter of type 'PerfilUsuarioActualizable'.
+  Type '{ foto_url: string; }' is missing the following properties from type 'PerfilUsuarioActualizable': estado, telefono, nombre, pais, and 8 more.
+../../packages/api/src/services/vehiculos.ts(2,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/supabase/browser-client.ts(3,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/api/src/supabase/server-client.ts(3,15): error TS2305: Module '"@ruum/shared/types"' has no exported member 'Database'.
+../../packages/shared/src/types/index.ts(17,15): error TS2306: File 'C:/ruum-ruum2/packages/shared/src/types/supabase.ts' is not a module.
+undefined
+C:\ruum-ruum2\apps\panel-admin:
+ÔÇëERR_PNPM_RECURSIVE_EXEC_FIRST_FAILÔÇë Command failed with exit code 2: tsc --noEmit --pretty false

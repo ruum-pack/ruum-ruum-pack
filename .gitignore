@@ -1,0 +1,21 @@
+node_modules
+.next
+dist
+.turbo
+.env
+.env.local
+supabase/.branches
+supabase/.temp
+coverage
+*.tsbuildinfo
+
+# Capacitor/Android — el proyecto android/ sí se versiona (es código real,
+# generado una vez por `cap add android` y editado a mano desde entonces:
+# AndroidManifest.xml con permisos), pero no sus artefactos de build.
+**/android/.gradle
+**/android/build
+**/android/app/build
+**/android/local.properties
+**/android/capacitor-cordova-android-plugins/build
+*.keystore
+*.jks

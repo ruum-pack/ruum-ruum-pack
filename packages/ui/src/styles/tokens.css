@@ -1,0 +1,247 @@
+/*
+ * Ruum Ruum — Sistema visual compartido
+ *
+ * Este archivo es la fuente de verdad para todas las experiencias:
+ * app de usuario, app de conductor y Torre de Control administrativa.
+ * La marca comunica control, trazabilidad y seguridad mediante una base
+ * neutra, superficies claras y señal dorada para acciones de alta intención.
+ */
+@theme {
+  --color-ink: #1a1f2e;
+  --color-ink-soft: #2d3447;
+  --color-asphalt: #1a1f2e;
+  --color-steel: #5f6368;
+  --color-mist: #ffffff;
+  --color-mist-dim: #f4f5f7;
+  --color-signal: #f5a623;
+  --color-signal-soft: #fef3dc;
+  --color-route: #1e88e5;
+  --color-route-dark: #0e5cab;
+  --color-route-soft: #dceeff;
+  --color-control: #08734f;
+  --color-control-soft: #d7f3e7;
+  --color-warn: #76500e;
+  --color-warn-soft: #fff4d6;
+  --color-danger: #b32626;
+  --color-danger-soft: #fdecec;
+
+  /* Alias de compatibilidad para componentes ya escritos. */
+  --color-paper: var(--color-mist);
+  --color-paper-dim: var(--color-mist-dim);
+  --color-evidence: var(--color-mist);
+  --color-ok: var(--color-control);
+  --color-ok-soft: var(--color-control-soft);
+
+  --font-display: var(--font-display-loaded), "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-body-loaded), "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono-ruum: var(--font-mono-loaded), "IBM Plex Mono", ui-monospace, monospace;
+
+  --radius-card: 0.75rem;
+}
+
+:root {
+  color-scheme: light;
+
+  /* Tokens semánticos: consumir estos valores en CSS de producto. */
+  --ruum-canvas: #f4f5f7;
+  --ruum-surface: #ffffff;
+  --ruum-surface-subtle: #f8f9fb;
+  --ruum-surface-strong: #1a1f2e;
+  --ruum-border: #d6dae3;
+  --ruum-border-strong: #aeb6c5;
+  --ruum-text: #1a1f2e;
+  --ruum-text-secondary: #4d5668;
+  --ruum-text-tertiary: #687287;
+  --ruum-focus: #0e5cab;
+  --ruum-focus-ring: rgba(14, 92, 171, 0.24);
+  --ruum-action: #f5a623;
+  --ruum-action-hover: #d88f16;
+  --ruum-shadow-1: 0 1px 2px rgba(26, 31, 46, 0.08);
+  --ruum-shadow-2: 0 6px 16px rgba(26, 31, 46, 0.1);
+  --ruum-shadow-3: 0 16px 40px rgba(26, 31, 46, 0.18);
+  --ruum-shadow-4: 0 24px 64px rgba(26, 31, 46, 0.24);
+  --ruum-radius-field: 10px;
+  --ruum-radius-card: 12px;
+  --ruum-radius-modal: 16px;
+}
+
+html {
+  min-width: 320px;
+  background: var(--ruum-canvas);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  background: var(--ruum-canvas);
+  color: var(--ruum-text);
+  font-family: var(--font-body);
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--ruum-action);
+  color: var(--ruum-text);
+}
+
+a {
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  color-scheme: light;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ruum-text-tertiary);
+  opacity: 1;
+}
+
+:focus-visible {
+  outline: 3px solid var(--ruum-focus);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--ruum-focus);
+  outline-offset: 2px;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,
+textarea {
+  min-height: 48px;
+  border-radius: var(--ruum-radius-field);
+}
+
+textarea {
+  min-height: 112px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--ruum-focus);
+}
+
+/* Utilidades agnósticas a cualquier app. */
+.ruum-skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 12px;
+  left: 12px;
+  transform: translateY(-180%);
+  border-radius: 10px;
+  background: var(--ruum-surface-strong);
+  color: var(--ruum-surface);
+  padding: 10px 14px;
+  box-shadow: var(--ruum-shadow-3);
+  transition: transform 160ms ease;
+}
+
+.ruum-skip-link:focus {
+  transform: translateY(0);
+}
+
+.ruum-page {
+  min-height: 100vh;
+  background: var(--ruum-canvas);
+}
+
+.ruum-container {
+  width: min(100% - 32px, 1200px);
+  margin-inline: auto;
+}
+
+.ruum-content {
+  width: min(100% - 32px, 1200px);
+  margin-inline: auto;
+  padding-block: 32px 48px;
+}
+
+.ruum-card {
+  border: 1px solid var(--ruum-border);
+  border-radius: var(--ruum-radius-card);
+  background: var(--ruum-surface);
+  box-shadow: var(--ruum-shadow-1);
+}
+
+.ruum-card-interactive {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.ruum-card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--ruum-focus);
+  box-shadow: var(--ruum-shadow-2);
+}
+
+.ruum-auth-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(245, 166, 35, 0.12), transparent 31%),
+    var(--ruum-surface-strong);
+  color: var(--ruum-surface);
+}
+
+.ruum-auth-card {
+  border: 1px solid rgba(214, 218, 227, 0.18);
+  border-radius: var(--ruum-radius-modal);
+  background: rgba(255, 255, 255, 0.98);
+  color: var(--ruum-text);
+  box-shadow: var(--ruum-shadow-4);
+}
+
+@media (min-width: 640px) {
+  .ruum-container,
+  .ruum-content {
+    width: min(100% - 48px, 1200px);
+  }
+
+  .ruum-content {
+    padding-block: 40px 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
