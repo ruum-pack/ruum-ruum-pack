@@ -1,14 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
 import { traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { onboardingVisto } from "../../lib/onboarding-visto";
 
 export default function PaginaLogin() {
   const router = useRouter();
+
+  // Primer arranque: mostrar el recorrido de bienvenida antes del acceso.
+  useEffect(() => {
+    let activo = true;
+    onboardingVisto().then((visto) => {
+      if (activo && !visto) router.replace("/onboarding");
+    });
+    return () => {
+      activo = false;
+    };
+  }, [router]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [enviando, setEnviando] = useState(false);
