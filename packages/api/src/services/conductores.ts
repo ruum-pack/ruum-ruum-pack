@@ -11,6 +11,19 @@ type PreferenciasConductorRow = Database["public"]["Tables"]["preferencias_condu
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 export type DisponibilidadOperativaConductor = "disponible" | "no_disponible";
 
+export type TipoDocumentoConductor =
+  | "licencia_frente"
+  | "licencia_reverso"
+  | "identificacion_oficial"
+  | "documento_operativo";
+
+const BUCKET_DOCUMENTOS_CONDUCTOR = "documentos-conductor";
+const TAMANO_MAX_DOCUMENTO_BYTES = 10 * 1024 * 1024;
+
+function nombreArchivoSeguro(nombre: string) {
+  return nombre.replace(/[^a-zA-Z0-9_.-]/g, "_");
+}
+
 /** Conductor asociado a la sesión de Supabase Auth actual, si existe. */
 export async function obtenerConductorActual(cliente: Cliente): Promise<ConductorRow | null> {
   const { data: sesion } = await cliente.auth.getUser();
@@ -149,7 +162,7 @@ export async function guardarDisponibilidadConductor(
 export async function registrarDocumentoConductor(
   cliente: Cliente,
   conductorId: string,
-  tipo: string,
+  tipo: TipoDocumentoConductor,
   nombreArchivo: string,
   url: string
 ) {
@@ -168,10 +181,49 @@ export async function registrarDocumentoConductor(
 
   if (error) throw error;
 
-  await registrarEvento(cliente, "carga_documentos", "conductor", conductorId, {
-    tipo,
-    nombre_archivo: nombreArchivo
-  });
+  try {
+    await registrarEvento(cliente, "carga_documentos", "conductor", conductorId, {
+      tipo,
+      nombre_archivo: nombreArchivo
+    });
+  } catch {
+    // La auditoria es complementaria: el documento ya quedo registrado para revision.
+  }
+}
+
+export async function subirDocumentoConductor(
+  cliente: Cliente,
+  conductorId: string,
+  tipo: TipoDocumentoConductor,
+  archivo: File
+) {
+  if (archivo.size > TAMANO_MAX_DOCUMENTO_BYTES) {
+    throw new Error("El archivo debe pesar máximo 10 MB.");
+  }
+
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) throw new Error("Inicia sesión para subir documentos.");
+
+  const conductorAutenticado = await obtenerConductorIdActual(cliente);
+  if (conductorAutenticado !== conductorId) {
+    throw new Error("No puedes cargar documentos para otro conductor.");
+  }
+
+  const ruta = [
+    sesion.user.id,
+    conductorId,
+    `${Date.now()}-${tipo}-${nombreArchivoSeguro(archivo.name)}`
+  ].join("/");
+
+  const { error: errorStorage } = await cliente.storage
+    .from(BUCKET_DOCUMENTOS_CONDUCTOR)
+    .upload(ruta, archivo, { upsert: false });
+
+  if (errorStorage) throw errorStorage;
+
+  await registrarDocumentoConductor(cliente, conductorId, tipo, archivo.name, ruta);
+
+  return { ruta };
 }
 
 export async function actualizarPerfilConductor(cliente: Cliente, conductorId: string, datos: { nombre: string; telefono: string }) {

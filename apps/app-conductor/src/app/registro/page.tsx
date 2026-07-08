@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { traducirErrorAuth } from "@ruum/shared/utils";
-import { obtenerConductorActual, registrarDocumentoConductor } from "@ruum/api/services";
+import { obtenerConductorActual, subirDocumentoConductor } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 const PASOS = [
@@ -54,10 +54,6 @@ function formatoTelefonoNacional(valor: string) {
 
 function limpiarTexto(valor: string) {
   return valor.trim().replace(/\s+/g, " ");
-}
-
-function nombreArchivoSeguro(nombre: string) {
-  return nombre.replace(/[^a-zA-Z0-9_.-]/g, "_");
 }
 
 function esperar(ms: number) {
@@ -289,7 +285,7 @@ export default function PaginaRegistroConductor() {
     return null;
   }
 
-  async function cargarDocumentos(cliente: ReturnType<typeof crearClienteNavegador>, userId: string) {
+  async function cargarDocumentos(cliente: ReturnType<typeof crearClienteNavegador>) {
     const conductor = await obtenerConductorConReintento(cliente);
     if (!conductor) {
       setAdvertenciaDocumentos("La cuenta se creó, pero los documentos no pudieron ligarse todavía. Podrás cargarlos desde Configuración.");
@@ -299,14 +295,8 @@ export default function PaginaRegistroConductor() {
     for (const [campo, archivo] of Object.entries(documentos) as [DocumentoKey, File | null][]) {
       if (!archivo) continue;
       setEstadoDocumentos((prev) => ({ ...prev, [campo]: "subiendo" }));
-      const ruta = `${userId}/${conductor.id}/${Date.now()}-${campo}-${nombreArchivoSeguro(archivo.name)}`;
-      const { error: errorStorage } = await cliente.storage.from("documentos-conductor").upload(ruta, archivo, { upsert: false });
-      if (errorStorage) {
-        setEstadoDocumentos((prev) => ({ ...prev, [campo]: "error" }));
-        throw errorStorage;
-      }
       try {
-        await registrarDocumentoConductor(cliente, conductor.id, TIPOS_DOCUMENTO[campo], archivo.name, ruta);
+        await subirDocumentoConductor(cliente, conductor.id, TIPOS_DOCUMENTO[campo], archivo);
         setEstadoDocumentos((prev) => ({ ...prev, [campo]: "subido" }));
       } catch (error) {
         setEstadoDocumentos((prev) => ({ ...prev, [campo]: "error" }));
@@ -380,7 +370,7 @@ export default function PaginaRegistroConductor() {
 
       if (datosAuth.session) {
         try {
-          await cargarDocumentos(cliente, datosAuth.user.id);
+          await cargarDocumentos(cliente);
         } catch {
           setAdvertenciaDocumentos("La cuenta se creó, pero no pudimos subir todos los documentos. Podrás cargarlos desde Configuración.");
         }

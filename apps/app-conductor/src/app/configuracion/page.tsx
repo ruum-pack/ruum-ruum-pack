@@ -1,6 +1,5 @@
 "use client";
 
-"use client";
 import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,7 +11,8 @@ import {
   guardarPreferenciasConductor,
   obtenerConductorActual,
   obtenerConfiguracionConductor,
-  registrarDocumentoConductor
+  subirDocumentoConductor,
+  type TipoDocumentoConductor
 } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
@@ -51,6 +51,13 @@ const ESTADO_DOCUMENTO: Record<string, { texto: string; clase: string }> = {
   vencido: { texto: "Vencido", clase: "border-danger/25 bg-danger-soft text-danger" },
   actualizacion: { texto: "Requiere actualización", clase: "border-warn/40 bg-warn-soft text-warn" }
 };
+
+const TIPOS_DOCUMENTO: { valor: TipoDocumentoConductor; etiqueta: string }[] = [
+  { valor: "licencia_frente", etiqueta: "Licencia - frente" },
+  { valor: "licencia_reverso", etiqueta: "Licencia - reverso" },
+  { valor: "identificacion_oficial", etiqueta: "Identificación oficial" },
+  { valor: "documento_operativo", etiqueta: "Documento operativo adicional" }
+];
 
 const SOPORTE = [
   { etiqueta: "Preguntas frecuentes", href: "#preguntas-frecuentes" },
@@ -98,6 +105,8 @@ export default function PaginaConfiguracion() {
   const [prefs, setPrefs] = useState(PREFS_DEFAULT);
   const [perfil, setPerfil] = useState({ nombre: "", telefono: "" });
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [tipoDocumento, setTipoDocumento] = useState<TipoDocumentoConductor>("documento_operativo");
+  const [subiendoDocumento, setSubiendoDocumento] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const [pendiente, startTransition] = useTransition();
@@ -190,20 +199,16 @@ export default function PaginaConfiguracion() {
     const archivo = evento.target.files?.[0];
     if (!archivo || !conductor) return;
     setMensaje(null);
+    setSubiendoDocumento(true);
     try {
       const cliente = crearClienteNavegador();
-      const { data: sesion } = await cliente.auth.getUser();
-      if (!sesion.user) throw new Error("Inicia sesión para subir documentos.");
-      const nombreSeguro = archivo.name.replace(/[^a-zA-Z0-9_.-]/g, "_");
-      const ruta = `${sesion.user.id}/${conductor.id}/${Date.now()}-${nombreSeguro}`;
-      const { error: errorStorage } = await cliente.storage.from("documentos-conductor").upload(ruta, archivo, { upsert: false });
-      if (errorStorage) throw errorStorage;
-      await registrarDocumentoConductor(cliente, conductor.id, "documento_operativo", archivo.name, ruta);
+      await subirDocumentoConductor(cliente, conductor.id, tipoDocumento, archivo);
       setMensaje("Documento cargado y enviado a revisión.");
       await cargar();
     } catch (error) {
       setMensaje(error instanceof Error ? error.message : "No se pudo subir el documento.");
     } finally {
+      setSubiendoDocumento(false);
       evento.target.value = "";
     }
   }
@@ -366,10 +371,29 @@ export default function PaginaConfiguracion() {
                 <p className="font-body text-xs uppercase tracking-wide text-ink/45">Documentos principales</p>
                 <h2 className="mt-1 font-display text-xl font-semibold">Expediente del conductor</h2>
               </div>
-              <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-signal bg-signal px-4 py-2 font-body text-sm font-semibold text-ink">
-                Subir archivo o fotografía
-                <input type="file" accept="image/*,.pdf" className="sr-only" onChange={subirDocumento} disabled={!conductor} />
-              </label>
+              <div className="grid gap-2 sm:min-w-72">
+                <label className="grid gap-1 font-body text-xs uppercase tracking-wide text-ink/45">
+                  Tipo de documento
+                  <select
+                    value={tipoDocumento}
+                    onChange={(e) => setTipoDocumento(e.target.value as TipoDocumentoConductor)}
+                    disabled={!conductor || subiendoDocumento}
+                    className="rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm normal-case tracking-normal text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {TIPOS_DOCUMENTO.map((tipo) => (
+                      <option key={tipo.valor} value={tipo.valor}>{tipo.etiqueta}</option>
+                    ))}
+                  </select>
+                </label>
+                <label
+                  aria-disabled={!conductor || subiendoDocumento}
+                  className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-signal bg-signal px-4 py-2 font-body text-sm font-semibold text-ink aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+                >
+                  {subiendoDocumento ? "Subiendo..." : "Subir archivo o fotografía"}
+                  <input type="file" accept="image/*,.pdf" className="sr-only" onChange={subirDocumento} disabled={!conductor || subiendoDocumento} />
+                </label>
+                <p className="font-body text-xs text-ink/50">Formatos permitidos: imagen o PDF. Tamaño máximo: 10 MB.</p>
+              </div>
             </div>
             <div className="mt-5 grid gap-3">
               {documentos.length === 0 && <p className="font-body text-sm text-ink/55">Aún no hay documentos cargados.</p>}
