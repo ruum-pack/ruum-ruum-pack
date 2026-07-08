@@ -1,5 +1,6 @@
 "use client";
 
+"use client";
 import { useEffect, useRef, useState } from "react";
 import { Chat, type MensajeChat, Button, Aviso } from "@ruum/ui";
 import { MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";

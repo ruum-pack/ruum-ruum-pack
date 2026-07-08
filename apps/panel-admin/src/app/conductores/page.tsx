@@ -1,5 +1,6 @@
 "use client";
 
+"use client";
 import { useEffect, useState } from "react";
 import { ETIQUETA_NIVEL_CONCER } from "@ruum/shared/constants";
 import { Aviso, Button } from "@ruum/ui";

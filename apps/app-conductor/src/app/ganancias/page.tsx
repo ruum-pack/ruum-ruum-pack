@@ -1,5 +1,6 @@
 "use client";
 
+"use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Aviso, Button, EstatusBadgeEconomico, PassportCard } from "@ruum/ui";

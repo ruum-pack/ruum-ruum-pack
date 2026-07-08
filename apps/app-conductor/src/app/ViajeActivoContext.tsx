@@ -1,5 +1,6 @@
 "use client";
 
+"use client";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { activarSoporteEmergenciaConductor } from "@ruum/api/services";
 import type { Database } from "@ruum/shared/types";

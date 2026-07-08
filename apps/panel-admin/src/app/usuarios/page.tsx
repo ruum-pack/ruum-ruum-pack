@@ -1,5 +1,6 @@
 "use client";
 
+"use client";
 import { useEffect, useState } from "react";
 import { Aviso } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";

@@ -1,5 +1,6 @@
 "use client";
 
+"use client";
 import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

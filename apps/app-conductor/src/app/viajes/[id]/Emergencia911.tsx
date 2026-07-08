@@ -1,5 +1,6 @@
 "use client";
 
+"use client";
 import { useEffect, useRef, useState } from "react";
 import { Aviso, Button } from "@ruum/ui";
 import { activarSoporteEmergenciaConductor } from "@ruum/api/services";

@@ -10,6 +10,7 @@
  * Por ahora se muestra el pin de origen registrado en el traslado.
  */
 
+"use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";

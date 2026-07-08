@@ -1,5 +1,6 @@
 "use client";
 
+"use client";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Aviso, PassportCard } from "@ruum/ui";

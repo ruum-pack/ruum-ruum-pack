@@ -1,5 +1,6 @@
 "use client";
 
+"use client";
 import { useEffect, useRef } from "react";
 import { sincronizarColaEvidencia } from "../lib/cola-offline";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";

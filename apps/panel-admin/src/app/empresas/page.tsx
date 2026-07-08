@@ -1,5 +1,6 @@
 "use client";
 
+"use client";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import { listarEmpresasAdmin, validarDocumentoEmpresa, type DatosEmpresasAdmin } from "@ruum/api/services";
