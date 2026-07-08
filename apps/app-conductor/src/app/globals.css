@@ -1,0 +1,156 @@
+@import "tailwindcss";
+@import "@ruum/ui/styles/tokens.css";
+
+/* App conductor: la operación de campo usa la misma base visual, con
+   prioridad para evidencia, estados de viaje y controles táctiles. */
+.conductor-page {
+  min-height: 100vh;
+  background: var(--ruum-canvas);
+}
+
+.conductor-content {
+  width: min(100% - 32px, 1120px);
+  margin-inline: auto;
+  padding-block: 32px 112px;
+}
+
+.conductor-status-panel {
+  border: 1px solid color-mix(in srgb, var(--color-route) 25%, white);
+  border-radius: 12px;
+  background: var(--color-route-soft);
+}
+
+.conductor-auth-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(245, 166, 35, 0.14), transparent 30%),
+    var(--ruum-surface-strong);
+}
+
+.conductor-auth-card {
+  width: min(100% - 32px, 448px);
+  border: 1px solid rgba(214, 218, 227, 0.18);
+  border-radius: var(--ruum-radius-modal);
+  background: var(--ruum-surface);
+  color: var(--ruum-text);
+  box-shadow: var(--ruum-shadow-4);
+}
+
+@media (min-width: 640px) {
+  .conductor-content {
+    width: min(100% - 48px, 1120px);
+    padding-block: 40px 64px;
+  }
+}
+
+@media (max-width: 767px) {
+  /* La navegación inferior ocupa espacio real para no tapar acciones finales. */
+  .conductor-page {
+    padding-bottom: max(104px, calc(80px + env(safe-area-inset-bottom))) !important;
+  }
+}
+
+/* Skip link de accesibilidad — oculto hasta recibir foco de teclado */
+.ruum-skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--ruum-surface);
+  color: #0e5cab;
+  border: 2px solid #0e5cab;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: top 150ms ease;
+}
+
+.ruum-skip-link:focus {
+  top: 1rem;
+}
+
+/* sr-only — visible para lectores de pantalla, invisible visualmente */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/*
+ * TOKENS — app-conductor
+ *
+ * Tokens semánticos de @ruum/ui (no redefinir):
+ *   --ruum-canvas, --ruum-surface, --ruum-surface-strong, --ruum-text,
+ *   --ruum-shadow-{1-4}, --ruum-radius-{field,card,modal}
+ *
+ * Clases Tailwind extendidas por @ruum/ui:
+ *   bg-mist, bg-signal, bg-signal-soft, text-route-dark, bg-route-soft,
+ *   bg-control-soft, text-control, bg-danger-soft, text-danger,
+ *   bg-warn-soft, text-warn, rounded-card
+ *
+ * Clases locales definidas aquí:
+ *   .conductor-page, .conductor-content, .conductor-status-panel,
+ *   .conductor-auth-shell, .conductor-auth-card, .ruum-skip-link, .sr-only
+ */
+
+@media (prefers-color-scheme: dark) {
+  /* Tokens --ruum-* adaptativos para campo nocturno.
+   * @ruum/ui no define dark mode en sus tokens — se sobreescriben aquí. */
+  :root {
+    --ruum-canvas: #0f1117;
+    --ruum-surface: #1a1f2e;
+    --ruum-surface-subtle: #232a3a;
+    --ruum-surface-strong: #0a0d14;
+    --ruum-text: #e6e9ef;
+    --ruum-text-secondary: #c9cfda;
+    --ruum-text-tertiary: #8d96a8;
+    --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.35);
+    --ruum-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.5);
+    --ruum-shadow-4: 0 24px 64px rgba(0, 0, 0, 0.6);
+  }
+
+  /* La auth shell ya es oscura por diseño — solo ajustar el card */
+  .conductor-auth-card {
+    background: var(--ruum-surface);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: var(--ruum-text);
+  }
+
+  /* El status panel en la home */
+  .conductor-status-panel {
+    border-color: rgba(14, 92, 171, 0.3);
+    background: rgba(14, 92, 171, 0.08);
+  }
+
+  input,
+  select,
+  textarea {
+    color-scheme: dark;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #687287;
+  }
+}
