@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -24,12 +24,32 @@ const TIPOS_DOCUMENTO = {
   identificacionOficial: "identificacion_oficial"
 } as const;
 
-type DocumentoKey = keyof typeof TIPOS_DOCUMENTO;
+const TIPOS_LICENCIA = [
+  "Tipo A - Automovilista",
+  "Tipo B - Chofer",
+  "Tipo C - Carga",
+  "Tipo D - Motociclista",
+  "Tipo E - Transporte especializado",
+  "Licencia federal de conductor"
+];
 
-function telefonoE164(valor: string) {
-  const normalizado = valor.trim();
-  if (!normalizado) return normalizado;
-  return (normalizado.startsWith("+") ? normalizado : `+${normalizado}`).replace(/\s+/g, "");
+type DocumentoKey = keyof typeof TIPOS_DOCUMENTO;
+type EstadoDocumento = "pendiente" | "listo" | "subiendo" | "subido" | "error";
+
+function soloDigitos(valor: string, max = 10) {
+  return valor.replace(/\D/g, "").slice(0, max);
+}
+
+function telefonoE164Mx(valor: string) {
+  const nacional = soloDigitos(valor);
+  return nacional ? `+52${nacional}` : "";
+}
+
+function formatoTelefonoNacional(valor: string) {
+  const digitos = soloDigitos(valor);
+  if (digitos.length <= 2) return digitos;
+  if (digitos.length <= 6) return `${digitos.slice(0, 2)} ${digitos.slice(2)}`;
+  return `${digitos.slice(0, 2)} ${digitos.slice(2, 6)} ${digitos.slice(6)}`;
 }
 
 function limpiarTexto(valor: string) {
@@ -42,6 +62,14 @@ function nombreArchivoSeguro(nombre: string) {
 
 function esperar(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function estadoInicialDocumentos(): Record<DocumentoKey, EstadoDocumento> {
+  return {
+    licenciaFrente: "pendiente",
+    licenciaReverso: "pendiente",
+    identificacionOficial: "pendiente"
+  };
 }
 
 export default function PaginaRegistroConductor() {
@@ -57,6 +85,8 @@ export default function PaginaRegistroConductor() {
   const [codigoPostal, setCodigoPostal] = useState("");
   const [estado, setEstado] = useState("");
   const [ciudad, setCiudad] = useState("");
+  const [colonias, setColonias] = useState<string[]>([]);
+  const [consultandoCp, setConsultandoCp] = useState(false);
   const [colonia, setColonia] = useState("");
   const [calle, setCalle] = useState("");
   const [numero, setNumero] = useState("");
@@ -69,6 +99,7 @@ export default function PaginaRegistroConductor() {
     licenciaReverso: null,
     identificacionOficial: null
   });
+  const [estadoDocumentos, setEstadoDocumentos] = useState<Record<DocumentoKey, EstadoDocumento>>(estadoInicialDocumentos);
   const [autorizaVerificacion, setAutorizaVerificacion] = useState(false);
   const [declaraSinSuspensiones, setDeclaraSinSuspensiones] = useState(false);
   const [contactoEmergenciaNombre, setContactoEmergenciaNombre] = useState("");
@@ -102,12 +133,9 @@ export default function PaginaRegistroConductor() {
   }
 
   function validarTelefono(campo: string, valor: string, setter: (valor: string) => void) {
-    const normalizado = telefonoE164(valor);
+    const normalizado = soloDigitos(valor);
     if (normalizado !== valor) setter(normalizado);
-    return setCampoError(
-      campo,
-      /^\+[1-9]\d{7,14}$/.test(normalizado) ? "" : "Incluye el código de país, por ejemplo +52 55 0000 0000"
-    );
+    return setCampoError(campo, normalizado.length === 10 ? "" : "Escribe un teléfono nacional de 10 dígitos");
   }
 
   function validarPassword(valor = password) {
@@ -120,6 +148,39 @@ export default function PaginaRegistroConductor() {
 
   function validarDocumento(campo: DocumentoKey) {
     return setCampoError(campo, documentos[campo] ? "" : "Carga este documento");
+  }
+
+  async function buscarCodigoPostal(cp: string) {
+    setConsultandoCp(true);
+    setCampoError("codigoPostal", "");
+    try {
+      const respuesta = await fetch(`https://api.zippopotam.us/mx/${cp}`);
+      if (!respuesta.ok) throw new Error("CP no encontrado");
+      const datos = await respuesta.json() as {
+        places?: Array<{
+          "place name"?: string;
+          state?: string;
+          "state abbreviation"?: string;
+        }>;
+      };
+      const lugares = datos.places ?? [];
+      const primera = lugares[0];
+      if (!primera) throw new Error("CP no encontrado");
+      const coloniasUnicas = Array.from(new Set(lugares.map((lugar) => lugar["place name"]).filter(Boolean) as string[]));
+      setEstado(primera.state ?? "");
+      setCiudad(primera["place name"] ?? primera.state ?? "");
+      setColonias(coloniasUnicas);
+      setColonia(coloniasUnicas[0] ?? "");
+      setErroresCampos((prev) => ({ ...prev, estado: "", ciudad: "", colonia: "" }));
+    } catch {
+      setEstado("");
+      setCiudad("");
+      setColonias([]);
+      setColonia("");
+      setCampoError("codigoPostal", "No encontramos ese código postal. Verifica que tenga 5 dígitos.");
+    } finally {
+      setConsultandoCp(false);
+    }
   }
 
   function validarPaso(indice = paso) {
@@ -207,7 +268,15 @@ export default function PaginaRegistroConductor() {
 
   function cambiarDocumento(campo: DocumentoKey, evento: ChangeEvent<HTMLInputElement>) {
     const archivo = evento.target.files?.[0] ?? null;
+    if (archivo && archivo.size > 10 * 1024 * 1024) {
+      setDocumentos((prev) => ({ ...prev, [campo]: null }));
+      setEstadoDocumentos((prev) => ({ ...prev, [campo]: "error" }));
+      setCampoError(campo, "El archivo debe pesar máximo 10 MB");
+      evento.target.value = "";
+      return;
+    }
     setDocumentos((prev) => ({ ...prev, [campo]: archivo }));
+    setEstadoDocumentos((prev) => ({ ...prev, [campo]: archivo ? "listo" : "pendiente" }));
     if (archivo) limpiarErrorCampo(campo);
   }
 
@@ -229,10 +298,20 @@ export default function PaginaRegistroConductor() {
 
     for (const [campo, archivo] of Object.entries(documentos) as [DocumentoKey, File | null][]) {
       if (!archivo) continue;
+      setEstadoDocumentos((prev) => ({ ...prev, [campo]: "subiendo" }));
       const ruta = `${userId}/${conductor.id}/${Date.now()}-${campo}-${nombreArchivoSeguro(archivo.name)}`;
       const { error: errorStorage } = await cliente.storage.from("documentos-conductor").upload(ruta, archivo, { upsert: false });
-      if (errorStorage) throw errorStorage;
-      await registrarDocumentoConductor(cliente, conductor.id, TIPOS_DOCUMENTO[campo], archivo.name, ruta);
+      if (errorStorage) {
+        setEstadoDocumentos((prev) => ({ ...prev, [campo]: "error" }));
+        throw errorStorage;
+      }
+      try {
+        await registrarDocumentoConductor(cliente, conductor.id, TIPOS_DOCUMENTO[campo], archivo.name, ruta);
+        setEstadoDocumentos((prev) => ({ ...prev, [campo]: "subido" }));
+      } catch (error) {
+        setEstadoDocumentos((prev) => ({ ...prev, [campo]: "error" }));
+        throw error;
+      }
     }
   }
 
@@ -255,8 +334,8 @@ export default function PaginaRegistroConductor() {
 
     try {
       const cliente = crearClienteNavegador();
-      const telefonoLimpio = telefonoE164(telefono);
-      const contactoTelefonoLimpio = telefonoE164(contactoEmergenciaTelefono);
+      const telefonoLimpio = telefonoE164Mx(telefono);
+      const contactoTelefonoNacional = soloDigitos(contactoEmergenciaTelefono);
 
       const { data: datosAuth, error: errorAuth } = await cliente.auth.signUp({
         email: email.trim().toLowerCase(),
@@ -287,7 +366,7 @@ export default function PaginaRegistroConductor() {
             },
             contacto_emergencia: {
               nombre: limpiarTexto(contactoEmergenciaNombre),
-              telefono: contactoTelefonoLimpio
+              telefono: contactoTelefonoNacional
             },
             legales: {
               acepta_terminos_privacidad: aceptaLegales,
@@ -392,7 +471,7 @@ export default function PaginaRegistroConductor() {
                     <Field etiqueta="Apellido (s)" value={apellidos} onChange={(e) => { setApellidos(e.target.value); limpiarErrorCampo("apellidos"); }} onBlur={() => validarTexto("apellidos", apellidos, "Escribe tus apellidos como aparecen en tu identificación oficial")} error={erroresCampos.apellidos || undefined} required autoComplete="family-name" />
                   </div>
                   <Field etiqueta="CURP" value={curp} onChange={(e) => { setCurp(e.target.value.toUpperCase()); limpiarErrorCampo("curp"); }} onBlur={() => validarCurp()} error={erroresCampos.curp || undefined} required maxLength={18} autoComplete="off" />
-                  <Field etiqueta="Teléfono" ayuda="Incluye el código de país, por ejemplo +52." type="tel" value={telefono} onChange={(e) => { setTelefono(e.target.value); limpiarErrorCampo("telefono"); }} onBlur={() => validarTelefono("telefono", telefono, setTelefono)} error={erroresCampos.telefono || undefined} required autoComplete="tel" />
+                  <Field etiqueta="Teléfono" ayuda="10 dígitos, sin lada internacional." type="tel" inputMode="numeric" value={formatoTelefonoNacional(telefono)} onChange={(e) => { setTelefono(soloDigitos(e.target.value)); limpiarErrorCampo("telefono"); }} onBlur={() => validarTelefono("telefono", telefono, setTelefono)} error={erroresCampos.telefono || undefined} required autoComplete="tel-national" />
                   <Field etiqueta="Correo electrónico" type="email" value={email} onChange={(e) => { setEmail(e.target.value); limpiarErrorCampo("email"); }} onBlur={() => setCampoError("email", /^\S+@\S+\.\S+$/.test(email.trim()) ? "" : "Escribe un correo electrónico válido")} error={erroresCampos.email || undefined} required autoComplete="email" />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field etiqueta="Crea tu contraseña" type="password" value={password} ayuda="Mínimo 6 caracteres" onChange={(e) => { const valor = e.target.value; setPassword(valor); limpiarErrorCampo("password"); if (confirmacionPassword) validarConfirmacion(confirmacionPassword, valor); }} onBlur={() => validarPassword()} error={erroresCampos.password || undefined} required minLength={6} autoComplete="new-password" />
@@ -405,11 +484,31 @@ export default function PaginaRegistroConductor() {
                 <fieldset className="grid gap-4">
                   <legend className="font-display text-xl font-bold text-ink">¿Dónde vives?</legend>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field etiqueta="Código Postal" inputMode="numeric" value={codigoPostal} onChange={(e) => { setCodigoPostal(e.target.value); limpiarErrorCampo("codigoPostal"); }} error={erroresCampos.codigoPostal || undefined} required autoComplete="postal-code" />
-                    <Field etiqueta="Estado" value={estado} onChange={(e) => { setEstado(e.target.value); limpiarErrorCampo("estado"); }} error={erroresCampos.estado || undefined} required autoComplete="address-level1" />
+                    <Field etiqueta="Código Postal" inputMode="numeric" value={codigoPostal} ayuda={consultandoCp ? "Buscando domicilio..." : "Al capturar 5 dígitos se completa el domicilio."} onChange={(e) => {
+                      const cp = soloDigitos(e.target.value, 5);
+                      setCodigoPostal(cp);
+                      limpiarErrorCampo("codigoPostal");
+                      if (cp.length < 5) {
+                        setEstado("");
+                        setCiudad("");
+                        setColonia("");
+                        setColonias([]);
+                      }
+                      if (cp.length === 5) buscarCodigoPostal(cp);
+                    }} error={erroresCampos.codigoPostal || undefined} required autoComplete="postal-code" />
+                    <Field etiqueta="Estado" value={estado} onChange={(e) => { setEstado(e.target.value); limpiarErrorCampo("estado"); }} error={erroresCampos.estado || undefined} required autoComplete="address-level1" readOnly={colonias.length > 0} />
                   </div>
-                  <Field etiqueta="Ciudad o Municipio" value={ciudad} onChange={(e) => { setCiudad(e.target.value); limpiarErrorCampo("ciudad"); }} error={erroresCampos.ciudad || undefined} required autoComplete="address-level2" />
-                  <Field etiqueta="Colonia" value={colonia} onChange={(e) => { setColonia(e.target.value); limpiarErrorCampo("colonia"); }} error={erroresCampos.colonia || undefined} required />
+                  <Field etiqueta="Ciudad o Municipio" value={ciudad} onChange={(e) => { setCiudad(e.target.value); limpiarErrorCampo("ciudad"); }} error={erroresCampos.ciudad || undefined} required autoComplete="address-level2" readOnly={colonias.length > 0} />
+                  <SelectField
+                    etiqueta="Colonia"
+                    value={colonia}
+                    onChange={(valor) => { setColonia(valor); limpiarErrorCampo("colonia"); }}
+                    error={erroresCampos.colonia || undefined}
+                    required
+                    disabled={colonias.length === 0}
+                    placeholder={colonias.length === 0 ? "Captura primero un código postal válido" : "Selecciona tu colonia"}
+                    opciones={colonias}
+                  />
                   <div className="grid gap-4 sm:grid-cols-[1fr_120px]">
                     <Field etiqueta="Calle" value={calle} onChange={(e) => { setCalle(e.target.value); limpiarErrorCampo("calle"); }} error={erroresCampos.calle || undefined} required autoComplete="address-line1" />
                     <Field etiqueta="Número" value={numero} onChange={(e) => { setNumero(e.target.value); limpiarErrorCampo("numero"); }} error={erroresCampos.numero || undefined} required />
@@ -423,12 +522,15 @@ export default function PaginaRegistroConductor() {
                   <legend className="font-display text-xl font-bold text-ink">Tus documentos</legend>
                   <Field etiqueta="Número de licencia" value={numeroLicencia} onChange={(e) => { setNumeroLicencia(e.target.value); limpiarErrorCampo("numeroLicencia"); }} error={erroresCampos.numeroLicencia || undefined} required />
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field etiqueta="Tipo de licencia" value={tipoLicencia} onChange={(e) => { setTipoLicencia(e.target.value); limpiarErrorCampo("tipoLicencia"); }} error={erroresCampos.tipoLicencia || undefined} required />
+                    <SelectField etiqueta="Tipo de licencia" value={tipoLicencia} onChange={(valor) => { setTipoLicencia(valor); limpiarErrorCampo("tipoLicencia"); }} error={erroresCampos.tipoLicencia || undefined} required placeholder="Selecciona el tipo de licencia" opciones={TIPOS_LICENCIA} />
                     <Field etiqueta="Vigencia" type="date" value={vigenciaLicencia} onChange={(e) => { setVigenciaLicencia(e.target.value); limpiarErrorCampo("vigenciaLicencia"); }} error={erroresCampos.vigenciaLicencia || undefined} required />
                   </div>
                   <Field etiqueta="Foto de tu licencia (frente)" type="file" accept="image/*,.pdf" onChange={(e) => cambiarDocumento("licenciaFrente", e)} error={erroresCampos.licenciaFrente || undefined} required />
+                  <EstadoArchivo estado={estadoDocumentos.licenciaFrente} archivo={documentos.licenciaFrente} />
                   <Field etiqueta="Foto de tu licencia (reverso)" type="file" accept="image/*,.pdf" onChange={(e) => cambiarDocumento("licenciaReverso", e)} error={erroresCampos.licenciaReverso || undefined} required />
+                  <EstadoArchivo estado={estadoDocumentos.licenciaReverso} archivo={documentos.licenciaReverso} />
                   <Field etiqueta="Foto de tu Identificación oficial (INE/pasaporte)" type="file" accept="image/*,.pdf" onChange={(e) => cambiarDocumento("identificacionOficial", e)} error={erroresCampos.identificacionOficial || undefined} required />
+                  <EstadoArchivo estado={estadoDocumentos.identificacionOficial} archivo={documentos.identificacionOficial} />
                 </fieldset>
               )}
 
@@ -447,7 +549,7 @@ export default function PaginaRegistroConductor() {
                   {erroresCampos.declaraSinSuspensiones && <p className="font-body text-xs font-medium text-danger">{erroresCampos.declaraSinSuspensiones}</p>}
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field etiqueta="Contacto de emergencia (nombre)" value={contactoEmergenciaNombre} onChange={(e) => { setContactoEmergenciaNombre(e.target.value); limpiarErrorCampo("contactoEmergenciaNombre"); }} error={erroresCampos.contactoEmergenciaNombre || undefined} required />
-                    <Field etiqueta="Teléfono del contacto" type="tel" value={contactoEmergenciaTelefono} onChange={(e) => { setContactoEmergenciaTelefono(e.target.value); limpiarErrorCampo("contactoEmergenciaTelefono"); }} onBlur={() => validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono)} error={erroresCampos.contactoEmergenciaTelefono || undefined} required />
+                    <Field etiqueta="Teléfono del contacto" type="tel" inputMode="numeric" value={formatoTelefonoNacional(contactoEmergenciaTelefono)} onChange={(e) => { setContactoEmergenciaTelefono(soloDigitos(e.target.value)); limpiarErrorCampo("contactoEmergenciaTelefono"); }} onBlur={() => validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono)} error={erroresCampos.contactoEmergenciaTelefono || undefined} required autoComplete="tel-national" />
                   </div>
                 </fieldset>
               )}
@@ -457,10 +559,10 @@ export default function PaginaRegistroConductor() {
                   <legend className="font-display text-xl font-bold text-ink">Revisa tu información</legend>
                   <p className="font-body text-sm leading-6 text-ink/65">Verifica que todo sea correcto antes de enviar tu registro.</p>
                   <div className="grid gap-3 rounded-xl border border-ink/15 bg-mist p-4 font-body text-sm text-ink/75">
-                    <Resumen titulo="Datos personales" valores={[nombreCompleto, curp.trim().toUpperCase(), telefonoE164(telefono), email.trim().toLowerCase()]} />
+                    <Resumen titulo="Datos personales" valores={[nombreCompleto, curp.trim().toUpperCase(), formatoTelefonoNacional(telefono), email.trim().toLowerCase()]} />
                     <Resumen titulo="Domicilio" valores={[`${calle} ${numero}`, `${colonia}, ${ciudad}`, `${estado}, C.P. ${codigoPostal}`, referencias]} />
                     <Resumen titulo="Documentación" valores={[`Licencia ${numeroLicencia}`, `Tipo ${tipoLicencia}`, `Vigente hasta ${vigenciaLicencia}`, documentos.licenciaFrente?.name ?? "Licencia frente pendiente", documentos.licenciaReverso?.name ?? "Licencia reverso pendiente", documentos.identificacionOficial?.name ?? "Identificación pendiente"]} />
-                    <Resumen titulo="Verificación" valores={[autorizaVerificacion ? "Autoriza verificación de antecedentes" : "Verificación pendiente", declaraSinSuspensiones ? "Sin suspensiones ni procesos activos declarados" : "Declaración pendiente", `Emergencia: ${contactoEmergenciaNombre} · ${contactoEmergenciaTelefono}`]} />
+                    <Resumen titulo="Verificación" valores={[autorizaVerificacion ? "Autoriza verificación de antecedentes" : "Verificación pendiente", declaraSinSuspensiones ? "Sin suspensiones ni procesos activos declarados" : "Declaración pendiente", `Emergencia: ${contactoEmergenciaNombre} · ${formatoTelefonoNacional(contactoEmergenciaTelefono)}`]} />
                   </div>
                   <label className="flex gap-3 rounded-xl border border-route-dark/20 bg-route-soft p-4 font-body text-sm leading-6 text-ink/75">
                     <input type="checkbox" checked={aceptaLegales} onChange={(e) => { setAceptaLegales(e.target.checked); limpiarErrorCampo("aceptaLegales"); }} className="mt-1 size-4 accent-route-dark" />
@@ -495,6 +597,71 @@ export default function PaginaRegistroConductor() {
       </section>
     </div>
   );
+}
+
+function SelectField({
+  etiqueta,
+  value,
+  onChange,
+  opciones,
+  placeholder,
+  error,
+  required,
+  disabled
+}: {
+  etiqueta: string;
+  value: string;
+  onChange: (valor: string) => void;
+  opciones: string[];
+  placeholder: string;
+  error?: string;
+  required?: boolean;
+  disabled?: boolean;
+}) {
+  const id = useId();
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="font-body text-sm font-semibold text-ink">
+        {etiqueta}
+        {required ? <span className="ml-1 text-danger" aria-hidden> *</span> : null}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        required={required}
+        aria-invalid={Boolean(error)}
+        className={[
+          "w-full min-h-12 rounded-[10px] border bg-mist px-3.5 py-2.5 font-body text-sm text-ink shadow-[inset_0_1px_0_rgba(26,31,46,0.02)]",
+          "transition-[border-color,box-shadow,background-color] duration-150 hover:border-ink/50 focus:border-route-dark focus:outline-none focus:ring-[3px] focus:ring-route-dark/20",
+          error ? "border-danger bg-danger-soft/20 focus:border-danger focus:ring-danger/15" : "border-ink/30",
+          "disabled:cursor-not-allowed disabled:border-ink/10 disabled:bg-mist-dim disabled:text-ink/50"
+        ].join(" ")}
+      >
+        <option value="">{placeholder}</option>
+        {opciones.map((opcion) => (
+          <option key={opcion} value={opcion}>{opcion}</option>
+        ))}
+      </select>
+      {error ? <p role="alert" className="font-body text-xs font-medium leading-5 text-danger">{error}</p> : null}
+    </div>
+  );
+}
+
+function EstadoArchivo({ estado, archivo }: { estado: EstadoDocumento; archivo: File | null }) {
+  if (estado === "pendiente" && !archivo) return null;
+  const texto = {
+    pendiente: "",
+    listo: `Listo para subir: ${archivo?.name ?? ""}`,
+    subiendo: `Subiendo: ${archivo?.name ?? ""}`,
+    subido: `Subido correctamente: ${archivo?.name ?? ""}`,
+    error: archivo ? `Error al subir: ${archivo.name}` : "Error en el archivo seleccionado"
+  }[estado];
+  const color = estado === "error" ? "text-danger" : estado === "subido" ? "text-control" : "text-ink/60";
+
+  return <p className={`-mt-2 font-body text-xs font-medium leading-5 ${color}`}>{texto}</p>;
 }
 
 function Resumen({ titulo, valores }: { titulo: string; valores: Array<string | undefined> }) {

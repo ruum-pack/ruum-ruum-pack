@@ -48,7 +48,8 @@ export function Field({ etiqueta, error, ayuda, id, className = "", type, ...pro
           <button
             type="button"
             onClick={() => setPasswordVisible((visible) => !visible)}
-            className="absolute right-2 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-ink/55 transition-colors hover:bg-ink/[0.05] hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark disabled:cursor-not-allowed disabled:opacity-40"
+            className="absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg text-ink/55 transition-colors hover:bg-ink/[0.05] hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ right: "0.5rem", width: "2.25rem", height: "2.25rem" }}
             aria-label={passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"}
             disabled={props.disabled}
           >
