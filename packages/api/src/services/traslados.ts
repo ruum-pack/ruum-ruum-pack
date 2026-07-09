@@ -235,6 +235,33 @@ function horasRestantes(fechaIso: string | null) {
   return Math.max(0, (new Date(fechaIso).getTime() - Date.now()) / (1000 * 60 * 60));
 }
 
+/**
+ * Estados desde los que el usuario puede cancelar su traslado (decisión de
+ * producto 2026-07-09: hasta que el conductor llega al punto de recolección;
+ * después ya no es cancelación sino disputa o traslado fallido).
+ *
+ * Es el mismo conjunto que la tabla `estado_transiciones_validas` habilita
+ * hacia `servicio_cancelado` (ver migración 0005) y que la RPC
+ * `usuario_cancela_traslado` revalida en la base (migración 0051). Se
+ * duplica aquí a propósito, como defensa en profundidad, para dar un mensaje
+ * claro en la UI sin ida y vuelta a Postgres; la base sigue siendo la fuente
+ * de verdad que rechaza cualquier estado fuera de esta lista.
+ */
+const ESTADOS_CANCELABLES_POR_USUARIO: EstadoTraslado[] = [
+  "solicitud_creada",
+  "documentacion_pendiente",
+  "documentacion_en_revision",
+  "cotizacion_generada",
+  "servicio_confirmado",
+  "pendiente_de_conductor",
+  "conductor_asignado",
+  "conductor_en_punto_de_recoleccion"
+];
+
+export function usuarioPuedeCancelar(estado: EstadoTraslado): boolean {
+  return ESTADOS_CANCELABLES_POR_USUARIO.includes(estado);
+}
+
 export async function cancelarTraslado(cliente: Cliente, trasladoId: string, motivo: string) {
   const { data: traslado, error } = await cliente
     .from("traslados")
@@ -245,13 +272,20 @@ export async function cancelarTraslado(cliente: Cliente, trasladoId: string, mot
   if (error) throw error;
   if (!traslado) throw new Error("No se encontró el traslado para cancelar.");
 
+  if (!usuarioPuedeCancelar(traslado.estado)) {
+    throw new Error(
+      "Este traslado ya no puede cancelarse: el vehículo ya está en verificación o en tránsito. Abre una disputa o reporta una incidencia."
+    );
+  }
+
   const cargo = calcularCargoCancelacion(
     Number(traslado.precio_final ?? traslado.precio_cotizado ?? 0),
     horasRestantes(traslado.fecha_hora_programada),
     Boolean(traslado.conductor_id),
-    traslado.estado === "conductor_en_punto_de_recoleccion" ||
-      traslado.estado === "verificacion_vehiculo_en_proceso" ||
-      traslado.estado === "evidencia_inicial_en_proceso"
+    // El cargo del 100% aplica cuando el conductor ya llegó al punto de
+    // recolección. Los estados posteriores (verificación/evidencia) ya no son
+    // cancelables, así que no forman parte de este flag.
+    traslado.estado === "conductor_en_punto_de_recoleccion"
   );
 
   const { error: rpcError } = await cliente.rpc("usuario_cancela_traslado", {

@@ -24,6 +24,19 @@ site_url = "http://localhost:3000"
 additional_redirect_urls = ["http://localhost:3001", "http://localhost:3002"]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
+# M3 — Política de contraseñas del lado del servidor. La validación de la UI
+# (mín. 8 + fortaleza) es defensa en profundidad, pero un signUp() directo por
+# API puede saltársela; estas dos líneas la hacen valer en el propio Auth para
+# TODOS los caminos. `password_requirements` exige al menos una minúscula, una
+# mayúscula y un dígito (mismo criterio que fortalezaPassword nivel>=2 en la UI).
+minimum_password_length = 8
+password_requirements = "lower_upper_letters_digits"
+
+# NOTA — Protección contra contraseñas filtradas (HaveIBeenPwned):
+# NO es una clave de config.toml. Se activa en el Dashboard del proyecto
+# alojado → Authentication → Password Protection → "Prevent use of leaked
+# passwords" (requiere plan Pro o superior). Debe habilitarse manualmente en
+# staging y en producción como parte del despliegue de este PR.
 
 [auth.email]
 enable_signup = true

@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
-import { traducirErrorAuth } from "@ruum/shared/utils";
+import { traducirErrorAuth, fortalezaPassword } from "@ruum/shared/utils";
 import { obtenerConductorActual, subirDocumentoConductor } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
@@ -116,6 +116,7 @@ export default function PaginaRegistroConductor() {
   const [advertenciaDocumentos, setAdvertenciaDocumentos] = useState<string | null>(null);
 
   const nombreCompleto = useMemo(() => limpiarTexto(`${nombre} ${apellidos}`), [nombre, apellidos]);
+  const fuerzaPassword = useMemo(() => fortalezaPassword(password), [password]);
   const tieneErroresActivos = Object.values(erroresCampos).some(Boolean);
   const puedeEnviar = !enviando && !tieneErroresActivos && aceptaLegales && formularioCompleto();
 
@@ -143,7 +144,15 @@ export default function PaginaRegistroConductor() {
   }
 
   function validarPassword(valor = password) {
-    return setCampoError("password", valor.length < 6 ? "Mínimo 6 caracteres" : "");
+    if (valor.length < 8) {
+      return setCampoError("password", "La contraseña debe tener al menos 8 caracteres.");
+    }
+    // Rechaza contraseñas débiles (solo longitud, sin número ni mayúscula).
+    // Mismo criterio que app-usuario/registro y ambas pantallas nueva-password.
+    if (fortalezaPassword(valor).nivel < 2) {
+      return setCampoError("password", "Refuérzala: agrega un número o una mayúscula.");
+    }
+    return setCampoError("password", "");
   }
 
   function validarConfirmacion(valor = confirmacionPassword, base = password) {
@@ -490,8 +499,34 @@ export default function PaginaRegistroConductor() {
                   <Field etiqueta="Teléfono" ayuda="10 dígitos, sin lada internacional." type="tel" inputMode="numeric" value={formatoTelefonoNacional(telefono)} onChange={(e) => { setTelefono(soloDigitos(e.target.value)); limpiarErrorCampo("telefono"); }} onBlur={() => validarTelefono("telefono", telefono, setTelefono)} error={erroresCampos.telefono || undefined} required autoComplete="tel-national" />
                   <Field etiqueta="Correo electrónico" type="email" value={email} onChange={(e) => { setEmail(e.target.value); limpiarErrorCampo("email"); }} onBlur={() => setCampoError("email", /^\S+@\S+\.\S+$/.test(email.trim()) ? "" : "Escribe un correo electrónico válido")} error={erroresCampos.email || undefined} required autoComplete="email" />
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field etiqueta="Crea tu contraseña" type="password" value={password} ayuda="Mínimo 6 caracteres" onChange={(e) => { const valor = e.target.value; setPassword(valor); limpiarErrorCampo("password"); if (confirmacionPassword) validarConfirmacion(confirmacionPassword, valor); }} onBlur={() => validarPassword()} error={erroresCampos.password || undefined} required minLength={6} autoComplete="new-password" />
-                    <Field etiqueta="Confirma tu contraseña" type="password" value={confirmacionPassword} onChange={(e) => { setConfirmacionPassword(e.target.value); validarConfirmacion(e.target.value, password); }} error={erroresCampos.confirmacionPassword || undefined} required minLength={6} autoComplete="new-password" />
+                    <div className="flex flex-col gap-2">
+                      <Field etiqueta="Crea tu contraseña" type="password" value={password} ayuda="Mínimo 8 caracteres, con al menos un número o una mayúscula." onChange={(e) => { const valor = e.target.value; setPassword(valor); limpiarErrorCampo("password"); if (confirmacionPassword) validarConfirmacion(confirmacionPassword, valor); }} onBlur={() => validarPassword()} error={erroresCampos.password || undefined} required minLength={8} autoComplete="new-password" />
+                      {password.length > 0 && (
+                        <div className="flex flex-col gap-1" aria-live="polite">
+                          <div className="flex gap-1" aria-hidden>
+                            {[1, 2, 3].map((n) => (
+                              <div
+                                key={n}
+                                className={[
+                                  "h-1 flex-1 rounded-full transition-all",
+                                  n <= fuerzaPassword.nivel
+                                    ? fuerzaPassword.nivel === 1
+                                      ? "bg-danger"
+                                      : fuerzaPassword.nivel === 2
+                                        ? "bg-signal"
+                                        : "bg-control"
+                                    : "bg-ink/15"
+                                ].join(" ")}
+                              />
+                            ))}
+                          </div>
+                          {fuerzaPassword.etiqueta && (
+                            <span className="font-body text-[11px] leading-4 text-ink/55">{fuerzaPassword.etiqueta}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <Field etiqueta="Confirma tu contraseña" type="password" value={confirmacionPassword} onChange={(e) => { setConfirmacionPassword(e.target.value); validarConfirmacion(e.target.value, password); }} error={erroresCampos.confirmacionPassword || undefined} required minLength={8} autoComplete="new-password" />
                   </div>
                 </fieldset>
               )}
