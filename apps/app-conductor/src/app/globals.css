@@ -113,44 +113,114 @@
  *   .conductor-auth-shell, .conductor-auth-card, .ruum-skip-link, .sr-only
  */
 
-@media (prefers-color-scheme: dark) {
-  /* Tokens --ruum-* adaptativos para campo nocturno.
-   * @ruum/ui no define dark mode en sus tokens — se sobreescriben aquí. */
-  :root {
-    --ruum-canvas: #0f1117;
-    --ruum-surface: #1a1f2e;
-    --ruum-surface-subtle: #232a3a;
-    --ruum-surface-strong: #0a0d14;
-    --ruum-text: #e6e9ef;
-    --ruum-text-secondary: #c9cfda;
-    --ruum-text-tertiary: #8d96a8;
-    --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.35);
-    --ruum-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.5);
-    --ruum-shadow-4: 0 24px 64px rgba(0, 0, 0, 0.6);
-  }
+/* =========================================================================
+ * TEMA NOCTURNO NEÓN — app-conductor (siempre activo)
+ *
+ * La estética del onboarding (fondo #070b14, ruta azul #3aa5ff, trazo lima
+ * #a8e820, dorado de marca para acciones) se extiende a toda la app
+ * reasignando los tokens de @ruum/ui. Las utilidades Tailwind (text-ink,
+ * bg-mist, bg-signal, …) leen estas variables, por lo que cada pantalla
+ * hereda el tema sin tocar su marcado.
+ * ========================================================================= */
+:root {
+  color-scheme: dark;
 
-  /* La auth shell ya es oscura por diseño — solo ajustar el card */
-  .conductor-auth-card {
-    background: var(--ruum-surface);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: var(--ruum-text);
-  }
+  /* --- Paleta Tailwind (@theme de @ruum/ui) reasignada --- */
+  --color-ink: #e8edf6;            /* texto principal, ahora claro */
+  --color-ink-soft: #c7d2e2;
+  --color-steel: #93a0b5;
+  --color-mist: #101a2c;           /* superficie de tarjetas, ahora oscura */
+  --color-mist-dim: #0b1322;
+  --color-signal: #f5a623;         /* dorado de marca, sin cambios */
+  --color-signal-soft: rgba(245, 166, 35, 0.14);
+  --color-route: #3aa5ff;          /* azul neón del onboarding */
+  --color-route-dark: #4da3ff;     /* legible como texto sobre fondo oscuro */
+  --color-route-soft: rgba(58, 165, 255, 0.14);
+  --color-control: #3ddc97;
+  --color-control-soft: rgba(61, 220, 151, 0.13);
+  --color-warn: #f0b429;
+  --color-warn-soft: rgba(240, 180, 41, 0.12);
+  --color-danger: #ff6b6b;
+  --color-danger-soft: rgba(255, 107, 107, 0.12);
 
-  /* El status panel en la home */
-  .conductor-status-panel {
-    border-color: rgba(14, 92, 171, 0.3);
-    background: rgba(14, 92, 171, 0.08);
-  }
+  /* --- Tokens semánticos --- */
+  --ruum-canvas: #070b14;
+  --ruum-surface: #101a2c;
+  --ruum-surface-subtle: #0d1626;
+  --ruum-surface-strong: #05080f;
+  --ruum-border: rgba(122, 162, 214, 0.2);
+  --ruum-border-strong: rgba(122, 162, 214, 0.38);
+  --ruum-text: #e8edf6;
+  --ruum-text-secondary: #b7c2d4;
+  --ruum-text-tertiary: #8b98ad;
+  --ruum-focus: #4da3ff;
+  --ruum-focus-ring: rgba(77, 163, 255, 0.3);
+  --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.4);
+  --ruum-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.55);
+  --ruum-shadow-4: 0 24px 64px rgba(0, 0, 0, 0.65);
+}
 
-  input,
-  select,
-  textarea {
-    color-scheme: dark;
-  }
+/* Lienzo con los mismos resplandores radiales del onboarding. */
+body {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(58, 165, 255, 0.1), transparent 42%),
+    radial-gradient(circle at 95% 100%, rgba(168, 232, 32, 0.06), transparent 38%),
+    var(--ruum-canvas);
+  background-attachment: fixed;
+}
 
-  input::placeholder,
-  textarea::placeholder {
-    color: #687287;
-  }
+::selection {
+  background: var(--color-signal);
+  color: #14213d;
+}
+
+/* --- Correcciones de contraste para pares fondo+texto invertidos ---
+ * Al aclarar --color-ink y oscurecer --color-mist, los componentes que
+ * combinan superficie de color con text-ink/text-mist necesitan texto
+ * fijo: dorado y azul brillante piden texto oscuro; rojos piden claro. */
+.bg-signal { color: #14213d; }
+.bg-route-dark { color: #071120; }
+.bg-control { color: #06281a; }
+.bg-danger { color: #2a0808; }
+/* Marco de la ilustración del registro: conservar fondo oscuro real. */
+.bg-ink { background-color: #0d1626; }
+/* Folio del PassportCard: se posiciona sobre el listón dorado. */
+.rounded-card > span.font-mono-ruum.absolute { color: #14213d; }
+
+/* --- Superficies locales del conductor en clave neón --- */
+.conductor-status-panel {
+  border-color: rgba(58, 165, 255, 0.3);
+  background: rgba(58, 165, 255, 0.08);
+}
+
+.conductor-auth-shell {
+  background:
+    linear-gradient(180deg, rgba(7, 11, 20, 0.78) 0%, rgba(7, 11, 20, 0.94) 62%, #070b14 100%),
+    url("/imagenes/onboarding-paso2.webp") center / cover no-repeat,
+    #070b14;
+}
+
+.conductor-auth-card {
+  background: rgba(13, 22, 38, 0.92);
+  border-color: rgba(122, 162, 214, 0.25);
+  color: var(--ruum-text);
+  backdrop-filter: blur(6px);
+}
+
+.ruum-skip-link {
+  background: var(--ruum-surface);
+  color: #4da3ff;
+  border-color: #4da3ff;
+}
+
+input,
+select,
+textarea {
+  color-scheme: dark;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #7b8aa3;
 }
