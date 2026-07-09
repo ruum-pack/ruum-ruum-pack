@@ -11,17 +11,27 @@
 .admin-auth-shell {
   min-height: 100vh;
   background:
+    linear-gradient(180deg, rgba(7, 11, 20, 0.82) 0%, rgba(7, 11, 20, 0.95) 62%, #070b14 100%),
     radial-gradient(circle at 84% 12%, rgba(245, 166, 35, 0.14), transparent 30%),
+    url("/imagenes/torre-control-flota.webp") center / cover no-repeat,
     var(--ruum-surface-strong);
+  /* La imagen es siempre oscura, así que estos tokens se fijan aquí
+     independientemente del esquema de color del sistema — mismos valores
+     que usa app-conductor para su fondo nocturno. */
+  --color-ink: #e8edf6;
+  --color-ink-soft: #c7d2e2;
+  --color-mist: #101a2c;
+  --color-mist-dim: #0b1322;
 }
 
 .admin-auth-card {
   width: min(100% - 32px, 448px);
   border: 1px solid rgba(214, 218, 227, 0.18);
   border-radius: var(--ruum-radius-modal);
-  background: var(--ruum-surface);
+  background: rgba(13, 22, 38, 0.88);
   color: var(--ruum-text);
   box-shadow: var(--ruum-shadow-4);
+  backdrop-filter: blur(6px);
 }
 
 /* La información tabular conserva su estructura y gana desplazamiento
