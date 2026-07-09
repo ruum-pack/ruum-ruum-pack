@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";
 import { listarTrasladosActivosMapa, type TrasladoMapa } from "@ruum/api/services";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 const TRASLADOS_MAPA_DEMO: TrasladoMapa[] = [
   {
@@ -146,8 +146,13 @@ export default function PaginaMapaOperativo() {
         setTraslados(await listarTrasladosActivosMapa(cliente));
         setEsDemo(false);
       } catch {
-        setTraslados(TRASLADOS_MAPA_DEMO);
-        setEsDemo(true);
+        if (puedeUsarDatosDemo()) {
+          setTraslados(TRASLADOS_MAPA_DEMO);
+          setEsDemo(true);
+        } else {
+          setTraslados([]);
+          setEsDemo(false);
+        }
       } finally {
         setCargando(false);
       }

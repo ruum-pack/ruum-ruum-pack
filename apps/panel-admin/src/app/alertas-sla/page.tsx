@@ -8,7 +8,7 @@ import {
   validarDocumentoConductor,
   type AlertaSLA
 } from "@ruum/api/services";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 // ── Demo data ──────────────────────────────────────────────────────────────
 const ALERTAS_DEMO: AlertaSLA[] = [
@@ -215,8 +215,13 @@ export default function PaginaAlertasSLA() {
       setAlertas(await listarAlertasSLA(cliente));
       setEsDemo(false);
     } catch {
-      setAlertas(ALERTAS_DEMO);
-      setEsDemo(true);
+      if (puedeUsarDatosDemo()) {
+        setAlertas(ALERTAS_DEMO);
+        setEsDemo(true);
+      } else {
+        setAlertas([]);
+        setEsDemo(false);
+      }
     } finally {
       setCargando(false);
     }

@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { listarConductoresAdmin, listarUsuariosAdmin, validarDocumentoConductor } from "@ruum/api/services";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { AccionesVerificacion } from "../usuarios/AccionesVerificacion";
 
 type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
@@ -93,9 +93,15 @@ export default function PaginaDocumentosAdmin() {
       setConductores(conductoresReales);
       setEsDemo(false);
     } catch {
-      setUsuarios(USUARIOS_DEMO);
-      setConductores(CONDUCTORES_DEMO);
-      setEsDemo(true);
+      if (puedeUsarDatosDemo()) {
+        setUsuarios(USUARIOS_DEMO);
+        setConductores(CONDUCTORES_DEMO);
+        setEsDemo(true);
+      } else {
+        setUsuarios([]);
+        setConductores([]);
+        setEsDemo(false);
+      }
     } finally {
       setCargando(false);
     }

@@ -1,3 +1,6 @@
+/// <reference lib="deno.ns" />
+/// <reference lib="dom" />
+
 // Edge Function: recibe los webhooks de Stripe y actualiza pagos,
 // cuentas_conductor_stripe y payouts_conductor en consecuencia (PRD §4.6).
 //
@@ -36,6 +39,15 @@ const supabase = createClient(
 );
 
 const SISTEMA_ACTOR_ID = "00000000-0000-0000-0000-000000000000";
+
+async function ejecutarSupabase<T>(
+  operacion: PromiseLike<{ data: T; error: { message: string } | null }>,
+  contexto: string
+) {
+  const { data, error } = await operacion;
+  if (error) throw new Error(`${contexto}: ${error.message}`);
+  return data;
+}
 
 async function registrarEventoWebhook(
   evento: string,
@@ -88,19 +100,25 @@ Deno.serve(async (req) => {
           break;
         }
 
-        const { data: pagoExistente } = await supabase
-          .from("pagos")
-          .select("stripe_event_id, traslado_id")
-          .eq("stripe_payment_intent_id", intent.id)
-          .maybeSingle();
+        const pagoExistente = await ejecutarSupabase(
+          supabase
+            .from("pagos")
+            .select("stripe_event_id, traslado_id")
+            .eq("stripe_payment_intent_id", intent.id)
+            .maybeSingle(),
+          "No se pudo consultar el pago existente"
+        );
 
         if (esEventoYaProcesado(evento.id, pagoExistente?.stripe_event_id)) break;
 
         const nuevoEstado = evento.type === "payment_intent.succeeded" ? "completado" : "fallido";
-        await supabase
-          .from("pagos")
-          .update({ estado: nuevoEstado, stripe_event_id: evento.id })
-          .eq("stripe_payment_intent_id", intent.id);
+        await ejecutarSupabase(
+          supabase
+            .from("pagos")
+            .update({ estado: nuevoEstado, stripe_event_id: evento.id })
+            .eq("stripe_payment_intent_id", intent.id),
+          "No se pudo actualizar el pago"
+        );
 
         await registrarEventoWebhook(
           "registro_pago",
@@ -114,11 +132,14 @@ Deno.serve(async (req) => {
         );
 
         if (pagoExistente?.traslado_id) {
-          const { data: traslado } = await supabase
-            .from("traslados")
-            .select("estado, tipo_pago")
-            .eq("id", pagoExistente.traslado_id)
-            .maybeSingle();
+          const traslado = await ejecutarSupabase(
+            supabase
+              .from("traslados")
+              .select("estado, tipo_pago")
+              .eq("id", pagoExistente.traslado_id)
+              .maybeSingle(),
+            "No se pudo consultar el traslado del pago"
+          );
 
           const siguienteEstado = estadoTrasladoSiguienteTrasPago(
             traslado?.estado,
@@ -127,7 +148,10 @@ Deno.serve(async (req) => {
           );
 
           if (siguienteEstado) {
-            await supabase.from("traslados").update({ estado: siguienteEstado }).eq("id", pagoExistente.traslado_id);
+            await ejecutarSupabase(
+              supabase.from("traslados").update({ estado: siguienteEstado }).eq("id", pagoExistente.traslado_id),
+              "No se pudo actualizar el estado del traslado tras el pago"
+            );
             await registrarEventoWebhook(
               "registro_pago",
               {
@@ -146,10 +170,13 @@ Deno.serve(async (req) => {
       case "account.updated": {
         const cuenta = evento.data.object as Stripe.Account;
         const activa = cuentaConductorEstaActiva(cuenta.charges_enabled, cuenta.details_submitted);
-        await supabase
-          .from("cuentas_conductor_stripe")
-          .update({ estado: activa ? "activa" : "pendiente_onboarding" })
-          .eq("stripe_account_id", cuenta.id);
+        await ejecutarSupabase(
+          supabase
+            .from("cuentas_conductor_stripe")
+            .update({ estado: activa ? "activa" : "pendiente_onboarding" })
+            .eq("stripe_account_id", cuenta.id),
+          "No se pudo actualizar la cuenta Stripe del conductor"
+        );
         await registrarEventoWebhook("verificacion_cuenta", {
           stripe_event_id: evento.id,
           stripe_account_id: cuenta.id,
@@ -167,13 +194,16 @@ Deno.serve(async (req) => {
         // (payout.paid/payout.failed), con su propio endpoint de webhook
         // "Connect" — no cubierto en este corte (ver README).
         const transferencia = evento.data.object as Stripe.Transfer;
-        await supabase
-          .from("payouts_conductor")
-          .update({
-            estado: evento.type === "transfer.created" ? "procesado" : "fallido",
-            procesado_en: new Date().toISOString()
-          })
-          .eq("stripe_transfer_id", transferencia.id);
+        await ejecutarSupabase(
+          supabase
+            .from("payouts_conductor")
+            .update({
+              estado: evento.type === "transfer.created" ? "procesado" : "fallido",
+              procesado_en: new Date().toISOString()
+            })
+            .eq("stripe_transfer_id", transferencia.id),
+          "No se pudo actualizar el payout del conductor"
+        );
         await registrarEventoWebhook("registro_pago", {
           stripe_event_id: evento.id,
           stripe_transfer_id: transferencia.id,

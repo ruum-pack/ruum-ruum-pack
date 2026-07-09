@@ -83,7 +83,7 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
 
   async function manejarEnvio(contenido: string) {
     if (!clienteRef.current) return;
-    await enviarMensaje(clienteRef.current, trasladoId, "conductor", contenido);
+    await enviarMensaje(clienteRef.current, trasladoId, contenido);
     // No hace falta actualizar el estado local aquí: la suscripción de
     // Realtime ya lo va a recibir, igual que le llegaría al usuario.
   }

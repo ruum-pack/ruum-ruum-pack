@@ -223,23 +223,11 @@ async function validarElegibilidadAceptacion(cliente: Cliente, trasladoId: strin
 export async function aceptarViaje(cliente: Cliente, trasladoId: string, conductorId: string) {
   await validarElegibilidadAceptacion(cliente, trasladoId, conductorId);
 
-  const { error } = await cliente
-    .from("traslados")
-    .update({ estado: "conductor_asignado", conductor_id: conductorId })
-    .eq("id", trasladoId)
-    .eq("estado", "pendiente_de_conductor")
-    .is("conductor_id", null)
-    .select("id")
-    .single();
+  const { error } = await cliente.rpc("conductor_acepta_viaje", { p_traslado_id: trasladoId });
 
   if (error) {
-    throw new Error("El viaje ya no está disponible para aceptación.");
+    throw new Error(error.message || "El viaje ya no está disponible para aceptación.");
   }
-
-  await registrarEvento(cliente, "aceptacion_traslado_conductor", "conductor", conductorId, {
-    traslado_id: trasladoId,
-    estado_nuevo: "conductor_asignado"
-  });
 }
 
 function horasRestantes(fechaIso: string | null) {

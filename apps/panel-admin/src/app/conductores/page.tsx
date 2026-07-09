@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ETIQUETA_NIVEL_CONCER } from "@ruum/shared/constants";
 import { Aviso, Button } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import {
   listarConductoresAdmin,
   cambiarEstadoConductorAdmin,
@@ -47,8 +47,13 @@ export default function PaginaConductoresAdmin() {
       setConductores(await listarConductoresAdmin(cliente));
       setEsDemo(false);
     } catch {
-      setConductores(CONDUCTORES_DEMO);
-      setEsDemo(true);
+      if (puedeUsarDatosDemo()) {
+        setConductores(CONDUCTORES_DEMO);
+        setEsDemo(true);
+      } else {
+        setConductores([]);
+        setEsDemo(false);
+      }
     } finally {
       setCargando(false);
     }

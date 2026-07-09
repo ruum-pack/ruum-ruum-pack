@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import { listarEmpresasAdmin, validarDocumentoEmpresa, type DatosEmpresasAdmin } from "@ruum/api/services";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 type Empresa = Database["public"]["Tables"]["empresas"]["Row"];
 type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
@@ -110,8 +110,13 @@ export default function PaginaEmpresasAdmin() {
       setDatos(await listarEmpresasAdmin(cliente));
       setEsDemo(false);
     } catch {
-      setDatos(DATOS_DEMO);
-      setEsDemo(true);
+      if (puedeUsarDatosDemo()) {
+        setDatos(DATOS_DEMO);
+        setEsDemo(true);
+      } else {
+        setDatos(DATOS_DEMO);
+        setEsDemo(false);
+      }
     } finally {
       setCargando(false);
     }

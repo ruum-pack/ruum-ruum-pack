@@ -4,6 +4,10 @@ export function tieneSupabaseConfigurado(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
+export function puedeUsarDatosDemo(): boolean {
+  return !tieneSupabaseConfigurado() || process.env.NEXT_PUBLIC_PANEL_ADMIN_DEMO === "true";
+}
+
 /**
  * Cliente Supabase para el navegador, con sesión persistida en cookies
  * (no localStorage) vía @supabase/ssr — necesario para que el middleware y

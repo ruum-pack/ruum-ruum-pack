@@ -8,7 +8,7 @@ import { Button, Field, Aviso, EstadoBadge, EstadoStepper, PassportCard } from "
 import { ETIQUETA_TIPO_VEHICULO, ETIQUETA_NIVEL_CONCER } from "@ruum/shared/constants";
 import { ETIQUETA_ESTADO_TRASLADO, TRANSICIONES } from "@ruum/shared/states";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 import {
   obtenerPasaporteDigital,
   listarConductoresAdmin,
@@ -95,11 +95,19 @@ export default function PaginaDetalleViajeAdmin() {
         if (adminReal) setAdminId(adminReal.id);
         setEsDemo(false);
       } catch {
-        setPasaporte(demo ?? null);
-        setConductores(CONDUCTORES_DEMO);
-        setAuditoria([]);
-        setPrecioFinalInput("");
-        setEsDemo(true);
+        if (puedeUsarDatosDemo() || demo) {
+          setPasaporte(demo ?? null);
+          setConductores(CONDUCTORES_DEMO);
+          setAuditoria([]);
+          setPrecioFinalInput("");
+          setEsDemo(true);
+        } else {
+          setPasaporte(null);
+          setConductores([]);
+          setAuditoria([]);
+          setPrecioFinalInput("");
+          setEsDemo(false);
+        }
       } finally {
         setCargando(false);
       }

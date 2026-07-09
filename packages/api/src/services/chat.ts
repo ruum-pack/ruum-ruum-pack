@@ -4,7 +4,6 @@ import type { Database } from "@ruum/shared/types";
 
 type Cliente = SupabaseClient<Database>;
 type MensajeRow = Database["public"]["Tables"]["mensajes_chat"]["Row"];
-type RemitenteChat = Database["public"]["Enums"]["remitente_chat"];
 
 /** PRD §4.12 — historial del chat de un traslado, más antiguo primero. */
 export async function obtenerMensajes(cliente: Cliente, trasladoId: string): Promise<MensajeRow[]> {
@@ -18,8 +17,17 @@ export async function obtenerMensajes(cliente: Cliente, trasladoId: string): Pro
   return data ?? [];
 }
 
-export async function enviarMensaje(cliente: Cliente, trasladoId: string, remitente: RemitenteChat, contenido: string) {
-  const { error } = await cliente.from("mensajes_chat").insert({ traslado_id: trasladoId, remitente, contenido });
+/**
+ * Auditoría H-3 / migración 0046 — el remitente NO se acepta del cliente: la
+ * RPC security definer `enviar_mensaje_chat` lo deriva de auth.uid() contra el
+ * traslado, así un participante no puede insertar mensajes en nombre del otro.
+ * El INSERT directo sobre mensajes_chat ya no está permitido por RLS.
+ */
+export async function enviarMensaje(cliente: Cliente, trasladoId: string, contenido: string) {
+  const { error } = await cliente.rpc("enviar_mensaje_chat", {
+    p_traslado_id: trasladoId,
+    p_contenido: contenido
+  });
   if (error) throw error;
 }
 

@@ -313,47 +313,19 @@ export async function resolverDisputaAdmin(
   resolucion: ResolucionDisputa | null,
   detalle: string
 ) {
-  const adminId = await obtenerAdminIdParaAuditoria(cliente);
-  const { data: disputa, error: errorDisputa } = await cliente
-    .from("disputas")
-    .select("*")
-    .eq("id", disputaId)
-    .maybeSingle();
-
-  if (errorDisputa) throw errorDisputa;
-  if (!disputa) throw new Error("No se encontró la disputa.");
-
   const esEstadoResuelto = estado === "resuelta" || estado === "resuelta_senior";
   if (esEstadoResuelto && !resolucion) {
     throw new Error("Selecciona una resolución para cerrar la disputa.");
   }
 
-  const { error } = await cliente
-    .from("disputas")
-    .update({
-      estado,
-      resolucion: esEstadoResuelto ? resolucion : null,
-      resolucion_detalle: detalle.trim() || null,
-      resuelta_en: esEstadoResuelto ? new Date().toISOString() : null
-    })
-    .eq("id", disputaId);
+  const { error } = await cliente.rpc("admin_resuelve_disputa", {
+    p_disputa_id: disputaId,
+    p_estado: estado,
+    p_resolucion: esEstadoResuelto ? resolucion : null,
+    p_detalle: detalle
+  });
 
   if (error) throw error;
-
-  if (esEstadoResuelto) {
-    const { data: traslado } = await cliente.from("traslados").select("estado").eq("id", disputa.traslado_id).maybeSingle();
-    if (traslado?.estado === "disputa_abierta") {
-      await cliente.from("traslados").update({ estado: "disputa_resuelta" }).eq("id", disputa.traslado_id);
-    }
-  }
-
-  await registrarEvento(cliente, "resolucion_disputa", "admin", adminId, {
-    traslado_id: disputa.traslado_id,
-    disputa_id: disputaId,
-    estado,
-    resolucion,
-    detalle: detalle.trim() || null
-  });
 }
 
 export async function listarReclamosSeguroAdmin(cliente: Cliente): Promise<ReclamoSeguroRow[]> {
@@ -369,45 +341,18 @@ export async function actualizarReclamoSeguroAdmin(
   responsablePago: "aplicacion" | "conductor" | null,
   notasAdmin: string
 ) {
-  const adminId = await obtenerAdminIdParaAuditoria(cliente);
-  const { data: reclamo, error: errorReclamo } = await cliente
-    .from("reclamos_seguro")
-    .select("*")
-    .eq("id", reclamoId)
-    .maybeSingle();
-
-  if (errorReclamo) throw errorReclamo;
-  if (!reclamo) throw new Error("No se encontró el reclamo.");
   if (estado === "resuelto" && !responsablePago) {
     throw new Error("Selecciona responsable de pago antes de resolver el reclamo.");
   }
 
-  const { error } = await cliente
-    .from("reclamos_seguro")
-    .update({
-      estado,
-      responsable_pago: responsablePago,
-      notas_admin: notasAdmin.trim() || null,
-      resuelto_en: estado === "resuelto" ? new Date().toISOString() : null
-    })
-    .eq("id", reclamoId);
+  const { error } = await cliente.rpc("admin_actualiza_reclamo_seguro", {
+    p_reclamo_id: reclamoId,
+    p_estado: estado,
+    p_responsable_pago: responsablePago,
+    p_notas_admin: notasAdmin
+  });
 
   if (error) throw error;
-
-  if (estado === "resuelto") {
-    const { data: traslado } = await cliente.from("traslados").select("estado").eq("id", reclamo.traslado_id).maybeSingle();
-    if (traslado?.estado === "reclamo_abierto") {
-      await cliente.from("traslados").update({ estado: "reclamo_resuelto" }).eq("id", reclamo.traslado_id);
-    }
-  }
-
-  await registrarEvento(cliente, estado === "resuelto" ? "resolucion_reclamo_seguro" : "apertura_reclamo_seguro", "admin", adminId, {
-    traslado_id: reclamo.traslado_id,
-    reclamo_id: reclamoId,
-    estado,
-    responsable_pago: responsablePago,
-    notas: notasAdmin.trim() || null
-  });
 }
 
 // PRD §6 — único camino real hacia "conductor_asignado" (sin atajos, ver
@@ -446,55 +391,17 @@ export async function asignarConductorAdmin(
   conductorId: string,
   estadoActual: EstadoTraslado
 ) {
-  const adminId = await obtenerAdminIdParaAuditoria(cliente);
-
-  if (estadoActual === "conductor_asignado") {
-    // Reasignación pura: el viaje ya está en el paso correcto, solo cambia
-    // a quién pertenece — no hay ningún estado que avanzar.
-    const { error } = await cliente.from("traslados").update({ conductor_id: conductorId }).eq("id", trasladoId);
-    if (error) throw error;
-    await registrarEvento(cliente, "asignacion_conductor", "admin", adminId, {
-      traslado_id: trasladoId,
-      conductor_id: conductorId,
-      estado_anterior: estadoActual,
-      estado_nuevo: estadoActual
-    });
-    return;
-  }
-
-  const indiceActual = CADENA_HASTA_CONDUCTOR_ASIGNADO.indexOf(estadoActual);
-  if (indiceActual === -1) {
+  if (estadoActual !== "conductor_asignado" && !CADENA_HASTA_CONDUCTOR_ASIGNADO.includes(estadoActual)) {
     throw new Error(
       `No se puede asignar conductor desde el estado "${estadoActual}" — ese estado no forma parte del camino hacia conductor_asignado (¿el viaje ya está en tránsito, cancelado, o fallido?).`
     );
   }
 
-  // conductor_id se fija desde el primer salto: si algo falla a media
-  // cadena, el viaje queda con dueño claro y un admin puede seguir
-  // avanzándolo a mano desde donde se quedó, en vez de perder el dato.
-  let primero = true;
-  for (let i = indiceActual; i < CADENA_HASTA_CONDUCTOR_ASIGNADO.length - 1; i++) {
-    const siguiente = CADENA_HASTA_CONDUCTOR_ASIGNADO[i + 1];
-    if (!siguiente) {
-      // No debería pasar nunca dado el límite del for — si pasa, es un bug
-      // real en CADENA_HASTA_CONDUCTOR_ASIGNADO, no un caso de negocio.
-      throw new Error("Error interno: cadena de transición hacia conductor_asignado mal formada.");
-    }
-    const cambios: { conductor_id?: string; estado: EstadoTraslado } = { estado: siguiente };
-    if (primero) {
-      cambios.conductor_id = conductorId;
-      primero = false;
-    }
-    const { error } = await cliente.from("traslados").update(cambios).eq("id", trasladoId);
-    if (error) throw error;
-  }
-
-  await registrarEvento(cliente, "asignacion_conductor", "admin", adminId, {
-    traslado_id: trasladoId,
-    conductor_id: conductorId,
-    estado_anterior: estadoActual,
-    estado_nuevo: "conductor_asignado"
+  const { error } = await cliente.rpc("admin_asigna_conductor", {
+    p_traslado_id: trasladoId,
+    p_conductor_id: conductorId
   });
+  if (error) throw error;
 }
 
 /**
@@ -662,48 +569,18 @@ export async function registrarCancelacionConductor(cliente: Cliente, conductorI
 }
 
 export async function marcarTrasladoFallido(cliente: Cliente, trasladoId: string, causa: CausaFallido) {
-  const adminId = await obtenerAdminIdParaAuditoria(cliente);
   const resultado = clasificarTrasladoFallido(causa);
 
-  const { data: traslado, error: errorTraslado } = await cliente
-    .from("traslados")
-    .select("id, estado, precio_cotizado, precio_final")
-    .eq("id", trasladoId)
-    .maybeSingle();
-
-  if (errorTraslado) throw errorTraslado;
-  if (!traslado) throw new Error("No se encontró el traslado.");
-
-  const { error } = await cliente
-    .from("traslados")
-    .update({ estado: "traslado_fallido", causa_fallido: causa })
-    .eq("id", trasladoId)
-    .eq("estado", traslado.estado);
+  const { error } = await cliente.rpc("admin_marca_traslado_fallido", {
+    p_traslado_id: trasladoId,
+    p_causa: causa,
+    p_cargo_aplica_cliente: resultado.cargo_aplica_cliente,
+    p_requiere_reagendamiento: resultado.requiere_reagendamiento,
+    p_porcentaje_descuento_segundo_intento: resultado.porcentaje_descuento_segundo_intento ?? null,
+    p_mensaje: resultado.mensaje
+  });
 
   if (error) throw error;
-
-  if (resultado.cargo_aplica_cliente) {
-    const { error: pagoError } = await cliente.from("pagos").insert({
-      traslado_id: trasladoId,
-      monto: Number(traslado.precio_final ?? traslado.precio_cotizado ?? 0),
-      momento: "al_cierre",
-      estado: "pendiente",
-      metodo: "cargo_traslado_fallido"
-    });
-    if (pagoError) throw pagoError;
-  }
-
-  await registrarEvento(cliente, "modificacion_traslado_activo", "admin", adminId, {
-    traslado_id: trasladoId,
-    tipo: "traslado_fallido",
-    causa,
-    estado_anterior: traslado.estado,
-    estado_nuevo: "traslado_fallido",
-    cargo_aplica_cliente: resultado.cargo_aplica_cliente,
-    requiere_reagendamiento: resultado.requiere_reagendamiento,
-    porcentaje_descuento_segundo_intento: resultado.porcentaje_descuento_segundo_intento ?? null,
-    mensaje: resultado.mensaje
-  });
 
   return resultado;
 }

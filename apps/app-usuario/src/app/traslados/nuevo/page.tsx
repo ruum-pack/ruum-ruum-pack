@@ -440,11 +440,16 @@ export default function PaginaNuevoTraslado() {
   }
 
   function aplicarVehiculoGuardado(vehiculo: VehiculoGuardado) {
+    const transmisionGuardada =
+      vehiculo.transmision === "manual" || vehiculo.transmision === "automatica" || vehiculo.transmision === "electrica"
+        ? vehiculo.transmision
+        : datos.transmision;
+
     setVehiculoSeleccionadoId(vehiculo.id);
     setDatos((prev) => ({
       ...prev,
       tipo: vehiculo.tipo,
-      transmision: vehiculo.transmision ?? prev.transmision,
+      transmision: transmisionGuardada,
       marca: vehiculo.marca ?? "",
       modelo: vehiculo.modelo ?? "",
       anio: vehiculo.anio ? String(vehiculo.anio) : "",

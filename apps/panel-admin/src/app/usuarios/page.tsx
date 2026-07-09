@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { Aviso } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { listarUsuariosAdmin } from "@ruum/api/services";
 import { USUARIOS_DEMO } from "../../lib/datos-demo";
 import { AccionesVerificacion } from "./AccionesVerificacion";
@@ -36,8 +36,13 @@ export default function PaginaUsuariosAdmin() {
       setUsuarios(await listarUsuariosAdmin(cliente));
       setEsDemo(false);
     } catch {
-      setUsuarios(USUARIOS_DEMO);
-      setEsDemo(true);
+      if (puedeUsarDatosDemo()) {
+        setUsuarios(USUARIOS_DEMO);
+        setEsDemo(true);
+      } else {
+        setUsuarios([]);
+        setEsDemo(false);
+      }
     } finally {
       setCargando(false);
     }
@@ -53,7 +58,8 @@ export default function PaginaUsuariosAdmin() {
         const q = busqueda.trim().toLowerCase();
         return (
           (u.nombre ?? "").toLowerCase().includes(q) ||
-          (u.email ?? "").toLowerCase().includes(q)
+          (u.correo_facturacion ?? "").toLowerCase().includes(q) ||
+          (u.telefono ?? "").toLowerCase().includes(q)
         );
       })
     : usuarios;

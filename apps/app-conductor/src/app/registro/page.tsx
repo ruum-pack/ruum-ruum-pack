@@ -9,6 +9,7 @@ import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { traducirErrorAuth } from "@ruum/shared/utils";
 import { obtenerConductorActual, subirDocumentoConductor } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 
 const PASOS = [
   "Vamos a conocerte",
@@ -32,6 +33,8 @@ const TIPOS_LICENCIA = [
   "Tipo E - Transporte especializado",
   "Licencia federal de conductor"
 ];
+
+const TIPOS_ARCHIVO_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
 type DocumentoKey = keyof typeof TIPOS_DOCUMENTO;
 type EstadoDocumento = "pendiente" | "listo" | "subiendo" | "subido" | "error";
@@ -60,6 +63,10 @@ function esperar(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function terminosAceptadosEn() {
+  return new Date().toISOString();
+}
+
 function estadoInicialDocumentos(): Record<DocumentoKey, EstadoDocumento> {
   return {
     licenciaFrente: "pendiente",
@@ -81,6 +88,7 @@ export default function PaginaRegistroConductor() {
   const [codigoPostal, setCodigoPostal] = useState("");
   const [estado, setEstado] = useState("");
   const [ciudad, setCiudad] = useState("");
+  const [ciudades, setCiudades] = useState<string[]>([]);
   const [colonias, setColonias] = useState<string[]>([]);
   const [consultandoCp, setConsultandoCp] = useState(false);
   const [colonia, setColonia] = useState("");
@@ -139,7 +147,8 @@ export default function PaginaRegistroConductor() {
   }
 
   function validarConfirmacion(valor = confirmacionPassword, base = password) {
-    return setCampoError("confirmacionPassword", valor && valor !== base ? "Las contraseñas no coinciden" : "");
+    if (!valor) return setCampoError("confirmacionPassword", "Confirma tu contraseña");
+    return setCampoError("confirmacionPassword", valor !== base ? "Las contraseñas no coinciden" : "");
   }
 
   function validarDocumento(campo: DocumentoKey) {
@@ -150,30 +159,21 @@ export default function PaginaRegistroConductor() {
     setConsultandoCp(true);
     setCampoError("codigoPostal", "");
     try {
-      const respuesta = await fetch(`https://api.zippopotam.us/mx/${cp}`);
-      if (!respuesta.ok) throw new Error("CP no encontrado");
-      const datos = await respuesta.json() as {
-        places?: Array<{
-          "place name"?: string;
-          state?: string;
-          "state abbreviation"?: string;
-        }>;
-      };
-      const lugares = datos.places ?? [];
-      const primera = lugares[0];
-      if (!primera) throw new Error("CP no encontrado");
-      const coloniasUnicas = Array.from(new Set(lugares.map((lugar) => lugar["place name"]).filter(Boolean) as string[]));
-      setEstado(primera.state ?? "");
-      setCiudad(primera["place name"] ?? primera.state ?? "");
-      setColonias(coloniasUnicas);
-      setColonia(coloniasUnicas[0] ?? "");
+      const datos = await consultarCodigoPostalMx(cp);
+      if (!datos) throw new Error("CP no encontrado");
+      setEstado(datos.estado);
+      setCiudades(datos.ciudades);
+      setCiudad(datos.ciudades[0] ?? "");
+      setColonias(datos.colonias);
+      setColonia(datos.colonias[0] ?? "");
       setErroresCampos((prev) => ({ ...prev, estado: "", ciudad: "", colonia: "" }));
     } catch {
       setEstado("");
       setCiudad("");
+      setCiudades([]);
       setColonias([]);
       setColonia("");
-      setCampoError("codigoPostal", "No encontramos ese código postal. Verifica que tenga 5 dígitos.");
+      setCampoError("codigoPostal", "No encontramos ese código postal. Verifica que tenga 5 dígitos o captura el domicilio manualmente.");
     } finally {
       setConsultandoCp(false);
     }
@@ -271,6 +271,13 @@ export default function PaginaRegistroConductor() {
       evento.target.value = "";
       return;
     }
+    if (archivo && !TIPOS_ARCHIVO_PERMITIDOS.has(archivo.type)) {
+      setDocumentos((prev) => ({ ...prev, [campo]: null }));
+      setEstadoDocumentos((prev) => ({ ...prev, [campo]: "error" }));
+      setCampoError(campo, "Sube una imagen JPG, PNG, WEBP o un PDF");
+      evento.target.value = "";
+      return;
+    }
     setDocumentos((prev) => ({ ...prev, [campo]: archivo }));
     setEstadoDocumentos((prev) => ({ ...prev, [campo]: archivo ? "listo" : "pendiente" }));
     if (archivo) limpiarErrorCampo(campo);
@@ -326,6 +333,7 @@ export default function PaginaRegistroConductor() {
       const cliente = crearClienteNavegador();
       const telefonoLimpio = telefonoE164Mx(telefono);
       const contactoTelefonoNacional = soloDigitos(contactoEmergenciaTelefono);
+      const aceptadosEn = terminosAceptadosEn();
 
       const { data: datosAuth, error: errorAuth } = await cliente.auth.signUp({
         email: email.trim().toLowerCase(),
@@ -336,6 +344,22 @@ export default function PaginaRegistroConductor() {
             nombre: nombreCompleto,
             telefono: telefonoLimpio,
             curp: curp.trim().toUpperCase(),
+            codigo_postal: codigoPostal.trim(),
+            estado_residencia: limpiarTexto(estado),
+            ciudad_municipio: limpiarTexto(ciudad),
+            colonia: limpiarTexto(colonia),
+            calle: limpiarTexto(calle),
+            numero: limpiarTexto(numero),
+            referencias: limpiarTexto(referencias),
+            licencia_numero: limpiarTexto(numeroLicencia),
+            licencia_tipo: limpiarTexto(tipoLicencia),
+            licencia_vigencia: vigenciaLicencia,
+            autoriza_verificacion_antecedentes: autorizaVerificacion,
+            declara_sin_suspensiones: declaraSinSuspensiones,
+            contacto_emergencia_nombre: limpiarTexto(contactoEmergenciaNombre),
+            contacto_emergencia_telefono: contactoTelefonoNacional,
+            version_terminos_aceptada: 1,
+            terminos_aceptados_en: aceptadosEn,
             domicilio: {
               codigo_postal: codigoPostal.trim(),
               estado: limpiarTexto(estado),
@@ -360,6 +384,8 @@ export default function PaginaRegistroConductor() {
             },
             legales: {
               acepta_terminos_privacidad: aceptaLegales,
+              version_terminos_aceptada: 1,
+              terminos_aceptados_en: aceptadosEn,
               marca: "ruum ruum by Movilia"
             }
           }
@@ -481,6 +507,7 @@ export default function PaginaRegistroConductor() {
                       if (cp.length < 5) {
                         setEstado("");
                         setCiudad("");
+                        setCiudades([]);
                         setColonia("");
                         setColonias([]);
                       }
@@ -488,7 +515,19 @@ export default function PaginaRegistroConductor() {
                     }} error={erroresCampos.codigoPostal || undefined} required autoComplete="postal-code" />
                     <Field etiqueta="Estado" value={estado} onChange={(e) => { setEstado(e.target.value); limpiarErrorCampo("estado"); }} error={erroresCampos.estado || undefined} required autoComplete="address-level1" readOnly={colonias.length > 0} />
                   </div>
-                  <Field etiqueta="Ciudad o Municipio" value={ciudad} onChange={(e) => { setCiudad(e.target.value); limpiarErrorCampo("ciudad"); }} error={erroresCampos.ciudad || undefined} required autoComplete="address-level2" readOnly={colonias.length > 0} />
+                  {ciudades.length > 0 ? (
+                    <SelectField
+                      etiqueta="Ciudad o Municipio"
+                      value={ciudad}
+                      onChange={(valor) => { setCiudad(valor); limpiarErrorCampo("ciudad"); }}
+                      error={erroresCampos.ciudad || undefined}
+                      required
+                      placeholder="Selecciona tu ciudad o municipio"
+                      opciones={ciudades}
+                    />
+                  ) : (
+                    <Field etiqueta="Ciudad o Municipio" ayuda={colonias.length > 0 ? "Captura el municipio; este CP no lo devolvió automáticamente." : undefined} value={ciudad} onChange={(e) => { setCiudad(e.target.value); limpiarErrorCampo("ciudad"); }} error={erroresCampos.ciudad || undefined} required autoComplete="address-level2" />
+                  )}
                   <SelectField
                     etiqueta="Colonia"
                     value={colonia}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
 import { traducirErrorAuth } from "@ruum/shared/utils";
@@ -13,6 +13,15 @@ export default function PaginaLogin() {
   const [password, setPassword] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auditoría H-2 — si el middleware rechazó una sesión no-admin, muestra el
+  // motivo en vez de un formulario en blanco.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") === "no_autorizado") {
+      setError("Esta cuenta no tiene acceso a la Torre de Control.");
+    }
+  }, []);
 
   async function iniciarSesion(e: React.FormEvent) {
     e.preventDefault();

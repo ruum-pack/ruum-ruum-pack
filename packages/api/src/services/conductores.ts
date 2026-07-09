@@ -19,9 +19,26 @@ export type TipoDocumentoConductor =
 
 const BUCKET_DOCUMENTOS_CONDUCTOR = "documentos-conductor";
 const TAMANO_MAX_DOCUMENTO_BYTES = 10 * 1024 * 1024;
+const EXTENSIONES_DOCUMENTO_PERMITIDAS = new Set(["jpg", "jpeg", "png", "webp", "pdf"]);
+const TIPOS_MIME_DOCUMENTO_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
 function nombreArchivoSeguro(nombre: string) {
   return nombre.replace(/[^a-zA-Z0-9_.-]/g, "_");
+}
+
+function extensionArchivo(nombre: string) {
+  return nombre.split(".").pop()?.toLowerCase() ?? "";
+}
+
+function validarArchivoDocumentoConductor(archivo: File) {
+  if (archivo.size > TAMANO_MAX_DOCUMENTO_BYTES) {
+    throw new Error("El archivo debe pesar máximo 10 MB.");
+  }
+
+  const extension = extensionArchivo(archivo.name);
+  if (!EXTENSIONES_DOCUMENTO_PERMITIDAS.has(extension) || !TIPOS_MIME_DOCUMENTO_PERMITIDOS.has(archivo.type)) {
+    throw new Error("El documento debe ser una imagen JPG, PNG, WEBP o un PDF.");
+  }
 }
 
 /** Conductor asociado a la sesión de Supabase Auth actual, si existe. */
@@ -197,9 +214,7 @@ export async function subirDocumentoConductor(
   tipo: TipoDocumentoConductor,
   archivo: File
 ) {
-  if (archivo.size > TAMANO_MAX_DOCUMENTO_BYTES) {
-    throw new Error("El archivo debe pesar máximo 10 MB.");
-  }
+  validarArchivoDocumentoConductor(archivo);
 
   const { data: sesion } = await cliente.auth.getUser();
   if (!sesion.user) throw new Error("Inicia sesión para subir documentos.");
@@ -217,7 +232,7 @@ export async function subirDocumentoConductor(
 
   const { error: errorStorage } = await cliente.storage
     .from(BUCKET_DOCUMENTOS_CONDUCTOR)
-    .upload(ruta, archivo, { upsert: false });
+    .upload(ruta, archivo, { upsert: false, contentType: archivo.type });
 
   if (errorStorage) throw errorStorage;
 

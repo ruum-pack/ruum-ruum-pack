@@ -53,7 +53,7 @@ export function ChatTraslado({ trasladoId, estado }: { trasladoId: string; estad
       return;
     }
     if (!clienteRef.current) return;
-    await enviarMensaje(clienteRef.current, trasladoId, "usuario", contenido);
+    await enviarMensaje(clienteRef.current, trasladoId, contenido);
   }
 
   const [llamando, setLlamando] = useState(false);

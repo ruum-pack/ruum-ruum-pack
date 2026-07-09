@@ -7,7 +7,7 @@ import { Aviso, Button, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_DISPUTA } from "@ruum/shared/constants";
 import { slaResolucionDisputa, slaRevisionAdmin } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { listarDisputasAdmin, listarViajesAdmin, resolverDisputaAdmin } from "@ruum/api/services";
 
 type Disputa = Database["public"]["Tables"]["disputas"]["Row"];
@@ -120,9 +120,15 @@ export default function PaginaDisputasAdmin() {
       setPasaportes(p);
       setEsDemo(false);
     } catch {
-      setDisputas(DISPUTAS_DEMO);
-      setPasaportes([]);
-      setEsDemo(true);
+      if (puedeUsarDatosDemo()) {
+        setDisputas(DISPUTAS_DEMO);
+        setPasaportes([]);
+        setEsDemo(true);
+      } else {
+        setDisputas([]);
+        setPasaportes([]);
+        setEsDemo(false);
+      }
     } finally {
       setCargando(false);
     }

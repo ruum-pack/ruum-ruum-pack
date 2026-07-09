@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { listarViajesAdmin } from "@ruum/api/services";
 import { VIAJES_DEMO } from "../../lib/datos-demo";
 
@@ -49,9 +49,14 @@ export default function PaginaViajesAdmin() {
         setViajes(await listarViajesAdmin(cliente, filtroActual));
         setEsDemo(false);
       } catch {
-        const lista = filtroActual === "todos" ? VIAJES_DEMO : VIAJES_DEMO.filter((v) => v.estado === filtroActual);
-        setViajes(lista);
-        setEsDemo(true);
+        if (puedeUsarDatosDemo()) {
+          const lista = filtroActual === "todos" ? VIAJES_DEMO : VIAJES_DEMO.filter((v) => v.estado === filtroActual);
+          setViajes(lista);
+          setEsDemo(true);
+        } else {
+          setViajes([]);
+          setEsDemo(false);
+        }
       } finally {
         setCargando(false);
       }
@@ -65,8 +70,7 @@ export default function PaginaViajesAdmin() {
         return (
           v.traslado_id.slice(0, 8).toLowerCase().includes(q) ||
           `${v.vehiculo_marca ?? ""} ${v.vehiculo_modelo ?? ""}`.toLowerCase().includes(q) ||
-          (v.conductor_nombre ?? "").toLowerCase().includes(q) ||
-          (v.vehiculo_placas ?? "").toLowerCase().includes(q)
+          (v.conductor_nombre ?? "").toLowerCase().includes(q)
         );
       })
     : viajes;

@@ -345,7 +345,7 @@ export function SeccionPerfil({ usuario }: { usuario: Usuario }) {
             Te enviaremos un enlace a tu correo para crear una nueva contraseña de forma segura.
           </p>
           <div className="mt-4">
-            <BotonResetPassword email={usuario.email ?? ""} />
+            <BotonResetPassword email={usuario.correo_facturacion ?? ""} />
           </div>
         </div>
       </div>

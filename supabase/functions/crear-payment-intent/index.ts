@@ -1,3 +1,6 @@
+/// <reference lib="deno.ns" />
+/// <reference lib="dom" />
+
 // Edge Function: crea un PaymentIntent de Stripe para el cobro de un
 
 import Stripe from "npm:stripe@^17";
@@ -61,7 +64,14 @@ Deno.serve(async (req) => {
     return respuestaJson({ error: "Usuario no encontrado" }, 404);
   }
 
-  const { traslado_id } = (await req.json()) as { traslado_id?: string | number };
+  let payload: { traslado_id?: string | number };
+  try {
+    payload = (await req.json()) as { traslado_id?: string | number };
+  } catch {
+    return respuestaJson({ error: "JSON inválido" }, 400);
+  }
+
+  const { traslado_id } = payload;
   if (!traslado_id) {
     return respuestaJson({ error: "Falta traslado_id" }, 400);
   }
@@ -150,16 +160,27 @@ Deno.serve(async (req) => {
   }
 
   if (pagoPendiente?.stripe_payment_intent_id) {
-    const intentExistente = await stripe.paymentIntents.retrieve(pagoPendiente.stripe_payment_intent_id);
-    return respuestaJson({ clientSecret: intentExistente.client_secret });
+    try {
+      const intentExistente = await stripe.paymentIntents.retrieve(pagoPendiente.stripe_payment_intent_id);
+      return respuestaJson({ clientSecret: intentExistente.client_secret });
+    } catch (error) {
+      console.error("Error recuperando PaymentIntent:", error);
+      return respuestaJson({ error: "No se pudo recuperar el intento de pago" }, 502);
+    }
   }
 
-  const intent = await stripe.paymentIntents.create({
-    amount: Math.round(montoACobrar * 100), // Stripe usa centavos
-    currency: "mxn",
-    metadata: { traslado_id: traslado.id },
-    automatic_payment_methods: { enabled: true }
-  });
+  let intent: Stripe.PaymentIntent;
+  try {
+    intent = await stripe.paymentIntents.create({
+      amount: Math.round(montoACobrar * 100), // Stripe usa centavos
+      currency: "mxn",
+      metadata: { traslado_id: traslado.id },
+      automatic_payment_methods: { enabled: true }
+    });
+  } catch (error) {
+    console.error("Error creando PaymentIntent:", error);
+    return respuestaJson({ error: "No se pudo crear el intento de pago" }, 502);
+  }
 
   // service_role: pagos no tiene política de INSERT para usuarios (por
   // diseño, ver 0007_pagos.sql) — el cobro se registra desde un servidor de

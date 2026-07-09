@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Aviso, PassportCard } from "@ruum/ui";
 import { listarPagosAdmin, type DatosPagosAdmin } from "@ruum/api/services";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 type Pago = Database["public"]["Tables"]["pagos"]["Row"];
 type Payout = Database["public"]["Tables"]["payouts_conductor"]["Row"];
@@ -86,8 +86,13 @@ export default function PaginaPagosAdmin() {
         setDatos(await listarPagosAdmin(cliente));
         setEsDemo(false);
       } catch {
-        setDatos(DATOS_DEMO);
-        setEsDemo(true);
+        if (puedeUsarDatosDemo()) {
+          setDatos(DATOS_DEMO);
+          setEsDemo(true);
+        } else {
+          setDatos({ pagosUsuarios: [], pasaportes: [], payoutsConductores: [], cuentasStripeConductores: [], conductores: [] });
+          setEsDemo(false);
+        }
       } finally {
         setCargando(false);
       }

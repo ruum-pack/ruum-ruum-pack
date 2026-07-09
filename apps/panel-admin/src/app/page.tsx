@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Aviso, PassportCard } from "@ruum/ui";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../lib/supabase-browser";
 import {
   obtenerMetricasDashboard,
   listarIncidenciasAdmin,
@@ -60,11 +60,19 @@ export default function PaginaDashboard() {
         setConductoresDocVencido(conds.filter((c) => !c.documentos_vigentes));
         setEsDemo(false);
       } catch {
-        setMetricas(METRICAS_DEMO);
-        setIncidencias(INCIDENCIAS_DEMO);
-        setEmergencias([]);
-        setConductoresDocVencido(CONDUCTORES_DEMO.filter((c) => !c.documentos_vigentes));
-        setEsDemo(true);
+        if (puedeUsarDatosDemo()) {
+          setMetricas(METRICAS_DEMO);
+          setIncidencias(INCIDENCIAS_DEMO);
+          setEmergencias([]);
+          setConductoresDocVencido(CONDUCTORES_DEMO.filter((c) => !c.documentos_vigentes));
+          setEsDemo(true);
+        } else {
+          setMetricas(null);
+          setIncidencias([]);
+          setEmergencias([]);
+          setConductoresDocVencido([]);
+          setEsDemo(false);
+        }
       } finally {
         setCargando(false);
       }

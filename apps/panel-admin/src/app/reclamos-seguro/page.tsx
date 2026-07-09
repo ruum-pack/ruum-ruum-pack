@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import { estaDentroDeCobertura } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { actualizarReclamoSeguroAdmin, listarReclamosSeguroAdmin, listarViajesAdmin } from "@ruum/api/services";
 
 type Reclamo = Database["public"]["Tables"]["reclamos_seguro"]["Row"];
@@ -108,9 +108,15 @@ export default function PaginaReclamosSeguroAdmin() {
       setPasaportes(p);
       setEsDemo(false);
     } catch {
-      setReclamos(RECLAMOS_DEMO);
-      setPasaportes([]);
-      setEsDemo(true);
+      if (puedeUsarDatosDemo()) {
+        setReclamos(RECLAMOS_DEMO);
+        setPasaportes([]);
+        setEsDemo(true);
+      } else {
+        setReclamos([]);
+        setPasaportes([]);
+        setEsDemo(false);
+      }
     } finally {
       setCargando(false);
     }
