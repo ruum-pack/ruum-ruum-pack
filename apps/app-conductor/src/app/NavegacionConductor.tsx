@@ -47,14 +47,14 @@ function IcoCuenta() {
 type DestinoIcono = React.ComponentType;
 
 const DESTINOS: { href: string; etiqueta: string; Icono: DestinoIcono }[] = [
-  { href: "/", etiqueta: "Inicio", Icono: IcoHome },
+  { href: "/panel", etiqueta: "Inicio", Icono: IcoHome },
   { href: "/viajes", etiqueta: "Viajes", Icono: IcoViajes },
   { href: "/ganancias", etiqueta: "Ganancias", Icono: IcoGanancias },
   { href: "/configuracion", etiqueta: "Cuenta", Icono: IcoCuenta },
 ];
 
 function esActivo(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
+  if (href === "/panel") return pathname === "/panel";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -69,7 +69,7 @@ export function NavegacionConductor() {
     <>
       <header role="banner" className="sticky top-0 z-30 border-b border-ink/10 bg-mist/95 backdrop-blur supports-[backdrop-filter]:bg-mist/85">
         <div className="ruum-container flex min-h-16 items-center gap-3 py-3">
-          <Link href="/" aria-label="Ir al inicio de Ruum Ruum Conductor" className="flex shrink-0 items-center gap-2.5 rounded-lg">
+          <Link href="/panel" aria-label="Ir al inicio de Ruum Ruum Conductor" className="flex shrink-0 items-center gap-2.5 rounded-lg">
             <LogoMarca tamano={30} color="signal" />
             <span className="hidden font-display text-base font-extrabold tracking-tight text-ink sm:inline">
               ruum<span className="text-signal">ruum</span>

@@ -35,7 +35,7 @@ export default function PaginaLogin() {
       const cliente = crearClienteNavegador();
       const { error: errorAuth } = await cliente.auth.signInWithPassword({ email, password });
       if (errorAuth) throw errorAuth;
-      router.push("/");
+      router.push("/panel");
       router.refresh();
     } catch (err) {
       setError(traducirErrorAuth(err));

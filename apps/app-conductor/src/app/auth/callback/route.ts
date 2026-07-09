@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return NextResponse.redirect(`${origin}/`);
+  if (!url || !anonKey) return NextResponse.redirect(`${origin}/onboarding`);
 
   const cookieStore = await cookies();
   const supabase = crearClienteServidor(url, anonKey, {
@@ -23,14 +23,14 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${type === "recovery" ? "/nueva-password" : "/"}`);
+    if (!error) return NextResponse.redirect(`${origin}${type === "recovery" ? "/nueva-password" : "/panel"}`);
   }
   if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({
       type: type as "signup" | "recovery" | "magiclink" | "email",
       token_hash: tokenHash,
     });
-    if (!error) return NextResponse.redirect(`${origin}${type === "recovery" ? "/nueva-password" : "/"}`);
+    if (!error) return NextResponse.redirect(`${origin}${type === "recovery" ? "/nueva-password" : "/panel"}`);
   }
 
   return NextResponse.redirect(`${origin}/recuperar-password?error=enlace_invalido`);

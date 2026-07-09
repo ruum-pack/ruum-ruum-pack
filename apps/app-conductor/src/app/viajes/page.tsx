@@ -294,7 +294,7 @@ export default function PaginaViajes() {
     <div className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Link href="/" className="font-body text-sm text-ink/55 underline-offset-4 hover:underline">
+          <Link href="/panel" className="font-body text-sm text-ink/55 underline-offset-4 hover:underline">
             Panel
           </Link>
           <h1 className="mt-2 font-display text-3xl font-semibold">Viajes</h1>

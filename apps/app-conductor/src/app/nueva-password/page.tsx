@@ -45,7 +45,7 @@ export default function PaginaNuevaPasswordConductor() {
       const { error: errorAuth } = await cliente.auth.updateUser({ password });
       if (errorAuth) throw errorAuth;
       setListo(true);
-      setTimeout(() => router.push("/"), 2000);
+      setTimeout(() => router.push("/panel"), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No pudimos actualizar la contraseña.");
     } finally {
