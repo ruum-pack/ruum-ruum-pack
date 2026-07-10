@@ -121,6 +121,7 @@ export default function PaginaRegistroConductor() {
   const [erroresCampos, setErroresCampos] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [sesionActivaTrasRegistro, setSesionActivaTrasRegistro] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [advertenciaDocumentos, setAdvertenciaDocumentos] = useState<string | null>(null);
 
@@ -421,6 +422,7 @@ export default function PaginaRegistroConductor() {
       if (!datosAuth.user) throw new Error("No se pudo crear la cuenta. Intenta de nuevo.");
 
       if (datosAuth.session) {
+        setSesionActivaTrasRegistro(true);
         try {
           await cargarDocumentos(cliente);
         } catch {
@@ -470,7 +472,13 @@ export default function PaginaRegistroConductor() {
               Tu cuenta está pendiente de validación. Cuando la revisión esté completa, podrás consultar y aceptar viajes.
             </p>
             {advertenciaDocumentos && <div className="mt-5"><Aviso tono="info">{advertenciaDocumentos}</Aviso></div>}
-            <Button variant="secundario" className="mt-7" onClick={() => router.push("/login")}>Volver al acceso</Button>
+            <Button
+              variant="secundario"
+              className="mt-7"
+              onClick={() => router.push(sesionActivaTrasRegistro ? "/panel" : "/login")}
+            >
+              {sesionActivaTrasRegistro ? "Ver estado de mi solicitud" : "Volver al acceso"}
+            </Button>
           </div>
         ) : (
           <>

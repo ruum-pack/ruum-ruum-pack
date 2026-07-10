@@ -11,6 +11,7 @@ type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 type EmpresaRow = Database["public"]["Tables"]["empresas"]["Row"];
+type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
 type IncidenciaRow = Database["public"]["Tables"]["incidencias"]["Row"];
 type DisputaRow = Database["public"]["Tables"]["disputas"]["Row"];
 type ReclamoSeguroRow = Database["public"]["Tables"]["reclamos_seguro"]["Row"];
@@ -266,6 +267,108 @@ export async function validarDocumentoConductor(cliente: Cliente, conductorId: s
   await registrarEvento(cliente, "validacion_documentos", "admin", adminId, {
     conductor_id: conductorId,
     documentos_vigentes: aprobado
+  });
+}
+
+export interface DetalleConductorAdmin {
+  conductor: ConductorRow;
+  documentos: DocumentoConductorRow[];
+}
+
+/** Fase 2 — expediente completo de un conductor para la vista de revisión en panel-admin. */
+export async function obtenerDetalleConductorAdmin(cliente: Cliente, conductorId: string): Promise<DetalleConductorAdmin> {
+  const [conductor, documentos] = await Promise.all([
+    cliente.from("conductores").select("*").eq("id", conductorId).maybeSingle(),
+    cliente.from("documentos_conductor").select("*").eq("conductor_id", conductorId).order("creado_en", { ascending: false })
+  ]);
+
+  if (conductor.error) throw conductor.error;
+  if (documentos.error) throw documentos.error;
+  if (!conductor.data) throw new Error("No se encontró el conductor.");
+
+  return { conductor: conductor.data, documentos: documentos.data ?? [] };
+}
+
+const ESTADOS_DOCUMENTO_CONDUCTOR = ["pendiente", "en_revision", "aprobado", "rechazado", "vencido", "actualizacion"] as const;
+export type EstadoDocumentoConductor = (typeof ESTADOS_DOCUMENTO_CONDUCTOR)[number];
+
+/**
+ * Fase 2 — revisión granular por documento individual. Reemplaza el aprobar/rechazar
+ * en bloque de validarDocumentoConductor: cada documento (licencia frente, reverso,
+ * identificación) se aprueba o rechaza por separado, con motivo obligatorio si no pasa,
+ * para que el conductor sepa exactamente qué corregir sin reenviar todo el expediente.
+ */
+export async function revisarDocumentoConductorAdmin(
+  cliente: Cliente,
+  documentoId: string,
+  estado: EstadoDocumentoConductor,
+  notasAdmin?: string
+) {
+  if ((estado === "rechazado" || estado === "actualizacion") && !notasAdmin?.trim()) {
+    throw new Error("Indica un motivo para que el conductor sepa qué corregir.");
+  }
+
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+  const { data, error } = await cliente
+    .from("documentos_conductor")
+    .update({ estado, notas_admin: notasAdmin?.trim() || null })
+    .eq("id", documentoId)
+    .select("conductor_id, tipo")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new Error("No se encontró el documento.");
+
+  await registrarEvento(cliente, "validacion_documentos", "admin", adminId, {
+    conductor_id: data.conductor_id,
+    documento_id: documentoId,
+    tipo: data.tipo,
+    estado,
+    ...(notasAdmin?.trim() ? { motivo: notasAdmin.trim() } : {})
+  });
+}
+
+const DOCUMENTOS_REQUERIDOS_ACTIVACION = ["licencia_frente", "licencia_reverso", "identificacion_oficial"] as const;
+
+/**
+ * Fase 2 — activa a un conductor pendiente de verificación solo si sus 3 documentos
+ * obligatorios están aprobados. Es el paso que hoy no existe en la UI: sin esto, un
+ * conductor puede quedar aprobado documento por documento y aun así nunca pasar a "activo".
+ */
+export async function activarConductorAdmin(cliente: Cliente, conductorId: string) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+
+  const { data: documentos, error } = await cliente
+    .from("documentos_conductor")
+    .select("tipo, estado")
+    .eq("conductor_id", conductorId);
+
+  if (error) throw error;
+
+  const faltantes = DOCUMENTOS_REQUERIDOS_ACTIVACION.filter(
+    (tipoRequerido) => !documentos?.some((d) => d.tipo === tipoRequerido && d.estado === "aprobado")
+  );
+
+  if (faltantes.length > 0) {
+    throw new Error(`Faltan documentos aprobados para activar: ${faltantes.join(", ")}.`);
+  }
+
+  const { data: actualizado, error: errorUpdate } = await cliente
+    .from("conductores")
+    .update({ estado: "activo", documentos_vigentes: true })
+    .eq("id", conductorId)
+    .eq("estado", "pendiente_verificacion")
+    .select("id")
+    .maybeSingle();
+
+  if (errorUpdate) throw errorUpdate;
+  if (!actualizado) {
+    throw new Error("El conductor ya no está en estado 'pendiente de validación'; no se activó de nuevo.");
+  }
+
+  await registrarEvento(cliente, "verificacion_cuenta", "admin", adminId, {
+    conductor_id: conductorId,
+    accion: "activacion_conductor"
   });
 }
 

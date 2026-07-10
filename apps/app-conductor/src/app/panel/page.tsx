@@ -13,13 +13,16 @@ import {
   listarViajesAceptados,
   listarViajesDisponibles,
   obtenerDisponibilidadConductor,
-  obtenerConductorActual
+  obtenerConductorActual,
+  obtenerConfiguracionConductor
 } from "@ruum/api/services";
 import { RegistroViajeActivo, viajePermiteFabEmergencia } from "../ViajeActivoContext";
 import { ConfirmarDisponibilidad } from "../ConfirmarDisponibilidad";
+import { EstadoRevisionConductor } from "./EstadoRevisionConductor";
 
 type Disponibilidad = "disponible" | "no_disponible" | "en_viaje";
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
+type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
 
 const ESTADOS_DISPONIBILIDAD: Record<Disponibilidad, { etiqueta: string; descripcion: string }> = {
   disponible: {
@@ -78,6 +81,7 @@ export default function PaginaPanel() {
   const [conductor, setConductor] = useState<Conductor | null>(null);
   const [viajesAceptados, setViajesAceptados] = useState<PasaporteRow[]>([]);
   const [viajesDisponibles, setViajesDisponibles] = useState<PasaporteRow[]>([]);
+  const [documentosRevision, setDocumentosRevision] = useState<DocumentoConductorRow[]>([]);
   const ultimoTriggerDisponibilidadRef = useRef(0);
 
   useEffect(() => {
@@ -103,6 +107,13 @@ export default function PaginaPanel() {
           incidencias_graves_12m: real.incidencias_graves_12m,
           creado_en: real.creado_en
         });
+
+        if (real.estado === "pendiente_verificacion") {
+          // Cuenta aún en revisión: no tiene viajes que consultar todavía.
+          const configuracion = await obtenerConfiguracionConductor(cliente, real.id);
+          setDocumentosRevision(configuracion.documentos);
+          return;
+        }
 
         const [aceptados, disponibles, disponibilidadOperativa] = await Promise.all([
           listarViajesAceptados(cliente, real.id),
@@ -222,6 +233,17 @@ export default function PaginaPanel() {
     await cliente.auth.signOut();
     router.push("/onboarding");
     router.refresh();
+  }
+
+  if (conductor?.estado === "pendiente_verificacion") {
+    return (
+      <EstadoRevisionConductor
+        conductorId={conductor.id}
+        nombre={conductor.nombre}
+        documentosIniciales={documentosRevision}
+        onSalir={cerrarSesion}
+      />
+    );
   }
 
   return (
