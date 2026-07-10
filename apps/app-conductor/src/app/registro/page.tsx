@@ -67,6 +67,15 @@ function terminosAceptadosEn() {
   return new Date().toISOString();
 }
 
+const DIAS_ADVERTENCIA_VIGENCIA = 30;
+
+function diasParaVencer(fechaIso: string) {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const vencimiento = new Date(`${fechaIso}T00:00:00`);
+  return Math.round((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 function estadoInicialDocumentos(): Record<DocumentoKey, EstadoDocumento> {
   return {
     licenciaFrente: "pendiente",
@@ -164,6 +173,14 @@ export default function PaginaRegistroConductor() {
     return setCampoError(campo, documentos[campo] ? "" : "Carga este documento");
   }
 
+  function validarVigenciaLicencia(valor = vigenciaLicencia) {
+    if (!valor) return setCampoError("vigenciaLicencia", "Indica la vigencia de tu licencia");
+    if (diasParaVencer(valor) < 0) {
+      return setCampoError("vigenciaLicencia", "Tu licencia está vencida. Necesitas una licencia vigente para registrarte.");
+    }
+    return setCampoError("vigenciaLicencia", "");
+  }
+
   async function buscarCodigoPostal(cp: string) {
     setConsultandoCp(true);
     setCampoError("codigoPostal", "");
@@ -215,7 +232,7 @@ export default function PaginaRegistroConductor() {
       return [
         validarTexto("numeroLicencia", numeroLicencia, "Escribe tu número de licencia"),
         validarTexto("tipoLicencia", tipoLicencia, "Selecciona o escribe el tipo de licencia"),
-        setCampoError("vigenciaLicencia", vigenciaLicencia ? "" : "Indica la vigencia de tu licencia"),
+        validarVigenciaLicencia(),
         validarDocumento("licenciaFrente"),
         validarDocumento("licenciaReverso"),
         validarDocumento("identificacionOficial")
@@ -587,13 +604,18 @@ export default function PaginaRegistroConductor() {
                   <Field etiqueta="Número de licencia" value={numeroLicencia} onChange={(e) => { setNumeroLicencia(e.target.value); limpiarErrorCampo("numeroLicencia"); }} error={erroresCampos.numeroLicencia || undefined} required />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <SelectField etiqueta="Tipo de licencia" value={tipoLicencia} onChange={(valor) => { setTipoLicencia(valor); limpiarErrorCampo("tipoLicencia"); }} error={erroresCampos.tipoLicencia || undefined} required placeholder="Selecciona el tipo de licencia" opciones={TIPOS_LICENCIA} />
-                    <Field etiqueta="Vigencia" type="date" value={vigenciaLicencia} onChange={(e) => { setVigenciaLicencia(e.target.value); limpiarErrorCampo("vigenciaLicencia"); }} error={erroresCampos.vigenciaLicencia || undefined} required />
+                    <Field etiqueta="Vigencia" type="date" value={vigenciaLicencia} onChange={(e) => { setVigenciaLicencia(e.target.value); limpiarErrorCampo("vigenciaLicencia"); }} onBlur={() => validarVigenciaLicencia()} error={erroresCampos.vigenciaLicencia || undefined} required />
                   </div>
-                  <Field etiqueta="Foto de tu licencia (frente)" type="file" accept="image/*,.pdf" onChange={(e) => cambiarDocumento("licenciaFrente", e)} error={erroresCampos.licenciaFrente || undefined} required />
+                  {vigenciaLicencia && !erroresCampos.vigenciaLicencia && diasParaVencer(vigenciaLicencia) >= 0 && diasParaVencer(vigenciaLicencia) <= DIAS_ADVERTENCIA_VIGENCIA && (
+                    <Aviso tono="atencion">
+                      Tu licencia vence en {diasParaVencer(vigenciaLicencia)} día{diasParaVencer(vigenciaLicencia) === 1 ? "" : "s"}. Puedes continuar, pero procura renovarla pronto para no perder actividad.
+                    </Aviso>
+                  )}
+                  <Field etiqueta="Foto de tu licencia (frente)" type="file" accept="image/*,.pdf" capture="environment" onChange={(e) => cambiarDocumento("licenciaFrente", e)} error={erroresCampos.licenciaFrente || undefined} required />
                   <EstadoArchivo estado={estadoDocumentos.licenciaFrente} archivo={documentos.licenciaFrente} />
-                  <Field etiqueta="Foto de tu licencia (reverso)" type="file" accept="image/*,.pdf" onChange={(e) => cambiarDocumento("licenciaReverso", e)} error={erroresCampos.licenciaReverso || undefined} required />
+                  <Field etiqueta="Foto de tu licencia (reverso)" type="file" accept="image/*,.pdf" capture="environment" onChange={(e) => cambiarDocumento("licenciaReverso", e)} error={erroresCampos.licenciaReverso || undefined} required />
                   <EstadoArchivo estado={estadoDocumentos.licenciaReverso} archivo={documentos.licenciaReverso} />
-                  <Field etiqueta="Foto de tu Identificación oficial (INE/pasaporte)" type="file" accept="image/*,.pdf" onChange={(e) => cambiarDocumento("identificacionOficial", e)} error={erroresCampos.identificacionOficial || undefined} required />
+                  <Field etiqueta="Foto de tu Identificación oficial (INE/pasaporte)" type="file" accept="image/*,.pdf" capture="environment" onChange={(e) => cambiarDocumento("identificacionOficial", e)} error={erroresCampos.identificacionOficial || undefined} required />
                   <EstadoArchivo estado={estadoDocumentos.identificacionOficial} archivo={documentos.identificacionOficial} />
                 </fieldset>
               )}
@@ -630,7 +652,17 @@ export default function PaginaRegistroConductor() {
                   </div>
                   <label className="flex gap-3 rounded-xl border border-route-dark/20 bg-route-soft p-4 font-body text-sm leading-6 text-ink/75">
                     <input type="checkbox" checked={aceptaLegales} onChange={(e) => { setAceptaLegales(e.target.checked); limpiarErrorCampo("aceptaLegales"); }} className="mt-1 size-4 accent-route-dark" />
-                    <span>He leído y acepto los términos y condiciones y el aviso de privacidad de ruum ruum by Movilia.</span>
+                    <span>
+                      He leído y acepto los{" "}
+                      <a href="/legal/terminos" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-route-dark underline underline-offset-2 hover:no-underline">
+                        términos y condiciones
+                      </a>{" "}
+                      y el{" "}
+                      <a href="/legal/privacidad" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-route-dark underline underline-offset-2 hover:no-underline">
+                        aviso de privacidad
+                      </a>{" "}
+                      de ruum ruum by Movilia.
+                    </span>
                   </label>
                   {erroresCampos.aceptaLegales && <p className="font-body text-xs font-medium text-danger">{erroresCampos.aceptaLegales}</p>}
                 </fieldset>
