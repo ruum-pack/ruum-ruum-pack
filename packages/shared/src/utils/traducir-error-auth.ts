@@ -10,16 +10,6 @@ const MENSAJES_AUTH = {
   over_request_rate_limit: "Demasiados intentos. Espera unos minutos y vuelve a probar."
 } as const;
 
-// Mensajes emitidos a propósito por manejar_nuevo_usuario_auth() (ver
-// supabase/migrations/20260710000053_conductores_unicidad_mensaje.sql)
-// cuando el registro de conductor choca con un índice único existente.
-const MENSAJES_DUPLICADO_CONDUCTOR: Record<string, string> = {
-  curp: "Ya existe una cuenta de conductor registrada con esta CURP.",
-  telefono: "Ya existe una cuenta de conductor registrada con este teléfono.",
-  licencia: "Ya existe una cuenta de conductor registrada con este número de licencia.",
-  desconocido: "Ya existe una cuenta de conductor con alguno de estos datos. Verifica CURP, teléfono y número de licencia."
-};
-
 type CodigoAuth = keyof typeof MENSAJES_AUTH;
 
 const FRAGMENTOS_AUTH: Array<[string, string]> = [
@@ -42,12 +32,6 @@ export function traducirErrorAuth(error: unknown, respaldo = "No pudimos iniciar
 
   const message = typeof posible.message === "string" ? posible.message : "";
   const normalizado = message.toLowerCase();
-
-  const duplicado = normalizado.match(/conductor_duplicado:(\w+)/);
-  if (duplicado) {
-    return MENSAJES_DUPLICADO_CONDUCTOR[duplicado[1]] ?? MENSAJES_DUPLICADO_CONDUCTOR.desconocido;
-  }
-
   const coincidencia = FRAGMENTOS_AUTH.find(([fragmento]) => normalizado.includes(fragmento));
   return coincidencia?.[1] ?? respaldo;
 }

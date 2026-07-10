@@ -61,11 +61,7 @@ function esActivo(pathname: string, href: string) {
 /** Navegación consistente para la operación del conductor. */
 export function NavegacionConductor() {
   const pathname = usePathname();
-  const esAcceso =
-    pathname === "/login" ||
-    pathname === "/registro" ||
-    pathname === "/onboarding" ||
-    pathname.startsWith("/legal/");
+  const esAcceso = pathname === "/login" || pathname === "/registro" || pathname === "/onboarding";
 
   if (esAcceso) return null;
 

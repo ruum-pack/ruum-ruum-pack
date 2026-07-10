@@ -2,7 +2,6 @@
 
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { ETIQUETA_NIVEL_CONCER } from "@ruum/shared/constants";
 import { Aviso, Button } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
@@ -192,16 +191,7 @@ useEffect(() => {
             ) : (
               conductoresFiltrados.map((c) => (
                 <tr key={c.id} className="border-b border-ink/5 last:border-0">
-                  <td className="px-4 py-3 font-medium">
-                    <Link href={`/conductores/${c.id}`} className="text-route-dark underline-offset-2 hover:underline">
-                      {c.nombre}
-                    </Link>
-                    {c.estado === "pendiente_verificacion" && (
-                      <span className="ml-2 rounded-full border border-warn/35 bg-warn-soft px-2 py-0.5 font-body text-[10px] font-medium text-warn">
-                        Pendiente de revisión
-                      </span>
-                    )}
-                  </td>
+                  <td className="px-4 py-3 font-medium">{c.nombre}</td>
                   <td className="px-4 py-3">{ETIQUETA_NIVEL_CONCER[c.nivel_operativo_vigente]}</td>
                   <td className="px-4 py-3 font-mono-ruum">{c.calificacion_promedio || "—"}</td>
                   <td className="px-4 py-3 font-mono-ruum">{c.traslados_completados}</td>
