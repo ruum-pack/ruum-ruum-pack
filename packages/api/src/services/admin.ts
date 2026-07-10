@@ -269,6 +269,106 @@ export async function validarDocumentoConductor(cliente: Cliente, conductorId: s
   });
 }
 
+type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
+
+/** Estados posibles de un documento individual del expediente del conductor. */
+export type EstadoDocumentoConductor = "pendiente" | "en_revision" | "aprobado" | "rechazado" | "vencido" | "actualizacion";
+
+const DOCUMENTOS_OBLIGATORIOS_CONDUCTOR = ["licencia_frente", "licencia_reverso", "identificacion_oficial"] as const;
+
+/** Fase 2 — expediente completo (conductor + documentos) para la vista de detalle del panel admin. */
+export async function obtenerDetalleConductorAdmin(
+  cliente: Cliente,
+  conductorId: string
+): Promise<{ conductor: ConductorRow; documentos: DocumentoConductorRow[] }> {
+  const [conductor, documentos] = await Promise.all([
+    cliente.from("conductores").select("*").eq("id", conductorId).single(),
+    cliente
+      .from("documentos_conductor")
+      .select("*")
+      .eq("conductor_id", conductorId)
+      .order("creado_en", { ascending: false })
+  ]);
+
+  if (conductor.error) throw conductor.error;
+  if (documentos.error) throw documentos.error;
+
+  return { conductor: conductor.data, documentos: documentos.data ?? [] };
+}
+
+/**
+ * Fase 2 — revisión granular por documento. Exige motivo cuando el resultado
+ * no es "aprobado" (el conductor necesita saber qué corregir). Audita cada acción.
+ */
+export async function revisarDocumentoConductorAdmin(
+  cliente: Cliente,
+  documentoId: string,
+  estado: EstadoDocumentoConductor,
+  notas?: string
+) {
+  const motivo = notas?.trim() ?? "";
+  if (estado !== "aprobado" && motivo.length < 5) {
+    throw new Error("Escribe un motivo para el conductor (mínimo 5 caracteres).");
+  }
+
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+
+  const { data, error } = await cliente
+    .from("documentos_conductor")
+    .update({
+      estado,
+      notas_admin: estado === "aprobado" ? null : motivo,
+      actualizado_en: new Date().toISOString()
+    })
+    .eq("id", documentoId)
+    .select("conductor_id, tipo")
+    .single();
+
+  if (error) throw error;
+
+  await registrarEvento(cliente, "validacion_documentos", "admin", adminId, {
+    documento_id: documentoId,
+    conductor_id: data.conductor_id,
+    tipo: data.tipo,
+    estado,
+    ...(motivo ? { motivo } : {})
+  });
+}
+
+/**
+ * Fase 2 — activación de conductor. Valida en backend (no solo en UI) que los
+ * 3 documentos obligatorios estén aprobados y que el conductor siga en
+ * pendiente_verificacion; si no, lanza error explícito.
+ */
+export async function activarConductorAdmin(cliente: Cliente, conductorId: string) {
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+  const { conductor, documentos } = await obtenerDetalleConductorAdmin(cliente, conductorId);
+
+  if (conductor.estado !== "pendiente_verificacion") {
+    throw new Error("Este conductor ya no está en revisión inicial; no se puede activar desde aquí.");
+  }
+
+  const faltantes = DOCUMENTOS_OBLIGATORIOS_CONDUCTOR.filter(
+    (tipo) => !documentos.some((d) => d.tipo === tipo && d.estado === "aprobado")
+  );
+  if (faltantes.length > 0) {
+    throw new Error(`Aún no se puede activar: faltan documentos aprobados (${faltantes.join(", ")}).`);
+  }
+
+  const { error } = await cliente
+    .from("conductores")
+    .update({ estado: "activo", documentos_vigentes: true })
+    .eq("id", conductorId)
+    .eq("estado", "pendiente_verificacion");
+
+  if (error) throw error;
+
+  await registrarEvento(cliente, "verificacion_cuenta", "admin", adminId, {
+    conductor_id: conductorId,
+    accion: "activacion_conductor"
+  });
+}
+
 export async function validarDocumentoEmpresa(
   cliente: Cliente,
   empresaId: string,

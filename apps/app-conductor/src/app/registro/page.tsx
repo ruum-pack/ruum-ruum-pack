@@ -7,6 +7,11 @@ import { useRouter } from "next/navigation";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { traducirErrorAuth, fortalezaPassword } from "@ruum/shared/utils";
+import {
+  diasParaVencerLicencia,
+  validarCampoRegistroConductor,
+  type CampoRegistroConductor
+} from "@ruum/shared/validacion";
 import { obtenerConductorActual, subirDocumentoConductor } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
@@ -75,12 +80,66 @@ function terminosAceptadosEn() {
 
 const DIAS_ADVERTENCIA_VIGENCIA = 30;
 
-function diasParaVencer(fechaIso: string) {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const vencimiento = new Date(`${fechaIso}T00:00:00`);
-  return Math.round((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+/**
+ * Fase 4 — borrador NO sensible del wizard.
+ * Se guardan solo datos de bajo riesgo para retomar el registro si la app se
+ * cierra a medio camino. Excluidos deliberadamente: contraseña, CURP y los
+ * archivos de documentos (los File no sobreviven un reinicio y la contraseña
+ * y la CURP no deben tocar el almacenamiento local del dispositivo).
+ */
+const CLAVE_BORRADOR = "ruumruum.registro-conductor.borrador.v1";
+const RETRASO_GUARDADO_BORRADOR_MS = 600;
+
+interface BorradorRegistro {
+  paso: number;
+  nombre: string;
+  apellidos: string;
+  telefono: string;
+  email: string;
+  codigoPostal: string;
+  estado: string;
+  ciudad: string;
+  colonia: string;
+  calle: string;
+  numero: string;
+  referencias: string;
+  numeroLicencia: string;
+  tipoLicencia: string;
+  vigenciaLicencia: string;
+  contactoEmergenciaNombre: string;
+  contactoEmergenciaTelefono: string;
+  guardadoEn: string;
 }
+
+function leerBorrador(): BorradorRegistro | null {
+  try {
+    const crudo = window.localStorage.getItem(CLAVE_BORRADOR);
+    if (!crudo) return null;
+    const borrador = JSON.parse(crudo) as BorradorRegistro;
+    const tieneContenido = [
+      borrador.nombre,
+      borrador.apellidos,
+      borrador.telefono,
+      borrador.email,
+      borrador.codigoPostal,
+      borrador.numeroLicencia
+    ].some((valor) => typeof valor === "string" && valor.trim().length > 0);
+    return tieneContenido ? borrador : null;
+  } catch {
+    return null;
+  }
+}
+
+function limpiarBorradorGuardado() {
+  try {
+    window.localStorage.removeItem(CLAVE_BORRADOR);
+  } catch {
+    // Almacenamiento no disponible (modo privado, etc.): no hay nada que limpiar.
+  }
+}
+
+const CODIGO_OTP_LONGITUD = 6;
+const ESPERA_REENVIO_OTP_SEGUNDOS = 60;
 
 function estadoInicialDocumentos(): Record<DocumentoKey, EstadoDocumento> {
   return {
@@ -131,6 +190,17 @@ export default function PaginaRegistroConductor() {
   const [error, setError] = useState<string | null>(null);
   const [advertenciaDocumentos, setAdvertenciaDocumentos] = useState<string | null>(null);
 
+  // Fase 4 — verificación por código (OTP) cuando Supabase exige confirmar el correo.
+  const [pendienteOtp, setPendienteOtp] = useState(false);
+  const [codigoOtp, setCodigoOtp] = useState("");
+  const [verificandoOtp, setVerificandoOtp] = useState(false);
+  const [errorOtp, setErrorOtp] = useState<string | null>(null);
+  const [reenviandoOtp, setReenviandoOtp] = useState(false);
+  const [esperaReenvioOtp, setEsperaReenvioOtp] = useState(0);
+
+  // Fase 4 — borrador no sensible.
+  const [borradorDisponible, setBorradorDisponible] = useState<BorradorRegistro | null>(null);
+
   const nombreCompleto = useMemo(() => limpiarTexto(`${nombre} ${apellidos}`), [nombre, apellidos]);
   const fuerzaPassword = useMemo(() => fortalezaPassword(password), [password]);
   const tieneErroresActivos = Object.values(erroresCampos).some(Boolean);
@@ -145,30 +215,24 @@ export default function PaginaRegistroConductor() {
     if (erroresCampos[campo]) setErroresCampos((prev) => ({ ...prev, [campo]: "" }));
   }
 
-  function validarTexto(campo: string, valor: string, mensaje: string, min = 2) {
-    return setCampoError(campo, limpiarTexto(valor).length < min ? mensaje : "");
+  // Fase 4 — las reglas y mensajes viven en @ruum/shared/validacion (una sola
+  // fuente para app-conductor, panel-admin y backend).
+  function validarCampo(campo: CampoRegistroConductor, valor: string) {
+    return setCampoError(campo, validarCampoRegistroConductor(campo, valor));
   }
 
   function validarCurp(valor = curp) {
-    return setCampoError("curp", /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/i.test(valor.trim()) ? "" : "Escribe una CURP válida de 18 caracteres");
+    return validarCampo("curp", valor);
   }
 
-  function validarTelefono(campo: string, valor: string, setter: (valor: string) => void) {
+  function validarTelefono(campo: "telefono" | "contactoEmergenciaTelefono", valor: string, setter: (valor: string) => void) {
     const normalizado = soloDigitos(valor);
     if (normalizado !== valor) setter(normalizado);
-    return setCampoError(campo, normalizado.length === 10 ? "" : "Escribe un teléfono nacional de 10 dígitos");
+    return validarCampo(campo, normalizado);
   }
 
   function validarPassword(valor = password) {
-    if (valor.length < 8) {
-      return setCampoError("password", "La contraseña debe tener al menos 8 caracteres.");
-    }
-    // Rechaza contraseñas débiles (solo longitud, sin número ni mayúscula).
-    // Mismo criterio que app-usuario/registro y ambas pantallas nueva-password.
-    if (fortalezaPassword(valor).nivel < 2) {
-      return setCampoError("password", "Refuérzala: agrega un número o una mayúscula.");
-    }
-    return setCampoError("password", "");
+    return validarCampo("password", valor);
   }
 
   function validarConfirmacion(valor = confirmacionPassword, base = password) {
@@ -181,11 +245,7 @@ export default function PaginaRegistroConductor() {
   }
 
   function validarVigenciaLicencia(valor = vigenciaLicencia) {
-    if (!valor) return setCampoError("vigenciaLicencia", "Indica la vigencia de tu licencia");
-    if (diasParaVencer(valor) < 0) {
-      return setCampoError("vigenciaLicencia", "Tu licencia está vencida. Necesitas una licencia vigente para registrarte.");
-    }
-    return setCampoError("vigenciaLicencia", "");
+    return validarCampo("vigenciaLicencia", valor);
   }
 
   async function buscarCodigoPostal(cp: string) {
@@ -215,30 +275,30 @@ export default function PaginaRegistroConductor() {
   function validarPaso(indice = paso) {
     if (indice === 0) {
       return [
-        validarTexto("nombre", nombre, "Escribe tu nombre como aparece en tu identificación oficial"),
-        validarTexto("apellidos", apellidos, "Escribe tus apellidos como aparecen en tu identificación oficial"),
+        validarCampo("nombre", nombre),
+        validarCampo("apellidos", apellidos),
         validarCurp(),
         validarTelefono("telefono", telefono, setTelefono),
-        setCampoError("email", /^\S+@\S+\.\S+$/.test(email.trim()) ? "" : "Escribe un correo electrónico válido"),
+        validarCampo("email", email),
         validarPassword(),
         validarConfirmacion()
       ].every(Boolean);
     }
     if (indice === 1) {
       return [
-        validarTexto("codigoPostal", codigoPostal, "Escribe tu código postal", 5),
-        validarTexto("estado", estado, "Escribe tu estado"),
-        validarTexto("ciudad", ciudad, "Escribe tu ciudad o municipio"),
-        validarTexto("colonia", colonia, "Escribe tu colonia"),
-        validarTexto("calle", calle, "Escribe tu calle"),
-        validarTexto("numero", numero, "Escribe el número de tu domicilio", 1),
-        validarTexto("referencias", referencias, "Agrega una referencia breve")
+        validarCampo("codigoPostal", codigoPostal),
+        validarCampo("estado", estado),
+        validarCampo("ciudad", ciudad),
+        validarCampo("colonia", colonia),
+        validarCampo("calle", calle),
+        validarCampo("numero", numero),
+        validarCampo("referencias", referencias)
       ].every(Boolean);
     }
     if (indice === 2) {
       return [
-        validarTexto("numeroLicencia", numeroLicencia, "Escribe tu número de licencia"),
-        validarTexto("tipoLicencia", tipoLicencia, "Selecciona o escribe el tipo de licencia"),
+        validarCampo("numeroLicencia", numeroLicencia),
+        validarCampo("tipoLicencia", tipoLicencia),
         validarVigenciaLicencia(),
         validarDocumento("licenciaFrente"),
         validarDocumento("licenciaReverso"),
@@ -249,7 +309,7 @@ export default function PaginaRegistroConductor() {
       return [
         setCampoError("autorizaVerificacion", autorizaVerificacion ? "" : "Debes autorizar la verificación de antecedentes"),
         setCampoError("declaraSinSuspensiones", declaraSinSuspensiones ? "" : "Debes confirmar esta declaración"),
-        validarTexto("contactoEmergenciaNombre", contactoEmergenciaNombre, "Escribe el nombre del contacto"),
+        validarCampo("contactoEmergenciaNombre", contactoEmergenciaNombre),
         validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono)
       ].every(Boolean);
     }
@@ -458,16 +518,176 @@ export default function PaginaRegistroConductor() {
               : "La cuenta se creó, pero no pudimos subir todos los documentos. Podrás cargarlos desde Configuración."
           );
         }
+        limpiarBorradorGuardado();
+        setEnviado(true);
       } else {
-        setAdvertenciaDocumentos("Confirma tu correo para iniciar sesión y cargar los documentos desde Configuración.");
+        // Fase 4 — la cuenta requiere confirmar el correo. En vez de mandar al
+        // conductor a su bandeja (y perderlo), pedimos aquí mismo el código de
+        // 6 dígitos que Supabase incluye en el correo de confirmación.
+        setEsperaReenvioOtp(ESPERA_REENVIO_OTP_SEGUNDOS);
+        setPendienteOtp(true);
       }
-
-      setEnviado(true);
     } catch (err) {
       setError(traducirErrorAuth(err));
     } finally {
       setEnviando(false);
     }
+  }
+
+  /**
+   * Fase 4 — verifica el código de 6 dígitos del correo de confirmación.
+   * Al validarse queda sesión activa, así que aprovechamos para subir los
+   * documentos en ese mismo momento (el flujo original los perdía hasta
+   * que el conductor entrara a Configuración).
+   */
+  async function confirmarCodigoOtp(e: FormEvent) {
+    e.preventDefault();
+    const codigo = codigoOtp.trim();
+    if (!new RegExp(`^\\d{${CODIGO_OTP_LONGITUD}}$`).test(codigo)) {
+      setErrorOtp(`Escribe el código de ${CODIGO_OTP_LONGITUD} dígitos que enviamos a tu correo.`);
+      return;
+    }
+
+    setVerificandoOtp(true);
+    setErrorOtp(null);
+    try {
+      const cliente = crearClienteNavegador();
+      const { data, error: errorVerificacion } = await cliente.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: codigo,
+        type: "signup"
+      });
+      if (errorVerificacion) throw errorVerificacion;
+      if (!data.session) throw new Error("El código se validó pero no pudimos iniciar tu sesión. Entra desde el acceso.");
+
+      setSesionActivaTrasRegistro(true);
+      try {
+        await cargarDocumentos(cliente);
+      } catch (errorDocumentos) {
+        setAdvertenciaDocumentos(
+          errorDocumentos instanceof Error
+            ? errorDocumentos.message
+            : "Tu cuenta quedó activa, pero no pudimos subir todos los documentos. Podrás cargarlos desde Configuración."
+        );
+      }
+      limpiarBorradorGuardado();
+      setPendienteOtp(false);
+      setEnviado(true);
+    } catch (err) {
+      setErrorOtp(traducirErrorAuth(err));
+    } finally {
+      setVerificandoOtp(false);
+    }
+  }
+
+  async function reenviarCodigoOtp() {
+    if (esperaReenvioOtp > 0 || reenviandoOtp) return;
+    setReenviandoOtp(true);
+    setErrorOtp(null);
+    try {
+      const cliente = crearClienteNavegador();
+      const { error: errorReenvio } = await cliente.auth.resend({
+        type: "signup",
+        email: email.trim().toLowerCase()
+      });
+      if (errorReenvio) throw errorReenvio;
+      setEsperaReenvioOtp(ESPERA_REENVIO_OTP_SEGUNDOS);
+    } catch (err) {
+      setErrorOtp(traducirErrorAuth(err));
+    } finally {
+      setReenviandoOtp(false);
+    }
+  }
+
+  // Cooldown del botón de reenvío.
+  useEffect(() => {
+    if (!pendienteOtp || esperaReenvioOtp <= 0) return;
+    const intervalo = setInterval(() => setEsperaReenvioOtp((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(intervalo);
+  }, [pendienteOtp, esperaReenvioOtp]);
+
+  // Fase 4 — detectar borrador guardado al montar.
+  useEffect(() => {
+    const timer = setTimeout(() => setBorradorDisponible(leerBorrador()), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Fase 4 — autoguardado del borrador (solo campos no sensibles) con debounce.
+  useEffect(() => {
+    if (enviado || pendienteOtp) return;
+    const hayContenido = [nombre, apellidos, telefono, email, codigoPostal, numeroLicencia].some((v) => v.trim());
+    if (!hayContenido) return;
+
+    const timer = setTimeout(() => {
+      const borrador: BorradorRegistro = {
+        paso,
+        nombre,
+        apellidos,
+        telefono,
+        email,
+        codigoPostal,
+        estado,
+        ciudad,
+        colonia,
+        calle,
+        numero,
+        referencias,
+        numeroLicencia,
+        tipoLicencia,
+        vigenciaLicencia,
+        contactoEmergenciaNombre,
+        contactoEmergenciaTelefono,
+        guardadoEn: new Date().toISOString()
+      };
+      try {
+        window.localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(borrador));
+      } catch {
+        // Sin almacenamiento disponible: el registro sigue funcionando, solo sin borrador.
+      }
+    }, RETRASO_GUARDADO_BORRADOR_MS);
+
+    return () => clearTimeout(timer);
+  }, [
+    enviado, pendienteOtp, paso, nombre, apellidos, telefono, email, codigoPostal, estado, ciudad,
+    colonia, calle, numero, referencias, numeroLicencia, tipoLicencia, vigenciaLicencia,
+    contactoEmergenciaNombre, contactoEmergenciaTelefono
+  ]);
+
+  function restaurarBorrador() {
+    const borrador = borradorDisponible;
+    if (!borrador) return;
+
+    setNombre(borrador.nombre ?? "");
+    setApellidos(borrador.apellidos ?? "");
+    setTelefono(soloDigitos(borrador.telefono ?? ""));
+    setEmail(borrador.email ?? "");
+    setCodigoPostal(soloDigitos(borrador.codigoPostal ?? "", 5));
+    setEstado(borrador.estado ?? "");
+    setCiudad(borrador.ciudad ?? "");
+    setColonia(borrador.colonia ?? "");
+    setCalle(borrador.calle ?? "");
+    setNumero(borrador.numero ?? "");
+    setReferencias(borrador.referencias ?? "");
+    setNumeroLicencia(borrador.numeroLicencia ?? "");
+    setTipoLicencia(borrador.tipoLicencia ?? "");
+    setVigenciaLicencia(borrador.vigenciaLicencia ?? "");
+    setContactoEmergenciaNombre(borrador.contactoEmergenciaNombre ?? "");
+    setContactoEmergenciaTelefono(soloDigitos(borrador.contactoEmergenciaTelefono ?? ""));
+
+    // Las fotos, la CURP y la contraseña no se guardan en el borrador, así que
+    // regresamos al paso 0: ahí se recapturan los dos campos sensibles y el
+    // resto del recorrido ya va prellenado (evita el rebote al final del envío).
+    setPaso(0);
+    setBorradorDisponible(null);
+
+    // Repoblar los selects de ciudad/colonia que dependen del CP.
+    const cp = soloDigitos(borrador.codigoPostal ?? "", 5);
+    if (cp.length === 5) void buscarCodigoPostal(cp);
+  }
+
+  function descartarBorrador() {
+    limpiarBorradorGuardado();
+    setBorradorDisponible(null);
   }
 
   return (
@@ -494,7 +714,62 @@ export default function PaginaRegistroConductor() {
           </div>
         </div>
 
-        {enviado ? (
+        {pendienteOtp ? (
+          <div className="py-4">
+            <h1 id="titulo-registro-conductor" className="mt-4 font-display text-2xl font-bold text-ink">
+              Confirma tu correo
+            </h1>
+            <p className="mt-3 font-body text-sm leading-6 text-ink/65">
+              Enviamos un código de {CODIGO_OTP_LONGITUD} dígitos a{" "}
+              <span className="font-semibold text-ink">{email.trim().toLowerCase()}</span>. Escríbelo aquí para
+              activar tu cuenta y subir tus documentos sin salir de la app.
+            </p>
+
+            <form className="mt-6 grid gap-4" onSubmit={confirmarCodigoOtp}>
+              <Field
+                etiqueta="Código de verificación"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={CODIGO_OTP_LONGITUD}
+                value={codigoOtp}
+                onChange={(e) => {
+                  setCodigoOtp(soloDigitos(e.target.value, CODIGO_OTP_LONGITUD));
+                  if (errorOtp) setErrorOtp(null);
+                }}
+                ayuda="Revisa también tu carpeta de spam o promociones."
+                required
+              />
+
+              {errorOtp && <Aviso tono="peligro">{errorOtp}</Aviso>}
+
+              <Button type="submit" loading={verificandoOtp} disabled={verificandoOtp || codigoOtp.length !== CODIGO_OTP_LONGITUD}>
+                {verificandoOtp ? "Verificando…" : "Confirmar y activar"}
+              </Button>
+
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => void reenviarCodigoOtp()}
+                  disabled={esperaReenvioOtp > 0 || reenviandoOtp}
+                  className="font-body text-sm font-semibold text-route-dark hover:underline disabled:cursor-not-allowed disabled:text-ink/35 disabled:no-underline"
+                >
+                  {reenviandoOtp
+                    ? "Reenviando…"
+                    : esperaReenvioOtp > 0
+                      ? `Reenviar código (${esperaReenvioOtp}s)`
+                      : "Reenviar código"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/login")}
+                  className="font-body text-sm text-ink/55 hover:text-ink hover:underline"
+                >
+                  Ya confirmé desde el enlace del correo
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : enviado ? (
           <div className="py-8 text-center">
             <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-control-soft font-display text-xl font-bold text-control" aria-hidden>✓</div>
             <h1 id="titulo-registro-conductor" className="mt-5 font-display text-2xl font-bold">Solicitud en revisión</h1>
@@ -516,6 +791,20 @@ export default function PaginaRegistroConductor() {
             <p className="mt-2 font-body text-sm leading-6 text-ink/65">
               Completa los cinco pasos para enviar tu solicitud a ruum ruum by Movilia.
             </p>
+
+            {borradorDisponible && (
+              <div className="mt-5 rounded-xl border border-route/25 bg-route-soft p-4">
+                <p className="font-body text-sm font-semibold text-ink">Encontramos un registro sin terminar</p>
+                <p className="mt-1 font-body text-xs leading-5 text-ink/65">
+                  Guardado el {new Date(borradorDisponible.guardadoEn).toLocaleString("es-MX")}. Por tu seguridad no
+                  guardamos tu CURP, contraseña ni fotos: esas se vuelven a capturar.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button type="button" onClick={restaurarBorrador}>Continuar donde iba</Button>
+                  <Button type="button" variant="fantasma" onClick={descartarBorrador}>Empezar de cero</Button>
+                </div>
+              </div>
+            )}
 
             <div className="mt-6 grid grid-cols-5 gap-2" aria-label="Progreso de registro">
               {PASOS.map((titulo, indice) => (
@@ -547,12 +836,12 @@ export default function PaginaRegistroConductor() {
                 <fieldset className="grid gap-4">
                   <legend className="font-display text-xl font-bold text-ink">Vamos a conocerte</legend>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field etiqueta="Nombre (s)" value={nombre} onChange={(e) => { setNombre(e.target.value); limpiarErrorCampo("nombre"); }} onBlur={() => validarTexto("nombre", nombre, "Escribe tu nombre como aparece en tu identificación oficial")} error={erroresCampos.nombre || undefined} required autoComplete="given-name" />
-                    <Field etiqueta="Apellido (s)" value={apellidos} onChange={(e) => { setApellidos(e.target.value); limpiarErrorCampo("apellidos"); }} onBlur={() => validarTexto("apellidos", apellidos, "Escribe tus apellidos como aparecen en tu identificación oficial")} error={erroresCampos.apellidos || undefined} required autoComplete="family-name" />
+                    <Field etiqueta="Nombre (s)" value={nombre} onChange={(e) => { setNombre(e.target.value); limpiarErrorCampo("nombre"); }} onBlur={() => validarCampo("nombre", nombre)} error={erroresCampos.nombre || undefined} required autoComplete="given-name" />
+                    <Field etiqueta="Apellido (s)" value={apellidos} onChange={(e) => { setApellidos(e.target.value); limpiarErrorCampo("apellidos"); }} onBlur={() => validarCampo("apellidos", apellidos)} error={erroresCampos.apellidos || undefined} required autoComplete="family-name" />
                   </div>
                   <Field etiqueta="CURP" value={curp} onChange={(e) => { setCurp(e.target.value.toUpperCase()); limpiarErrorCampo("curp"); }} onBlur={() => validarCurp()} error={erroresCampos.curp || undefined} required maxLength={18} autoComplete="off" />
                   <Field etiqueta="Teléfono" ayuda="10 dígitos, sin lada internacional." type="tel" inputMode="numeric" value={formatoTelefonoNacional(telefono)} onChange={(e) => { setTelefono(soloDigitos(e.target.value)); limpiarErrorCampo("telefono"); }} onBlur={() => validarTelefono("telefono", telefono, setTelefono)} error={erroresCampos.telefono || undefined} required autoComplete="tel-national" />
-                  <Field etiqueta="Correo electrónico" type="email" value={email} onChange={(e) => { setEmail(e.target.value); limpiarErrorCampo("email"); }} onBlur={() => setCampoError("email", /^\S+@\S+\.\S+$/.test(email.trim()) ? "" : "Escribe un correo electrónico válido")} error={erroresCampos.email || undefined} required autoComplete="email" />
+                  <Field etiqueta="Correo electrónico" type="email" value={email} onChange={(e) => { setEmail(e.target.value); limpiarErrorCampo("email"); }} onBlur={() => validarCampo("email", email)} error={erroresCampos.email || undefined} required autoComplete="email" />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-2">
                       <Field etiqueta="Crea tu contraseña" type="password" value={password} ayuda="Mínimo 8 caracteres, con al menos un número o una mayúscula." onChange={(e) => { const valor = e.target.value; setPassword(valor); limpiarErrorCampo("password"); if (confirmacionPassword) validarConfirmacion(confirmacionPassword, valor); }} onBlur={() => validarPassword()} error={erroresCampos.password || undefined} required minLength={8} autoComplete="new-password" />
@@ -644,9 +933,9 @@ export default function PaginaRegistroConductor() {
                     <SelectField etiqueta="Tipo de licencia" value={tipoLicencia} onChange={(valor) => { setTipoLicencia(valor); limpiarErrorCampo("tipoLicencia"); }} error={erroresCampos.tipoLicencia || undefined} required placeholder="Selecciona el tipo de licencia" opciones={TIPOS_LICENCIA} />
                     <Field etiqueta="Vigencia" type="date" value={vigenciaLicencia} onChange={(e) => { setVigenciaLicencia(e.target.value); limpiarErrorCampo("vigenciaLicencia"); }} onBlur={() => validarVigenciaLicencia()} error={erroresCampos.vigenciaLicencia || undefined} required />
                   </div>
-                  {vigenciaLicencia && !erroresCampos.vigenciaLicencia && diasParaVencer(vigenciaLicencia) >= 0 && diasParaVencer(vigenciaLicencia) <= DIAS_ADVERTENCIA_VIGENCIA && (
+                  {vigenciaLicencia && !erroresCampos.vigenciaLicencia && diasParaVencerLicencia(vigenciaLicencia) >= 0 && diasParaVencerLicencia(vigenciaLicencia) <= DIAS_ADVERTENCIA_VIGENCIA && (
                     <Aviso tono="atencion">
-                      Tu licencia vence en {diasParaVencer(vigenciaLicencia)} día{diasParaVencer(vigenciaLicencia) === 1 ? "" : "s"}. Puedes continuar, pero procura renovarla pronto para no perder actividad.
+                      Tu licencia vence en {diasParaVencerLicencia(vigenciaLicencia)} día{diasParaVencerLicencia(vigenciaLicencia) === 1 ? "" : "s"}. Puedes continuar, pero procura renovarla pronto para no perder actividad.
                     </Aviso>
                   )}
                   <CampoDocumento
