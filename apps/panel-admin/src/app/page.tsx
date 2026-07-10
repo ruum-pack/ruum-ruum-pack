@@ -82,17 +82,27 @@ export default function PaginaDashboard() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8 sm:px-8 sm:py-10">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold">Dashboard Operativo</h1>
-          <p className="mt-1 font-body text-sm text-ink/50">Panel de operaciones · actualizado en tiempo real</p>
+      <div className="relative overflow-hidden rounded-card border border-ink/10">
+        <img
+          src="/imagenes/torre-control-flota.webp"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full scale-105 object-cover object-[60%_35%]"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(7,11,20,0.94)_0%,rgba(7,11,20,0.8)_46%,rgba(7,11,20,0.4)_100%)]" />
+        <div className="relative flex items-start justify-between gap-4 px-6 py-6 sm:px-8">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-[#e8edf6]">Dashboard Operativo</h1>
+            <p className="mt-1 font-body text-sm text-[#b7c2d4]">Panel de operaciones · actualizado en tiempo real</p>
+          </div>
+          <Link
+            href="/viajes/nuevo"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-signal px-4 py-2.5 font-body text-sm font-semibold shadow-sm transition-colors hover:bg-signal/90"
+            style={{ color: "#14213d" }}
+          >
+            + Nuevo viaje
+          </Link>
         </div>
-        <Link
-          href="/viajes/nuevo"
-          className="inline-flex items-center gap-2 rounded-lg bg-signal px-4 py-2.5 font-body text-sm font-semibold text-ink shadow-sm transition-colors hover:bg-signal/90"
-        >
-          + Nuevo viaje
-        </Link>
       </div>
 
       {esDemo && (

@@ -122,7 +122,7 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
               value={motivoRechazo}
               onChange={(e) => setMotivoRechazo(e.target.value)}
               placeholder="Ej. La foto está borrosa o el documento no coincide con los datos del perfil."
-              className="min-h-[72px] resize-none rounded-lg border border-danger/30 bg-white px-3 py-2 font-body text-sm focus:border-danger focus:outline-none focus:ring-2 focus:ring-danger/20"
+              className="min-h-[72px] resize-none rounded-lg border border-danger/30 bg-mist px-3 py-2 font-body text-sm text-ink focus:border-danger focus:outline-none focus:ring-2 focus:ring-danger/20"
               maxLength={500}
               aria-label="Motivo del rechazo"
             />
