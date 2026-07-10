@@ -236,7 +236,18 @@ export async function subirDocumentoConductor(
 
   if (errorStorage) throw errorStorage;
 
-  await registrarDocumentoConductor(cliente, conductorId, tipo, archivo.name, ruta);
+  // Compensación (auditoría H-7): si el archivo ya subió a Storage pero el
+  // INSERT de la fila falla, el objeto quedaría huérfano en el bucket. Lo
+  // borramos y propagamos el error original para que el flujo lo reintente.
+  try {
+    await registrarDocumentoConductor(cliente, conductorId, tipo, archivo.name, ruta);
+  } catch (errorRegistro) {
+    await cliente.storage.from(BUCKET_DOCUMENTOS_CONDUCTOR).remove([ruta]).catch(() => {
+      // Si la limpieza falla, no ocultamos el error real del registro; una
+      // tarea de barrido de huérfanos puede recogerlo después.
+    });
+    throw errorRegistro;
+  }
 
   return { ruta };
 }

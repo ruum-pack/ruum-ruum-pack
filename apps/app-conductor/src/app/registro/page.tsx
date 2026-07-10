@@ -89,6 +89,9 @@ const DIAS_ADVERTENCIA_VIGENCIA = 30;
  */
 const CLAVE_BORRADOR = "ruumruum.registro-conductor.borrador.v1";
 const RETRASO_GUARDADO_BORRADOR_MS = 600;
+// Fase 5 (auditoría H-3) — el borrador caduca: no queremos PII de bajo riesgo
+// viviendo indefinidamente en el almacenamiento del dispositivo.
+const VIGENCIA_BORRADOR_MS = 48 * 60 * 60 * 1000;
 
 interface BorradorRegistro {
   paso: number;
@@ -111,19 +114,51 @@ interface BorradorRegistro {
   guardadoEn: string;
 }
 
+type CampoTextoBorrador = Exclude<keyof BorradorRegistro, "paso" | "guardadoEn">;
+
+const CAMPOS_TEXTO_BORRADOR: CampoTextoBorrador[] = [
+  "nombre", "apellidos", "telefono", "email", "codigoPostal", "estado", "ciudad",
+  "colonia", "calle", "numero", "referencias", "numeroLicencia", "tipoLicencia",
+  "vigenciaLicencia", "contactoEmergenciaNombre", "contactoEmergenciaTelefono"
+];
+
 function leerBorrador(): BorradorRegistro | null {
   try {
     const crudo = window.localStorage.getItem(CLAVE_BORRADOR);
     if (!crudo) return null;
-    const borrador = JSON.parse(crudo) as BorradorRegistro;
+
+    const dato = JSON.parse(crudo) as unknown;
+    // Validación estricta (auditoría H-3): el JSON recuperado debe tener la
+    // forma esperada; si no, lo descartamos en vez de confiar en él.
+    if (typeof dato !== "object" || dato === null) return null;
+    const registro = dato as Record<string, unknown>;
+
+    if (typeof registro.guardadoEn !== "string") {
+      limpiarBorradorGuardado();
+      return null;
+    }
+    const guardadoMs = new Date(registro.guardadoEn).getTime();
+    if (Number.isNaN(guardadoMs) || Date.now() - guardadoMs > VIGENCIA_BORRADOR_MS) {
+      limpiarBorradorGuardado();
+      return null;
+    }
+
+    const borrador: BorradorRegistro = {
+      paso: typeof registro.paso === "number" ? registro.paso : 0,
+      guardadoEn: registro.guardadoEn,
+      nombre: "", apellidos: "", telefono: "", email: "", codigoPostal: "", estado: "",
+      ciudad: "", colonia: "", calle: "", numero: "", referencias: "", numeroLicencia: "",
+      tipoLicencia: "", vigenciaLicencia: "", contactoEmergenciaNombre: "", contactoEmergenciaTelefono: ""
+    };
+    for (const campo of CAMPOS_TEXTO_BORRADOR) {
+      const valor = registro[campo];
+      borrador[campo] = typeof valor === "string" ? valor : "";
+    }
+
     const tieneContenido = [
-      borrador.nombre,
-      borrador.apellidos,
-      borrador.telefono,
-      borrador.email,
-      borrador.codigoPostal,
-      borrador.numeroLicencia
-    ].some((valor) => typeof valor === "string" && valor.trim().length > 0);
+      borrador.nombre, borrador.apellidos, borrador.telefono,
+      borrador.email, borrador.codigoPostal, borrador.numeroLicencia
+    ].some((valor) => valor.trim().length > 0);
     return tieneContenido ? borrador : null;
   } catch {
     return null;
