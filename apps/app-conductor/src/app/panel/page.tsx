@@ -96,7 +96,7 @@ export default function PaginaPanel() {
 
         // Fase 2 — conductor todavía en revisión: no tiene sentido (ni permisos)
         // pedir viajes. Mostramos el seguimiento de su expediente y salimos.
-        if (real.estado === "pendiente_verificacion") {
+        if (real.estado === "pendiente_verificacion" && real.estado_expediente !== "aprobado") {
           const { data: docs, error: errorDocs } = await cliente
             .from("documentos_conductor")
             .select("*")

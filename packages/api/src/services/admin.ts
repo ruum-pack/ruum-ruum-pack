@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@ruum/shared/types";
+import type { Database, EstadoDocumentoConductor } from "@ruum/shared/types";
 import { transicionValida } from "@ruum/shared/states";
 import { evidenciaCompleta } from "@ruum/shared/rules";
 import { consecuenciaCancelacionConductor, consecuenciaNoPresentacion, clasificarTrasladoFallido } from "@ruum/shared/rules";
@@ -272,7 +272,7 @@ export async function validarDocumentoConductor(cliente: Cliente, conductorId: s
 type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
 
 /** Estados posibles de un documento individual del expediente del conductor. */
-export type EstadoDocumentoConductor = "pendiente" | "en_revision" | "aprobado" | "rechazado" | "vencido" | "actualizacion";
+export type { EstadoDocumentoConductor } from "@ruum/shared/types";
 
 const DOCUMENTOS_OBLIGATORIOS_CONDUCTOR = ["licencia_frente", "licencia_reverso", "identificacion_oficial"] as const;
 
@@ -313,23 +313,30 @@ export async function revisarDocumentoConductorAdmin(
 
   const adminId = await obtenerAdminIdParaAuditoria(cliente);
 
-  const { data, error } = await cliente
+  if (estado === "en_revision" || estado === "reemplazado") {
+    throw new Error("Ese estado no es una decisión administrativa válida.");
+  }
+
+  const { data: documento, error: errorDocumento } = await cliente
     .from("documentos_conductor")
-    .update({
-      estado,
-      notas_admin: estado === "aprobado" ? null : motivo,
-      actualizado_en: new Date().toISOString()
-    })
-    .eq("id", documentoId)
     .select("conductor_id, tipo")
+    .eq("id", documentoId)
     .single();
+
+  if (errorDocumento) throw errorDocumento;
+
+  const { error } = await cliente.rpc("revisar_documento_conductor_admin", {
+    p_documento_id: documentoId,
+    p_estado: estado,
+    p_notas: motivo || null
+  });
 
   if (error) throw error;
 
   await registrarEvento(cliente, "validacion_documentos", "admin", adminId, {
     documento_id: documentoId,
-    conductor_id: data.conductor_id,
-    tipo: data.tipo,
+    conductor_id: documento.conductor_id,
+    tipo: documento.tipo,
     estado,
     ...(motivo ? { motivo } : {})
   });
@@ -344,7 +351,7 @@ export async function activarConductorAdmin(cliente: Cliente, conductorId: strin
   const adminId = await obtenerAdminIdParaAuditoria(cliente);
   const { conductor, documentos } = await obtenerDetalleConductorAdmin(cliente, conductorId);
 
-  if (conductor.estado !== "pendiente_verificacion") {
+  if (conductor.estado_expediente !== "en_revision") {
     throw new Error("Este conductor ya no está en revisión inicial; no se puede activar desde aquí.");
   }
 
@@ -355,11 +362,9 @@ export async function activarConductorAdmin(cliente: Cliente, conductorId: strin
     throw new Error(`Aún no se puede activar: faltan documentos aprobados (${faltantes.join(", ")}).`);
   }
 
-  const { error } = await cliente
-    .from("conductores")
-    .update({ estado: "activo", documentos_vigentes: true })
-    .eq("id", conductorId)
-    .eq("estado", "pendiente_verificacion");
+  const { error } = await cliente.rpc("aprobar_expediente_conductor_admin", {
+    p_conductor_id: conductorId
+  });
 
   if (error) throw error;
 

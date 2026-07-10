@@ -62,6 +62,7 @@ export type Database = {
           nivel_por_experiencia: Database["public"]["Enums"]["nivel_concer"]
           nivel_por_calificacion: Database["public"]["Enums"]["nivel_concer"]
           estado: Database["public"]["Enums"]["estado_conductor"]
+          estado_expediente: Database["public"]["Enums"]["estado_expediente_conductor"]
           calificacion_promedio: number
           traslados_completados: number
           suspensiones_activas: number
@@ -82,6 +83,7 @@ export type Database = {
           nivel_por_experiencia?: Database["public"]["Enums"]["nivel_concer"]
           nivel_por_calificacion?: Database["public"]["Enums"]["nivel_concer"]
           estado?: Database["public"]["Enums"]["estado_conductor"]
+          estado_expediente?: Database["public"]["Enums"]["estado_expediente_conductor"]
           calificacion_promedio?: number
           traslados_completados?: number
           suspensiones_activas?: number
@@ -102,6 +104,7 @@ export type Database = {
           nivel_por_experiencia?: Database["public"]["Enums"]["nivel_concer"]
           nivel_por_calificacion?: Database["public"]["Enums"]["nivel_concer"]
           estado?: Database["public"]["Enums"]["estado_conductor"]
+          estado_expediente?: Database["public"]["Enums"]["estado_expediente_conductor"]
           calificacion_promedio?: number
           traslados_completados?: number
           suspensiones_activas?: number
@@ -1093,6 +1096,10 @@ export type Database = {
         Args: { p_traslado_id: string; p_conductor_id: string };
         Returns: Database["public"]["Enums"]["estado_traslado"];
       };
+      aprobar_expediente_conductor_admin: {
+        Args: { p_conductor_id: string };
+        Returns: undefined;
+      };
       admin_marca_traslado_fallido: {
         Args: { p_traslado_id: string; p_causa: Database["public"]["Enums"]["causa_fallido"]; p_cargo_aplica_cliente: boolean; p_requiere_reagendamiento: boolean; p_porcentaje_descuento_segundo_intento: number | null; p_mensaje: string };
         Returns: undefined;
@@ -1133,6 +1140,10 @@ export type Database = {
         Args: { p_conductor_id: string };
         Returns: undefined;
       };
+      revisar_documento_conductor_admin: {
+        Args: { p_documento_id: string; p_estado: string; p_notas?: string | null };
+        Returns: undefined;
+      };
       traslado_tiene_metodo_pago_registrado: {
         Args: { p_traslado_id: string };
         Returns: boolean;
@@ -1149,6 +1160,7 @@ export type Database = {
       angulo_evidencia: "frente" | "lado_piloto" | "lado_copiloto" | "trasera" | "tablero" | "dano_previo" | "adicional";
       causa_fallido: "imputable_cliente" | "operativo" | "fuerza_mayor" | "documentacion" | "vehiculo_no_circulable";
       estado_conductor: "activo" | "suspendido_7d" | "suspendido_14d" | "suspendido_30d" | "suspendido_indefinido" | "bloqueado_permanente" | "modo_prueba_supervisada" | "pendiente_verificacion";
+      estado_expediente_conductor: "borrador" | "correo_pendiente" | "datos_incompletos" | "documentos_pendientes" | "listo_para_enviar" | "en_revision" | "requiere_correccion" | "aprobado" | "rechazado" | "suspendido";
       estado_cuenta_stripe: "pendiente_onboarding" | "activa" | "rechazada" | "deshabilitada";
       estado_disputa: "abierta" | "en_revision" | "resuelta" | "escalada" | "resuelta_senior";
       estado_pago: "pendiente" | "completado" | "reembolsado" | "fallido";

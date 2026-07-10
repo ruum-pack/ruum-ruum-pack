@@ -12,6 +12,11 @@ export type EstadoConductor =
   | "modo_prueba_supervisada"
   | "pendiente_verificacion";
 
+export type {
+  EstadoDocumentoConductor,
+  EstadoExpedienteConductor
+} from "../states/estados-expediente-conductor";
+
 // PRD §4.3 — certificaciones especiales requeridas para Luxury y Colección
 export type TipoCertificacion = "vehiculos_luxury" | "vehiculos_coleccion";
 

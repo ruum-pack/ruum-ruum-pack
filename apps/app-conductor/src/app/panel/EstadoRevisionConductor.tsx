@@ -13,8 +13,8 @@ const ESTADO_DOCUMENTO: Record<string, { texto: string; clase: string }> = {
   en_revision: { texto: "En revisión", clase: "border-route/30 bg-route-soft text-route-dark" },
   aprobado: { texto: "Aprobado", clase: "border-control/30 bg-control-soft text-control" },
   rechazado: { texto: "Rechazado", clase: "border-danger/25 bg-danger-soft text-danger" },
+  reemplazado: { texto: "Reemplazado", clase: "border-ink/15 bg-ink/[0.04] text-ink/55" },
   vencido: { texto: "Vencido", clase: "border-danger/25 bg-danger-soft text-danger" },
-  actualizacion: { texto: "Requiere actualización", clase: "border-warn/40 bg-warn-soft text-warn" }
 };
 
 const TIPOS_DOCUMENTO: { valor: TipoDocumentoConductor; etiqueta: string }[] = [
@@ -111,7 +111,7 @@ export function EstadoRevisionConductor({ conductorId, nombre, documentosInicial
           {TIPOS_DOCUMENTO.map((t) => {
             const doc = documentoDe(t.valor);
             const estadoInfo = ESTADO_DOCUMENTO[doc?.estado ?? "pendiente"];
-            const requiereAccion = doc?.estado === "rechazado" || doc?.estado === "actualizacion";
+            const requiereAccion = doc?.estado === "rechazado" || doc?.estado === "vencido";
 
             return (
               <div key={t.valor} className="rounded-xl border border-ink/10 p-4">

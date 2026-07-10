@@ -43,8 +43,8 @@ const ESTADO_DOCUMENTO: Record<string, { texto: string; clase: string }> = {
   en_revision: { texto: "En revisión", clase: "border-route/30 bg-route-soft text-route-dark" },
   aprobado: { texto: "Aprobado", clase: "border-control/30 bg-control-soft text-control" },
   rechazado: { texto: "Rechazado", clase: "border-danger/25 bg-danger-soft text-danger" },
+  reemplazado: { texto: "Reemplazado", clase: "border-ink/15 bg-ink/[0.04] text-ink/55" },
   vencido: { texto: "Vencido", clase: "border-danger/25 bg-danger-soft text-danger" },
-  actualizacion: { texto: "Requiere actualización", clase: "border-warn/40 bg-warn-soft text-warn" }
 };
 
 function etiquetaTipo(tipo: string) {
@@ -64,7 +64,7 @@ function FilaDocumento({
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [urlDocumento, setUrlDocumento] = useState<string | null>(null);
-  const [confirmando, setConfirmando] = useState<"rechazado" | "actualizacion" | null>(null);
+  const [confirmando, setConfirmando] = useState<"rechazado" | null>(null);
   const [motivo, setMotivo] = useState("");
 
   const estadoInfo = ESTADO_DOCUMENTO[documento.estado] ?? ESTADO_DOCUMENTO.pendiente;
@@ -146,9 +146,9 @@ function FilaDocumento({
 
       {!esFinal &&
         (confirmando ? (
-          <div className={`mt-3 rounded-lg border p-3 ${confirmando === "rechazado" ? "border-danger/25 bg-danger-soft/40" : "border-warn/35 bg-warn-soft/50"}`}>
+          <div className="mt-3 rounded-lg border border-warn/35 bg-warn-soft/50 p-3">
             <p className="font-body text-sm font-semibold">
-              {confirmando === "rechazado" ? "Rechazar documento" : "Solicitar actualización"}
+              Solicitar corrección del documento
             </p>
             <label className="mt-2 flex flex-col gap-1.5">
               <span className="font-body text-xs font-medium text-ink/70">
@@ -164,7 +164,7 @@ function FilaDocumento({
             </label>
             <div className="mt-3 flex gap-2">
               <Button
-                variant={confirmando === "rechazado" ? "peligro" : "secundario"}
+                variant="secundario"
                 onClick={() => aplicar(confirmando, motivo)}
                 disabled={procesando || motivo.trim().length < 5}
               >
@@ -180,11 +180,8 @@ function FilaDocumento({
             <Button onClick={() => aplicar("aprobado")} disabled={procesando}>
               {procesando ? "…" : "Aprobar"}
             </Button>
-            <Button variant="secundario" onClick={() => setConfirmando("actualizacion")} disabled={procesando}>
-              Pedir actualización
-            </Button>
             <Button variant="peligro" onClick={() => setConfirmando("rechazado")} disabled={procesando}>
-              Rechazar
+              Solicitar corrección
             </Button>
           </div>
         ))}
@@ -296,7 +293,7 @@ export default function PaginaDetalleConductorAdmin() {
   const documentosRequeridosAprobados = DOCUMENTOS_REQUERIDOS.every((tipo) =>
     documentos.some((d) => d.tipo === tipo && d.estado === "aprobado")
   );
-  const puedeActivar = conductor.estado === "pendiente_verificacion" && documentosRequeridosAprobados;
+  const puedeActivar = conductor.estado_expediente === "en_revision" && documentosRequeridosAprobados;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-8 sm:px-8 sm:py-10">
