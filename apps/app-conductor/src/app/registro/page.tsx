@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
@@ -24,6 +24,12 @@ const TIPOS_DOCUMENTO = {
   licenciaReverso: "licencia_reverso",
   identificacionOficial: "identificacion_oficial"
 } as const;
+
+const ETIQUETA_DOCUMENTO: Record<DocumentoKey, string> = {
+  licenciaFrente: "licencia (frente)",
+  licenciaReverso: "licencia (reverso)",
+  identificacionOficial: "identificación oficial"
+};
 
 const TIPOS_LICENCIA = [
   "Tipo A - Automovilista",
@@ -65,6 +71,15 @@ function esperar(ms: number) {
 
 function terminosAceptadosEn() {
   return new Date().toISOString();
+}
+
+const DIAS_ADVERTENCIA_VIGENCIA = 30;
+
+function diasParaVencer(fechaIso: string) {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const vencimiento = new Date(`${fechaIso}T00:00:00`);
+  return Math.round((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function estadoInicialDocumentos(): Record<DocumentoKey, EstadoDocumento> {
@@ -112,6 +127,7 @@ export default function PaginaRegistroConductor() {
   const [erroresCampos, setErroresCampos] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [sesionActivaTrasRegistro, setSesionActivaTrasRegistro] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [advertenciaDocumentos, setAdvertenciaDocumentos] = useState<string | null>(null);
 
@@ -162,6 +178,14 @@ export default function PaginaRegistroConductor() {
 
   function validarDocumento(campo: DocumentoKey) {
     return setCampoError(campo, documentos[campo] ? "" : "Carga este documento");
+  }
+
+  function validarVigenciaLicencia(valor = vigenciaLicencia) {
+    if (!valor) return setCampoError("vigenciaLicencia", "Indica la vigencia de tu licencia");
+    if (diasParaVencer(valor) < 0) {
+      return setCampoError("vigenciaLicencia", "Tu licencia está vencida. Necesitas una licencia vigente para registrarte.");
+    }
+    return setCampoError("vigenciaLicencia", "");
   }
 
   async function buscarCodigoPostal(cp: string) {
@@ -215,7 +239,7 @@ export default function PaginaRegistroConductor() {
       return [
         validarTexto("numeroLicencia", numeroLicencia, "Escribe tu número de licencia"),
         validarTexto("tipoLicencia", tipoLicencia, "Selecciona o escribe el tipo de licencia"),
-        setCampoError("vigenciaLicencia", vigenciaLicencia ? "" : "Indica la vigencia de tu licencia"),
+        validarVigenciaLicencia(),
         validarDocumento("licenciaFrente"),
         validarDocumento("licenciaReverso"),
         validarDocumento("identificacionOficial")
@@ -271,20 +295,17 @@ export default function PaginaRegistroConductor() {
     setPaso((actual) => Math.max(actual - 1, 0));
   }
 
-  function cambiarDocumento(campo: DocumentoKey, evento: ChangeEvent<HTMLInputElement>) {
-    const archivo = evento.target.files?.[0] ?? null;
+  function cambiarDocumento(campo: DocumentoKey, archivo: File | null) {
     if (archivo && archivo.size > 10 * 1024 * 1024) {
       setDocumentos((prev) => ({ ...prev, [campo]: null }));
       setEstadoDocumentos((prev) => ({ ...prev, [campo]: "error" }));
       setCampoError(campo, "El archivo debe pesar máximo 10 MB");
-      evento.target.value = "";
       return;
     }
     if (archivo && !TIPOS_ARCHIVO_PERMITIDOS.has(archivo.type)) {
       setDocumentos((prev) => ({ ...prev, [campo]: null }));
       setEstadoDocumentos((prev) => ({ ...prev, [campo]: "error" }));
       setCampoError(campo, "Sube una imagen JPG, PNG, WEBP o un PDF");
-      evento.target.value = "";
       return;
     }
     setDocumentos((prev) => ({ ...prev, [campo]: archivo }));
@@ -308,16 +329,39 @@ export default function PaginaRegistroConductor() {
       return;
     }
 
-    for (const [campo, archivo] of Object.entries(documentos) as [DocumentoKey, File | null][]) {
-      if (!archivo) continue;
-      setEstadoDocumentos((prev) => ({ ...prev, [campo]: "subiendo" }));
-      try {
-        await subirDocumentoConductor(cliente, conductor.id, TIPOS_DOCUMENTO[campo], archivo);
-        setEstadoDocumentos((prev) => ({ ...prev, [campo]: "subido" }));
-      } catch (error) {
-        setEstadoDocumentos((prev) => ({ ...prev, [campo]: "error" }));
-        throw error;
-      }
+    const pendientes = (Object.entries(documentos) as [DocumentoKey, File | null][]).filter(([, archivo]) => archivo);
+
+    setEstadoDocumentos((prev) => {
+      const siguiente = { ...prev };
+      for (const [campo] of pendientes) siguiente[campo] = "subiendo";
+      return siguiente;
+    });
+
+    const resultados = await Promise.allSettled(
+      pendientes.map(([campo, archivo]) => subirDocumentoConductor(cliente, conductor.id, TIPOS_DOCUMENTO[campo], archivo as File))
+    );
+
+    let huboError = false;
+    setEstadoDocumentos((prev) => {
+      const siguiente = { ...prev };
+      resultados.forEach((resultado, indice) => {
+        const [campo] = pendientes[indice];
+        if (resultado.status === "fulfilled") {
+          siguiente[campo] = "subido";
+        } else {
+          siguiente[campo] = "error";
+          huboError = true;
+        }
+      });
+      return siguiente;
+    });
+
+    if (huboError) {
+      const camposConError = pendientes
+        .filter((_, indice) => resultados[indice].status === "rejected")
+        .map(([campo]) => ETIQUETA_DOCUMENTO[campo])
+        .join(", ");
+      throw new Error(`No pudimos subir: ${camposConError}. Podrás reintentar desde Configuración.`);
     }
   }
 
@@ -404,10 +448,15 @@ export default function PaginaRegistroConductor() {
       if (!datosAuth.user) throw new Error("No se pudo crear la cuenta. Intenta de nuevo.");
 
       if (datosAuth.session) {
+        setSesionActivaTrasRegistro(true);
         try {
           await cargarDocumentos(cliente);
-        } catch {
-          setAdvertenciaDocumentos("La cuenta se creó, pero no pudimos subir todos los documentos. Podrás cargarlos desde Configuración.");
+        } catch (errorDocumentos) {
+          setAdvertenciaDocumentos(
+            errorDocumentos instanceof Error
+              ? errorDocumentos.message
+              : "La cuenta se creó, pero no pudimos subir todos los documentos. Podrás cargarlos desde Configuración."
+          );
         }
       } else {
         setAdvertenciaDocumentos("Confirma tu correo para iniciar sesión y cargar los documentos desde Configuración.");
@@ -453,7 +502,13 @@ export default function PaginaRegistroConductor() {
               Tu cuenta está pendiente de validación. Cuando la revisión esté completa, podrás consultar y aceptar viajes.
             </p>
             {advertenciaDocumentos && <div className="mt-5"><Aviso tono="info">{advertenciaDocumentos}</Aviso></div>}
-            <Button variant="secundario" className="mt-7" onClick={() => router.push("/login")}>Volver al acceso</Button>
+            <Button
+              variant="secundario"
+              className="mt-7"
+              onClick={() => router.push(sesionActivaTrasRegistro ? "/panel" : "/login")}
+            >
+              {sesionActivaTrasRegistro ? "Ver estado de mi solicitud" : "Volver al acceso"}
+            </Button>
           </div>
         ) : (
           <>
@@ -587,14 +642,34 @@ export default function PaginaRegistroConductor() {
                   <Field etiqueta="Número de licencia" value={numeroLicencia} onChange={(e) => { setNumeroLicencia(e.target.value); limpiarErrorCampo("numeroLicencia"); }} error={erroresCampos.numeroLicencia || undefined} required />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <SelectField etiqueta="Tipo de licencia" value={tipoLicencia} onChange={(valor) => { setTipoLicencia(valor); limpiarErrorCampo("tipoLicencia"); }} error={erroresCampos.tipoLicencia || undefined} required placeholder="Selecciona el tipo de licencia" opciones={TIPOS_LICENCIA} />
-                    <Field etiqueta="Vigencia" type="date" value={vigenciaLicencia} onChange={(e) => { setVigenciaLicencia(e.target.value); limpiarErrorCampo("vigenciaLicencia"); }} error={erroresCampos.vigenciaLicencia || undefined} required />
+                    <Field etiqueta="Vigencia" type="date" value={vigenciaLicencia} onChange={(e) => { setVigenciaLicencia(e.target.value); limpiarErrorCampo("vigenciaLicencia"); }} onBlur={() => validarVigenciaLicencia()} error={erroresCampos.vigenciaLicencia || undefined} required />
                   </div>
-                  <Field etiqueta="Foto de tu licencia (frente)" type="file" accept="image/*,.pdf" onChange={(e) => cambiarDocumento("licenciaFrente", e)} error={erroresCampos.licenciaFrente || undefined} required />
-                  <EstadoArchivo estado={estadoDocumentos.licenciaFrente} archivo={documentos.licenciaFrente} />
-                  <Field etiqueta="Foto de tu licencia (reverso)" type="file" accept="image/*,.pdf" onChange={(e) => cambiarDocumento("licenciaReverso", e)} error={erroresCampos.licenciaReverso || undefined} required />
-                  <EstadoArchivo estado={estadoDocumentos.licenciaReverso} archivo={documentos.licenciaReverso} />
-                  <Field etiqueta="Foto de tu Identificación oficial (INE/pasaporte)" type="file" accept="image/*,.pdf" onChange={(e) => cambiarDocumento("identificacionOficial", e)} error={erroresCampos.identificacionOficial || undefined} required />
-                  <EstadoArchivo estado={estadoDocumentos.identificacionOficial} archivo={documentos.identificacionOficial} />
+                  {vigenciaLicencia && !erroresCampos.vigenciaLicencia && diasParaVencer(vigenciaLicencia) >= 0 && diasParaVencer(vigenciaLicencia) <= DIAS_ADVERTENCIA_VIGENCIA && (
+                    <Aviso tono="atencion">
+                      Tu licencia vence en {diasParaVencer(vigenciaLicencia)} día{diasParaVencer(vigenciaLicencia) === 1 ? "" : "s"}. Puedes continuar, pero procura renovarla pronto para no perder actividad.
+                    </Aviso>
+                  )}
+                  <CampoDocumento
+                    etiqueta="Foto de tu licencia (frente)"
+                    archivo={documentos.licenciaFrente}
+                    estado={estadoDocumentos.licenciaFrente}
+                    error={erroresCampos.licenciaFrente || undefined}
+                    onSeleccionar={(archivo) => cambiarDocumento("licenciaFrente", archivo)}
+                  />
+                  <CampoDocumento
+                    etiqueta="Foto de tu licencia (reverso)"
+                    archivo={documentos.licenciaReverso}
+                    estado={estadoDocumentos.licenciaReverso}
+                    error={erroresCampos.licenciaReverso || undefined}
+                    onSeleccionar={(archivo) => cambiarDocumento("licenciaReverso", archivo)}
+                  />
+                  <CampoDocumento
+                    etiqueta="Foto de tu Identificación oficial (INE/pasaporte)"
+                    archivo={documentos.identificacionOficial}
+                    estado={estadoDocumentos.identificacionOficial}
+                    error={erroresCampos.identificacionOficial || undefined}
+                    onSeleccionar={(archivo) => cambiarDocumento("identificacionOficial", archivo)}
+                  />
                 </fieldset>
               )}
 
@@ -630,7 +705,17 @@ export default function PaginaRegistroConductor() {
                   </div>
                   <label className="flex gap-3 rounded-xl border border-route-dark/20 bg-route-soft p-4 font-body text-sm leading-6 text-ink/75">
                     <input type="checkbox" checked={aceptaLegales} onChange={(e) => { setAceptaLegales(e.target.checked); limpiarErrorCampo("aceptaLegales"); }} className="mt-1 size-4 accent-route-dark" />
-                    <span>He leído y acepto los términos y condiciones y el aviso de privacidad de ruum ruum by Movilia.</span>
+                    <span>
+                      He leído y acepto los{" "}
+                      <a href="/legal/terminos" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-route-dark underline underline-offset-2 hover:no-underline">
+                        términos y condiciones
+                      </a>{" "}
+                      y el{" "}
+                      <a href="/legal/privacidad" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-route-dark underline underline-offset-2 hover:no-underline">
+                        aviso de privacidad
+                      </a>{" "}
+                      de ruum ruum by Movilia.
+                    </span>
                   </label>
                   {erroresCampos.aceptaLegales && <p className="font-body text-xs font-medium text-danger">{erroresCampos.aceptaLegales}</p>}
                 </fieldset>
@@ -714,18 +799,104 @@ function SelectField({
   );
 }
 
-function EstadoArchivo({ estado, archivo }: { estado: EstadoDocumento; archivo: File | null }) {
-  if (estado === "pendiente" && !archivo) return null;
-  const texto = {
+function textoEstadoDocumento(estado: EstadoDocumento, nombreArchivo: string) {
+  return {
     pendiente: "",
-    listo: `Listo para subir: ${archivo?.name ?? ""}`,
-    subiendo: `Subiendo: ${archivo?.name ?? ""}`,
-    subido: `Subido correctamente: ${archivo?.name ?? ""}`,
-    error: archivo ? `Error al subir: ${archivo.name}` : "Error en el archivo seleccionado"
+    listo: `Listo para subir: ${nombreArchivo}`,
+    subiendo: `Subiendo: ${nombreArchivo}`,
+    subido: `Subido correctamente: ${nombreArchivo}`,
+    error: nombreArchivo ? `Error al subir: ${nombreArchivo}` : "Error en el archivo seleccionado"
   }[estado];
-  const color = estado === "error" ? "text-danger" : estado === "subido" ? "text-control" : "text-ink/60";
+}
 
-  return <p className={`-mt-2 font-body text-xs font-medium leading-5 ${color}`}>{texto}</p>;
+/**
+ * Fase 3 — campo de documento con preview de imagen antes de enviar (para que el
+ * conductor confirme que la foto no salió borrosa) y botón "Tomar otra foto" que
+ * reemplaza solo ese documento, sin reiniciar el resto del wizard.
+ */
+function CampoDocumento({
+  etiqueta,
+  archivo,
+  estado,
+  error,
+  onSeleccionar
+}: {
+  etiqueta: string;
+  archivo: File | null;
+  estado: EstadoDocumento;
+  error?: string;
+  onSeleccionar: (archivo: File | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const previewUrl = useMemo(() => {
+    if (!archivo || !archivo.type.startsWith("image/")) return null;
+    return URL.createObjectURL(archivo);
+  }, [archivo]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const colorTexto = estado === "error" ? "text-danger" : estado === "subido" ? "text-control" : "text-ink/60";
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="font-body text-sm font-semibold text-ink">
+        {etiqueta}
+        <span className="ml-1 text-danger" aria-hidden> *</span>
+      </label>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*,.pdf"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          onSeleccionar(e.target.files?.[0] ?? null);
+          e.target.value = "";
+        }}
+      />
+
+      {archivo ? (
+        <div
+          className={[
+            "flex items-center gap-3 rounded-[10px] border bg-mist px-3.5 py-2.5",
+            error ? "border-danger bg-danger-soft/20" : "border-ink/30"
+          ].join(" ")}
+        >
+          {previewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- preview local de un File antes de subir, next/image no soporta blob: directamente
+            <img src={previewUrl} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
+          ) : (
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-ink/[0.06] font-mono-ruum text-[10px] font-semibold text-ink/50" aria-hidden>
+              PDF
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-body text-sm text-ink">{archivo.name}</p>
+            {estado !== "pendiente" && (
+              <p className={`font-body text-xs font-medium leading-5 ${colorTexto}`}>
+                {textoEstadoDocumento(estado, archivo.name)}
+              </p>
+            )}
+          </div>
+          <Button type="button" variant="fantasma" onClick={() => inputRef.current?.click()}>
+            Tomar otra foto
+          </Button>
+        </div>
+      ) : (
+        <Button type="button" variant="secundario" onClick={() => inputRef.current?.click()}>
+          Elegir o tomar foto
+        </Button>
+      )}
+
+      {error ? (
+        <p role="alert" className="font-body text-xs font-medium leading-5 text-danger">{error}</p>
+      ) : null}
+    </div>
+  );
 }
 
 function Resumen({ titulo, valores }: { titulo: string; valores: Array<string | undefined> }) {
