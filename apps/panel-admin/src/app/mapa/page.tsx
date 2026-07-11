@@ -190,6 +190,7 @@ export default function PaginaMapaOperativo() {
       });
 
       for (const t of traslados) {
+        if (t.origen_lat === null || t.origen_lng === null || t.destino_lat === null || t.destino_lng === null) continue;
         const color = t.tiene_incidencia_abierta ? "#b32626" : "#1e88e5";
         L.polyline(
           [[t.origen_lat, t.origen_lng], [t.destino_lat, t.destino_lng]],
@@ -216,6 +217,9 @@ export default function PaginaMapaOperativo() {
   const sel = traslados.find((t) => t.traslado_id === seleccionado);
   const enRuta = traslados.filter((t) => t.estado === "traslado_en_curso").length;
   const conInc = traslados.filter((t) => t.tiene_incidencia_abierta).length;
+  const pendientesGeocodificacion = traslados.filter(
+    (t) => t.origen_lat === null || t.origen_lng === null || t.destino_lat === null || t.destino_lng === null
+  ).length;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -231,7 +235,7 @@ export default function PaginaMapaOperativo() {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3 border-b border-mist-dim px-6 py-3">
+      <div className="grid grid-cols-4 gap-3 border-b border-mist-dim px-6 py-3">
         <div className="rounded-xl bg-route-soft px-4 py-3">
           <p className="font-mono-ruum text-xs text-route-dark/70">Activos</p>
           <p className="font-display text-2xl font-semibold text-route-dark">{traslados.length}</p>
@@ -243,6 +247,10 @@ export default function PaginaMapaOperativo() {
         <div className={`rounded-xl px-4 py-3 ${conInc > 0 ? "bg-danger-soft" : "bg-mist-dim"}`}>
           <p className={`font-mono-ruum text-xs ${conInc > 0 ? "text-danger/70" : "text-ink/45"}`}>Con incidencia</p>
           <p className={`font-display text-2xl font-semibold ${conInc > 0 ? "text-danger" : "text-ink/45"}`}>{conInc}</p>
+        </div>
+        <div className={`rounded-xl px-4 py-3 ${pendientesGeocodificacion > 0 ? "bg-warn-soft" : "bg-mist-dim"}`}>
+          <p className="font-mono-ruum text-xs text-ink/55">Sin coordenadas</p>
+          <p className="font-display text-2xl font-semibold text-ink">{pendientesGeocodificacion}</p>
         </div>
       </div>
 

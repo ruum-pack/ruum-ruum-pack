@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
 
   const { data: traslado, error: errorTraslado } = await clienteUsuario
     .from("traslados")
-    .select("id, usuario_id, precio_cotizado, precio_final, tipo_pago, estado")
+    .select("id, usuario_id, precio_cotizado, precio_final, tipo_pago, estado, cotizacion_expira_en")
     .eq("id", traslado_id)
     .single();
 
@@ -113,14 +113,14 @@ Deno.serve(async (req) => {
   // cotización original (mismo criterio que pasaporte_digital/panel-admin).
   const montoACobrar = traslado.precio_final ?? traslado.precio_cotizado;
   if (!montoACobrar || montoACobrar <= 0) {
-    return respuestaJson({ error: "El traslado no tiene una tarifa válida para cobrar" }, 422);
+    return respuestaJson({ error: "El traslado todavía no cuenta con una cotización válida." }, 422);
+  }
+  if (traslado.cotizacion_expira_en && new Date(traslado.cotizacion_expira_en).getTime() <= Date.now()) {
+    return respuestaJson({ error: "La cotización ha vencido. Solicita una actualización antes de pagar." }, 422);
   }
 
-  // Defensa adicional al piso/techo que ya valida usuario_crea_traslado()
-  // (migración 20260711000119) al crear la solicitud. Ese candado cubre
-  // precio_cotizado; precio_final lo puede escribir un admin sin pasar por
-  // esa RPC, así que se revalida aquí también, justo antes de mover dinero
-  // de verdad.
+  // Defensa adicional sobre el precio autorizado. presupuesto_usuario nunca
+  // participa en este cálculo ni se selecciona en esta función.
   const PISO_MXN = 699;
   const TECHO_MXN = 100000;
   if (montoACobrar < PISO_MXN || montoACobrar > TECHO_MXN) {
@@ -137,7 +137,8 @@ Deno.serve(async (req) => {
   // entrega_confirmada -> pago_pendiente -> pago_completado). Sin este
   // guard, cualquier traslado "al_cierre" en cualquier estado podría iniciar
   // un cobro antes de tiempo.
-  const esCobroAnticipadoValido = traslado.tipo_pago === "anticipado";
+  const esCobroAnticipadoValido =
+    traslado.tipo_pago === "anticipado" && traslado.estado === "cotizacion_aceptada";
   const esCobroAlCierreValido = traslado.tipo_pago === "al_cierre" && traslado.estado === "pago_pendiente";
 
   if (!esCobroAnticipadoValido && !esCobroAlCierreValido) {
@@ -146,7 +147,9 @@ Deno.serve(async (req) => {
         error:
           traslado.tipo_pago === "al_cierre"
             ? "El pago al cierre solo puede iniciarse cuando el traslado está en estado 'pago_pendiente'"
-            : "Este traslado no tiene un cobro pendiente que iniciar"
+            : traslado.tipo_pago === "anticipado"
+              ? "Acepta la cotización antes de iniciar el pago anticipado"
+              : "Este traslado no tiene un cobro pendiente que iniciar"
       },
       422
     );

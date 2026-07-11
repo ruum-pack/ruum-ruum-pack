@@ -18,13 +18,14 @@
  *    elegir de su lista (ya cargada por sesión) que arrastrar un id viejo.
  */
 
-const CLAVE_ACTUAL = "ruumruum.traslados-nuevo.borrador.v1";
-const VERSION_ESQUEMA = 1;
+const CLAVE_ACTUAL = "ruumruum.traslados-nuevo.borrador.v2";
+const VERSION_ESQUEMA = 2;
 const VIGENCIA_MS = 24 * 60 * 60 * 1000;
 const LONGITUD_MAXIMA_CAMPO = 180;
 
 export interface BorradorTrasladoLocal {
-  versionEsquema: 1;
+  versionEsquema: 2;
+  claveIdempotencia: string;
   guardadoEn: string;
   expiraEn: string;
   paso: number;
@@ -99,7 +100,10 @@ export function leerBorradorTrasladoLocal(): BorradorTrasladoLocal | null {
     }
 
     const borrador: BorradorTrasladoLocal = {
-      versionEsquema: 1,
+      versionEsquema: 2,
+      claveIdempotencia: typeof dato.claveIdempotencia === "string" && /^[0-9a-f-]{36}$/i.test(dato.claveIdempotencia)
+        ? dato.claveIdempotencia
+        : crypto.randomUUID(),
       guardadoEn: dato.guardadoEn,
       expiraEn: dato.expiraEn,
       paso: typeof dato.paso === "number" && Number.isInteger(dato.paso) && dato.paso >= 0 && dato.paso <= 1 ? dato.paso : 0,

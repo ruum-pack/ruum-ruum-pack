@@ -8,8 +8,8 @@
  *
  * Este módulo es la única puerta de entrada al SDK: carga el script una sola
  * vez (singleton), y expone geocodificarDireccion() para reemplazar los
- * origen_lat/lng y destino_lat/lng que hoy se mandan en 0 cuando la persona
- * captura la dirección a mano en vez de usar "Usar mi ubicación actual".
+ * origen_lat/lng y destino_lat/lng. Si no puede resolver una dirección, el
+ * flujo conserva NULL para que operaciones la identifique como pendiente.
  *
  * Mismo patrón defensivo que tieneStripePublicoConfigurado() en PagoStripe.tsx:
  * si no hay key, todo lo de acá abajo degrada a null/[] sin tronar.

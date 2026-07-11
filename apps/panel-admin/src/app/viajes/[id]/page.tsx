@@ -16,7 +16,7 @@ import {
   agregarNotaInterna,
   asignarConductorAdmin,
   cambiarEstatusAdmin,
-  ajustarPrecioFinalAdmin,
+  emitirCotizacionAdmin,
   obtenerAdminActual,
   obtenerAuditoriaTraslado,
   marcarTrasladoFallido
@@ -170,8 +170,8 @@ export default function PaginaDetalleViajeAdmin() {
     if (!pasaporte) return;
 
     const valor = Number(precioFinalInput);
-    if (!precioFinalInput.trim() || Number.isNaN(valor) || valor < 0) {
-      mostrarAviso({ tono: "peligro", texto: "Ingresa un monto válido para la tarifa final." });
+    if (!precioFinalInput.trim() || Number.isNaN(valor) || valor <= 0) {
+      mostrarAviso({ tono: "peligro", texto: "Ingresa una cotización mayor a cero." });
       return;
     }
 
@@ -180,20 +180,20 @@ export default function PaginaDetalleViajeAdmin() {
 
     if (esDemo) {
       await new Promise((r) => setTimeout(r, 400));
-      setPasaporte((prev) => (prev ? { ...prev, precio_final: valor } : prev));
-      mostrarAviso({ tono: "info", texto: "Tarifa final actualizada en modo demo." });
+      setPasaporte((prev) => (prev ? { ...prev, precio_cotizado: valor, estado: "cotizacion_generada" } : prev));
+      mostrarAviso({ tono: "info", texto: "Cotización emitida en modo demo." });
       setProcesando(null);
       return;
     }
 
     try {
       const cliente = crearClienteNavegador();
-      await ajustarPrecioFinalAdmin(cliente, pasaporte.traslado_id, valor);
-      mostrarAviso({ tono: "info", texto: "Tarifa final actualizada." });
+      await emitirCotizacionAdmin(cliente, pasaporte.traslado_id, valor);
+      mostrarAviso({ tono: "info", texto: "Cotización emitida para aceptación del usuario." });
       setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
       setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
     } catch (err) {
-      mostrarAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos actualizar la tarifa final." });
+      mostrarAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos emitir la cotización." });
     } finally {
       setProcesando(null);
     }
@@ -441,13 +441,12 @@ export default function PaginaDetalleViajeAdmin() {
         </PassportCard>
       </div>
 
-      {/* Ajuste de tarifa final — PRD §4.6 "el precio puede ser dinámico" */}
+      {/* Emisión de cotización autorizada */}
       <div className="mt-6">
         <PassportCard>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Tarifa final</p>
+          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Emitir cotización</p>
           <p className="mt-1 font-body text-xs text-ink/50">
-            Si el monto a cobrar cambió respecto a la cotización (incidencia, ruta, etc.), ajústalo aquí. El cobro
-            al cierre usa esta tarifa en cuanto exista; si se deja vacía, sigue usando la cotización original.
+            Define el precio autorizado que verá y deberá aceptar el usuario. Esto no realiza ningún cobro automáticamente.
           </p>
           <div className="mt-3 flex items-end gap-2">
             <div className="w-48">
@@ -462,7 +461,7 @@ export default function PaginaDetalleViajeAdmin() {
               />
             </div>
             <Button onClick={guardarPrecioFinal} disabled={procesando === "precio"}>
-              {procesando === "precio" ? "…" : "Guardar"}
+              {procesando === "precio" ? "…" : "Emitir cotización"}
             </Button>
           </div>
         </PassportCard>

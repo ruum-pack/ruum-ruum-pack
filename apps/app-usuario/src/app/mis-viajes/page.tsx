@@ -48,6 +48,7 @@ const ESTATUS_USUARIO: Record<EstadoTraslado, string> = {
   documentacion_en_revision: "En preparación",
   documentacion_validada: "En preparación",
   cotizacion_generada: "En preparación",
+  cotizacion_aceptada: "Pago pendiente",
   servicio_confirmado: "En preparación",
   pendiente_de_conductor: "Buscando conductor",
   conductor_asignado: "Conductor asignado",
@@ -224,6 +225,9 @@ function ViajeCard({ viaje }: { viaje: ViajeLista }) {
       </dl>
 
       <div className="mt-4 flex flex-wrap gap-2 font-body text-xs text-ink/55">
+        {pasaporte.tipo_pago === "anticipado" && pasaporte.estado === "cotizacion_aceptada" && (
+          <span className="rounded-full bg-signal px-3 py-1 font-semibold text-ink">Continuar con el pago</span>
+        )}
         <span className="rounded-full bg-ink/[0.04] px-2.5 py-1">
           Evidencia inicial: {pasaporte.evidencia_inicial_fotos_sincronizadas} fotos
         </span>

@@ -20,7 +20,7 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(10);
+select plan(14);
 
 create or replace function pg_temp.correr_b1() returns setof text as $$
 declare
@@ -30,12 +30,13 @@ declare
   v_usuario_b uuid;
   v_vehiculo_a uuid;
   v_traslado_id uuid;
+  v_respuesta jsonb;
   v_traslado_generico jsonb := jsonb_build_object(
     'contacto_entrega_nombre', 'A', 'contacto_entrega_telefono', '+520000000000',
     'contacto_recepcion_nombre', 'B', 'contacto_recepcion_telefono', '+520000000001',
     'origen_lat', 19.0, 'origen_lng', -99.0, 'origen_direccion', 'origen', 'origen_ciudad', 'CDMX',
     'destino_lat', 19.5, 'destino_lng', -99.5, 'destino_direccion', 'destino', 'destino_ciudad', 'CDMX',
-    'precio_cotizado', 1000, 'tipo_pago', 'anticipado'
+    'presupuesto_usuario', 1000, 'tipo_pago', 'anticipado', 'modalidad_programacion', 'lo_antes_posible'
   );
   v_vehiculo_nuevo jsonb := jsonb_build_object(
     'tipo', 'sedan', 'transmision', 'electrica', 'marca', 'Nissan', 'modelo', 'Versa',
@@ -56,15 +57,15 @@ begin
   insert into public.usuarios (auth_user_id, tipo_cuenta, rol, estado_verificacion)
   values (v_auth_b, 'personal', 'personal', 'verificado') returning id into v_usuario_b;
 
-  insert into public.vehiculos (usuario_id, tipo, marca, modelo, anio, placas)
-  values (v_usuario_a, 'sedan', 'Test', 'Modelo', 2020, 'TEST-001')
+  insert into public.vehiculos (usuario_id, tipo, marca, modelo, anio, placas, tiene_tarjeta_circulacion, tiene_verificacion, tiene_placas, puede_circular_rodando)
+  values (v_usuario_a, 'sedan', 'Test', 'Modelo', 2020, 'TEST-001', true, true, true, true)
   returning id into v_vehiculo_a;
 
   -- 1) B intenta crear un traslado reutilizando el vehículo de A -> rechazado.
   perform set_config('request.jwt.claim.sub', v_auth_b::text, true);
   begin
     perform set_config('role', 'authenticated', true);
-    perform public.usuario_crea_traslado(v_vehiculo_a, null, v_traslado_generico);
+    perform public.usuario_crea_traslado(v_vehiculo_a, null, v_traslado_generico, gen_random_uuid());
     v_ok := true;
   exception when others then
     v_ok := false;
@@ -83,7 +84,13 @@ begin
   -- 2) A crea un traslado con su propio vehículo guardado -> permitido.
   perform set_config('request.jwt.claim.sub', v_auth_a::text, true);
   perform set_config('role', 'authenticated', true);
-  v_traslado_id := public.usuario_crea_traslado(v_vehiculo_a, null, v_traslado_generico);
+  v_respuesta := public.usuario_crea_traslado(
+    v_vehiculo_a,
+    null,
+    v_traslado_generico || jsonb_build_object('tipo_pago', 'al_cierre'),
+    gen_random_uuid()
+  );
+  v_traslado_id := (v_respuesta->>'id')::uuid;
   perform set_config('role', 'postgres', true);
 
   return next ok(v_traslado_id is not null, 'B1.4: A sí puede crear un traslado con su propio vehículo');
@@ -92,30 +99,63 @@ begin
     v_vehiculo_a,
     'B1.5: el traslado quedó ligado al vehículo correcto'
   );
+  return next is(v_respuesta->>'tipo_pago', 'anticipado', 'B1.6: la RPC devuelve el tipo de pago decidido por el servidor');
+  return next is(
+    (select tipo_pago::text from public.traslados where id = v_traslado_id),
+    'anticipado',
+    'B1.7: tipo_pago inyectado por el cliente no cambia la decisión del servidor'
+  );
 
   -- 3) A crea un traslado con vehículo nuevo (incluye transmisión 'electrica').
   perform set_config('role', 'authenticated', true);
-  v_traslado_id := public.usuario_crea_traslado(null, v_vehiculo_nuevo, v_traslado_generico);
+  v_traslado_id := (public.usuario_crea_traslado(null, v_vehiculo_nuevo, v_traslado_generico, gen_random_uuid())->>'id')::uuid;
   perform set_config('role', 'postgres', true);
 
-  return next ok(v_traslado_id is not null, 'B1.6: se puede crear traslado + vehículo nuevo en un solo llamado');
+  return next ok(v_traslado_id is not null, 'B1.8: se puede crear traslado + vehículo nuevo en un solo llamado');
   return next is(
     (select v.transmision from public.traslados t join public.vehiculos v on v.id = t.vehiculo_id where t.id = v_traslado_id),
     'electrica',
-    'B1.7: transmisión "electrica" ya no revienta el CHECK de vehiculos'
+    'B1.9: transmisión "electrica" ya no revienta el CHECK de vehiculos'
   );
   return next is(
     (select v.usuario_id from public.traslados t join public.vehiculos v on v.id = t.vehiculo_id where t.id = v_traslado_id),
     v_usuario_a,
-    'B1.8: el vehículo nuevo quedó asignado al usuario autenticado, no a uno inyectado'
+    'B1.10: el vehículo nuevo quedó asignado al usuario autenticado, no a uno inyectado'
   );
 
   return next ok(
     exists(select 1 from public.registro_auditoria where traslado_id = v_traslado_id and evento = 'creacion_solicitud_traslado'),
-    'B1.9: la creación queda en la bitácora de auditoría'
+    'B1.11: la creación queda en la bitácora de auditoría'
   );
 
-  -- 4) El INSERT directo a traslados ya no es posible (RLS sin política de insert).
+  -- 4) La RPC aplica verificación aunque se invoque fuera de React.
+  update public.usuarios set estado_verificacion = 'rechazado' where id = v_usuario_b;
+  perform set_config('request.jwt.claim.sub', v_auth_b::text, true);
+  perform set_config('role', 'authenticated', true);
+  begin
+    perform public.usuario_crea_traslado(v_vehiculo_a, null, v_traslado_generico, gen_random_uuid());
+    v_ok := true;
+  exception when others then
+    v_ok := false;
+    v_msg := sqlerrm;
+  end;
+  perform set_config('role', 'postgres', true);
+  return next ok(not v_ok and v_msg ilike '%debe estar verificada%', 'B1.12: usuario rechazado no puede crear por RPC');
+
+  perform set_config('request.jwt.claim.sub', gen_random_uuid()::text, true);
+  perform set_config('role', 'authenticated', true);
+  begin
+    perform public.usuario_crea_traslado(v_vehiculo_a, null, v_traslado_generico, gen_random_uuid());
+    v_ok := true;
+  exception when others then
+    v_ok := false;
+    v_msg := sqlerrm;
+  end;
+  perform set_config('role', 'postgres', true);
+  return next ok(not v_ok and v_msg ilike '%Usuario no encontrado%', 'B1.13: sesión sin perfil no puede crear por RPC');
+
+  -- 5) El INSERT directo a traslados ya no es posible (RLS sin política de insert).
+  perform set_config('request.jwt.claim.sub', v_auth_a::text, true);
   perform set_config('role', 'authenticated', true);
   begin
     insert into public.traslados (
@@ -133,7 +173,7 @@ begin
     v_ok := false;
   end;
   perform set_config('role', 'postgres', true);
-  return next ok(not v_ok, 'B1.10: el insert directo a traslados quedó cerrado; solo la RPC puede crear');
+  return next ok(not v_ok, 'B1.14: el insert directo a traslados quedó cerrado; solo la RPC puede crear');
 end;
 $$ language plpgsql;
 

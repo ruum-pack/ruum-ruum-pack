@@ -932,16 +932,19 @@ export type Database = {
           contacto_entrega_telefono: string
           contacto_recepcion_nombre: string
           contacto_recepcion_telefono: string
-          origen_lat: number
-          origen_lng: number
+          origen_lat: number | null
+          origen_lng: number | null
           origen_direccion: string
           origen_ciudad: string
-          destino_lat: number
-          destino_lng: number
+          destino_lat: number | null
+          destino_lng: number | null
           destino_direccion: string
           destino_ciudad: string
           precio_cotizado: number | null
           precio_final: number | null
+          presupuesto_usuario: number | null
+          clave_idempotencia: string
+          cotizacion_expira_en: string | null
           tipo_pago: Database["public"]["Enums"]["tipo_pago"]
           causa_fallido: Database["public"]["Enums"]["causa_fallido"] | null
           tiene_incidencia_abierta: boolean
@@ -968,16 +971,19 @@ export type Database = {
           contacto_entrega_telefono: string
           contacto_recepcion_nombre: string
           contacto_recepcion_telefono: string
-          origen_lat: number
-          origen_lng: number
+          origen_lat?: number | null
+          origen_lng?: number | null
           origen_direccion: string
           origen_ciudad: string
-          destino_lat: number
-          destino_lng: number
+          destino_lat?: number | null
+          destino_lng?: number | null
           destino_direccion: string
           destino_ciudad: string
           precio_cotizado?: number | null
           precio_final?: number | null
+          presupuesto_usuario?: number | null
+          clave_idempotencia: string
+          cotizacion_expira_en?: string | null
           tipo_pago?: Database["public"]["Enums"]["tipo_pago"]
           causa_fallido?: Database["public"]["Enums"]["causa_fallido"] | null
           tiene_incidencia_abierta?: boolean
@@ -1004,16 +1010,19 @@ export type Database = {
           contacto_entrega_telefono?: string
           contacto_recepcion_nombre?: string
           contacto_recepcion_telefono?: string
-          origen_lat?: number
-          origen_lng?: number
+          origen_lat?: number | null
+          origen_lng?: number | null
           origen_direccion?: string
           origen_ciudad?: string
-          destino_lat?: number
-          destino_lng?: number
+          destino_lat?: number | null
+          destino_lng?: number | null
           destino_direccion?: string
           destino_ciudad?: string
           precio_cotizado?: number | null
           precio_final?: number | null
+          presupuesto_usuario?: number | null
+          clave_idempotencia?: string
+          cotizacion_expira_en?: string | null
           tipo_pago?: Database["public"]["Enums"]["tipo_pago"]
           causa_fallido?: Database["public"]["Enums"]["causa_fallido"] | null
           tiene_incidencia_abierta?: boolean
@@ -1407,8 +1416,13 @@ export type Database = {
         Returns: undefined;
       };
       usuario_crea_traslado: {
-        Args: { p_vehiculo_id: string | null; p_vehiculo: Json | null; p_traslado: Json };
-        Returns: string;
+        Args: { p_vehiculo_id: string | null; p_vehiculo: Json | null; p_traslado: Json; p_clave_idempotencia: string };
+        Returns: Json;
+      };
+      admin_emite_cotizacion: { Args: { p_traslado_id: string; p_precio: number }; Returns: undefined };
+      usuario_acepta_cotizacion: {
+        Args: { p_traslado_id: string };
+        Returns: Database["public"]["Enums"]["estado_traslado"];
       };
     };
     Enums: {
@@ -1424,7 +1438,7 @@ export type Database = {
       estado_pago: "pendiente" | "completado" | "reembolsado" | "fallido";
       estado_payout: "pendiente" | "procesado" | "fallido";
       estado_reclamo_seguro: "abierto" | "en_revision" | "resuelto";
-      estado_traslado: "usuario_pendiente_verificacion" | "usuario_verificado" | "solicitud_creada" | "documentacion_pendiente" | "documentacion_en_revision" | "documentacion_validada" | "cotizacion_generada" | "servicio_confirmado" | "pendiente_de_conductor" | "conductor_asignado" | "conductor_en_camino_al_origen" | "conductor_en_punto_de_recoleccion" | "verificacion_vehiculo_en_proceso" | "evidencia_inicial_en_proceso" | "evidencia_inicial_completada" | "vehiculo_recibido" | "traslado_en_curso" | "incidencia_reportada" | "llegada_a_destino" | "evidencia_final_en_proceso" | "evidencia_final_completada" | "entrega_confirmada" | "pago_pendiente" | "pago_completado" | "servicio_cerrado" | "servicio_cancelado" | "traslado_fallido" | "dano_no_reportado_en_revision" | "reclamo_abierto" | "reclamo_resuelto" | "cierre_operativo_con_incidencia_abierta" | "disputa_abierta" | "disputa_resuelta";
+      estado_traslado: "usuario_pendiente_verificacion" | "usuario_verificado" | "solicitud_creada" | "documentacion_pendiente" | "documentacion_en_revision" | "documentacion_validada" | "cotizacion_generada" | "cotizacion_aceptada" | "servicio_confirmado" | "pendiente_de_conductor" | "conductor_asignado" | "conductor_en_camino_al_origen" | "conductor_en_punto_de_recoleccion" | "verificacion_vehiculo_en_proceso" | "evidencia_inicial_en_proceso" | "evidencia_inicial_completada" | "vehiculo_recibido" | "traslado_en_curso" | "incidencia_reportada" | "llegada_a_destino" | "evidencia_final_en_proceso" | "evidencia_final_completada" | "entrega_confirmada" | "pago_pendiente" | "pago_completado" | "servicio_cerrado" | "servicio_cancelado" | "traslado_fallido" | "dano_no_reportado_en_revision" | "reclamo_abierto" | "reclamo_resuelto" | "cierre_operativo_con_incidencia_abierta" | "disputa_abierta" | "disputa_resuelta";
       estado_verificacion: "pendiente" | "en_revision" | "verificado" | "rechazado";
       evento_auditable: "creacion_cuenta" | "verificacion_cuenta" | "carga_documentos" | "validacion_documentos" | "creacion_solicitud_traslado" | "generacion_cotizacion" | "confirmacion_servicio" | "asignacion_conductor" | "aceptacion_traslado_conductor" | "llegada_conductor_origen" | "captura_evidencia_inicial" | "confirmacion_vehiculo_recibido" | "inicio_traslado" | "reporte_incidencia" | "llegada_destino" | "captura_evidencia_final" | "confirmacion_entrega" | "registro_pago" | "cierre_traslado" | "cancelacion_traslado" | "apertura_disputa" | "resolucion_disputa" | "apertura_reclamo_seguro" | "resolucion_reclamo_seguro" | "suspension_conductor" | "modificacion_traslado_activo" | "activacion_soporte_emergencia" | "comunicacion_usuario_conductor" | "calificacion_conductor" | "exportacion_pasaporte_pdf" | "asignacion_modo_prueba_supervisada" | "resultado_modo_prueba_supervisada" | "aceptacion_terminos" | "carga_documento_identidad";
       momento_incidencia: "recoleccion" | "durante_traslado" | "entrega" | "post_cierre";

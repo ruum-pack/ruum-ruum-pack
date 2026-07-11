@@ -738,6 +738,12 @@ export async function ajustarPrecioFinalAdmin(cliente: Cliente, trasladoId: stri
   });
 }
 
+export async function emitirCotizacionAdmin(cliente: Cliente, trasladoId: string, precio: number) {
+  if (!Number.isFinite(precio) || precio <= 0) throw new Error("La cotización debe ser mayor a cero.");
+  const { error } = await cliente.rpc("admin_emite_cotizacion", { p_traslado_id: trasladoId, p_precio: precio });
+  if (error) throw error;
+}
+
 /** PRD §17.6 — "suspender/reactivar" conductor. */
 export async function cambiarEstadoConductorAdmin(cliente: Cliente, conductorId: string, nuevoEstado: EstadoConductor) {
   const adminId = await obtenerAdminIdParaAuditoria(cliente);
@@ -852,11 +858,11 @@ export interface TrasladoMapa {
   vehiculo_marca: string | null;
   vehiculo_modelo: string | null;
   tiene_incidencia_abierta: boolean;
-  origen_lat: number;
-  origen_lng: number;
+  origen_lat: number | null;
+  origen_lng: number | null;
   origen_ciudad: string;
-  destino_lat: number;
-  destino_lng: number;
+  destino_lat: number | null;
+  destino_lng: number | null;
   destino_ciudad: string;
   actualizado_en: string;
 }
@@ -866,11 +872,11 @@ type TrasladoActivoMapaRow = {
   estado: EstadoTraslado;
   tiene_incidencia_abierta: boolean;
   actualizado_en: string;
-  origen_lat: number;
-  origen_lng: number;
+  origen_lat: number | null;
+  origen_lng: number | null;
   origen_ciudad: string;
-  destino_lat: number;
-  destino_lng: number;
+  destino_lat: number | null;
+  destino_lng: number | null;
   destino_ciudad: string;
   conductores: { nombre: string } | null;
   vehiculos: { marca: string; modelo: string } | null;

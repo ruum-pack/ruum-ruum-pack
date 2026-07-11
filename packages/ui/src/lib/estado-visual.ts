@@ -13,6 +13,7 @@ export const CATEGORIA_POR_ESTADO: Record<EstadoTraslado, CategoriaEstado> = {
   documentacion_en_revision: "atencion",
   documentacion_validada: "completado",
   cotizacion_generada: "completado",
+  cotizacion_aceptada: "atencion",
   servicio_confirmado: "completado",
   pendiente_de_conductor: "atencion",
   conductor_asignado: "completado",

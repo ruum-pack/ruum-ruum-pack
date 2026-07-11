@@ -39,12 +39,12 @@ export interface DatosNuevoTraslado {
   contacto_entrega_telefono: string;
   contacto_recepcion_nombre: string;
   contacto_recepcion_telefono: string;
-  origen_lat: number;
-  origen_lng: number;
+  origen_lat: number | null;
+  origen_lng: number | null;
   origen_direccion: string;
   origen_ciudad: string;
-  destino_lat: number;
-  destino_lng: number;
+  destino_lat: number | null;
+  destino_lng: number | null;
   destino_direccion: string;
   destino_ciudad: string;
   origen_referencias?: string | null;
@@ -57,7 +57,11 @@ export interface DatosNuevoTraslado {
   ventana_entrega?: string | null;
   tipo_servicio?: string | null;
   motivo_servicio?: string | null;
-  precio_cotizado: number;
+  presupuesto_usuario?: number | null;
+}
+
+export interface TrasladoCreado {
+  id: string;
   tipo_pago: TipoPago;
 }
 
@@ -89,15 +93,26 @@ export type DatosVehiculoParaTraslado = { vehiculoId: string } | { vehiculo: Dat
  * usuario autenticado (antes solo se filtraba por RLS de SELECT al listarlo,
  * pero nada impedía mandar un UUID ajeno directo al insert de traslados).
  */
-export async function crearTraslado(cliente: Cliente, vehiculo: DatosVehiculoParaTraslado, traslado: DatosNuevoTraslado) {
+export async function crearTraslado(cliente: Cliente, vehiculo: DatosVehiculoParaTraslado, traslado: DatosNuevoTraslado, claveIdempotencia: string) {
   const { data, error } = await cliente.rpc("usuario_crea_traslado", {
     p_vehiculo_id: "vehiculoId" in vehiculo ? vehiculo.vehiculoId : null,
     p_vehiculo: ("vehiculo" in vehiculo ? vehiculo.vehiculo : null) as never,
-    p_traslado: traslado as never
+    p_traslado: traslado as never,
+    p_clave_idempotencia: claveIdempotencia
   });
 
   if (error) throw error;
-  return { id: data as string };
+  const resultado = data as unknown as TrasladoCreado;
+  if (!resultado?.id || !resultado?.tipo_pago) {
+    throw new Error("La respuesta del servidor al crear el traslado es inválida.");
+  }
+  return resultado;
+}
+
+export async function aceptarCotizacionUsuario(cliente: Cliente, trasladoId: string) {
+  const { data, error } = await cliente.rpc("usuario_acepta_cotizacion", { p_traslado_id: trasladoId });
+  if (error) throw error;
+  return data;
 }
 
 /** PRD §5.1 — el Pasaporte Digital de Traslado completo, para la pantalla de seguimiento. */
