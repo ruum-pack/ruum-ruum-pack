@@ -2,14 +2,14 @@ import type { ReactNode } from "react";
 
 export function PantallaPublica({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <main className={`ruum-auth-shell min-h-screen bg-[#1a1f2e] px-5 text-white sm:px-6 ${className}`}>
-      <div className="relative mx-auto min-h-screen w-full max-w-[390px] overflow-hidden bg-[#1a1f2e]/95 shadow-[0_24px_64px_rgba(26,31,46,0.34)]">
+    <main className={`ruum-auth-shell min-h-screen bg-[#070b14] px-5 text-white sm:px-6 ${className}`}>
+      <div className="relative mx-auto min-h-screen w-full max-w-[390px] overflow-hidden bg-[#070b14]/95 shadow-[0_24px_64px_rgba(0,0,0,0.4)]">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-45"
           style={{
             backgroundImage:
-              "linear-gradient(180deg, rgba(26,31,46,0.82), rgba(26,31,46,0.98)), url('/imagenes/seguridad-traslado.png')",
+              "linear-gradient(180deg, rgba(7,11,20,0.82), rgba(7,11,20,0.98)), url('/imagenes/seguridad-traslado.png')",
             backgroundPosition: "42% 46%",
             backgroundSize: "cover"
           }}
@@ -44,26 +44,26 @@ export function RutaAuto() {
           </feMerge>
         </filter>
         <linearGradient id="auto-azul" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stopColor="#82c6ff" />
-          <stop offset="100%" stopColor="#1e88e5" />
+          <stop offset="0%" stopColor="#9fd3ff" />
+          <stop offset="100%" stopColor="#3aa5ff" />
         </linearGradient>
       </defs>
       <path
         d="M28 166 C72 162 88 129 83 101 C77 64 112 39 151 61 C186 81 208 28 236 31"
         fill="none"
-        stroke="#1e88e5"
+        stroke="#3aa5ff"
         strokeDasharray="6 7"
         strokeLinecap="round"
         strokeWidth="2.4"
         filter="url(#brillo-ruta)"
       />
-      <circle cx="28" cy="166" r="5" fill="#1a1f2e" stroke="#1e88e5" strokeWidth="2.5" />
-      <circle cx="236" cy="31" r="5" fill="#1a1f2e" stroke="#1e88e5" strokeWidth="2.5" />
+      <circle cx="28" cy="166" r="5" fill="#070b14" stroke="#3aa5ff" strokeWidth="2.5" />
+      <circle cx="236" cy="31" r="5" fill="#070b14" stroke="#3aa5ff" strokeWidth="2.5" />
       <g transform="translate(84 86)">
         <rect x="0" y="13" width="33" height="21" rx="5" fill="url(#auto-azul)" filter="url(#brillo-ruta)" />
-        <path d="M6 13 12 4h18l8 9Z" fill="#74b9f2" />
-        <circle cx="8" cy="37" r="4" fill="#1a1f2e" stroke="#1e88e5" strokeWidth="2" />
-        <circle cx="28" cy="37" r="4" fill="#1a1f2e" stroke="#1e88e5" strokeWidth="2" />
+        <path d="M6 13 12 4h18l8 9Z" fill="#9fd3ff" />
+        <circle cx="8" cy="37" r="4" fill="#070b14" stroke="#3aa5ff" strokeWidth="2" />
+        <circle cx="28" cy="37" r="4" fill="#070b14" stroke="#3aa5ff" strokeWidth="2" />
       </g>
     </svg>
   );
@@ -95,13 +95,13 @@ export function IconoLinea({ tipo }: { tipo: "escudo" | "maletin" | "pin" | "can
 }
 
 export const campoOscuro =
-  "w-full rounded-lg border border-[#4d5668] bg-[#151a25] px-3.5 py-2.5 font-body text-sm text-white outline-none transition placeholder:text-white/40 focus:border-[#1e88e5] focus:ring-2 focus:ring-[#1e88e5]/25";
+  "w-full rounded-lg border border-[#4d5668] bg-[#101a2c] px-3.5 py-2.5 font-body text-sm text-white outline-none transition placeholder:text-white/40 focus:border-[#3aa5ff] focus:ring-2 focus:ring-[#3aa5ff]/25";
 
 export const etiquetaOscura = "font-body text-xs font-medium text-[#d4d9e2]";
 export const botonAzul =
-  "inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-[#f5a623] px-5 py-3 font-display text-sm font-bold text-[#1a1f2e] shadow-[0_10px_28px_rgba(245,166,35,0.24)] outline-none transition hover:bg-[#d88f16] focus-visible:ring-2 focus-visible:ring-[#f5a623]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1f2e] disabled:cursor-not-allowed disabled:opacity-45";
+  "inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-[#f5a623] px-5 py-3 font-display text-sm font-bold text-[#14213d] shadow-[0_10px_28px_rgba(245,166,35,0.24)] outline-none transition hover:bg-[#d88f16] focus-visible:ring-2 focus-visible:ring-[#f5a623]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070b14] disabled:cursor-not-allowed disabled:opacity-45";
 export const botonContorno =
-  "inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-[#687287] bg-transparent px-5 py-3 font-display text-sm font-bold text-white outline-none transition hover:border-[#f5a623] hover:bg-[#f5a623]/10 focus-visible:ring-2 focus-visible:ring-[#f5a623]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1f2e]";
+  "inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-[#687287] bg-transparent px-5 py-3 font-display text-sm font-bold text-white outline-none transition hover:border-[#f5a623] hover:bg-[#f5a623]/10 focus-visible:ring-2 focus-visible:ring-[#f5a623]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070b14]";
 
 export function CampoOscuro({
   etiqueta,

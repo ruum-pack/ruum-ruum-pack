@@ -4,9 +4,11 @@
 /*
  * App Usuario — capa visual local
  *
- * Los tokens de marca viven en @ruum/ui. Esta aplicación no los redefine:
- * así evita divergencias con el sistema compartido y solamente agrega reglas
- * de superficie, foco y comportamiento propio de la experiencia de usuario.
+ * Los tokens de marca viven en @ruum/ui. Esta aplicación no los redefine
+ * en su forma base: solamente agrega reglas de superficie, foco y
+ * comportamiento propio de la experiencia de usuario. El tema (abajo) sí
+ * reasigna esos tokens — igual que app-conductor y panel-admin — para que
+ * las tres apps compartan la misma ropa.
  */
 :root {
   --app-canvas: #f4f5f7;
@@ -195,68 +197,166 @@ input[type="radio"] {
   }
 }
 
+/*
+ * TOKENS — app-usuario
+ *
+ * Tokens semánticos de @ruum/ui (no redefinir):
+ *   --ruum-canvas, --ruum-surface, --ruum-surface-strong, --ruum-text,
+ *   --ruum-shadow-{1-4}, --ruum-radius-{field,card,modal}
+ *
+ * Clases Tailwind extendidas por @ruum/ui:
+ *   bg-mist, bg-signal, bg-signal-soft, text-route-dark, bg-route-soft,
+ *   bg-control-soft, text-control, bg-danger-soft, text-danger,
+ *   bg-warn-soft, text-warn, rounded-card
+ *
+ * Clases locales definidas aquí:
+ *   .app-page, .app-container, .app-card, .app-card-interactive,
+ *   .app-status-strip, .ruum-auth-shell, .ruum-skip-link
+ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --app-canvas: #0f1117;
-    --app-surface: #1a1f2e;
-    --app-surface-subtle: #232a3a;
-    --app-border: rgba(255, 255, 255, 0.09);
-    --app-border-strong: rgba(255, 255, 255, 0.18);
-    --app-text-secondary: #c9cfda;
-    --app-text-tertiary: #8d96a8;
-    --app-focus: #4da3ff;
-    --app-focus-ring: rgba(77, 163, 255, 0.28);
-    --app-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --app-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.35);
-    --app-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.5);
-  }
+/* =========================================================================
+ * TEMA NOCTURNO NEÓN — app-usuario (siempre activo)
+ *
+ * Sprint 5 (2026-07-11) — app-conductor y panel-admin ya vestían este tema
+ * desde hace rato (fondo #070b14, ruta azul #3aa5ff, dorado de marca para
+ * acciones); app-usuario se había quedado en el tema claro original de
+ * @ruum/ui — salvo login/registro/onboarding/recuperación, que alguien ya
+ * había oscurecido a mano con hex sueltos (#1a1f2e, #3aa5ff…) sin pasar por
+ * el sistema de tokens, y con un azul ligeramente distinto al neón real.
+ * Aquí se reasignan los mismos tokens que ya usan las otras dos apps, para
+ * que TODA la app (no solo las pantallas públicas) comparta la misma ropa.
+ * ========================================================================= */
+:root {
+  color-scheme: dark;
 
-  body {
-    color: #e6e9ef;
-  }
+  /* --- Paleta Tailwind (@theme de @ruum/ui) reasignada --- */
+  --color-ink: #e8edf6;            /* texto principal, ahora claro */
+  --color-ink-soft: #c7d2e2;
+  --color-steel: #93a0b5;
+  --color-mist: #101a2c;           /* superficie de tarjetas, ahora oscura */
+  --color-mist-dim: #0b1322;
+  --color-signal: #f5a623;         /* dorado de marca, sin cambios */
+  --color-signal-soft: rgba(245, 166, 35, 0.14);
+  --color-route: #3aa5ff;          /* azul neón del onboarding */
+  --color-route-dark: #4da3ff;     /* legible como texto sobre fondo oscuro */
+  --color-route-soft: rgba(58, 165, 255, 0.14);
+  --color-control: #3ddc97;
+  --color-control-soft: rgba(61, 220, 151, 0.13);
+  --color-warn: #f0b429;
+  --color-warn-soft: rgba(240, 180, 41, 0.12);
+  --color-danger: #ff6b6b;
+  --color-danger-soft: rgba(255, 107, 107, 0.12);
 
-  input,
-  select,
-  textarea {
-    color-scheme: dark;
-  }
+  /* --- Tokens semánticos --- */
+  --ruum-canvas: #070b14;
+  --ruum-surface: #101a2c;
+  --ruum-surface-subtle: #0d1626;
+  --ruum-surface-strong: #05080f;
+  --ruum-border: rgba(122, 162, 214, 0.2);
+  --ruum-border-strong: rgba(122, 162, 214, 0.38);
+  --ruum-text: #e8edf6;
+  --ruum-text-secondary: #b7c2d4;
+  --ruum-text-tertiary: #8b98ad;
+  --ruum-focus: #4da3ff;
+  --ruum-focus-ring: rgba(77, 163, 255, 0.3);
+  --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.4);
+  --ruum-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.55);
+  --ruum-shadow-4: 0 24px 64px rgba(0, 0, 0, 0.65);
 
-  input::placeholder,
-  textarea::placeholder {
-    color: #687287;
-  }
-
-  .app-card {
-    background: var(--app-surface);
-    border-color: var(--app-border);
-  }
-
-  .app-card-interactive:hover {
-    border-color: #4da3ff;
-  }
-
-  .app-status-strip {
-    border-color: rgba(243, 187, 64, 0.3);
-    background: rgba(254, 243, 220, 0.08);
-  }
-
-  /* Los menús dropdown en NavegacionUsuario */
-  nav [role="menu"] {
-    background: var(--app-surface);
-    border-color: var(--app-border);
-    box-shadow: var(--app-shadow-2);
-  }
+  /* --- Capa local de app-usuario (.app-*), llevada al mismo tono --- */
+  --app-canvas: var(--ruum-canvas);
+  --app-surface: var(--ruum-surface);
+  --app-surface-subtle: var(--ruum-surface-subtle);
+  --app-border: var(--ruum-border);
+  --app-border-strong: var(--ruum-border-strong);
+  --app-text-secondary: var(--ruum-text-secondary);
+  --app-text-tertiary: var(--ruum-text-tertiary);
+  --app-focus: var(--ruum-focus);
+  --app-focus-ring: var(--ruum-focus-ring);
+  --app-shadow-1: var(--ruum-shadow-1);
+  --app-shadow-2: var(--ruum-shadow-2);
+  --app-shadow-3: var(--ruum-shadow-3);
 }
 
-/* Documentación de tokens externos importados de @ruum/ui/styles/tokens.css.
- * No redefinir aquí — si @ruum/ui cambia un valor, la app lo hereda.
- * Tokens de @ruum/ui usados en app-usuario (77 referencias):
- *   bg-mist (43), text-route-dark (20), bg-signal (13), border-route (11),
- *   bg-route-soft (9), rounded-card (8), text-signal (5), bg-signal-soft (3),
- *   bg-danger-soft (2), bg-mist-dim (1)
- */
-@keyframes ruum-fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* Lienzo con los mismos resplandores radiales del onboarding. */
+body {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(58, 165, 255, 0.1), transparent 42%),
+    radial-gradient(circle at 95% 100%, rgba(168, 232, 32, 0.06), transparent 38%),
+    var(--ruum-canvas);
+  background-attachment: fixed;
+  color: var(--ruum-text);
+}
+
+::selection {
+  background: var(--color-signal);
+  color: #14213d;
+}
+
+input,
+select,
+textarea {
+  color-scheme: dark;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #7b8aa3;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-signal);
+}
+
+/* --- Correcciones de contraste para pares fondo+texto invertidos ---
+ * Al aclarar --color-ink y oscurecer --color-mist, los componentes que
+ * combinan superficie de color con text-ink/text-mist necesitan texto
+ * fijo: dorado y azul brillante piden texto oscuro; rojos piden claro.
+ * Mismas reglas que ya tienen app-conductor y panel-admin (mismos
+ * componentes de @ruum/ui, mismo problema de contraste). */
+.bg-signal { color: #14213d; }
+.bg-route-dark { color: #071120; }
+.bg-control { color: #06281a; }
+.bg-danger { color: #2a0808; }
+.bg-ink { background-color: #0d1626; }
+/* Folio del PassportCard: se posiciona sobre el listón dorado. */
+.rounded-card > span.font-mono-ruum.absolute { color: #14213d; }
+
+/* --- Superficies locales de app-usuario en clave neón --- */
+.app-card {
+  border-color: var(--app-border);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-1);
+}
+
+.app-card-interactive:hover {
+  border-color: var(--color-route);
+  box-shadow: var(--app-shadow-2);
+}
+
+.app-status-strip {
+  border-color: rgba(245, 166, 35, 0.3);
+  background: rgba(245, 166, 35, 0.08);
+}
+
+/* El fondo real de las pantallas públicas (imagen + degradado) se aplica
+ * inline en experiencia-publica.tsx, con una posición de encuadre a medida
+ * para el arte de marca — no se duplica aquí para no dejar una capa de CSS
+ * que nunca se ve (queda tapada por el div interior). Esta clase solo pone
+ * el lienzo oscuro de respaldo y el color de foco. */
+.ruum-auth-shell {
+  min-height: 100vh;
+  background: #070b14;
+}
+
+.ruum-auth-shell :focus-visible {
+  outline-color: #f5a623;
+}
+
+.ruum-skip-link {
+  background: var(--ruum-surface);
+  color: #4da3ff;
+  border-color: #4da3ff;
 }
