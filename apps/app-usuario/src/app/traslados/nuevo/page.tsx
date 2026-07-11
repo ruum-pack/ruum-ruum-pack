@@ -9,7 +9,7 @@ import { determinarMomentoPago, calcularCargoCancelacion } from "@ruum/shared/ru
 import type { Database, TipoVehiculo } from "@ruum/shared/types";
 import type { TipoCuenta, Usuario } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
-import { crearVehiculo, crearTraslado, listarVehiculosDeUsuario, obtenerUsuarioActual } from "@ruum/api/services";
+import { crearTraslado, listarVehiculosDeUsuario, obtenerUsuarioActual, type DatosVehiculoParaTraslado } from "@ruum/api/services";
 import { esNativo } from "../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../lib/codigos-postales";
@@ -779,28 +779,32 @@ export default function PaginaNuevoTraslado() {
         estado: datos.destinoEstado
       });
 
-      const vehiculo = vehiculoSeleccionadoId
-        ? { id: vehiculoSeleccionadoId }
-        : await crearVehiculo(cliente, {
-            usuario_id: usuario.id,
-            tipo: datos.tipo,
-            transmision: datos.transmision,
-            marca: datos.marca,
-            modelo: datos.modelo,
-            anio: Number(datos.anio),
-            color: datos.color,
-            placas: datos.placas,
-            vin: datos.vin,
-            estado_general_declarado: datos.estadoGeneral,
-            tiene_tarjeta_circulacion: datos.tieneTarjeta,
-            tiene_verificacion: datos.tieneVerificacion,
-            tiene_placas: datos.tienePlacas,
-            puede_circular_rodando: datos.puedeCircular
-          });
+      // Vehículo y traslado ahora se crean en una sola RPC transaccional
+      // (usuario_crea_traslado, migración 20260711000118): ya no hay un
+      // insert de vehículo suelto que pueda quedar huérfano si el del
+      // traslado falla, y si se reutiliza un vehículo guardado, la base
+      // valida ahí mismo que sea del usuario autenticado.
+      const vehiculoParaTraslado: DatosVehiculoParaTraslado = vehiculoSeleccionadoId
+        ? { vehiculoId: vehiculoSeleccionadoId }
+        : {
+            vehiculo: {
+              tipo: datos.tipo,
+              transmision: datos.transmision,
+              marca: datos.marca,
+              modelo: datos.modelo,
+              anio: Number(datos.anio),
+              color: datos.color,
+              placas: datos.placas,
+              vin: datos.vin,
+              estado_general_declarado: datos.estadoGeneral,
+              tiene_tarjeta_circulacion: datos.tieneTarjeta,
+              tiene_verificacion: datos.tieneVerificacion,
+              tiene_placas: datos.tienePlacas,
+              puede_circular_rodando: datos.puedeCircular
+            }
+          };
 
-      const nuevoTraslado = await crearTraslado(cliente, {
-        usuario_id: usuario.id,
-        vehiculo_id: vehiculo.id,
+      const nuevoTraslado = await crearTraslado(cliente, vehiculoParaTraslado, {
         contacto_entrega_nombre: nombreCompleto(datos.entregaNombre, datos.entregaApellido),
         contacto_entrega_telefono: telefonoMx(datos.entregaTelefono),
         contacto_recepcion_nombre: nombreCompleto(datos.recepcionNombre, datos.recepcionApellido),

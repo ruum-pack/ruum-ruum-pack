@@ -1406,6 +1406,10 @@ export type Database = {
         Args: { p_traslado_id: string; p_motivo: string; p_porcentaje_cargo: number; p_monto_cargo: number; p_mensaje: string };
         Returns: undefined;
       };
+      usuario_crea_traslado: {
+        Args: { p_vehiculo_id: string | null; p_vehiculo: Json | null; p_traslado: Json };
+        Returns: string;
+      };
     };
     Enums: {
       abierta_por_actor: "usuario" | "conductor";

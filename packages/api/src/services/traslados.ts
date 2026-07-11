@@ -35,8 +35,6 @@ async function obtenerUsuarioIdActual(cliente: Cliente): Promise<string> {
 }
 
 export interface DatosNuevoTraslado {
-  usuario_id: string;
-  vehiculo_id: string;
   contacto_entrega_nombre: string;
   contacto_entrega_telefono: string;
   contacto_recepcion_nombre: string;
@@ -63,16 +61,43 @@ export interface DatosNuevoTraslado {
   tipo_pago: TipoPago;
 }
 
-/** PRD §4.1 — crea la solicitud de traslado (estado inicial: solicitud_creada). */
-export async function crearTraslado(cliente: Cliente, datos: DatosNuevoTraslado) {
-  const { data, error } = await cliente
-    .from("traslados")
-    .insert({ ...datos, estado: "solicitud_creada" })
-    .select("id")
-    .single();
+export interface DatosVehiculoNuevo {
+  tipo: Database["public"]["Enums"]["tipo_vehiculo"];
+  transmision: "manual" | "automatica" | "electrica";
+  marca: string;
+  modelo: string;
+  anio: number;
+  color: string;
+  placas: string;
+  vin: string;
+  estado_general_declarado: string;
+  tiene_tarjeta_circulacion: boolean;
+  tiene_verificacion: boolean;
+  tiene_placas: boolean;
+  puede_circular_rodando: boolean;
+}
+
+export type DatosVehiculoParaTraslado = { vehiculoId: string } | { vehiculo: DatosVehiculoNuevo };
+
+/**
+ * PRD §4.1 — crea la solicitud de traslado (estado inicial: solicitud_creada).
+ *
+ * Desde la migración 20260711000118 esto es una sola RPC transaccional
+ * (usuario_crea_traslado) en vez de dos inserts sueltos desde el cliente:
+ * evita el vehículo huérfano si el insert del traslado fallaba después del
+ * de vehículo, y valida en la base que un vehiculoId reutilizado sea del
+ * usuario autenticado (antes solo se filtraba por RLS de SELECT al listarlo,
+ * pero nada impedía mandar un UUID ajeno directo al insert de traslados).
+ */
+export async function crearTraslado(cliente: Cliente, vehiculo: DatosVehiculoParaTraslado, traslado: DatosNuevoTraslado) {
+  const { data, error } = await cliente.rpc("usuario_crea_traslado", {
+    p_vehiculo_id: "vehiculoId" in vehiculo ? vehiculo.vehiculoId : null,
+    p_vehiculo: ("vehiculo" in vehiculo ? vehiculo.vehiculo : null) as never,
+    p_traslado: traslado as never
+  });
 
   if (error) throw error;
-  return data;
+  return { id: data as string };
 }
 
 /** PRD §5.1 — el Pasaporte Digital de Traslado completo, para la pantalla de seguimiento. */
