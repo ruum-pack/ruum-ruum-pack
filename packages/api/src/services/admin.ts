@@ -9,6 +9,9 @@ import { registrarEvento } from "./auditoria";
 type Cliente = SupabaseClient<Database>;
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
+type SolicitudConductorRow = Database["public"]["Tables"]["solicitudes_conductor"]["Row"];
+type ConsentimientoUsuarioRow = Database["public"]["Tables"]["consentimientos_usuario"]["Row"];
+type HistorialSolicitudRow = Database["public"]["Tables"]["historial_estados_solicitud_conductor"]["Row"];
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 type EmpresaRow = Database["public"]["Tables"]["empresas"]["Row"];
 type IncidenciaRow = Database["public"]["Tables"]["incidencias"]["Row"];
@@ -41,6 +44,28 @@ export interface DatosEmpresasAdmin {
   empresas: EmpresaRow[];
   usuarios: UsuarioRow[];
   traslados: TrasladoRow[];
+}
+
+export interface SolicitudConductorBandejaAdmin {
+  solicitud: SolicitudConductorRow;
+  nombre: string;
+  telefono: string | null;
+  curp: string | null;
+  documentosVigentes: number;
+  documentosRechazados: number;
+  consentimientosRegistrados: number;
+  ultimaDecision: HistorialSolicitudRow | null;
+}
+
+export interface HistorialSolicitudConRevisor extends HistorialSolicitudRow {
+  revisor_nombre: string | null;
+}
+
+export interface DetalleSolicitudConductorAdmin {
+  solicitud: SolicitudConductorRow;
+  documentos: DocumentoConductorRow[];
+  consentimientos: ConsentimientoUsuarioRow[];
+  historial: HistorialSolicitudConRevisor[];
 }
 
 /** Admin asociado a la sesión de Supabase Auth actual, si existe (mismo patrón que obtenerUsuarioActual/obtenerConductorActual). */
@@ -181,6 +206,64 @@ export async function listarConductoresAdmin(cliente: Cliente): Promise<Conducto
   return data ?? [];
 }
 
+function valorTextoJson(valor: unknown, llave: string): string | null {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) return null;
+  const dato = (valor as Record<string, unknown>)[llave];
+  return typeof dato === "string" && dato.trim() ? dato.trim() : null;
+}
+
+/** RT-23 — la bandeja se construye exclusivamente desde expedientes y sus relaciones. */
+export async function listarSolicitudesConductorAdmin(cliente: Cliente): Promise<SolicitudConductorBandejaAdmin[]> {
+  const [solicitudes, documentos, consentimientos, historial] = await Promise.all([
+    cliente.from("solicitudes_conductor").select("*").order("actualizado_en", { ascending: false }),
+    cliente.from("documentos_conductor").select("*").eq("es_actual", true),
+    cliente.from("consentimientos_usuario").select("*"),
+    cliente.from("historial_estados_solicitud_conductor").select("*").order("revisado_en", { ascending: false })
+  ]);
+
+  for (const resultado of [solicitudes, documentos, consentimientos, historial]) {
+    if (resultado.error) throw resultado.error;
+  }
+
+  const filas = solicitudes.data ?? [];
+  const solicitudPorConductor = new Map(
+    filas.filter((s) => s.conductor_id).map((s) => [s.conductor_id as string, s.id])
+  );
+  const documentosPorSolicitud = new Map<string, DocumentoConductorRow[]>();
+  for (const documento of documentos.data ?? []) {
+    const solicitudId = documento.solicitud_id ?? (documento.conductor_id ? solicitudPorConductor.get(documento.conductor_id) : null);
+    if (!solicitudId) continue;
+    documentosPorSolicitud.set(solicitudId, [...(documentosPorSolicitud.get(solicitudId) ?? []), documento]);
+  }
+  const consentimientosPorSolicitud = new Map<string, Set<string>>();
+  for (const consentimiento of consentimientos.data ?? []) {
+    if (!consentimiento.solicitud_id) continue;
+    const tipos = consentimientosPorSolicitud.get(consentimiento.solicitud_id) ?? new Set<string>();
+    tipos.add(consentimiento.tipo_documento);
+    consentimientosPorSolicitud.set(consentimiento.solicitud_id, tipos);
+  }
+  const ultimaDecisionPorSolicitud = new Map<string, HistorialSolicitudRow>();
+  for (const evento of historial.data ?? []) {
+    if (!ultimaDecisionPorSolicitud.has(evento.solicitud_id)) {
+      ultimaDecisionPorSolicitud.set(evento.solicitud_id, evento);
+    }
+  }
+
+  return filas.map((solicitud) => {
+    const documentosActuales = documentosPorSolicitud.get(solicitud.id) ?? [];
+    return {
+      solicitud,
+      nombre: valorTextoJson(solicitud.datos_personales, "nombre") ?? "Conductor sin nombre",
+      telefono: valorTextoJson(solicitud.datos_personales, "telefono") ?? solicitud.telefono_normalizado,
+      curp: solicitud.curp_normalizada,
+      documentosVigentes: documentosActuales.length,
+      documentosRechazados: documentosActuales.filter((d) => d.estado === "rechazado").length,
+      consentimientosRegistrados: consentimientosPorSolicitud.get(solicitud.id)?.size ?? 0,
+      ultimaDecision: ultimaDecisionPorSolicitud.get(solicitud.id) ?? null
+    };
+  });
+}
+
 /** PRD §17.5 — lista de usuarios. */
 export async function listarUsuariosAdmin(cliente: Cliente): Promise<UsuarioRow[]> {
   const { data, error } = await cliente.from("usuarios").select("*").order("creado_en", { ascending: false });
@@ -296,6 +379,53 @@ export async function obtenerDetalleConductorAdmin(
   return { conductor: conductor.data, documentos: documentos.data ?? [] };
 }
 
+/** RT-23 — expediente de revisión con documentos actuales, consentimientos e historial. */
+export async function obtenerDetalleSolicitudConductorAdmin(
+  cliente: Cliente,
+  solicitudId: string
+): Promise<DetalleSolicitudConductorAdmin> {
+  const solicitud = await cliente.from("solicitudes_conductor").select("*").eq("id", solicitudId).single();
+  if (solicitud.error) throw solicitud.error;
+
+  const filtroDocumentos = solicitud.data.conductor_id
+    ? `solicitud_id.eq.${solicitudId},conductor_id.eq.${solicitud.data.conductor_id}`
+    : `solicitud_id.eq.${solicitudId}`;
+  const [documentos, consentimientos, historial, admins] = await Promise.all([
+    cliente
+      .from("documentos_conductor")
+      .select("*")
+      .or(filtroDocumentos)
+      .eq("es_actual", true)
+      .order("creado_en", { ascending: false }),
+    cliente
+      .from("consentimientos_usuario")
+      .select("*")
+      .eq("solicitud_id", solicitudId)
+      .order("aceptado_en", { ascending: false }),
+    cliente
+      .from("historial_estados_solicitud_conductor")
+      .select("*")
+      .eq("solicitud_id", solicitudId)
+      .order("revisado_en", { ascending: false }),
+    cliente.from("admins").select("id,nombre")
+  ]);
+
+  for (const resultado of [documentos, consentimientos, historial, admins]) {
+    if (resultado.error) throw resultado.error;
+  }
+  const nombreAdmin = new Map((admins.data ?? []).map((admin) => [admin.id, admin.nombre]));
+
+  return {
+    solicitud: solicitud.data,
+    documentos: documentos.data ?? [],
+    consentimientos: consentimientos.data ?? [],
+    historial: (historial.data ?? []).map((evento) => ({
+      ...evento,
+      revisor_nombre: evento.revisado_por ? nombreAdmin.get(evento.revisado_por) ?? "Administrador" : null
+    }))
+  };
+}
+
 /**
  * Fase 2 — revisión granular por documento. Exige motivo cuando el resultado
  * no es "aprobado" (el conductor necesita saber qué corregir). Audita cada acción.
@@ -340,6 +470,29 @@ export async function revisarDocumentoConductorAdmin(
     estado,
     ...(motivo ? { motivo } : {})
   });
+}
+
+/** RT-24 — aprobación final transaccional y atribuida al admin autenticado. */
+export async function aprobarSolicitudConductorAdmin(cliente: Cliente, solicitudId: string, motivo?: string) {
+  const { data, error } = await cliente.rpc("aprobar_solicitud_conductor_admin", {
+    p_solicitud_id: solicitudId,
+    p_motivo: motivo?.trim() || null
+  });
+  if (error) throw error;
+  return data;
+}
+
+/** RT-24 — rechazo final con motivo obligatorio y transición registrada por servidor. */
+export async function rechazarSolicitudConductorAdmin(cliente: Cliente, solicitudId: string, motivo: string) {
+  const motivoLimpio = motivo.trim();
+  if (motivoLimpio.length < 5) {
+    throw new Error("Escribe un motivo de rechazo (mínimo 5 caracteres).");
+  }
+  const { error } = await cliente.rpc("rechazar_solicitud_conductor_admin", {
+    p_solicitud_id: solicitudId,
+    p_motivo: motivoLimpio
+  });
+  if (error) throw error;
 }
 
 /**

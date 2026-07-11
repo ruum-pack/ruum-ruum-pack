@@ -363,6 +363,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      historial_estados_solicitud_conductor: {
+        Row: {
+          id: string
+          solicitud_id: string
+          documento_id: string | null
+          revisado_por: string | null
+          revisado_en: string
+          decision: "registro_inicial" | "cambio_estado" | "aprobar_documento" | "rechazar_documento" | "vencer_documento" | "solicitar_correccion" | "aprobar_solicitud" | "rechazar_solicitud"
+          motivo: string | null
+          estado_anterior: Database["public"]["Enums"]["estado_expediente_conductor"]
+          estado_nuevo: Database["public"]["Enums"]["estado_expediente_conductor"]
+          creado_en: string
+        };
+        Insert: {
+          id?: string
+          solicitud_id: string
+          documento_id?: string | null
+          revisado_por?: string | null
+          revisado_en?: string
+          decision: "registro_inicial" | "cambio_estado" | "aprobar_documento" | "rechazar_documento" | "vencer_documento" | "solicitar_correccion" | "aprobar_solicitud" | "rechazar_solicitud"
+          motivo?: string | null
+          estado_anterior: Database["public"]["Enums"]["estado_expediente_conductor"]
+          estado_nuevo: Database["public"]["Enums"]["estado_expediente_conductor"]
+          creado_en?: string
+        };
+        Update: {
+          id?: string
+          solicitud_id?: string
+          documento_id?: string | null
+          revisado_por?: string | null
+          revisado_en?: string
+          decision?: "registro_inicial" | "cambio_estado" | "aprobar_documento" | "rechazar_documento" | "vencer_documento" | "solicitar_correccion" | "aprobar_solicitud" | "rechazar_solicitud"
+          motivo?: string | null
+          estado_anterior?: Database["public"]["Enums"]["estado_expediente_conductor"]
+          estado_nuevo?: Database["public"]["Enums"]["estado_expediente_conductor"]
+          creado_en?: string
+        };
+        Relationships: [];
+      };
       empresas: {
         Row: {
           id: string
@@ -1239,8 +1278,12 @@ export type Database = {
         Returns: undefined;
       };
       aprobar_solicitud_conductor_admin: {
-        Args: { p_solicitud_id: string };
+        Args: { p_solicitud_id: string; p_motivo?: string | null };
         Returns: string;
+      };
+      rechazar_solicitud_conductor_admin: {
+        Args: { p_solicitud_id: string; p_motivo: string };
+        Returns: undefined;
       };
       admin_marca_traslado_fallido: {
         Args: { p_traslado_id: string; p_causa: Database["public"]["Enums"]["causa_fallido"]; p_cargo_aplica_cliente: boolean; p_requiere_reagendamiento: boolean; p_porcentaje_descuento_segundo_intento: number | null; p_mensaje: string };

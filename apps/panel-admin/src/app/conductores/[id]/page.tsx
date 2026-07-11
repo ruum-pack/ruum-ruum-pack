@@ -1,396 +1,297 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Button, Aviso, PassportCard } from "@ruum/ui";
-import { ETIQUETA_NIVEL_CONCER } from "@ruum/shared/constants";
-import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { Aviso, Button, PassportCard } from "@ruum/ui";
+import type { Database, Json } from "@ruum/shared/types";
 import {
-  obtenerDetalleConductorAdmin,
+  aprobarSolicitudConductorAdmin,
+  obtenerDetalleSolicitudConductorAdmin,
+  rechazarSolicitudConductorAdmin,
   revisarDocumentoConductorAdmin,
-  activarConductorAdmin,
+  type DetalleSolicitudConductorAdmin,
   type EstadoDocumentoConductor
 } from "@ruum/api/services";
-import { CONDUCTORES_DEMO } from "../../../lib/datos-demo";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 
-type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
-type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
-
-const ETIQUETA_ESTADO: Record<ConductorRow["estado"], string> = {
-  activo: "Activo",
-  suspendido_7d: "Suspendido (7 días)",
-  suspendido_14d: "Suspendido (14 días)",
-  suspendido_30d: "Suspendido (30 días)",
-  suspendido_indefinido: "Suspendido indefinido",
-  bloqueado_permanente: "Bloqueado permanente",
-  modo_prueba_supervisada: "Modo de prueba supervisada",
-  pendiente_verificacion: "Pendiente de validación"
-};
-
-const TIPOS_DOCUMENTO: { valor: string; etiqueta: string }[] = [
-  { valor: "licencia_frente", etiqueta: "Licencia - frente" },
-  { valor: "licencia_reverso", etiqueta: "Licencia - reverso" },
-  { valor: "identificacion_oficial", etiqueta: "Identificación oficial" },
-  { valor: "documento_operativo", etiqueta: "Documento operativo adicional" }
-];
+type DocumentoRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
+type EstadoSolicitud = Database["public"]["Enums"]["estado_expediente_conductor"];
 
 const DOCUMENTOS_REQUERIDOS = ["licencia_frente", "licencia_reverso", "identificacion_oficial"];
-
+const ETIQUETA_DOCUMENTO: Record<string, string> = {
+  licencia_frente: "Licencia · frente",
+  licencia_reverso: "Licencia · reverso",
+  identificacion_oficial: "Identificación oficial",
+  documento_operativo: "Documento operativo adicional"
+};
+const ETIQUETA_CONSENTIMIENTO: Record<string, string> = {
+  terminos_servicio: "Términos de servicio",
+  aviso_privacidad: "Aviso de privacidad",
+  autorizacion_antecedentes: "Autorización de antecedentes",
+  declaracion_suspensiones: "Declaración de no suspensión"
+};
+const ETIQUETA_ESTADO: Record<EstadoSolicitud, string> = {
+  borrador: "Borrador", correo_pendiente: "Correo pendiente", datos_incompletos: "Datos incompletos",
+  documentos_pendientes: "Documentos pendientes", listo_para_enviar: "Lista para enviar", en_revision: "En revisión",
+  requiere_correccion: "Requiere corrección", aprobado: "Aprobada", rechazado: "Rechazada", suspendido: "Suspendida"
+};
+const ETIQUETA_DECISION: Record<string, string> = {
+  registro_inicial: "Estado inicial", cambio_estado: "Cambio de estado", aprobar_documento: "Documento aprobado",
+  rechazar_documento: "Documento rechazado", vencer_documento: "Documento vencido",
+  solicitar_correccion: "Corrección solicitada", aprobar_solicitud: "Solicitud aprobada", rechazar_solicitud: "Solicitud rechazada"
+};
 const ESTADO_DOCUMENTO: Record<string, { texto: string; clase: string }> = {
-  pendiente: { texto: "Pendiente de carga", clase: "border-ink/15 bg-ink/[0.04] text-ink/60" },
   en_revision: { texto: "En revisión", clase: "border-route/30 bg-route-soft text-route-dark" },
   aprobado: { texto: "Aprobado", clase: "border-control/30 bg-control-soft text-control" },
   rechazado: { texto: "Rechazado", clase: "border-danger/25 bg-danger-soft text-danger" },
-  reemplazado: { texto: "Reemplazado", clase: "border-ink/15 bg-ink/[0.04] text-ink/55" },
-  vencido: { texto: "Vencido", clase: "border-danger/25 bg-danger-soft text-danger" },
+  vencido: { texto: "Vencido", clase: "border-danger/25 bg-danger-soft text-danger" }
 };
 
-function etiquetaTipo(tipo: string) {
-  return TIPOS_DOCUMENTO.find((t) => t.valor === tipo)?.etiqueta ?? tipo;
+function textoJson(valor: Json, llave: string) {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) return null;
+  const dato = valor[llave];
+  return typeof dato === "string" && dato.trim() ? dato.trim() : null;
 }
 
-/** Fase 2 — tarjeta de revisión individual por documento, mismo patrón que AccionesVerificacion (usuarios). */
-function FilaDocumento({
-  documento,
-  esDemo,
-  onRevisado
-}: {
-  documento: DocumentoConductorRow;
-  esDemo: boolean;
-  onRevisado: (documentoId: string, estado: EstadoDocumentoConductor, notas?: string) => Promise<void>;
+function fecha(valor: string | null) {
+  return valor ? new Date(valor).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" }) : "—";
+}
+
+function FilaDocumento({ documento, onRevisado }: {
+  documento: DocumentoRow;
+  onRevisado: (id: string, estado: EstadoDocumentoConductor, notas?: string) => Promise<void>;
 }) {
   const [procesando, setProcesando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [urlDocumento, setUrlDocumento] = useState<string | null>(null);
-  const [confirmando, setConfirmando] = useState<"rechazado" | null>(null);
   const [motivo, setMotivo] = useState("");
+  const [rechazando, setRechazando] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const estado = ESTADO_DOCUMENTO[documento.estado] ?? ESTADO_DOCUMENTO.en_revision;
 
-  const estadoInfo = ESTADO_DOCUMENTO[documento.estado] ?? ESTADO_DOCUMENTO.pendiente;
-  const esFinal = documento.estado === "aprobado";
-
-  async function verDocumento() {
-    if (esDemo) {
-      setUrlDocumento("#");
-      return;
-    }
+  async function ver() {
     setProcesando(true);
     setError(null);
     try {
-      const cliente = crearClienteNavegador();
-      const { data, error: errUrl } = await cliente.storage.from("documentos-conductor").createSignedUrl(documento.url, 60 * 30);
-      if (errUrl) throw errUrl;
-      setUrlDocumento(data.signedUrl);
+      const { data, error: errorUrl } = await crearClienteNavegador().storage
+        .from("documentos-conductor").createSignedUrl(documento.url, 60 * 30);
+      if (errorUrl) throw errorUrl;
+      setUrl(data.signedUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos obtener el documento.");
-    } finally {
-      setProcesando(false);
-    }
+      setError(err instanceof Error ? err.message : "No pudimos abrir el documento.");
+    } finally { setProcesando(false); }
   }
 
-  async function aplicar(estado: EstadoDocumentoConductor, notas?: string) {
+  async function decidir(nuevoEstado: EstadoDocumentoConductor, notas?: string) {
     setProcesando(true);
     setError(null);
     try {
-      await onRevisado(documento.id, estado, notas);
-      setConfirmando(null);
+      await onRevisado(documento.id, nuevoEstado, notas);
+      setRechazando(false);
       setMotivo("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos actualizar el documento.");
-    } finally {
-      setProcesando(false);
-    }
+      setError(err instanceof Error ? err.message : "No pudimos registrar la decisión.");
+    } finally { setProcesando(false); }
   }
 
   return (
-    <div className="rounded-lg border border-ink/10 px-4 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="rounded-lg border border-ink/10 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-body text-sm font-semibold">{etiquetaTipo(documento.tipo)}</p>
-          <p className="mt-0.5 font-body text-xs text-ink/50">{documento.nombre_archivo}</p>
+          <p className="font-body text-sm font-semibold">{ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}</p>
+          <p className="mt-0.5 font-body text-xs text-ink/45">Versión {documento.version} · {documento.nombre_archivo}</p>
         </div>
-        <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-medium ${estadoInfo.clase}`}>
-          {estadoInfo.texto}
-        </span>
+        <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-medium ${estado.clase}`}>{estado.texto}</span>
       </div>
-
-      {documento.notas_admin && (
-        <p className="mt-2 rounded-lg bg-warn-soft px-3 py-2 font-body text-xs text-warn">
-          Nota para el conductor: {documento.notas_admin}
-        </p>
+      {(documento.motivo_rechazo || documento.notas_admin) && (
+        <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 font-body text-xs text-warn">{documento.motivo_rechazo ?? documento.notas_admin}</p>
       )}
-
-      {error && (
-        <div className="mt-2">
-          <Aviso tono="peligro">{error}</Aviso>
-        </div>
-      )}
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {urlDocumento ? (
-          <a
-            href={urlDocumento}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-body text-sm text-route-dark underline-offset-2 hover:underline"
-          >
-            Abrir documento (enlace válido 30 min)
-          </a>
-        ) : (
-          <Button variant="fantasma" onClick={verDocumento} disabled={procesando}>
-            Ver documento
-          </Button>
+      {error && <div className="mt-3"><Aviso tono="peligro">{error}</Aviso></div>}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {url ? <a href={url} target="_blank" rel="noreferrer" className="font-body text-sm text-route-dark hover:underline">Abrir documento</a>
+          : <Button variant="fantasma" onClick={ver} disabled={procesando}>Ver documento</Button>}
+        {documento.estado === "en_revision" && !rechazando && (
+          <>
+            <Button onClick={() => decidir("aprobado")} disabled={procesando}>Aprobar</Button>
+            <Button variant="peligro" onClick={() => setRechazando(true)} disabled={procesando}>Solicitar corrección</Button>
+          </>
         )}
       </div>
-
-      {!esFinal &&
-        (confirmando ? (
-          <div className="mt-3 rounded-lg border border-warn/35 bg-warn-soft/50 p-3">
-            <p className="font-body text-sm font-semibold">
-              Solicitar corrección del documento
-            </p>
-            <label className="mt-2 flex flex-col gap-1.5">
-              <span className="font-body text-xs font-medium text-ink/70">
-                Motivo <span className="text-danger">*</span>
-              </span>
-              <textarea
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                placeholder="Ej. La foto está borrosa, no se lee el número de licencia."
-                className="min-h-[64px] resize-none rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm text-ink focus:border-route-dark focus:outline-none focus:ring-2 focus:ring-route-dark/20"
-                maxLength={500}
-              />
-            </label>
-            <div className="mt-3 flex gap-2">
-              <Button
-                variant="secundario"
-                onClick={() => aplicar(confirmando, motivo)}
-                disabled={procesando || motivo.trim().length < 5}
-              >
-                {procesando ? "Guardando…" : "Confirmar"}
-              </Button>
-              <Button variant="fantasma" onClick={() => { setConfirmando(null); setMotivo(""); }} disabled={procesando}>
-                Cancelar
-              </Button>
-            </div>
+      {rechazando && (
+        <div className="mt-3 rounded-lg border border-warn/30 bg-warn-soft/40 p-3">
+          <label className="font-body text-xs font-medium">Motivo para el conductor</label>
+          <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={500}
+            className="mt-2 min-h-20 w-full rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm focus:border-route-dark focus:outline-none"
+            placeholder="Indica exactamente qué debe corregir." />
+          <div className="mt-2 flex gap-2">
+            <Button variant="peligro" onClick={() => decidir("rechazado", motivo)} disabled={procesando || motivo.trim().length < 5}>Confirmar</Button>
+            <Button variant="fantasma" onClick={() => { setRechazando(false); setMotivo(""); }} disabled={procesando}>Cancelar</Button>
           </div>
-        ) : (
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button onClick={() => aplicar("aprobado")} disabled={procesando}>
-              {procesando ? "…" : "Aprobar"}
-            </Button>
-            <Button variant="peligro" onClick={() => setConfirmando("rechazado")} disabled={procesando}>
-              Solicitar corrección
-            </Button>
-          </div>
-        ))}
+        </div>
+      )}
     </div>
   );
 }
 
-export default function PaginaDetalleConductorAdmin() {
+export default function PaginaDetalleSolicitudConductorAdmin() {
   const { id } = useParams<{ id: string }>();
-
-  const [conductor, setConductor] = useState<ConductorRow | null>(null);
-  const [documentos, setDocumentos] = useState<DocumentoConductorRow[]>([]);
-  const [esDemo, setEsDemo] = useState(true);
+  const [detalle, setDetalle] = useState<DetalleSolicitudConductorAdmin | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [procesando, setProcesando] = useState(false);
+  const [accion, setAccion] = useState<"aprobar" | "rechazar" | null>(null);
+  const [motivo, setMotivo] = useState("");
   const [aviso, setAviso] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
-  const [activando, setActivando] = useState(false);
 
-  async function cargar() {
-    const demo = CONDUCTORES_DEMO.find((c) => c.id === id);
-    if (!tieneSupabaseConfigurado() || demo) {
-      setConductor(demo ?? null);
-      setDocumentos([]);
-      setEsDemo(true);
-      setCargando(false);
-      return;
-    }
+  const cargar = useCallback(async () => {
+    if (!tieneSupabaseConfigurado()) { setCargando(false); return; }
     try {
-      const cliente = crearClienteNavegador();
-      const detalle = await obtenerDetalleConductorAdmin(cliente, id);
-      setConductor(detalle.conductor);
-      setDocumentos(detalle.documentos);
-      setEsDemo(false);
-    } catch {
-      if (puedeUsarDatosDemo()) {
-        setConductor(demo ?? null);
-        setDocumentos([]);
-        setEsDemo(true);
-      } else {
-        setConductor(null);
-        setDocumentos([]);
-        setEsDemo(false);
-      }
-    } finally {
-      setCargando(false);
-    }
-  }
+      setDetalle(await obtenerDetalleSolicitudConductorAdmin(crearClienteNavegador(), id));
+    } catch (err) {
+      setAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos cargar el expediente." });
+    } finally { setCargando(false); }
+  }, [id]);
 
   useEffect(() => {
     const timer = setTimeout(() => { void cargar(); }, 0);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [cargar]);
+
+  const consentimientosActuales = useMemo(() => {
+    const porTipo = new Map<string, DetalleSolicitudConductorAdmin["consentimientos"][number]>();
+    for (const consentimiento of detalle?.consentimientos ?? []) {
+      if (!porTipo.has(consentimiento.tipo_documento)) porTipo.set(consentimiento.tipo_documento, consentimiento);
+    }
+    return [...porTipo.values()];
+  }, [detalle]);
 
   async function revisarDocumento(documentoId: string, estado: EstadoDocumentoConductor, notas?: string) {
-    if (esDemo) {
-      await new Promise((r) => setTimeout(r, 300));
-      setDocumentos((prev) => prev.map((d) => (d.id === documentoId ? { ...d, estado, notas_admin: notas ?? null } : d)));
-      return;
-    }
-    const cliente = crearClienteNavegador();
-    await revisarDocumentoConductorAdmin(cliente, documentoId, estado, notas);
+    await revisarDocumentoConductorAdmin(crearClienteNavegador(), documentoId, estado, notas);
     await cargar();
   }
 
-  async function activar() {
-    if (!conductor) return;
-    setActivando(true);
+  async function decidir() {
+    if (!detalle || !accion) return;
+    setProcesando(true);
     setAviso(null);
-
-    if (esDemo) {
-      await new Promise((r) => setTimeout(r, 400));
-      setConductor((prev) => (prev ? { ...prev, estado: "activo", documentos_vigentes: true } : prev));
-      setAviso({ tono: "info", texto: "Conductor activado en modo demo." });
-      setActivando(false);
-      return;
-    }
-
     try {
-      const cliente = crearClienteNavegador();
-      await activarConductorAdmin(cliente, conductor.id);
-      setAviso({ tono: "info", texto: "Conductor activado. Ya puede recibir traslados." });
+      if (accion === "aprobar") {
+        await aprobarSolicitudConductorAdmin(crearClienteNavegador(), detalle.solicitud.id, motivo);
+        setAviso({ tono: "info", texto: "Solicitud aprobada y conductor activado." });
+      } else {
+        await rechazarSolicitudConductorAdmin(crearClienteNavegador(), detalle.solicitud.id, motivo);
+        setAviso({ tono: "info", texto: "Solicitud rechazada con decisión registrada." });
+      }
+      setAccion(null);
+      setMotivo("");
       await cargar();
     } catch (err) {
-      setAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos activar al conductor." });
-    } finally {
-      setActivando(false);
-    }
+      setAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos registrar la decisión." });
+    } finally { setProcesando(false); }
   }
 
-  if (cargando) {
-    return (
-      <main className="mx-auto max-w-4xl px-6 py-8 sm:px-8 sm:py-10">
-        <p className="font-body text-sm text-ink/50">Cargando…</p>
-      </main>
-    );
-  }
-
-  if (!conductor) {
-    return (
-      <main className="mx-auto max-w-4xl px-8 py-10 text-center">
-        <h1 className="font-display text-xl font-semibold">No encontramos ese conductor</h1>
-        <Link href="/conductores" className="mt-3 inline-block font-body text-sm text-route-dark hover:underline">
-          ← Volver a conductores
-        </Link>
-      </main>
-    );
-  }
-
-  const documentosRequeridosAprobados = DOCUMENTOS_REQUERIDOS.every((tipo) =>
-    documentos.some((d) => d.tipo === tipo && d.estado === "aprobado")
+  if (cargando) return <main className="mx-auto max-w-4xl px-8 py-10"><p className="font-body text-sm text-ink/50">Cargando…</p></main>;
+  if (!detalle) return (
+    <main className="mx-auto max-w-4xl px-8 py-10 text-center">
+      <h1 className="font-display text-xl font-semibold">No encontramos esa solicitud</h1>
+      {aviso && <div className="mt-4"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
+      <Link href="/conductores" className="mt-4 inline-block font-body text-sm text-route-dark hover:underline">← Volver a la bandeja</Link>
+    </main>
   );
-  const puedeActivar = conductor.estado_expediente === "en_revision" && documentosRequeridosAprobados;
+
+  const { solicitud, documentos, historial } = detalle;
+  const nombre = textoJson(solicitud.datos_personales, "nombre") ?? "Conductor sin nombre";
+  const documentosAprobados = DOCUMENTOS_REQUERIDOS.every((tipo) => documentos.some((d) => d.tipo === tipo && d.estado === "aprobado"));
+  const puedeAprobar = solicitud.estado === "en_revision" && documentosAprobados && consentimientosActuales.length === 4;
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-8 sm:px-8 sm:py-10">
-      <Link href="/conductores" className="font-body text-sm text-ink/55 hover:text-ink">
-        ← Conductores
-      </Link>
+    <main className="mx-auto max-w-4xl px-6 py-8 sm:px-8 sm:py-10">
+      <Link href="/conductores" className="font-body text-sm text-ink/55 hover:text-ink">← Solicitudes</Link>
+      {aviso && <div className="mt-4"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
 
-      {esDemo && (
-        <div className="mt-4">
-          <Aviso tono="info">
-            Estás viendo datos de ejemplo{documentos.length === 0 ? " y este conductor demo no tiene documentos cargados" : ""}.
-          </Aviso>
-        </div>
-      )}
-      {aviso && (
-        <div className="mt-4" role="status" aria-live="polite" aria-atomic="true">
-          <Aviso tono={aviso.tono}>{aviso.texto}</Aviso>
-        </div>
-      )}
-
-      <div className="mt-4 flex items-start justify-between gap-4">
+      <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Expediente de conductor</p>
-          <h1 className="mt-1 font-display text-2xl font-semibold">{conductor.nombre}</h1>
-          <p className="mt-1 font-body text-sm text-ink/50">{conductor.telefono ?? "Sin teléfono registrado"}</p>
+          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Expediente {solicitud.id.slice(0, 8)}</p>
+          <h1 className="mt-1 font-display text-2xl font-semibold">{nombre}</h1>
+          <p className="mt-1 font-body text-sm text-ink/50">{solicitud.curp_normalizada ?? "CURP no registrada"} · {solicitud.telefono_normalizado ?? "Sin teléfono"}</p>
         </div>
-        <span className="rounded-full border border-ink/15 bg-ink/[0.04] px-3 py-1 font-body text-xs font-medium text-ink/70">
-          {ETIQUETA_ESTADO[conductor.estado]}
-        </span>
+        <span className="rounded-full border border-ink/15 bg-ink/[0.04] px-3 py-1 font-body text-xs font-medium">{ETIQUETA_ESTADO[solicitud.estado]}</span>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 grid gap-5 md:grid-cols-2">
         <PassportCard>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Resumen operativo</p>
+          <h2 className="font-display text-lg font-semibold">Datos del expediente</h2>
           <dl className="mt-3 space-y-2 font-body text-sm">
-            <div className="flex justify-between">
-              <dt className="text-ink/45">Nivel vigente</dt>
-              <dd>{conductor.nivel_operativo_vigente ? ETIQUETA_NIVEL_CONCER[conductor.nivel_operativo_vigente] : "—"}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-ink/45">Calificación</dt>
-              <dd className="font-mono-ruum">{conductor.calificacion_promedio || "—"}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-ink/45">Traslados completados</dt>
-              <dd className="font-mono-ruum">{conductor.traslados_completados}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-ink/45">Registrado</dt>
-              <dd>{new Date(conductor.creado_en).toLocaleString("es-MX")}</dd>
-            </div>
+            <div className="flex justify-between gap-4"><dt className="text-ink/45">Paso actual</dt><dd>{solicitud.paso_actual}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-ink/45">Enviado</dt><dd>{fecha(solicitud.enviado_en)}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-ink/45">Licencia</dt><dd>{solicitud.licencia_normalizada ?? "—"}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-ink/45">Vigencia</dt><dd>{textoJson(solicitud.licencia, "vigencia") ?? "—"}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-ink/45">Domicilio</dt><dd className="text-right">{[textoJson(solicitud.domicilio, "colonia"), textoJson(solicitud.domicilio, "ciudad_municipio"), textoJson(solicitud.domicilio, "estado")].filter(Boolean).join(", ") || "—"}</dd></div>
           </dl>
         </PassportCard>
-      </div>
-
-      <div className="mt-6">
         <PassportCard>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="font-body text-xs uppercase tracking-wide text-ink/45">Expediente documental</p>
-              <h2 className="mt-1 font-display text-lg font-semibold">Documentos</h2>
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {documentos.length === 0 ? (
-              <p className="font-body text-sm text-ink/45">
-                {esDemo ? "Sin documentos en modo demo." : "El conductor todavía no ha subido documentos."}
-              </p>
-            ) : (
-              documentos.map((d) => (
-                <FilaDocumento key={d.id} documento={d} esDemo={esDemo} onRevisado={revisarDocumento} />
-              ))
-            )}
-          </div>
-
-          <div className="mt-5 border-t border-ink/10 pt-4">
-            {conductor.estado === "pendiente_verificacion" ? (
-              <>
-                <Button onClick={activar} disabled={!puedeActivar || activando}>
-                  {activando ? "Activando…" : "Activar conductor"}
-                </Button>
-                {!documentosRequeridosAprobados && (
-                  <p className="mt-2 font-body text-xs text-ink/40">
-                    Se habilita cuando los 3 documentos obligatorios (licencia frente, licencia reverso e identificación
-                    oficial) estén aprobados.
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="font-body text-xs text-ink/40">
-                Este conductor ya no está en revisión inicial (estado actual: {ETIQUETA_ESTADO[conductor.estado]}).
-              </p>
-            )}
+          <h2 className="font-display text-lg font-semibold">Consentimientos</h2>
+          <div className="mt-3 space-y-2">
+            {consentimientosActuales.length === 0 ? <p className="font-body text-sm text-ink/45">Sin consentimientos registrados.</p> : consentimientosActuales.map((c) => (
+              <div key={c.id} className="rounded-lg border border-ink/10 px-3 py-2 font-body text-sm">
+                <p className="font-medium">{ETIQUETA_CONSENTIMIENTO[c.tipo_documento]}</p>
+                <p className="mt-0.5 text-xs text-ink/45">Versión {c.version} · {fecha(c.aceptado_en)} · {c.canal}</p>
+                <p className="mt-1 truncate font-mono-ruum text-[10px] text-ink/35" title={c.hash_documento}>Hash {c.hash_documento}</p>
+              </div>
+            ))}
           </div>
         </PassportCard>
       </div>
+
+      <div className="mt-6"><PassportCard>
+        <h2 className="font-display text-lg font-semibold">Documentos vigentes</h2>
+        <div className="mt-4 space-y-3">
+          {documentos.length === 0 ? <p className="font-body text-sm text-ink/45">No hay documentos vigentes.</p>
+            : documentos.map((documento) => <FilaDocumento key={documento.id} documento={documento} onRevisado={revisarDocumento} />)}
+        </div>
+      </PassportCard></div>
+
+      <div className="mt-6"><PassportCard>
+        <h2 className="font-display text-lg font-semibold">Decisión administrativa</h2>
+        {solicitud.estado === "en_revision" ? (
+          <>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button onClick={() => setAccion("aprobar")} disabled={!puedeAprobar || procesando}>Aprobar solicitud</Button>
+              <Button variant="peligro" onClick={() => setAccion("rechazar")} disabled={procesando}>Rechazar solicitud</Button>
+            </div>
+            {!puedeAprobar && <p className="mt-2 font-body text-xs text-ink/45">Para aprobar se requieren los 3 documentos aprobados y los 4 consentimientos registrados.</p>}
+          </>
+        ) : <p className="mt-3 font-body text-sm text-ink/50">La solicitud no admite una decisión final en su estado actual.</p>}
+        {accion && (
+          <div className="mt-4 rounded-lg border border-ink/10 bg-ink/[0.02] p-4">
+            <label className="font-body text-sm font-medium">Motivo de la decisión {accion === "rechazar" && <span className="text-danger">*</span>}</label>
+            <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={800}
+              placeholder={accion === "aprobar" ? "Opcional: observaciones de la aprobación." : "Explica el motivo del rechazo."}
+              className="mt-2 min-h-24 w-full rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm focus:border-route-dark focus:outline-none" />
+            <div className="mt-3 flex gap-2">
+              <Button variant={accion === "rechazar" ? "peligro" : "primario"} onClick={decidir} disabled={procesando || (accion === "rechazar" && motivo.trim().length < 5)}>
+                {procesando ? "Registrando…" : "Confirmar decisión"}
+              </Button>
+              <Button variant="fantasma" onClick={() => { setAccion(null); setMotivo(""); }} disabled={procesando}>Cancelar</Button>
+            </div>
+          </div>
+        )}
+      </PassportCard></div>
+
+      <div className="mt-6"><PassportCard>
+        <h2 className="font-display text-lg font-semibold">Historial de estados y decisiones</h2>
+        <ol className="mt-4 space-y-4">
+          {historial.map((evento) => (
+            <li key={evento.id} className="border-l-2 border-route/25 pl-4 font-body text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold">{ETIQUETA_DECISION[evento.decision] ?? evento.decision}</p>
+                <time className="text-xs text-ink/40">{fecha(evento.revisado_en)}</time>
+              </div>
+              <p className="mt-1 text-xs text-ink/50">{ETIQUETA_ESTADO[evento.estado_anterior]} → {ETIQUETA_ESTADO[evento.estado_nuevo]} · {evento.revisor_nombre ?? "Sistema/conductor"}</p>
+              {evento.motivo && <p className="mt-1 text-ink/65">{evento.motivo}</p>}
+            </li>
+          ))}
+        </ol>
+      </PassportCard></div>
     </main>
   );
 }
