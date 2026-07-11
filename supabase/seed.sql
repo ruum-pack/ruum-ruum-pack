@@ -1,0 +1,5 @@
+-- Seed intencionalmente vacío.
+--
+-- `supabase db reset` carga este archivo después de aplicar las migraciones.
+-- Agregar aquí únicamente datos locales reproducibles y no sensibles; las
+-- pruebas automatizadas mantienen sus fixtures dentro de transacciones.

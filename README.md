@@ -68,7 +68,7 @@ Puntos validados con datos reales durante el desarrollo (no solo SQL leído):
 - Un pago en efectivo se rechaza.
 - Insertar una calificación recalcula `conductores.calificacion_promedio` automáticamente.
 - Insertar un segundo periodo de prueba supervisada activo para el mismo conductor se rechaza.
-- `supabase/seed.sql` corre de punta a punta (usuario → vehículo → conductor → traslado → evidencia → pago → calificación) y la vista `pasaporte_digital` agrega todo correctamente.
+- `supabase/seed.sql` existe como punto de entrada reproducible y actualmente no inserta datos; los fixtures viven en pruebas transaccionales.
 
 **`packages/shared/src/types/supabase.ts`** ya incluye las 14 tablas/vista.
 Sigue siendo escrito a mano (ver nota arriba sobre Docker); regenéralo con
@@ -102,7 +102,7 @@ anteriores (no solo escritas):
 Probado con datos reales, no solo SQL leído:
 - Intentar agregar un segundo `titular_empresa` a la misma empresa se rechaza.
 - Intentar marcar un reclamo como `resuelto` sin `responsable_pago` se rechaza; asignar `'usuario'` como responsable se rechaza (el CHECK solo permite `aplicacion`/`conductor`).
-- Las 17 migraciones se aplicaron en orden contra una base nueva, seguidas de `supabase/seed.sql`, sin tocar nada anterior.
+- Las migraciones se aplican en orden contra una base nueva y luego se ejecuta el seed intencionalmente vacío.
 - **107 tests unitarios en verde** (99 anteriores + 8 nuevos: `limite-empresa.test.ts`, `cancelacion-conductor.test.ts`).
 
 `packages/shared/src/types/supabase.ts` ya incluye `empresas` y las columnas
@@ -306,7 +306,7 @@ pnpm test:unit
 
 # Supabase local (requiere Docker Desktop corriendo):
 pnpm db:start
-pnpm db:reset    # aplica las 3 migraciones + supabase/seed.sql
+pnpm db:reset    # aplica todas las migraciones + supabase/seed.sql
 pnpm db:types    # genera packages/shared/src/types/supabase.ts
 ```
 
@@ -341,6 +341,6 @@ packages/
 supabase/
   migrations/     ← 0001 a 0026 (ver tablas en "Fase 1 — COMPLETA", "Fase 1 — Extensión", "Fase 2", "Login real" y "Fase 6")
   functions/      ← Edge Functions de Stripe (Fase 6) — ver supabase/functions/README.md
-  seed.sql        ← datos de ejemplo, ciclo completo de un traslado
+  seed.sql        ← punto de entrada vacío para seeds locales no sensibles
   config.toml
 ```
