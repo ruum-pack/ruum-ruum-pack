@@ -1187,6 +1187,39 @@ export type Database = {
         };
         Returns: string;
       };
+      iniciar_solicitud_conductor: {
+        Args: Record<PropertyKey, never>;
+        Returns: Array<{
+          solicitud_id: string | null;
+          conductor_id: string | null;
+          estado: Database["public"]["Enums"]["estado_expediente_conductor"] | null;
+          paso_actual: number | null;
+        }>;
+      };
+      guardar_borrador_conductor: {
+        Args: {
+          p_paso_actual: number;
+          p_datos_personales?: Json | null;
+          p_domicilio?: Json | null;
+          p_licencia?: Json | null;
+          p_contacto_emergencia?: Json | null;
+        };
+        Returns: Array<{
+          solicitud_id: string;
+          conductor_id: string | null;
+          estado: Database["public"]["Enums"]["estado_expediente_conductor"];
+          paso_actual: number;
+        }>;
+      };
+      enviar_solicitud_conductor: {
+        Args: Record<PropertyKey, never>;
+        Returns: Array<{
+          solicitud_id: string;
+          conductor_id: string | null;
+          estado: Database["public"]["Enums"]["estado_expediente_conductor"];
+          paso_actual: number;
+        }>;
+      };
       crear_incidencia_sistema_dano_no_reportado: {
         Args: { p_traslado_id: string; p_descripcion: string };
         Returns: string;

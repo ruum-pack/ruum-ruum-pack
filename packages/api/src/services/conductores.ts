@@ -80,6 +80,58 @@ export interface ExpedienteSolicitudConductorV2 {
   contactoEmergencia: Json;
 }
 
+export interface ResultadoSolicitudConductor {
+  solicitudId: string | null;
+  conductorId: string | null;
+  estado: Database["public"]["Enums"]["estado_expediente_conductor"] | null;
+  pasoActual: number;
+}
+
+function mapearResultadoSolicitud(
+  fila: {
+    solicitud_id: string | null;
+    conductor_id: string | null;
+    estado: Database["public"]["Enums"]["estado_expediente_conductor"] | null;
+    paso_actual: number | null;
+  } | undefined
+): ResultadoSolicitudConductor {
+  if (!fila) throw new Error("La operación no devolvió el expediente.");
+  return {
+    solicitudId: fila.solicitud_id,
+    conductorId: fila.conductor_id,
+    estado: fila.estado,
+    pasoActual: fila.paso_actual ?? 0
+  };
+}
+
+export async function iniciarSolicitudConductor(cliente: Cliente) {
+  const { data, error } = await cliente.rpc("iniciar_solicitud_conductor");
+  if (error) throw error;
+  return mapearResultadoSolicitud(data?.[0]);
+}
+
+export async function guardarBorradorConductor(
+  cliente: Cliente,
+  expediente: ExpedienteSolicitudConductorV2,
+  pasoActual: number
+) {
+  const { data, error } = await cliente.rpc("guardar_borrador_conductor", {
+    p_paso_actual: pasoActual,
+    p_datos_personales: expediente.datosPersonales,
+    p_domicilio: expediente.domicilio,
+    p_licencia: expediente.licencia,
+    p_contacto_emergencia: expediente.contactoEmergencia
+  });
+  if (error) throw error;
+  return mapearResultadoSolicitud(data?.[0]);
+}
+
+export async function enviarSolicitudConductor(cliente: Cliente) {
+  const { data, error } = await cliente.rpc("enviar_solicitud_conductor");
+  if (error) throw error;
+  return mapearResultadoSolicitud(data?.[0]);
+}
+
 /** Persiste PII después de autenticar; nunca usa `user_metadata`. */
 export async function completarSolicitudConductorV2(
   cliente: Cliente,
@@ -300,11 +352,6 @@ export async function subirDocumentoSolicitudConductor(
   validarArchivoDocumentoConductor(archivo);
   const { data: sesion } = await cliente.auth.getUser();
   if (!sesion.user) throw new Error("Inicia sesión para subir documentos.");
-
-  const solicitud = await obtenerSolicitudConductorActual(cliente);
-  if (!solicitud || solicitud.id !== solicitudId) {
-    throw new Error("No puedes cargar documentos para otra solicitud.");
-  }
 
   const ruta = [sesion.user.id, "solicitudes", solicitudId, `${Date.now()}-${tipo}-${nombreArchivoSeguro(archivo.name)}`].join("/");
   const { error: errorStorage } = await cliente.storage

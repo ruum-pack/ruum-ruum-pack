@@ -13,8 +13,9 @@ import {
   type CampoRegistroConductor
 } from "@ruum/shared/validacion";
 import {
-  completarSolicitudConductorV2,
-  obtenerSolicitudConductorActual,
+  enviarSolicitudConductor,
+  guardarBorradorConductor,
+  iniciarSolicitudConductor,
   subirDocumentoSolicitudConductor
 } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
@@ -72,10 +73,6 @@ function formatoTelefonoNacional(valor: string) {
 
 function limpiarTexto(valor: string) {
   return valor.trim().replace(/\s+/g, " ");
-}
-
-function esperar(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function terminosAceptadosEn() {
@@ -413,25 +410,17 @@ export default function PaginaRegistroConductor() {
     if (archivo) limpiarErrorCampo(campo);
   }
 
-  async function obtenerSolicitudConReintento(cliente: ReturnType<typeof crearClienteNavegador>) {
-    for (let intento = 0; intento < 5; intento += 1) {
-      const solicitud = await obtenerSolicitudConductorActual(cliente);
-      if (solicitud) return solicitud;
-      await esperar(350);
-    }
-    return null;
-  }
-
-  async function guardarExpedienteAutenticado(cliente: ReturnType<typeof crearClienteNavegador>) {
+  function contratoExpediente() {
     const aceptadosEn = terminosAceptadosEnRef.current ?? terminosAceptadosEn();
     terminosAceptadosEnRef.current = aceptadosEn;
-    await completarSolicitudConductorV2(cliente, {
+    return {
       datosPersonales: {
         nombre: nombreCompleto,
         telefono: telefonoE164Mx(telefono),
         curp: curp.trim().toUpperCase(),
         autoriza_verificacion_antecedentes: autorizaVerificacion,
         declara_sin_suspensiones: declaraSinSuspensiones,
+        acepta_terminos_privacidad: aceptaLegales,
         version_terminos_aceptada: 1,
         terminos_aceptados_en: aceptadosEn,
         marca_terminos: "ruum ruum by Movilia"
@@ -454,16 +443,10 @@ export default function PaginaRegistroConductor() {
         nombre: limpiarTexto(contactoEmergenciaNombre),
         telefono: soloDigitos(contactoEmergenciaTelefono)
       }
-    });
+    };
   }
 
-  async function cargarDocumentos(cliente: ReturnType<typeof crearClienteNavegador>) {
-    const solicitud = await obtenerSolicitudConReintento(cliente);
-    if (!solicitud) {
-      setAdvertenciaDocumentos("La cuenta se creó, pero los documentos no pudieron ligarse todavía. Podrás cargarlos desde Configuración.");
-      return;
-    }
-
+  async function cargarDocumentos(cliente: ReturnType<typeof crearClienteNavegador>, solicitudId: string) {
     const pendientes = (Object.entries(documentos) as [DocumentoKey, File | null][]).filter(([, archivo]) => archivo);
 
     setEstadoDocumentos((prev) => {
@@ -473,7 +456,7 @@ export default function PaginaRegistroConductor() {
     });
 
     const resultados = await Promise.allSettled(
-      pendientes.map(([campo, archivo]) => subirDocumentoSolicitudConductor(cliente, solicitud.id, TIPOS_DOCUMENTO[campo], archivo as File))
+      pendientes.map(([campo, archivo]) => subirDocumentoSolicitudConductor(cliente, solicitudId, TIPOS_DOCUMENTO[campo], archivo as File))
     );
 
     let huboError = false;
@@ -498,6 +481,20 @@ export default function PaginaRegistroConductor() {
         .join(", ");
       throw new Error(`No pudimos subir: ${camposConError}. Podrás reintentar desde Configuración.`);
     }
+  }
+
+  async function procesarSolicitudAutenticada(cliente: ReturnType<typeof crearClienteNavegador>) {
+    const inicio = await iniciarSolicitudConductor(cliente);
+    if (!inicio.solicitudId) {
+      throw new Error(
+        inicio.conductorId
+          ? "Esta cuenta ya tiene un perfil de conductor operativo."
+          : "No pudimos iniciar la solicitud."
+      );
+    }
+    await guardarBorradorConductor(cliente, contratoExpediente(), PASOS.length);
+    await cargarDocumentos(cliente, inicio.solicitudId);
+    return enviarSolicitudConductor(cliente);
   }
 
   async function crearCuenta(e: FormEvent) {
@@ -538,8 +535,7 @@ export default function PaginaRegistroConductor() {
       if (datosAuth.session) {
         setSesionActivaTrasRegistro(true);
         try {
-          await guardarExpedienteAutenticado(cliente);
-          await cargarDocumentos(cliente);
+          await procesarSolicitudAutenticada(cliente);
         } catch (errorDocumentos) {
           setAdvertenciaDocumentos(
             errorDocumentos instanceof Error
@@ -591,8 +587,7 @@ export default function PaginaRegistroConductor() {
 
       setSesionActivaTrasRegistro(true);
       try {
-        await guardarExpedienteAutenticado(cliente);
-        await cargarDocumentos(cliente);
+        await procesarSolicitudAutenticada(cliente);
       } catch (errorDocumentos) {
         setAdvertenciaDocumentos(
           errorDocumentos instanceof Error

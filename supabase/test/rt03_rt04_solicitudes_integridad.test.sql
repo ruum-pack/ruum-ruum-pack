@@ -22,7 +22,7 @@ begin
   ) values (
     v_auth_1, 'borrador', 2,
     '{"nombre":"Prueba RT03","curp":"rt030101hdfabc01","telefono":"+52 55 1234 5678"}',
-    '{"codigo_postal":"01000"}',
+    '{"codigo_postal":"01000","estado":"Ciudad de México","ciudad_municipio":"Álvaro Obregón","colonia":"San Ángel","calle":"Prueba","numero":"3"}',
     '{"numero":" lic-rt03 ","tipo":"A"}',
     '{"nombre":"Contacto","telefono":"5511111111"}'
   ) returning id into v_solicitud;
@@ -68,8 +68,8 @@ begin
   -- después de autenticar, antes de cargar documentos.
   perform set_config('request.jwt.claim.sub',v_auth_3::text,true);
   perform public.completar_solicitud_conductor_v2(
-    '{"nombre":"Alta separada","telefono":"+525500003003","curp":"RT040101HDFABC02","autoriza_verificacion_antecedentes":true,"declara_sin_suspensiones":true,"version_terminos_aceptada":2,"terminos_aceptados_en":"2026-07-10T18:00:00Z"}',
-    '{"codigo_postal":"01000"}',
+    '{"nombre":"Alta separada","telefono":"+525500003003","curp":"RT040101HDFABC02","autoriza_verificacion_antecedentes":true,"declara_sin_suspensiones":true,"acepta_terminos_privacidad":true,"version_terminos_aceptada":2,"terminos_aceptados_en":"2026-07-10T18:00:00Z"}',
+    '{"codigo_postal":"01000","estado":"Ciudad de México","ciudad_municipio":"Álvaro Obregón","colonia":"San Ángel","calle":"Prueba","numero":"3"}',
     '{"numero":"LIC-RT04","tipo":"A","vigencia":"2027-07-10"}',
     '{"nombre":"Contacto","telefono":"5500003003"}'
   );
@@ -78,6 +78,7 @@ begin
     (v_solicitud_3,'licencia_frente','frente.pdf','rt03/frente.pdf','en_revision'),
     (v_solicitud_3,'licencia_reverso','reverso.pdf','rt03/reverso.pdf','en_revision'),
     (v_solicitud_3,'identificacion_oficial','id.pdf','rt03/id.pdf','en_revision');
+  perform public.enviar_solicitud_conductor();
   if (select estado from public.solicitudes_conductor where id=v_solicitud_3) <> 'en_revision' then
     raise exception 'RT-03: los documentos completos no enviaron la solicitud a revisión.';
   end if;
