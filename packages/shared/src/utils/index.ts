@@ -1,3 +1,4 @@
+export * from "./codigos-postales-mx";
 export * from "./evaluar-sla";
 export * from "./formatear-fecha";
 export * from "./formatear-precio";
