@@ -13,6 +13,13 @@ import { crearTraslado, listarVehiculosDeUsuario, obtenerUsuarioActual, type Dat
 import { esNativo } from "../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../lib/codigos-postales";
+import { cargarGoogleMaps, geocodificarDireccion, tieneGoogleMapsConfigurado } from "../../../lib/google-maps";
+import {
+  guardarBorradorTrasladoLocal,
+  leerBorradorTrasladoLocal,
+  limpiarBorradorTrasladoLocal,
+  type BorradorTrasladoLocal
+} from "../../../lib/borrador-traslado";
 import { PagoStripe, tieneStripePublicoConfigurado } from "../../PagoStripe";
 import { NavegacionUsuario } from "../../NavegacionUsuario";
 
@@ -25,26 +32,9 @@ type MotivoServicioTraslado = "entrega_cliente" | "recuperacion" | "traslado_esp
 type ErroresFormulario = Partial<Record<keyof DatosFormulario, string>>;
 type VehiculoGuardado = Database["public"]["Tables"]["vehiculos"]["Row"];
 
-declare global {
-  interface Window {
-    google?: {
-      maps?: {
-        places?: {
-          AutocompleteService: new () => {
-            getPlacePredictions: (
-              request: {
-                input: string;
-                types?: string[];
-                componentRestrictions?: { country: string };
-              },
-              callback: (predictions: Array<{ description: string }> | null) => void
-            ) => void;
-          };
-        };
-      };
-    };
-  }
-}
+// Los tipos globales de window.google (incluido Geocoder) viven en
+// lib/google-maps.ts — es la única puerta de entrada al SDK, ver ese
+// archivo para el porqué.
 
 const MARCAS_AUTOS_MEXICO = [
   "Acura",
@@ -237,6 +227,24 @@ function nombreCompleto(nombre: string, apellido: string) {
   return [nombre.trim(), apellido.trim()].filter(Boolean).join(" ");
 }
 
+// Sprint 4 — los mensajes que usuario_crea_traslado() lanza a propósito
+// (migraciones 20260711000118/119) ya están redactados para la persona, en
+// español llano: se muestran tal cual. Cualquier OTRA cosa (RLS crudo, error
+// de red, timeout de Supabase) no debe llegarle así — mismo criterio que ya
+// exige el test a1 sobre la RPC de cancelación ("no expone el error crudo
+// del trigger").
+const PATRON_MENSAJE_DE_NEGOCIO = /vehículo|precio cotizado|usuario autenticado|sesión/i;
+
+function mensajeAmigableErrorCreacion(err: unknown): string {
+  if (err instanceof Error) {
+    if (PATRON_MENSAJE_DE_NEGOCIO.test(err.message)) return err.message;
+    console.error("[traslados/nuevo] Error inesperado al crear la solicitud:", err);
+    return "No pudimos crear la solicitud por un problema técnico. Intenta de nuevo en unos segundos; si sigue fallando, contáctanos por soporte.";
+  }
+  console.error("[traslados/nuevo] Error inesperado (no-Error) al crear la solicitud:", err);
+  return "No pudimos crear la solicitud. Intenta de nuevo.";
+}
+
 function domicilioCompleto({
   calle,
   numero,
@@ -299,6 +307,129 @@ export default function PaginaNuevoTraslado() {
   const [vehiculoSeleccionadoId, setVehiculoSeleccionadoId] = useState<string>("");
   const [errorPaso, setErrorPaso] = useState<string | null>(null);
   const [errores, setErrores] = useState<ErroresFormulario>({});
+
+  // Sprint 4 — borrador NO sensible del wizard (ver lib/borrador-traslado.ts
+  // para qué se excluye y por qué). Mismo patrón que
+  // app-conductor/lib/borrador-registro.ts: detectar al montar, guardar con
+  // debounce mientras se llena, restaurar u ofrecer descartar.
+  const [borradorDisponible, setBorradorDisponible] = useState<BorradorTrasladoLocal | null>(null);
+  const RETRASO_GUARDADO_BORRADOR_MS = 600;
+
+  useEffect(() => {
+    const timer = setTimeout(() => setBorradorDisponible(leerBorradorTrasladoLocal()), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (enviando || resultado || trasladoCreadoId) return;
+    const hayContenido = [datos.marca, datos.modelo, datos.origenCodigoPostal, datos.destinoCodigoPostal, datos.entregaNombre].some(
+      (v) => v.trim()
+    );
+    if (!hayContenido) return;
+
+    const timer = setTimeout(() => {
+      guardarBorradorTrasladoLocal({
+        paso,
+        tipo: datos.tipo,
+        transmision: datos.transmision,
+        marca: datos.marca,
+        modelo: datos.modelo,
+        anio: datos.anio,
+        color: datos.color,
+        estadoGeneral: datos.estadoGeneral,
+        tieneTarjeta: datos.tieneTarjeta,
+        tieneVerificacion: datos.tieneVerificacion,
+        tienePlacas: datos.tienePlacas,
+        puedeCircular: datos.puedeCircular,
+        origenCodigoPostal: datos.origenCodigoPostal,
+        origenEstado: datos.origenEstado,
+        origenCiudad: datos.origenCiudad,
+        origenColonia: datos.origenColonia,
+        destinoCodigoPostal: datos.destinoCodigoPostal,
+        destinoEstado: datos.destinoEstado,
+        destinoCiudad: datos.destinoCiudad,
+        destinoColonia: datos.destinoColonia,
+        entregaNombre: datos.entregaNombre,
+        entregaApellido: datos.entregaApellido,
+        recepcionNombre: datos.recepcionNombre,
+        recepcionApellido: datos.recepcionApellido,
+        modalidadProgramacion: datos.modalidadProgramacion,
+        fechaHoraProgramada: datos.fechaHoraProgramada,
+        tipoRuta: datos.tipoRuta,
+        ventanaRecoleccion: datos.ventanaRecoleccion,
+        ventanaEntrega: datos.ventanaEntrega,
+        tipoServicio: datos.tipoServicio,
+        motivoServicio: datos.motivoServicio,
+        precioEstimado: datos.precioEstimado
+      });
+    }, RETRASO_GUARDADO_BORRADOR_MS);
+
+    return () => clearTimeout(timer);
+  }, [
+    enviando, resultado, trasladoCreadoId, paso,
+    datos.tipo, datos.transmision, datos.marca, datos.modelo, datos.anio, datos.color, datos.estadoGeneral,
+    datos.tieneTarjeta, datos.tieneVerificacion, datos.tienePlacas, datos.puedeCircular,
+    datos.origenCodigoPostal, datos.origenEstado, datos.origenCiudad, datos.origenColonia,
+    datos.destinoCodigoPostal, datos.destinoEstado, datos.destinoCiudad, datos.destinoColonia,
+    datos.entregaNombre, datos.entregaApellido, datos.recepcionNombre, datos.recepcionApellido,
+    datos.modalidadProgramacion, datos.fechaHoraProgramada, datos.tipoRuta,
+    datos.ventanaRecoleccion, datos.ventanaEntrega, datos.tipoServicio, datos.motivoServicio, datos.precioEstimado
+  ]);
+
+  function restaurarBorrador() {
+    const borrador = borradorDisponible;
+    if (!borrador) return;
+
+    setDatos((prev) => ({
+      ...prev,
+      tipo: (borrador.tipo || prev.tipo) as TipoVehiculo,
+      transmision: (borrador.transmision || prev.transmision) as TransmisionVehiculo,
+      marca: borrador.marca,
+      modelo: borrador.modelo,
+      anio: borrador.anio,
+      color: borrador.color,
+      estadoGeneral: borrador.estadoGeneral,
+      tieneTarjeta: borrador.tieneTarjeta,
+      tieneVerificacion: borrador.tieneVerificacion,
+      tienePlacas: borrador.tienePlacas,
+      puedeCircular: borrador.puedeCircular,
+      origenCodigoPostal: borrador.origenCodigoPostal,
+      origenEstado: borrador.origenEstado,
+      origenCiudad: borrador.origenCiudad,
+      origenColonia: borrador.origenColonia,
+      destinoCodigoPostal: borrador.destinoCodigoPostal,
+      destinoEstado: borrador.destinoEstado,
+      destinoCiudad: borrador.destinoCiudad,
+      destinoColonia: borrador.destinoColonia,
+      entregaNombre: borrador.entregaNombre,
+      entregaApellido: borrador.entregaApellido,
+      recepcionNombre: borrador.recepcionNombre,
+      recepcionApellido: borrador.recepcionApellido,
+      modalidadProgramacion: (borrador.modalidadProgramacion || prev.modalidadProgramacion) as ModalidadProgramacion,
+      fechaHoraProgramada: borrador.fechaHoraProgramada,
+      tipoRuta: (borrador.tipoRuta || prev.tipoRuta) as TipoRutaTraslado,
+      ventanaRecoleccion: borrador.ventanaRecoleccion,
+      ventanaEntrega: borrador.ventanaEntrega,
+      tipoServicio: (borrador.tipoServicio || prev.tipoServicio) as TipoServicioTraslado,
+      motivoServicio: (borrador.motivoServicio || prev.motivoServicio) as MotivoServicioTraslado,
+      precioEstimado: borrador.precioEstimado
+    }));
+
+    // Domicilio preciso (calle, número), teléfonos de contacto, VIN, placas
+    // e instrucciones especiales se recapturan a propósito: no viajan en el
+    // borrador local (ver lib/borrador-traslado.ts).
+    setPaso(borrador.paso);
+    setBorradorDisponible(null);
+
+    // Repobla las sugerencias de ciudad/colonia que dependen del CP.
+    if (borrador.origenCodigoPostal.length === 5) void consultarCodigoPostal("origen", borrador.origenCodigoPostal);
+    if (borrador.destinoCodigoPostal.length === 5) void consultarCodigoPostal("destino", borrador.destinoCodigoPostal);
+  }
+
+  function descartarBorrador() {
+    limpiarBorradorTrasladoLocal();
+    setBorradorDisponible(null);
+  }
 
   // Si hay sesión real, usa el usuario real (PRD §4.6: su historial decide
   // pago anticipado vs. al cierre).
@@ -415,7 +546,8 @@ export default function PaginaNuevoTraslado() {
 
   async function consultarGooglePlacesCp(cp: string): Promise<string[]> {
     if (typeof window === "undefined") return [];
-    const Servicio = window.google?.maps?.places?.AutocompleteService;
+    const listo = await cargarGoogleMaps();
+    const Servicio = listo ? window.google?.maps?.places?.AutocompleteService : undefined;
     if (!Servicio) return [];
 
     return new Promise((resolve) => {
@@ -779,6 +911,47 @@ export default function PaginaNuevoTraslado() {
         estado: datos.destinoEstado
       });
 
+      // Sprint 2 (2026-07-11) — antes: origen_lat/lng solo se llenaba si la
+      // persona usaba "Usar mi ubicación actual" en el shell nativo (y aun
+      // así, solo servía para origen); destino_lat/lng se mandaba en 0,0
+      // siempre, sin excepción. Ahora se geocodifica la dirección capturada
+      // para ambos. Si ya hay coordenadas de GPS real para origen (más
+      // precisas que geocodificar el texto de la dirección), esas ganan y
+      // no se pisan.
+      let huboFalloGeocodificacion = false;
+
+      let origenLat = datos.origenLat;
+      let origenLng = datos.origenLng;
+      if (origenLat === undefined || origenLng === undefined) {
+        const coordsOrigen = await geocodificarDireccion(origenDireccion);
+        if (coordsOrigen) {
+          origenLat = coordsOrigen.lat;
+          origenLng = coordsOrigen.lng;
+        } else {
+          huboFalloGeocodificacion = true;
+        }
+      }
+
+      let destinoLat: number | undefined;
+      let destinoLng: number | undefined;
+      const coordsDestino = await geocodificarDireccion(destinoDireccion);
+      if (coordsDestino) {
+        destinoLat = coordsDestino.lat;
+        destinoLng = coordsDestino.lng;
+      } else {
+        huboFalloGeocodificacion = true;
+      }
+
+      // No bloqueamos la solicitud por esto — operaciones puede ubicar la
+      // dirección a mano igual que hacía antes de que existiera geocodificación
+      // — pero si Maps no está configurado o la dirección no resolvió, hay que
+      // dejarlo visible en vez de mandar 0,0 disfrazado de coordenada real.
+      if (huboFalloGeocodificacion && !tieneGoogleMapsConfigurado()) {
+        console.warn(
+          "[traslados/nuevo] NEXT_PUBLIC_GOOGLE_MAPS_API_KEY no está configurada: origen/destino se guardan sin geocodificar."
+        );
+      }
+
       // Vehículo y traslado ahora se crean en una sola RPC transaccional
       // (usuario_crea_traslado, migración 20260711000118): ya no hay un
       // insert de vehículo suelto que pueda quedar huérfano si el del
@@ -809,13 +982,13 @@ export default function PaginaNuevoTraslado() {
         contacto_entrega_telefono: telefonoMx(datos.entregaTelefono),
         contacto_recepcion_nombre: nombreCompleto(datos.recepcionNombre, datos.recepcionApellido),
         contacto_recepcion_telefono: telefonoMx(datos.recepcionTelefono),
-        origen_lat: datos.origenLat ?? 0,
-        origen_lng: datos.origenLng ?? 0,
+        origen_lat: origenLat ?? 0,
+        origen_lng: origenLng ?? 0,
         origen_direccion: origenDireccion,
         origen_ciudad: datos.origenCiudad,
         origen_referencias: referenciasDomicilio(datos.origenReferencias, datos.origenEstado, datos.origenCodigoPostal),
-        destino_lat: 0,
-        destino_lng: 0,
+        destino_lat: destinoLat ?? 0,
+        destino_lng: destinoLng ?? 0,
         destino_direccion: destinoDireccion,
         destino_ciudad: datos.destinoCiudad,
         destino_referencias: referenciasDomicilio(datos.destinoReferencias, datos.destinoEstado, datos.destinoCodigoPostal),
@@ -830,6 +1003,11 @@ export default function PaginaNuevoTraslado() {
         precio_cotizado: Number(datos.precioEstimado) || 0,
         tipo_pago: momentoPago.momento
       });
+
+      // A partir de aquí la solicitud ya vive en la base — el borrador local
+      // ya no sirve para nada (y si se quedara, mostraría un banner de
+      // "continuar donde ibas" sobre un traslado que ya se creó).
+      limpiarBorradorTrasladoLocal();
 
       // PRD §4.6 — el pago anticipado es obligatorio para usuarios sin
       // historial suficiente; no debe continuar como éxito si Stripe no está
@@ -852,7 +1030,7 @@ export default function PaginaNuevoTraslado() {
     } catch (err) {
       setResultado({
         ok: false,
-        mensaje: err instanceof Error ? err.message : "No pudimos crear la solicitud. Intenta de nuevo."
+        mensaje: mensajeAmigableErrorCreacion(err)
       });
     } finally {
       setEnviando(false);
@@ -918,6 +1096,20 @@ export default function PaginaNuevoTraslado() {
       <NavegacionUsuario />
       <div className="mx-auto max-w-xl px-6 py-12">
         <h1 className="font-display text-2xl font-semibold">Nuevo traslado</h1>
+
+        {borradorDisponible && (
+          <div className="mt-5 rounded-xl border border-route/25 bg-route-soft p-4">
+            <p className="font-body text-sm font-semibold text-ink">Encontramos una solicitud sin terminar</p>
+            <p className="mt-1 font-body text-xs leading-5 text-ink/65">
+              Guardada el {new Date(borradorDisponible.guardadoEn).toLocaleString("es-MX")} y disponible por 24 horas.
+              Por seguridad no guardamos domicilio exacto, teléfonos de contacto, VIN, placas ni instrucciones especiales.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button type="button" onClick={restaurarBorrador}>Continuar donde iba</Button>
+              <Button type="button" variant="fantasma" onClick={descartarBorrador}>Empezar de cero</Button>
+            </div>
+          </div>
+        )}
 
       <div className="mt-6" aria-label={`Paso ${paso + 1} de ${PASOS.length} — ${PASOS[paso]}`}>
         <p className="font-body text-sm font-semibold text-ink">
@@ -1133,212 +1325,6 @@ export default function PaginaNuevoTraslado() {
           </PassportCard>
           </div>
           </div>
-        )}
-
-        {false && (
-          <PassportCard>
-            <div className="grid gap-4">
-              <p className="font-body text-sm font-semibold">¿De dónde sale y a dónde llega?</p>
-              <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
-                <p className="font-body text-sm font-semibold">Domicilio de origen</p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field
-                    etiqueta="Código Postal"
-                    value={datos.origenCodigoPostal}
-                    onChange={(e) => actualizarCodigoPostal("origen", e.target.value)}
-                    onBlur={(e) => consultarCodigoPostal("origen", e.target.value)}
-                    inputMode="numeric"
-                    maxLength={5}
-                    ayuda={cpConsultando === "origen" ? "Consultando CP..." : cpAviso.origen}
-                    error={errores.origenCodigoPostal}
-                  />
-                  <Field
-                    etiqueta="Estado"
-                    value={datos.origenEstado}
-                    onChange={(e) => actualizar("origenEstado", e.target.value)}
-                    error={errores.origenEstado}
-                  />
-                  <Field
-                    etiqueta="Ciudad"
-                    value={datos.origenCiudad}
-                    onChange={(e) => actualizar("origenCiudad", e.target.value)}
-                    error={errores.origenCiudad}
-                  />
-                  <Field
-                    etiqueta="Colonia"
-                    value={datos.origenColonia}
-                    onChange={(e) => actualizar("origenColonia", e.target.value)}
-                    error={errores.origenColonia}
-                  />
-                  <Field
-                    etiqueta="Calle"
-                    value={datos.origenCalle}
-                    onChange={(e) => actualizar("origenCalle", e.target.value)}
-                    error={errores.origenCalle}
-                  />
-                  <Field
-                    etiqueta="Número"
-                    value={datos.origenNumero}
-                    onChange={(e) => actualizar("origenNumero", e.target.value)}
-                    error={errores.origenNumero}
-                  />
-                </div>
-                <Field
-                  etiqueta="Referencias"
-                  value={datos.origenReferencias}
-                  onChange={(e) => actualizar("origenReferencias", e.target.value)}
-                  placeholder="Entre calles, color de fachada, acceso, piso, etc."
-                />
-              </div>
-              {esNativo() && (
-                <div>
-                  <Button
-                    type="button"
-                    variant="secundario"
-                    onClick={async () => {
-                      const coords = await obtenerUbicacionActual();
-                      if (coords) {
-                        actualizar("origenLat", coords.lat);
-                        actualizar("origenLng", coords.lng);
-                      }
-                    }}
-                  >
-                    Usar mi ubicación actual
-                  </Button>
-                  {datos.origenLat !== undefined && (
-                    <p className="mt-1 font-body text-xs text-ink/45">Ubicación capturada ✓</p>
-                  )}
-                </div>
-              )}
-              <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
-                <p className="font-body text-sm font-semibold">Domicilio de destino</p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field
-                    etiqueta="Código Postal"
-                    value={datos.destinoCodigoPostal}
-                    onChange={(e) => actualizarCodigoPostal("destino", e.target.value)}
-                    onBlur={(e) => consultarCodigoPostal("destino", e.target.value)}
-                    inputMode="numeric"
-                    maxLength={5}
-                    ayuda={cpConsultando === "destino" ? "Consultando CP..." : cpAviso.destino}
-                    error={errores.destinoCodigoPostal}
-                  />
-                  <Field
-                    etiqueta="Estado"
-                    value={datos.destinoEstado}
-                    onChange={(e) => actualizar("destinoEstado", e.target.value)}
-                    error={errores.destinoEstado}
-                  />
-                  <Field
-                    etiqueta="Ciudad"
-                    value={datos.destinoCiudad}
-                    onChange={(e) => actualizar("destinoCiudad", e.target.value)}
-                    error={errores.destinoCiudad}
-                  />
-                  <Field
-                    etiqueta="Colonia"
-                    value={datos.destinoColonia}
-                    onChange={(e) => actualizar("destinoColonia", e.target.value)}
-                    error={errores.destinoColonia}
-                  />
-                  <Field
-                    etiqueta="Calle"
-                    value={datos.destinoCalle}
-                    onChange={(e) => actualizar("destinoCalle", e.target.value)}
-                    error={errores.destinoCalle}
-                  />
-                  <Field
-                    etiqueta="Número"
-                    value={datos.destinoNumero}
-                    onChange={(e) => actualizar("destinoNumero", e.target.value)}
-                    error={errores.destinoNumero}
-                  />
-                </div>
-                <Field
-                  etiqueta="Referencias"
-                  value={datos.destinoReferencias}
-                  onChange={(e) => actualizar("destinoReferencias", e.target.value)}
-                  placeholder="Entre calles, color de fachada, acceso, piso, etc."
-                />
-              </div>
-              <p className="font-body text-sm font-semibold">Quien entrega el vehículo</p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  etiqueta="Nombre"
-                  value={datos.entregaNombre}
-                  onChange={(e) => actualizar("entregaNombre", e.target.value)}
-                  error={errores.entregaNombre}
-                />
-                <Field
-                  etiqueta="Apellido"
-                  value={datos.entregaApellido}
-                  onChange={(e) => actualizar("entregaApellido", e.target.value)}
-                  error={errores.entregaApellido}
-                />
-              </div>
-              <label className="flex flex-col gap-1.5">
-                <span className="font-body text-sm font-medium">Teléfono</span>
-                <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("entregaTelefono")}`}>
-                  <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">
-                    +52
-                  </span>
-                  <input
-                    value={datos.entregaTelefono}
-                    onChange={(e) => actualizarTelefono("entregaTelefono", e.target.value)}
-                    inputMode="numeric"
-                    maxLength={10}
-                    className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
-                    placeholder="10 dígitos"
-                    aria-invalid={Boolean(errores.entregaTelefono)}
-                  />
-                </div>
-                {errores.entregaTelefono && <p className="font-body text-xs text-danger">{errores.entregaTelefono}</p>}
-              </label>
-              <p className="mt-2 font-body text-sm font-semibold">Quien recibe el vehículo</p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  etiqueta="Nombre"
-                  value={datos.recepcionNombre}
-                  onChange={(e) => actualizar("recepcionNombre", e.target.value)}
-                  error={errores.recepcionNombre}
-                />
-                <Field
-                  etiqueta="Apellido"
-                  value={datos.recepcionApellido}
-                  onChange={(e) => actualizar("recepcionApellido", e.target.value)}
-                  error={errores.recepcionApellido}
-                />
-              </div>
-              <label className="flex flex-col gap-1.5">
-                <span className="font-body text-sm font-medium">Teléfono</span>
-                <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("recepcionTelefono")}`}>
-                  <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">
-                    +52
-                  </span>
-                  <input
-                    value={datos.recepcionTelefono}
-                    onChange={(e) => actualizarTelefono("recepcionTelefono", e.target.value)}
-                    inputMode="numeric"
-                    maxLength={10}
-                    className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
-                    placeholder="10 dígitos"
-                    aria-invalid={Boolean(errores.recepcionTelefono)}
-                  />
-                </div>
-                {errores.recepcionTelefono && <p className="font-body text-xs text-danger">{errores.recepcionTelefono}</p>}
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className="font-body text-sm font-medium">Instrucciones especiales</span>
-                <textarea
-                  value={datos.instruccionesEspeciales}
-                  onChange={(e) => actualizar("instruccionesEspeciales", e.target.value)}
-                  maxLength={1000}
-                  aria-label="Instrucciones especiales para el traslado"
-                  className="min-h-24 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
-                />
-              </label>
-            </div>
-          </PassportCard>
         )}
 
         {paso === 1 && (

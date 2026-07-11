@@ -116,6 +116,20 @@ Deno.serve(async (req) => {
     return respuestaJson({ error: "El traslado no tiene una tarifa válida para cobrar" }, 422);
   }
 
+  // Defensa adicional al piso/techo que ya valida usuario_crea_traslado()
+  // (migración 20260711000119) al crear la solicitud. Ese candado cubre
+  // precio_cotizado; precio_final lo puede escribir un admin sin pasar por
+  // esa RPC, así que se revalida aquí también, justo antes de mover dinero
+  // de verdad.
+  const PISO_MXN = 699;
+  const TECHO_MXN = 100000;
+  if (montoACobrar < PISO_MXN || montoACobrar > TECHO_MXN) {
+    return respuestaJson(
+      { error: `El monto a cobrar ($${montoACobrar} MXN) está fuera del rango esperado ($${PISO_MXN}–$${TECHO_MXN} MXN). Revísalo en panel-admin antes de cobrar.` },
+      422
+    );
+  }
+
   // El cobro anticipado se dispara al crear la solicitud (cualquier estado,
   // como hasta ahora). El cobro al cierre solo tiene sentido una vez que el
   // traslado de verdad está esperando ese pago — "pago_pendiente" es el
