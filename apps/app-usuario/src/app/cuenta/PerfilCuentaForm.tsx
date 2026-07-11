@@ -240,7 +240,6 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
       </div>
       <div className="grid gap-3 rounded-lg border border-ink/10 p-4 sm:grid-cols-[auto_1fr] sm:items-center">
         {fotoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <Image src={fotoUrl} alt="Fotografía de perfil" width={80} height={80} className="size-20 rounded-full object-cover" />
         ) : (
           <div className="flex size-20 items-center justify-center rounded-full bg-ink font-display text-xl text-mist">

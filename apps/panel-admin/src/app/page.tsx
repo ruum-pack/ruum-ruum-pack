@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Aviso, PassportCard } from "@ruum/ui";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../lib/supabase-browser";
 import {
@@ -83,11 +84,14 @@ export default function PaginaDashboard() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-8 sm:px-8 sm:py-10">
       <div className="relative overflow-hidden rounded-card border border-ink/10">
-        <img
+        <Image
           src="/imagenes/torre-control-flota.webp"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full scale-105 object-cover object-[60%_35%]"
+          fill
+          priority
+          sizes="100vw"
+          className="scale-105 object-cover object-[60%_35%]"
         />
         <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(7,11,20,0.94)_0%,rgba(7,11,20,0.8)_46%,rgba(7,11,20,0.4)_100%)]" />
         <div className="relative flex items-start justify-between gap-4 px-6 py-6 sm:px-8">

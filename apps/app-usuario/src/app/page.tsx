@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Database } from "@ruum/shared/types";
 import { NavegacionUsuario } from "./NavegacionUsuario";
 import { InicioUsuario } from "./InicioUsuario";
@@ -53,10 +54,13 @@ export default async function PaginaInicio() {
         <LogoRuum className="mx-auto text-center" />
 
         <div className="pointer-events-none absolute inset-x-0 top-[118px] h-[430px] overflow-hidden">
-          <img
+          <Image
             src="/imagenes/seguridad-traslado.png"
             alt="Traslado vehicular protegido con verificacion de identidad"
-            className="h-full w-full scale-[1.12] object-cover object-[39%_50%]"
+            fill
+            priority
+            sizes="100vw"
+            className="scale-[1.12] object-cover object-[39%_50%]"
           />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_34%_18%,rgba(245,166,35,0.12),transparent_38%),linear-gradient(180deg,rgba(7,18,38,0)_52%,#1a1f2e_94%)]" />
           <div className="absolute inset-y-0 left-0 w-14 bg-gradient-to-r from-[#1a1f2e] to-transparent" />

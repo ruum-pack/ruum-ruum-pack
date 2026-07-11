@@ -7,15 +7,18 @@
 -- Este era exactamente el hueco de A1: la RPC permitía cancelar en estados que
 -- el trigger rechazaba, haciendo rollback del cargo ya calculado.
 --
--- Cómo correr (sin dependencias extra de Node):
---   supabase db reset          # aplica migraciones + seed en la BD local
---   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/a1_cancelacion_estados.test.sql
+-- Cómo correr:
+--   supabase db reset
+--   supabase test db supabase/test/a1_cancelacion_estados.test.sql
 --
--- El script corre dentro de una transacción que hace ROLLBACK al final, así
--- que no deja datos: es seguro re-ejecutarlo. Falla (exit != 0) en el primer
--- assert que no se cumpla.
+-- pgTAP: corre dentro de una transacción con ROLLBACK final, así que no deja
+-- datos y es seguro re-ejecutarlo.
+
+create extension if not exists pgtap with schema extensions;
 
 begin;
+
+select plan(48);
 
 -- Estados desde los que el NEGOCIO permite cancelar (debe coincidir con
 -- ESTADOS_CANCELABLES_POR_USUARIO en packages/api/src/services/traslados.ts).
@@ -40,7 +43,12 @@ insert into esperado_cancelable values
   ('traslado_en_curso', false),
   ('llegada_a_destino', false);
 
-do $$
+-- El recorrido por los 16 estados, con captura de excepción por intento,
+-- sólo es expresable en PL/pgSQL. Cada iteración emite 3 líneas TAP vía
+-- RETURN NEXT; RAISE EXCEPTION aquí sólo protegería contra un fallo de
+-- preparación (no aplica: no hay pasos de setup que puedan fallar de forma
+-- inesperada dentro del loop).
+create or replace function pg_temp.correr_a1() returns setof text as $$
 declare
   v_auth_user uuid := gen_random_uuid();
   v_usuario_id uuid;
@@ -49,20 +57,19 @@ declare
   r record;
   v_cancelo boolean;
   v_msg text;
-  v_fallos int := 0;
 begin
-  -- Sembrar un usuario + vehículo mínimos.
+  insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+  values (v_auth_user, v_auth_user || '@a1.test', '{}'::jsonb, '{}'::jsonb, now(), now());
+
   insert into public.usuarios (auth_user_id, tipo_cuenta, rol, estado_verificacion)
   values (v_auth_user, 'personal', 'personal', 'verificado')
   returning id into v_usuario_id;
 
   insert into public.vehiculos (usuario_id, tipo, marca, modelo, anio, placas)
-  values (v_usuario_id, 'basico', 'Test', 'Modelo', 2020, 'TEST-001')
+  values (v_usuario_id, 'sedan', 'Test', 'Modelo', 2020, 'TEST-001')
   returning id into v_vehiculo_id;
 
-  -- Simular la sesión del usuario dueño (auth.uid()) para la RPC security definer.
   perform set_config('request.jwt.claim.sub', v_auth_user::text, true);
-  perform set_config('role', 'authenticated', true);
 
   for r in select estado, cancelable from esperado_cancelable loop
     -- Crear un traslado y forzarlo al estado bajo prueba, saltándose el trigger
@@ -86,8 +93,10 @@ begin
     update public.traslados set estado = r.estado where id = v_traslado_id;
     alter table public.traslados enable trigger traslados_validar_transicion;
 
-    -- Intentar cancelar vía la RPC real y capturar el resultado.
+    -- Intentar cancelar vía la RPC real, simulando la sesión del usuario
+    -- dueño (auth.uid()) solo para esta llamada, y capturar el resultado.
     begin
+      perform set_config('role', 'authenticated', true);
       perform public.usuario_cancela_traslado(
         v_traslado_id, 'test', 0, 0, 'msg'
       );
@@ -97,36 +106,28 @@ begin
       v_cancelo := false;
       v_msg := sqlerrm;
     end;
+    perform set_config('role', 'postgres', true);
 
-    -- Assert 1: el resultado (permite/rechaza) coincide con lo esperado.
-    if v_cancelo <> r.cancelable then
-      raise warning 'FALLO [%]: esperado cancelable=%, obtenido=% (msg=%)',
-        r.estado, r.cancelable, v_cancelo, coalesce(v_msg, 'ok');
-      v_fallos := v_fallos + 1;
-    end if;
+    return next is(
+      v_cancelo, r.cancelable,
+      format('A1 [%s]: cancelable esperado=%s', r.estado, r.cancelable)
+    );
 
-    -- Assert 2: si se rechaza, NO debe ser el error crudo del trigger.
-    -- Ese mensaje («Transición de estado inválida») es justo el síntoma de A1.
-    if not v_cancelo and v_msg ilike '%Transición de estado inválida%' then
-      raise warning 'FALLO [%]: rechazo con error crudo del trigger en vez de mensaje de negocio', r.estado;
-      v_fallos := v_fallos + 1;
-    end if;
+    return next ok(
+      v_cancelo or v_msg not ilike '%Transición de estado inválida%',
+      format('A1 [%s]: si se rechaza, no expone el error crudo del trigger', r.estado)
+    );
 
-    -- Assert 3: si se permitió, el traslado quedó realmente cancelado (no rollback silencioso).
-    if v_cancelo then
-      if (select estado from public.traslados where id = v_traslado_id) <> 'servicio_cancelado' then
-        raise warning 'FALLO [%]: la RPC no lanzó error pero el estado no quedó en servicio_cancelado', r.estado;
-        v_fallos := v_fallos + 1;
-      end if;
-    end if;
+    return next ok(
+      not v_cancelo or (select estado from public.traslados where id = v_traslado_id) = 'servicio_cancelado',
+      format('A1 [%s]: si se permite, el traslado queda en servicio_cancelado', r.estado)
+    );
   end loop;
+end;
+$$ language plpgsql;
 
-  if v_fallos > 0 then
-    raise exception 'A1: % assert(s) fallaron — la RPC y el trigger NO son coherentes.', v_fallos;
-  end if;
+select * from pg_temp.correr_a1();
 
-  raise notice 'A1 OK: RPC de cancelación coherente con la máquina de estados en los % estados probados.',
-    (select count(*) from esperado_cancelable);
-end $$;
+select * from finish();
 
 rollback;

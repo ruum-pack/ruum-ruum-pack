@@ -1,10 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
 import { traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+
+function errorInicialDesdeUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  // Auditoría H-2 — si el middleware rechazó una sesión no-admin, muestra el
+  // motivo en vez de un formulario en blanco.
+  return params.get("error") === "no_autorizado"
+    ? "Esta cuenta no tiene acceso a la Torre de Control."
+    : null;
+}
 
 /** Pantalla de acceso para el equipo interno de operación. */
 export default function PaginaLogin() {
@@ -12,16 +22,7 @@ export default function PaginaLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Auditoría H-2 — si el middleware rechazó una sesión no-admin, muestra el
-  // motivo en vez de un formulario en blanco.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("error") === "no_autorizado") {
-      setError("Esta cuenta no tiene acceso a la Torre de Control.");
-    }
-  }, []);
+  const [error, setError] = useState<string | null>(errorInicialDesdeUrl);
 
   async function iniciarSesion(e: React.FormEvent) {
     e.preventDefault();

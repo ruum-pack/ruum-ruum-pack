@@ -193,7 +193,7 @@ export default function PaginaEvidencia() {
     clearTimeout(timer);
     // ... removeEventListeners
   };
-}, [tipo]);
+}, [tipo, drenarCola]);
 
 
   if (cargando || mostrarSkeleton) {

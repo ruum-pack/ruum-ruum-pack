@@ -1,108 +1,166 @@
+-- RT-12 / RT-13 / RT-14 / RT-15 — Los documentos de conductor sólo entran por
+-- `registrar_documento_conductor` (ruta aislada por auth_user_id/solicitud_id,
+-- previamente validada en `documentos_storage_validados`), tienen una única
+-- versión vigente por tipo, y el reemplazo conserva el historial.
+
+create extension if not exists pgtap with schema extensions;
+
 begin;
 
-do $$
-declare
-  v_auth uuid:=gen_random_uuid(); v_otro_auth uuid:=gen_random_uuid(); v_admin_auth uuid:=gen_random_uuid();
-  v_solicitud uuid; v_otra_solicitud uuid; v_admin uuid; v_doc1 uuid; v_doc2 uuid; v_error text;
-  v_ruta1 text; v_ruta2 text;
-begin
-  insert into auth.users(id,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
-    (v_auth,v_auth||'@rt12.test',now(),'{}','{"tipo_registro":"conductor","version_registro":2}',now(),now()),
-    (v_otro_auth,v_otro_auth||'@rt12.test',now(),'{}','{"tipo_registro":"conductor","version_registro":2}',now(),now()),
-    (v_admin_auth,v_admin_auth||'@rt12.test',now(),'{}','{}',now(),now());
-  select id into v_solicitud from public.solicitudes_conductor where auth_user_id=v_auth;
-  select id into v_otra_solicitud from public.solicitudes_conductor where auth_user_id=v_otro_auth;
-  insert into public.admins(auth_user_id,nombre) values(v_admin_auth,'Admin RT14') returning id into v_admin;
+select plan(10);
 
-  v_ruta1:=v_auth||'/'||v_solicitud||'/licencia_frente/primera.jpg';
-  v_ruta2:=v_auth||'/'||v_solicitud||'/licencia_frente/segunda.jpg';
-  insert into public.documentos_storage_validados(ruta,auth_user_id,objetivo_id,tipo,sha256) values
-    (v_ruta1,v_auth,v_solicitud,'licencia_frente',repeat('a',64)),
-    (v_ruta2,v_auth,v_solicitud,'licencia_frente',repeat('b',64)),
-    (v_auth||'/'||v_otra_solicitud||'/licencia_frente/ajeno.jpg',v_auth,v_otra_solicitud,'licencia_frente',repeat('c',64));
-  perform set_config('request.jwt.claim.sub',v_auth::text,true);
-  perform set_config('role','authenticated',true);
+insert into auth.users (id, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at) values
+  ('00000006-0000-4000-8000-000000000001', 'rt12-auth@rt12.test', now(), '{}'::jsonb, '{"tipo_registro":"conductor","version_registro":2}'::jsonb, now(), now()),
+  ('00000006-0000-4000-8000-000000000002', 'rt12-otro@rt12.test', now(), '{}'::jsonb, '{"tipo_registro":"conductor","version_registro":2}'::jsonb, now(), now()),
+  ('00000006-0000-4000-8000-00000000000a', 'rt12-admin@rt12.test', now(), '{}'::jsonb, '{}'::jsonb, now(), now());
+insert into public.admins (id, auth_user_id, nombre)
+values ('00000006-0000-4000-8000-0000000000ad', '00000006-0000-4000-8000-00000000000a', 'Admin RT14');
 
-  insert into storage.objects(bucket_id,name,owner_id)
-  values('documentos-conductor',v_ruta1,v_auth::text);
+select
+  (select id from public.solicitudes_conductor where auth_user_id = '00000006-0000-4000-8000-000000000001') as solicitud,
+  (select id from public.solicitudes_conductor where auth_user_id = '00000006-0000-4000-8000-000000000002') as otra_solicitud
+\gset
 
-  begin
-    insert into storage.objects(bucket_id,name,owner_id)
-    values('documentos-conductor',v_auth||'/'||v_otra_solicitud||'/licencia_frente/ajeno.jpg',v_auth::text);
-    raise exception 'RT-12: permitió subir bajo una solicitud ajena.';
-  exception when insufficient_privilege then null;
-  end;
+select
+  ('00000006-0000-4000-8000-000000000001/' || :'solicitud' || '/licencia_frente/primera.jpg') as ruta1,
+  ('00000006-0000-4000-8000-000000000001/' || :'solicitud' || '/licencia_frente/segunda.jpg') as ruta2,
+  ('00000006-0000-4000-8000-000000000001/' || :'otra_solicitud' || '/licencia_frente/ajeno.jpg') as ruta_ajena,
+  ('00000006-0000-4000-8000-000000000001/' || :'solicitud' || '/licencia_reverso/sin-validar.jpg') as ruta_sin_validar,
+  ('00000006-0000-4000-8000-000000000001/' || :'otra_solicitud' || '/licencia_reverso/forzado.jpg') as ruta_forzada
+\gset
 
-  begin
-    insert into storage.objects(bucket_id,name,owner_id)
-    values('documentos-conductor',v_auth||'/'||v_solicitud||'/licencia_reverso/sin-validar.jpg',v_auth::text);
-    raise exception 'RT-12/16: permitió upload directo sin validación de contenido.';
-  exception when insufficient_privilege then null;
-  end;
+insert into public.documentos_storage_validados (ruta, auth_user_id, objetivo_id, tipo, sha256) values
+  (:'ruta1', '00000006-0000-4000-8000-000000000001', :'solicitud', 'licencia_frente', repeat('a', 64)),
+  (:'ruta2', '00000006-0000-4000-8000-000000000001', :'solicitud', 'licencia_frente', repeat('b', 64)),
+  (:'ruta_ajena', '00000006-0000-4000-8000-000000000001', :'otra_solicitud', 'licencia_frente', repeat('c', 64));
 
-  select public.registrar_documento_conductor(v_solicitud,'licencia_frente','primera.jpg',v_ruta1) into v_doc1;
-  if not exists(select 1 from public.documentos_conductor where id=v_doc1 and solicitud_id=v_solicitud
-    and estado='en_revision' and notas_admin is null and version=1 and es_actual
-    and revisado_por is null and revisado_en is null and motivo_rechazo is null) then
-    raise exception 'RT-13/14: el servidor no fijó los campos iniciales.';
-  end if;
+-- psql no interpola variables `:'var'` dentro de bloques `do $$ ... $$`
+-- (las cadenas dollar-quoted quedan fuera de su sustitución léxica), así que
+-- los valores que un `do` necesita se puentean vía GUCs de sesión.
+select set_config('rt12.solicitud', :'solicitud', true);
+select set_config('rt12.otra_solicitud', :'otra_solicitud', true);
+select set_config('rt12.ruta1', :'ruta1', true);
+select set_config('rt12.ruta2', :'ruta2', true);
+select set_config('rt12.ruta_forzada', :'ruta_forzada', true);
 
-  begin
-    insert into public.documentos_conductor(solicitud_id,tipo,nombre_archivo,url,estado)
-    values(v_solicitud,'licencia_reverso','directo.jpg','directo.jpg','aprobado');
-    raise exception 'RT-13: authenticated pudo insertar una fila directamente.';
-  exception when insufficient_privilege then null;
-  end;
-
-  insert into storage.objects(bucket_id,name,owner_id)
-  values('documentos-conductor',v_ruta2,v_auth::text);
-  begin
-    perform public.registrar_documento_conductor(v_solicitud,'licencia_frente','segunda.jpg',v_ruta2);
-    raise exception 'RT-14: permitió dos versiones vigentes del mismo tipo.';
-  exception when others then
-    v_error:=sqlerrm;
-    if v_error not ilike '%versión vigente%' then raise; end if;
-  end;
-
-  perform set_config('request.jwt.claim.sub',v_admin_auth::text,true);
-  perform public.revisar_documento_conductor_admin(v_doc1,'rechazado','La imagen no permite leer los datos.');
-  if not exists(select 1 from public.documentos_conductor where id=v_doc1 and estado='rechazado'
-    and revisado_por=v_admin and revisado_en is not null and motivo_rechazo is not null) then
-    raise exception 'RT-14: la revisión administrativa no quedó trazable.';
-  end if;
-
-  perform set_config('request.jwt.claim.sub',v_auth::text,true);
-  select public.reemplazar_documento_conductor(v_doc1,'segunda.jpg',v_ruta2) into v_doc2;
-  if not exists(select 1 from public.documentos_conductor where id=v_doc1 and estado='reemplazado'
-    and not es_actual and reemplazado_en is not null) then
-    raise exception 'RT-15: la versión anterior no quedó reemplazada.';
-  end if;
-  if not exists(select 1 from public.documentos_conductor where id=v_doc2 and estado='en_revision'
-    and es_actual and version=2 and documento_anterior_id=v_doc1 and revisado_por is null and motivo_rechazo is null) then
-    raise exception 'RT-15: la nueva versión no quedó enlazada y en revisión.';
-  end if;
-  if (select count(*) from public.documentos_conductor where solicitud_id=v_solicitud and tipo='licencia_frente' and es_actual)<>1 then
-    raise exception 'RT-14: existe más de una versión actual.';
-  end if;
-
-  -- Aunque un objeto ajeno hubiese sido creado por un backend privilegiado,
-  -- el RPC vuelve a comprobar propiedad y ruta antes de registrar la fila.
-  perform set_config('role','postgres',true);
-  insert into storage.objects(bucket_id,name,owner_id)
-  values('documentos-conductor',v_auth||'/'||v_otra_solicitud||'/licencia_reverso/forzado.jpg',v_auth::text);
-  perform set_config('role','authenticated',true);
-  begin
-    perform public.registrar_documento_conductor(
-      v_otra_solicitud,'licencia_reverso','forzado.jpg',
-      v_auth||'/'||v_otra_solicitud||'/licencia_reverso/forzado.jpg'
-    );
-    raise exception 'RT-12/13: el RPC aceptó un expediente ajeno.';
-  exception when others then
-    v_error:=sqlerrm;
-    if v_error not ilike '%expediente ajeno%' and v_error not ilike '%no puedes registrar%' then raise; end if;
-  end;
-
-  raise notice 'RT-12/13/14/15 OK: ruta aislada, alta por RPC, versión única e historial de reemplazo.';
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '00000006-0000-4000-8000-000000000001', true);
+  perform set_config('role', 'authenticated', true);
 end $$;
+
+insert into storage.objects (bucket_id, name, owner_id)
+values ('documentos-conductor', :'ruta1', '00000006-0000-4000-8000-000000000001');
+
+select throws_ok(
+  format($sql$ insert into storage.objects(bucket_id,name,owner_id) values('documentos-conductor',%L,'00000006-0000-4000-8000-000000000001') $sql$, :'ruta_ajena'),
+  '42501', null,
+  'RT-12: bloquea subir bajo una solicitud ajena'
+);
+
+select throws_ok(
+  format($sql$ insert into storage.objects(bucket_id,name,owner_id) values('documentos-conductor',%L,'00000006-0000-4000-8000-000000000001') $sql$, :'ruta_sin_validar'),
+  '42501', null,
+  'RT-12/16: bloquea el upload directo sin validación de contenido'
+);
+
+do $$ begin
+  perform public.registrar_documento_conductor(
+    current_setting('rt12.solicitud')::uuid, 'licencia_frente', 'primera.jpg', current_setting('rt12.ruta1')
+  );
+end $$;
+
+select ok(
+  exists(
+    select 1 from public.documentos_conductor
+    where solicitud_id = :'solicitud'::uuid and tipo = 'licencia_frente' and version = 1
+      and estado = 'en_revision' and notas_admin is null and es_actual
+      and revisado_por is null and revisado_en is null and motivo_rechazo is null
+  ),
+  'RT-13/14: el servidor fija los campos iniciales del documento'
+);
+
+select throws_ok(
+  format($sql$ insert into public.documentos_conductor(solicitud_id,tipo,nombre_archivo,url,estado) values(%L,'licencia_reverso','directo.jpg','directo.jpg','aprobado') $sql$, :'solicitud'),
+  '42501', null,
+  'RT-13: authenticated no puede insertar una fila directamente'
+);
+
+insert into storage.objects (bucket_id, name, owner_id)
+values ('documentos-conductor', :'ruta2', '00000006-0000-4000-8000-000000000001');
+
+select throws_like(
+  format($sql$ select public.registrar_documento_conductor(%L,'licencia_frente','segunda.jpg',%L) $sql$, :'solicitud', :'ruta2'),
+  '%versión vigente%',
+  'RT-14: rechaza dos versiones vigentes del mismo tipo'
+);
+
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '00000006-0000-4000-8000-00000000000a', true);
+  perform public.revisar_documento_conductor_admin(
+    (select id from public.documentos_conductor where solicitud_id = current_setting('rt12.solicitud')::uuid and tipo = 'licencia_frente' and version = 1),
+    'rechazado', 'La imagen no permite leer los datos.'
+  );
+end $$;
+
+select ok(
+  exists(
+    select 1 from public.documentos_conductor
+    where solicitud_id = :'solicitud'::uuid and tipo = 'licencia_frente' and version = 1
+      and estado = 'rechazado' and revisado_por = '00000006-0000-4000-8000-0000000000ad'
+      and revisado_en is not null and motivo_rechazo is not null
+  ),
+  'RT-14: la revisión administrativa queda trazable'
+);
+
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '00000006-0000-4000-8000-000000000001', true);
+  perform public.reemplazar_documento_conductor(
+    (select id from public.documentos_conductor where solicitud_id = current_setting('rt12.solicitud')::uuid and tipo = 'licencia_frente' and version = 1),
+    'segunda.jpg', current_setting('rt12.ruta2')
+  );
+end $$;
+
+select ok(
+  exists(
+    select 1 from public.documentos_conductor
+    where solicitud_id = :'solicitud'::uuid and tipo = 'licencia_frente' and version = 1
+      and estado = 'reemplazado' and not es_actual and reemplazado_en is not null
+  ),
+  'RT-15: la versión anterior queda marcada como reemplazada'
+);
+select ok(
+  exists(
+    select 1 from public.documentos_conductor d2
+    where d2.solicitud_id = :'solicitud'::uuid and d2.tipo = 'licencia_frente' and d2.version = 2
+      and d2.estado = 'en_revision' and d2.es_actual and d2.revisado_por is null and d2.motivo_rechazo is null
+      and d2.documento_anterior_id = (
+        select id from public.documentos_conductor
+        where solicitud_id = :'solicitud'::uuid and tipo = 'licencia_frente' and version = 1
+      )
+  ),
+  'RT-15: la nueva versión queda enlazada a la anterior y en revisión'
+);
+select is(
+  (select count(*) from public.documentos_conductor where solicitud_id = :'solicitud'::uuid and tipo = 'licencia_frente' and es_actual)::int,
+  1,
+  'RT-14: sólo existe una versión vigente por tipo'
+);
+
+-- Aunque un objeto ajeno hubiese sido creado por un backend privilegiado,
+-- el RPC vuelve a comprobar propiedad y ruta antes de registrar la fila.
+do $$ begin
+  perform set_config('role', 'postgres', true);
+  insert into storage.objects (bucket_id, name, owner_id)
+  values ('documentos-conductor', current_setting('rt12.ruta_forzada'), '00000006-0000-4000-8000-000000000001');
+  perform set_config('role', 'authenticated', true);
+end $$;
+
+select throws_like(
+  format($sql$ select public.registrar_documento_conductor(%L,'licencia_reverso','forzado.jpg',%L) $sql$, :'otra_solicitud', :'ruta_forzada'),
+  '%expediente ajeno%',
+  'RT-12/13: el RPC rechaza un expediente ajeno'
+);
+
+select * from finish();
 
 rollback;

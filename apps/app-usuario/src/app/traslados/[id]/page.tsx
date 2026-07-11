@@ -262,7 +262,6 @@ function EvidenciaMomento({
           {fotos.map((foto) => (
             <div key={foto.id} className="overflow-hidden rounded-lg border border-ink/10 bg-mist">
               {foto.url?.startsWith("http") ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <Image src={foto.url} alt={ETIQUETA_ANGULO[foto.angulo]} width={400} height={300} className="aspect-[4/3] w-full object-cover" />
               ) : (
                 <div className="flex aspect-[4/3] items-center justify-center bg-ink/5 px-3 text-center font-body text-xs text-ink/45">
