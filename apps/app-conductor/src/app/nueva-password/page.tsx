@@ -1,18 +1,15 @@
 "use client";
-
-"use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Aviso, LogoMarca } from "@ruum/ui";
-import { fortalezaPassword } from "@ruum/shared/utils";
+import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
+import { fortalezaPassword, traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 export default function PaginaNuevaPasswordConductor() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmar, setConfirmar] = useState("");
-  const [mostrar, setMostrar] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [listo, setListo] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,13 +22,40 @@ export default function PaginaNuevaPasswordConductor() {
       return () => clearTimeout(timer);
     }
 
+    let activo = true;
     const cliente = crearClienteNavegador();
+
+    // El código de recuperación ya se intercambió por una sesión en el
+    // servidor (/auth/callback antes de llegar aquí), así que al montar este
+    // cliente normalmente encontramos una sesión que YA EXISTÍA en las
+    // cookies — @supabase/ssr dispara eso como "INITIAL_SESSION", no como
+    // "PASSWORD_RECOVERY" ni "SIGNED_IN". Antes solo escuchábamos esos dos
+    // eventos, así que un enlace perfectamente válido terminaba mostrando
+    // "el enlace expiró". Verificamos la sesión directamente con
+    // getUser() como fuente de verdad, sin depender de qué nombre de evento
+    // haya disparado el SDK.
+    async function verificarSesion() {
+      try {
+        const { data } = await cliente.auth.getUser();
+        if (activo && data.user) setSesionLista(true);
+      } finally {
+        if (activo) setVerificando(false);
+      }
+    }
+    void verificarSesion();
+
+    // Respaldo: si el enlace se abrió y la sesión se establece un instante
+    // después de montar (p. ej. justo llega el evento PASSWORD_RECOVERY),
+    // lo capturamos también.
     const { data: { subscription } } = cliente.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setSesionLista(true);
-      setVerificando(false);
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        setSesionLista(true);
+        setVerificando(false);
+      }
     });
-    const timeout = setTimeout(() => setVerificando(false), 3000);
-    return () => { subscription.unsubscribe(); clearTimeout(timeout); };
+
+    const timeout = setTimeout(() => { if (activo) setVerificando(false); }, 3000);
+    return () => { activo = false; subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
   async function establecer(e: React.FormEvent) {
@@ -47,7 +71,7 @@ export default function PaginaNuevaPasswordConductor() {
       setListo(true);
       setTimeout(() => router.push("/panel"), 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos actualizar la contraseña.");
+      setError(traducirErrorAuth(err, "No pudimos actualizar la contraseña."));
     } finally {
       setEnviando(false);
     }
@@ -92,54 +116,54 @@ export default function PaginaNuevaPasswordConductor() {
           </div>
         ) : (
           <form className="mt-7 grid gap-4" onSubmit={establecer}>
-            <label className="flex flex-col gap-1.5">
-              <span className="font-body text-sm font-medium text-ink/70">Nueva contraseña</span>
-              <div className="relative">
-                <input
-                  type={mostrar ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required autoComplete="new-password" placeholder="Mínimo 8 caracteres"
-                  className="w-full rounded-[var(--ruum-radius-field)] border border-ink/20 bg-mist px-4 py-3 pr-10 font-body text-sm text-ink focus:border-route-dark focus:outline-none focus:ring-2 focus:ring-route-dark/20"
-                />
-                <button type="button" onClick={() => setMostrar(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink/40 hover:text-ink/70"
-                  aria-label={mostrar ? "Ocultar contraseña" : "Mostrar contraseña"}>
-                  {mostrar ? "●" : "○"}
-                </button>
-              </div>
+            <div className="flex flex-col gap-1.5">
+              <Field
+                etiqueta="Nueva contraseña"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+                required
+                minLength={8}
+                autoComplete="new-password"
+              />
               {password.length > 0 && (
-                <>
-                  <div className="flex gap-1">
-                    {[1, 2, 3].map(n => (
-                      <div key={n} className={["h-1 flex-1 rounded-full transition-all",
-                        n <= pwd.nivel
-                          ? pwd.nivel === 1 ? "bg-red-500" : pwd.nivel === 2 ? "bg-[#f5a623]" : "bg-green-500"
-                          : "bg-ink/10"].join(" ")} />
+                <div className="flex flex-col gap-1" aria-live="polite">
+                  <div className="flex gap-1" aria-hidden>
+                    {[1, 2, 3].map((n) => (
+                      <div
+                        key={n}
+                        className={[
+                          "h-1 flex-1 rounded-full transition-all",
+                          n <= pwd.nivel
+                            ? pwd.nivel === 1 ? "bg-danger" : pwd.nivel === 2 ? "bg-signal" : "bg-control"
+                            : "bg-ink/15"
+                        ].join(" ")}
+                      />
                     ))}
                   </div>
-                  {pwd.etiqueta && <span className="font-body text-[11px] text-ink/45">{pwd.etiqueta}</span>}
-                </>
+                  {pwd.etiqueta && <span className="font-body text-[11px] leading-4 text-ink/55">{pwd.etiqueta}</span>}
+                </div>
               )}
-            </label>
+            </div>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="font-body text-sm font-medium text-ink/70">Confirmar contraseña</span>
-              <input
-                type={mostrar ? "text" : "password"}
-                value={confirmar}
-                onChange={(e) => setConfirmar(e.target.value)}
-                required autoComplete="new-password" placeholder="Repite tu contraseña"
-                className="w-full rounded-[var(--ruum-radius-field)] border border-ink/20 bg-mist px-4 py-3 font-body text-sm text-ink focus:border-route-dark focus:outline-none focus:ring-2 focus:ring-route-dark/20"
-              />
-            </label>
+            <Field
+              etiqueta="Confirmar contraseña"
+              type="password"
+              value={confirmar}
+              onChange={(e) => setConfirmar(e.target.value)}
+              placeholder="Repite tu contraseña"
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
 
             {error && (
               <div role="status" aria-live="polite" aria-atomic="true">
                 <Aviso tono="peligro">{error}</Aviso>
               </div>
             )}
-            <Button type="submit" disabled={enviando} className="mt-2 w-full">
+            <Button type="submit" loading={enviando} disabled={enviando} className="mt-2 w-full">
               {enviando ? "Guardando…" : "Guardar nueva contraseña"}
             </Button>
           </form>

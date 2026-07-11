@@ -97,10 +97,20 @@ export default function PaginaPanel() {
       if (!tieneSupabaseConfigurado()) return;
       try {
         const cliente = crearClienteNavegador();
+
+        // H-5 — antes, sin sesión, este efecto simplemente no hacía nada:
+        // se quedaba mostrando el dashboard vacío ("Listo para operar",
+        // todo en cero) con un link discreto de "Iniciar sesión" en vez de
+        // dejar claro que no hay sesión. Lo separamos del caso "sí hay
+        // sesión pero no hay conductor ni solicitud" (que ahora, con el fix
+        // en /registro, se autosana ahí mismo en vez de llegar aquí).
+        const { data: sesion } = await cliente.auth.getUser();
+        if (!sesion.user) { router.replace("/login"); return; }
+
         const real = await obtenerConductorActual(cliente);
         if (!real) {
           const solicitud = await obtenerSolicitudConductorActual(cliente);
-          if (!solicitud) return;
+          if (!solicitud) { router.replace("/registro"); return; }
           if (["borrador","correo_pendiente","datos_incompletos","documentos_pendientes"].includes(solicitud.estado)) {
             router.replace("/registro");
             return;

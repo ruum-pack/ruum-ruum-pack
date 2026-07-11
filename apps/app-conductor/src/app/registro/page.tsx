@@ -16,6 +16,7 @@ import {
   enviarSolicitudConductor,
   guardarBorradorConductor,
   iniciarSolicitudConductor,
+  obtenerConductorActual,
   obtenerSolicitudConductorActual,
   registrarConsentimientosConductor,
   subirDocumentoSolicitudConductor
@@ -611,7 +612,29 @@ export default function PaginaRegistroConductor() {
         setBorradorDisponible(null);
         setEmail(sesion.user.email??"");
         const solicitud=await obtenerSolicitudConductorActual(cliente);
-        if (!solicitud) { router.replace("/panel"); return; }
+        if (!solicitud) {
+          // H-5 — antes asumíamos "sesión sin solicitud = ya eres conductor
+          // certificado" y mandábamos directo a /panel sin comprobarlo. Eso
+          // dejaba varada a cualquier cuenta autenticada que en realidad
+          // nunca llegó a iniciar su solicitud (p. ej. confirmó el correo
+          // desde el enlace crudo del correo en vez de terminar el flujo de
+          // verificación dentro de la app: el enlace sí confirma la cuenta,
+          // pero iniciar_solicitud_conductor solo se llama desde acá). /panel
+          // tampoco rescataba a ese usuario — quedaba viendo un dashboard
+          // vacío sin ruta de regreso. Verificamos primero si de verdad
+          // existe un conductor antes de mandar a /panel; si no existe ni
+          // conductor ni solicitud, creamos la solicitud aquí mismo y
+          // dejamos que el registro siga normalmente.
+          const conductorExistente = await obtenerConductorActual(cliente);
+          if (conductorExistente) { router.replace("/panel"); return; }
+          const inicio = await iniciarSolicitudConductor(cliente);
+          if (!inicio.solicitudId) { router.replace("/panel"); return; }
+          setSolicitudRemotaId(inicio.solicitudId);
+          hidratacionRemotaCompletaRef.current=true;
+          omitirPrimerGuardadoRemotoRef.current=true;
+          setEstadoGuardadoRemoto("guardado");
+          return;
+        }
         if (["listo_para_enviar","en_revision","requiere_correccion","aprobado","rechazado","suspendido"].includes(solicitud.estado)) {
           router.replace("/panel"); return;
         }
