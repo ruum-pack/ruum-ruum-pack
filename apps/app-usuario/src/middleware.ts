@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
     login.pathname = "/login";
     login.search = "";
     login.searchParams.set("next", "/traslados/nuevo");
-    login.searchParams.set("reason", "email_confirmation");
+    login.searchParams.set("reason", "authentication_required");
     return NextResponse.redirect(login);
   }
 

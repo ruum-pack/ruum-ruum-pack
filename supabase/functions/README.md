@@ -13,6 +13,7 @@ conductor). PRD §4.12 — decisión de producto: **Twilio Proxy** (llamadas enm
 | `crear-llamada-enmascarada` | Ambas apps, pantalla de chat del traslado | Crea (o reutiliza) la sesión de Twilio Proxy del traslado y devuelve el número virtual al que el cliente abre un enlace `tel:` |
 | `validar-documento-conductor` | `app-conductor`, registro y correcciones | Valida el contenido real, sanea el archivo, lo guarda en el bucket privado y registra/reemplaza la versión mediante RPC |
 | `validar-documento-identidad` | `app-usuario`, verificación | Acepta JPEG, PNG o PDF por multipart limitado, detecta y valida bytes, sella la carga y registra el resultado mediante RPC |
+| `limpiar-documentos-identidad-obsoletos` | Proceso interno programado | Reintenta borrar versiones reemplazadas, registra intentos y escala después de cinco fallos |
 
 ### Documentos de conductor
 

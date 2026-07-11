@@ -315,7 +315,7 @@ export default function PaginaNuevoTraslado() {
         const cliente = crearClienteNavegador();
         const real = await obtenerUsuarioActual(cliente);
         if (!real) {
-          router.replace("/login?next=/traslados/nuevo&reason=email_confirmation");
+          router.replace("/login?next=/traslados/nuevo&reason=authentication_required");
           return;
         }
         if (real) {
@@ -727,7 +727,7 @@ export default function PaginaNuevoTraslado() {
       // "" y la inserción real fallaría contra RLS (no hay fila propia que
       // crear/usar). Mejor mandarlo a iniciar sesión que fallar en silencio.
       setEnviando(false);
-      router.push("/login?next=/traslados/nuevo&reason=email_confirmation");
+      router.push("/login?next=/traslados/nuevo&reason=authentication_required");
       return;
     }
 

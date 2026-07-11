@@ -78,6 +78,13 @@ export default function PaginaLogin() {
               </Aviso>
             </div>
           )}
+          {motivo === "authentication_required" && (
+            <div className="mt-4" role="status">
+              <Aviso tono="atencion">
+                Inicia sesión para solicitar un traslado. Si acabas de registrarte, confirma primero tu correo.
+              </Aviso>
+            </div>
+          )}
 
           <form className="mt-7 grid gap-4" onSubmit={iniciarSesion}>
             <CampoOscuro

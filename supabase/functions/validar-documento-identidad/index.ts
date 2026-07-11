@@ -95,7 +95,8 @@ Deno.serve(async (req) => {
   });
   if (errorUpload) {
     await servicio.from("documentos_identidad_storage_validados").delete().eq("ruta", ruta);
-    return json({ error: `No fue posible almacenar el documento: ${errorUpload.message}` }, 500);
+    console.error("Error almacenando identidad", { codigo: codigoSeguro(errorUpload) });
+    return json({ error: "No fue posible almacenar el documento. Intenta nuevamente." }, 500);
   }
 
   const { data: registroSinTipo, error: errorRpc } = await usuario.rpc("registrar_documento_identidad", {
