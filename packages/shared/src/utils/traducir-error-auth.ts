@@ -21,9 +21,9 @@ const FRAGMENTOS_AUTH: Array<[string, string]> = [
   ["password should be at least", MENSAJES_AUTH.password_too_short],
   ["weak password", MENSAJES_AUTH.weak_password],
   ["rate limit", MENSAJES_AUTH.over_request_rate_limit],
-  ["conductor_duplicado:curp", "Ya existe un registro con esa CURP."],
+  ["conductor_duplicado:curp", "Este CURP ya está asociado a otra solicitud."],
   ["conductor_duplicado:telefono", "Ya existe un registro con ese teléfono."],
-  ["conductor_duplicado:licencia", "Ya existe un registro con ese número de licencia."],
+  ["conductor_duplicado:licencia", "Este número de licencia ya está asociado a otra solicitud."],
   ["conductor_duplicado:auth", "Esta cuenta ya tiene un registro de conductor."],
   ["solicitud_duplicada:activa", "Ya tienes una solicitud de conductor en proceso."]
 ];

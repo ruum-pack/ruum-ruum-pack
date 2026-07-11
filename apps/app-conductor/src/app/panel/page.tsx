@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button, Aviso, PassportCard, EstadoBadge } from "@ruum/ui";
 import type { Conductor } from "@ruum/shared/types";
 import type { Database } from "@ruum/shared/types";
+import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import {
   guardarDisponibilidadConductor,
@@ -18,6 +19,7 @@ import {
 import { RegistroViajeActivo, viajePermiteFabEmergencia } from "../ViajeActivoContext";
 import { ConfirmarDisponibilidad } from "../ConfirmarDisponibilidad";
 import { EstadoRevisionConductor } from "./EstadoRevisionConductor";
+import { limpiarBorradorRegistroLocal } from "../../lib/borrador-registro";
 
 type Disponibilidad = "disponible" | "no_disponible" | "en_viaje";
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -85,6 +87,8 @@ export default function PaginaPanel() {
     solicitudId?: string;
     nombre: string;
     documentos: DocumentoConductorRow[];
+    estado: Database["public"]["Enums"]["estado_expediente_conductor"];
+    enviadoEn?: string|null;
   } | null>(null);
   const ultimoTriggerDisponibilidadRef = useRef(0);
 
@@ -97,6 +101,10 @@ export default function PaginaPanel() {
         if (!real) {
           const solicitud = await obtenerSolicitudConductorActual(cliente);
           if (!solicitud) return;
+          if (["borrador","correo_pendiente","datos_incompletos","documentos_pendientes"].includes(solicitud.estado)) {
+            router.replace("/registro");
+            return;
+          }
           const { data: docs, error: errorDocs } = await cliente
             .from("documentos_conductor")
             .select("*")
@@ -104,7 +112,7 @@ export default function PaginaPanel() {
             .order("creado_en", { ascending: false });
           if (errorDocs) throw errorDocs;
           const personales = solicitud.datos_personales as { nombre?: string };
-          setEnRevision({ solicitudId: solicitud.id, nombre: personales.nombre ?? "Conductor", documentos: docs ?? [] });
+          setEnRevision({ solicitudId: solicitud.id, nombre: personales.nombre ?? "Conductor", documentos: docs ?? [],estado:solicitud.estado,enviadoEn:solicitud.enviado_en });
           return;
         }
 
@@ -117,7 +125,7 @@ export default function PaginaPanel() {
             .eq("conductor_id", real.id)
             .order("creado_en", { ascending: false });
           if (errorDocs) throw errorDocs;
-          setEnRevision({ conductorId: real.id, nombre: real.nombre, documentos: docs ?? [] });
+          setEnRevision({ conductorId: real.id, nombre: real.nombre, documentos: docs ?? [],estado:real.estado_expediente });
           return;
         }
 
@@ -150,11 +158,11 @@ export default function PaginaPanel() {
           setDisponibilidad(disponibilidadOperativa);
         }
       } catch (err) {
-        setErrorDisponibilidad(err instanceof Error ? err.message : "No pudimos cargar tu información operativa.");
+        setErrorDisponibilidad(traducirErrorOperativo(err,"No pudimos cargar tu información operativa."));
       }
     }
     cargar();
-  }, []);
+  }, [router]);
 
   const resumen = useMemo(() => {
     const viajesSemana = viajesAceptados.filter((viaje) => estaSemana(viaje.actualizado_en));
@@ -218,11 +226,7 @@ export default function PaginaPanel() {
         await guardarDisponibilidadConductor(cliente, conductor.id, nuevaDisponibilidad);
       } catch (err) {
         setDisponibilidad(anterior);
-        setErrorDisponibilidad(
-          err instanceof Error
-            ? err.message
-            : "No pudimos actualizar tu disponibilidad. Restauramos el estado anterior."
-        );
+        setErrorDisponibilidad(traducirErrorOperativo(err,"No pudimos actualizar tu disponibilidad. Restauramos el estado anterior."));
       } finally {
         setPersistiendoDisponibilidad(false);
         setDisponibilidadPendiente(null);
@@ -253,6 +257,7 @@ export default function PaginaPanel() {
   async function cerrarSesion() {
     const cliente = crearClienteNavegador();
     await cliente.auth.signOut();
+    limpiarBorradorRegistroLocal();
     router.push("/onboarding");
     router.refresh();
   }
@@ -264,6 +269,8 @@ export default function PaginaPanel() {
         solicitudId={enRevision.solicitudId}
         nombre={enRevision.nombre}
         documentosIniciales={enRevision.documentos}
+        estadoExpediente={enRevision.estado}
+        enviadoEn={enRevision.enviadoEn}
         onSalir={cerrarSesion}
       />
     );

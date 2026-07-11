@@ -52,7 +52,7 @@ export async function obtenerConductorActual(cliente: Cliente): Promise<Conducto
   return data;
 }
 
-/** Solicitud de alta activa asociada a la sesión, antes de crear `conductores`. */
+/** Solicitud más reciente de la sesión, incluida una ya enviada o rechazada. */
 export async function obtenerSolicitudConductorActual(cliente: Cliente): Promise<SolicitudConductorRow | null> {
   const { data: sesion } = await cliente.auth.getUser();
   if (!sesion.user) return null;
@@ -61,7 +61,8 @@ export async function obtenerSolicitudConductorActual(cliente: Cliente): Promise
     .from("solicitudes_conductor")
     .select("*")
     .eq("auth_user_id", sesion.user.id)
-    .not("estado", "in", '("aprobado","rechazado")')
+    .order("actualizado_en",{ascending:false})
+    .limit(1)
     .maybeSingle();
 
   if (error) throw error;

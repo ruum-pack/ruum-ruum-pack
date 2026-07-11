@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
-import { traducirErrorAuth, fortalezaPassword } from "@ruum/shared/utils";
+import { traducirErrorAuth, traducirErrorOperativo, fortalezaPassword } from "@ruum/shared/utils";
 import {
   diasParaVencerLicencia,
   validarCampoRegistroConductor,
@@ -16,11 +16,13 @@ import {
   enviarSolicitudConductor,
   guardarBorradorConductor,
   iniciarSolicitudConductor,
+  obtenerSolicitudConductorActual,
   registrarConsentimientosConductor,
   subirDocumentoSolicitudConductor
 } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
+import { guardarBorradorRegistroLocal, leerBorradorRegistroLocal, limpiarBorradorRegistroLocal, type BorradorRegistroLocal as BorradorRegistro } from "../../lib/borrador-registro";
 
 const PASOS = [
   "Vamos a conocerte",
@@ -55,6 +57,14 @@ const TIPOS_ARCHIVO_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp
 
 type DocumentoKey = keyof typeof TIPOS_DOCUMENTO;
 type EstadoDocumento = "pendiente" | "listo" | "subiendo" | "subido" | "error";
+type EstadoGuardadoRemoto = "inactivo" | "guardando" | "guardado" | "sin_conexion" | "error";
+const TEXTO_GUARDADO_REMOTO:Record<EstadoGuardadoRemoto,string>={
+  inactivo:"",guardando:"Guardando…",guardado:"Guardado",sin_conexion:"Sin conexión",error:"Error al guardar"
+};
+
+function objetoJson(valor:unknown):Record<string,unknown> {
+  return valor&&typeof valor==="object"&&!Array.isArray(valor)?valor as Record<string,unknown>:{};
+}
 
 function soloDigitos(valor: string, max = 10) {
   return valor.replace(/\D/g, "").slice(0, max);
@@ -92,91 +102,10 @@ function canalRegistro(): "web" | "android" | "ios" {
  * archivos de documentos (los File no sobreviven un reinicio y la contraseña
  * y la CURP no deben tocar el almacenamiento local del dispositivo).
  */
-const CLAVE_BORRADOR = "ruumruum.registro-conductor.borrador.v1";
-const RETRASO_GUARDADO_BORRADOR_MS = 600;
+const RETRASO_GUARDADO_LOCAL_MS = 600;
+const RETRASO_GUARDADO_REMOTO_MS = 900;
 // Fase 5 (auditoría H-3) — el borrador caduca: no queremos PII de bajo riesgo
 // viviendo indefinidamente en el almacenamiento del dispositivo.
-const VIGENCIA_BORRADOR_MS = 48 * 60 * 60 * 1000;
-
-interface BorradorRegistro {
-  paso: number;
-  nombre: string;
-  apellidos: string;
-  telefono: string;
-  email: string;
-  codigoPostal: string;
-  estado: string;
-  ciudad: string;
-  colonia: string;
-  calle: string;
-  numero: string;
-  referencias: string;
-  numeroLicencia: string;
-  tipoLicencia: string;
-  vigenciaLicencia: string;
-  contactoEmergenciaNombre: string;
-  contactoEmergenciaTelefono: string;
-  guardadoEn: string;
-}
-
-type CampoTextoBorrador = Exclude<keyof BorradorRegistro, "paso" | "guardadoEn">;
-
-const CAMPOS_TEXTO_BORRADOR: CampoTextoBorrador[] = [
-  "nombre", "apellidos", "telefono", "email", "codigoPostal", "estado", "ciudad",
-  "colonia", "calle", "numero", "referencias", "numeroLicencia", "tipoLicencia",
-  "vigenciaLicencia", "contactoEmergenciaNombre", "contactoEmergenciaTelefono"
-];
-
-function leerBorrador(): BorradorRegistro | null {
-  try {
-    const crudo = window.localStorage.getItem(CLAVE_BORRADOR);
-    if (!crudo) return null;
-
-    const dato = JSON.parse(crudo) as unknown;
-    // Validación estricta (auditoría H-3): el JSON recuperado debe tener la
-    // forma esperada; si no, lo descartamos en vez de confiar en él.
-    if (typeof dato !== "object" || dato === null) return null;
-    const registro = dato as Record<string, unknown>;
-
-    if (typeof registro.guardadoEn !== "string") {
-      limpiarBorradorGuardado();
-      return null;
-    }
-    const guardadoMs = new Date(registro.guardadoEn).getTime();
-    if (Number.isNaN(guardadoMs) || Date.now() - guardadoMs > VIGENCIA_BORRADOR_MS) {
-      limpiarBorradorGuardado();
-      return null;
-    }
-
-    const borrador: BorradorRegistro = {
-      paso: typeof registro.paso === "number" ? registro.paso : 0,
-      guardadoEn: registro.guardadoEn,
-      nombre: "", apellidos: "", telefono: "", email: "", codigoPostal: "", estado: "",
-      ciudad: "", colonia: "", calle: "", numero: "", referencias: "", numeroLicencia: "",
-      tipoLicencia: "", vigenciaLicencia: "", contactoEmergenciaNombre: "", contactoEmergenciaTelefono: ""
-    };
-    for (const campo of CAMPOS_TEXTO_BORRADOR) {
-      const valor = registro[campo];
-      borrador[campo] = typeof valor === "string" ? valor : "";
-    }
-
-    const tieneContenido = [
-      borrador.nombre, borrador.apellidos, borrador.telefono,
-      borrador.email, borrador.codigoPostal, borrador.numeroLicencia
-    ].some((valor) => valor.trim().length > 0);
-    return tieneContenido ? borrador : null;
-  } catch {
-    return null;
-  }
-}
-
-function limpiarBorradorGuardado() {
-  try {
-    window.localStorage.removeItem(CLAVE_BORRADOR);
-  } catch {
-    // Almacenamiento no disponible (modo privado, etc.): no hay nada que limpiar.
-  }
-}
 
 const CODIGO_OTP_LONGITUD = 6;
 const ESPERA_REENVIO_OTP_SEGUNDOS = 60;
@@ -229,7 +158,16 @@ export default function PaginaRegistroConductor() {
   const [enviado, setEnviado] = useState(false);
   const [sesionActivaTrasRegistro, setSesionActivaTrasRegistro] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [advertenciaDocumentos, setAdvertenciaDocumentos] = useState<string | null>(null);
+  const [sesionAutenticada,setSesionAutenticada]=useState(false);
+  const [solicitudRemotaId,setSolicitudRemotaId]=useState<string|null>(null);
+  const [documentosRemotos,setDocumentosRemotos]=useState<Set<string>>(new Set());
+  const [estadoGuardadoRemoto,setEstadoGuardadoRemoto]=useState<EstadoGuardadoRemoto>("inactivo");
+  const [detalleGuardadoRemoto,setDetalleGuardadoRemoto]=useState<string|null>(null);
+  const [reintentoConexion,setReintentoConexion]=useState(0);
+  const hidratacionRemotaCompletaRef=useRef(false);
+  const omitirPrimerGuardadoRemotoRef=useRef(false);
+  const ultimoGuardadoRemotoRef=useRef("");
+  const aceptadosEnRef=useRef(new Date().toISOString());
 
   // Fase 4 — verificación por código (OTP) cuando Supabase exige confirmar el correo.
   const [pendienteOtp, setPendienteOtp] = useState(false);
@@ -277,12 +215,17 @@ export default function PaginaRegistroConductor() {
   }
 
   function validarConfirmacion(valor = confirmacionPassword, base = password) {
+    if (sesionAutenticada) return setCampoError("confirmacionPassword", "");
     if (!valor) return setCampoError("confirmacionPassword", "Confirma tu contraseña");
     return setCampoError("confirmacionPassword", valor !== base ? "Las contraseñas no coinciden" : "");
   }
 
+  function documentoDisponible(campo:DocumentoKey) {
+    return Boolean(documentos[campo]||documentosRemotos.has(TIPOS_DOCUMENTO[campo]));
+  }
+
   function validarDocumento(campo: DocumentoKey) {
-    return setCampoError(campo, documentos[campo] ? "" : "Carga este documento");
+    return setCampoError(campo, documentoDisponible(campo) ? "" : "Carga este documento");
   }
 
   function validarVigenciaLicencia(valor = vigenciaLicencia) {
@@ -321,7 +264,7 @@ export default function PaginaRegistroConductor() {
         validarCurp(),
         validarTelefono("telefono", telefono, setTelefono),
         validarCampo("email", email),
-        validarPassword(),
+        sesionAutenticada ? setCampoError("password", "") : validarPassword(),
         validarConfirmacion()
       ].every(Boolean);
     }
@@ -367,8 +310,7 @@ export default function PaginaRegistroConductor() {
         curp.trim() &&
         telefono.trim() &&
         email.trim() &&
-        password &&
-        confirmacionPassword &&
+        (sesionAutenticada || (password && confirmacionPassword)) &&
         codigoPostal.trim() &&
         estado.trim() &&
         ciudad.trim() &&
@@ -379,9 +321,9 @@ export default function PaginaRegistroConductor() {
         numeroLicencia.trim() &&
         tipoLicencia.trim() &&
         vigenciaLicencia &&
-        documentos.licenciaFrente &&
-        documentos.licenciaReverso &&
-        documentos.identificacionOficial &&
+        documentoDisponible("licenciaFrente") &&
+        documentoDisponible("licenciaReverso") &&
+        documentoDisponible("identificacionOficial") &&
         autorizaVerificacion &&
         declaraSinSuspensiones &&
         contactoEmergenciaNombre.trim() &&
@@ -417,11 +359,13 @@ export default function PaginaRegistroConductor() {
     if (archivo) limpiarErrorCampo(campo);
   }
 
-  function contratoExpediente() {
-    const aceptadosEn = new Date().toISOString();
+  const contratoExpediente=useCallback(()=>{
+    const aceptadosEn = aceptadosEnRef.current;
     return {
       datosPersonales: {
         nombre: nombreCompleto,
+        nombres: limpiarTexto(nombre),
+        apellidos: limpiarTexto(apellidos),
         telefono: telefonoE164Mx(telefono),
         curp: curp.trim().toUpperCase(),
         autoriza_verificacion_antecedentes: autorizaVerificacion,
@@ -452,7 +396,7 @@ export default function PaginaRegistroConductor() {
         telefono: soloDigitos(contactoEmergenciaTelefono)
       }
     };
-  }
+  },[nombreCompleto,nombre,apellidos,telefono,curp,autorizaVerificacion,declaraSinSuspensiones,aceptaTerminos,confirmaPrivacidad,codigoPostal,estado,ciudad,colonia,calle,numero,referencias,numeroLicencia,tipoLicencia,vigenciaLicencia,contactoEmergenciaNombre,contactoEmergenciaTelefono]);
 
   async function cargarDocumentos(cliente: ReturnType<typeof crearClienteNavegador>, solicitudId: string) {
     const pendientes = (Object.entries(documentos) as [DocumentoKey, File | null][])
@@ -501,6 +445,11 @@ export default function PaginaRegistroConductor() {
           : "No pudimos iniciar la solicitud."
       );
     }
+    setSesionAutenticada(true);
+    setSolicitudRemotaId(inicio.solicitudId);
+    hidratacionRemotaCompletaRef.current=true;
+    omitirPrimerGuardadoRemotoRef.current=true;
+    limpiarBorradorRegistroLocal();
     await registrarConsentimientosConductor(
       cliente,
       inicio.solicitudId,
@@ -533,10 +482,17 @@ export default function PaginaRegistroConductor() {
 
     setEnviando(true);
     setError(null);
-    setAdvertenciaDocumentos(null);
+    let cuentaCreada=sesionAutenticada;
 
     try {
       const cliente = crearClienteNavegador();
+      if (sesionAutenticada) {
+        setSesionActivaTrasRegistro(true);
+        await procesarSolicitudAutenticada(cliente);
+        limpiarBorradorRegistroLocal();
+        setEnviado(true);
+        return;
+      }
       const { data: datosAuth, error: errorAuth } = await cliente.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
@@ -549,19 +505,13 @@ export default function PaginaRegistroConductor() {
       });
       if (errorAuth) throw errorAuth;
       if (!datosAuth.user) throw new Error("No se pudo crear la cuenta. Intenta de nuevo.");
+      cuentaCreada=true;
+      limpiarBorradorRegistroLocal();
 
       if (datosAuth.session) {
         setSesionActivaTrasRegistro(true);
-        try {
-          await procesarSolicitudAutenticada(cliente);
-        } catch (errorDocumentos) {
-          setAdvertenciaDocumentos(
-            errorDocumentos instanceof Error
-              ? errorDocumentos.message
-              : "La cuenta se creó, pero no pudimos subir todos los documentos. Podrás cargarlos desde Configuración."
-          );
-        }
-        limpiarBorradorGuardado();
+        await procesarSolicitudAutenticada(cliente);
+        limpiarBorradorRegistroLocal();
         setEnviado(true);
       } else {
         // Fase 4 — la cuenta requiere confirmar el correo. En vez de mandar al
@@ -571,7 +521,7 @@ export default function PaginaRegistroConductor() {
         setPendienteOtp(true);
       }
     } catch (err) {
-      setError(traducirErrorAuth(err));
+      setError(cuentaCreada?traducirErrorOperativo(err,"No pudimos enviar tu solicitud. Tu cuenta quedó creada y puedes reintentar."):traducirErrorAuth(err));
     } finally {
       setEnviando(false);
     }
@@ -593,6 +543,7 @@ export default function PaginaRegistroConductor() {
 
     setVerificandoOtp(true);
     setErrorOtp(null);
+    let cuentaVerificada=false;
     try {
       const cliente = crearClienteNavegador();
       const { data, error: errorVerificacion } = await cliente.auth.verifyOtp({
@@ -602,22 +553,18 @@ export default function PaginaRegistroConductor() {
       });
       if (errorVerificacion) throw errorVerificacion;
       if (!data.session) throw new Error("El código se validó pero no pudimos iniciar tu sesión. Entra desde el acceso.");
+      cuentaVerificada=true;
 
       setSesionActivaTrasRegistro(true);
-      try {
-        await procesarSolicitudAutenticada(cliente);
-      } catch (errorDocumentos) {
-        setAdvertenciaDocumentos(
-          errorDocumentos instanceof Error
-            ? errorDocumentos.message
-            : "Tu cuenta quedó activa, pero no pudimos subir todos los documentos. Podrás cargarlos desde Configuración."
-        );
-      }
-      limpiarBorradorGuardado();
+      await procesarSolicitudAutenticada(cliente);
+      limpiarBorradorRegistroLocal();
       setPendienteOtp(false);
       setEnviado(true);
     } catch (err) {
-      setErrorOtp(traducirErrorAuth(err));
+      if(cuentaVerificada) {
+        setPendienteOtp(false);
+        setError(traducirErrorOperativo(err,"Tu cuenta quedó verificada, pero no pudimos enviar la solicitud. Puedes reintentar."));
+      } else setErrorOtp(traducirErrorAuth(err));
     } finally {
       setVerificandoOtp(false);
     }
@@ -649,51 +596,149 @@ export default function PaginaRegistroConductor() {
     return () => clearInterval(intervalo);
   }, [pendienteOtp, esperaReenvioOtp]);
 
+  // RT-19 — al volver desde cualquier dispositivo, la sesión hidrata el
+  // expediente remoto y deja de depender del borrador del navegador.
+  useEffect(() => {
+    if (!tieneSupabaseConfigurado()) { hidratacionRemotaCompletaRef.current=true; return; }
+    let activo=true;
+    const cliente=crearClienteNavegador();
+    async function hidratar() {
+      try {
+        const {data:sesion}=await cliente.auth.getUser();
+        if (!activo||!sesion.user) { hidratacionRemotaCompletaRef.current=true; return; }
+        setSesionAutenticada(true);
+        limpiarBorradorRegistroLocal();
+        setBorradorDisponible(null);
+        setEmail(sesion.user.email??"");
+        const solicitud=await obtenerSolicitudConductorActual(cliente);
+        if (!solicitud) { router.replace("/panel"); return; }
+        if (["listo_para_enviar","en_revision","requiere_correccion","aprobado","rechazado","suspendido"].includes(solicitud.estado)) {
+          router.replace("/panel"); return;
+        }
+        const [resultadoDocs,resultadoConsentimientos]=await Promise.all([
+          cliente.from("documentos_conductor").select("tipo,estado,es_actual").eq("solicitud_id",solicitud.id).eq("es_actual",true),
+          cliente.from("consentimientos_usuario").select("tipo_documento,aceptado_en").eq("solicitud_id",solicitud.id)
+        ]);
+        if (resultadoDocs.error) throw resultadoDocs.error;
+        if (resultadoConsentimientos.error) throw resultadoConsentimientos.error;
+        const personales=objetoJson(solicitud.datos_personales);
+        const domicilio=objetoJson(solicitud.domicilio);
+        const licencia=objetoJson(solicitud.licencia);
+        const contacto=objetoJson(solicitud.contacto_emergencia);
+        const nombreCompletoRemoto=String(personales.nombre??"").trim();
+        const partesNombre=nombreCompletoRemoto.split(/\s+/).filter(Boolean);
+        setNombre(String(personales.nombres??partesNombre[0]??""));
+        setApellidos(String(personales.apellidos??partesNombre.slice(1).join(" ")));
+        setCurp(String(personales.curp??""));
+        setTelefono(soloDigitos(String(personales.telefono??"").replace(/^\+?52/,"")));
+        setCodigoPostal(String(domicilio.codigo_postal??""));
+        setEstado(String(domicilio.estado??""));
+        setCiudad(String(domicilio.ciudad_municipio??""));
+        setColonia(String(domicilio.colonia??""));
+        if (domicilio.ciudad_municipio) setCiudades([String(domicilio.ciudad_municipio)]);
+        if (domicilio.colonia) setColonias([String(domicilio.colonia)]);
+        setCalle(String(domicilio.calle??""));
+        setNumero(String(domicilio.numero??""));
+        setReferencias(String(domicilio.referencias??""));
+        setNumeroLicencia(String(licencia.numero??""));
+        setTipoLicencia(String(licencia.tipo??""));
+        setVigenciaLicencia(String(licencia.vigencia??""));
+        setContactoEmergenciaNombre(String(contacto.nombre??""));
+        setContactoEmergenciaTelefono(soloDigitos(String(contacto.telefono??"")));
+        const consentimientos=new Set((resultadoConsentimientos.data??[]).map((fila)=>fila.tipo_documento));
+        setAceptaTerminos(consentimientos.has("terminos_servicio"));
+        setConfirmaPrivacidad(consentimientos.has("aviso_privacidad"));
+        setAutorizaVerificacion(consentimientos.has("autorizacion_antecedentes"));
+        setDeclaraSinSuspensiones(consentimientos.has("declaracion_suspensiones"));
+        const aceptacion=(resultadoConsentimientos.data??[])[0]?.aceptado_en;
+        if (aceptacion) aceptadosEnRef.current=aceptacion;
+        const tiposRemotos=new Set((resultadoDocs.data??[]).map((doc)=>doc.tipo));
+        setDocumentosRemotos(tiposRemotos);
+        setEstadoDocumentos({
+          licenciaFrente:tiposRemotos.has("licencia_frente")?"subido":"pendiente",
+          licenciaReverso:tiposRemotos.has("licencia_reverso")?"subido":"pendiente",
+          identificacionOficial:tiposRemotos.has("identificacion_oficial")?"subido":"pendiente"
+        });
+        setSolicitudRemotaId(solicitud.id);
+        setPaso(Math.min(Math.max((solicitud.paso_actual??1)-1,0),PASOS.length-1));
+        omitirPrimerGuardadoRemotoRef.current=true;
+        hidratacionRemotaCompletaRef.current=true;
+        setEstadoGuardadoRemoto("guardado");
+      } catch (err) {
+        hidratacionRemotaCompletaRef.current=true;
+        setError(traducirErrorOperativo(err,"No pudimos recuperar tu expediente. Vuelve a intentarlo."));
+      }
+    }
+    void hidratar();
+    const {data:suscripcion}=cliente.auth.onAuthStateChange((evento)=>{
+      if (evento==="SIGNED_OUT") limpiarBorradorRegistroLocal();
+    });
+    return()=>{activo=false;suscripcion.subscription.unsubscribe();};
+  },[router]);
+
+  useEffect(()=>{
+    const sinConexion=()=>setEstadoGuardadoRemoto("sin_conexion");
+    const conConexion=()=>{setEstadoGuardadoRemoto("guardado");setReintentoConexion((valor)=>valor+1);};
+    window.addEventListener("offline",sinConexion);
+    window.addEventListener("online",conConexion);
+    return()=>{window.removeEventListener("offline",sinConexion);window.removeEventListener("online",conConexion);};
+  },[]);
+
+  // RT-19 — un único lote remoto 900 ms después del último cambio.
+  useEffect(()=>{
+    if (!sesionAutenticada||!solicitudRemotaId||!hidratacionRemotaCompletaRef.current||enviado||pendienteOtp) return;
+    if (omitirPrimerGuardadoRemotoRef.current) { omitirPrimerGuardadoRemotoRef.current=false; return; }
+    if (!navigator.onLine) {
+      const offlineTimer=setTimeout(()=>setEstadoGuardadoRemoto("sin_conexion"),0);
+      return()=>clearTimeout(offlineTimer);
+    }
+    const expediente=contratoExpediente();
+    const consentimientos=[
+      aceptaTerminos?{tipoDocumento:"terminos_servicio" as const,version:1}:null,
+      confirmaPrivacidad?{tipoDocumento:"aviso_privacidad" as const,version:1}:null,
+      autorizaVerificacion?{tipoDocumento:"autorizacion_antecedentes" as const,version:1}:null,
+      declaraSinSuspensiones?{tipoDocumento:"declaracion_suspensiones" as const,version:1}:null
+    ].filter((valor):valor is NonNullable<typeof valor>=>valor!==null);
+    const firma=JSON.stringify({expediente,paso,consentimientos});
+    if (firma===ultimoGuardadoRemotoRef.current) return;
+    setEstadoGuardadoRemoto("guardando");
+    setDetalleGuardadoRemoto(null);
+    const timer=setTimeout(async()=>{
+      try {
+        const cliente=crearClienteNavegador();
+        if (consentimientos.length) await registrarConsentimientosConductor(cliente,solicitudRemotaId,consentimientos,canalRegistro(),VERSION_APP_REGISTRO);
+        await guardarBorradorConductor(cliente,expediente,paso+1);
+        ultimoGuardadoRemotoRef.current=firma;
+        setEstadoGuardadoRemoto("guardado");
+      } catch(err) {
+        const mensaje=traducirErrorOperativo(err);
+        setDetalleGuardadoRemoto(mensaje);
+        setEstadoGuardadoRemoto(navigator.onLine?"error":"sin_conexion");
+      }
+    },RETRASO_GUARDADO_REMOTO_MS);
+    return()=>clearTimeout(timer);
+  },[sesionAutenticada,solicitudRemotaId,enviado,pendienteOtp,reintentoConexion,paso,contratoExpediente,autorizaVerificacion,declaraSinSuspensiones,aceptaTerminos,confirmaPrivacidad]);
+
   // Fase 4 — detectar borrador guardado al montar.
   useEffect(() => {
-    const timer = setTimeout(() => setBorradorDisponible(leerBorrador()), 0);
+    const timer = setTimeout(() => setBorradorDisponible(leerBorradorRegistroLocal()), 0);
     return () => clearTimeout(timer);
   }, []);
 
-  // Fase 4 — autoguardado del borrador (solo campos no sensibles) con debounce.
+  // RT-20 — borrador local mínimo, únicamente antes de que exista sesión.
   useEffect(() => {
-    if (enviado || pendienteOtp) return;
-    const hayContenido = [nombre, apellidos, telefono, email, codigoPostal, numeroLicencia].some((v) => v.trim());
+    if (enviado || pendienteOtp || sesionAutenticada) return;
+    const hayContenido = [nombre, apellidos, telefono, email, codigoPostal].some((v) => v.trim());
     if (!hayContenido) return;
 
     const timer = setTimeout(() => {
-      const borrador: BorradorRegistro = {
-        paso,
-        nombre,
-        apellidos,
-        telefono,
-        email,
-        codigoPostal,
-        estado,
-        ciudad,
-        colonia,
-        calle,
-        numero,
-        referencias,
-        numeroLicencia,
-        tipoLicencia,
-        vigenciaLicencia,
-        contactoEmergenciaNombre,
-        contactoEmergenciaTelefono,
-        guardadoEn: new Date().toISOString()
-      };
-      try {
-        window.localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(borrador));
-      } catch {
-        // Sin almacenamiento disponible: el registro sigue funcionando, solo sin borrador.
-      }
-    }, RETRASO_GUARDADO_BORRADOR_MS);
+      guardarBorradorRegistroLocal({ paso,nombre,apellidos,telefono,email,codigoPostal,estado,ciudad,colonia,tipoLicencia,vigenciaLicencia });
+    }, RETRASO_GUARDADO_LOCAL_MS);
 
     return () => clearTimeout(timer);
   }, [
-    enviado, pendienteOtp, paso, nombre, apellidos, telefono, email, codigoPostal, estado, ciudad,
-    colonia, calle, numero, referencias, numeroLicencia, tipoLicencia, vigenciaLicencia,
-    contactoEmergenciaNombre, contactoEmergenciaTelefono
+    enviado, pendienteOtp, sesionAutenticada, paso, nombre, apellidos, telefono, email, codigoPostal, estado, ciudad,
+    colonia, tipoLicencia, vigenciaLicencia
   ]);
 
   function restaurarBorrador() {
@@ -708,18 +753,11 @@ export default function PaginaRegistroConductor() {
     setEstado(borrador.estado ?? "");
     setCiudad(borrador.ciudad ?? "");
     setColonia(borrador.colonia ?? "");
-    setCalle(borrador.calle ?? "");
-    setNumero(borrador.numero ?? "");
-    setReferencias(borrador.referencias ?? "");
-    setNumeroLicencia(borrador.numeroLicencia ?? "");
     setTipoLicencia(borrador.tipoLicencia ?? "");
     setVigenciaLicencia(borrador.vigenciaLicencia ?? "");
-    setContactoEmergenciaNombre(borrador.contactoEmergenciaNombre ?? "");
-    setContactoEmergenciaTelefono(soloDigitos(borrador.contactoEmergenciaTelefono ?? ""));
 
-    // Las fotos, la CURP y la contraseña no se guardan en el borrador, así que
-    // regresamos al paso 0: ahí se recapturan los dos campos sensibles y el
-    // resto del recorrido ya va prellenado (evita el rebote al final del envío).
+    // CURP, contraseña, domicilio preciso, licencia, contacto y archivos se
+    // recapturan porque no deben permanecer en localStorage.
     setPaso(0);
     setBorradorDisponible(null);
 
@@ -729,7 +767,7 @@ export default function PaginaRegistroConductor() {
   }
 
   function descartarBorrador() {
-    limpiarBorradorGuardado();
+    limpiarBorradorRegistroLocal();
     setBorradorDisponible(null);
   }
 
@@ -819,7 +857,6 @@ export default function PaginaRegistroConductor() {
             <p className="mt-3 font-body text-sm leading-6 text-ink/65">
               Tu cuenta está pendiente de validación. Cuando la revisión esté completa, podrás consultar y aceptar viajes.
             </p>
-            {advertenciaDocumentos && <div className="mt-5"><Aviso tono="info">{advertenciaDocumentos}</Aviso></div>}
             <Button
               variant="secundario"
               className="mt-7"
@@ -839,8 +876,8 @@ export default function PaginaRegistroConductor() {
               <div className="mt-5 rounded-xl border border-route/25 bg-route-soft p-4">
                 <p className="font-body text-sm font-semibold text-ink">Encontramos un registro sin terminar</p>
                 <p className="mt-1 font-body text-xs leading-5 text-ink/65">
-                  Guardado el {new Date(borradorDisponible.guardadoEn).toLocaleString("es-MX")}. Por tu seguridad no
-                  guardamos tu CURP, contraseña ni fotos: esas se vuelven a capturar.
+                  Guardado el {new Date(borradorDisponible.guardadoEn).toLocaleString("es-MX")} y disponible por 24 horas.
+                  Por seguridad no guardamos CURP, contraseña, domicilio preciso, licencia, contacto ni archivos.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button type="button" onClick={restaurarBorrador}>Continuar donde iba</Button>
@@ -867,6 +904,12 @@ export default function PaginaRegistroConductor() {
             <p className="mt-3 font-mono-ruum text-[11px] uppercase tracking-[0.12em] text-ink/45">
               Paso {paso + 1} de {PASOS.length}
             </p>
+            {sesionAutenticada&&estadoGuardadoRemoto!=="inactivo"&&(
+              <p className={`mt-2 font-body text-xs font-medium ${estadoGuardadoRemoto==="error"?"text-danger":estadoGuardadoRemoto==="sin_conexion"?"text-warn":"text-ink/55"}`} role="status" aria-live="polite" title={detalleGuardadoRemoto??undefined}>
+                {TEXTO_GUARDADO_REMOTO[estadoGuardadoRemoto]}
+                {estadoGuardadoRemoto==="error"&&detalleGuardadoRemoto?`: ${detalleGuardadoRemoto}`:""}
+              </p>
+            )}
 
             {!tieneSupabaseConfigurado() && (
               <div className="mt-5">
@@ -884,8 +927,8 @@ export default function PaginaRegistroConductor() {
                   </div>
                   <Field etiqueta="CURP" value={curp} onChange={(e) => { setCurp(e.target.value.toUpperCase()); limpiarErrorCampo("curp"); }} onBlur={() => validarCurp()} error={erroresCampos.curp || undefined} required maxLength={18} autoComplete="off" />
                   <Field etiqueta="Teléfono" ayuda="10 dígitos, sin lada internacional." type="tel" inputMode="numeric" value={formatoTelefonoNacional(telefono)} onChange={(e) => { setTelefono(soloDigitos(e.target.value)); limpiarErrorCampo("telefono"); }} onBlur={() => validarTelefono("telefono", telefono, setTelefono)} error={erroresCampos.telefono || undefined} required autoComplete="tel-national" />
-                  <Field etiqueta="Correo electrónico" type="email" value={email} onChange={(e) => { setEmail(e.target.value); limpiarErrorCampo("email"); }} onBlur={() => validarCampo("email", email)} error={erroresCampos.email || undefined} required autoComplete="email" />
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <Field etiqueta="Correo electrónico" type="email" value={email} onChange={(e) => { setEmail(e.target.value); limpiarErrorCampo("email"); }} onBlur={() => validarCampo("email", email)} error={erroresCampos.email || undefined} required autoComplete="email" readOnly={sesionAutenticada} />
+                  {!sesionAutenticada&&<div className="grid gap-4 sm:grid-cols-2">
                     <div className="flex flex-col gap-2">
                       <Field etiqueta="Crea tu contraseña" type="password" value={password} ayuda="Mínimo 8 caracteres, con al menos un número o una mayúscula." onChange={(e) => { const valor = e.target.value; setPassword(valor); limpiarErrorCampo("password"); if (confirmacionPassword) validarConfirmacion(confirmacionPassword, valor); }} onBlur={() => validarPassword()} error={erroresCampos.password || undefined} required minLength={8} autoComplete="new-password" />
                       {password.length > 0 && (
@@ -914,7 +957,7 @@ export default function PaginaRegistroConductor() {
                       )}
                     </div>
                     <Field etiqueta="Confirma tu contraseña" type="password" value={confirmacionPassword} onChange={(e) => { setConfirmacionPassword(e.target.value); validarConfirmacion(e.target.value, password); }} error={erroresCampos.confirmacionPassword || undefined} required minLength={8} autoComplete="new-password" />
-                  </div>
+                  </div>}
                 </fieldset>
               )}
 
@@ -1224,6 +1267,11 @@ function CampoDocumento({
           <Button type="button" variant="fantasma" onClick={() => inputRef.current?.click()}>
             Tomar otra foto
           </Button>
+        </div>
+      ) : estado==="subido" ? (
+        <div className="rounded-[10px] border border-control/30 bg-control-soft px-3.5 py-3">
+          <p className="font-body text-sm font-semibold text-control">Documento guardado en tu expediente</p>
+          <p className="mt-1 font-body text-xs text-ink/55">No necesitas volver a cargarlo en este dispositivo.</p>
         </div>
       ) : (
         <Button type="button" variant="secundario" onClick={() => inputRef.current?.click()}>

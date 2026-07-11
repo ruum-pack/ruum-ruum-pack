@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Aviso, Button, EstatusBadgeEconomico, PassportCard } from "@ruum/ui";
 import type { EstatusEconomico } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
+import { traducirErrorOperativo } from "@ruum/shared/utils";
 import {
   actualizarPerfilConductor,
   guardarPreferenciasConductor,
@@ -14,6 +15,7 @@ import {
   subirDocumentoConductor,
   type TipoDocumentoConductor
 } from "@ruum/api/services";
+import { limpiarBorradorRegistroLocal } from "../../lib/borrador-registro";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 type Bloque = "cuenta" | "documentos" | "preferencias" | "soporte";
@@ -176,7 +178,7 @@ export default function PaginaConfiguracion() {
         setMensaje("Perfil actualizado.");
         await cargar();
       } catch (error) {
-        setMensaje(error instanceof Error ? error.message : "No se pudo actualizar el perfil.");
+        setMensaje(traducirErrorOperativo(error,"No se pudo actualizar el perfil."));
       }
     });
   }
@@ -190,7 +192,7 @@ export default function PaginaConfiguracion() {
         await guardarPreferenciasConductor(cliente, conductor.id, prefs);
         setMensaje("Preferencias guardadas.");
       } catch (error) {
-        setMensaje(error instanceof Error ? error.message : "No se pudieron guardar las preferencias.");
+        setMensaje(traducirErrorOperativo(error,"No se pudieron guardar las preferencias."));
       }
     });
   }
@@ -206,7 +208,7 @@ export default function PaginaConfiguracion() {
       setMensaje("Documento cargado y enviado a revisión.");
       await cargar();
     } catch (error) {
-      setMensaje(error instanceof Error ? error.message : "No se pudo subir el documento.");
+      setMensaje(traducirErrorOperativo(error,"No pudimos registrar uno de tus documentos."));
     } finally {
       setSubiendoDocumento(false);
       evento.target.value = "";
@@ -219,6 +221,7 @@ export default function PaginaConfiguracion() {
     try {
       const cliente = crearClienteNavegador();
       await cliente.auth.signOut();
+      limpiarBorradorRegistroLocal();
       router.push("/onboarding");
       router.refresh();
     } catch {
