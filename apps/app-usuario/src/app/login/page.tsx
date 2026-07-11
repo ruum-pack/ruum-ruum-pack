@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Aviso, Field } from "@ruum/ui";
@@ -8,17 +8,18 @@ import { traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { botonAzul, botonContorno, CampoOscuro, LogoRuum, PantallaPublica } from "../experiencia-publica";
 
+function motivoInicial(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("reason");
+}
+
 export default function PaginaLogin() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [motivo, setMotivo] = useState<string | null>(null);
-
-  useEffect(() => {
-    setMotivo(new URLSearchParams(window.location.search).get("reason"));
-  }, []);
+  const [motivo] = useState(motivoInicial);
 
   async function iniciarSesion(e: React.FormEvent) {
     e.preventDefault();

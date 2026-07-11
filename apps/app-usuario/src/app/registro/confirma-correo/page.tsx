@@ -9,26 +9,38 @@ import { botonAzul, botonContorno, LogoRuum, PantallaPublica } from "../../exper
 
 const COOLDOWN_SEGUNDOS = 60;
 
+function correoInicial(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.sessionStorage.getItem("ruum:correo-confirmacion") ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function restanteInicial(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const hasta = Number(window.sessionStorage.getItem("ruum:reenvio-confirmacion-hasta") ?? 0);
+    return Math.max(0, Math.ceil((hasta - Date.now()) / 1000));
+  } catch {
+    return 0;
+  }
+}
+
 export default function PaginaConfirmaCorreo() {
-  const [correo, setCorreo] = useState("");
-  const [restante, setRestante] = useState(0);
+  const [correo] = useState(correoInicial);
+  const [restante, setRestante] = useState(restanteInicial);
   const [reenviando, setReenviando] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const hayCooldown = restante > 0;
   useEffect(() => {
-    try {
-      setCorreo(window.sessionStorage.getItem("ruum:correo-confirmacion") ?? "");
-      const hasta = Number(window.sessionStorage.getItem("ruum:reenvio-confirmacion-hasta") ?? 0);
-      setRestante(Math.max(0, Math.ceil((hasta - Date.now()) / 1000)));
-    } catch { /* Sin storage se conserva el flujo de regreso al registro. */ }
-  }, []);
-
-  useEffect(() => {
-    if (restante <= 0) return;
+    if (!hayCooldown) return;
     const timer = window.setInterval(() => setRestante((valor) => Math.max(0, valor - 1)), 1000);
     return () => window.clearInterval(timer);
-  }, [restante > 0]);
+  }, [hayCooldown]);
 
   async function reenviar() {
     if (!correo || restante > 0 || reenviando) return;
