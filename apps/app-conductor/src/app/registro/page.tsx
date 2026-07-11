@@ -16,6 +16,7 @@ import {
   enviarSolicitudConductor,
   guardarBorradorConductor,
   iniciarSolicitudConductor,
+  registrarConsentimientosConductor,
   subirDocumentoSolicitudConductor
 } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
@@ -75,11 +76,14 @@ function limpiarTexto(valor: string) {
   return valor.trim().replace(/\s+/g, " ");
 }
 
-function terminosAceptadosEn() {
-  return new Date().toISOString();
-}
-
 const DIAS_ADVERTENCIA_VIGENCIA = 30;
+const VERSION_APP_REGISTRO = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.1";
+
+function canalRegistro(): "web" | "android" | "ios" {
+  if (/android/i.test(navigator.userAgent)) return "android";
+  if (/iPad|iPhone|iPod/i.test(navigator.userAgent)) return "ios";
+  return "web";
+}
 
 /**
  * Fase 4 — borrador NO sensible del wizard.
@@ -218,14 +222,14 @@ export default function PaginaRegistroConductor() {
   const [declaraSinSuspensiones, setDeclaraSinSuspensiones] = useState(false);
   const [contactoEmergenciaNombre, setContactoEmergenciaNombre] = useState("");
   const [contactoEmergenciaTelefono, setContactoEmergenciaTelefono] = useState("");
-  const [aceptaLegales, setAceptaLegales] = useState(false);
+  const [aceptaTerminos, setAceptaTerminos] = useState(false);
+  const [confirmaPrivacidad, setConfirmaPrivacidad] = useState(false);
   const [erroresCampos, setErroresCampos] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [sesionActivaTrasRegistro, setSesionActivaTrasRegistro] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [advertenciaDocumentos, setAdvertenciaDocumentos] = useState<string | null>(null);
-  const terminosAceptadosEnRef = useRef<string | null>(null);
 
   // Fase 4 — verificación por código (OTP) cuando Supabase exige confirmar el correo.
   const [pendienteOtp, setPendienteOtp] = useState(false);
@@ -241,7 +245,7 @@ export default function PaginaRegistroConductor() {
   const nombreCompleto = useMemo(() => limpiarTexto(`${nombre} ${apellidos}`), [nombre, apellidos]);
   const fuerzaPassword = useMemo(() => fortalezaPassword(password), [password]);
   const tieneErroresActivos = Object.values(erroresCampos).some(Boolean);
-  const puedeEnviar = !enviando && !tieneErroresActivos && aceptaLegales && formularioCompleto();
+  const puedeEnviar = !enviando && !tieneErroresActivos && aceptaTerminos && confirmaPrivacidad && formularioCompleto();
 
   function setCampoError(campo: string, mensaje: string) {
     setErroresCampos((prev) => ({ ...prev, [campo]: mensaje }));
@@ -350,7 +354,10 @@ export default function PaginaRegistroConductor() {
         validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono)
       ].every(Boolean);
     }
-    return setCampoError("aceptaLegales", aceptaLegales ? "" : "Debes aceptar los términos y el aviso de privacidad");
+    return [
+      setCampoError("aceptaTerminos", aceptaTerminos ? "" : "Debes aceptar los términos de servicio"),
+      setCampoError("confirmaPrivacidad", confirmaPrivacidad ? "" : "Debes confirmar que leíste el aviso de privacidad")
+    ].every(Boolean);
   }
 
   function formularioCompleto() {
@@ -411,8 +418,7 @@ export default function PaginaRegistroConductor() {
   }
 
   function contratoExpediente() {
-    const aceptadosEn = terminosAceptadosEnRef.current ?? terminosAceptadosEn();
-    terminosAceptadosEnRef.current = aceptadosEn;
+    const aceptadosEn = new Date().toISOString();
     return {
       datosPersonales: {
         nombre: nombreCompleto,
@@ -420,8 +426,10 @@ export default function PaginaRegistroConductor() {
         curp: curp.trim().toUpperCase(),
         autoriza_verificacion_antecedentes: autorizaVerificacion,
         declara_sin_suspensiones: declaraSinSuspensiones,
-        acepta_terminos_privacidad: aceptaLegales,
+        acepta_terminos_servicio: aceptaTerminos,
+        confirma_aviso_privacidad: confirmaPrivacidad,
         version_terminos_aceptada: 1,
+        version_aviso_privacidad: 1,
         terminos_aceptados_en: aceptadosEn,
         marca_terminos: "ruum ruum by Movilia"
       },
@@ -493,6 +501,18 @@ export default function PaginaRegistroConductor() {
           : "No pudimos iniciar la solicitud."
       );
     }
+    await registrarConsentimientosConductor(
+      cliente,
+      inicio.solicitudId,
+      [
+        { tipoDocumento: "terminos_servicio", version: 1 },
+        { tipoDocumento: "aviso_privacidad", version: 1 },
+        { tipoDocumento: "autorizacion_antecedentes", version: 1 },
+        { tipoDocumento: "declaracion_suspensiones", version: 1 }
+      ],
+      canalRegistro(),
+      VERSION_APP_REGISTRO
+    );
     await guardarBorradorConductor(cliente, contratoExpediente(), PASOS.length);
     await cargarDocumentos(cliente, inicio.solicitudId);
     return enviarSolicitudConductor(cliente);
@@ -517,9 +537,6 @@ export default function PaginaRegistroConductor() {
 
     try {
       const cliente = crearClienteNavegador();
-      const aceptadosEn = terminosAceptadosEn();
-      terminosAceptadosEnRef.current = aceptadosEn;
-
       const { data: datosAuth, error: errorAuth } = await cliente.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
@@ -1019,20 +1036,27 @@ export default function PaginaRegistroConductor() {
                     <Resumen titulo="Verificación" valores={[autorizaVerificacion ? "Autoriza verificación de antecedentes" : "Verificación pendiente", declaraSinSuspensiones ? "Sin suspensiones ni procesos activos declarados" : "Declaración pendiente", `Emergencia: ${contactoEmergenciaNombre} · ${formatoTelefonoNacional(contactoEmergenciaTelefono)}`]} />
                   </div>
                   <label className="flex gap-3 rounded-xl border border-route-dark/20 bg-route-soft p-4 font-body text-sm leading-6 text-ink/75">
-                    <input type="checkbox" checked={aceptaLegales} onChange={(e) => { setAceptaLegales(e.target.checked); limpiarErrorCampo("aceptaLegales"); }} className="mt-1 size-4 accent-route-dark" />
+                    <input type="checkbox" checked={aceptaTerminos} onChange={(e) => { setAceptaTerminos(e.target.checked); limpiarErrorCampo("aceptaTerminos"); }} className="mt-1 size-4 accent-route-dark" />
                     <span>
                       He leído y acepto los{" "}
                       <a href="/legal/terminos" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-route-dark underline underline-offset-2 hover:no-underline">
                         términos y condiciones
                       </a>{" "}
-                      y el{" "}
+                      de ruum ruum by Movilia.
+                    </span>
+                  </label>
+                  {erroresCampos.aceptaTerminos && <p className="font-body text-xs font-medium text-danger">{erroresCampos.aceptaTerminos}</p>}
+                  <label className="flex gap-3 rounded-xl border border-route-dark/20 bg-route-soft p-4 font-body text-sm leading-6 text-ink/75">
+                    <input type="checkbox" checked={confirmaPrivacidad} onChange={(e) => { setConfirmaPrivacidad(e.target.checked); limpiarErrorCampo("confirmaPrivacidad"); }} className="mt-1 size-4 accent-route-dark" />
+                    <span>
+                      Confirmo que he leído el{" "}
                       <a href="/legal/privacidad" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-route-dark underline underline-offset-2 hover:no-underline">
                         aviso de privacidad
                       </a>{" "}
                       de ruum ruum by Movilia.
                     </span>
                   </label>
-                  {erroresCampos.aceptaLegales && <p className="font-body text-xs font-medium text-danger">{erroresCampos.aceptaLegales}</p>}
+                  {erroresCampos.confirmaPrivacidad && <p className="font-body text-xs font-medium text-danger">{erroresCampos.confirmaPrivacidad}</p>}
                 </fieldset>
               )}
 

@@ -55,6 +55,12 @@ begin
   -- Ya autenticado, la PII viaja a la tabla y nunca vuelve a user_metadata.
   perform set_config('request.jwt.claim.sub',v_auth_v2::text,true);
   perform set_config('role','authenticated',true);
+  perform public.registrar_consentimientos_conductor(v_solicitud,'[
+    {"tipo_documento":"terminos_servicio","version":1},
+    {"tipo_documento":"aviso_privacidad","version":1},
+    {"tipo_documento":"autorizacion_antecedentes","version":1},
+    {"tipo_documento":"declaracion_suspensiones","version":1}
+  ]','web','test-rt05');
   perform public.completar_solicitud_conductor_v2(
     '{"nombre":"Conductor V2","telefono":"+525500000005","curp":"RT050101HDFABC05","autoriza_verificacion_antecedentes":true,"declara_sin_suspensiones":true,"version_terminos_aceptada":2,"terminos_aceptados_en":"2026-07-10T18:00:00Z","marca_terminos":"ruum ruum"}',
     '{"codigo_postal":"01000","estado":"Ciudad de México","ciudad_municipio":"Álvaro Obregón","colonia":"San Ángel","calle":"Prueba","numero":"5"}',

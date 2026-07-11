@@ -18,6 +18,12 @@ begin
   end if;
   if r2.estado<>'datos_incompletos' then raise exception 'RT-08: estado inicial inesperado: %',r2.estado; end if;
   perform set_config('rt08.solicitud_id',r1.solicitud_id::text,true);
+  perform public.registrar_consentimientos_conductor(r1.solicitud_id,'[
+    {"tipo_documento":"terminos_servicio","version":1},
+    {"tipo_documento":"aviso_privacidad","version":1},
+    {"tipo_documento":"autorizacion_antecedentes","version":1},
+    {"tipo_documento":"declaracion_suspensiones","version":1}
+  ]','web','test-rt08');
 
   -- Guardado por sección: primero datos personales incompletos.
   perform public.guardar_borrador_conductor(

@@ -67,6 +67,12 @@ begin
   -- Desde RT-06 la metadata puede ser mínima: el expediente se completa sólo
   -- después de autenticar, antes de cargar documentos.
   perform set_config('request.jwt.claim.sub',v_auth_3::text,true);
+  perform public.registrar_consentimientos_conductor(v_solicitud_3,'[
+    {"tipo_documento":"terminos_servicio","version":1},
+    {"tipo_documento":"aviso_privacidad","version":1},
+    {"tipo_documento":"autorizacion_antecedentes","version":1},
+    {"tipo_documento":"declaracion_suspensiones","version":1}
+  ]','web','test-rt03');
   perform public.completar_solicitud_conductor_v2(
     '{"nombre":"Alta separada","telefono":"+525500003003","curp":"RT040101HDFABC02","autoriza_verificacion_antecedentes":true,"declara_sin_suspensiones":true,"acepta_terminos_privacidad":true,"version_terminos_aceptada":2,"terminos_aceptados_en":"2026-07-10T18:00:00Z"}',
     '{"codigo_postal":"01000","estado":"Ciudad de México","ciudad_municipio":"Álvaro Obregón","colonia":"San Ángel","calle":"Prueba","numero":"3"}',

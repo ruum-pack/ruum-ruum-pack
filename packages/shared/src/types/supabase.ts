@@ -249,6 +249,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      consentimientos_usuario: {
+        Row: {
+          id: string
+          auth_user_id: string
+          solicitud_id: string | null
+          tipo_documento: Database["public"]["Enums"]["tipo_documento_consentimiento"]
+          version: number
+          aceptado_en: string
+          canal: "web" | "android" | "ios" | "legacy_migracion"
+          version_app: string
+          hash_documento: string
+        };
+        Insert: {
+          id?: string
+          auth_user_id: string
+          solicitud_id?: string | null
+          tipo_documento: Database["public"]["Enums"]["tipo_documento_consentimiento"]
+          version: number
+          aceptado_en?: string
+          canal: "web" | "android" | "ios" | "legacy_migracion"
+          version_app: string
+          hash_documento: string
+        };
+        Update: {
+          id?: string
+          auth_user_id?: string
+          solicitud_id?: string | null
+          tipo_documento?: Database["public"]["Enums"]["tipo_documento_consentimiento"]
+          version?: number
+          aceptado_en?: string
+          canal?: "web" | "android" | "ios" | "legacy_migracion"
+          version_app?: string
+          hash_documento?: string
+        };
+        Relationships: [];
+      };
+      versiones_documento_consentimiento: {
+        Row: {
+          tipo_documento: Database["public"]["Enums"]["tipo_documento_consentimiento"]
+          version: number
+          hash_documento: string
+          referencia: string
+          vigente_desde: string
+          vigente_hasta: string | null
+        };
+        Insert: {
+          tipo_documento: Database["public"]["Enums"]["tipo_documento_consentimiento"]
+          version: number
+          hash_documento: string
+          referencia: string
+          vigente_desde: string
+          vigente_hasta?: string | null
+        };
+        Update: {
+          tipo_documento?: Database["public"]["Enums"]["tipo_documento_consentimiento"]
+          version?: number
+          hash_documento?: string
+          referencia?: string
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        };
+        Relationships: [];
+      };
       solicitudes_conductor: {
         Row: {
           id: string
@@ -1269,6 +1332,10 @@ export type Database = {
         Args: { p_objetivo_id: string; p_tipo: string; p_nombre_archivo: string; p_ruta: string };
         Returns: string;
       };
+      registrar_consentimientos_conductor: {
+        Args: { p_solicitud_id: string; p_consentimientos: Json; p_canal: string; p_version_app: string };
+        Returns: number;
+      };
       reemplazar_documento_conductor: {
         Args: { p_documento_anterior_id: string; p_nombre_archivo: string; p_ruta: string };
         Returns: string;
@@ -1307,6 +1374,7 @@ export type Database = {
       tipo_disputa: "cobro_incorrecto" | "cancelacion_fuera_de_politica" | "dano_no_reconocido" | "no_presentacion" | "calificacion_injusta";
       tipo_evidencia: "inicial" | "final";
       tipo_incidencia: "vehiculo_no_enciende" | "contacto_no_localizado" | "documentacion_incompleta" | "dano_previo_relevante" | "colision_robo_asalto" | "emergencia_medica_conductor" | "descompostura_en_ruta" | "infraccion_autoridad_vial" | "conductor_enfermo" | "perdida_conectividad" | "dano_no_reportado";
+      tipo_documento_consentimiento: "terminos_servicio" | "aviso_privacidad" | "autorizacion_antecedentes" | "declaracion_suspensiones";
       tipo_pago: "anticipado" | "al_cierre";
       tipo_vehiculo: "sedan" | "suv" | "pick_up" | "van" | "luxury" | "coleccion";
     };

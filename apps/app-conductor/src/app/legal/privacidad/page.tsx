@@ -18,7 +18,7 @@ export default function PaginaPrivacidadConductor() {
           <header className="mb-8 border-b border-ink/10 pb-6">
             <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/40">Documento legal</p>
             <h1 className="mt-2 font-display text-2xl font-semibold text-ink">Aviso de privacidad</h1>
-            <p className="mt-1 font-body text-sm text-ink/50">ruum ruum by Movilia — vigente desde el 3 de julio de 2026</p>
+            <p className="mt-1 font-body text-sm text-ink/50">Versión 1 · ruum ruum by Movilia — vigente desde el 3 de julio de 2026</p>
           </header>
 
           <div className="space-y-6 font-body text-sm leading-7 text-ink/80">

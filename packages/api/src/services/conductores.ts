@@ -75,6 +75,17 @@ export interface ExpedienteSolicitudConductorV2 {
   contactoEmergencia: Json;
 }
 
+export type TipoConsentimientoConductor =
+  | "terminos_servicio"
+  | "aviso_privacidad"
+  | "autorizacion_antecedentes"
+  | "declaracion_suspensiones";
+
+export interface ConsentimientoConductor {
+  tipoDocumento: TipoConsentimientoConductor;
+  version: number;
+}
+
 export interface ResultadoSolicitudConductor {
   solicitudId: string | null;
   conductorId: string | null;
@@ -119,6 +130,26 @@ export async function guardarBorradorConductor(
   });
   if (error) throw error;
   return mapearResultadoSolicitud(data?.[0]);
+}
+
+export async function registrarConsentimientosConductor(
+  cliente: Cliente,
+  solicitudId: string,
+  consentimientos: ConsentimientoConductor[],
+  canal: "web" | "android" | "ios",
+  versionApp: string
+) {
+  const { data, error } = await cliente.rpc("registrar_consentimientos_conductor", {
+    p_solicitud_id: solicitudId,
+    p_consentimientos: consentimientos.map((consentimiento) => ({
+      tipo_documento: consentimiento.tipoDocumento,
+      version: consentimiento.version
+    })),
+    p_canal: canal,
+    p_version_app: versionApp
+  });
+  if (error) throw error;
+  return data;
 }
 
 export async function enviarSolicitudConductor(cliente: Cliente) {
