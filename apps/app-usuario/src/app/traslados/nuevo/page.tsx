@@ -315,7 +315,7 @@ export default function PaginaNuevoTraslado() {
         const cliente = crearClienteNavegador();
         const real = await obtenerUsuarioActual(cliente);
         if (!real) {
-          router.replace("/login?next=/traslados/nuevo");
+          router.replace("/login?next=/traslados/nuevo&reason=email_confirmation");
           return;
         }
         if (real) {
@@ -727,7 +727,7 @@ export default function PaginaNuevoTraslado() {
       // "" y la inserción real fallaría contra RLS (no hay fila propia que
       // crear/usar). Mejor mandarlo a iniciar sesión que fallar en silencio.
       setEnviando(false);
-      router.push("/login?next=/traslados/nuevo");
+      router.push("/login?next=/traslados/nuevo&reason=email_confirmation");
       return;
     }
 
@@ -747,7 +747,7 @@ export default function PaginaNuevoTraslado() {
       return;
     }
 
-    // FIX: precio_cotizado=0 hace que la Edge Function de Stripe rechace con 422.
+    // Stripe requiere un monto positivo; el precio definitivo llegará del cotizador.
     // El campo es estimación manual — si está vacío o en cero, bloqueamos antes
     // de crear el vehículo y el traslado en DB (ya que no pueden borrarse fácilmente).
     const precioNumerico = Number(datos.precioEstimado);
@@ -861,7 +861,6 @@ export default function PaginaNuevoTraslado() {
         <NavegacionUsuario />
         <div className="mx-auto max-w-xl px-6 py-20">
           <Aviso tono={resultado.ok ? "info" : "peligro"}>{resultado.mensaje}</Aviso>
-          {/* FIX: pantalla de error dejaba al usuario bloqueado sin salida */}
           {!resultado.ok && (
             <div className="mt-6 flex gap-3">
               <button

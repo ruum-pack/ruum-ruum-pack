@@ -27,7 +27,16 @@ export async function middleware(request: NextRequest) {
     }
   });
 
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (request.nextUrl.pathname === "/traslados/nuevo" && !user) {
+    const login = request.nextUrl.clone();
+    login.pathname = "/login";
+    login.search = "";
+    login.searchParams.set("next", "/traslados/nuevo");
+    login.searchParams.set("reason", "email_confirmation");
+    return NextResponse.redirect(login);
+  }
 
   return response;
 }

@@ -1,6 +1,4 @@
 "use client";
-
-"use client";
 import { useEffect } from "react";
 import Link from "next/link";
 
@@ -12,7 +10,7 @@ export default function ErrorGlobalAdmin({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[panel-admin/error]", error);
+    console.error("[panel-admin/error]", { digest: error.digest ?? "sin-digest" });
   }, [error]);
 
   return (

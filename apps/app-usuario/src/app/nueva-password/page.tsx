@@ -1,15 +1,12 @@
 "use client";
-
-"use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Aviso } from "@ruum/ui";
-import { fortalezaPassword } from "@ruum/shared/utils";
+import { Aviso, Field } from "@ruum/ui";
+import { fortalezaPassword, observarSesionRecuperacion, traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import {
   botonAzul,
-  CampoOscuro,
   LogoRuum,
   PantallaPublica,
 } from "../experiencia-publica";
@@ -18,7 +15,6 @@ export default function PaginaNuevaPassword() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmar, setConfirmar] = useState("");
-  const [mostrar, setMostrar] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [listo, setListo] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,26 +22,30 @@ export default function PaginaNuevaPassword() {
      al cargar el cliente. Verificamos que haya sesión activa. */
   const [sesionLista, setSesionLista] = useState(false);
   const [verificando, setVerificando] = useState(true);
+  const montadoRef = useRef(true);
+  const redireccionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    async function verificarSesion() {
-      if (!tieneSupabaseConfigurado()) { setVerificando(false); return; }
-      const cliente = crearClienteNavegador();
-      /* onAuthStateChange capta el evento PASSWORD_RECOVERY que Supabase
-         emite cuando detecta el token de recuperación en el hash. */
-      const { data: { subscription } } = cliente.auth.onAuthStateChange(
-        (event) => {
-          if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
-            setSesionLista(true);
-          }
-          setVerificando(false);
-        }
-      );
-      /* Timeout de seguridad: si no hay evento en 3s, mostrar error de token */
-      const timeout = setTimeout(() => setVerificando(false), 3000);
-      return () => { subscription.unsubscribe(); clearTimeout(timeout); };
+    montadoRef.current = true;
+    return () => {
+      montadoRef.current = false;
+      if (redireccionRef.current) clearTimeout(redireccionRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!tieneSupabaseConfigurado()) {
+      const timer = setTimeout(() => {
+        if (montadoRef.current) setVerificando(false);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-    verificarSesion();
+
+    const cliente = crearClienteNavegador();
+    return observarSesionRecuperacion(cliente.auth, ({ sesionLista: lista, verificando: enVerificacion }) => {
+      setSesionLista(lista);
+      setVerificando(enVerificacion);
+    });
   }, []);
 
   async function establecer(e: React.FormEvent) {
@@ -60,15 +60,15 @@ export default function PaginaNuevaPassword() {
       const cliente = crearClienteNavegador();
       const { error: errorAuth } = await cliente.auth.updateUser({ password });
       if (errorAuth) throw errorAuth;
+      if (!montadoRef.current) return;
       setListo(true);
-      /* Redirigir al inicio tras 2 segundos */
-      setTimeout(() => router.push("/"), 2000);
+      redireccionRef.current = setTimeout(() => {
+        if (montadoRef.current) router.push("/");
+      }, 2000);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "No pudimos actualizar la contraseña. Intenta de nuevo."
-      );
+      if (montadoRef.current) setError(traducirErrorAuth(err, "No pudimos actualizar la contraseña. Intenta de nuevo."));
     } finally {
-      setEnviando(false);
+      if (montadoRef.current) setEnviando(false);
     }
   }
 
@@ -119,27 +119,20 @@ export default function PaginaNuevaPassword() {
 
               <form className="mt-7 grid gap-4" onSubmit={establecer}>
                 {/* Contraseña */}
-                <label className="flex flex-col gap-1.5">
-                  <span className="font-body text-xs font-medium text-[#d4d9e2]">Nueva contraseña</span>
-                  <div className="relative">
-                    <input
-                      type={mostrar ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      autoComplete="new-password"
-                      placeholder="Mínimo 8 caracteres"
-                      className="w-full rounded-lg border border-[#4d5668] bg-[#151a25] px-3.5 py-2.5 pr-10 font-body text-sm text-white outline-none transition placeholder:text-white/40 focus:border-[#1e88e5] focus:ring-2 focus:ring-[#1e88e5]/25"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setMostrar(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70"
-                      aria-label={mostrar ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    >
-                      {mostrar ? "●" : "○"}
-                    </button>
-                  </div>
+                <div className="flex flex-col gap-1.5">
+                  <Field
+                    etiqueta="Nueva contraseña"
+                    etiquetaClassName="!text-[#d4d9e2] !text-xs !font-medium"
+                    type="password"
+                    passwordToggleClassName="!text-white/60 hover:!bg-white/10 hover:!text-white focus-visible:!outline-[#f5a623]"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    placeholder="Mínimo 8 caracteres"
+                    className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-white/40 focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                  />
                   {password.length > 0 && (
                     <>
                       <div className="flex gap-1">
@@ -157,16 +150,19 @@ export default function PaginaNuevaPassword() {
                       )}
                     </>
                   )}
-                </label>
+                </div>
 
-                <CampoOscuro
+                <Field
                   etiqueta="Confirmar nueva contraseña"
-                  type={mostrar ? "text" : "password"}
+                  etiquetaClassName="!text-[#d4d9e2] !text-xs !font-medium"
+                  type="password"
+                  passwordToggleClassName="!text-white/60 hover:!bg-white/10 hover:!text-white focus-visible:!outline-[#f5a623]"
                   value={confirmar}
                   onChange={(e) => setConfirmar(e.target.value)}
                   required
                   autoComplete="new-password"
                   placeholder="Repite tu contraseña"
+                  className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-white/40 focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
                 />
 
                 {error && (

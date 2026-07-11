@@ -5,12 +5,14 @@ import type { InputHTMLAttributes, ReactNode } from "react";
 
 export interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   etiqueta: string;
+  etiquetaClassName?: string;
+  passwordToggleClassName?: string;
   error?: string | undefined;
   ayuda?: ReactNode;
 }
 
 /** Campo con etiqueta visible, ayuda asociada y estado de error anunciado. */
-export function Field({ etiqueta, error, ayuda, id, className = "", type, ...props }: FieldProps) {
+export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassName = "", error, ayuda, id, className = "", type, ...props }: FieldProps) {
   const reactId = useId();
   const inputId = id ?? props.name ?? `field-${reactId}`;
   const helpId = ayuda ? `${inputId}-help` : undefined;
@@ -31,7 +33,7 @@ export function Field({ etiqueta, error, ayuda, id, className = "", type, ...pro
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={inputId} className="font-body text-sm font-semibold text-ink">
+      <label htmlFor={inputId} className={`font-body text-sm font-semibold text-ink ${etiquetaClassName}`}>
         {etiqueta}
         {props.required ? <span className="ml-1 text-danger" aria-hidden> *</span> : null}
       </label>
@@ -48,7 +50,7 @@ export function Field({ etiqueta, error, ayuda, id, className = "", type, ...pro
           <button
             type="button"
             onClick={() => setPasswordVisible((visible) => !visible)}
-            className="absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg text-ink/55 transition-colors hover:bg-ink/[0.05] hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark disabled:cursor-not-allowed disabled:opacity-40"
+            className={`absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg text-ink/55 transition-colors hover:bg-ink/[0.05] hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark disabled:cursor-not-allowed disabled:opacity-40 ${passwordToggleClassName}`}
             style={{ right: "0.5rem", width: "2.25rem", height: "2.25rem" }}
             aria-label={passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"}
             disabled={props.disabled}

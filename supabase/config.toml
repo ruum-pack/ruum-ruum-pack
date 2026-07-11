@@ -62,3 +62,6 @@ verify_jwt = false
 # Authorization con auth.getUser() antes de leer o almacenar el archivo.
 [functions.validar-documento-conductor]
 verify_jwt = false
+
+[functions.validar-documento-identidad]
+verify_jwt = false

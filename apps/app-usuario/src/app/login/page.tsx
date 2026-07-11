@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Aviso } from "@ruum/ui";
+import { Aviso, Field } from "@ruum/ui";
 import { traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { botonAzul, botonContorno, CampoOscuro, LogoRuum, PantallaPublica } from "../experiencia-publica";
@@ -14,6 +14,11 @@ export default function PaginaLogin() {
   const [password, setPassword] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [motivo, setMotivo] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMotivo(new URLSearchParams(window.location.search).get("reason"));
+  }, []);
 
   async function iniciarSesion(e: React.FormEvent) {
     e.preventDefault();
@@ -65,6 +70,13 @@ export default function PaginaLogin() {
           <p className="mt-2 font-body text-xs leading-5 text-[#c9cfda]">
             Accede para ver tus traslados reales y solicitar nuevos.
           </p>
+          {motivo === "email_confirmation" && (
+            <div className="mt-4" role="status">
+              <Aviso tono="atencion">
+                Para solicitar tu primer traslado debes confirmar tu correo e iniciar sesión.
+              </Aviso>
+            </div>
+          )}
 
           <form className="mt-7 grid gap-4" onSubmit={iniciarSesion}>
             <CampoOscuro
@@ -76,14 +88,17 @@ export default function PaginaLogin() {
               autoComplete="email"
               placeholder="correo@ejemplo.com"
             />
-            <CampoOscuro
+            <Field
               etiqueta="Contraseña"
+              etiquetaClassName="!text-[#d4d9e2] !text-xs !font-medium"
               type="password"
+              passwordToggleClassName="!text-white/60 hover:!bg-white/10 hover:!text-white focus-visible:!outline-[#f5a623]"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
               placeholder="Tu contraseña"
+              className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-white/40 focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
             />
 
             <div className="flex justify-end">

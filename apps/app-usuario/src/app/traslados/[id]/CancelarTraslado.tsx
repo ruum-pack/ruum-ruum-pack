@@ -33,7 +33,6 @@ export function CancelarTraslado({
   const [motivo, setMotivo] = useState("");
   const [procesando, setProcesando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
-  /* FIX: reemplaza window.confirm() por modal de confirmación inline */
   const [confirmando, setConfirmando] = useState(false);
 
   const terminal = ["servicio_cerrado", "servicio_cancelado", "traslado_fallido"].includes(estado);

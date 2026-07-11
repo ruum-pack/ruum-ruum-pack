@@ -1,6 +1,4 @@
 "use client";
-
-"use client";
 import { useEffect } from "react";
 import { EstadoError } from "./EstadoError";
 
@@ -12,7 +10,7 @@ export default function ErrorGlobalConductor({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[app-conductor/error]", error);
+    console.error("[app-conductor/error]", { digest: error.digest ?? "sin-digest" });
   }, [error]);
 
   return (

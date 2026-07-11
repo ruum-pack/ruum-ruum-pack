@@ -1,0 +1,261 @@
+packages\ui\src\styles\tokens.css:45:  /* Tokens semánticos: consumir estos valores en CSS de producto. */
+apps\panel-admin\src\middleware.ts:7: * Antes este middleware SOLO refrescaba el token de sesión (patrón estándar de
+apps\panel-admin\src\middleware.ts:53:  // el token contra el servidor de Auth, a diferencia de getSession).
+apps\panel-admin\src\app\viajes\[id]\page.tsx:29:type AuditoriaRow = Database["public"]["Tables"]["registro_auditoria"]["Row"];
+apps\panel-admin\src\app\viajes\[id]\page.tsx:236:        { id: `demo-${Date.now()}`, traslado_id: pasaporte.traslado_id, admin_id: "demo", contenido: notaNueva, creada_en: new Date().toISOString() },
+apps\panel-admin\src\app\viajes\[id]\page.tsx:519:                  <p>{n.contenido}</p>
+apps\panel-admin\src\app\usuarios\AccionesVerificacion.tsx:40:        .createSignedUrl(usuario.doc_identidad_url, 60 * 30);
+apps\panel-admin\src\app\usuarios\AccionesVerificacion.tsx:42:      setUrlDocumento(data.signedUrl);
+supabase/migrations\20260711000116_versionado_documentos_identidad.sql:151:  insert into public.registro_auditoria(evento, actor, actor_id, datos)
+supabase/migrations\20260711000115_pipeline_validacion_identidad.sql:87:    raise exception 'El archivo no cuenta con una validación de contenido vigente.';
+supabase/migrations\20260711000115_pipeline_validacion_identidad.sql:100:  insert into public.registro_auditoria(evento, actor, actor_id, datos)
+supabase/migrations\20260711000114_endurecer_documentos_identidad.sql:127:  insert into public.registro_auditoria(evento, actor, actor_id, datos)
+supabase/migrations\20260710000112_aprobacion_solicitud_transiciones_validas.sql:96:  insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000111_torre_control_solicitudes_auditoria.sql:176:  insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000111_torre_control_solicitudes_auditoria.sql:250:  insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000111_torre_control_solicitudes_auditoria.sql:280:  insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000110_consentimientos_historicos_separados.sql:167:    insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000109_storage_documentos_conductor_controlado.sql:112:    raise exception 'El archivo no cuenta con una validación de contenido vigente.';
+supabase/migrations\20260710000109_storage_documentos_conductor_controlado.sql:121:  'Sellos de contenido emitidos por la Edge Function y consumidos una sola vez por las RPC documentales.';
+supabase/migrations\20260710000108_documentos_conductor_versionados_rpc.sql:123:  p_nombre_archivo text,
+supabase/migrations\20260710000108_documentos_conductor_versionados_rpc.sql:133:  if p_nombre_archivo is null or p_nombre_archivo !~ '^[A-Za-z0-9][A-Za-z0-9_.-]{0,179}$' then
+supabase/migrations\20260710000108_documentos_conductor_versionados_rpc.sql:146:    conductor_id,solicitud_id,tipo,nombre_archivo,url,estado,notas_admin,
+supabase/migrations\20260710000108_documentos_conductor_versionados_rpc.sql:149:    v_conductor_id,v_solicitud_id,p_tipo,p_nombre_archivo,p_ruta,'en_revision',null,
+supabase/migrations\20260710000108_documentos_conductor_versionados_rpc.sql:152:  insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000108_documentos_conductor_versionados_rpc.sql:163:  p_nombre_archivo text,
+supabase/migrations\20260710000108_documentos_conductor_versionados_rpc.sql:183:  if p_nombre_archivo is null or p_nombre_archivo !~ '^[A-Za-z0-9][A-Za-z0-9_.-]{0,179}$' then
+supabase/migrations\20260710000108_documentos_conductor_versionados_rpc.sql:191:    conductor_id,solicitud_id,tipo,nombre_archivo,url,estado,notas_admin,
+supabase/migrations\20260710000108_documentos_conductor_versionados_rpc.sql:194:    anterior.conductor_id,anterior.solicitud_id,anterior.tipo,p_nombre_archivo,p_ruta,'en_revision',null,
+supabase/migrations\20260710000108_documentos_conductor_versionados_rpc.sql:198:  insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000108_documentos_conductor_versionados_rpc.sql:216:    or new.tipo is distinct from old.tipo or new.nombre_archivo is distinct from old.nombre_archivo
+supabase/migrations\20260710000105_rpc_flujo_solicitud_conductor.sql:172:  insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000104_separar_trigger_auth_minimo.sql:16:  insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000104_separar_trigger_auth_minimo.sql:19:    insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000104_separar_trigger_auth_minimo.sql:41:    insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000102_auth_conductor_metadata_minima.sql:109:    insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000102_auth_conductor_metadata_minima.sql:123:    insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000102_auth_conductor_metadata_minima.sql:126:      insert into public.registro_auditoria(evento,actor,actor_id,datos)
+supabase/migrations\20260710000058_fix_trigger_solicitud_conductor.sql:39:    insert into public.registro_auditoria(evento, actor, actor_id, datos)
+supabase/migrations\20260710000058_fix_trigger_solicitud_conductor.sql:43:    insert into public.registro_auditoria(evento, actor, actor_id, datos)
+supabase/migrations\20260710000057_solicitudes_conductor.sql:208:    insert into public.registro_auditoria(evento, actor, actor_id, datos)
+supabase/migrations\20260710000057_solicitudes_conductor.sql:212:    insert into public.registro_auditoria(evento, actor, actor_id, datos)
+apps\panel-admin\src\app\page.tsx:20:type AuditoriaRow = Database["public"]["Tables"]["registro_auditoria"]["Row"];
+supabase/migrations\20260710000053_conductores_unicidad_mensaje.sql:141:    insert into public.registro_auditoria (evento, actor, actor_id, datos)
+supabase/migrations\20260710000053_conductores_unicidad_mensaje.sql:155:    insert into public.registro_auditoria (evento, actor, actor_id, datos)
+supabase/migrations\20260708000051_fix_cancelacion_estados_validos.sql:98:  insert into public.registro_auditoria (
+apps\panel-admin\src\app\layout.tsx:36:        <a href="#contenido-principal" className="ruum-skip-link">Saltar al contenido principal</a>
+apps\panel-admin\src\app\layout.tsx:40:          <div id="contenido-principal" className="admin-content min-w-0 flex-1 overflow-y-auto">{children}</div>
+supabase/migrations\20260708000050_rpc_transacciones_criticas.sql:92:  insert into public.registro_auditoria (traslado_id, evento, actor, actor_id, datos)
+supabase/migrations\20260708000050_rpc_transacciones_criticas.sql:154:  insert into public.registro_auditoria (traslado_id, evento, actor, actor_id, datos)
+supabase/migrations\20260708000050_rpc_transacciones_criticas.sql:221:  insert into public.registro_auditoria (traslado_id, evento, actor, actor_id, datos)
+supabase/migrations\20260708000050_rpc_transacciones_criticas.sql:302:  insert into public.registro_auditoria (traslado_id, evento, actor, actor_id, datos)
+supabase/migrations\20260708000050_rpc_transacciones_criticas.sql:368:  insert into public.registro_auditoria (traslado_id, evento, actor, actor_id, datos)
+supabase/migrations\20260708000049_registro_conductor_completo.sql:138:    insert into public.registro_auditoria (evento, actor, actor_id, datos)
+supabase/migrations\20260708000049_registro_conductor_completo.sql:152:    insert into public.registro_auditoria (evento, actor, actor_id, datos)
+supabase/migrations\20260708000048_auditoria_append_only.sql:1:-- Auditoría H-8 — `registro_auditoria` debe ser una bitácora inmutable
+supabase/migrations\20260708000048_auditoria_append_only.sql:17:drop policy if exists "admin_acceso_total_auditoria" on public.registro_auditoria;
+supabase/migrations\20260708000048_auditoria_append_only.sql:20:  on public.registro_auditoria for select
+supabase/migrations\20260708000048_auditoria_append_only.sql:34:  raise exception 'registro_auditoria es una bitácora append-only: no se permite % .', tg_op;
+supabase/migrations\20260708000048_auditoria_append_only.sql:38:drop trigger if exists auditoria_no_update on public.registro_auditoria;
+supabase/migrations\20260708000048_auditoria_append_only.sql:40:  before update on public.registro_auditoria
+supabase/migrations\20260708000048_auditoria_append_only.sql:43:drop trigger if exists auditoria_no_delete on public.registro_auditoria;
+supabase/migrations\20260708000048_auditoria_append_only.sql:45:  before delete on public.registro_auditoria
+supabase/migrations\20260708000047_storage_evidencia_aislada.sql:20:-- con URLs firmadas (createSignedUrl) o vía la lectura autenticada de abajo, no
+supabase/migrations\20260708000046_chat_remitente_no_suplantable.sql:18:  p_contenido text
+supabase/migrations\20260708000046_chat_remitente_no_suplantable.sql:30:  v_contenido text := btrim(p_contenido);
+supabase/migrations\20260708000046_chat_remitente_no_suplantable.sql:32:  if v_contenido = '' then
+supabase/migrations\20260708000046_chat_remitente_no_suplantable.sql:58:  insert into public.mensajes_chat (traslado_id, remitente, contenido)
+supabase/migrations\20260708000046_chat_remitente_no_suplantable.sql:59:  values (p_traslado_id, v_remitente, v_contenido)
+supabase/migrations\20260708000046_chat_remitente_no_suplantable.sql:95:--   cliente.from("mensajes_chat").insert({ traslado_id, remitente, contenido })
+supabase/migrations\20260708000046_chat_remitente_no_suplantable.sql:97:--   cliente.rpc("enviar_mensaje_chat", { p_traslado_id: trasladoId, p_contenido: contenido })
+supabase/migrations\20260708000043_configuracion_conductor.sql:2:-- Antes la app mostraba estos bloques con contenido estatico; estas tablas
+supabase/migrations\20260708000043_configuracion_conductor.sql:41:  nombre_archivo     text not null,
+supabase/migrations\20260708000042_tarifas_admin.sql:3:-- contenido estatico del panel.
+packages\ui\src\components\Chat.tsx:9:  contenido: string;
+packages\ui\src\components\Chat.tsx:17:  onEnviar: (contenido: string) => void | Promise<void>;
+packages\ui\src\components\Chat.tsx:56:                  <p>{m.contenido}</p>
+supabase/migrations\20260708000039_usuario_domicilio_detallado.sql:77:    insert into public.registro_auditoria (evento, actor, actor_id, datos)
+supabase/migrations\20260708000039_usuario_domicilio_detallado.sql:91:    insert into public.registro_auditoria (evento, actor, actor_id, datos)
+supabase/migrations\20260708000038_terminos_y_documentos_identidad.sql:148:    insert into public.registro_auditoria (evento, actor, actor_id, datos)
+supabase/migrations\20260708000038_terminos_y_documentos_identidad.sql:162:    insert into public.registro_auditoria (evento, actor, actor_id, datos)
+packages\ui\package.json:8:    "./styles/tokens.css": "./src/styles/tokens.css"
+supabase/migrations\20260708000035_calificaciones_disputas.sql:80:  insert into public.registro_auditoria (
+supabase/migrations\20260708000034_pagos_cuentas_empresa.sql:194:  insert into public.registro_auditoria (
+supabase/migrations\20260708000033_cancelacion_usuario.sql:65:  insert into public.registro_auditoria (
+supabase/migrations\20260708000032_reporte_incidencias.sql:77:  insert into public.registro_auditoria (
+supabase/migrations\20260708000031_alta_cuenta_auditoria.sql:40:    insert into public.registro_auditoria (
+supabase/migrations\20260708000030_conductor_avance_estado_rpc.sql:151:  insert into public.registro_auditoria (
+supabase/migrations\20260708000020_notas_internas_traslado.sql:11:  contenido     text not null,
+supabase/migrations\20260708000014_auditoria.sql:40:create table public.registro_auditoria (
+supabase/migrations\20260708000014_auditoria.sql:52:create index registro_auditoria_traslado_idx on public.registro_auditoria (traslado_id);
+supabase/migrations\20260708000014_auditoria.sql:53:create index registro_auditoria_evento_idx on public.registro_auditoria (evento, timestamp desc);
+supabase/migrations\20260708000014_auditoria.sql:55:alter table public.registro_auditoria enable row level security;
+supabase/migrations\20260708000014_auditoria.sql:62:  on public.registro_auditoria for all
+supabase/migrations\20260708000014_auditoria.sql:71:  on public.registro_auditoria for insert
+supabase/migrations\20260708000013_comunicacion.sql:10:  contenido     text not null,
+apps\panel-admin\src\app\globals.css:2:@import "@ruum/ui/styles/tokens.css";
+apps\panel-admin\src\app\globals.css:9: * reasignan los tokens de @ruum/ui para que toda la Torre de Control
+apps\panel-admin\src\app\globals.css:13: * diseño ("bg-ink" + "text-mist"), al revés que el resto del contenido
+apps\panel-admin\src\app\globals.css:14: * ("text-ink" sobre "bg-mist"). Para no romperlo, se revierten los tokens
+apps\panel-admin\src\app\globals.css:39:  /* --- Tokens semánticos --- */
+apps\panel-admin\src\app\globals.css:111: * Como el resto del panel invierte esos mismos tokens, se revierten aquí
+apps\panel-admin\src\app\globals.css:166: * NOMENCLATURA DE TOKENS — panel-admin Torre de Control
+apps\panel-admin\src\app\globals.css:168: * Tokens semánticos de @ruum/ui (no redefinir aquí, ya van en :root arriba):
+apps\panel-admin\src\app\error.tsx:15:    console.error("[panel-admin/error]", error);
+supabase/functions\crear-llamada-enmascarada\index.ts:11://   TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PROXY_SERVICE_SID
+supabase/functions\crear-llamada-enmascarada\index.ts:25:  "Access-Control-Allow-Headers": "authorization, content-type"
+supabase/functions\crear-llamada-enmascarada\index.ts:42:  return "Basic " + btoa(`${envRequerida("TWILIO_ACCOUNT_SID")}:${envRequerida("TWILIO_AUTH_TOKEN")}`);
+supabase/functions\crear-llamada-enmascarada\index.ts:49:      Authorization: autenticacionTwilio(),
+supabase/functions\crear-llamada-enmascarada\index.ts:66:    const autorizacion = req.headers.get("Authorization");
+supabase/functions\crear-llamada-enmascarada\index.ts:88:      global: { headers: { Authorization: autorizacion } }
+supabase/functions\crear-llamada-enmascarada\index.ts:190:    console.error("Error creando llamada enmascarada:", error);
+supabase/functions\crear-cuenta-conductor-stripe\index.ts:18:  "Access-Control-Allow-Headers": "authorization, content-type"
+supabase/functions\crear-cuenta-conductor-stripe\index.ts:40:    const autorizacion = req.headers.get("Authorization");
+supabase/functions\crear-cuenta-conductor-stripe\index.ts:54:      global: { headers: { Authorization: autorizacion } }
+supabase/functions\crear-cuenta-conductor-stripe\index.ts:106:    console.error("Error creando cuenta Stripe Connect:", error);
+apps\panel-admin\src\app\conductores\[id]\page.tsx:77:        .from("documentos-conductor").createSignedUrl(documento.url, 60 * 30);
+apps\panel-admin\src\app\conductores\[id]\page.tsx:79:      setUrl(data.signedUrl);
+apps\panel-admin\src\app\conductores\[id]\page.tsx:102:          <p className="mt-0.5 font-body text-xs text-ink/45">Versión {documento.version} · {documento.nombre_archivo}</p>
+supabase/functions\stripe-webhook\integration-test\runner.mjs:63:  console.log(`OK: ${msg}`);
+supabase/functions\stripe-webhook\integration-test\runner.mjs:149:  console.log("\nTodos los casos del webhook real (index.ts, vía HTTP, firma real) pasaron.");
+supabase/functions\stripe-webhook\integration-test\runner.mjs:153:  console.error(err);
+apps\panel-admin\README.md:31:contenido post-hidratación con un navegador real en este entorno de desarrollo — mismo límite documentado en
+apps\panel-admin\README.md:68:- Bloque 6 del detalle de viaje ("Línea de tiempo"): falta un visor dedicado sobre `registro_auditoria` (0014).
+supabase/functions\stripe-webhook\integration-test\mock-supabase.mjs:116:  console.log(`mock-supabase escuchando en :${PUERTO}`);
+supabase/functions\stripe-webhook\index.ts:57:  const { error } = await supabase.from("registro_auditoria").insert({
+supabase/functions\stripe-webhook\index.ts:83:    console.error("Firma de webhook inválida:", err);
+supabase/functions\stripe-webhook\index.ts:99:          console.warn("PaymentIntent sin traslado_id en metadata:", intent.id);
+supabase/functions\stripe-webhook\index.ts:216:    console.error("Error procesando webhook de Stripe:", err);
+supabase/functions\README.md:14:| `validar-documento-conductor` | `app-conductor`, registro y correcciones | Valida el contenido real, sanea el archivo, lo guarda en el bucket privado y registra/reemplaza la versión mediante RPC |
+supabase/functions\README.md:91:TWILIO_AUTH_TOKEN            (de Twilio Console)
+supabase/functions\README.md:110:Supabase deje pasar el preflight `OPTIONS` desde el navegador. La función sigue exigiendo `Authorization` dentro del
+supabase/functions\crear-payment-intent\index.ts:11:  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+supabase/functions\crear-payment-intent\index.ts:32:  const autorizacion = req.headers.get("Authorization");
+supabase/functions\crear-payment-intent\index.ts:49:    global: { headers: { Authorization: autorizacion } }
+supabase/functions\crear-payment-intent\index.ts:167:      console.error("Error recuperando PaymentIntent:", error);
+supabase/functions\crear-payment-intent\index.ts:181:    console.error("Error creando PaymentIntent:", error);
+supabase/functions\validar-documento-conductor\validacion.test.ts:8:    "contenido real"
+supabase/functions\validar-documento-conductor\index.ts:13:  "Access-Control-Allow-Headers":"authorization, apikey, content-type, x-client-info",
+supabase/functions\validar-documento-conductor\index.ts:24:  const authorization=req.headers.get("Authorization");
+supabase/functions\validar-documento-conductor\index.ts:25:  if(!authorization) return json({error:"Inicia sesión para subir documentos."},401);
+supabase/functions\validar-documento-conductor\index.ts:31:  const usuario=createClient(url,anon,{global:{headers:{Authorization:authorization}}});
+supabase/functions\validar-documento-conductor\index.ts:51:    console.error("Error validando propiedad documental",resultadoConductor.error?.message,resultadoSolicitud.error?.message);
+supabase/functions\validar-documento-conductor\index.ts:59:  try { validado=validarDocumento(new Uint8Array(await archivo.arrayBuffer()),archivo.name); }
+supabase/functions\validar-documento-conductor\index.ts:83:  const contenidoHash=new ArrayBuffer(validado.bytes.byteLength);
+supabase/functions\validar-documento-conductor\index.ts:84:  new Uint8Array(contenidoHash).set(validado.bytes);
+supabase/functions\validar-documento-conductor\index.ts:85:  const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",contenidoHash));
+supabase/functions\validar-documento-conductor\index.ts:91:    console.error("Error creando sello documental",errorSello.message);
+supabase/functions\validar-documento-conductor\index.ts:103:    ? usuario.rpc("reemplazar_documento_conductor",{p_documento_anterior_id:documentoAnteriorId,p_nombre_archivo:validado.nombreSeguro,p_ruta:ruta})
+supabase/functions\validar-documento-conductor\index.ts:104:    : usuario.rpc("registrar_documento_conductor",{p_objetivo_id:objetivo,p_tipo:tipo,p_nombre_archivo:validado.nombreSeguro,p_ruta:ruta});
+supabase/functions\validar-documento-identidad\index.ts:18:  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+supabase/functions\validar-documento-identidad\index.ts:30:  const authorization = req.headers.get("Authorization");
+supabase/functions\validar-documento-identidad\index.ts:31:  if (!authorization) return json({ error: "Inicia sesión para subir tu identificación." }, 401);
+supabase/functions\validar-documento-identidad\index.ts:37:  const usuario = createClient(url, anon, { global: { headers: { Authorization: authorization } } });
+supabase/functions\validar-documento-identidad\index.ts:53:    validado = validarDocumento(new Uint8Array(await archivo.arrayBuffer()), archivo.name, FORMATOS_IDENTIDAD);
+supabase/functions\validar-documento-identidad\index.ts:58:  const contenidoHash = new ArrayBuffer(validado.bytes.byteLength);
+supabase/functions\validar-documento-identidad\index.ts:59:  new Uint8Array(contenidoHash).set(validado.bytes);
+supabase/functions\validar-documento-identidad\index.ts:60:  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", contenidoHash));
+supabase/functions\validar-documento-identidad\index.ts:78:    console.error("Error creando sello de identidad", errorSello?.message ?? "sin resultado");
+supabase/functions\validar-documento-identidad\index.ts:109:      console.error("PII anterior pendiente de eliminación", errorEliminar.message);
+apps\app-usuario\src\middleware.ts:5: * Refresca el token de sesión en cada petición — sin esto, una sesión larga
+packages\shared\src\types\supabase.ts:198:          nombre_archivo: string
+packages\shared\src\types\supabase.ts:217:          nombre_archivo: string
+packages\shared\src\types\supabase.ts:236:          nombre_archivo?: string
+packages\shared\src\types\supabase.ts:578:          contenido: string
+packages\shared\src\types\supabase.ts:586:          contenido: string
+packages\shared\src\types\supabase.ts:594:          contenido?: string
+packages\shared\src\types\supabase.ts:635:          contenido: string
+packages\shared\src\types\supabase.ts:642:          contenido: string
+packages\shared\src\types\supabase.ts:649:          contenido?: string
+packages\shared\src\types\supabase.ts:810:      registro_auditoria: {
+packages\shared\src\types\supabase.ts:1374:        Args: { p_traslado_id: string; p_contenido: string };
+packages\shared\src\types\supabase.ts:1390:        Args: { p_objetivo_id: string; p_tipo: string; p_nombre_archivo: string; p_ruta: string };
+packages\shared\src\types\supabase.ts:1398:        Args: { p_documento_anterior_id: string; p_nombre_archivo: string; p_ruta: string };
+apps\app-usuario\src\lib\codigos-postales.ts:5: * token de demostración `pruebas`, que solo responde para CPs de ejemplo) y
+packages\shared\src\types\comunicacion.ts:6:  contenido: string;
+supabase/functions\_shared\validacion-documento.ts:170:  const contenido=texto(bytes);
+supabase/functions\_shared\validacion-documento.ts:171:  const eof=contenido.lastIndexOf("%%EOF");
+supabase/functions\_shared\validacion-documento.ts:172:  const inicioXref=contenido.lastIndexOf("startxref",eof);
+supabase/functions\_shared\validacion-documento.ts:174:  if (/\/Encrypt\b/.test(contenido)) error("No se aceptan PDF cifrados o protegidos con contraseña.");
+supabase/functions\_shared\validacion-documento.ts:175:  if (!/\/Type\s*\/Page\b/.test(contenido)) error("El PDF no contiene páginas legibles.");
+supabase/functions\_shared\validacion-documento.ts:176:  const coincidencia=/startxref\s+(\d+)/.exec(contenido.slice(inicioXref,eof));
+supabase/functions\_shared\validacion-documento.ts:179:  const destino=contenido.slice(offset,Math.min(offset+300,contenido.length));
+supabase/functions\_shared\validacion-documento.ts:187:  nombreOriginal: string,
+supabase/functions\_shared\validacion-documento.ts:192:  const nombreSeguro=sanitizarNombre(nombreOriginal);
+supabase/functions\_shared\validacion-documento.ts:213:  error("El contenido real no corresponde a un formato documental permitido.");
+packages\shared\src\utils\codigos-postales-mx.ts:2: * Fase 5 (auditoría H-4) — reemplaza las consultas a COPOMEX (token de
+apps\app-usuario\src\app\globals.css:2:@import "@ruum/ui/styles/tokens.css";
+apps\app-usuario\src\app\globals.css:7: * Los tokens de marca viven en @ruum/ui. Esta aplicación no los redefine:
+apps\app-usuario\src\app\globals.css:252:/* Documentación de tokens externos importados de @ruum/ui/styles/tokens.css.
+apps\app-usuario\src\app\globals.css:254: * Tokens de @ruum/ui usados en app-usuario (77 referencias):
+apps\app-usuario\src\app\error.tsx:16:    console.error("[app/error]", error);
+apps\app-usuario\src\app\cuenta\loading.tsx:19:          {/* Skeleton del contenido */}
+apps\app-usuario\src\app\auth\callback\route.ts:5: * (recovery) o usar magic link. Intercambia el code/token_hash por sesión y
+apps\app-usuario\src\app\auth\callback\route.ts:18:  const tokenHash = searchParams.get("token_hash");
+apps\app-usuario\src\app\auth\callback\route.ts:56:  /* Email OTP flow — token_hash */
+apps\app-usuario\src\app\auth\callback\route.ts:57:  if (tokenHash && type) {
+apps\app-usuario\src\app\auth\callback\route.ts:60:      token_hash: tokenHash,
+apps\app-usuario\src\app\auth\callback\route.ts:68:  /* Token inválido o expirado */
+apps\app-usuario\README.md:28:el código"): las 7 rutas compilan, y se confirmó el contenido en el HTML
+packages\shared\scripts\generar-codigos-postales-mx.mjs:29:  console.error("Uso: node generar-codigos-postales-mx.mjs <ruta-json-sepomex> <dir-salida...>");
+packages\shared\scripts\generar-codigos-postales-mx.mjs:77:  for (const [prefijo, contenido] of shards) {
+packages\shared\scripts\generar-codigos-postales-mx.mjs:78:    writeFileSync(join(directorio, `${prefijo}.json`), JSON.stringify(contenido), "utf-8");
+packages\shared\scripts\generar-codigos-postales-mx.mjs:80:  console.log(`${shards.size} shards escritos en ${directorio}`);
+packages\shared\scripts\generar-codigos-postales-mx.mjs:83:console.log(`Total de códigos postales: ${porCp.size}`);
+packages\packages\ui\src\styles\tokens.css:2: * Ruum Ruum — tokens de diseño compartidos.
+packages\api\src\services\chat.ts:26:export async function enviarMensaje(cliente: Cliente, trasladoId: string, contenido: string) {
+packages\api\src\services\chat.ts:29:    p_contenido: contenido
+packages\api\src\services\auditoria.ts:7:type AuditoriaRow = Database["public"]["Tables"]["registro_auditoria"]["Row"];
+packages\api\src\services\auditoria.ts:18:  const { error } = await cliente.from("registro_auditoria").insert({
+packages\api\src\services\auditoria.ts:31:    .from("registro_auditoria")
+packages\api\src\services\auditoria.ts:42:    .from("registro_auditoria")
+packages\api\src\services\admin.ts:669: * los prerequisitos de contenido real (evidencia completa, pago completado)
+packages\api\src\services\admin.ts:710:export async function agregarNotaInterna(cliente: Cliente, trasladoId: string, adminId: string, contenido: string) {
+packages\api\src\services\admin.ts:711:  const { error } = await cliente.from("notas_internas_traslado").insert({ traslado_id: trasladoId, admin_id: adminId, contenido });
+packages\shared\src\utils\traducir-error-operativo.ts:6:  [/jwt expired|token.*expired|refresh token|auth session missing|invalid jwt|sesión inválida|session.*expir/i,"Tu sesión expiró; vuelve a verificar tu cuenta."],
+packages\shared\src\utils\traducir-error-auth.ts:33:  ["token has expired", MENSAJES_AUTH.otp_expired],
+apps\app-usuario\src\app\not-found.tsx:17:          notificación, puede que el contenido ya no esté disponible.
+apps\app-usuario\src\app\verificacion\VerificacionForm.tsx:230:    setDocAviso("Validando el contenido y enviando de forma segura…");
+apps\app-usuario\src\app\InicioUsuario.tsx:51:  const contenido = (
+apps\app-usuario\src\app\InicioUsuario.tsx:64:        {contenido}
+apps\app-usuario\src\app\InicioUsuario.tsx:72:      {contenido}
+apps\app-usuario\src\app\layout.tsx:38:        <a href="#contenido-principal" className="ruum-skip-link">
+apps\app-usuario\src\app\layout.tsx:39:          Saltar al contenido
+apps\app-usuario\src\app\layout.tsx:41:        <main id="contenido-principal">{children}</main>
+apps\app-usuario\src\app\PagoStripe.tsx:30:  const token = sesion.session?.access_token;
+apps\app-usuario\src\app\PagoStripe.tsx:31:  if (!token) {
+apps\app-usuario\src\app\PagoStripe.tsx:39:      authorization: `Bearer ${token}`,
+apps\app-usuario\android\app\build.gradle:53:    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+apps\app-conductor\src\middleware.ts:5: * Refresca el token de sesión en cada petición — sin esto, una sesión larga
+apps\app-conductor\src\lib\cola-offline.ts:64:  const match = /^data:image\/([a-zA-Z0-9.+-]+);base64,/.exec(dataUrl);
+apps\app-conductor\src\lib\cola-offline.ts:72:  const [metadata, base64] = dataUrl.split(",");
+apps\app-conductor\src\lib\cola-offline.ts:73:  if (!metadata || !base64) {
+apps\app-conductor\src\lib\cola-offline.ts:77:  const mime = /^data:([^;]+);base64$/.exec(metadata)?.[1] ?? "image/jpeg";
+apps\app-conductor\src\lib\cola-offline.ts:78:  const bytes = atob(base64);
+apps\app-conductor\src\lib\codigos-postales.ts:5: * token de demostración `pruebas`, que solo responde para CPs de ejemplo) y
+apps\app-conductor\src\lib\borrador-registro.ts:62:      const contenido = dato[campo];
+apps\app-conductor\src\lib\borrador-registro.ts:63:      if (typeof contenido !== "string" || contenido.length > 180) throw new Error(`campo inválido: ${campo}`);
+apps\app-conductor\src\lib\borrador-registro.ts:64:      borrador[campo] = contenido;
+apps\app-conductor\src\app\viajes\[id]\ChatViaje.tsx:84:  async function manejarEnvio(contenido: string) {
+apps\app-conductor\src\app\viajes\[id]\ChatViaje.tsx:86:    await enviarMensaje(clienteRef.current, trasladoId, contenido);
+apps\app-conductor\src\app\registro\page.tsx:552:        token: codigo,
+apps\app-conductor\src\app\registro\page.tsx:754:    const hayContenido = [nombre, apellidos, telefono, email, codigoPostal].some((v) => v.trim());
+apps\app-conductor\src\app\registro\page.tsx:755:    if (!hayContenido) return;
+apps\app-conductor\src\app\panel\EstadoRevisionConductor.tsx:79:          nombre_archivo: archivo.name,
+apps\app-conductor\src\app\onboarding\page.tsx:161:      {/* contenido */}
+apps\app-conductor\src\app\layout.tsx:37:        <a href="#contenido-principal" className="ruum-skip-link">Saltar al contenido</a>
+apps\app-conductor\src\app\layout.tsx:41:          <main id="contenido-principal" className="conductor-page">
+apps\app-conductor\src\app\globals.css:2:@import "@ruum/ui/styles/tokens.css";
+apps\app-conductor\src\app\globals.css:100: * TOKENS — app-conductor
+apps\app-conductor\src\app\globals.css:102: * Tokens semánticos de @ruum/ui (no redefinir):
+apps\app-conductor\src\app\globals.css:121: * reasignando los tokens de @ruum/ui. Las utilidades Tailwind (text-ink,
+apps\app-conductor\src\app\globals.css:146:  /* --- Tokens semánticos --- */
+apps\app-conductor\src\app\error.tsx:15:    console.error("[app-conductor/error]", error);
+apps\app-conductor\src\app\configuracion\page.tsx:409:                        <p className="font-body text-sm font-semibold">{doc.nombre_archivo}</p>
+apps\app-conductor\src\app\auth\callback\route.ts:8:  const tokenHash = searchParams.get("token_hash");
+apps\app-conductor\src\app\auth\callback\route.ts:41:  if (tokenHash && type) {
+apps\app-conductor\src\app\auth\callback\route.ts:44:      token_hash: tokenHash,
+apps\app-conductor\README.md:26:middleware de sesión). Con `next start` en producción (Vercel) se confirmó contenido real en las 5 pantallas
+apps\app-usuario\src\app\traslados\[id]\ChatTraslado.tsx:50:  async function manejarEnvio(contenido: string) {
+apps\app-usuario\src\app\traslados\[id]\ChatTraslado.tsx:56:    await enviarMensaje(clienteRef.current, trasladoId, contenido);
+apps\app-conductor\android\app\build.gradle:53:    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")

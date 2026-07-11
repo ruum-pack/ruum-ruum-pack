@@ -8,8 +8,8 @@ import { crearClienteNavegador } from "../../lib/supabase-browser";
 import { subirDocumentoIdentidad, actualizarPerfilUsuario, type PerfilUsuarioActualizable } from "@ruum/api/services";
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 
-const TIPOS_ACEPTADOS = ["image/jpeg", "image/png", "image/heic", "image/heif", "application/pdf"];
-const EXTENSIONES_ACEPTADAS = [".jpg", ".jpeg", ".png", ".heic", ".pdf"];
+const TIPOS_ACEPTADOS = ["image/jpeg", "image/png", "application/pdf"];
+const EXTENSIONES_ACEPTADAS = [".jpg", ".jpeg", ".png", ".pdf"];
 const TAMANO_MAXIMO_MB = 10;
 
 function soloDigitos(valor: string, maximo?: number) {
@@ -160,8 +160,7 @@ export function VerificacionForm({ destino }: Props) {
   /* Estado envío */
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /* FIX: en lugar de redirigir a donde el gate bloquea,
-     mostrar pantalla de confirmación en la misma ruta */
+  /* La confirmación permanece aquí porque el traslado requiere aprobación administrativa. */
   const [enviado, setEnviado] = useState(false);
 
   async function consultarCP(valor: string) {
@@ -199,7 +198,7 @@ export function VerificacionForm({ destino }: Props) {
 
     if (!formatoSoportado) {
       setDocumento(null);
-      setDocAviso("Formato no soportado. Acción: usa un archivo JPG o PNG.");
+      setDocAviso("Formato no soportado. Selecciona un archivo JPG, PNG o PDF.");
       e.target.value = "";
       return;
     }
@@ -215,6 +214,7 @@ export function VerificacionForm({ destino }: Props) {
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
+    if (enviando) return;
 
     if (!documento) {
       setError("Adjunta tu identificación oficial para continuar.");
@@ -227,6 +227,7 @@ export function VerificacionForm({ destino }: Props) {
 
     setEnviando(true);
     setError(null);
+    setDocAviso("Validando el contenido y enviando de forma segura…");
 
     try {
       const cliente = crearClienteNavegador();
@@ -254,13 +255,13 @@ export function VerificacionForm({ destino }: Props) {
       } as PerfilUsuarioActualizable);
 
       await subirDocumentoIdentidad(cliente, documento);
+      setDocAviso("Identificación recibida correctamente y enviada a revisión.");
 
-      /* FIX: no redirigir a destino — el gate de traslados/nuevo
-         bloquea todo estado distinto de "verificado" y la verificación
-         solo la aprueba un admin. Mostrar confirmación de espera en su lugar. */
+      /* La aprobación es administrativa; no se intenta abrir todavía el nuevo traslado. */
       setEnviado(true);
       router.refresh();
     } catch (err) {
+      setDocAviso("La carga no se completó. Tu archivo sigue seleccionado para que puedas reintentar.");
       setError(
         esErrorRed(err)
           ? "Error de red. Acción: revisa tu conexión y reintenta la carga."
@@ -413,7 +414,7 @@ export function VerificacionForm({ destino }: Props) {
           INE, pasaporte vigente o licencia de conducir.
         </p>
         <p className="font-body text-xs font-medium text-ink/70">
-          Acepta: JPG, PNG, HEIC, PDF. Tamaño máximo: {TAMANO_MAXIMO_MB} MB.
+          Formatos aceptados: JPG, PNG y PDF. Tamaño máximo: {TAMANO_MAXIMO_MB} MB.
         </p>
 
         <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ink/15 px-4 py-6 transition hover:border-route/40 hover:bg-mist">
@@ -445,6 +446,7 @@ export function VerificacionForm({ destino }: Props) {
             type="file"
             accept={[...TIPOS_ACEPTADOS, ...EXTENSIONES_ACEPTADAS].join(",")}
             onChange={manejarDocumento}
+            disabled={enviando}
             className="sr-only"
             aria-label="Subir identificación oficial"
           />

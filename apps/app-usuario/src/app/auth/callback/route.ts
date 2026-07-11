@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") ?? "";
-  const next = searchParams.get("next") ?? "/";
+  const nextSolicitado = searchParams.get("next") ?? "/";
+  const next = nextSolicitado.startsWith("/") && !nextSolicitado.startsWith("//") ? nextSolicitado : "/";
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -59,11 +60,14 @@ export async function GET(request: NextRequest) {
       token_hash: tokenHash,
     });
     if (!error) {
-      const destino = type === "recovery" ? "/nueva-password" : "/";
+      const destino = type === "recovery" ? "/nueva-password" : next;
       return NextResponse.redirect(`${origin}${destino}`);
     }
   }
 
   /* Token inválido o expirado */
-  return NextResponse.redirect(`${origin}/recuperar-password?error=enlace_invalido`);
+  const destinoError = type === "recovery"
+    ? "/recuperar-password?error=enlace_invalido"
+    : "/login?reason=email_confirmation&error=enlace_invalido";
+  return NextResponse.redirect(`${origin}${destinoError}`);
 }

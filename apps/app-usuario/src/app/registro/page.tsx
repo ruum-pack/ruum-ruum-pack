@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Aviso } from "@ruum/ui";
-import { fortalezaPassword } from "@ruum/shared/utils";
-import { registrarAceptacionTerminos } from "@ruum/api/services";
+import { Aviso, Field } from "@ruum/ui";
+import { VERSION_TERMINOS_VIGENTE } from "@ruum/shared/constants";
+import { fortalezaPassword, traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import {
   botonAzul,
@@ -76,7 +76,6 @@ export default function PaginaRegistro() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmarPassword, setConfirmarPassword] = useState("");
-  const [mostrarPassword, setMostrarPassword] = useState(false);
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
 
   /* Estado de la UI */
@@ -125,9 +124,9 @@ export default function PaginaRegistro() {
     try {
       const cliente = crearClienteNavegador();
 
-      /* FIX: tipo_registro='usuario' activa el trigger manejar_nuevo_usuario_auth
-         que crea la fila en public.usuarios. Sin este campo, el trigger no inserta
-         nada y el UPDATE posterior en registrarAceptacionTerminos no encuentra la fila. */
+      /* tipo_registro='usuario' activa el trigger manejar_nuevo_usuario_auth.
+         El mismo trigger persiste y audita la aceptación de términos, incluso
+         cuando la confirmación de correo hace que signUp devuelva session=null. */
       const ahora = new Date().toISOString();
       const { data, error: errorAuth } = await cliente.auth.signUp({
         email: email.trim(),
@@ -139,32 +138,26 @@ export default function PaginaRegistro() {
             telefono: telefonoMx(telefono),
             tipo_cuenta: tipoCuenta,
             /* Términos: el trigger los registra si están presentes en los metadatos */
-            version_terminos_aceptada: 1,
+            version_terminos_aceptada: VERSION_TERMINOS_VIGENTE,
             terminos_aceptados_en: ahora,
           },
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding?nuevo=1`,
         },
       });
 
       if (errorAuth) throw errorAuth;
       if (!data.user) throw new Error("No se pudo crear el usuario.");
 
-      /* registrarAceptacionTerminos(cliente, authUserId) — solo 2 argumentos.
-         FIX: eliminado el 3er argumento (VERSION_TERMINOS_VIGENTE) que no existe
-         en la firma de la función del paquete @ruum/api/services. */
-      try {
-        await registrarAceptacionTerminos(cliente, data.user.id);
-      } catch {
-        /* no bloqueante — el trigger ya lo registró */
+      if (data.session) {
+        router.push("/onboarding?nuevo=1");
+      } else {
+        try {
+          window.sessionStorage.setItem("ruum:correo-confirmacion", email.trim().toLowerCase());
+        } catch { /* La pantalla también funciona si el navegador bloquea storage. */ }
+        router.push("/registro/confirma-correo");
       }
-
-      router.push("/onboarding?nuevo=1");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Ocurrió un error. Intenta de nuevo.";
-      setError(
-        msg.includes("already registered") || msg.includes("User already registered")
-          ? "Ya existe una cuenta con ese correo. ¿Quieres iniciar sesión?"
-          : msg
-      );
+      setError(traducirErrorAuth(err, "No pudimos crear la cuenta. Intenta de nuevo."));
     } finally {
       setEnviando(false);
     }
@@ -305,29 +298,19 @@ export default function PaginaRegistro() {
                 placeholder="correo@ejemplo.com"
               />
 
-              {/* Contraseña + toggle visibilidad */}
-              <label className="flex flex-col gap-1.5">
-                <span className="font-body text-xs font-medium text-[#d4d9e2]">Contraseña</span>
-                <div className="relative">
-                  <input
-                    type={mostrarPassword ? "text" : "password"}
+              <div className="flex flex-col gap-1.5">
+                  <Field
+                    etiqueta="Contraseña"
+                    etiquetaClassName="!text-[#d4d9e2] !text-xs !font-medium"
+                    type="password"
+                    passwordToggleClassName="!text-white/60 hover:!bg-white/10 hover:!text-white focus-visible:!outline-[#f5a623]"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     autoComplete="new-password"
                     placeholder="Mínimo 8 caracteres"
-                    className="w-full rounded-lg border border-[#4d5668] bg-[#151a25] px-3.5 py-2.5 pr-10 font-body text-sm text-white outline-none transition placeholder:text-white/40 focus:border-[#1e88e5] focus:ring-2 focus:ring-[#1e88e5]/25"
+                    className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-white/40 focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setMostrarPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70"
-                    aria-label={mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                  >
-                    {mostrarPassword ? "●" : "○"}
-                  </button>
-                </div>
-                {/* Indicador de fortaleza */}
                 {password.length > 0 && (
                   <>
                     <div className="flex gap-1">
@@ -354,16 +337,19 @@ export default function PaginaRegistro() {
                     )}
                   </>
                 )}
-              </label>
+              </div>
 
-              <CampoOscuro
+              <Field
                 etiqueta="Confirmar contraseña"
-                type={mostrarPassword ? "text" : "password"}
+                etiquetaClassName="!text-[#d4d9e2] !text-xs !font-medium"
+                type="password"
+                passwordToggleClassName="!text-white/60 hover:!bg-white/10 hover:!text-white focus-visible:!outline-[#f5a623]"
                 value={confirmarPassword}
                 onChange={(e) => setConfirmarPassword(e.target.value)}
                 required
                 autoComplete="new-password"
                 placeholder="Repite tu contraseña"
+                className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-white/40 focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
               />
 
               {/* Términos — inline, no como .docx descargable */}

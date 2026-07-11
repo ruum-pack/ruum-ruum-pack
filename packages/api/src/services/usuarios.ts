@@ -70,28 +70,6 @@ export async function obtenerUsuarioActual(cliente: Cliente) {
   throw errorInsert;
 }
 
-/**
- * Registra que el usuario aceptó la versión actual de los términos.
- * Se llama después de signUp() como respaldo del trigger de alta.
- *
- * Se usa un UPDATE con .eq("auth_user_id", authUserId) en vez de la sesión
- * porque el trigger de 0024/0031 ya creó la fila en usuarios con ese id.
- */
-export async function registrarAceptacionTerminos(
-  cliente: Cliente,
-  authUserId: string
-): Promise<void> {
-  const { error } = await cliente
-    .from("usuarios")
-    .update({
-      version_terminos_aceptada: VERSION_TERMINOS_VIGENTE,
-      terminos_aceptados_en: new Date().toISOString()
-    })
-    .eq("auth_user_id", authUserId);
-
-  if (error) throw error;
-}
-
 export type PerfilUsuarioActualizable = Pick<
   Database["public"]["Tables"]["usuarios"]["Update"],
   | "nombre"
@@ -209,34 +187,36 @@ async function subirArchivoPerfil(
  * Sube el documento de identidad del usuario al bucket privado
  * "documentos-identidad" y guarda el path relativo en usuarios.
  */
-export async function subirDocumentoIdentidad(cliente: Cliente, archivo: File): Promise<void> {
-  const { data: sesion } = await cliente.auth.getUser();
-  if (!sesion.user) throw new Error("Sin sesión activa.");
+export type ResultadoDocumentoIdentidad = {
+  ruta: string;
+  estado: "en_revision";
+  subidoEn: string;
+};
 
-  const ext = archivo.name.split(".").pop()?.toLowerCase() ?? "jpg";
-  const path = `${sesion.user.id}/identidad.${ext}`;
+async function mensajeErrorFuncion(error: unknown) {
+  const contexto = (error as { context?: Response })?.context;
+  if (contexto) {
+    try {
+      const cuerpo = await contexto.clone().json() as { error?: unknown };
+      if (typeof cuerpo.error === "string") return cuerpo.error;
+    } catch { /* La respuesta no era JSON; usamos el mensaje normalizado. */ }
+  }
+  return error instanceof Error ? error.message : "No fue posible validar el documento.";
+}
 
-  const { error: errorStorage } = await cliente.storage
-    .from("documentos-identidad")
-    .upload(path, archivo, { upsert: true, contentType: archivo.type });
-
-  if (errorStorage) throw errorStorage;
-
-  const { data: usuario, error: errorUsuario } = await cliente
-    .from("usuarios")
-    .update({
-      doc_identidad_url: path,
-      doc_identidad_subido_en: new Date().toISOString(),
-      estado_verificacion: "en_revision"
-    })
-    .eq("auth_user_id", sesion.user.id)
-    .select("id")
-    .single();
-
-  if (errorUsuario) throw errorUsuario;
-
-  await registrarEvento(cliente, "carga_documento_identidad", "usuario", usuario.id, {
-    path,
-    tipo_archivo: archivo.type
-  });
+export async function subirDocumentoIdentidad(
+  cliente: Cliente,
+  archivo: File
+): Promise<ResultadoDocumentoIdentidad> {
+  const formulario = new FormData();
+  formulario.append("archivo", archivo);
+  const { data, error } = await cliente.functions.invoke<ResultadoDocumentoIdentidad>(
+    "validar-documento-identidad",
+    { body: formulario }
+  );
+  if (error) throw new Error(await mensajeErrorFuncion(error));
+  if (!data || data.estado !== "en_revision" || !data.ruta || !data.subidoEn) {
+    throw new Error("El servidor no confirmó el registro del documento.");
+  }
+  return data;
 }

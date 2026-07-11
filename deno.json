@@ -5,7 +5,7 @@
     "lib": ["deno.ns", "dom", "dom.iterable", "esnext"]
   },
   "tasks": {
-    "check:functions": "deno check supabase/functions/crear-cuenta-conductor-stripe/index.ts supabase/functions/crear-payment-intent/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/crear-llamada-enmascarada/index.ts",
-    "test:functions": "deno test supabase/functions/stripe-webhook/logica.test.ts supabase/functions/crear-llamada-enmascarada/logica.test.ts"
+    "check:functions": "deno check supabase/functions/crear-cuenta-conductor-stripe/index.ts supabase/functions/crear-payment-intent/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/crear-llamada-enmascarada/index.ts supabase/functions/validar-documento-conductor/index.ts supabase/functions/validar-documento-identidad/index.ts",
+    "test:functions": "deno test supabase/functions/stripe-webhook/logica.test.ts supabase/functions/crear-llamada-enmascarada/logica.test.ts supabase/functions/validar-documento-conductor/validacion.test.ts supabase/functions/validar-documento-identidad/validacion.test.ts"
   }
 }

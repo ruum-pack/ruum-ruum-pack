@@ -1,6 +1,4 @@
 "use client";
-
-"use client";
 import { useEffect } from "react";
 import Link from "next/link";
 
@@ -12,8 +10,7 @@ export default function ErrorGlobal({
   reset: () => void;
 }) {
   useEffect(() => {
-    /* En producción se registraría en un servicio de logging */
-    console.error("[app/error]", error);
+    console.error("[app/error]", { digest: error.digest ?? "sin-digest" });
   }, [error]);
 
   return (

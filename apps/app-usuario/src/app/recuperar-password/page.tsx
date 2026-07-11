@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
+import { traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import {
   botonAzul,
@@ -37,11 +38,7 @@ export default function PaginaRecuperarPassword() {
       if (errorAuth) throw errorAuth;
       setEnviado(true);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "No pudimos enviar el correo. Intenta de nuevo."
-      );
+      setError(traducirErrorAuth(err, "No pudimos enviar el correo. Intenta de nuevo."));
     } finally {
       setEnviando(false);
     }

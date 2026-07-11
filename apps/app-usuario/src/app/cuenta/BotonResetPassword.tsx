@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button, Aviso } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
+import { traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 export function BotonResetPassword({ email }: { email: string }) {
@@ -24,7 +25,7 @@ export function BotonResetPassword({ email }: { email: string }) {
       setEstado("enviado");
     } catch (err) {
       setEstado("error");
-      setError(err instanceof Error ? err.message : "No pudimos enviar el correo. Intenta de nuevo.");
+      setError(traducirErrorAuth(err, "No pudimos enviar el correo. Intenta de nuevo."));
     }
   }
 

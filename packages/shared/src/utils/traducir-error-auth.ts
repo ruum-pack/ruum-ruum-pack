@@ -1,4 +1,6 @@
 const MENSAJES_AUTH = {
+  email_exists: "Ya existe una cuenta con ese correo. Inicia sesión o recupera tu contraseña.",
+  user_already_exists: "Ya existe una cuenta con ese correo. Inicia sesión o recupera tu contraseña.",
   invalid_credentials: "Correo o contraseña incorrectos.",
   email_not_confirmed: "Confirma tu correo antes de iniciar sesión.",
   user_not_found: "No encontramos una cuenta con ese correo.",
@@ -6,6 +8,8 @@ const MENSAJES_AUTH = {
   email_address_invalid: "El correo no tiene un formato válido.",
   password_too_short: "La contraseña es demasiado corta.",
   weak_password: "La contraseña no cumple los requisitos mínimos.",
+  same_password: "La nueva contraseña debe ser diferente de la anterior.",
+  otp_expired: "El enlace o código expiró. Solicita uno nuevo.",
   over_email_send_rate_limit: "Espera unos minutos antes de volver a intentar.",
   over_request_rate_limit: "Demasiados intentos. Espera unos minutos y vuelve a probar."
 } as const;
@@ -13,6 +17,9 @@ const MENSAJES_AUTH = {
 type CodigoAuth = keyof typeof MENSAJES_AUTH;
 
 const FRAGMENTOS_AUTH: Array<[string, string]> = [
+  ["user already registered", MENSAJES_AUTH.user_already_exists],
+  ["already been registered", MENSAJES_AUTH.user_already_exists],
+  ["email already exists", MENSAJES_AUTH.email_exists],
   ["invalid login credentials", MENSAJES_AUTH.invalid_credentials],
   ["email not confirmed", MENSAJES_AUTH.email_not_confirmed],
   ["user not found", MENSAJES_AUTH.user_not_found],
@@ -20,6 +27,10 @@ const FRAGMENTOS_AUTH: Array<[string, string]> = [
   ["invalid email", MENSAJES_AUTH.email_address_invalid],
   ["password should be at least", MENSAJES_AUTH.password_too_short],
   ["weak password", MENSAJES_AUTH.weak_password],
+  ["same password", MENSAJES_AUTH.same_password],
+  ["new password should be different", MENSAJES_AUTH.same_password],
+  ["otp expired", MENSAJES_AUTH.otp_expired],
+  ["token has expired", MENSAJES_AUTH.otp_expired],
   ["rate limit", MENSAJES_AUTH.over_request_rate_limit],
   ["conductor_duplicado:curp", "Este CURP ya está asociado a otra solicitud."],
   ["conductor_duplicado:telefono", "Ya existe un registro con ese teléfono."],

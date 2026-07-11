@@ -1257,6 +1257,21 @@ export type Database = {
       };
     };
     Functions: {
+      registrar_documento_identidad: {
+        Args: { p_sello_id: string; p_ruta: string; p_sha256: string };
+        Returns: Array<{
+          ruta: string;
+          estado: string;
+          subido_en: string;
+          ruta_anterior: string | null;
+          documento_id: string;
+          version: number;
+        }>;
+      };
+      registrar_documento_identidad_usuario: {
+        Args: { p_ruta: string };
+        Returns: undefined;
+      };
       abrir_disputa_traslado: {
         Args: { p_traslado_id: string; p_abierta_por: Database["public"]["Enums"]["abierta_por_actor"]; p_tipo: Database["public"]["Enums"]["tipo_disputa"]; p_descripcion: string };
         Returns: string;

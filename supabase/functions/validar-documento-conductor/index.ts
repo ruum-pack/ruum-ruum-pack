@@ -2,7 +2,8 @@
 /// <reference lib="dom" />
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { validarDocumento } from "./validacion.ts";
+import { TAMANO_MAXIMO, validarDocumento } from "./validacion.ts";
+import { leerFormularioLimitado } from "../_shared/multipart-limitado.ts";
 
 const BUCKET="documentos-conductor";
 const TIPOS=new Set(["licencia_frente","licencia_reverso","identificacion_oficial","documento_operativo"]);
@@ -12,6 +13,15 @@ const CORS={
   "Access-Control-Allow-Headers":"authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods":"POST, OPTIONS"
 };
+
+function codigoSeguro(error:unknown) {
+  if(!error||typeof error!=="object") return "desconocido";
+  const valor=error as {code?:unknown;status?:unknown;name?:unknown};
+  if(typeof valor.code==="string"&&/^[A-Za-z0-9_-]{1,40}$/.test(valor.code)) return valor.code;
+  if(typeof valor.status==="number") return `http_${valor.status}`;
+  if(typeof valor.name==="string"&&/^[A-Za-z0-9_-]{1,40}$/.test(valor.name)) return valor.name;
+  return "desconocido";
+}
 
 function json(body:Record<string,unknown>,status=200) {
   return new Response(JSON.stringify(body),{status,headers:{...CORS,"Content-Type":"application/json"}});
@@ -33,8 +43,8 @@ Deno.serve(async(req)=>{
   if(errorSesion||!sesion.user) return json({error:"La sesión no es válida."},401);
 
   let form:FormData;
-  try { form=await req.formData(); }
-  catch { return json({error:"Se esperaba un formulario multipart válido."},400); }
+  try { form=await leerFormularioLimitado(req,TAMANO_MAXIMO); }
+  catch(error) { return json({error:error instanceof Error?error.message:"Formulario inválido."},413); }
   const objetivo=String(form.get("objetivo_id")??"");
   const tipo=String(form.get("tipo")??"");
   const anteriorSolicitado=String(form.get("documento_anterior_id")??"")||null;
@@ -47,7 +57,9 @@ Deno.serve(async(req)=>{
     usuario.from("solicitudes_conductor").select("id").eq("id",objetivo).eq("auth_user_id",sesion.user.id).maybeSingle()
   ]);
   if(resultadoConductor.error||resultadoSolicitud.error) {
-    console.error("Error validando propiedad documental",resultadoConductor.error?.message,resultadoSolicitud.error?.message);
+    console.error("Error validando propiedad documental",{
+      conductor:codigoSeguro(resultadoConductor.error),solicitud:codigoSeguro(resultadoSolicitud.error)
+    });
     return json({error:"No fue posible validar la propiedad del expediente."},500);
   }
   const conductor=resultadoConductor.data;
@@ -87,7 +99,7 @@ Deno.serve(async(req)=>{
     ruta,auth_user_id:sesion.user.id,objetivo_id:objetivo,tipo,sha256
   });
   if(errorSello) {
-    console.error("Error creando sello documental",errorSello.message);
+    console.error("Error creando sello documental",{codigo:codigoSeguro(errorSello)});
     return json({error:"No fue posible autorizar la carga validada."},500);
   }
   const {error:errorUpload}=await usuario.storage.from(BUCKET).upload(ruta,validado.bytes,{

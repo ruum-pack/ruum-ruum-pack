@@ -1,0 +1,86 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Aviso } from "@ruum/ui";
+import { traducirErrorAuth } from "@ruum/shared/utils";
+import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { botonAzul, botonContorno, LogoRuum, PantallaPublica } from "../../experiencia-publica";
+
+const COOLDOWN_SEGUNDOS = 60;
+
+export default function PaginaConfirmaCorreo() {
+  const [correo, setCorreo] = useState("");
+  const [restante, setRestante] = useState(0);
+  const [reenviando, setReenviando] = useState(false);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      setCorreo(window.sessionStorage.getItem("ruum:correo-confirmacion") ?? "");
+      const hasta = Number(window.sessionStorage.getItem("ruum:reenvio-confirmacion-hasta") ?? 0);
+      setRestante(Math.max(0, Math.ceil((hasta - Date.now()) / 1000)));
+    } catch { /* Sin storage se conserva el flujo de regreso al registro. */ }
+  }, []);
+
+  useEffect(() => {
+    if (restante <= 0) return;
+    const timer = window.setInterval(() => setRestante((valor) => Math.max(0, valor - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [restante > 0]);
+
+  async function reenviar() {
+    if (!correo || restante > 0 || reenviando) return;
+    setReenviando(true);
+    setMensaje(null);
+    setError(null);
+    try {
+      const cliente = crearClienteNavegador();
+      const { error: errorAuth } = await cliente.auth.resend({
+        type: "signup",
+        email: correo,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding?nuevo=1` }
+      });
+      if (errorAuth) throw errorAuth;
+      const hasta = Date.now() + COOLDOWN_SEGUNDOS * 1000;
+      try { window.sessionStorage.setItem("ruum:reenvio-confirmacion-hasta", String(hasta)); } catch { /* no-op */ }
+      setRestante(COOLDOWN_SEGUNDOS);
+      setMensaje("Si el correo corresponde a una cuenta pendiente, enviamos un nuevo enlace de confirmación.");
+    } catch (err) {
+      setError(traducirErrorAuth(err, "No pudimos reenviar el correo. Espera un momento e intenta nuevamente."));
+    } finally {
+      setReenviando(false);
+    }
+  }
+
+  return (
+    <PantallaPublica>
+      <section className="flex min-h-screen flex-col px-5 py-10">
+        <LogoRuum className="mx-auto mt-8 text-center" />
+        <div className="mt-12 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7 text-center shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#f5a623]/15 text-[#f5a623]" aria-hidden>✉</div>
+          <h1 className="mt-5 font-display text-[22px] font-extrabold text-white">Revisa tu correo</h1>
+          <p className="mt-3 font-body text-sm leading-6 text-[#c9cfda]">
+            Enviamos un enlace de confirmación{correo ? <> a <strong className="text-white">{correo}</strong></> : " al correo registrado"}.
+            Ábrelo para activar tu cuenta.
+          </p>
+          <p className="mt-3 font-body text-xs leading-5 text-[#c9cfda]">
+            Si no lo encuentras, revisa spam o correo no deseado. Hasta confirmar tu correo todavía no puedes solicitar un traslado.
+          </p>
+
+          {mensaje && <div className="mt-5" role="status"><Aviso tono="info">{mensaje}</Aviso></div>}
+          {error && <div className="mt-5" role="alert"><Aviso tono="peligro">{error}</Aviso></div>}
+
+          <button type="button" onClick={reenviar} disabled={!correo || reenviando || restante > 0} className={`${botonAzul} mt-6`}>
+            {reenviando ? "Enviando…" : restante > 0 ? `Reenviar en ${restante}s` : "Reenviar correo"}
+          </button>
+          <Link href="/login" className={`${botonContorno} mt-3`}>Volver al inicio de sesión</Link>
+          <Link href="/registro" className="mt-5 inline-block font-body text-xs text-[#f1d797] underline-offset-4 hover:underline">
+            Corregir el correo o volver a registrarme
+          </Link>
+        </div>
+      </section>
+    </PantallaPublica>
+  );
+}
