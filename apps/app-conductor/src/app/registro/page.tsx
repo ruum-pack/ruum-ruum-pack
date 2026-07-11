@@ -12,7 +12,7 @@ import {
   validarCampoRegistroConductor,
   type CampoRegistroConductor
 } from "@ruum/shared/validacion";
-import { obtenerConductorActual, subirDocumentoConductor } from "@ruum/api/services";
+import { obtenerSolicitudConductorActual, subirDocumentoSolicitudConductor } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 
@@ -408,18 +408,18 @@ export default function PaginaRegistroConductor() {
     if (archivo) limpiarErrorCampo(campo);
   }
 
-  async function obtenerConductorConReintento(cliente: ReturnType<typeof crearClienteNavegador>) {
+  async function obtenerSolicitudConReintento(cliente: ReturnType<typeof crearClienteNavegador>) {
     for (let intento = 0; intento < 5; intento += 1) {
-      const conductor = await obtenerConductorActual(cliente);
-      if (conductor) return conductor;
+      const solicitud = await obtenerSolicitudConductorActual(cliente);
+      if (solicitud) return solicitud;
       await esperar(350);
     }
     return null;
   }
 
   async function cargarDocumentos(cliente: ReturnType<typeof crearClienteNavegador>) {
-    const conductor = await obtenerConductorConReintento(cliente);
-    if (!conductor) {
+    const solicitud = await obtenerSolicitudConReintento(cliente);
+    if (!solicitud) {
       setAdvertenciaDocumentos("La cuenta se creó, pero los documentos no pudieron ligarse todavía. Podrás cargarlos desde Configuración.");
       return;
     }
@@ -433,7 +433,7 @@ export default function PaginaRegistroConductor() {
     });
 
     const resultados = await Promise.allSettled(
-      pendientes.map(([campo, archivo]) => subirDocumentoConductor(cliente, conductor.id, TIPOS_DOCUMENTO[campo], archivo as File))
+      pendientes.map(([campo, archivo]) => subirDocumentoSolicitudConductor(cliente, solicitud.id, TIPOS_DOCUMENTO[campo], archivo as File))
     );
 
     let huboError = false;

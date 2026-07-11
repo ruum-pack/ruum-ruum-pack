@@ -192,7 +192,8 @@ export type Database = {
       documentos_conductor: {
         Row: {
           id: string
-          conductor_id: string
+          conductor_id: string | null
+          solicitud_id: string | null
           tipo: string
           nombre_archivo: string
           url: string
@@ -203,7 +204,8 @@ export type Database = {
         };
         Insert: {
           id?: string
-          conductor_id: string
+          conductor_id?: string | null
+          solicitud_id?: string | null
           tipo: string
           nombre_archivo: string
           url: string
@@ -214,7 +216,8 @@ export type Database = {
         };
         Update: {
           id?: string
-          conductor_id?: string
+          conductor_id?: string | null
+          solicitud_id?: string | null
           tipo?: string
           nombre_archivo?: string
           url?: string
@@ -222,6 +225,51 @@ export type Database = {
           notas_admin?: string | null
           creado_en?: string
           actualizado_en?: string
+        };
+        Relationships: [];
+      };
+      solicitudes_conductor: {
+        Row: {
+          id: string
+          auth_user_id: string
+          conductor_id: string | null
+          estado: Database["public"]["Enums"]["estado_expediente_conductor"]
+          paso_actual: number
+          datos_personales: Json
+          domicilio: Json
+          licencia: Json
+          contacto_emergencia: Json
+          curp_normalizada: string | null
+          telefono_normalizado: string | null
+          licencia_normalizada: string | null
+          creado_en: string
+          actualizado_en: string
+          enviado_en: string | null
+        };
+        Insert: {
+          id?: string
+          auth_user_id: string
+          conductor_id?: string | null
+          estado?: Database["public"]["Enums"]["estado_expediente_conductor"]
+          paso_actual?: number
+          datos_personales?: Json
+          domicilio?: Json
+          licencia?: Json
+          contacto_emergencia?: Json
+          creado_en?: string
+          actualizado_en?: string
+          enviado_en?: string | null
+        };
+        Update: {
+          conductor_id?: string | null
+          estado?: Database["public"]["Enums"]["estado_expediente_conductor"]
+          paso_actual?: number
+          datos_personales?: Json
+          domicilio?: Json
+          licencia?: Json
+          contacto_emergencia?: Json
+          actualizado_en?: string
+          enviado_en?: string | null
         };
         Relationships: [];
       };
@@ -1099,6 +1147,10 @@ export type Database = {
       aprobar_expediente_conductor_admin: {
         Args: { p_conductor_id: string };
         Returns: undefined;
+      };
+      aprobar_solicitud_conductor_admin: {
+        Args: { p_solicitud_id: string };
+        Returns: string;
       };
       admin_marca_traslado_fallido: {
         Args: { p_traslado_id: string; p_causa: Database["public"]["Enums"]["causa_fallido"]; p_cargo_aplica_cliente: boolean; p_requiere_reagendamiento: boolean; p_porcentaje_descuento_segundo_intento: number | null; p_mensaje: string };

@@ -7,6 +7,7 @@ type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
 type PayoutRow = Database["public"]["Tables"]["payouts_conductor"]["Row"];
 type CuentaStripeRow = Database["public"]["Tables"]["cuentas_conductor_stripe"]["Row"];
 type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
+type SolicitudConductorRow = Database["public"]["Tables"]["solicitudes_conductor"]["Row"];
 type PreferenciasConductorRow = Database["public"]["Tables"]["preferencias_conductor"]["Row"];
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 export type DisponibilidadOperativaConductor = "disponible" | "no_disponible";
@@ -50,6 +51,22 @@ export async function obtenerConductorActual(cliente: Cliente): Promise<Conducto
     .from("conductores")
     .select("*")
     .eq("auth_user_id", sesion.user.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+/** Solicitud de alta activa asociada a la sesión, antes de crear `conductores`. */
+export async function obtenerSolicitudConductorActual(cliente: Cliente): Promise<SolicitudConductorRow | null> {
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) return null;
+
+  const { data, error } = await cliente
+    .from("solicitudes_conductor")
+    .select("*")
+    .eq("auth_user_id", sesion.user.id)
+    .not("estado", "in", '("aprobado","rechazado")')
     .maybeSingle();
 
   if (error) throw error;
@@ -249,6 +266,48 @@ export async function subirDocumentoConductor(
     throw errorRegistro;
   }
 
+  return { ruta };
+}
+
+export async function subirDocumentoSolicitudConductor(
+  cliente: Cliente,
+  solicitudId: string,
+  tipo: TipoDocumentoConductor,
+  archivo: File
+) {
+  validarArchivoDocumentoConductor(archivo);
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) throw new Error("Inicia sesión para subir documentos.");
+
+  const solicitud = await obtenerSolicitudConductorActual(cliente);
+  if (!solicitud || solicitud.id !== solicitudId) {
+    throw new Error("No puedes cargar documentos para otra solicitud.");
+  }
+
+  const ruta = [sesion.user.id, "solicitudes", solicitudId, `${Date.now()}-${tipo}-${nombreArchivoSeguro(archivo.name)}`].join("/");
+  const { error: errorStorage } = await cliente.storage
+    .from(BUCKET_DOCUMENTOS_CONDUCTOR)
+    .upload(ruta, archivo, { upsert: false, contentType: archivo.type });
+  if (errorStorage) throw errorStorage;
+
+  const { error: errorRegistro } = await cliente.from("documentos_conductor").insert({
+    solicitud_id: solicitudId,
+    conductor_id: null,
+    tipo,
+    nombre_archivo: archivo.name,
+    url: ruta,
+    estado: "en_revision"
+  });
+  if (errorRegistro) {
+    await cliente.storage.from(BUCKET_DOCUMENTOS_CONDUCTOR).remove([ruta]).catch(() => undefined);
+    throw errorRegistro;
+  }
+
+  try {
+    await registrarEvento(cliente, "carga_documentos", "conductor", solicitudId, { tipo, nombre_archivo: archivo.name });
+  } catch {
+    // El documento ya quedó persistido; auditoría complementaria.
+  }
   return { ruta };
 }
 

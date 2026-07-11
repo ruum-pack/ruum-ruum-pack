@@ -12,7 +12,8 @@ import {
   listarViajesAceptados,
   listarViajesDisponibles,
   obtenerDisponibilidadConductor,
-  obtenerConductorActual
+  obtenerConductorActual,
+  obtenerSolicitudConductorActual
 } from "@ruum/api/services";
 import { RegistroViajeActivo, viajePermiteFabEmergencia } from "../ViajeActivoContext";
 import { ConfirmarDisponibilidad } from "../ConfirmarDisponibilidad";
@@ -80,7 +81,8 @@ export default function PaginaPanel() {
   const [viajesAceptados, setViajesAceptados] = useState<PasaporteRow[]>([]);
   const [viajesDisponibles, setViajesDisponibles] = useState<PasaporteRow[]>([]);
   const [enRevision, setEnRevision] = useState<{
-    conductorId: string;
+    conductorId?: string;
+    solicitudId?: string;
     nombre: string;
     documentos: DocumentoConductorRow[];
   } | null>(null);
@@ -92,7 +94,19 @@ export default function PaginaPanel() {
       try {
         const cliente = crearClienteNavegador();
         const real = await obtenerConductorActual(cliente);
-        if (!real) return;
+        if (!real) {
+          const solicitud = await obtenerSolicitudConductorActual(cliente);
+          if (!solicitud) return;
+          const { data: docs, error: errorDocs } = await cliente
+            .from("documentos_conductor")
+            .select("*")
+            .eq("solicitud_id", solicitud.id)
+            .order("creado_en", { ascending: false });
+          if (errorDocs) throw errorDocs;
+          const personales = solicitud.datos_personales as { nombre?: string };
+          setEnRevision({ solicitudId: solicitud.id, nombre: personales.nombre ?? "Conductor", documentos: docs ?? [] });
+          return;
+        }
 
         // Fase 2 — conductor todavía en revisión: no tiene sentido (ni permisos)
         // pedir viajes. Mostramos el seguimiento de su expediente y salimos.
@@ -247,6 +261,7 @@ export default function PaginaPanel() {
     return (
       <EstadoRevisionConductor
         conductorId={enRevision.conductorId}
+        solicitudId={enRevision.solicitudId}
         nombre={enRevision.nombre}
         documentosIniciales={enRevision.documentos}
         onSalir={cerrarSesion}

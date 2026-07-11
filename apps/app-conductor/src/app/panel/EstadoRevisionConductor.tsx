@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Button, Aviso, LogoMarca } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador } from "../../lib/supabase-browser";
-import { subirDocumentoConductor, type TipoDocumentoConductor } from "@ruum/api/services";
+import { subirDocumentoConductor, subirDocumentoSolicitudConductor, type TipoDocumentoConductor } from "@ruum/api/services";
 
 type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
 
@@ -24,7 +24,8 @@ const TIPOS_DOCUMENTO: { valor: TipoDocumentoConductor; etiqueta: string }[] = [
 ];
 
 interface Props {
-  conductorId: string;
+  conductorId?: string;
+  solicitudId?: string;
   nombre: string;
   documentosIniciales: DocumentoConductorRow[];
   onSalir: () => void;
@@ -36,7 +37,7 @@ interface Props {
  * requiere corrección) y permite reemplazar solo ese documento específico, sin reiniciar
  * el resto del expediente.
  */
-export function EstadoRevisionConductor({ conductorId, nombre, documentosIniciales, onSalir }: Props) {
+export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, documentosIniciales, onSalir }: Props) {
   const [documentos, setDocumentos] = useState(documentosIniciales);
   const [subiendo, setSubiendo] = useState<TipoDocumentoConductor | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,12 +55,15 @@ export function EstadoRevisionConductor({ conductorId, nombre, documentosInicial
     setError(null);
     try {
       const cliente = crearClienteNavegador();
-      await subirDocumentoConductor(cliente, conductorId, tipo, archivo);
+      if (solicitudId) await subirDocumentoSolicitudConductor(cliente, solicitudId, tipo, archivo);
+      else if (conductorId) await subirDocumentoConductor(cliente, conductorId, tipo, archivo);
+      else throw new Error("No encontramos el expediente asociado.");
       // El nuevo documento entra como "en_revision"; lo reflejamos localmente sin recargar todo.
       setDocumentos((prev) => [
         {
           id: `temp-${Date.now()}`,
-          conductor_id: conductorId,
+          conductor_id: conductorId ?? null,
+          solicitud_id: solicitudId ?? null,
           tipo,
           nombre_archivo: archivo.name,
           url: "",
