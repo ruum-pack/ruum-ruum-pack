@@ -50,10 +50,14 @@ begin
     if v_error not ilike '%documentos obligatorios%' then raise; end if;
   end;
 
+  -- Fixture interno: desde RT-13 el rol authenticated ya no puede insertar
+  -- documentos directamente; la carga real usa registrar_documento_conductor.
+  perform set_config('role','postgres',true);
   insert into public.documentos_conductor(solicitud_id,tipo,nombre_archivo,url,estado) values
     (r1.solicitud_id,'licencia_frente','frente.pdf','rt08/frente.pdf','en_revision'),
     (r1.solicitud_id,'licencia_reverso','reverso.pdf','rt08/reverso.pdf','en_revision'),
     (r1.solicitud_id,'identificacion_oficial','id.pdf','rt08/id.pdf','en_revision');
+  perform set_config('role','authenticated',true);
   if (select estado from public.solicitudes_conductor where id=r1.solicitud_id)<>'documentos_pendientes' then
     raise exception 'RT-10: cargar documentos envió la solicitud automáticamente.';
   end if;

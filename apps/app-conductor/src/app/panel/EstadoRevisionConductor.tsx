@@ -55,8 +55,9 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
     setError(null);
     try {
       const cliente = crearClienteNavegador();
-      if (solicitudId) await subirDocumentoSolicitudConductor(cliente, solicitudId, tipo, archivo);
-      else if (conductorId) await subirDocumentoConductor(cliente, conductorId, tipo, archivo);
+      const documentoAnteriorId = documentoDe(tipo)?.id;
+      if (solicitudId) await subirDocumentoSolicitudConductor(cliente, solicitudId, tipo, archivo, documentoAnteriorId);
+      else if (conductorId) await subirDocumentoConductor(cliente, conductorId, tipo, archivo, documentoAnteriorId);
       else throw new Error("No encontramos el expediente asociado.");
       // El nuevo documento entra como "en_revision"; lo reflejamos localmente sin recargar todo.
       setDocumentos((prev) => [
@@ -69,6 +70,13 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
           url: "",
           estado: "en_revision",
           notas_admin: null,
+          version: (documentoDe(tipo)?.version ?? 0) + 1,
+          documento_anterior_id: documentoAnteriorId ?? null,
+          es_actual: true,
+          reemplazado_en: null,
+          revisado_por: null,
+          revisado_en: null,
+          motivo_rechazo: null,
           creado_en: new Date().toISOString(),
           actualizado_en: new Date().toISOString()
         },

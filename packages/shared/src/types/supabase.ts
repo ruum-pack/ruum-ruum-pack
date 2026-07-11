@@ -199,6 +199,13 @@ export type Database = {
           url: string
           estado: string
           notas_admin: string | null
+          version: number
+          documento_anterior_id: string | null
+          es_actual: boolean
+          reemplazado_en: string | null
+          revisado_por: string | null
+          revisado_en: string | null
+          motivo_rechazo: string | null
           creado_en: string
           actualizado_en: string
         };
@@ -211,6 +218,13 @@ export type Database = {
           url: string
           estado?: string
           notas_admin?: string | null
+          version?: number
+          documento_anterior_id?: string | null
+          es_actual?: boolean
+          reemplazado_en?: string | null
+          revisado_por?: string | null
+          revisado_en?: string | null
+          motivo_rechazo?: string | null
           creado_en?: string
           actualizado_en?: string
         };
@@ -223,6 +237,13 @@ export type Database = {
           url?: string
           estado?: string
           notas_admin?: string | null
+          version?: number
+          documento_anterior_id?: string | null
+          es_actual?: boolean
+          reemplazado_en?: string | null
+          revisado_por?: string | null
+          revisado_en?: string | null
+          motivo_rechazo?: string | null
           creado_en?: string
           actualizado_en?: string
         };
@@ -1243,6 +1264,14 @@ export type Database = {
       revisar_documento_conductor_admin: {
         Args: { p_documento_id: string; p_estado: string; p_notas?: string | null };
         Returns: undefined;
+      };
+      registrar_documento_conductor: {
+        Args: { p_objetivo_id: string; p_tipo: string; p_nombre_archivo: string; p_ruta: string };
+        Returns: string;
+      };
+      reemplazar_documento_conductor: {
+        Args: { p_documento_anterior_id: string; p_nombre_archivo: string; p_ruta: string };
+        Returns: string;
       };
       traslado_tiene_metodo_pago_registrado: {
         Args: { p_traslado_id: string };

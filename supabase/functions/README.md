@@ -11,6 +11,16 @@ conductor). PRD §4.12 — decisión de producto: **Twilio Proxy** (llamadas enm
 | `stripe-webhook` | Stripe (servidor a servidor) | Recibe los eventos de Stripe y actualiza `pagos`, `cuentas_conductor_stripe` y `payouts_conductor` |
 | `crear-cuenta-conductor-stripe` | `app-conductor`, pantalla Ganancias | Crea (si no existe) la cuenta Stripe Connect Express del conductor y devuelve la URL de onboarding |
 | `crear-llamada-enmascarada` | Ambas apps, pantalla de chat del traslado | Crea (o reutiliza) la sesión de Twilio Proxy del traslado y devuelve el número virtual al que el cliente abre un enlace `tel:` |
+| `validar-documento-conductor` | `app-conductor`, registro y correcciones | Valida el contenido real, sanea el archivo, lo guarda en el bucket privado y registra/reemplaza la versión mediante RPC |
+
+### Documentos de conductor
+
+`validar-documento-conductor` recibe `multipart/form-data` y no confía en la extensión ni en el MIME enviados
+por el navegador. Reconoce la firma y estructura de JPG, PNG, WEBP o PDF, exige imágenes de al menos 800 x 600,
+rechaza PDF truncados/cifrados, limita a 10 MB y elimina metadatos EXIF de JPG, PNG y WEBP. La ruta final es
+`auth_user_id/objetivo_id/tipo/documento`; `objetivo_id` es la solicitud durante el alta y el conductor después
+de la aprobación. Un sello SHA-256 de un solo uso enlaza la validación, el upload y la RPC, por lo que un cliente
+no puede saltarse la inspección llamando directamente a Storage. Si falla la RPC, elimina el objeto como compensación.
 
 ## Validado, con un límite honesto
 
@@ -91,6 +101,7 @@ supabase functions deploy stripe-webhook
 supabase functions deploy crear-payment-intent
 supabase functions deploy crear-cuenta-conductor-stripe
 supabase functions deploy crear-llamada-enmascarada
+supabase functions deploy validar-documento-conductor
 ```
 
 `crear-payment-intent` está configurada con `verify_jwt = false` en `supabase/config.toml` para que el gateway de

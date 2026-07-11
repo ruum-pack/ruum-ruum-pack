@@ -447,7 +447,8 @@ export default function PaginaRegistroConductor() {
   }
 
   async function cargarDocumentos(cliente: ReturnType<typeof crearClienteNavegador>, solicitudId: string) {
-    const pendientes = (Object.entries(documentos) as [DocumentoKey, File | null][]).filter(([, archivo]) => archivo);
+    const pendientes = (Object.entries(documentos) as [DocumentoKey, File | null][])
+      .filter(([campo, archivo]) => archivo && estadoDocumentos[campo] !== "subido");
 
     setEstadoDocumentos((prev) => {
       const siguiente = { ...prev };

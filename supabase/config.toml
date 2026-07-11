@@ -57,3 +57,8 @@ verify_jwt = false
 # header" al llamar la función sin sesión, igual que rechazaría a Stripe).
 [functions.stripe-webhook]
 verify_jwt = false
+
+# El preflight multipart del navegador no porta JWT. El handler valida
+# Authorization con auth.getUser() antes de leer o almacenar el archivo.
+[functions.validar-documento-conductor]
+verify_jwt = false

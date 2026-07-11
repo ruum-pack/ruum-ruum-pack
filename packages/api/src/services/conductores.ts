@@ -18,14 +18,9 @@ export type TipoDocumentoConductor =
   | "identificacion_oficial"
   | "documento_operativo";
 
-const BUCKET_DOCUMENTOS_CONDUCTOR = "documentos-conductor";
 const TAMANO_MAX_DOCUMENTO_BYTES = 10 * 1024 * 1024;
 const EXTENSIONES_DOCUMENTO_PERMITIDAS = new Set(["jpg", "jpeg", "png", "webp", "pdf"]);
 const TIPOS_MIME_DOCUMENTO_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
-
-function nombreArchivoSeguro(nombre: string) {
-  return nombre.replace(/[^a-zA-Z0-9_.-]/g, "_");
-}
 
 function extensionArchivo(nombre: string) {
   return nombre.split(".").pop()?.toLowerCase() ?? "";
@@ -267,117 +262,63 @@ export async function guardarDisponibilidadConductor(
   });
 }
 
-export async function registrarDocumentoConductor(
+async function subirDocumentoValidado(
   cliente: Cliente,
-  conductorId: string,
+  objetivoId: string,
   tipo: TipoDocumentoConductor,
-  nombreArchivo: string,
-  url: string
+  archivo: File,
+  documentoAnteriorId?: string
 ) {
-  const conductorAutenticado = await obtenerConductorIdActual(cliente);
-  if (conductorAutenticado !== conductorId) {
-    throw new Error("No puedes cargar documentos para otro conductor.");
+  validarArchivoDocumentoConductor(archivo);
+  const formulario = new FormData();
+  formulario.set("objetivo_id", objetivoId);
+  formulario.set("tipo", tipo);
+  formulario.set("archivo", archivo);
+  if (documentoAnteriorId) formulario.set("documento_anterior_id", documentoAnteriorId);
+  const { data, error } = await cliente.functions.invoke("validar-documento-conductor", { body: formulario });
+  if (error) {
+    let mensaje = error.message;
+    const contexto = "context" in error ? error.context : null;
+    if (contexto instanceof Response) {
+      try {
+        const detalle = (await contexto.clone().json()) as { error?: string };
+        mensaje = detalle.error ?? mensaje;
+      } catch {
+        // Conserva el mensaje de transporte cuando el servidor no devolvió JSON.
+      }
+    }
+    throw new Error(mensaje);
   }
-
-  const { error } = await cliente.from("documentos_conductor").insert({
-    conductor_id: conductorId,
-    tipo,
-    nombre_archivo: nombreArchivo,
-    url,
-    estado: "en_revision"
-  });
-
-  if (error) throw error;
-
-  try {
-    await registrarEvento(cliente, "carga_documentos", "conductor", conductorId, {
-      tipo,
-      nombre_archivo: nombreArchivo
-    });
-  } catch {
-    // La auditoria es complementaria: el documento ya quedo registrado para revision.
-  }
+  return data as { documento_id: string; ruta: string };
 }
 
 export async function subirDocumentoConductor(
   cliente: Cliente,
   conductorId: string,
   tipo: TipoDocumentoConductor,
-  archivo: File
+  archivo: File,
+  documentoAnteriorId?: string
 ) {
-  validarArchivoDocumentoConductor(archivo);
-
-  const { data: sesion } = await cliente.auth.getUser();
-  if (!sesion.user) throw new Error("Inicia sesión para subir documentos.");
-
   const conductorAutenticado = await obtenerConductorIdActual(cliente);
   if (conductorAutenticado !== conductorId) {
     throw new Error("No puedes cargar documentos para otro conductor.");
   }
-
-  const ruta = [
-    sesion.user.id,
-    conductorId,
-    `${Date.now()}-${tipo}-${nombreArchivoSeguro(archivo.name)}`
-  ].join("/");
-
-  const { error: errorStorage } = await cliente.storage
-    .from(BUCKET_DOCUMENTOS_CONDUCTOR)
-    .upload(ruta, archivo, { upsert: false, contentType: archivo.type });
-
-  if (errorStorage) throw errorStorage;
-
-  // Compensación (auditoría H-7): si el archivo ya subió a Storage pero el
-  // INSERT de la fila falla, el objeto quedaría huérfano en el bucket. Lo
-  // borramos y propagamos el error original para que el flujo lo reintente.
-  try {
-    await registrarDocumentoConductor(cliente, conductorId, tipo, archivo.name, ruta);
-  } catch (errorRegistro) {
-    await cliente.storage.from(BUCKET_DOCUMENTOS_CONDUCTOR).remove([ruta]).catch(() => {
-      // Si la limpieza falla, no ocultamos el error real del registro; una
-      // tarea de barrido de huérfanos puede recogerlo después.
-    });
-    throw errorRegistro;
-  }
-
-  return { ruta };
+  return subirDocumentoValidado(cliente, conductorId, tipo, archivo, documentoAnteriorId);
 }
 
 export async function subirDocumentoSolicitudConductor(
   cliente: Cliente,
   solicitudId: string,
   tipo: TipoDocumentoConductor,
-  archivo: File
+  archivo: File,
+  documentoAnteriorId?: string
 ) {
-  validarArchivoDocumentoConductor(archivo);
   const { data: sesion } = await cliente.auth.getUser();
   if (!sesion.user) throw new Error("Inicia sesión para subir documentos.");
-
-  const ruta = [sesion.user.id, "solicitudes", solicitudId, `${Date.now()}-${tipo}-${nombreArchivoSeguro(archivo.name)}`].join("/");
-  const { error: errorStorage } = await cliente.storage
-    .from(BUCKET_DOCUMENTOS_CONDUCTOR)
-    .upload(ruta, archivo, { upsert: false, contentType: archivo.type });
-  if (errorStorage) throw errorStorage;
-
-  const { error: errorRegistro } = await cliente.from("documentos_conductor").insert({
-    solicitud_id: solicitudId,
-    conductor_id: null,
-    tipo,
-    nombre_archivo: archivo.name,
-    url: ruta,
-    estado: "en_revision"
-  });
-  if (errorRegistro) {
-    await cliente.storage.from(BUCKET_DOCUMENTOS_CONDUCTOR).remove([ruta]).catch(() => undefined);
-    throw errorRegistro;
-  }
-
-  try {
-    await registrarEvento(cliente, "carga_documentos", "conductor", solicitudId, { tipo, nombre_archivo: archivo.name });
-  } catch {
-    // El documento ya quedó persistido; auditoría complementaria.
-  }
-  return { ruta };
+  const { data: solicitud, error } = await cliente.from("solicitudes_conductor")
+    .select("id").eq("id", solicitudId).eq("auth_user_id", sesion.user.id).maybeSingle();
+  if (error || !solicitud) throw new Error("No puedes cargar documentos para otra solicitud.");
+  return subirDocumentoValidado(cliente, solicitudId, tipo, archivo, documentoAnteriorId);
 }
 
 export async function actualizarPerfilConductor(cliente: Cliente, conductorId: string, datos: { nombre: string; telefono: string }) {
