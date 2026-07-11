@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@ruum/shared/types";
+import type { Database, Json } from "@ruum/shared/types";
 import { registrarEvento } from "./auditoria";
 
 type Cliente = SupabaseClient<Database>;
@@ -69,6 +69,28 @@ export async function obtenerSolicitudConductorActual(cliente: Cliente): Promise
     .not("estado", "in", '("aprobado","rechazado")')
     .maybeSingle();
 
+  if (error) throw error;
+  return data;
+}
+
+export interface ExpedienteSolicitudConductorV2 {
+  datosPersonales: Json;
+  domicilio: Json;
+  licencia: Json;
+  contactoEmergencia: Json;
+}
+
+/** Persiste PII después de autenticar; nunca usa `user_metadata`. */
+export async function completarSolicitudConductorV2(
+  cliente: Cliente,
+  expediente: ExpedienteSolicitudConductorV2
+) {
+  const { data, error } = await cliente.rpc("completar_solicitud_conductor_v2", {
+    p_datos_personales: expediente.datosPersonales,
+    p_domicilio: expediente.domicilio,
+    p_licencia: expediente.licencia,
+    p_contacto_emergencia: expediente.contactoEmergencia
+  });
   if (error) throw error;
   return data;
 }

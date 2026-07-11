@@ -64,6 +64,16 @@ begin
     raise exception 'RT-03: Auth creó un conductor antes de aprobación.';
   end if;
 
+  -- Desde RT-06 la metadata puede ser mínima: el expediente se completa sólo
+  -- después de autenticar, antes de cargar documentos.
+  perform set_config('request.jwt.claim.sub',v_auth_3::text,true);
+  perform public.completar_solicitud_conductor_v2(
+    '{"nombre":"Alta separada","telefono":"+525500003003","curp":"RT040101HDFABC02","autoriza_verificacion_antecedentes":true,"declara_sin_suspensiones":true,"version_terminos_aceptada":2,"terminos_aceptados_en":"2026-07-10T18:00:00Z"}',
+    '{"codigo_postal":"01000"}',
+    '{"numero":"LIC-RT04","tipo":"A","vigencia":"2027-07-10"}',
+    '{"nombre":"Contacto","telefono":"5500003003"}'
+  );
+
   insert into public.documentos_conductor(solicitud_id,tipo,nombre_archivo,url,estado) values
     (v_solicitud_3,'licencia_frente','frente.pdf','rt03/frente.pdf','en_revision'),
     (v_solicitud_3,'licencia_reverso','reverso.pdf','rt03/reverso.pdf','en_revision'),

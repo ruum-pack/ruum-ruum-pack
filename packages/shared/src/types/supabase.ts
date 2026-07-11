@@ -245,6 +245,8 @@ export type Database = {
           creado_en: string
           actualizado_en: string
           enviado_en: string | null
+          version_registro: number
+          origen_modelo: "legacy_metadata" | "v2_minimo"
         };
         Insert: {
           id?: string
@@ -259,6 +261,8 @@ export type Database = {
           creado_en?: string
           actualizado_en?: string
           enviado_en?: string | null
+          version_registro?: number
+          origen_modelo?: "legacy_metadata" | "v2_minimo"
         };
         Update: {
           conductor_id?: string | null
@@ -270,6 +274,8 @@ export type Database = {
           contacto_emergencia?: Json
           actualizado_en?: string
           enviado_en?: string | null
+          version_registro?: number
+          origen_modelo?: "legacy_metadata" | "v2_minimo"
         };
         Relationships: [];
       };
@@ -1171,6 +1177,15 @@ export type Database = {
       conductor_avanza_traslado: {
         Args: { p_traslado_id: string; p_evento: string };
         Returns: Database["public"]["Enums"]["estado_traslado"];
+      };
+      completar_solicitud_conductor_v2: {
+        Args: {
+          p_datos_personales: Json;
+          p_domicilio: Json;
+          p_licencia: Json;
+          p_contacto_emergencia: Json;
+        };
+        Returns: string;
       };
       crear_incidencia_sistema_dano_no_reportado: {
         Args: { p_traslado_id: string; p_descripcion: string };

@@ -12,7 +12,11 @@ import {
   validarCampoRegistroConductor,
   type CampoRegistroConductor
 } from "@ruum/shared/validacion";
-import { obtenerSolicitudConductorActual, subirDocumentoSolicitudConductor } from "@ruum/api/services";
+import {
+  completarSolicitudConductorV2,
+  obtenerSolicitudConductorActual,
+  subirDocumentoSolicitudConductor
+} from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 
@@ -224,6 +228,7 @@ export default function PaginaRegistroConductor() {
   const [sesionActivaTrasRegistro, setSesionActivaTrasRegistro] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [advertenciaDocumentos, setAdvertenciaDocumentos] = useState<string | null>(null);
+  const terminosAceptadosEnRef = useRef<string | null>(null);
 
   // Fase 4 — verificación por código (OTP) cuando Supabase exige confirmar el correo.
   const [pendienteOtp, setPendienteOtp] = useState(false);
@@ -417,6 +422,41 @@ export default function PaginaRegistroConductor() {
     return null;
   }
 
+  async function guardarExpedienteAutenticado(cliente: ReturnType<typeof crearClienteNavegador>) {
+    const aceptadosEn = terminosAceptadosEnRef.current ?? terminosAceptadosEn();
+    terminosAceptadosEnRef.current = aceptadosEn;
+    await completarSolicitudConductorV2(cliente, {
+      datosPersonales: {
+        nombre: nombreCompleto,
+        telefono: telefonoE164Mx(telefono),
+        curp: curp.trim().toUpperCase(),
+        autoriza_verificacion_antecedentes: autorizaVerificacion,
+        declara_sin_suspensiones: declaraSinSuspensiones,
+        version_terminos_aceptada: 1,
+        terminos_aceptados_en: aceptadosEn,
+        marca_terminos: "ruum ruum by Movilia"
+      },
+      domicilio: {
+        codigo_postal: codigoPostal.trim(),
+        estado: limpiarTexto(estado),
+        ciudad_municipio: limpiarTexto(ciudad),
+        colonia: limpiarTexto(colonia),
+        calle: limpiarTexto(calle),
+        numero: limpiarTexto(numero),
+        referencias: limpiarTexto(referencias)
+      },
+      licencia: {
+        numero: limpiarTexto(numeroLicencia),
+        tipo: limpiarTexto(tipoLicencia),
+        vigencia: vigenciaLicencia
+      },
+      contactoEmergencia: {
+        nombre: limpiarTexto(contactoEmergenciaNombre),
+        telefono: soloDigitos(contactoEmergenciaTelefono)
+      }
+    });
+  }
+
   async function cargarDocumentos(cliente: ReturnType<typeof crearClienteNavegador>) {
     const solicitud = await obtenerSolicitudConReintento(cliente);
     if (!solicitud) {
@@ -479,9 +519,8 @@ export default function PaginaRegistroConductor() {
 
     try {
       const cliente = crearClienteNavegador();
-      const telefonoLimpio = telefonoE164Mx(telefono);
-      const contactoTelefonoNacional = soloDigitos(contactoEmergenciaTelefono);
       const aceptadosEn = terminosAceptadosEn();
+      terminosAceptadosEnRef.current = aceptadosEn;
 
       const { data: datosAuth, error: errorAuth } = await cliente.auth.signUp({
         email: email.trim().toLowerCase(),
@@ -489,53 +528,7 @@ export default function PaginaRegistroConductor() {
         options: {
           data: {
             tipo_registro: "conductor",
-            nombre: nombreCompleto,
-            telefono: telefonoLimpio,
-            curp: curp.trim().toUpperCase(),
-            codigo_postal: codigoPostal.trim(),
-            estado_residencia: limpiarTexto(estado),
-            ciudad_municipio: limpiarTexto(ciudad),
-            colonia: limpiarTexto(colonia),
-            calle: limpiarTexto(calle),
-            numero: limpiarTexto(numero),
-            referencias: limpiarTexto(referencias),
-            licencia_numero: limpiarTexto(numeroLicencia),
-            licencia_tipo: limpiarTexto(tipoLicencia),
-            licencia_vigencia: vigenciaLicencia,
-            autoriza_verificacion_antecedentes: autorizaVerificacion,
-            declara_sin_suspensiones: declaraSinSuspensiones,
-            contacto_emergencia_nombre: limpiarTexto(contactoEmergenciaNombre),
-            contacto_emergencia_telefono: contactoTelefonoNacional,
-            version_terminos_aceptada: 1,
-            terminos_aceptados_en: aceptadosEn,
-            domicilio: {
-              codigo_postal: codigoPostal.trim(),
-              estado: limpiarTexto(estado),
-              ciudad_municipio: limpiarTexto(ciudad),
-              colonia: limpiarTexto(colonia),
-              calle: limpiarTexto(calle),
-              numero: limpiarTexto(numero),
-              referencias: limpiarTexto(referencias)
-            },
-            licencia: {
-              numero: limpiarTexto(numeroLicencia),
-              tipo: limpiarTexto(tipoLicencia),
-              vigencia: vigenciaLicencia
-            },
-            verificacion: {
-              autoriza_antecedentes: autorizaVerificacion,
-              declara_sin_suspensiones: declaraSinSuspensiones
-            },
-            contacto_emergencia: {
-              nombre: limpiarTexto(contactoEmergenciaNombre),
-              telefono: contactoTelefonoNacional
-            },
-            legales: {
-              acepta_terminos_privacidad: aceptaLegales,
-              version_terminos_aceptada: 1,
-              terminos_aceptados_en: aceptadosEn,
-              marca: "ruum ruum by Movilia"
-            }
+            version_registro: 2
           }
         }
       });
@@ -545,6 +538,7 @@ export default function PaginaRegistroConductor() {
       if (datosAuth.session) {
         setSesionActivaTrasRegistro(true);
         try {
+          await guardarExpedienteAutenticado(cliente);
           await cargarDocumentos(cliente);
         } catch (errorDocumentos) {
           setAdvertenciaDocumentos(
@@ -597,6 +591,7 @@ export default function PaginaRegistroConductor() {
 
       setSesionActivaTrasRegistro(true);
       try {
+        await guardarExpedienteAutenticado(cliente);
         await cargarDocumentos(cliente);
       } catch (errorDocumentos) {
         setAdvertenciaDocumentos(
