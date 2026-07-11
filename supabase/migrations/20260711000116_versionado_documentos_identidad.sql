@@ -11,10 +11,7 @@ from public.usuarios u
 where u.auth_user_id = s.auth_user_id and s.usuario_id is null;
 
 -- Sólo afecta sellos transitorios creados antes de esta migración.
-delete from public.documentos_identidad_storage_validados
-where usuario_id is null
-  or tamano_bytes is null
-  or tamano_bytes <= 0;
+delete from public.documentos_identidad_storage_validados where usuario_id is null or tamano_bytes = 0;
 alter table public.documentos_identidad_storage_validados alter column usuario_id set not null;
 alter table public.documentos_identidad_storage_validados alter column tamano_bytes set not null;
 alter table public.documentos_identidad_storage_validados

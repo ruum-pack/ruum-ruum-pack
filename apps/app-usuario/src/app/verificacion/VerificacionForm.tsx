@@ -194,8 +194,18 @@ export function VerificacionForm({ destino }: Props) {
     const archivo = e.target.files?.[0];
     if (!archivo) return;
     const extension = extensionArchivo(archivo.name);
+    const esHeic = ["image/heic", "image/heif"].includes(archivo.type.toLowerCase())
+      || [".heic", ".heif"].includes(extension);
     const formatoSoportado = TIPOS_ACEPTADOS.includes(archivo.type) || EXTENSIONES_ACEPTADAS.includes(extension);
 
+    if (esHeic) {
+      setDocumento(null);
+      setDocAviso(
+        "Este archivo está en formato HEIC/HEIF. En tu iPhone cambia a Ajustes › Cámara › Formatos › Más compatible y toma la foto nuevamente. También puedes convertirla a JPG o PDF."
+      );
+      e.target.value = "";
+      return;
+    }
     if (!formatoSoportado) {
       setDocumento(null);
       setDocAviso("Formato no soportado. Selecciona un archivo JPG, PNG o PDF.");

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
-import { fortalezaPassword, traducirErrorAuth } from "@ruum/shared/utils";
+import { fortalezaPassword, observarSesionRecuperacion, traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 export default function PaginaNuevaPasswordConductor() {
@@ -22,40 +22,11 @@ export default function PaginaNuevaPasswordConductor() {
       return () => clearTimeout(timer);
     }
 
-    let activo = true;
     const cliente = crearClienteNavegador();
-
-    // El código de recuperación ya se intercambió por una sesión en el
-    // servidor (/auth/callback antes de llegar aquí), así que al montar este
-    // cliente normalmente encontramos una sesión que YA EXISTÍA en las
-    // cookies — @supabase/ssr dispara eso como "INITIAL_SESSION", no como
-    // "PASSWORD_RECOVERY" ni "SIGNED_IN". Antes solo escuchábamos esos dos
-    // eventos, así que un enlace perfectamente válido terminaba mostrando
-    // "el enlace expiró". Verificamos la sesión directamente con
-    // getUser() como fuente de verdad, sin depender de qué nombre de evento
-    // haya disparado el SDK.
-    async function verificarSesion() {
-      try {
-        const { data } = await cliente.auth.getUser();
-        if (activo && data.user) setSesionLista(true);
-      } finally {
-        if (activo) setVerificando(false);
-      }
-    }
-    void verificarSesion();
-
-    // Respaldo: si el enlace se abrió y la sesión se establece un instante
-    // después de montar (p. ej. justo llega el evento PASSWORD_RECOVERY),
-    // lo capturamos también.
-    const { data: { subscription } } = cliente.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-        setSesionLista(true);
-        setVerificando(false);
-      }
+    return observarSesionRecuperacion(cliente.auth, ({ sesionLista: lista, verificando: enVerificacion }) => {
+      setSesionLista(lista);
+      setVerificando(enVerificacion);
     });
-
-    const timeout = setTimeout(() => { if (activo) setVerificando(false); }, 3000);
-    return () => { activo = false; subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
   async function establecer(e: React.FormEvent) {
