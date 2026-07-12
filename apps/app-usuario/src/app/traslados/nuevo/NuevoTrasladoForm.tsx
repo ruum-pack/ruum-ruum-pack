@@ -11,7 +11,7 @@ import { listarVehiculosDeUsuario, obtenerUsuarioActual } from "@ruum/api/servic
 import { esNativo } from "../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../lib/codigos-postales";
-import { cargarGoogleMaps, tieneGoogleMapsConfigurado } from "../../../lib/google-maps";
+import { sugerirDireccionesPorCodigoPostal, tieneMapboxConfigurado } from "../../../lib/mapbox";
 import {
   guardarBorradorTrasladoLocal,
   leerBorradorTrasladoLocal,
@@ -27,9 +27,7 @@ import { EstadoCreacion } from "./components/EstadoCreacion";
 
 const PASOS = ["Datos básicos", "Agenda + Servicio"] as const;
 
-// Los tipos globales de window.google (incluido Geocoder) viven en
-// lib/google-maps.ts — es la única puerta de entrada al SDK, ver ese
-// archivo para el porqué.
+// Geocodificación y sugerencias usan Mapbox mediante lib/mapbox.ts.
 
 const MARCAS_AUTOS_MEXICO = [
   "Acura",
@@ -521,8 +519,8 @@ export function NuevoTrasladoForm() {
     setCpAviso((prev) => ({ ...prev, [prefijo]: null }));
 
     try {
-      const sugerenciasGoogle = await consultarGooglePlacesCp(cp);
-      setPlacesOpciones((prev) => ({ ...prev, [prefijo]: sugerenciasGoogle }));
+      const sugerenciasMapbox = await sugerirDireccionesPorCodigoPostal(cp);
+      setPlacesOpciones((prev) => ({ ...prev, [prefijo]: sugerenciasMapbox }));
       const datosCp = await consultarCodigoPostalMx(cp);
       if (!datosCp) throw new Error("CP no encontrado");
       const ciudad = datosCp.ciudades[0] ?? datosCp.colonias[0] ?? "";
@@ -543,25 +541,6 @@ export function NuevoTrasladoForm() {
     } finally {
       setCpConsultando(null);
     }
-  }
-
-  async function consultarGooglePlacesCp(cp: string): Promise<string[]> {
-    if (typeof window === "undefined") return [];
-    const listo = await cargarGoogleMaps();
-    const Servicio = listo ? window.google?.maps?.places?.AutocompleteService : undefined;
-    if (!Servicio) return [];
-
-    return new Promise((resolve) => {
-      const servicio = new Servicio();
-      servicio.getPlacePredictions(
-        {
-          input: cp,
-          types: ["postal_code"],
-          componentRestrictions: { country: "mx" }
-        },
-        (predicciones) => resolve((predicciones ?? []).map((p) => p.description).slice(0, 3))
-      );
-    });
   }
 
   function aplicarSugerenciaCp(prefijo: PrefijoDomicilio, ciudad: string, colonia: string) {
@@ -880,9 +859,9 @@ export function NuevoTrasladoForm() {
       // dirección a mano igual que hacía antes de que existiera geocodificación
       // — pero si Maps no está configurado o la dirección no resolvió, hay que
       // dejarlo visible en vez de mandar 0,0 disfrazado de coordenada real.
-      if (coordenadas.incompletas && !tieneGoogleMapsConfigurado()) {
+      if (coordenadas.incompletas && !tieneMapboxConfigurado()) {
         console.warn(
-          "[traslados/nuevo] NEXT_PUBLIC_GOOGLE_MAPS_API_KEY no está configurada: origen/destino se guardan sin geocodificar."
+          "[traslados/nuevo] NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN no está configurado: origen/destino se guardan sin geocodificar."
         );
       }
 

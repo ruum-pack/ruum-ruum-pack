@@ -3,15 +3,15 @@
 /**
  * PRD §10.3 — Mapa operativo. Muestra todos los traslados activos con pin
  * de origen (azul trazabilidad) y pin de destino (amarillo ruta), línea punteada de
- * ruta, y panel lateral de selección. Usa Leaflet via CDN (OSM, sin API key).
+ * ruta calculada, y panel lateral de selección. Usa Mapbox GL JS y Directions.
  *
  * Nota: la ubicación en tiempo real del conductor no está disponible hasta
  * que se implemente el GPS continuo (Foreground Service nativo, PRD §15).
  * Por ahora se muestra el pin de origen registrado en el traslado.
  */
 
-"use client";
 import { useEffect, useRef, useState } from "react";
+import type { Map as MapboxMap, Marker as MapboxMarker } from "mapbox-gl";
 import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";
 import { listarTrasladosActivosMapa, type TrasladoMapa } from "@ruum/api/services";
@@ -89,40 +89,36 @@ function tiempoRelativo(iso: string): string {
   return `${Math.floor(min / 60)} h`;
 }
 
-declare global {
-  interface Window {
-    L: {
-      map: (el: HTMLElement, opts: object) => LeafletMap;
-      tileLayer: (url: string, opts: object) => { addTo: (m: LeafletMap) => void };
-      divIcon: (opts: object) => LeafletIcon;
-      marker: (latlng: [number, number], opts?: object) => LeafletMarker;
-      polyline: (latlngs: [number, number][], opts: object) => { addTo: (m: LeafletMap) => void };
-    };
-  }
-  interface LeafletMap {
-    remove: () => void;
-    fitBounds?: (bounds: [[number,number],[number,number]][]) => void;
-  }
-  interface LeafletIcon {}
-  interface LeafletMarker {
-    addTo: (m: LeafletMap) => LeafletMarker;
-    bindTooltip: (content: string, opts?: object) => LeafletMarker;
-    on: (evt: string, fn: () => void) => LeafletMarker;
+const tokenMapbox = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+const estiloMapbox = process.env.NEXT_PUBLIC_MAPBOX_STYLE_URL || "mapbox://styles/mapbox/streets-v12";
+type LineaRuta = { type: "LineString"; coordinates: number[][] };
+
+async function obtenerRuta(
+  origen: [number, number], destino: [number, number]
+): Promise<LineaRuta> {
+  if (!tokenMapbox) return { type: "LineString", coordinates: [origen, destino] };
+  const coordenadas = `${origen[0]},${origen[1]};${destino[0]},${destino[1]}`;
+  try {
+    const respuesta = await fetch(
+      `https://api.mapbox.com/directions/v5/mapbox/driving/${coordenadas}?geometries=geojson&overview=simplified&access_token=${encodeURIComponent(tokenMapbox)}`
+    );
+    if (!respuesta.ok) throw new Error("Directions no disponible");
+    const datos = (await respuesta.json()) as { routes?: Array<{ geometry?: LineaRuta }> };
+    return datos.routes?.[0]?.geometry ?? { type: "LineString", coordinates: [origen, destino] };
+  } catch {
+    return { type: "LineString", coordinates: [origen, destino] };
   }
 }
 
-function cargarLeaflet(): Promise<void> {
-  if (window.L) return Promise.resolve();
-  return new Promise((resolve) => {
-    const css = document.createElement("link");
-    css.rel = "stylesheet";
-    css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-    document.head.appendChild(css);
-    const script = document.createElement("script");
-    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-    script.onload = () => resolve();
-    document.head.appendChild(script);
+function crearPin(color: string, borde: string): HTMLButtonElement {
+  const pin = document.createElement("button");
+  pin.type = "button";
+  pin.setAttribute("aria-label", "Seleccionar traslado en el mapa");
+  Object.assign(pin.style, {
+    width: "18px", height: "18px", borderRadius: "9999px", background: color,
+    border: `3px solid ${borde}`, boxShadow: "0 1px 5px rgba(0,0,0,.4)", cursor: "pointer"
   });
+  return pin;
 }
 
 export default function PaginaMapaOperativo() {
@@ -131,7 +127,9 @@ export default function PaginaMapaOperativo() {
   const [cargando, setCargando] = useState(true);
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapaRef = useRef<LeafletMap | null>(null);
+  const mapaRef = useRef<MapboxMap | null>(null);
+  const marcadoresRef = useRef<MapboxMarker[]>([]);
+  const [errorMapa, setErrorMapa] = useState<string | null>(null);
 
   useEffect(() => {
     async function cargar() {
@@ -164,51 +162,53 @@ export default function PaginaMapaOperativo() {
     if (cargando || !mapRef.current || traslados.length === 0) return;
     if (mapaRef.current) return;
 
+    let cancelado = false;
     void (async () => {
-      await cargarLeaflet();
-      const L = window.L;
-      const mapa = L.map(mapRef.current!, { center: [22.5, -100], zoom: 5 });
-      mapaRef.current = mapa;
+      if (!tokenMapbox) {
+        setErrorMapa("NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN no está configurado.");
+        return;
+      }
+      try {
+        const mapboxgl = (await import("mapbox-gl")).default;
+        mapboxgl.accessToken = tokenMapbox;
+        const mapa = new mapboxgl.Map({ container: mapRef.current!, style: estiloMapbox, center: [-100, 22.5], zoom: 4.2 });
+        mapa.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
+        mapaRef.current = mapa;
+        mapa.on("error", (evento) => setErrorMapa(evento.error?.message ?? "No se pudo cargar el mapa."));
+        await new Promise<void>((resolve) => mapa.once("load", () => resolve()));
+        if (cancelado) return;
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap"
-      }).addTo(mapa);
+        const bounds = new mapboxgl.LngLatBounds();
+        const completos = traslados.filter((t) => t.origen_lat !== null && t.origen_lng !== null && t.destino_lat !== null && t.destino_lng !== null);
+        await Promise.all(completos.map(async (t, indice) => {
+          const origen: [number, number] = [t.origen_lng!, t.origen_lat!];
+          const destino: [number, number] = [t.destino_lng!, t.destino_lat!];
+          const color = t.tiene_incidencia_abierta ? "#b32626" : "#1e88e5";
+          const geometria = await obtenerRuta(origen, destino);
+          if (cancelado) return;
+          const sourceId = `ruta-${indice}`;
+          mapa.addSource(sourceId, { type: "geojson", data: { type: "Feature", properties: {}, geometry: geometria } });
+          mapa.addLayer({ id: sourceId, type: "line", source: sourceId, paint: { "line-color": color, "line-width": 3, "line-opacity": .65 } });
 
-      const iconOrigen = (incidencia: boolean) =>
-        L.divIcon({
-          html: `<div style="width:13px;height:13px;border-radius:50%;background:${incidencia ? "#b32626" : "#1e88e5"};border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
-          className: "",
-          iconSize: [13, 13],
-          iconAnchor: [6, 6]
-        });
-
-      const iconDestino = L.divIcon({
-        html: `<div style="width:13px;height:13px;border-radius:50%;background:#ffc400;border:2.5px solid #151515;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
-        className: "",
-        iconSize: [13, 13],
-        iconAnchor: [6, 6]
-      });
-
-      for (const t of traslados) {
-        if (t.origen_lat === null || t.origen_lng === null || t.destino_lat === null || t.destino_lng === null) continue;
-        const color = t.tiene_incidencia_abierta ? "#b32626" : "#1e88e5";
-        L.polyline(
-          [[t.origen_lat, t.origen_lng], [t.destino_lat, t.destino_lng]],
-          { color, weight: 1.5, opacity: 0.45, dashArray: "5 4" }
-        ).addTo(mapa);
-
-        L.marker([t.origen_lat, t.origen_lng], { icon: iconOrigen(t.tiene_incidencia_abierta) })
-          .addTo(mapa)
-          .bindTooltip(`${t.vehiculo_marca ?? ""} ${t.vehiculo_modelo ?? ""} → ${t.destino_ciudad}`, { direction: "top" })
-          .on("click", () => setSeleccionado(t.traslado_id));
-
-        L.marker([t.destino_lat, t.destino_lng], { icon: iconDestino })
-          .addTo(mapa)
-          .bindTooltip(`Destino: ${t.destino_ciudad}`, { direction: "top" });
+          const origenEl = crearPin(color, "#ffffff");
+          origenEl.onclick = () => setSeleccionado(t.traslado_id);
+          const origenMarker = new mapboxgl.Marker({ element: origenEl }).setLngLat(origen)
+            .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`${t.vehiculo_marca ?? ""} ${t.vehiculo_modelo ?? ""} → ${t.destino_ciudad}`)).addTo(mapa);
+          const destinoMarker = new mapboxgl.Marker({ element: crearPin("#f5a623", "#1a1f2e") }).setLngLat(destino)
+            .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`Destino: ${t.destino_ciudad}`)).addTo(mapa);
+          marcadoresRef.current.push(origenMarker, destinoMarker);
+          bounds.extend(origen).extend(destino);
+        }));
+        if (!bounds.isEmpty()) mapa.fitBounds(bounds, { padding: 70, maxZoom: 9, duration: 0 });
+      } catch (error) {
+        setErrorMapa(error instanceof Error ? error.message : "No se pudo inicializar Mapbox.");
       }
     })();
 
     return () => {
+      cancelado = true;
+      marcadoresRef.current.forEach((marcador) => marcador.remove());
+      marcadoresRef.current = [];
       mapaRef.current?.remove();
       mapaRef.current = null;
     };
@@ -265,6 +265,9 @@ export default function PaginaMapaOperativo() {
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
               <p className="font-display text-lg text-ink/35">Sin traslados activos</p>
             </div>
+          )}
+          {errorMapa && (
+            <div className="absolute left-4 right-4 top-4 z-10"><Aviso tono="peligro">{errorMapa}</Aviso></div>
           )}
           <div ref={mapRef} style={{ height: "100%", minHeight: 480 }} />
 
@@ -351,7 +354,7 @@ export default function PaginaMapaOperativo() {
 
       <div className="border-t border-mist-dim px-6 py-2">
         <p className="font-body text-xs text-ink/30">
-          Pines en origen registrado. Ubicación en tiempo real disponible con GPS continuo (PRD §15).
+          Rutas calculadas con Mapbox Directions. Ubicación en tiempo real disponible con GPS continuo (PRD §15).
         </p>
       </div>
     </div>

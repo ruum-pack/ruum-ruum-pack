@@ -13,6 +13,7 @@
     "@ruum/shared": "workspace:*",
     "@ruum/ui": "workspace:*",
     "@supabase/supabase-js": "^2.47.0",
+    "mapbox-gl": "^3.26.0",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

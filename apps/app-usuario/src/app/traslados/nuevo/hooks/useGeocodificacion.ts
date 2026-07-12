@@ -1,4 +1,4 @@
-import { geocodificarDireccion } from "../../../../lib/google-maps";
+import { geocodificarDireccion } from "../../../../lib/mapbox";
 
 export function useGeocodificacion() {
   async function geocodificarRuta(origen: string, destino: string, origenActual?: { lat: number; lng: number }) {

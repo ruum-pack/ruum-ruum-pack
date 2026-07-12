@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { BarraLateral } from "./BarraLateral";
 import { NavegacionAdminMovil } from "./NavegacionAdminMovil";
 

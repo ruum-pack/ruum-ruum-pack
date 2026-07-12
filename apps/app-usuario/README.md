@@ -71,7 +71,7 @@ Esta app no tiene todavía una pantalla que capture evidencia fotográfica (el w
 ese paso — ver "Pendiente"), así que no se agregó `@capacitor/camera` aquí; sí se agregó
 `@capacitor/geolocation`: el paso de Origen del wizard tiene un botón "Usar mi ubicación actual" (solo visible
 dentro del shell nativo) que reemplaza el placeholder `lat/lng = 0` con la posición real del dispositivo.
-Geocodificación real de la dirección escrita sigue pendiente — esto solo cubre "dónde está el dispositivo ahora".
+La geocodificación de direcciones escritas usa Mapbox Geocoding v6; si no resuelve una dirección, conserva coordenadas `NULL`.
 
 Permiso agregado a mano en `android/app/src/main/AndroidManifest.xml`: `ACCESS_FINE_LOCATION` /
 `ACCESS_COARSE_LOCATION`. iOS no se agregó (requiere macOS/Xcode). Igual que en app-conductor: validado por
@@ -125,7 +125,7 @@ Supabase o Stripe no están configurados.
 
 - Pantallas de seguimiento en tiempo real (mapa), chat, calificación y
   disputa (PRD §9).
-- Geocodificación real de la dirección escrita — hoy son campos de texto
+- Autocompletado avanzado de direcciones y puntos de interés sobre Mapbox Search Box
   simples. El origen puede usar GPS real dentro del shell nativo (ver
   Capacitor arriba); el destino sigue enviándose en `lat`/`lng = 0` siempre
   (no tiene sentido usar la ubicación del dispositivo para "a dónde va el
