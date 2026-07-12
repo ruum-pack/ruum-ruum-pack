@@ -12,6 +12,7 @@ import { esNativo } from "../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../lib/codigos-postales";
 import { sugerirDireccionesPorCodigoPostal, tieneMapboxConfigurado } from "../../../lib/mapbox";
+import { MARCAS_CATALOGO, modelosPorMarca, tipoSugeridoParaVehiculo } from "../../../lib/catalogo-vehiculos";
 import {
   guardarBorradorTrasladoLocal,
   leerBorradorTrasladoLocal,
@@ -28,52 +29,6 @@ import { EstadoCreacion } from "./components/EstadoCreacion";
 const PASOS = ["Datos básicos", "Agenda + Servicio"] as const;
 
 // Geocodificación y sugerencias usan Mapbox mediante lib/mapbox.ts.
-
-const MARCAS_AUTOS_MEXICO = [
-  "Acura",
-  "Audi",
-  "BMW",
-  "BYD",
-  "Cadillac",
-  "Changan",
-  "Chevrolet",
-  "Chirey",
-  "Chrysler",
-  "Cupra",
-  "Dodge",
-  "Fiat",
-  "Ford",
-  "GAC",
-  "GMC",
-  "Honda",
-  "Hyundai",
-  "Infiniti",
-  "JAC",
-  "Jaecoo",
-  "Jeep",
-  "Kia",
-  "Land Rover",
-  "Lexus",
-  "Lincoln",
-  "Mazda",
-  "Mercedes-Benz",
-  "MG",
-  "MINI",
-  "Mitsubishi",
-  "Nissan",
-  "Omoda",
-  "Peugeot",
-  "Porsche",
-  "RAM",
-  "Renault",
-  "SEAT",
-  "Subaru",
-  "Suzuki",
-  "Tesla",
-  "Toyota",
-  "Volkswagen",
-  "Volvo"
-] as const;
 
 const ESTADOS_GENERALES_VEHICULO = [
   "Excelente, sin daños visibles",
@@ -284,6 +239,7 @@ export function NuevoTrasladoForm() {
     encabezadoPasoRef.current?.focus();
   }, [paso]);
   const [datos, setDatos] = useState<DatosFormulario>(VALORES_INICIALES);
+  const modelosDisponibles = useMemo(() => modelosPorMarca(datos.marca), [datos.marca]);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<{ ok: boolean; mensaje: string } | null>(null);
   const [usuario, setUsuario] = useState<Usuario>(USUARIO_PENDIENTE);
@@ -496,6 +452,18 @@ export function NuevoTrasladoForm() {
 
   function actualizarTelefono(campo: "entregaTelefono" | "recepcionTelefono", valor: string) {
     actualizar(campo, telefonoLocalMx(valor));
+  }
+
+  function actualizarMarcaCatalogo(marca: string) {
+    const cambioMarca = marca !== datos.marca;
+    actualizar("marca", marca);
+    if (cambioMarca && datos.modelo) actualizar("modelo", "");
+  }
+
+  function actualizarModeloCatalogo(modelo: string) {
+    actualizar("modelo", modelo);
+    const tipoSugerido = tipoSugeridoParaVehiculo(datos.marca, modelo);
+    if (tipoSugerido) actualizar("tipo", tipoSugerido);
   }
 
   function actualizarCodigoPostal(prefijo: PrefijoDomicilio, valor: string) {
@@ -1034,24 +1002,35 @@ export function NuevoTrasladoForm() {
                     <option value="electrica">Eléctrica</option>
                   </select>
                 </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="font-body text-sm font-medium">Marca</span>
-                  <select
+                <div>
+                  <Field
+                    etiqueta="Marca"
+                    list="catalogo-marcas-vehiculos"
                     value={datos.marca}
-                    onChange={(e) => actualizar("marca", e.target.value)}
-                    className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm ${claseControl("marca")}`}
-                    aria-invalid={Boolean(errores.marca)}
-                  >
-                    <option value="">Selecciona marca</option>
-                    {MARCAS_AUTOS_MEXICO.map((marca) => (
-                      <option key={marca} value={marca}>
-                        {marca}
-                      </option>
-                    ))}
-                  </select>
-                  {errores.marca && <p className="font-body text-xs text-danger">{errores.marca}</p>}
-                </label>
-                <Field etiqueta="Modelo" value={datos.modelo} onChange={(e) => actualizar("modelo", e.target.value)} error={errores.modelo} />
+                    onChange={(e) => actualizarMarcaCatalogo(e.target.value)}
+                    error={errores.marca}
+                    ayuda="Selecciona una marca del catálogo o escríbela manualmente."
+                  />
+                  <datalist id="catalogo-marcas-vehiculos">
+                    {MARCAS_CATALOGO.map((marca) => <option key={marca} value={marca} />)}
+                  </datalist>
+                </div>
+                <div>
+                  <Field
+                    etiqueta="Modelo"
+                    list="catalogo-modelos-vehiculos"
+                    value={datos.modelo}
+                    onChange={(e) => actualizarModeloCatalogo(e.target.value)}
+                    disabled={!datos.marca.trim()}
+                    error={errores.modelo}
+                    ayuda={datos.marca.trim()
+                      ? `${modelosDisponibles.length} modelos disponibles. Al elegir uno sugeriremos el tipo de vehículo.`
+                      : "Primero captura o selecciona la marca."}
+                  />
+                  <datalist id="catalogo-modelos-vehiculos">
+                    {modelosDisponibles.map((modelo) => <option key={modelo} value={modelo} />)}
+                  </datalist>
+                </div>
                 <Field
                   etiqueta="Año"
                   type="number"
