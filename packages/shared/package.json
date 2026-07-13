@@ -10,7 +10,8 @@
     "./states": "./src/states/index.ts",
     "./constants": "./src/constants/index.ts",
     "./utils": "./src/utils/index.ts",
-    "./validacion": "./src/validacion/index.ts"
+    "./validacion": "./src/validacion/index.ts",
+    "./catalogos": "./src/catalogos/index.ts"
   },
   "scripts": {
     "test": "vitest run",

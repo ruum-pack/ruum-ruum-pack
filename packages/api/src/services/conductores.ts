@@ -159,6 +159,42 @@ export async function enviarSolicitudConductor(cliente: Cliente) {
   return mapearResultadoSolicitud(data?.[0]);
 }
 
+export type EventoRegistroConductor =
+  | "registro_iniciado"
+  | "paso_visto"
+  | "paso_completado"
+  | "otp_error"
+  | "rpc_error"
+  | "documento_fallo"
+  | "solicitud_enviada";
+
+export interface DatosEventoRegistroConductor {
+  sesionId: string;
+  evento: EventoRegistroConductor;
+  paso?: number;
+  codigo?: string;
+  duracionMs?: number;
+}
+
+/**
+ * RT-27 — envía únicamente telemetría operativa acotada. El servidor toma
+ * auth_user_id y solicitud_id de la sesión; el cliente nunca los decide.
+ */
+export async function registrarEventoRegistroConductor(
+  cliente: Cliente,
+  datos: DatosEventoRegistroConductor
+) {
+  const { data, error } = await cliente.rpc("registrar_evento_registro_conductor", {
+    p_sesion_id: datos.sesionId,
+    p_evento: datos.evento,
+    p_paso: datos.paso ?? null,
+    p_codigo: datos.codigo ?? null,
+    p_duracion_ms: datos.duracionMs ?? null
+  });
+  if (error) throw error;
+  return data;
+}
+
 /** Persiste PII después de autenticar; nunca usa `user_metadata`. */
 export async function completarSolicitudConductorV2(
   cliente: Cliente,

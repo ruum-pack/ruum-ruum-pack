@@ -88,6 +88,7 @@ const GRUPOS_NAVEGACION = [
     titulo: "Personas",
     secciones: [
       { href: "/conductores", etiqueta: "Conductores", icono: "conductor" as IconoNombre },
+      { href: "/metricas-registro", etiqueta: "Métricas de registro", icono: "reportes" as IconoNombre },
       { href: "/usuarios", etiqueta: "Usuarios", icono: "usuario" as IconoNombre },
       { href: "/empresas", etiqueta: "Empresas", icono: "empresa" as IconoNombre },
     ],

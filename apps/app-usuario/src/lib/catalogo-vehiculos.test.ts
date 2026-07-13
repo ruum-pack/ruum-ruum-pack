@@ -9,13 +9,13 @@ describe("catálogo de vehículos", () => {
     expect(modelosPorMarca("marca inexistente")).toEqual([]);
   });
 
-  it("sugiere sedán para registros clasificados como automóvil", () => {
-    expect(tipoSugeridoParaVehiculo("Acura", "ILX")).toBe("sedan");
+  it("sugiere luxury para automóviles clasificados de lujo", () => {
+    expect(tipoSugeridoParaVehiculo("Acura", "ILX")).toBe("luxury");
   });
 
   it("distingue pick-up, van y SUV dentro de camiones ligeros", () => {
     expect(tipoSugeridoParaVehiculo("Nissan", "Frontier Diesel")).toBe("pick_up");
-    expect(tipoSugeridoParaVehiculo("Toyota", "Hiace P")).toBe("van");
+    expect(tipoSugeridoParaVehiculo("Honda", "Odyssey")).toBe("van");
     expect(tipoSugeridoParaVehiculo("Acura", "Mdx")).toBe("suv");
   });
 

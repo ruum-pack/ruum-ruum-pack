@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button, Field, Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO, ETIQUETA_NIVEL_CONCER } from "@ruum/shared/constants";
+import { resumenClasificacionVehiculo } from "@ruum/shared/catalogos";
 import { ETIQUETA_ESTADO_TRASLADO, TRANSICIONES } from "@ruum/shared/states";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
@@ -273,6 +274,10 @@ export default function PaginaDetalleViajeAdmin() {
   }
 
   const siguientesEstados = TRANSICIONES[pasaporte.estado] ?? [];
+  const clasificacionCatalogo = resumenClasificacionVehiculo(
+    pasaporte.vehiculo_marca ?? "",
+    pasaporte.vehiculo_modelo ?? "",
+  );
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8 sm:px-8 sm:py-10">
@@ -348,6 +353,10 @@ export default function PaginaDetalleViajeAdmin() {
             <div className="flex justify-between">
               <dt className="text-ink/45">Tipo</dt>
               <dd>{pasaporte.vehiculo_tipo ? ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo] : "—"}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-ink/45">Clasificación catálogo</dt>
+              <dd className="text-right">{clasificacionCatalogo ?? "Sin coincidencia"}</dd>
             </div>
           </dl>
         </PassportCard>

@@ -402,6 +402,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      eventos_registro_conductor: {
+        Row: {
+          id: string
+          sesion_id: string
+          auth_user_id: string | null
+          solicitud_id: string | null
+          evento: "registro_iniciado" | "paso_visto" | "paso_completado" | "otp_error" | "rpc_error" | "documento_fallo" | "solicitud_enviada"
+          paso: number | null
+          codigo: string | null
+          duracion_ms: number | null
+          creado_en: string
+        };
+        Insert: {
+          id?: string
+          sesion_id: string
+          auth_user_id?: string | null
+          solicitud_id?: string | null
+          evento: "registro_iniciado" | "paso_visto" | "paso_completado" | "otp_error" | "rpc_error" | "documento_fallo" | "solicitud_enviada"
+          paso?: number | null
+          codigo?: string | null
+          duracion_ms?: number | null
+          creado_en?: string
+        };
+        Update: {
+          id?: string
+          sesion_id?: string
+          auth_user_id?: string | null
+          solicitud_id?: string | null
+          evento?: "registro_iniciado" | "paso_visto" | "paso_completado" | "otp_error" | "rpc_error" | "documento_fallo" | "solicitud_enviada"
+          paso?: number | null
+          codigo?: string | null
+          duracion_ms?: number | null
+          creado_en?: string
+        };
+        Relationships: [];
+      };
       empresas: {
         Row: {
           id: string
@@ -1370,6 +1406,20 @@ export type Database = {
           estado: Database["public"]["Enums"]["estado_expediente_conductor"];
           paso_actual: number;
         }>;
+      };
+      registrar_evento_registro_conductor: {
+        Args: {
+          p_sesion_id: string;
+          p_evento: "registro_iniciado" | "paso_visto" | "paso_completado" | "otp_error" | "rpc_error" | "documento_fallo" | "solicitud_enviada";
+          p_paso?: number | null;
+          p_codigo?: string | null;
+          p_duracion_ms?: number | null;
+        };
+        Returns: string;
+      };
+      obtener_metricas_registro_conductor: {
+        Args: { p_desde?: string; p_hasta?: string };
+        Returns: Json;
       };
       crear_incidencia_sistema_dano_no_reportado: {
         Args: { p_traslado_id: string; p_descripcion: string };

@@ -19,6 +19,7 @@ import {
   obtenerConductorActual,
   obtenerSolicitudConductorActual,
   registrarConsentimientosConductor,
+  registrarEventoRegistroConductor,
   subirDocumentoSolicitudConductor
 } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
@@ -169,6 +170,9 @@ export default function PaginaRegistroConductor() {
   const omitirPrimerGuardadoRemotoRef=useRef(false);
   const ultimoGuardadoRemotoRef=useRef("");
   const aceptadosEnRef=useRef(new Date().toISOString());
+  const telemetriaSesionRef=useRef("");
+  const telemetriaInicioRef=useRef(0);
+  const ultimoPasoTelemetriaRef=useRef(0);
 
   // Fase 4 — verificación por código (OTP) cuando Supabase exige confirmar el correo.
   const [pendienteOtp, setPendienteOtp] = useState(false);
@@ -184,6 +188,40 @@ export default function PaginaRegistroConductor() {
   const nombreCompleto = useMemo(() => limpiarTexto(`${nombre} ${apellidos}`), [nombre, apellidos]);
   const fuerzaPassword = useMemo(() => fortalezaPassword(password), [password]);
   const tieneErroresActivos = Object.values(erroresCampos).some(Boolean);
+
+  const registrarTelemetria=useCallback((
+    evento: Parameters<typeof registrarEventoRegistroConductor>[1]["evento"],
+    pasoEvento?: number,
+    codigo?: string
+  )=>{
+    if (!tieneSupabaseConfigurado()||!telemetriaSesionRef.current) return;
+    const duracionMs=telemetriaInicioRef.current
+      ? Math.max(0,Date.now()-telemetriaInicioRef.current)
+      : undefined;
+    void registrarEventoRegistroConductor(crearClienteNavegador(),{
+      sesionId:telemetriaSesionRef.current,
+      evento,
+      paso:pasoEvento,
+      codigo,
+      duracionMs
+    }).catch(()=>{
+      // La observabilidad nunca debe bloquear ni distraer el alta.
+    });
+  },[]);
+
+  useEffect(()=>{
+    if (telemetriaSesionRef.current) return;
+    telemetriaSesionRef.current=crypto.randomUUID();
+    telemetriaInicioRef.current=Date.now();
+    registrarTelemetria("registro_iniciado",1);
+  },[registrarTelemetria]);
+
+  useEffect(()=>{
+    const pasoVisible=paso+1;
+    if (!telemetriaSesionRef.current||ultimoPasoTelemetriaRef.current===pasoVisible) return;
+    ultimoPasoTelemetriaRef.current=pasoVisible;
+    registrarTelemetria("paso_visto",pasoVisible);
+  },[paso,registrarTelemetria]);
   const puedeEnviar = !enviando && !tieneErroresActivos && aceptaTerminos && confirmaPrivacidad && formularioCompleto();
 
   function setCampoError(campo: string, mensaje: string) {
@@ -334,7 +372,10 @@ export default function PaginaRegistroConductor() {
 
   function avanzar() {
     setError(null);
-    if (validarPaso()) setPaso((actual) => Math.min(actual + 1, PASOS.length - 1));
+    if (validarPaso()) {
+      registrarTelemetria("paso_completado",paso+1);
+      setPaso((actual) => Math.min(actual + 1, PASOS.length - 1));
+    }
   }
 
   function volver() {
@@ -409,6 +450,12 @@ export default function PaginaRegistroConductor() {
       return siguiente;
     });
 
+    resultados.forEach((resultado,indice)=>{
+      if (resultado.status==="rejected") {
+        registrarTelemetria("documento_fallo",paso+1,TIPOS_DOCUMENTO[pendientes[indice][0]]);
+      }
+    });
+
     const resultados = await Promise.allSettled(
       pendientes.map(([campo, archivo]) => subirDocumentoSolicitudConductor(cliente, solicitudId, TIPOS_DOCUMENTO[campo], archivo as File))
     );
@@ -465,7 +512,9 @@ export default function PaginaRegistroConductor() {
     );
     await guardarBorradorConductor(cliente, contratoExpediente(), PASOS.length);
     await cargarDocumentos(cliente, inicio.solicitudId);
-    return enviarSolicitudConductor(cliente);
+    const resultado=await enviarSolicitudConductor(cliente);
+    registrarTelemetria("solicitud_enviada",PASOS.length,"enviado");
+    return resultado;
   }
 
   async function crearCuenta(e: FormEvent) {
@@ -522,6 +571,7 @@ export default function PaginaRegistroConductor() {
         setPendienteOtp(true);
       }
     } catch (err) {
+      if (cuentaCreada) registrarTelemetria("rpc_error",paso+1,"enviar_solicitud");
       setError(cuentaCreada?traducirErrorOperativo(err,"No pudimos enviar tu solicitud. Tu cuenta quedó creada y puedes reintentar."):traducirErrorAuth(err));
     } finally {
       setEnviando(false);
@@ -563,9 +613,13 @@ export default function PaginaRegistroConductor() {
       setEnviado(true);
     } catch (err) {
       if(cuentaVerificada) {
+        registrarTelemetria("rpc_error",paso+1,"enviar_solicitud");
         setPendienteOtp(false);
         setError(traducirErrorOperativo(err,"Tu cuenta quedó verificada, pero no pudimos enviar la solicitud. Puedes reintentar."));
-      } else setErrorOtp(traducirErrorAuth(err));
+      } else {
+        registrarTelemetria("otp_error",paso+1,"verificar_otp");
+        setErrorOtp(traducirErrorAuth(err));
+      }
     } finally {
       setVerificandoOtp(false);
     }
@@ -584,6 +638,7 @@ export default function PaginaRegistroConductor() {
       if (errorReenvio) throw errorReenvio;
       setEsperaReenvioOtp(ESPERA_REENVIO_OTP_SEGUNDOS);
     } catch (err) {
+      registrarTelemetria("otp_error",paso+1,"reenviar_otp");
       setErrorOtp(traducirErrorAuth(err));
     } finally {
       setReenviandoOtp(false);
@@ -689,6 +744,7 @@ export default function PaginaRegistroConductor() {
         setEstadoGuardadoRemoto("guardado");
       } catch (err) {
         hidratacionRemotaCompletaRef.current=true;
+        registrarTelemetria("rpc_error",undefined,"recuperar_expediente");
         setError(traducirErrorOperativo(err,"No pudimos recuperar tu expediente. Vuelve a intentarlo."));
       }
     }
@@ -697,7 +753,7 @@ export default function PaginaRegistroConductor() {
       if (evento==="SIGNED_OUT") limpiarBorradorRegistroLocal();
     });
     return()=>{activo=false;suscripcion.subscription.unsubscribe();};
-  },[router]);
+  },[router,registrarTelemetria]);
 
   useEffect(()=>{
     const sinConexion=()=>setEstadoGuardadoRemoto("sin_conexion");
@@ -734,13 +790,14 @@ export default function PaginaRegistroConductor() {
         ultimoGuardadoRemotoRef.current=firma;
         setEstadoGuardadoRemoto("guardado");
       } catch(err) {
+        registrarTelemetria("rpc_error",paso+1,"guardar_borrador");
         const mensaje=traducirErrorOperativo(err);
         setDetalleGuardadoRemoto(mensaje);
         setEstadoGuardadoRemoto(navigator.onLine?"error":"sin_conexion");
       }
     },RETRASO_GUARDADO_REMOTO_MS);
     return()=>clearTimeout(timer);
-  },[sesionAutenticada,solicitudRemotaId,enviado,pendienteOtp,reintentoConexion,paso,contratoExpediente,autorizaVerificacion,declaraSinSuspensiones,aceptaTerminos,confirmaPrivacidad]);
+  },[sesionAutenticada,solicitudRemotaId,enviado,pendienteOtp,reintentoConexion,paso,contratoExpediente,autorizaVerificacion,declaraSinSuspensiones,aceptaTerminos,confirmaPrivacidad,registrarTelemetria]);
 
   // Fase 4 — detectar borrador guardado al montar.
   useEffect(() => {

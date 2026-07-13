@@ -153,6 +153,68 @@ export interface MetricasDashboard {
   incidenciasAbiertas: number;
 }
 
+export interface MetricasRegistroConductor {
+  periodo: { desde: string; hasta: string };
+  abandonoPorPaso: Array<{ paso: number; total: number }>;
+  erroresOtp: number;
+  erroresRpc: number;
+  fallosDocumentos: number;
+  tiempoPromedioRegistroSegundos: number | null;
+  tiempoPromedioRevisionSegundos: number | null;
+  documentosRechazadosPorTipo: Array<{ tipo: string; total: number }>;
+  solicitudesEnviadas: number;
+}
+
+function objetoMetrica(valor: unknown): Record<string, unknown> {
+  return valor !== null && typeof valor === "object" && !Array.isArray(valor)
+    ? valor as Record<string, unknown>
+    : {};
+}
+
+function numeroMetrica(valor: unknown): number {
+  return typeof valor === "number" && Number.isFinite(valor) ? valor : 0;
+}
+
+function numeroMetricaNullable(valor: unknown): number | null {
+  return valor === null ? null : numeroMetrica(valor);
+}
+
+/** RT-27 — agregado calculado por PostgreSQL; el cliente no lee eventos crudos. */
+export async function obtenerMetricasRegistroConductor(
+  cliente: Cliente,
+  desde: string,
+  hasta: string
+): Promise<MetricasRegistroConductor> {
+  const { data, error } = await cliente.rpc("obtener_metricas_registro_conductor", {
+    p_desde: desde,
+    p_hasta: hasta
+  });
+  if (error) throw error;
+
+  const raiz = objetoMetrica(data);
+  const periodo = objetoMetrica(raiz.periodo);
+  const abandonos = Array.isArray(raiz.abandono_por_paso) ? raiz.abandono_por_paso : [];
+  const rechazados = Array.isArray(raiz.documentos_rechazados_por_tipo) ? raiz.documentos_rechazados_por_tipo : [];
+
+  return {
+    periodo: { desde: String(periodo.desde ?? desde), hasta: String(periodo.hasta ?? hasta) },
+    abandonoPorPaso: abandonos.map(objetoMetrica).map((fila) => ({
+      paso: numeroMetrica(fila.paso),
+      total: numeroMetrica(fila.total)
+    })),
+    erroresOtp: numeroMetrica(raiz.errores_otp),
+    erroresRpc: numeroMetrica(raiz.errores_rpc),
+    fallosDocumentos: numeroMetrica(raiz.fallos_documentos),
+    tiempoPromedioRegistroSegundos: numeroMetricaNullable(raiz.tiempo_promedio_registro_segundos),
+    tiempoPromedioRevisionSegundos: numeroMetricaNullable(raiz.tiempo_promedio_revision_segundos),
+    documentosRechazadosPorTipo: rechazados.map(objetoMetrica).map((fila) => ({
+      tipo: String(fila.tipo ?? "desconocido"),
+      total: numeroMetrica(fila.total)
+    })),
+    solicitudesEnviadas: numeroMetrica(raiz.solicitudes_enviadas)
+  };
+}
+
 /**
  * PRD §17.3 — métricas del dashboard. Nota: el PRD también pide "programados
  * para hoy" y "conductores disponibles", pero ninguno de los dos es

@@ -7,6 +7,7 @@ export const metadata: Metadata = {
 import { obtenerPasaporteDigital } from "@ruum/api/services";
 import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
+import { resumenClasificacionVehiculo } from "@ruum/shared/catalogos";
 import { crearClienteServidor } from "../../../lib/supabase-server";
 import { AccionesViaje } from "./AccionesViaje";
 import { ChatViaje } from "./ChatViaje";
@@ -65,6 +66,10 @@ export default async function PaginaDetalleViaje({ params }: { params: Promise<{
     pasaporte.estado === "evidencia_final_en_proceso"
       ? pasaporte.evidencia_final_fotos_sincronizadas
       : pasaporte.evidencia_inicial_fotos_sincronizadas;
+  const clasificacionCatalogo = resumenClasificacionVehiculo(
+    pasaporte.vehiculo_marca ?? "",
+    pasaporte.vehiculo_modelo ?? "",
+  );
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-12">
@@ -86,6 +91,9 @@ export default async function PaginaDetalleViaje({ params }: { params: Promise<{
                 </span>
               )}
             </h1>
+            {clasificacionCatalogo && (
+              <p className="mt-1 font-body text-xs text-ink/45">{clasificacionCatalogo}</p>
+            )}
           </div>
           <EstadoBadge estado={pasaporte.estado} />
         </div>

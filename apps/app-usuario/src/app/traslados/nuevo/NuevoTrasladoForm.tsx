@@ -12,7 +12,7 @@ import { esNativo } from "../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../lib/codigos-postales";
 import { sugerirDireccionesPorCodigoPostal, tieneMapboxConfigurado } from "../../../lib/mapbox";
-import { MARCAS_CATALOGO, modelosPorMarca, tipoSugeridoParaVehiculo } from "../../../lib/catalogo-vehiculos";
+import { MARCAS_CATALOGO, modelosPorMarca, resumenClasificacionVehiculo, tipoSugeridoParaVehiculo } from "../../../lib/catalogo-vehiculos";
 import {
   guardarBorradorTrasladoLocal,
   leerBorradorTrasladoLocal,
@@ -240,6 +240,10 @@ export function NuevoTrasladoForm() {
   }, [paso]);
   const [datos, setDatos] = useState<DatosFormulario>(VALORES_INICIALES);
   const modelosDisponibles = useMemo(() => modelosPorMarca(datos.marca), [datos.marca]);
+  const clasificacionCatalogo = useMemo(
+    () => resumenClasificacionVehiculo(datos.marca, datos.modelo),
+    [datos.marca, datos.modelo],
+  );
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<{ ok: boolean; mensaje: string } | null>(null);
   const [usuario, setUsuario] = useState<Usuario>(USUARIO_PENDIENTE);
@@ -1023,7 +1027,9 @@ export function NuevoTrasladoForm() {
                     onChange={(e) => actualizarModeloCatalogo(e.target.value)}
                     disabled={!datos.marca.trim()}
                     error={errores.modelo}
-                    ayuda={datos.marca.trim()
+                    ayuda={clasificacionCatalogo
+                      ? `Clasificación del catálogo: ${clasificacionCatalogo}. El tipo de vehículo se prellenó automáticamente.`
+                      : datos.marca.trim()
                       ? `${modelosDisponibles.length} modelos disponibles. Al elegir uno sugeriremos el tipo de vehículo.`
                       : "Primero captura o selecciona la marca."}
                   />
