@@ -450,15 +450,15 @@ export default function PaginaRegistroConductor() {
       return siguiente;
     });
 
+    const resultados = await Promise.allSettled(
+      pendientes.map(([campo, archivo]) => subirDocumentoSolicitudConductor(cliente, solicitudId, TIPOS_DOCUMENTO[campo], archivo as File))
+    );
+
     resultados.forEach((resultado,indice)=>{
       if (resultado.status==="rejected") {
         registrarTelemetria("documento_fallo",paso+1,TIPOS_DOCUMENTO[pendientes[indice][0]]);
       }
     });
-
-    const resultados = await Promise.allSettled(
-      pendientes.map(([campo, archivo]) => subirDocumentoSolicitudConductor(cliente, solicitudId, TIPOS_DOCUMENTO[campo], archivo as File))
-    );
 
     let huboError = false;
     setEstadoDocumentos((prev) => {

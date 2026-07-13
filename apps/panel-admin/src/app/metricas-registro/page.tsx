@@ -23,6 +23,11 @@ function fechaLocal(fecha:Date) {
   return `${fecha.getFullYear()}-${mes}-${dia}`;
 }
 
+const FIN_INICIAL=new Date();
+const INICIO_INICIAL=new Date(FIN_INICIAL);
+INICIO_INICIAL.setDate(INICIO_INICIAL.getDate()-29);
+const PERIODO_INICIAL={desde:fechaLocal(INICIO_INICIAL),hasta:fechaLocal(FIN_INICIAL)};
+
 function duracion(segundos:number|null) {
   if (segundos===null) return "Sin datos";
   if (segundos<60) return `${Math.round(segundos)} s`;
@@ -31,31 +36,32 @@ function duracion(segundos:number|null) {
 }
 
 export default function PaginaMetricasRegistro() {
-  const [desde,setDesde]=useState("");
-  const [hasta,setHasta]=useState("");
+  const [desde,setDesde]=useState(PERIODO_INICIAL.desde);
+  const [hasta,setHasta]=useState(PERIODO_INICIAL.hasta);
   const [metricas,setMetricas]=useState<MetricasRegistroConductor|null>(null);
-  const [cargando,setCargando]=useState(false);
+  const [cargando,setCargando]=useState(true);
   const [error,setError]=useState<string|null>(null);
 
   useEffect(()=>{
-    const fin=new Date();
-    const inicio=new Date(fin);
-    inicio.setDate(inicio.getDate()-29);
-    setDesde(fechaLocal(inicio));
-    setHasta(fechaLocal(fin));
-  },[]);
-
-  useEffect(()=>{
-    if (!desde||!hasta) return;
     let activo=true;
-    setCargando(true);
-    setError(null);
     obtenerMetricasRegistroConductor(crearClienteNavegador(),desde,hasta)
       .then((datos)=>{if (activo) setMetricas(datos);})
       .catch((err)=>{if (activo) setError(traducirErrorOperativo(err,"No pudimos cargar las métricas de registro."));})
       .finally(()=>{if (activo) setCargando(false);});
     return()=>{activo=false;};
   },[desde,hasta]);
+
+  function cambiarDesde(valor:string) {
+    setCargando(true);
+    setError(null);
+    setDesde(valor);
+  }
+
+  function cambiarHasta(valor:string) {
+    setCargando(true);
+    setError(null);
+    setHasta(valor);
+  }
 
   const tarjetas=metricas?[
     ["Solicitudes enviadas",String(metricas.solicitudesEnviadas)],
@@ -75,10 +81,10 @@ export default function PaginaMetricasRegistro() {
         </div>
         <div className="flex gap-3 font-body text-sm">
           <label className="grid gap-1 text-ink/60">Desde
-            <input type="date" value={desde} max={hasta||undefined} onChange={(e)=>setDesde(e.target.value)} className="rounded-lg border border-ink/15 bg-white px-3 py-2 text-ink" />
+            <input type="date" value={desde} max={hasta||undefined} onChange={(e)=>cambiarDesde(e.target.value)} className="rounded-lg border border-ink/15 bg-white px-3 py-2 text-ink" />
           </label>
           <label className="grid gap-1 text-ink/60">Hasta
-            <input type="date" value={hasta} min={desde||undefined} onChange={(e)=>setHasta(e.target.value)} className="rounded-lg border border-ink/15 bg-white px-3 py-2 text-ink" />
+            <input type="date" value={hasta} min={desde||undefined} onChange={(e)=>cambiarHasta(e.target.value)} className="rounded-lg border border-ink/15 bg-white px-3 py-2 text-ink" />
           </label>
         </div>
       </div>
