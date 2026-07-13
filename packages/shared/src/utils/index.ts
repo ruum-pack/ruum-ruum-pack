@@ -4,6 +4,7 @@ export * from "./formatear-fecha";
 export * from "./formatear-precio";
 export * from "./fortaleza-password";
 export * from "./generar-id-pasaporte";
+export * from "./mapbox-directions";
 export * from "./observar-sesion-recuperacion";
 export * from "./traducir-error-auth";
 export * from "./traducir-error-operativo";
