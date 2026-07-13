@@ -1608,6 +1608,7 @@ export type Database = {
         Returns: Json;
       };
       admin_emite_cotizacion: { Args: { p_traslado_id: string; p_precio: number }; Returns: undefined };
+      admin_sugerir_tarifa_traslado: { Args: { p_traslado_id: string }; Returns: number };
       usuario_acepta_cotizacion: {
         Args: { p_traslado_id: string };
         Returns: Database["public"]["Enums"]["estado_traslado"];
