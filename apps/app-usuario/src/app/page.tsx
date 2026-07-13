@@ -59,7 +59,7 @@ export default async function PaginaInicio() {
             alt="Traslado vehicular protegido con verificacion de identidad"
             fill
             priority
-            sizes="100vw"
+            sizes="(min-width: 640px) 390px, 100vw"
             className="scale-[1.12] object-cover object-[39%_50%]"
           />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_34%_18%,rgba(245,166,35,0.12),transparent_38%),linear-gradient(180deg,rgba(7,18,38,0)_52%,#1a1f2e_94%)]" />

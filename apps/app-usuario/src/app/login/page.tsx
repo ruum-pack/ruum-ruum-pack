@@ -1,17 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Aviso, Field } from "@ruum/ui";
 import { traducirErrorAuth } from "@ruum/shared/utils";
+import { registrarEventoUx } from "../../lib/analytics";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { botonAzul, botonContorno, CampoOscuro, LogoRuum, PantallaPublica } from "../experiencia-publica";
-
-function motivoInicial(): string | null {
-  if (typeof window === "undefined") return null;
-  return new URLSearchParams(window.location.search).get("reason");
-}
 
 export default function PaginaLogin() {
   const router = useRouter();
@@ -19,12 +15,23 @@ export default function PaginaLogin() {
   const [password, setPassword] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [motivo] = useState(motivoInicial);
+  const [motivo, setMotivo] = useState<string | null>(null);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const reason = searchParams.get("reason");
+    setMotivo(reason);
+    registrarEventoUx("login_visto", {
+      reason,
+      tiene_next: Boolean(searchParams.get("next"))
+    });
+  }, []);
 
   async function iniciarSesion(e: React.FormEvent) {
     e.preventDefault();
     setEnviando(true);
     setError(null);
+    registrarEventoUx("login_enviado", { reason: motivo });
 
     try {
       const cliente = crearClienteNavegador();
@@ -32,10 +39,16 @@ export default function PaginaLogin() {
       if (errorAuth) throw errorAuth;
       const searchParams = new URLSearchParams(window.location.search);
       const next = searchParams.get("next");
-      router.push(next?.startsWith("/") && !next.startsWith("//") ? next : "/");
+      const destino = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
+      registrarEventoUx("login_exitoso", {
+        reason: motivo,
+        destino_protegido: destino !== "/"
+      });
+      router.push(destino);
       router.refresh();
     } catch (err) {
       setError(traducirErrorAuth(err));
+      registrarEventoUx("login_error", { reason: motivo });
     } finally {
       setEnviando(false);
     }

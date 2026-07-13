@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Aviso, Field } from "@ruum/ui";
 import { VERSION_TERMINOS_VIGENTE } from "@ruum/shared/constants";
 import { fortalezaPassword, traducirErrorAuth } from "@ruum/shared/utils";
+import { registrarEventoUx } from "../../lib/analytics";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import {
   botonAzul,
@@ -85,6 +86,14 @@ export default function PaginaRegistro() {
 
   const pwd = fortalezaPassword(password);
 
+  useEffect(() => {
+    registrarEventoUx("registro_visto", { paso: 1 });
+  }, []);
+
+  useEffect(() => {
+    registrarEventoUx("registro_paso_visto", { paso });
+  }, [paso]);
+
   /* ── Validación paso 1 ── */
   function validarPaso1(): string | null {
     if (!nombre.trim()) return "Escribe tu nombre.";
@@ -120,6 +129,7 @@ export default function PaginaRegistro() {
 
     setEnviando(true);
     setError(null);
+    registrarEventoUx("registro_enviado", { tipo_cuenta: tipoCuenta });
 
     try {
       const cliente = crearClienteNavegador();
@@ -149,15 +159,18 @@ export default function PaginaRegistro() {
       if (!data.user) throw new Error("No se pudo crear el usuario.");
 
       if (data.session) {
+        registrarEventoUx("registro_exitoso", { tipo_cuenta: tipoCuenta, requiere_confirmacion: false });
         router.push("/onboarding?nuevo=1");
       } else {
         try {
           window.sessionStorage.setItem("ruum:correo-confirmacion", email.trim().toLowerCase());
         } catch { /* La pantalla también funciona si el navegador bloquea storage. */ }
+        registrarEventoUx("registro_exitoso", { tipo_cuenta: tipoCuenta, requiere_confirmacion: true });
         router.push("/registro/confirma-correo");
       }
     } catch (err: unknown) {
       setError(traducirErrorAuth(err, "No pudimos crear la cuenta. Intenta de nuevo."));
+      registrarEventoUx("registro_error", { tipo_cuenta: tipoCuenta });
     } finally {
       setEnviando(false);
     }
@@ -366,6 +379,7 @@ export default function PaginaRegistro() {
                     href="/legal/terminos"
                     className="text-[#f5a623] underline-offset-2 hover:underline"
                     target="_blank"
+                    rel="noopener noreferrer"
                   >
                     Términos y condiciones
                   </Link>{" "}
@@ -374,6 +388,7 @@ export default function PaginaRegistro() {
                     href="/legal/privacidad"
                     className="text-[#f5a623] underline-offset-2 hover:underline"
                     target="_blank"
+                    rel="noopener noreferrer"
                   >
                     Aviso de privacidad
                   </Link>{" "}

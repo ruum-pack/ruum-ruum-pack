@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { traducirErrorAuth } from "@ruum/shared/utils";
+import { registrarEventoUx } from "../../lib/analytics";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import {
   botonAzul,
@@ -20,11 +21,20 @@ export default function PaginaRecuperarPassword() {
   const [enviado, setEnviado] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    registrarEventoUx("recuperacion_vista");
+  }, []);
+
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim()) { setError("Escribe tu correo electrónico."); return; }
+    if (!email.trim()) {
+      setError("Escribe tu correo electrónico.");
+      registrarEventoUx("recuperacion_error", { motivo: "email_vacio" });
+      return;
+    }
     setEnviando(true);
     setError(null);
+    registrarEventoUx("recuperacion_enviada");
 
     try {
       if (!tieneSupabaseConfigurado()) {
@@ -37,8 +47,10 @@ export default function PaginaRecuperarPassword() {
       );
       if (errorAuth) throw errorAuth;
       setEnviado(true);
+      registrarEventoUx("recuperacion_exitosa");
     } catch (err) {
       setError(traducirErrorAuth(err, "No pudimos enviar el correo. Intenta de nuevo."));
+      registrarEventoUx("recuperacion_error", { motivo: "proveedor" });
     } finally {
       setEnviando(false);
     }

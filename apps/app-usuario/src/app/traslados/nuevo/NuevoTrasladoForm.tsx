@@ -11,6 +11,7 @@ import { listarVehiculosDeUsuario, obtenerUsuarioActual } from "@ruum/api/servic
 import { esNativo } from "../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../lib/codigos-postales";
+import { registrarEventoUx } from "../../../lib/analytics";
 import { sugerirDireccionesPorCodigoPostal, tieneMapboxConfigurado } from "../../../lib/mapbox";
 import { MARCAS_CATALOGO, modelosPorMarca, resumenClasificacionVehiculo, tipoSugeridoParaVehiculo } from "../../../lib/catalogo-vehiculos";
 import {
@@ -238,6 +239,10 @@ export function NuevoTrasladoForm() {
   useEffect(() => {
     encabezadoPasoRef.current?.focus();
   }, [paso]);
+
+  useEffect(() => {
+    registrarEventoUx("traslado_nuevo_visto");
+  }, []);
   const [datos, setDatos] = useState<DatosFormulario>(VALORES_INICIALES);
   const modelosDisponibles = useMemo(() => modelosPorMarca(datos.marca), [datos.marca]);
   const clasificacionCatalogo = useMemo(
@@ -405,6 +410,7 @@ export function NuevoTrasladoForm() {
         const cliente = crearClienteNavegador();
         const real = await obtenerUsuarioActual(cliente);
         if (!real) {
+          registrarEventoUx("traslado_nuevo_sin_sesion", { origen: "carga" });
           router.replace("/login?next=/traslados/nuevo&reason=authentication_required");
           return;
         }
@@ -762,6 +768,7 @@ export function NuevoTrasladoForm() {
       // "" y la inserción real fallaría contra RLS (no hay fila propia que
       // crear/usar). Mejor mandarlo a iniciar sesión que fallar en silencio.
       setEnviando(false);
+      registrarEventoUx("traslado_nuevo_sin_sesion", { origen: "envio" });
       router.push("/login?next=/traslados/nuevo&reason=authentication_required");
       return;
     }
@@ -796,6 +803,11 @@ export function NuevoTrasladoForm() {
     }
 
     try {
+      registrarEventoUx("traslado_nuevo_enviado", {
+        modalidad: datos.modalidadProgramacion,
+        tipo_servicio: datos.tipoServicio,
+        tipo_ruta: datos.tipoRuta
+      });
       const cliente = crearClienteNavegador();
       const origenDireccion = domicilioCompleto({
         calle: datos.origenCalle,
@@ -851,10 +863,21 @@ export function NuevoTrasladoForm() {
         ok: true,
         mensaje: `Solicitud creada con pago ${nuevoTraslado.tipo_pago === "anticipado" ? "anticipado" : "al cierre"}. Te avisaremos cuando exista una cotización autorizada.`
       });
+      registrarEventoUx("traslado_nuevo_exitoso", {
+        tipo_pago: nuevoTraslado.tipo_pago,
+        modalidad: datos.modalidadProgramacion,
+        tipo_servicio: datos.tipoServicio,
+        tipo_ruta: datos.tipoRuta
+      });
     } catch (err) {
       setResultado({
         ok: false,
         mensaje: mensajeAmigableErrorCreacion(err)
+      });
+      registrarEventoUx("traslado_nuevo_error", {
+        modalidad: datos.modalidadProgramacion,
+        tipo_servicio: datos.tipoServicio,
+        tipo_ruta: datos.tipoRuta
       });
     } finally {
       setEnviando(false);

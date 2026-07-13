@@ -1,9 +1,18 @@
 import type { ReactNode } from "react";
 
+const fondoPublico = "bg-[#070b14]";
+const fondoPublicoTransparente = "bg-[#070b14]/95";
+const bordePublico = "border-[#4d5668]";
+const campoPublico = "bg-[#101a2c]";
+const textoSecundarioPublico = "text-[#d4d9e2]";
+const acentoPublico = "bg-[#f5a623]";
+const focoPublico = "focus:border-[#3aa5ff] focus:ring-[#3aa5ff]/25";
+const focoAcentoPublico = "focus-visible:ring-[#f5a623]/70 focus-visible:ring-offset-[#070b14]";
+
 export function PantallaPublica({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <main className={`ruum-auth-shell min-h-screen bg-[#070b14] px-5 text-white sm:px-6 ${className}`}>
-      <div className="relative mx-auto min-h-screen w-full max-w-[390px] overflow-hidden bg-[#070b14]/95 shadow-[0_24px_64px_rgba(0,0,0,0.4)]">
+    <main className={`ruum-auth-shell min-h-screen ${fondoPublico} px-5 text-white sm:px-6 ${className}`}>
+      <div className={`relative mx-auto min-h-screen w-full max-w-[390px] overflow-hidden ${fondoPublicoTransparente} shadow-[0_24px_64px_rgba(0,0,0,0.4)]`}>
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-45"
@@ -95,24 +104,29 @@ export function IconoLinea({ tipo }: { tipo: "escudo" | "maletin" | "pin" | "can
 }
 
 export const campoOscuro =
-  "w-full rounded-lg border border-[#4d5668] bg-[#101a2c] px-3.5 py-2.5 font-body text-sm text-white outline-none transition placeholder:text-white/40 focus:border-[#3aa5ff] focus:ring-2 focus:ring-[#3aa5ff]/25";
+  `w-full rounded-lg border ${bordePublico} ${campoPublico} px-3.5 py-2.5 font-body text-sm text-white outline-none transition placeholder:text-white/40 ${focoPublico}`;
 
-export const etiquetaOscura = "font-body text-xs font-medium text-[#d4d9e2]";
+export const etiquetaOscura = `font-body text-xs font-medium ${textoSecundarioPublico}`;
 export const botonAzul =
-  "inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-[#f5a623] px-5 py-3 font-display text-sm font-bold text-[#14213d] shadow-[0_10px_28px_rgba(245,166,35,0.24)] outline-none transition hover:bg-[#d88f16] focus-visible:ring-2 focus-visible:ring-[#f5a623]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070b14] disabled:cursor-not-allowed disabled:opacity-45";
+  `inline-flex min-h-10 w-full items-center justify-center rounded-lg ${acentoPublico} px-5 py-3 font-display text-sm font-bold text-[#14213d] shadow-[0_10px_28px_rgba(245,166,35,0.24)] outline-none transition hover:bg-[#d88f16] focus-visible:ring-2 ${focoAcentoPublico} focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45`;
 export const botonContorno =
-  "inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-[#687287] bg-transparent px-5 py-3 font-display text-sm font-bold text-white outline-none transition hover:border-[#f5a623] hover:bg-[#f5a623]/10 focus-visible:ring-2 focus-visible:ring-[#f5a623]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070b14]";
+  `inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-[#687287] bg-transparent px-5 py-3 font-display text-sm font-bold text-white outline-none transition hover:border-[#f5a623] hover:bg-[#f5a623]/10 focus-visible:ring-2 ${focoAcentoPublico} focus-visible:ring-offset-2`;
 
 export function CampoOscuro({
   etiqueta,
   ayuda,
+  id,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & { etiqueta: string; ayuda?: ReactNode }) {
+  const inputId = id ?? `campo-${etiqueta.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+  const ayudaId = ayuda ? `${inputId}-ayuda` : undefined;
+  const ariaDescribedBy = [props["aria-describedby"], ayudaId].filter(Boolean).join(" ") || undefined;
+
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className={etiquetaOscura}>{etiqueta}</span>
-      <input {...props} className={`${campoOscuro} ${props.className ?? ""}`} />
-      {ayuda ? <span className="font-body text-[11px] leading-4 text-white/42">{ayuda}</span> : null}
-    </label>
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={inputId} className={etiquetaOscura}>{etiqueta}</label>
+      <input {...props} id={inputId} aria-describedby={ariaDescribedBy} className={`${campoOscuro} ${props.className ?? ""}`} />
+      {ayuda ? <span id={ayudaId} className="font-body text-[11px] leading-4 text-white/42">{ayuda}</span> : null}
+    </div>
   );
 }
