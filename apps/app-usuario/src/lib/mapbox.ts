@@ -2,6 +2,7 @@ const tokenPublico = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 const URL_GEOCODIFICACION = "https://api.mapbox.com/search/geocode/v6/forward";
 
 export interface CoordenadasGeocodificadas { lat: number; lng: number; }
+export interface RutaMapboxCalculada { distanciaKm: number; tiempoEstimadoHoras: number; }
 
 interface FeatureMapbox {
   geometry?: { coordinates?: [number, number] };
@@ -49,4 +50,31 @@ export async function sugerirDireccionesPorCodigoPostal(codigoPostal: string): P
     .map((feature) => feature.properties?.full_address ??
       [feature.properties?.name, feature.properties?.place_formatted].filter(Boolean).join(", "))
     .filter((valor): valor is string => Boolean(valor));
+}
+
+export async function calcularRutaMapbox(
+  origen: CoordenadasGeocodificadas,
+  destino: CoordenadasGeocodificadas
+): Promise<RutaMapboxCalculada | null> {
+  if (!tieneMapboxConfigurado() || !tokenPublico) return null;
+  const coordenadas = `${origen.lng},${origen.lat};${destino.lng},${destino.lat}`;
+  const parametros = new URLSearchParams({
+    geometries: "geojson",
+    overview: "simplified",
+    access_token: tokenPublico
+  });
+
+  try {
+    const respuesta = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${coordenadas}?${parametros.toString()}`);
+    if (!respuesta.ok) return null;
+    const datos = (await respuesta.json()) as { routes?: Array<{ distance?: number; duration?: number }> };
+    const ruta = datos.routes?.[0];
+    if (typeof ruta?.distance !== "number" || typeof ruta.duration !== "number") return null;
+    return {
+      distanciaKm: Math.round((ruta.distance / 1000) * 100) / 100,
+      tiempoEstimadoHoras: Math.round((ruta.duration / 3600) * 100) / 100
+    };
+  } catch {
+    return null;
+  }
 }

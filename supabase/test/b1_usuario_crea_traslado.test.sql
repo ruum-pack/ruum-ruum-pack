@@ -20,7 +20,7 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(14);
+select plan(16);
 
 create or replace function pg_temp.correr_b1() returns setof text as $$
 declare
@@ -36,7 +36,8 @@ declare
     'contacto_recepcion_nombre', 'B', 'contacto_recepcion_telefono', '+520000000001',
     'origen_lat', 19.0, 'origen_lng', -99.0, 'origen_direccion', 'origen', 'origen_ciudad', 'CDMX',
     'destino_lat', 19.5, 'destino_lng', -99.5, 'destino_direccion', 'destino', 'destino_ciudad', 'CDMX',
-    'presupuesto_usuario', 1000, 'tipo_pago', 'anticipado', 'modalidad_programacion', 'lo_antes_posible'
+    'presupuesto_usuario', 1000, 'tipo_pago', 'anticipado', 'modalidad_programacion', 'lo_antes_posible',
+    'distancia_km', 18.42, 'tiempo_estimado_horas', 0.73
   );
   v_vehiculo_nuevo jsonb := jsonb_build_object(
     'tipo', 'sedan', 'transmision', 'electrica', 'marca', 'Nissan', 'modelo', 'Versa',
@@ -105,27 +106,37 @@ begin
     'anticipado',
     'B1.7: tipo_pago inyectado por el cliente no cambia la decisión del servidor'
   );
+  return next is(
+    (select distancia_km from public.traslados where id = v_traslado_id),
+    18.42::numeric,
+    'B1.8: la RPC guarda distancia_km calculada por Mapbox para tarifas'
+  );
+  return next is(
+    (select tiempo_estimado_horas from public.traslados where id = v_traslado_id),
+    0.73::numeric,
+    'B1.9: la RPC guarda tiempo_estimado_horas calculado por Mapbox para tarifas'
+  );
 
   -- 3) A crea un traslado con vehículo nuevo (incluye transmisión 'electrica').
   perform set_config('role', 'authenticated', true);
   v_traslado_id := (public.usuario_crea_traslado(null, v_vehiculo_nuevo, v_traslado_generico, gen_random_uuid())->>'id')::uuid;
   perform set_config('role', 'postgres', true);
 
-  return next ok(v_traslado_id is not null, 'B1.8: se puede crear traslado + vehículo nuevo en un solo llamado');
+  return next ok(v_traslado_id is not null, 'B1.10: se puede crear traslado + vehículo nuevo en un solo llamado');
   return next is(
     (select v.transmision from public.traslados t join public.vehiculos v on v.id = t.vehiculo_id where t.id = v_traslado_id),
     'electrica',
-    'B1.9: transmisión "electrica" ya no revienta el CHECK de vehiculos'
+    'B1.11: transmisión "electrica" ya no revienta el CHECK de vehiculos'
   );
   return next is(
     (select v.usuario_id from public.traslados t join public.vehiculos v on v.id = t.vehiculo_id where t.id = v_traslado_id),
     v_usuario_a,
-    'B1.10: el vehículo nuevo quedó asignado al usuario autenticado, no a uno inyectado'
+    'B1.12: el vehículo nuevo quedó asignado al usuario autenticado, no a uno inyectado'
   );
 
   return next ok(
     exists(select 1 from public.registro_auditoria where traslado_id = v_traslado_id and evento = 'creacion_solicitud_traslado'),
-    'B1.11: la creación queda en la bitácora de auditoría'
+    'B1.13: la creación queda en la bitácora de auditoría'
   );
 
   -- 4) La RPC aplica verificación aunque se invoque fuera de React.
@@ -140,7 +151,7 @@ begin
     v_msg := sqlerrm;
   end;
   perform set_config('role', 'postgres', true);
-  return next ok(not v_ok and v_msg ilike '%debe estar verificada%', 'B1.12: usuario rechazado no puede crear por RPC');
+  return next ok(not v_ok and v_msg ilike '%debe estar verificada%', 'B1.14: usuario rechazado no puede crear por RPC');
 
   perform set_config('request.jwt.claim.sub', gen_random_uuid()::text, true);
   perform set_config('role', 'authenticated', true);
@@ -152,7 +163,7 @@ begin
     v_msg := sqlerrm;
   end;
   perform set_config('role', 'postgres', true);
-  return next ok(not v_ok and v_msg ilike '%Usuario no encontrado%', 'B1.13: sesión sin perfil no puede crear por RPC');
+  return next ok(not v_ok and v_msg ilike '%Usuario no encontrado%', 'B1.15: sesión sin perfil no puede crear por RPC');
 
   -- 5) El INSERT directo a traslados ya no es posible (RLS sin política de insert).
   perform set_config('request.jwt.claim.sub', v_auth_a::text, true);
@@ -173,7 +184,7 @@ begin
     v_ok := false;
   end;
   perform set_config('role', 'postgres', true);
-  return next ok(not v_ok, 'B1.14: el insert directo a traslados quedó cerrado; solo la RPC puede crear');
+  return next ok(not v_ok, 'B1.16: el insert directo a traslados quedó cerrado; solo la RPC puede crear');
 end;
 $$ language plpgsql;
 

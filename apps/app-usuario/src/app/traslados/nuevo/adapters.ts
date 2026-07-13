@@ -1,7 +1,14 @@
 import type { DatosNuevoTraslado, DatosVehiculoParaTraslado } from "@ruum/api/services";
 import type { DatosFormulario } from "./types";
 
-export interface CoordenadasTraslado { origenLat?: number; origenLng?: number; destinoLat?: number; destinoLng?: number }
+export interface CoordenadasTraslado {
+  origenLat?: number;
+  origenLng?: number;
+  destinoLat?: number;
+  destinoLng?: number;
+  distanciaKm?: number;
+  tiempoEstimadoHoras?: number;
+}
 const nombre = (n: string, a: string) => [n.trim(), a.trim()].filter(Boolean).join(" ");
 const telefono = (v: string) => `+52${v.replace(/\D/g, "").slice(0, 10)}`;
 const direccion = (calle: string, numero: string, colonia: string, cp: string, estado: string) => [calle, numero, colonia, cp, estado].map((v) => v.trim()).filter(Boolean).join(", ");
@@ -24,6 +31,7 @@ export function construirPayloadCreacion(datos: DatosFormulario, vehiculoSelecci
     destino_referencias: datos.destinoReferencias || null, instrucciones_especiales: datos.instruccionesEspeciales,
     modalidad_programacion: datos.modalidadProgramacion, fecha_hora_programada: datos.fechaHoraProgramada ? new Date(datos.fechaHoraProgramada).toISOString() : null,
     tipo_ruta: datos.tipoRuta, ventana_recoleccion: datos.ventanaRecoleccion, ventana_entrega: datos.ventanaEntrega,
-    tipo_servicio: datos.tipoServicio, motivo_servicio: datos.motivoServicio, presupuesto_usuario: Number(datos.precioEstimado) || null
+    tipo_servicio: datos.tipoServicio, motivo_servicio: datos.motivoServicio, presupuesto_usuario: Number(datos.precioEstimado) || null,
+    distancia_km: coords.distanciaKm ?? null, tiempo_estimado_horas: coords.tiempoEstimadoHoras ?? null
   }};
 }

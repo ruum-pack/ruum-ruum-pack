@@ -58,6 +58,8 @@ export interface DatosNuevoTraslado {
   tipo_servicio?: string | null;
   motivo_servicio?: string | null;
   presupuesto_usuario?: number | null;
+  distancia_km?: number | null;
+  tiempo_estimado_horas?: number | null;
 }
 
 export interface TrasladoCreado {
