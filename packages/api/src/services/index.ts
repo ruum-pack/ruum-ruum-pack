@@ -9,3 +9,4 @@ export * from "./auditoria";
 export * from "./incidencias";
 export * from "./soporte";
 export * from "./disputas";
+export * from "./tarifas";

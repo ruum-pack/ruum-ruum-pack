@@ -20,8 +20,12 @@ import {
   emitirCotizacionAdmin,
   obtenerAdminActual,
   obtenerAuditoriaTraslado,
-  marcarTrasladoFallido
+  marcarTrasladoFallido,
+  guardarDistanciaYTiempoTraslado,
+  sugerirTarifaTraslado,
+  clasificarVehiculoParaTarifa
 } from "@ruum/api/services";
+import { obtenerRutaMapbox, tieneMapboxConfigurado } from "../../../lib/mapbox-rutas";
 import { VIAJES_DEMO, CONDUCTORES_DEMO, ADMIN_DEMO } from "../../../lib/datos-demo";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -54,7 +58,7 @@ export default function PaginaDetalleViajeAdmin() {
   const [precioFinalInput, setPrecioFinalInput] = useState("");
   const [causaFallido, setCausaFallido] = useState<CausaFallido>("operativo");
   const [notaNueva, setNotaNueva] = useState("");
-  const [procesando, setProcesando] = useState<"conductor" | "estado" | "precio" | "nota" | "fallido" | null>(null);
+  const [procesando, setProcesando] = useState<"conductor" | "estado" | "precio" | "nota" | "fallido" | "sugerencia" | null>(null);
   const [aviso, setAviso] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
   const [adminId, setAdminId] = useState(ADMIN_DEMO.id);
   /* Ítem 17 — foco al aviso tras cada acción para operadores de teclado */
@@ -162,6 +166,92 @@ export default function PaginaDetalleViajeAdmin() {
       setEstadoSeleccionado("");
     } catch (err) {
       mostrarAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos cambiar el estatus." });
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  const [categoriaTarifaInput, setCategoriaTarifaInput] = useState<Database["public"]["Enums"]["categoria_tarifa_vehiculo"] | "">("");
+  const [gamaInput, setGamaInput] = useState<Database["public"]["Enums"]["gama_vehiculo"] | "">("");
+  const [condicionInput, setCondicionInput] = useState<Database["public"]["Enums"]["condicion_vehiculo"] | "">("");
+
+  async function guardarClasificacionVehiculo() {
+    if (!pasaporte || !pasaporte.vehiculo_id) return;
+    if (!categoriaTarifaInput || !gamaInput || !condicionInput) {
+      mostrarAviso({ tono: "peligro", texto: "Selecciona categoría, gama y condición." });
+      return;
+    }
+    if (esDemo) {
+      mostrarAviso({ tono: "info", texto: "La clasificación de vehículo no está disponible en modo demo." });
+      return;
+    }
+    setProcesando("sugerencia");
+    setAviso(null);
+    try {
+      const cliente = crearClienteNavegador();
+      await clasificarVehiculoParaTarifa(cliente, pasaporte.vehiculo_id, {
+        categoria_tarifa: categoriaTarifaInput,
+        gama: gamaInput,
+        condicion: condicionInput
+      });
+      setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
+      mostrarAviso({ tono: "info", texto: "Clasificación del vehículo guardada." });
+    } catch (err) {
+      mostrarAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No se pudo guardar la clasificación." });
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  async function sugerirTarifa() {
+    if (!pasaporte) return;
+    if (esDemo) {
+      mostrarAviso({ tono: "info", texto: "El cálculo de ruta y tarifa no está disponible en modo demo." });
+      return;
+    }
+    if (
+      pasaporte.origen_lat == null || pasaporte.origen_lng == null ||
+      pasaporte.destino_lat == null || pasaporte.destino_lng == null
+    ) {
+      mostrarAviso({ tono: "peligro", texto: "El traslado no tiene coordenadas de origen/destino completas." });
+      return;
+    }
+    if (!tieneMapboxConfigurado()) {
+      mostrarAviso({ tono: "peligro", texto: "NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN no está configurado en este entorno." });
+      return;
+    }
+
+    setProcesando("sugerencia");
+    setAviso(null);
+    try {
+      const cliente = crearClienteNavegador();
+
+      const { distanciaKm, tiempoHoras } = await obtenerRutaMapbox(
+        [pasaporte.origen_lng, pasaporte.origen_lat],
+        [pasaporte.destino_lng, pasaporte.destino_lat]
+      );
+      if (distanciaKm == null || tiempoHoras == null) {
+        mostrarAviso({ tono: "peligro", texto: "Mapbox Directions no devolvió una ruta calculable para este origen/destino." });
+        return;
+      }
+
+      await guardarDistanciaYTiempoTraslado(cliente, pasaporte.traslado_id, {
+        distancia_km: distanciaKm,
+        tiempo_estimado_horas: tiempoHoras
+      });
+
+      const sugerido = await sugerirTarifaTraslado(cliente, pasaporte.traslado_id);
+      setPrecioFinalInput(String(sugerido));
+      setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
+      mostrarAviso({
+        tono: "info",
+        texto: `Ruta: ${distanciaKm} km, ${tiempoHoras} h. Tarifa sugerida: $${sugerido.toLocaleString("es-MX")} — revísala y ajústala antes de emitir.`
+      });
+    } catch (err) {
+      mostrarAviso({
+        tono: "peligro",
+        texto: err instanceof Error ? err.message : "No se pudo calcular la sugerencia de tarifa."
+      });
     } finally {
       setProcesando(null);
     }
@@ -450,6 +540,56 @@ export default function PaginaDetalleViajeAdmin() {
         </PassportCard>
       </div>
 
+      {/* Clasificación del vehículo para tarifa (RT-12) — la asigna Torre de
+          Control, no el usuario, para que no pueda autoasignarse la
+          categoría más barata. */}
+      <div className="mt-6">
+        <PassportCard>
+          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Clasificación de tarifa del vehículo</p>
+          <p className="mt-1 font-body text-xs text-ink/50">
+            Actual: {pasaporte.vehiculo_categoria_tarifa ?? "sin asignar"} · {pasaporte.vehiculo_gama ?? "sin asignar"} ·{" "}
+            {pasaporte.vehiculo_condicion ?? "sin asignar"}
+          </p>
+          <div className="mt-3 flex flex-wrap items-end gap-2">
+            <select
+              value={categoriaTarifaInput}
+              onChange={(e) => setCategoriaTarifaInput(e.target.value as typeof categoriaTarifaInput)}
+              className="min-h-12 rounded-[10px] border border-ink/30 bg-mist px-3 font-body text-sm text-ink"
+            >
+              <option value="">Categoría…</option>
+              <option value="ligero_a">Ligero A</option>
+              <option value="ligero_b">Ligero B</option>
+              <option value="mediano">Mediano</option>
+              <option value="camion">Camión</option>
+            </select>
+            <select
+              value={gamaInput}
+              onChange={(e) => setGamaInput(e.target.value as typeof gamaInput)}
+              className="min-h-12 rounded-[10px] border border-ink/30 bg-mist px-3 font-body text-sm text-ink"
+            >
+              <option value="">Gama…</option>
+              <option value="entrada">Entrada</option>
+              <option value="media">Media</option>
+              <option value="alta">Alta</option>
+              <option value="premium">Premium</option>
+            </select>
+            <select
+              value={condicionInput}
+              onChange={(e) => setCondicionInput(e.target.value as typeof condicionInput)}
+              className="min-h-12 rounded-[10px] border border-ink/30 bg-mist px-3 font-body text-sm text-ink"
+            >
+              <option value="">Condición…</option>
+              <option value="nueva">Nueva</option>
+              <option value="seminueva">Seminueva</option>
+              <option value="rescate_mecanico">Rescate mecánico</option>
+            </select>
+            <Button variant="fantasma" onClick={guardarClasificacionVehiculo} disabled={procesando === "sugerencia"}>
+              Guardar clasificación
+            </Button>
+          </div>
+        </PassportCard>
+      </div>
+
       {/* Emisión de cotización autorizada */}
       <div className="mt-6">
         <PassportCard>
@@ -457,6 +597,16 @@ export default function PaginaDetalleViajeAdmin() {
           <p className="mt-1 font-body text-xs text-ink/50">
             Define el precio autorizado que verá y deberá aceptar el usuario. Esto no realiza ningún cobro automáticamente.
           </p>
+          <div className="mt-3">
+            <Button variant="fantasma" onClick={sugerirTarifa} disabled={procesando === "sugerencia"}>
+              {procesando === "sugerencia" ? "Calculando ruta…" : "Calcular distancia (Mapbox) y sugerir tarifa"}
+            </Button>
+            {pasaporte.distancia_km != null && pasaporte.tiempo_estimado_horas != null && (
+              <span className="ml-3 font-body text-xs text-ink/50">
+                Última ruta calculada: {pasaporte.distancia_km} km, {pasaporte.tiempo_estimado_horas} h
+              </span>
+            )}
+          </div>
           <div className="mt-3 flex items-end gap-2">
             <div className="w-48">
               <Field

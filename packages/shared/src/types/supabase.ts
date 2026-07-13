@@ -912,48 +912,162 @@ export type Database = {
         };
         Relationships: [];
       };
-      tarifas_admin: {
+      tarifas_vehiculo: {
         Row: {
           id: string
-          nombre: string
-          tipo_vehiculo: Database["public"]["Enums"]["tipo_vehiculo"]
+          categoria: Database["public"]["Enums"]["categoria_tarifa_vehiculo"]
+          rango: Database["public"]["Enums"]["rango_distancia"]
           base: number
           por_km: number
-          minima: number
-          pago_conductor_porcentaje: number
-          recargos_notas: string | null
-          activa: boolean
-          creada_por_admin_id: string | null
-          creado_en: string
           actualizado_en: string
+          actualizado_por_admin_id: string | null
         };
         Insert: {
           id?: string
-          nombre: string
-          tipo_vehiculo: Database["public"]["Enums"]["tipo_vehiculo"]
+          categoria: Database["public"]["Enums"]["categoria_tarifa_vehiculo"]
+          rango: Database["public"]["Enums"]["rango_distancia"]
           base: number
           por_km: number
-          minima: number
-          pago_conductor_porcentaje: number
-          recargos_notas?: string | null
-          activa?: boolean
-          creada_por_admin_id?: string | null
-          creado_en?: string
           actualizado_en?: string
+          actualizado_por_admin_id?: string | null
         };
         Update: {
           id?: string
-          nombre?: string
-          tipo_vehiculo?: Database["public"]["Enums"]["tipo_vehiculo"]
+          categoria?: Database["public"]["Enums"]["categoria_tarifa_vehiculo"]
+          rango?: Database["public"]["Enums"]["rango_distancia"]
           base?: number
           por_km?: number
-          minima?: number
-          pago_conductor_porcentaje?: number
-          recargos_notas?: string | null
-          activa?: boolean
-          creada_por_admin_id?: string | null
-          creado_en?: string
           actualizado_en?: string
+          actualizado_por_admin_id?: string | null
+        };
+        Relationships: [];
+      };
+      tarifas_gama: {
+        Row: {
+          gama: Database["public"]["Enums"]["gama_vehiculo"]
+          factor: number
+          actualizado_en: string
+          actualizado_por_admin_id: string | null
+        };
+        Insert: {
+          gama: Database["public"]["Enums"]["gama_vehiculo"]
+          factor: number
+          actualizado_en?: string
+          actualizado_por_admin_id?: string | null
+        };
+        Update: {
+          gama?: Database["public"]["Enums"]["gama_vehiculo"]
+          factor?: number
+          actualizado_en?: string
+          actualizado_por_admin_id?: string | null
+        };
+        Relationships: [];
+      };
+      tarifas_condicion: {
+        Row: {
+          condicion: Database["public"]["Enums"]["condicion_vehiculo"]
+          factor: number
+          actualizado_en: string
+          actualizado_por_admin_id: string | null
+        };
+        Insert: {
+          condicion: Database["public"]["Enums"]["condicion_vehiculo"]
+          factor: number
+          actualizado_en?: string
+          actualizado_por_admin_id?: string | null
+        };
+        Update: {
+          condicion?: Database["public"]["Enums"]["condicion_vehiculo"]
+          factor?: number
+          actualizado_en?: string
+          actualizado_por_admin_id?: string | null
+        };
+        Relationships: [];
+      };
+      tarifas_horario: {
+        Row: {
+          horario: Database["public"]["Enums"]["horario_traslado"]
+          factor: number
+          actualizado_en: string
+          actualizado_por_admin_id: string | null
+        };
+        Insert: {
+          horario: Database["public"]["Enums"]["horario_traslado"]
+          factor: number
+          actualizado_en?: string
+          actualizado_por_admin_id?: string | null
+        };
+        Update: {
+          horario?: Database["public"]["Enums"]["horario_traslado"]
+          factor?: number
+          actualizado_en?: string
+          actualizado_por_admin_id?: string | null
+        };
+        Relationships: [];
+      };
+      tarifas_dia: {
+        Row: {
+          dia: Database["public"]["Enums"]["dia_traslado"]
+          factor: number
+          actualizado_en: string
+          actualizado_por_admin_id: string | null
+        };
+        Insert: {
+          dia: Database["public"]["Enums"]["dia_traslado"]
+          factor: number
+          actualizado_en?: string
+          actualizado_por_admin_id?: string | null
+        };
+        Update: {
+          dia?: Database["public"]["Enums"]["dia_traslado"]
+          factor?: number
+          actualizado_en?: string
+          actualizado_por_admin_id?: string | null
+        };
+        Relationships: [];
+      };
+      tarifas_config: {
+        Row: {
+          id: boolean
+          tarifa_hora: number
+          tope_factor_variable: number
+          actualizado_en: string
+          actualizado_por_admin_id: string | null
+        };
+        Insert: {
+          id?: boolean
+          tarifa_hora: number
+          tope_factor_variable: number
+          actualizado_en?: string
+          actualizado_por_admin_id?: string | null
+        };
+        Update: {
+          id?: boolean
+          tarifa_hora?: number
+          tope_factor_variable?: number
+          actualizado_en?: string
+          actualizado_por_admin_id?: string | null
+        };
+        Relationships: [];
+      };
+      certificacion_pago_conductor: {
+        Row: {
+          certificacion: Database["public"]["Enums"]["certificacion_conductor"]
+          porcentaje: number
+          actualizado_en: string
+          actualizado_por_admin_id: string | null
+        };
+        Insert: {
+          certificacion: Database["public"]["Enums"]["certificacion_conductor"]
+          porcentaje: number
+          actualizado_en?: string
+          actualizado_por_admin_id?: string | null
+        };
+        Update: {
+          certificacion?: Database["public"]["Enums"]["certificacion_conductor"]
+          porcentaje?: number
+          actualizado_en?: string
+          actualizado_por_admin_id?: string | null
         };
         Relationships: [];
       };
@@ -996,6 +1110,8 @@ export type Database = {
           ventana_entrega: string | null
           tipo_servicio: string | null
           motivo_servicio: string | null
+          distancia_km: number | null
+          tiempo_estimado_horas: number | null
         };
         Insert: {
           id?: string
@@ -1035,6 +1151,8 @@ export type Database = {
           ventana_entrega?: string | null
           tipo_servicio?: string | null
           motivo_servicio?: string | null
+          distancia_km?: number | null
+          tiempo_estimado_horas?: number | null
         };
         Update: {
           id?: string
@@ -1074,6 +1192,8 @@ export type Database = {
           ventana_entrega?: string | null
           tipo_servicio?: string | null
           motivo_servicio?: string | null
+          distancia_km?: number | null
+          tiempo_estimado_horas?: number | null
         };
         Relationships: [];
       };
@@ -1224,6 +1344,9 @@ export type Database = {
           estado_general_declarado: string | null
           alias: string | null
           fotos_urls: string[]
+          categoria_tarifa: Database["public"]["Enums"]["categoria_tarifa_vehiculo"] | null
+          gama: Database["public"]["Enums"]["gama_vehiculo"] | null
+          condicion: Database["public"]["Enums"]["condicion_vehiculo"] | null
         };
         Insert: {
           id?: string
@@ -1245,6 +1368,9 @@ export type Database = {
           estado_general_declarado?: string | null
           alias?: string | null
           fotos_urls?: string[]
+          categoria_tarifa?: Database["public"]["Enums"]["categoria_tarifa_vehiculo"] | null
+          gama?: Database["public"]["Enums"]["gama_vehiculo"] | null
+          condicion?: Database["public"]["Enums"]["condicion_vehiculo"] | null
         };
         Update: {
           id?: string
@@ -1264,6 +1390,9 @@ export type Database = {
           placas?: string | null
           vin?: string | null
           estado_general_declarado?: string | null
+          categoria_tarifa?: Database["public"]["Enums"]["categoria_tarifa_vehiculo"] | null
+          gama?: Database["public"]["Enums"]["gama_vehiculo"] | null
+          condicion?: Database["public"]["Enums"]["condicion_vehiculo"] | null
           alias?: string | null
           fotos_urls?: string[]
         };
@@ -1285,10 +1414,19 @@ export type Database = {
           precio_final: number | null
           creado_en: string | null
           actualizado_en: string | null
+          origen_lat: number | null
+          origen_lng: number | null
+          destino_lat: number | null
+          destino_lng: number | null
+          distancia_km: number | null
+          tiempo_estimado_horas: number | null
           vehiculo_tipo: Database["public"]["Enums"]["tipo_vehiculo"] | null
           vehiculo_marca: string | null
           vehiculo_modelo: string | null
           vehiculo_anio: number | null
+          vehiculo_categoria_tarifa: Database["public"]["Enums"]["categoria_tarifa_vehiculo"] | null
+          vehiculo_gama: Database["public"]["Enums"]["gama_vehiculo"] | null
+          vehiculo_condicion: Database["public"]["Enums"]["condicion_vehiculo"] | null
           conductor_nombre: string | null
           conductor_estado: Database["public"]["Enums"]["estado_conductor"] | null
           conductor_nivel: Database["public"]["Enums"]["nivel_concer"] | null
@@ -1480,7 +1618,14 @@ export type Database = {
       actor_auditoria: "usuario" | "conductor" | "admin" | "sistema";
       actor_reporte: "usuario" | "conductor" | "admin" | "sistema";
       angulo_evidencia: "frente" | "lado_piloto" | "lado_copiloto" | "trasera" | "tablero" | "dano_previo" | "adicional";
+      categoria_tarifa_vehiculo: "ligero_a" | "ligero_b" | "mediano" | "camion";
       causa_fallido: "imputable_cliente" | "operativo" | "fuerza_mayor" | "documentacion" | "vehiculo_no_circulable";
+      certificacion_conductor: "estandar" | "tipo_b" | "federal" | "premium";
+      condicion_vehiculo: "nueva" | "seminueva" | "rescate_mecanico";
+      dia_traslado: "entre_semana" | "fin_semana";
+      gama_vehiculo: "entrada" | "media" | "alta" | "premium";
+      horario_traslado: "diurno" | "nocturno";
+      rango_distancia: "rango_1" | "rango_2" | "rango_3" | "rango_4";
       estado_conductor: "activo" | "suspendido_7d" | "suspendido_14d" | "suspendido_30d" | "suspendido_indefinido" | "bloqueado_permanente" | "modo_prueba_supervisada" | "pendiente_verificacion";
       estado_expediente_conductor: "borrador" | "correo_pendiente" | "datos_incompletos" | "documentos_pendientes" | "listo_para_enviar" | "en_revision" | "requiere_correccion" | "aprobado" | "rechazado" | "suspendido";
       estado_cuenta_stripe: "pendiente_onboarding" | "activa" | "rechazada" | "deshabilitada";

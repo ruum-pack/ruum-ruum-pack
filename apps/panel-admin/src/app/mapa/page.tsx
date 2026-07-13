@@ -15,6 +15,7 @@ import type { Map as MapboxMap, Marker as MapboxMarker } from "mapbox-gl";
 import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";
 import { listarTrasladosActivosMapa, type TrasladoMapa } from "@ruum/api/services";
+import { obtenerRutaMapbox } from "../../lib/mapbox-rutas";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 const TRASLADOS_MAPA_DEMO: TrasladoMapa[] = [
@@ -91,24 +92,6 @@ function tiempoRelativo(iso: string): string {
 
 const tokenMapbox = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 const estiloMapbox = process.env.NEXT_PUBLIC_MAPBOX_STYLE_URL || "mapbox://styles/mapbox/streets-v12";
-type LineaRuta = { type: "LineString"; coordinates: number[][] };
-
-async function obtenerRuta(
-  origen: [number, number], destino: [number, number]
-): Promise<LineaRuta> {
-  if (!tokenMapbox) return { type: "LineString", coordinates: [origen, destino] };
-  const coordenadas = `${origen[0]},${origen[1]};${destino[0]},${destino[1]}`;
-  try {
-    const respuesta = await fetch(
-      `https://api.mapbox.com/directions/v5/mapbox/driving/${coordenadas}?geometries=geojson&overview=simplified&access_token=${encodeURIComponent(tokenMapbox)}`
-    );
-    if (!respuesta.ok) throw new Error("Directions no disponible");
-    const datos = (await respuesta.json()) as { routes?: Array<{ geometry?: LineaRuta }> };
-    return datos.routes?.[0]?.geometry ?? { type: "LineString", coordinates: [origen, destino] };
-  } catch {
-    return { type: "LineString", coordinates: [origen, destino] };
-  }
-}
 
 function crearPin(color: string, borde: string): HTMLButtonElement {
   const pin = document.createElement("button");
@@ -184,7 +167,7 @@ export default function PaginaMapaOperativo() {
           const origen: [number, number] = [t.origen_lng!, t.origen_lat!];
           const destino: [number, number] = [t.destino_lng!, t.destino_lat!];
           const color = t.tiene_incidencia_abierta ? "#b32626" : "#1e88e5";
-          const geometria = await obtenerRuta(origen, destino);
+          const { geometry: geometria } = await obtenerRutaMapbox(origen, destino);
           if (cancelado) return;
           const sourceId = `ruta-${indice}`;
           mapa.addSource(sourceId, { type: "geojson", data: { type: "Feature", properties: {}, geometry: geometria } });
