@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import { traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { botonAzul, botonContorno, LogoRuum, PantallaPublica } from "../../experiencia-publica";
+import { useSearchParams } from 'next/navigation';
 
 const COOLDOWN_SEGUNDOS = 60;
 
@@ -28,19 +29,29 @@ function restanteInicial(): number {
   }
 }
 
-export default function PaginaConfirmaCorreo() {
-  const [correo] = useState(correoInicial);
+function ContenidoConfirmaCorreo() {
   const [restante, setRestante] = useState(restanteInicial);
   const [reenviando, setReenviando] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
+  const searchParams = useSearchParams();
+  const emailFromUrl = searchParams.get("email") || "";
   const hayCooldown = restante > 0;
+  const [correo] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return emailFromUrl || (window.sessionStorage.getItem("ruum:correo-confirmacion") ?? "");
+    } catch {
+      return emailFromUrl || "";
+    }
+  });
   useEffect(() => {
     if (!hayCooldown) return;
     const timer = window.setInterval(() => setRestante((valor) => Math.max(0, valor - 1)), 1000);
     return () => window.clearInterval(timer);
   }, [hayCooldown]);
+
+  
 
   async function reenviar() {
     if (!correo || restante > 0 || reenviando) return;
@@ -56,7 +67,7 @@ export default function PaginaConfirmaCorreo() {
       });
       if (errorAuth) throw errorAuth;
       const hasta = Date.now() + COOLDOWN_SEGUNDOS * 1000;
-      try { window.sessionStorage.setItem("ruum:reenvio-confirmacion-hasta", String(hasta)); } catch { /* no-op */ }
+      localStorage.setItem("ruum:reenvio-confirmacion-hasta", String(hasta));
       setRestante(COOLDOWN_SEGUNDOS);
       setMensaje("Si el correo corresponde a una cuenta pendiente, enviamos un nuevo enlace de confirmación.");
     } catch (err) {
@@ -64,8 +75,27 @@ export default function PaginaConfirmaCorreo() {
     } finally {
       setReenviando(false);
     }
+     const hasta = Number(localStorage.getItem("ruum:reenvio-confirmacion-hasta") ?? 0);
   }
-
+// Dentro del componente, antes del return
+if (!correo) {
+  return (
+    <PantallaPublica>
+      <section className="flex min-h-screen flex-col px-5 py-10 text-center">
+        <LogoRuum className="mx-auto mt-8" />
+        <div className="mt-12 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7">
+          <h1 className="font-display text-[22px] font-extrabold text-white">No encontramos tu correo</h1>
+          <p className="mt-3 font-body text-sm text-[#c9cfda]">
+            El correo electrónico no está disponible. Puedes volver a la página de registro para intentarlo de nuevo.
+          </p>
+          <Link href="/registro" className={`${botonAzul} mt-6 inline-block`}>
+            Volver a registrarme
+          </Link>
+        </div>
+      </section>
+    </PantallaPublica>
+  );
+}
   return (
     <PantallaPublica>
       <section className="flex min-h-screen flex-col px-5 py-10">
@@ -94,5 +124,13 @@ export default function PaginaConfirmaCorreo() {
         </div>
       </section>
     </PantallaPublica>
+  );
+}
+
+export default function PaginaConfirmaCorreo() {
+  return (
+    <Suspense fallback={null}>
+      <ContenidoConfirmaCorreo />
+    </Suspense>
   );
 }

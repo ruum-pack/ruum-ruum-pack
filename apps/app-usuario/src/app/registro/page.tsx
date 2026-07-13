@@ -166,7 +166,9 @@ export default function PaginaRegistro() {
           window.sessionStorage.setItem("ruum:correo-confirmacion", email.trim().toLowerCase());
         } catch { /* La pantalla también funciona si el navegador bloquea storage. */ }
         registrarEventoUx("registro_exitoso", { tipo_cuenta: tipoCuenta, requiere_confirmacion: true });
-        router.push("/registro/confirma-correo");
+        // DESPUÉS
+        const emailParam = encodeURIComponent(email.trim().toLowerCase());
+        router.push(`/registro/confirma-correo?email=${emailParam}`);
       }
     } catch (err: unknown) {
       setError(traducirErrorAuth(err, "No pudimos crear la cuenta. Intenta de nuevo."));

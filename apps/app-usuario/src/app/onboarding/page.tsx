@@ -1,5 +1,8 @@
+"use client";
+import { Suspense } from "react";
 import Link from "next/link";
 import { IconoLinea, LogoRuum, PantallaPublica } from "../experiencia-publica";
+import { useSearchParams } from "next/navigation";
 
 const pilares = [
   ["escudo", "Conductores certificados", "Verificación de identidad antes de cada traslado."],
@@ -8,13 +11,9 @@ const pilares = [
   ["candado", "Seguridad y confianza", "Tus datos y tu auto, siempre protegidos."],
 ] as const;
 
-interface Props {
-  searchParams: Promise<{ nuevo?: string }>;
-}
-
-export default async function OnboardingUsuario({ searchParams }: Props) {
-  const params = await searchParams;
-  const esCuentaNueva = params.nuevo === "1";
+function ContenidoOnboarding() {
+  const searchParams = useSearchParams();
+  const esCuentaNueva = searchParams.get("nuevo") === "1";
 
   return (
     <PantallaPublica>
@@ -45,7 +44,6 @@ export default async function OnboardingUsuario({ searchParams }: Props) {
           </p>
         </div>
 
-        {/* Pilares con descripción */}
         <div className="mt-8 grid grid-cols-2 gap-x-10 gap-y-7">
           {pilares.map(([tipo, titulo, descripcion]) => (
             <div key={titulo} className="space-y-2">
@@ -76,5 +74,13 @@ export default async function OnboardingUsuario({ searchParams }: Props) {
         </div>
       </section>
     </PantallaPublica>
+  );
+}
+
+export default function OnboardingUsuario() {
+  return (
+    <Suspense fallback={null}>
+      <ContenidoOnboarding />
+    </Suspense>
   );
 }

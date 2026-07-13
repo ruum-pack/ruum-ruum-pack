@@ -39,16 +39,17 @@ export default function PaginaMetricasRegistro() {
   const [desde,setDesde]=useState(PERIODO_INICIAL.desde);
   const [hasta,setHasta]=useState(PERIODO_INICIAL.hasta);
   const [metricas,setMetricas]=useState<MetricasRegistroConductor|null>(null);
-  const [cargando,setCargando]=useState(true);
-  const [error,setError]=useState<string|null>(null);
+  const [cargando,setCargando]=useState(() => !tieneSupabaseConfigurado());
+  const [error,setError]=useState<string|null>(() =>
+    tieneSupabaseConfigurado() ? null : "Supabase no está configurado en este entorno."
+  );
 
   useEffect(()=>{
-    let activo=true;
     if (!tieneSupabaseConfigurado()) {
-      setError("Supabase no está configurado en este entorno.");
-      setCargando(false);
-      return()=>{activo=false;};
+      return undefined;
     }
+
+    let activo=true;
     obtenerMetricasRegistroConductor(crearClienteNavegador(),desde,hasta)
       .then((datos)=>{if (activo) setMetricas(datos);})
       .catch((err)=>{if (activo) setError(traducirErrorOperativo(err,"No pudimos cargar las métricas de registro."));})
