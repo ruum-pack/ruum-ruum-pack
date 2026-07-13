@@ -1,8 +1,9 @@
 "use client";
+
 import { Suspense } from "react";
 import Link from "next/link";
-import { IconoLinea, LogoRuum, PantallaPublica } from "../experiencia-publica";
 import { useSearchParams } from "next/navigation";
+import { IconoLinea, LogoRuum, PantallaPublica } from "../experiencia-publica";
 
 const pilares = [
   ["escudo", "Conductores certificados", "Verificación de identidad antes de cada traslado."],
