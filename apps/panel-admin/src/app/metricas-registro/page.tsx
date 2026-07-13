@@ -7,7 +7,7 @@ import {
   type MetricasRegistroConductor
 } from "@ruum/api/services";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 const NOMBRES_PASO=["Cuenta y datos personales","Domicilio","Licencia y documentos","Verificación y consentimientos","Revisión y envío"];
 const NOMBRES_DOCUMENTO:Record<string,string>={
@@ -44,6 +44,11 @@ export default function PaginaMetricasRegistro() {
 
   useEffect(()=>{
     let activo=true;
+    if (!tieneSupabaseConfigurado()) {
+      setError("Supabase no está configurado en este entorno.");
+      setCargando(false);
+      return()=>{activo=false;};
+    }
     obtenerMetricasRegistroConductor(crearClienteNavegador(),desde,hasta)
       .then((datos)=>{if (activo) setMetricas(datos);})
       .catch((err)=>{if (activo) setError(traducirErrorOperativo(err,"No pudimos cargar las métricas de registro."));})

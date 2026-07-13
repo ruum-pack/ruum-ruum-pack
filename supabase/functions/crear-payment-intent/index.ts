@@ -5,6 +5,7 @@
 
 import Stripe from "npm:stripe@^17";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { montoAutorizadoParaCobro, validarRangoMontoCobro } from "./logica.ts";
 
 const CABECERAS_CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -111,9 +112,13 @@ Deno.serve(async (req) => {
   // PRD §4.6 — "El precio puede ser dinámico": si ya hay un precio_final
   // (ajustado al cierre), ese es el monto a cobrar; si no, se usa la
   // cotización original (mismo criterio que pasaporte_digital/panel-admin).
-  const montoACobrar = traslado.precio_final ?? traslado.precio_cotizado;
-  if (!montoACobrar || montoACobrar <= 0) {
+  const montoACobrar = montoAutorizadoParaCobro(traslado);
+  if (montoACobrar === null) {
     return respuestaJson({ error: "El traslado todavía no cuenta con una cotización válida." }, 422);
+  }
+  const validacionMonto = validarRangoMontoCobro(montoACobrar);
+  if (!validacionMonto.valido) {
+    return respuestaJson({ error: validacionMonto.error }, 422);
   }
   if (traslado.cotizacion_expira_en && new Date(traslado.cotizacion_expira_en).getTime() <= Date.now()) {
     return respuestaJson({ error: "La cotización ha vencido. Solicita una actualización antes de pagar." }, 422);
@@ -121,14 +126,6 @@ Deno.serve(async (req) => {
 
   // Defensa adicional sobre el precio autorizado. presupuesto_usuario nunca
   // participa en este cálculo ni se selecciona en esta función.
-  const PISO_MXN = 699;
-  const TECHO_MXN = 100000;
-  if (montoACobrar < PISO_MXN || montoACobrar > TECHO_MXN) {
-    return respuestaJson(
-      { error: `El monto a cobrar ($${montoACobrar} MXN) está fuera del rango esperado ($${PISO_MXN}–$${TECHO_MXN} MXN). Revísalo en panel-admin antes de cobrar.` },
-      422
-    );
-  }
 
   // El cobro anticipado se dispara al crear la solicitud (cualquier estado,
   // como hasta ahora). El cobro al cierre solo tiene sentido una vez que el

@@ -1,0 +1,60 @@
+name: Supabase types
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "packages/shared/src/types/supabase.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/supabase-types.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/**"
+      - "packages/shared/src/types/supabase.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/supabase-types.yml"
+
+jobs:
+  check-generated-types:
+    name: Check generated Supabase types
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+
+      - name: Start local Supabase
+        run: pnpm db:start
+
+      - name: Reset local database
+        run: pnpm db:reset
+
+      - name: Regenerate Supabase types
+        run: pnpm db:types
+
+      - name: Check generated types are committed
+        run: git diff --exit-code -- packages/shared/src/types/supabase.ts
+
+      - name: Stop local Supabase
+        if: always()
+        run: pnpm db:stop

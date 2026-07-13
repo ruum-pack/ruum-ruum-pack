@@ -6,7 +6,12 @@ dist
 .env.local
 supabase/.branches
 supabase/.temp
+apps/supabase/
+supabase/supabase/
+packages/packages/
 coverage
+test-results
+playwright-report
 backups/
 *.tsbuildinfo
 

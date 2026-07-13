@@ -1,0 +1,96 @@
+name: Traslados y pagos regression
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/test/b1_usuario_crea_traslado.test.sql"
+      - "supabase/test/b2_piso_techo_precio.test.sql"
+      - "supabase/functions/crear-payment-intent/**"
+      - "supabase/functions/stripe-webhook/**"
+      - "apps/app-usuario/src/app/traslados/**"
+      - "packages/api/src/services/traslados.ts"
+      - "packages/api/src/services/tarifas.ts"
+      - "packages/shared/src/types/supabase.ts"
+      - "packages/shared/src/types/traslado.ts"
+      - "packages/shared/src/types/pago.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "deno.json"
+      - "deno.lock"
+      - ".github/workflows/traslados-pagos-regression.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/test/b1_usuario_crea_traslado.test.sql"
+      - "supabase/test/b2_piso_techo_precio.test.sql"
+      - "supabase/functions/crear-payment-intent/**"
+      - "supabase/functions/stripe-webhook/**"
+      - "apps/app-usuario/src/app/traslados/**"
+      - "packages/api/src/services/traslados.ts"
+      - "packages/api/src/services/tarifas.ts"
+      - "packages/shared/src/types/supabase.ts"
+      - "packages/shared/src/types/traslado.ts"
+      - "packages/shared/src/types/pago.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "deno.json"
+      - "deno.lock"
+      - ".github/workflows/traslados-pagos-regression.yml"
+
+jobs:
+  sql-money-flow:
+    name: SQL traslado money flow
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+
+      - name: Start local Supabase
+        run: pnpm db:start
+
+      - name: Reset local database
+        run: pnpm db:reset
+
+      - name: Run traslado money SQL tests
+        run: supabase test db supabase/test/b1_usuario_crea_traslado.test.sql supabase/test/b2_piso_techo_precio.test.sql
+
+      - name: Stop local Supabase
+        if: always()
+        run: pnpm db:stop
+
+  edge-money-flow:
+    name: Edge payment money flow
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run payment Edge Function tests
+        run: deno test supabase/functions/crear-payment-intent/logica.test.ts supabase/functions/stripe-webhook/logica.test.ts

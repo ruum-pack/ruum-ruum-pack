@@ -1,0 +1,104 @@
+import { describe, expect, it } from "vitest";
+import {
+  actualizarConfigTarifas,
+  actualizarFactorGama,
+  actualizarTarifaVehiculo,
+  guardarDistanciaYTiempoTraslado,
+  obtenerConfiguracionTarifas,
+  sugerirTarifaTraslado
+} from "./tarifas";
+import { crearClienteFake } from "./__tests__/supabase-fake";
+
+describe("servicios de tarifas admin", () => {
+  it("lee toda la configuración de tarifas desde tablas admin-only", async () => {
+    const cliente = crearClienteFake({
+      tablas: {
+        tarifas_vehiculo: { data: [{ id: "tv1" }] },
+        tarifas_gama: { data: [{ gama: "media" }] },
+        tarifas_condicion: { data: [{ condicion: "operable" }] },
+        tarifas_horario: { data: [{ horario: "diurno" }] },
+        tarifas_dia: { data: [{ dia: "habil" }] },
+        tarifas_config: { data: { id: true, tarifa_hora: 120, tope_factor_variable: 2 } },
+        certificacion_pago_conductor: { data: [{ certificacion: "basico", porcentaje: 70 }] }
+      }
+    });
+
+    await expect(obtenerConfiguracionTarifas(cliente as never)).resolves.toMatchObject({
+      vehiculo: [{ id: "tv1" }],
+      gama: [{ gama: "media" }],
+      condicion: [{ condicion: "operable" }],
+      horario: [{ horario: "diurno" }],
+      dia: [{ dia: "habil" }],
+      config: { tarifa_hora: 120 },
+      certificacionPago: [{ porcentaje: 70 }]
+    });
+  });
+
+  it("actualiza tarifas de vehículo con admin actual y bloquea negativos", async () => {
+    const cliente = crearClienteFake({ tablas: { admins: { data: { id: "admin-1" } }, tarifas_vehiculo: {} } });
+
+    await expect(actualizarTarifaVehiculo(cliente as never, "tarifa-1", { base: -1, por_km: 10 })).rejects.toThrow(
+      "Base y $/km deben ser mayores o iguales a 0."
+    );
+
+    await actualizarTarifaVehiculo(cliente as never, "tarifa-1", { base: 900, por_km: 18 });
+
+    expect(cliente.llamadas).toContainEqual({
+      table: "tarifas_vehiculo",
+      action: "update",
+      args: [{ base: 900, por_km: 18, actualizado_por_admin_id: "admin-1" }]
+    });
+  });
+
+  it("valida factores y configuración antes de escribir", async () => {
+    const cliente = crearClienteFake({ tablas: { admins: { data: { id: "admin-1" } }, tarifas_gama: {}, tarifas_config: {} } });
+
+    await expect(actualizarFactorGama(cliente as never, "premium", 0)).rejects.toThrow("El factor debe ser mayor a 0.");
+    await expect(actualizarConfigTarifas(cliente as never, { tarifa_hora: 50, tope_factor_variable: 0.5 })).rejects.toThrow(
+      "El tope del factor variable debe ser mayor o igual a 1."
+    );
+
+    await actualizarFactorGama(cliente as never, "premium", 1.4);
+    await actualizarConfigTarifas(cliente as never, { tarifa_hora: 150, tope_factor_variable: 2 });
+
+    expect(cliente.llamadas).toContainEqual({
+      table: "tarifas_gama",
+      action: "update",
+      args: [{ factor: 1.4, actualizado_por_admin_id: "admin-1" }]
+    });
+    expect(cliente.llamadas).toContainEqual({
+      table: "tarifas_config",
+      action: "update",
+      args: [{ tarifa_hora: 150, tope_factor_variable: 2, actualizado_por_admin_id: "admin-1" }]
+    });
+  });
+
+  it("guarda distancia/tiempo no negativos y delega sugerencia al RPC", async () => {
+    const cliente = crearClienteFake({
+      tablas: { traslados: {} },
+      rpcs: { admin_sugerir_tarifa_traslado: { data: 3450 } }
+    });
+
+    await expect(guardarDistanciaYTiempoTraslado(cliente as never, "traslado-1", { distancia_km: -1, tiempo_estimado_horas: 1 })).rejects.toThrow(
+      "Distancia y tiempo deben ser mayores o iguales a 0."
+    );
+
+    await guardarDistanciaYTiempoTraslado(cliente as never, "traslado-1", { distancia_km: 12.5, tiempo_estimado_horas: 0.75 });
+    await expect(sugerirTarifaTraslado(cliente as never, "traslado-1")).resolves.toBe(3450);
+
+    expect(cliente.llamadas).toContainEqual({
+      table: "traslados",
+      action: "update",
+      args: [{ distancia_km: 12.5, tiempo_estimado_horas: 0.75 }]
+    });
+    expect(cliente.rpc).toHaveBeenCalledWith("admin_sugerir_tarifa_traslado", { p_traslado_id: "traslado-1" });
+  });
+
+  it("rechaza sugerencia nula del RPC", async () => {
+    const cliente = crearClienteFake({ rpcs: { admin_sugerir_tarifa_traslado: { data: null } } });
+
+    await expect(sugerirTarifaTraslado(cliente as never, "traslado-1")).rejects.toThrow(
+      "No se pudo calcular una sugerencia de tarifa para este traslado."
+    );
+  });
+});
