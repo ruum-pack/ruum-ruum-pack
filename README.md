@@ -3,6 +3,7 @@
 Monorepo de Ruum Ruum: apps Next.js, paquetes compartidos, Supabase local y Edge Functions para la operacion de traslados vehiculares.
 
 Para entender la arquitectura actual sin el historial de fases anteriores, lee [docs/architecture.md](docs/architecture.md).
+La cobertura SQL por flujo esta en [docs/sql-test-matrix.md](docs/sql-test-matrix.md).
 
 ## Requisitos
 
@@ -57,6 +58,7 @@ Regresiones sensibles:
 
 - Cambios de Supabase deben mantener `pnpm db:reset` y `pnpm db:types` en verde.
 - Cambios de traslado/pago deben mantener `b1_usuario_crea_traslado`, `b2_piso_techo_precio` y tests de Edge Functions.
+- Cambios SQL deben revisar la matriz de `docs/sql-test-matrix.md` para elegir todos los archivos afectados.
 - Cambios del panel admin deben mantener servicios `@ruum/api` y smoke browser de rutas criticas.
 
 ## Termux / Android

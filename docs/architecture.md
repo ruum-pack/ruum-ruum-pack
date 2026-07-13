@@ -74,12 +74,7 @@ Si un reset limpio falla, se corrige la migracion temprana rota, no se tapa con 
 
 ### Tests SQL
 
-`supabase/test` contiene regresiones transaccionales. Flujos criticos incluyen:
-
-- `b1_usuario_crea_traslado.test.sql`
-- `b2_piso_techo_precio.test.sql`
-- `rt02_estados_expediente_conductor.test.sql`
-- `rt27_metricas_registro_conductor.test.sql`
+`supabase/test` contiene regresiones transaccionales. La matriz completa por flujo vive en `docs/sql-test-matrix.md` y cubre traslado, pago, identidad, conductor, admin, auditoria, RLS y metricas.
 
 ### Edge Functions
 
@@ -104,6 +99,7 @@ deno task test:functions
 
 Workflows relevantes:
 
+- `ci.yml`: instala con lockfile congelado, corre `pnpm typecheck`, `pnpm test:unit`, `deno task check:functions` y smoke browser de `panel-admin`.
 - `supabase-types.yml`: reset local, genera tipos y falla si `packages/shared/src/types/supabase.ts` queda desfasado.
 - `traslados-pagos-regression.yml`: corre SQL y Edge tests para traslado/pago cuando cambian rutas sensibles.
 
