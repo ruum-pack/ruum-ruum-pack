@@ -7,7 +7,8 @@ import { determinarMomentoPago, calcularCargoCancelacion } from "@ruum/shared/ru
 import type { Database, TipoVehiculo } from "@ruum/shared/types";
 import type { TipoCuenta, Usuario } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
-import { listarVehiculosDeUsuario, obtenerUsuarioActual, previsualizarTarifaUsuario, type PrevisualizacionTarifa } from "@ruum/api/services";
+import { listarVehiculosDeUsuario, obtenerUsuarioActual, previsualizarTarifaUsuario, aceptarCotizacionUsuario, type PrevisualizacionTarifa } from "@ruum/api/services";
+import { PagoStripe, tieneStripePublicoConfigurado } from "../../PagoStripe";
 import { esNativo } from "../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../lib/codigos-postales";
@@ -27,7 +28,7 @@ import { useGeocodificacion } from "./hooks/useGeocodificacion";
 import { useNuevoTraslado } from "./hooks/useNuevoTraslado";
 import { EstadoCreacion } from "./components/EstadoCreacion";
 
-const PASOS = ["¿Qué vehículo trasladamos?", "¿Dónde lo recogemos y llevamos?", "¿Cuándo lo trasladamos?"] as const;
+const PASOS = ["¿Qué vehículo trasladamos?", "¿Dónde lo recogemos y llevamos?", "¿Cuándo lo trasladamos?", "Pago"] as const;
 
 const CAMPOS_PASO_VEHICULO = new Set([
   "vehiculoSeleccionadoId", "marca", "modelo", "color", "placas", "vin", "anio",
@@ -422,6 +423,50 @@ export function NuevoTrasladoForm() {
   // debounce mientras se llena, restaurar u ofrecer descartar.
   const [borradorDisponible, setBorradorDisponible] = useState<BorradorTrasladoLocal | null>(null);
   const [claveIdempotencia, setClaveIdempotencia] = useState("");
+
+  // Paso 4 (Pago) — una vez creada la solicitud, el cobro se resuelve aquí
+  // mismo en el wizard en lugar de mandar a la persona a buscarlo en el
+  // Pasaporte Digital (/traslados/[id], que ahora es de solo consulta).
+  const [trasladoCreado, setTrasladoCreado] = useState<{
+    id: string;
+    tipoPago: "anticipado" | "al_cierre";
+    precioCotizado: number | null;
+  } | null>(null);
+  const [cotizacionAceptada, setCotizacionAceptada] = useState(false);
+  const [aceptandoCotizacion, setAceptandoCotizacion] = useState(false);
+  const [errorAceptacion, setErrorAceptacion] = useState<string | null>(null);
+  const [pagoConfirmado, setPagoConfirmado] = useState(false);
+
+  // El pago anticipado (Stripe) solo puede iniciarse cuando el traslado está
+  // en 'cotizacion_aceptada' (ver crear-payment-intent). Como en el wizard
+  // ya se le mostró la tarifa antes de confirmar, aceptamos la cotización
+  // automáticamente en cuanto se crea la solicitud, sin pedirle un segundo
+  // "acepto" a la persona.
+  useEffect(() => {
+    if (!trasladoCreado) return;
+    if (trasladoCreado.tipoPago !== "anticipado" || trasladoCreado.precioCotizado == null) return;
+    if (cotizacionAceptada || aceptandoCotizacion) return;
+
+    let cancelado = false;
+    setAceptandoCotizacion(true);
+    setErrorAceptacion(null);
+    (async () => {
+      try {
+        const cliente = crearClienteNavegador();
+        await aceptarCotizacionUsuario(cliente, trasladoCreado.id);
+        if (!cancelado) setCotizacionAceptada(true);
+      } catch (err) {
+        if (!cancelado) {
+          setErrorAceptacion(err instanceof Error ? err.message : "No se pudo confirmar la tarifa para iniciar el pago.");
+        }
+      } finally {
+        if (!cancelado) setAceptandoCotizacion(false);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [trasladoCreado, cotizacionAceptada, aceptandoCotizacion]);
   const RETRASO_GUARDADO_BORRADOR_MS = 600;
 
   useEffect(() => {
@@ -1114,13 +1159,12 @@ export function NuevoTrasladoForm() {
       // A partir de aquí la solicitud ya vive en la base — el borrador local
       // ya no sirve para nada (y si se quedara, mostraría un banner de
       // "continuar donde ibas" sobre un traslado que ya se creó).
-      setResultado({
-        ok: true,
-        mensaje:
-          nuevoTraslado.precio_cotizado != null
-            ? `Solicitud creada. Tu tarifa es de $${Number(nuevoTraslado.precio_cotizado).toLocaleString("es-MX")} MXN, con pago ${nuevoTraslado.tipo_pago === "anticipado" ? "anticipado" : "al cierre"}.`
-            : `Solicitud creada con pago ${nuevoTraslado.tipo_pago === "anticipado" ? "anticipado" : "al cierre"}. Te avisaremos cuando exista una cotización autorizada.`
+      setTrasladoCreado({
+        id: nuevoTraslado.id,
+        tipoPago: nuevoTraslado.tipo_pago,
+        precioCotizado: nuevoTraslado.precio_cotizado ?? null
       });
+      setPaso(3);
       registrarEventoUx("traslado_nuevo_exitoso", {
         tipo_pago: nuevoTraslado.tipo_pago,
         modalidad: datos.modalidadProgramacion,
@@ -1573,6 +1617,59 @@ export function NuevoTrasladoForm() {
             </label>
           </div>
         )}
+
+        {paso === 3 && trasladoCreado && (
+          <div className="space-y-4">
+            <PassportCard>
+              <div className="grid gap-2">
+                <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Solicitud creada</p>
+                {trasladoCreado.precioCotizado != null ? (
+                  <p className="font-display text-4xl font-bold leading-tight text-ink">
+                    ${Number(trasladoCreado.precioCotizado).toLocaleString("es-MX")}
+                    <span className="ml-1 font-body text-sm font-normal text-ink/55">MXN</span>
+                  </p>
+                ) : (
+                  <p className="font-body text-sm leading-6 text-ink/65">
+                    Torre de Control te enviará la cotización manualmente. Podrás verla y aceptarla desde tu Pasaporte Digital.
+                  </p>
+                )}
+              </div>
+            </PassportCard>
+
+            {pagoConfirmado ? (
+              <Aviso tono="info">
+                Pago confirmado. Puede tardar unos segundos en reflejarse mientras Stripe termina de procesarlo. Da seguimiento a tu traslado desde “Mis traslados”.
+              </Aviso>
+            ) : trasladoCreado.precioCotizado == null ? (
+              <Aviso tono="info">
+                No se requiere pago en este momento. Te avisaremos en cuanto exista una cotización autorizada.
+              </Aviso>
+            ) : trasladoCreado.tipoPago === "al_cierre" ? (
+              <Aviso tono="info">
+                Tu traslado quedó confirmado con pago al cierre. El cobro se activará más adelante, cuando el servicio esté por concluir.
+              </Aviso>
+            ) : errorAceptacion ? (
+              <Aviso tono="peligro">{errorAceptacion}</Aviso>
+            ) : aceptandoCotizacion || !cotizacionAceptada ? (
+              <p className="font-body text-sm text-ink/55">Confirmando tarifa para iniciar el pago…</p>
+            ) : !tieneSupabaseConfigurado() ? (
+              <Aviso tono="peligro">Supabase no está configurado. No se puede capturar el pago.</Aviso>
+            ) : !tieneStripePublicoConfigurado() ? (
+              <Aviso tono="info">Stripe no está configurado — el cobro real no está disponible en este entorno.</Aviso>
+            ) : (
+              <PagoStripe trasladoId={trasladoCreado.id} onPagado={() => setPagoConfirmado(true)} />
+            )}
+
+            <div className="pt-2">
+              <a
+                href="/mis-viajes"
+                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-mist px-4 py-2 font-body text-sm font-medium text-ink"
+              >
+                Ver mis traslados
+              </a>
+            </div>
+          </div>
+        )}
       </div>
 
       {errorPaso && (
@@ -1581,25 +1678,27 @@ export function NuevoTrasladoForm() {
         </div>
       )}
 
-      <div className="mt-8 flex justify-between">
-        <Button variant="secundario" disabled={paso === 0} onClick={() => setPaso((p) => p - 1)}>
-          ← Atrás
-        </Button>
-        {paso < PASOS.length - 1 ? (
-          <Button
-            onClick={() => {
-              if (!validarPasoActual()) return;
-              setPaso((p) => p + 1);
-            }}
-          >
-            Continuar
+      {paso !== 3 && (
+        <div className="mt-8 flex justify-between">
+          <Button variant="secundario" disabled={paso === 0} onClick={() => setPaso((p) => p - 1)}>
+            ← Atrás
           </Button>
-        ) : (
-          <Button onClick={enviarSolicitud} disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}>
-            {enviando ? TEXTOS_CARGANDO.enviando : cargandoSesion ? "Validando sesión…" : "Confirmar solicitud"}
-          </Button>
-        )}
-      </div>
+          {paso < 2 ? (
+            <Button
+              onClick={() => {
+                if (!validarPasoActual()) return;
+                setPaso((p) => p + 1);
+              }}
+            >
+              Continuar
+            </Button>
+          ) : (
+            <Button onClick={enviarSolicitud} disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}>
+              {enviando ? TEXTOS_CARGANDO.enviando : cargandoSesion ? "Validando sesión…" : "Confirmar solicitud"}
+            </Button>
+          )}
+        </div>
+      )}
       </div>
     </main>
   );

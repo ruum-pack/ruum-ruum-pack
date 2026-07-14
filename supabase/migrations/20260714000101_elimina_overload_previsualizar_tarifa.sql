@@ -1,0 +1,12 @@
+-- La migración 20260714000100 le agregó el parámetro p_condicion a
+-- usuario_previsualizar_tarifa, cambiando su firma de 5 a 6 parámetros.
+-- CREATE OR REPLACE FUNCTION no reemplaza una función cuando cambia el
+-- número/tipo de parámetros -- crea una función SOBRECARGADA nueva y deja
+-- viva la versión vieja de 5 parámetros. Con dos funciones del mismo nombre,
+-- PostgREST no puede resolver de forma confiable cuál invocar desde el RPC,
+-- así que la llamada falla y el paso "¿Cuándo lo trasladamos?" del wizard de
+-- app-usuario nunca llega a mostrar la tarifa calculada.
+--
+-- Mismo problema ya visto (y resuelto así) con usuario_crea_traslado --
+-- ver 20260711000119/122.
+drop function if exists public.usuario_previsualizar_tarifa(text, text, numeric, numeric, timestamptz);

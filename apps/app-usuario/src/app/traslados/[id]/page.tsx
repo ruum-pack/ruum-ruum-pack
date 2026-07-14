@@ -7,9 +7,6 @@ import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteServidor } from "../../../lib/supabase-server";
 import { ChatTraslado } from "./ChatTraslado";
-import { PagoTraslado } from "./PagoTraslado";
-import { PagoRecuperable } from "./PagoRecuperable";
-import { AceptarCotizacion } from "./AceptarCotizacion";
 import { ReportarIncidenciaUsuario } from "./ReportarIncidencia";
 import { CancelarTraslado } from "./CancelarTraslado";
 import { CalificarTraslado } from "./CalificarTraslado";
@@ -637,13 +634,25 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
             </div>
           )}
           {pasaporte.estado === "pago_pendiente" && (
-            <PagoTraslado trasladoId={pasaporte.traslado_id} monto={precioBase} />
+            <div className="mt-6">
+              <Aviso tono="atencion">
+                Pago pendiente. El cobro al cierre se realiza desde la app, fuera de esta pantalla de consulta.
+              </Aviso>
+            </div>
           )}
           {pasaporte.estado === "cotizacion_generada" && pasaporte.precio_cotizado != null && (
-            <AceptarCotizacion trasladoId={pasaporte.traslado_id} tipoPago={pasaporte.tipo_pago} />
+            <div className="mt-6">
+              <Aviso tono="info">
+                Cotización enviada, pendiente de aceptación. La aceptación de la tarifa y el pago se realizan desde el flujo de creación del traslado.
+              </Aviso>
+            </div>
           )}
           {pasaporte.estado === "cotizacion_aceptada" && pasaporte.tipo_pago === "anticipado" && precioBase > 0 && traslado?.cotizacion_expira_en && (
-            <PagoRecuperable trasladoId={pasaporte.traslado_id} monto={precioBase} cotizacionExpiraEn={traslado.cotizacion_expira_en} />
+            <div className="mt-6">
+              <Aviso tono="info">
+                Cotización aceptada, pago anticipado pendiente. Esta pantalla es solo de consulta; el cobro se completa desde el flujo de creación del traslado.
+              </Aviso>
+            </div>
           )}
           <div className="mt-6 rounded-lg border border-ink/10 px-4 py-4">
             <p className="font-body text-sm font-semibold">Contacto con soporte</p>
