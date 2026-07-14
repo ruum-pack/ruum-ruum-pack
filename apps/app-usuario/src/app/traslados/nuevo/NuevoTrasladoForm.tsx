@@ -27,7 +27,23 @@ import { useGeocodificacion } from "./hooks/useGeocodificacion";
 import { useNuevoTraslado } from "./hooks/useNuevoTraslado";
 import { EstadoCreacion } from "./components/EstadoCreacion";
 
-const PASOS = ["Datos del vehículo", "Origen y destino"] as const;
+const PASOS = ["¿Qué vehículo trasladamos?", "¿Dónde lo recogemos y llevamos?", "¿Cuándo lo trasladamos?"] as const;
+
+const CAMPOS_PASO_VEHICULO = new Set([
+  "vehiculoSeleccionadoId", "marca", "modelo", "color", "placas", "vin", "anio",
+  "transmision", "condicion", "estadoGeneral", "tieneTarjeta", "tieneVerificacion", "tienePlacas", "puedeCircular"
+]);
+const CAMPOS_PASO_RUTA = new Set([
+  "origenCodigoPostal", "origenEstado", "origenCiudad", "origenColonia", "origenCalle", "origenNumero",
+  "destinoCodigoPostal", "destinoEstado", "destinoCiudad", "destinoColonia", "destinoCalle", "destinoNumero",
+  "entregaNombre", "entregaApellido", "entregaTelefono", "recepcionNombre", "recepcionApellido", "recepcionTelefono"
+]);
+
+function pasoDeCampo(campo: string): number {
+  if (CAMPOS_PASO_VEHICULO.has(campo)) return 0;
+  if (CAMPOS_PASO_RUTA.has(campo)) return 1;
+  return 2;
+}
 
 // Geocodificación y sugerencias usan Mapbox mediante lib/mapbox.ts.
 
@@ -243,6 +259,97 @@ function formatearTiempo(horas: number) {
   return `${horasEnteras} h ${minutos.toString().padStart(2, "0")} min`;
 }
 
+interface CampoCodigoPostalProps {
+  valor: string;
+  ciudadActual: string;
+  opciones: DatosCodigoPostal | null;
+  sugerenciasMapbox: string[];
+  consultando: boolean;
+  aviso: string | null;
+  error?: string;
+  onCambiar: (valor: string) => void;
+  onSalir: (valor: string) => void;
+  onAplicarSugerencia: (ciudad: string, colonia: string) => void;
+}
+
+// Componente a nivel de módulo a propósito: antes vivía declarado dentro de
+// NuevoTrasladoForm, así que React lo veía como un tipo de componente nuevo
+// en cada render (nueva referencia de función) y desmontaba/remontaba el
+// <input> en cada tecla — de ahí que solo se pudiera capturar un dígito del
+// CP a la vez y hubiera que hacer click de nuevo para seguir escribiendo.
+function CampoCodigoPostal({
+  valor,
+  ciudadActual,
+  opciones,
+  sugerenciasMapbox,
+  consultando,
+  aviso,
+  error,
+  onCambiar,
+  onSalir,
+  onAplicarSugerencia
+}: CampoCodigoPostalProps) {
+  const ciudadBase = ciudadActual || opciones?.ciudades[0] || "";
+  const sugerencias = opciones
+    ? opciones.colonias.slice(0, 5).map((colonia) => ({
+        ciudad: opciones.ciudades[0] ?? ciudadBase,
+        colonia
+      }))
+    : [];
+
+  return (
+    <div className="grid gap-2">
+      <Field
+        etiqueta="Código Postal"
+        value={valor}
+        onChange={(e) => onCambiar(e.target.value)}
+        onBlur={(e) => onSalir(e.target.value)}
+        inputMode="numeric"
+        maxLength={5}
+        ayuda={consultando ? "Consultando CP..." : aviso}
+        error={error}
+      />
+      {(sugerenciasMapbox.length > 0 || sugerencias.length > 0) && (
+        <div className="rounded-lg border border-ink/10 bg-mist px-3 py-2">
+          {sugerenciasMapbox.length > 0 && (
+            <div>
+              <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Referencias Mapbox</p>
+              <div className="mt-1 grid gap-1">
+                {sugerenciasMapbox.map((opcion) => (
+                  <p
+                    key={opcion}
+                    className="rounded-md px-2 py-1 font-body text-xs text-ink/70"
+                  >
+                    {opcion}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+          {sugerencias.length > 0 && (
+            <div className={sugerenciasMapbox.length ? "mt-2 border-t border-ink/10 pt-2" : ""}>
+              <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Colonias sugeridas</p>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {sugerencias.map((opcion) => (
+                  <button
+                    key={`${opcion.ciudad}-${opcion.colonia}`}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => onAplicarSugerencia(opcion.ciudad, opcion.colonia)}
+                    className="rounded-full border border-ink/10 px-2.5 py-1 font-body text-xs text-ink/70 hover:border-signal/40"
+                  >
+                    {opcion.colonia}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function NuevoTrasladoForm() {
   const { geocodificarRuta } = useGeocodificacion();
   const { crear: crearNuevoTraslado } = useNuevoTraslado();
@@ -403,13 +510,22 @@ export function NuevoTrasladoForm() {
       estado: datos.destinoEstado
     });
 
-    if (paso !== 1 || !origenDireccion.trim() || !destinoDireccion.trim()) {
+    if (!origenDireccion.trim() || !destinoDireccion.trim()) {
       const timer = setTimeout(() => {
         setRutaEstimacion(null);
         setRutaAviso(null);
         setRutaCalculando(false);
       }, 0);
       return () => clearTimeout(timer);
+    }
+
+    if (paso !== 1) {
+      // La ruta ya se calculó (o direcciones sin cambios desde el paso
+      // anterior): no se vuelve a consultar Mapbox fuera de la pantalla de
+      // origen/destino, pero tampoco se descarta lo ya calculado — el paso
+      // "¿Cuándo lo trasladamos?" lo sigue mostrando en el resumen y lo usa
+      // para la previsualización de tarifa.
+      return;
     }
 
     let cancelado = false;
@@ -456,7 +572,7 @@ export function NuevoTrasladoForm() {
 
   // RT-13 — calcula la tarifa en vivo apenas hay ruta y clasificación.
   useEffect(() => {
-    if (paso !== 1 || !sesionReal) {
+    if (paso !== 2 || !sesionReal) {
       return;
     }
     if (!datos.marca.trim() || !datos.modelo.trim() || !datos.condicion) {
@@ -726,73 +842,6 @@ export function NuevoTrasladoForm() {
     setVehiculoSeleccionadoId("");
   }
 
-  function CampoCodigoPostal({ prefijo }: { prefijo: PrefijoDomicilio }) {
-    const valor = datos[`${prefijo}CodigoPostal` as keyof DatosFormulario] as string;
-    const opciones = cpOpciones[prefijo];
-    const ciudadBase =
-      (datos[`${prefijo}Ciudad` as keyof DatosFormulario] as string) ||
-      opciones?.ciudades[0] ||
-      "";
-    const sugerencias = opciones
-      ? opciones.colonias.slice(0, 5).map((colonia) => ({
-          ciudad: opciones.ciudades[0] ?? ciudadBase,
-          colonia
-        }))
-      : [];
-
-    return (
-      <div className="grid gap-2">
-        <Field
-          etiqueta="Código Postal"
-          value={valor}
-          onChange={(e) => actualizarCodigoPostal(prefijo, e.target.value)}
-          onBlur={(e) => consultarCodigoPostal(prefijo, e.target.value)}
-          inputMode="numeric"
-          maxLength={5}
-          ayuda={cpConsultando === prefijo ? "Consultando CP..." : cpAviso[prefijo]}
-          error={errores[`${prefijo}CodigoPostal` as keyof DatosFormulario]}
-        />
-        {(placesOpciones[prefijo].length > 0 || sugerencias.length > 0) && (
-          <div className="rounded-lg border border-ink/10 bg-mist px-3 py-2">
-            {placesOpciones[prefijo].length > 0 && (
-              <div>
-                <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Referencias Mapbox</p>
-                <div className="mt-1 grid gap-1">
-                  {placesOpciones[prefijo].map((opcion) => (
-                    <p
-                      key={opcion}
-                      className="rounded-md px-2 py-1 font-body text-xs text-ink/70"
-                    >
-                      {opcion}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
-            {sugerencias.length > 0 && (
-              <div className={placesOpciones[prefijo].length ? "mt-2 border-t border-ink/10 pt-2" : ""}>
-                <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Colonias sugeridas</p>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  {sugerencias.map((opcion) => (
-                    <button
-                      key={`${opcion.ciudad}-${opcion.colonia}`}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => aplicarSugerenciaCp(prefijo, opcion.ciudad, opcion.colonia)}
-                      className="rounded-full border border-ink/10 px-2.5 py-1 font-body text-xs text-ink/70 hover:border-signal/40"
-                    >
-                      {opcion.colonia}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   function BloqueRuta() {
     return (
       <div className="grid gap-4">
@@ -800,7 +849,18 @@ export function NuevoTrasladoForm() {
         <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
           <p className="font-body text-sm font-semibold">Domicilio de origen</p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <CampoCodigoPostal prefijo="origen" />
+            <CampoCodigoPostal
+              valor={datos.origenCodigoPostal}
+              ciudadActual={datos.origenCiudad}
+              opciones={cpOpciones.origen}
+              sugerenciasMapbox={placesOpciones.origen}
+              consultando={cpConsultando === "origen"}
+              aviso={cpAviso.origen}
+              error={errores.origenCodigoPostal}
+              onCambiar={(valor) => actualizarCodigoPostal("origen", valor)}
+              onSalir={(valor) => consultarCodigoPostal("origen", valor)}
+              onAplicarSugerencia={(ciudad, colonia) => aplicarSugerenciaCp("origen", ciudad, colonia)}
+            />
             <Field etiqueta="Estado" value={datos.origenEstado} onChange={(e) => actualizar("origenEstado", e.target.value)} error={errores.origenEstado} />
             <Field etiqueta="Ciudad" value={datos.origenCiudad} onChange={(e) => actualizar("origenCiudad", e.target.value)} error={errores.origenCiudad} />
             <Field etiqueta="Colonia" value={datos.origenColonia} onChange={(e) => actualizar("origenColonia", e.target.value)} error={errores.origenColonia} />
@@ -830,7 +890,18 @@ export function NuevoTrasladoForm() {
         <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
           <p className="font-body text-sm font-semibold">Domicilio de destino</p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <CampoCodigoPostal prefijo="destino" />
+            <CampoCodigoPostal
+              valor={datos.destinoCodigoPostal}
+              ciudadActual={datos.destinoCiudad}
+              opciones={cpOpciones.destino}
+              sugerenciasMapbox={placesOpciones.destino}
+              consultando={cpConsultando === "destino"}
+              aviso={cpAviso.destino}
+              error={errores.destinoCodigoPostal}
+              onCambiar={(valor) => actualizarCodigoPostal("destino", valor)}
+              onSalir={(valor) => consultarCodigoPostal("destino", valor)}
+              onAplicarSugerencia={(ciudad, colonia) => aplicarSugerenciaCp("destino", ciudad, colonia)}
+            />
             <Field etiqueta="Estado" value={datos.destinoEstado} onChange={(e) => actualizar("destinoEstado", e.target.value)} error={errores.destinoEstado} />
             <Field etiqueta="Ciudad" value={datos.destinoCiudad} onChange={(e) => actualizar("destinoCiudad", e.target.value)} error={errores.destinoCiudad} />
             <Field etiqueta="Colonia" value={datos.destinoColonia} onChange={(e) => actualizar("destinoColonia", e.target.value)} error={errores.destinoColonia} />
@@ -912,8 +983,7 @@ export function NuevoTrasladoForm() {
 
   function validarPasoActual() {
     const todos = erroresFormulario(esquemaSolicitudTraslado.safeParse(datosParaValidacion()));
-    const camposPaso0 = new Set(["vehiculoSeleccionadoId", "marca", "modelo", "color", "placas", "vin", "anio", "transmision", "condicion", "estadoGeneral", "tieneTarjeta", "tieneVerificacion", "tienePlacas", "puedeCircular"]);
-    const siguientesErrores = Object.fromEntries(Object.entries(todos).filter(([campo]) => paso === 0 ? camposPaso0.has(campo) : !camposPaso0.has(campo))) as ErroresFormulario;
+    const siguientesErrores = Object.fromEntries(Object.entries(todos).filter(([campo]) => pasoDeCampo(campo) === paso)) as ErroresFormulario;
 
     const totalErrores = Object.keys(siguientesErrores).length;
     setErrores(siguientesErrores);
@@ -937,8 +1007,7 @@ export function NuevoTrasladoForm() {
       const siguientesErrores = erroresFormulario(validacionFinal) as ErroresFormulario;
       setErrores(siguientesErrores);
       const primerCampo = String(validacionFinal.error.issues[0]?.path[0] ?? "");
-      const camposPaso0 = new Set(["vehiculoSeleccionadoId", "marca", "modelo", "color", "placas", "vin", "anio", "transmision", "condicion", "estadoGeneral", "tieneTarjeta", "tieneVerificacion", "tienePlacas", "puedeCircular"]);
-      setPaso(camposPaso0.has(primerCampo) ? 0 : 1);
+      setPaso(pasoDeCampo(primerCampo));
       setErrorPaso(`${validacionFinal.error.issues.length} campos requieren atención.`);
       return;
     }
@@ -1335,6 +1404,11 @@ export function NuevoTrasladoForm() {
             <PassportCard>
               {BloqueRuta()}
             </PassportCard>
+          </div>
+        )}
+
+        {paso === 2 && (
+          <div className="space-y-4">
             <PassportCard>
               <div className="grid gap-4">
                 <p className="font-body text-sm font-semibold">¿Cuándo lo necesitas?</p>
@@ -1387,11 +1461,6 @@ export function NuevoTrasladoForm() {
               />
               </div>
             </PassportCard>
-          </div>
-        )}
-
-        {paso === 1 && (
-          <div className="space-y-4">
             <PassportCard>
               <div className="grid gap-4">
                 <p className="font-body text-sm font-semibold">Tipo de servicio</p>
