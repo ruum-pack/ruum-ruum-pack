@@ -128,8 +128,53 @@ export const VIAJES_DEMO: PasaporteRow[] = [
   }
 ];
 
+function conductorDemo(datos: Pick<ConductorRow, "id" | "nombre"> & Partial<ConductorRow>): ConductorRow {
+  const ahora = new Date().toISOString();
+
+  return {
+    actualizado_en: ahora,
+    auth_user_id: null,
+    autoriza_verificacion_antecedentes: true,
+    calificacion_promedio: 0,
+    calle: "Av. Demo",
+    cancelaciones_sin_justificacion_count: 0,
+    ciudad_municipio: "Cuauhtémoc",
+    codigo_postal: "06700",
+    colonia: "Roma Norte",
+    contacto_emergencia_nombre: "Contacto Demo",
+    contacto_emergencia_telefono: "+5215500000000",
+    creado_en: ahora,
+    curp: null,
+    declara_sin_suspensiones: true,
+    documentos_vigentes: true,
+    estado: "activo",
+    estado_expediente: "aprobado",
+    estado_residencia: "Ciudad de México",
+    id: datos.id,
+    incidencias_graves_12m: 0,
+    incidencias_graves_6m: 0,
+    licencia_numero: null,
+    licencia_tipo: "A",
+    licencia_vigencia: null,
+    marca_terminos: "ruum-demo",
+    nivel_operativo_vigente: "basico",
+    nivel_por_calificacion: "basico",
+    nivel_por_experiencia: "basico",
+    no_presentaciones_6m: 0,
+    nombre: datos.nombre,
+    numero: "1",
+    referencias: "Datos demo",
+    suspensiones_activas: 0,
+    telefono: null,
+    terminos_aceptados_en: ahora,
+    traslados_completados: 0,
+    version_terminos_aceptada: 1,
+    ...datos
+  };
+}
+
 export const CONDUCTORES_DEMO: ConductorRow[] = [
-  {
+  conductorDemo({
     id: "demo-conductor-2",
     auth_user_id: null,
     nombre: "Conductor Demo",
@@ -149,8 +194,8 @@ export const CONDUCTORES_DEMO: ConductorRow[] = [
     telefono: "+5215511112222",
     creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 200).toISOString(),
     actualizado_en: new Date().toISOString()
-  },
-  {
+  }),
+  conductorDemo({
     id: "demo-conductor-3",
     auth_user_id: null,
     nombre: "Conductora Demo 2",
@@ -170,8 +215,8 @@ export const CONDUCTORES_DEMO: ConductorRow[] = [
     telefono: "+5215533334444",
     creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),
     actualizado_en: new Date().toISOString()
-  },
-  {
+  }),
+  conductorDemo({
     id: "demo-conductor-4",
     auth_user_id: null,
     nombre: "Conductor con documentos vencidos",
@@ -191,7 +236,7 @@ export const CONDUCTORES_DEMO: ConductorRow[] = [
     telefono: null,
     creado_en: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
     actualizado_en: new Date().toISOString()
-  }
+  })
 ];
 
 export const USUARIOS_DEMO: UsuarioRow[] = [
