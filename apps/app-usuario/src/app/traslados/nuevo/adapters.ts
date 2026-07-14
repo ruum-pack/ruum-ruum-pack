@@ -18,7 +18,7 @@ export function construirPayloadCreacion(datos: DatosFormulario, vehiculoSelecci
 } {
   const vehiculo: DatosVehiculoParaTraslado = vehiculoSeleccionadoId ? { vehiculoId: vehiculoSeleccionadoId } : { vehiculo: {
     tipo: datos.tipo, transmision: datos.transmision, marca: datos.marca, modelo: datos.modelo, anio: Number(datos.anio), color: datos.color,
-    placas: datos.placas, vin: datos.vin, estado_general_declarado: datos.estadoGeneral, tiene_tarjeta_circulacion: datos.tieneTarjeta,
+    placas: datos.placas, vin: datos.vin, condicion: datos.condicion || "seminueva", estado_general_declarado: datos.estadoGeneral, tiene_tarjeta_circulacion: datos.tieneTarjeta,
     tiene_verificacion: datos.tieneVerificacion, tiene_placas: datos.tienePlacas, puede_circular_rodando: datos.puedeCircular
   }};
   return { vehiculo, traslado: {

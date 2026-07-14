@@ -13,7 +13,7 @@ import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../lib/codigos-postales";
 import { registrarEventoUx } from "../../../lib/analytics";
 import { sugerirDireccionesPorCodigoPostal, tieneMapboxConfigurado } from "../../../lib/mapbox";
-import { MARCAS_CATALOGO, modelosPorMarca, resumenClasificacionVehiculo, tipoSugeridoParaVehiculo } from "../../../lib/catalogo-vehiculos";
+import { MARCAS_CATALOGO, clasificacionesPorVehiculo, modelosPorMarca, resumenClasificacionVehiculo, tipoSugeridoParaVehiculo } from "../../../lib/catalogo-vehiculos";
 import {
   guardarBorradorTrasladoLocal,
   leerBorradorTrasladoLocal,
@@ -22,12 +22,12 @@ import {
 } from "../../../lib/borrador-traslado";
 import { NavegacionUsuario } from "../../NavegacionUsuario";
 import { esquemaSolicitudTraslado, erroresFormulario } from "./schema";
-import type { DatosFormulario, ErroresFormulario, ModalidadProgramacion, MotivoServicioTraslado, TipoRutaTraslado, TipoServicioTraslado, TransmisionVehiculo, VehiculoGuardado } from "./types";
+import type { CondicionVehiculo, DatosFormulario, ErroresFormulario, ModalidadProgramacion, MotivoServicioTraslado, TipoRutaTraslado, TipoServicioTraslado, TransmisionVehiculo, VehiculoGuardado } from "./types";
 import { useGeocodificacion } from "./hooks/useGeocodificacion";
 import { useNuevoTraslado } from "./hooks/useNuevoTraslado";
 import { EstadoCreacion } from "./components/EstadoCreacion";
 
-const PASOS = ["Datos básicos", "Agenda + Servicio"] as const;
+const PASOS = ["Datos del vehículo", "Origen y destino"] as const;
 
 // Geocodificación y sugerencias usan Mapbox mediante lib/mapbox.ts.
 
@@ -37,6 +37,12 @@ const ESTADOS_GENERALES_VEHICULO = [
   "Detalles estéticos menores",
   "Rayones o golpes visibles"
 ] as const;
+
+const CONDICIONES_VEHICULO: Array<{ valor: CondicionVehiculo; etiqueta: string }> = [
+  { valor: "nueva", etiqueta: "Nueva" },
+  { valor: "seminueva", etiqueta: "Seminueva" },
+  { valor: "rescate_mecanico", etiqueta: "Rescate mecánico" }
+];
 
 interface DatosFormularioLegacy {
   // Vehículo — PRD §4.2
@@ -48,6 +54,7 @@ interface DatosFormularioLegacy {
   color: string;
   placas: string;
   vin: string;
+  condicion: CondicionVehiculo | "";
   estadoGeneral: string;
   // Documentos — PRD §4.2
   tieneTarjeta: boolean;
@@ -100,6 +107,7 @@ const VALORES_INICIALES: DatosFormulario = {
   color: "",
   placas: "",
   vin: "",
+  condicion: "",
   estadoGeneral: "",
   tieneTarjeta: false,
   tieneVerificacion: false,
@@ -223,6 +231,18 @@ function referenciasDomicilio(referencias: string, estado: string, codigoPostal:
     .join(" | ");
 }
 
+function formatearDistancia(km: number) {
+  return `${km.toLocaleString("es-MX", { maximumFractionDigits: 1 })} km`;
+}
+
+function formatearTiempo(horas: number) {
+  const minutosTotales = Math.round(horas * 60);
+  const horasEnteras = Math.floor(minutosTotales / 60);
+  const minutos = minutosTotales % 60;
+  if (horasEnteras <= 0) return `${minutos} min`;
+  return `${horasEnteras} h ${minutos.toString().padStart(2, "0")} min`;
+}
+
 export function NuevoTrasladoForm() {
   const { geocodificarRuta } = useGeocodificacion();
   const { crear: crearNuevoTraslado } = useNuevoTraslado();
@@ -245,6 +265,18 @@ export function NuevoTrasladoForm() {
     () => resumenClasificacionVehiculo(datos.marca, datos.modelo),
     [datos.marca, datos.modelo],
   );
+  const clasificacionesCatalogo = useMemo(
+    () => clasificacionesPorVehiculo(datos.marca, datos.modelo),
+    [datos.marca, datos.modelo],
+  );
+  const categoriaCatalogo = useMemo(() => {
+    const valores = [...new Set(clasificacionesCatalogo.map((vehiculo) => vehiculo.categoria))];
+    return valores.length ? valores.join(" / ") : "Pendiente";
+  }, [clasificacionesCatalogo]);
+  const gamaCatalogo = useMemo(() => {
+    const valores = [...new Set(clasificacionesCatalogo.map((vehiculo) => vehiculo.gama))];
+    return valores.length ? valores.join(" / ") : "Pendiente";
+  }, [clasificacionesCatalogo]);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<{ ok: boolean; mensaje: string } | null>(null);
   const [usuario, setUsuario] = useState<Usuario>(USUARIO_PENDIENTE);
@@ -265,6 +297,17 @@ export function NuevoTrasladoForm() {
   // autoclasificación (Torre de Control cotizará esa solicitud a mano).
   const [previsualizacion, setPrevisualizacion] = useState<PrevisualizacionTarifa | null>(null);
   const [previsualizando, setPrevisualizando] = useState(false);
+  const [rutaEstimacion, setRutaEstimacion] = useState<{
+    origenLat?: number;
+    origenLng?: number;
+    destinoLat?: number;
+    destinoLng?: number;
+    distanciaKm?: number;
+    tiempoEstimadoHoras?: number;
+    incompletas: boolean;
+  } | null>(null);
+  const [rutaCalculando, setRutaCalculando] = useState(false);
+  const [rutaAviso, setRutaAviso] = useState<string | null>(null);
 
   // Sprint 4 — borrador NO sensible del wizard (ver lib/borrador-traslado.ts
   // para qué se excluye y por qué). Mismo patrón que
@@ -300,6 +343,7 @@ export function NuevoTrasladoForm() {
         modelo: datos.modelo,
         anio: datos.anio,
         color: datos.color,
+        condicion: datos.condicion,
         estadoGeneral: datos.estadoGeneral,
         tieneTarjeta: datos.tieneTarjeta,
         tieneVerificacion: datos.tieneVerificacion,
@@ -330,7 +374,7 @@ export function NuevoTrasladoForm() {
     return () => clearTimeout(timer);
   }, [
     enviando, resultado, paso, claveIdempotencia,
-    datos.tipo, datos.transmision, datos.marca, datos.modelo, datos.anio, datos.color, datos.estadoGeneral,
+    datos.tipo, datos.transmision, datos.marca, datos.modelo, datos.anio, datos.color, datos.condicion, datos.estadoGeneral,
     datos.tieneTarjeta, datos.tieneVerificacion, datos.tienePlacas, datos.puedeCircular,
     datos.origenCodigoPostal, datos.origenEstado, datos.origenCiudad, datos.origenColonia,
     datos.destinoCodigoPostal, datos.destinoEstado, datos.destinoCiudad, datos.destinoColonia,
@@ -339,18 +383,9 @@ export function NuevoTrasladoForm() {
     datos.ventanaRecoleccion, datos.ventanaEntrega, datos.tipoServicio, datos.motivoServicio
   ]);
 
-  // RT-13 — calcula la tarifa en vivo apenas hay suficientes datos en el
-  // paso "Agenda + Servicio" (vehículo + origen/destino ya capturados en el
-  // paso 0, fecha/hora capturada en este paso). El usuario ya no escribe
-  // ningún presupuesto: solo lee este número antes de confirmar.
+  // Mapbox se consulta solo en la pantalla de origen/destino y con debounce:
+  // antes la tarifa disparaba geocodificación silenciosa y la ruta no se veía.
   useEffect(() => {
-    if (paso !== 1 || !sesionReal) {
-      return;
-    }
-    if (!datos.marca.trim() || !datos.modelo.trim()) {
-      setPrevisualizacion(null);
-      return;
-    }
     const origenDireccion = domicilioCompleto({
       calle: datos.origenCalle,
       numero: datos.origenNumero,
@@ -367,18 +402,20 @@ export function NuevoTrasladoForm() {
       ciudad: datos.destinoCiudad,
       estado: datos.destinoEstado
     });
-    if (!origenDireccion.trim() || !destinoDireccion.trim()) {
-      setPrevisualizacion(null);
-      return;
-    }
-    if (datos.modalidadProgramacion === "programado" && !datos.fechaHoraProgramada) {
-      setPrevisualizacion(null);
-      return;
+
+    if (paso !== 1 || !origenDireccion.trim() || !destinoDireccion.trim()) {
+      const timer = setTimeout(() => {
+        setRutaEstimacion(null);
+        setRutaAviso(null);
+        setRutaCalculando(false);
+      }, 0);
+      return () => clearTimeout(timer);
     }
 
     let cancelado = false;
-    setPrevisualizando(true);
     const timer = setTimeout(async () => {
+      setRutaCalculando(true);
+      setRutaAviso(null);
       try {
         const coordenadas = await geocodificarRuta(
           origenDireccion,
@@ -386,17 +423,68 @@ export function NuevoTrasladoForm() {
           datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined
         );
         if (cancelado) return;
-        if (coordenadas.distanciaKm === undefined || coordenadas.tiempoEstimadoHoras === undefined) {
-          setPrevisualizacion(null);
-          return;
+        setRutaEstimacion(coordenadas);
+        if (coordenadas.incompletas) {
+          setRutaAviso(
+            tieneMapboxConfigurado()
+              ? "No pudimos resolver una de las direcciones. Revisa calle, número, colonia y CP."
+              : "Mapbox no está configurado; se guardará la solicitud sin distancia ni tiempo estimado."
+          );
+        } else if (coordenadas.distanciaKm === undefined || coordenadas.tiempoEstimadoHoras === undefined) {
+          setRutaAviso("Mapbox resolvió las direcciones, pero no devolvió una ruta con distancia y tiempo.");
         }
+      } catch {
+        if (!cancelado) {
+          setRutaEstimacion(null);
+          setRutaAviso("No pudimos calcular distancia y tiempo en este momento.");
+        }
+      } finally {
+        if (!cancelado) setRutaCalculando(false);
+      }
+    }, 650);
+
+    return () => {
+      cancelado = true;
+      clearTimeout(timer);
+    };
+  }, [
+    paso,
+    datos.origenCalle, datos.origenNumero, datos.origenColonia, datos.origenCodigoPostal, datos.origenCiudad, datos.origenEstado,
+    datos.destinoCalle, datos.destinoNumero, datos.destinoColonia, datos.destinoCodigoPostal, datos.destinoCiudad, datos.destinoEstado,
+    datos.origenLat, datos.origenLng, geocodificarRuta
+  ]);
+
+  // RT-13 — calcula la tarifa en vivo apenas hay ruta y clasificación.
+  useEffect(() => {
+    if (paso !== 1 || !sesionReal) {
+      return;
+    }
+    if (!datos.marca.trim() || !datos.modelo.trim() || !datos.condicion) {
+      const timer = setTimeout(() => setPrevisualizacion(null), 0);
+      return () => clearTimeout(timer);
+    }
+    if (rutaEstimacion?.distanciaKm === undefined || rutaEstimacion.tiempoEstimadoHoras === undefined) {
+      const timer = setTimeout(() => setPrevisualizacion(null), 0);
+      return () => clearTimeout(timer);
+    }
+    if (datos.modalidadProgramacion === "programado" && !datos.fechaHoraProgramada) {
+      const timer = setTimeout(() => setPrevisualizacion(null), 0);
+      return () => clearTimeout(timer);
+    }
+
+    const condicionSeleccionada = datos.condicion;
+    let cancelado = false;
+    const timer = setTimeout(async () => {
+      setPrevisualizando(true);
+      try {
         const cliente = crearClienteNavegador();
         const resultado = await previsualizarTarifaUsuario(cliente, {
           marca: datos.marca,
           modelo: datos.modelo,
-          distanciaKm: coordenadas.distanciaKm,
-          tiempoEstimadoHoras: coordenadas.tiempoEstimadoHoras,
-          fechaHora: datos.modalidadProgramacion === "programado" && datos.fechaHoraProgramada ? new Date(datos.fechaHoraProgramada) : null
+          distanciaKm: rutaEstimacion.distanciaKm,
+          tiempoEstimadoHoras: rutaEstimacion.tiempoEstimadoHoras,
+          fechaHora: datos.modalidadProgramacion === "programado" && datos.fechaHoraProgramada ? new Date(datos.fechaHoraProgramada) : null,
+          condicion: condicionSeleccionada
         });
         if (!cancelado) setPrevisualizacion(resultado);
       } catch {
@@ -411,10 +499,8 @@ export function NuevoTrasladoForm() {
       clearTimeout(timer);
     };
   }, [
-    paso, sesionReal, datos.marca, datos.modelo,
-    datos.origenCalle, datos.origenNumero, datos.origenColonia, datos.origenCodigoPostal, datos.origenCiudad, datos.origenEstado,
-    datos.destinoCalle, datos.destinoNumero, datos.destinoColonia, datos.destinoCodigoPostal, datos.destinoCiudad, datos.destinoEstado,
-    datos.modalidadProgramacion, datos.fechaHoraProgramada, datos.origenLat, datos.origenLng, geocodificarRuta
+    paso, sesionReal, datos.marca, datos.modelo, datos.condicion,
+    datos.modalidadProgramacion, datos.fechaHoraProgramada, rutaEstimacion
   ]);
 
   function restaurarBorrador() {
@@ -429,6 +515,7 @@ export function NuevoTrasladoForm() {
       modelo: borrador.modelo,
       anio: borrador.anio,
       color: borrador.color,
+      condicion: (borrador.condicion || prev.condicion) as CondicionVehiculo | "",
       estadoGeneral: borrador.estadoGeneral,
       tieneTarjeta: borrador.tieneTarjeta,
       tieneVerificacion: borrador.tieneVerificacion,
@@ -626,6 +713,7 @@ export function NuevoTrasladoForm() {
       color: vehiculo.color ?? "",
       placas: vehiculo.placas ?? "",
       vin: vehiculo.vin ?? "",
+      condicion: vehiculo.condicion ?? prev.condicion,
       estadoGeneral: vehiculo.estado_general_declarado ?? prev.estadoGeneral,
       tieneTarjeta: Boolean(vehiculo.tiene_tarjeta_circulacion),
       tieneVerificacion: Boolean(vehiculo.tiene_verificacion),
@@ -668,18 +756,15 @@ export function NuevoTrasladoForm() {
           <div className="rounded-lg border border-ink/10 bg-mist px-3 py-2">
             {placesOpciones[prefijo].length > 0 && (
               <div>
-                <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Google Places</p>
+                <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Referencias Mapbox</p>
                 <div className="mt-1 grid gap-1">
                   {placesOpciones[prefijo].map((opcion) => (
-                    <button
+                    <p
                       key={opcion}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => void consultarCodigoPostal(prefijo, valor)}
-                      className="rounded-md px-2 py-1 text-left font-body text-xs text-ink/70 hover:bg-ink/[0.04]"
+                      className="rounded-md px-2 py-1 font-body text-xs text-ink/70"
                     >
                       {opcion}
-                    </button>
+                    </p>
                   ))}
                 </div>
               </div>
@@ -754,6 +839,39 @@ export function NuevoTrasladoForm() {
           </div>
           <Field etiqueta="Referencias" value={datos.destinoReferencias} onChange={(e) => actualizar("destinoReferencias", e.target.value)} placeholder="Entre calles, color de fachada, acceso, piso, etc." />
         </div>
+        <section className="rounded-lg border border-route/20 bg-route-soft px-4 py-4" aria-labelledby="titulo-estimacion-ruta">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p id="titulo-estimacion-ruta" className="font-body text-sm font-semibold text-ink">
+                Distancia y tiempo estimado
+              </p>
+              <p className="mt-1 font-body text-xs leading-5 text-ink/65">
+                Se calcula con Mapbox usando origen y destino. Si no se puede resolver, operaciones lo revisará.
+              </p>
+            </div>
+            {rutaCalculando ? (
+              <p className="rounded-full bg-white px-3 py-1.5 font-body text-xs font-semibold text-route-dark">
+                Calculando ruta...
+              </p>
+            ) : rutaEstimacion?.distanciaKm !== undefined && rutaEstimacion.tiempoEstimadoHoras !== undefined ? (
+              <dl className="grid grid-cols-2 gap-2 rounded-lg bg-white px-4 py-3 text-center font-body">
+                <div>
+                  <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink/45">Distancia</dt>
+                  <dd className="mt-1 text-sm font-bold text-ink">{formatearDistancia(rutaEstimacion.distanciaKm)}</dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink/45">Tiempo</dt>
+                  <dd className="mt-1 text-sm font-bold text-ink">{formatearTiempo(rutaEstimacion.tiempoEstimadoHoras)}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="rounded-full bg-white px-3 py-1.5 font-body text-xs font-semibold text-ink/55">
+                Completa ambas direcciones
+              </p>
+            )}
+          </div>
+          {rutaAviso && <p className="mt-3 font-body text-xs leading-5 text-danger">{rutaAviso}</p>}
+        </section>
         <p className="font-body text-sm font-semibold">Quien entrega el vehículo</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field etiqueta="Nombre" value={datos.entregaNombre} onChange={(e) => actualizar("entregaNombre", e.target.value)} error={errores.entregaNombre} />
@@ -794,7 +912,7 @@ export function NuevoTrasladoForm() {
 
   function validarPasoActual() {
     const todos = erroresFormulario(esquemaSolicitudTraslado.safeParse(datosParaValidacion()));
-    const camposPaso0 = new Set(["vehiculoSeleccionadoId", "marca", "modelo", "color", "placas", "vin", "anio", "transmision", "estadoGeneral", "tieneTarjeta", "tieneVerificacion", "tienePlacas", "puedeCircular", "origenCodigoPostal", "origenEstado", "origenCiudad", "origenColonia", "origenCalle", "origenNumero", "destinoCodigoPostal", "destinoEstado", "destinoCiudad", "destinoColonia", "destinoCalle", "destinoNumero", "entregaNombre", "entregaApellido", "entregaTelefono", "recepcionNombre", "recepcionApellido", "recepcionTelefono"]);
+    const camposPaso0 = new Set(["vehiculoSeleccionadoId", "marca", "modelo", "color", "placas", "vin", "anio", "transmision", "condicion", "estadoGeneral", "tieneTarjeta", "tieneVerificacion", "tienePlacas", "puedeCircular"]);
     const siguientesErrores = Object.fromEntries(Object.entries(todos).filter(([campo]) => paso === 0 ? camposPaso0.has(campo) : !camposPaso0.has(campo))) as ErroresFormulario;
 
     const totalErrores = Object.keys(siguientesErrores).length;
@@ -819,7 +937,7 @@ export function NuevoTrasladoForm() {
       const siguientesErrores = erroresFormulario(validacionFinal) as ErroresFormulario;
       setErrores(siguientesErrores);
       const primerCampo = String(validacionFinal.error.issues[0]?.path[0] ?? "");
-      const camposPaso0 = new Set(["vehiculoSeleccionadoId", "marca", "modelo", "color", "placas", "vin", "anio", "transmision", "estadoGeneral", "tieneTarjeta", "tieneVerificacion", "tienePlacas", "puedeCircular", "origenCodigoPostal", "origenEstado", "origenCiudad", "origenColonia", "origenCalle", "origenNumero", "destinoCodigoPostal", "destinoEstado", "destinoCiudad", "destinoColonia", "destinoCalle", "destinoNumero", "entregaNombre", "entregaApellido", "entregaTelefono", "recepcionNombre", "recepcionApellido", "recepcionTelefono"]);
+      const camposPaso0 = new Set(["vehiculoSeleccionadoId", "marca", "modelo", "color", "placas", "vin", "anio", "transmision", "condicion", "estadoGeneral", "tieneTarjeta", "tieneVerificacion", "tienePlacas", "puedeCircular"]);
       setPaso(camposPaso0.has(primerCampo) ? 0 : 1);
       setErrorPaso(`${validacionFinal.error.issues.length} campos requieren atención.`);
       return;
@@ -907,7 +1025,7 @@ export function NuevoTrasladoForm() {
       // para ambos. Si ya hay coordenadas de GPS real para origen (más
       // precisas que geocodificar el texto de la dirección), esas ganan y
       // no se pisan.
-      const coordenadas = await geocodificarRuta(
+      const coordenadas = rutaEstimacion ?? await geocodificarRuta(
         origenDireccion,
         destinoDireccion,
         datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined
@@ -1026,17 +1144,6 @@ export function NuevoTrasladoForm() {
       <div className="mt-8">
         {paso === 0 && (
           <div className="grid gap-4">
-            <section className="app-status-strip px-4 py-4" aria-labelledby="titulo-politica-cancelacion">
-              <p id="titulo-politica-cancelacion" className="font-body text-sm font-semibold">
-                Política de cancelación
-              </p>
-              <ul className="mt-2 grid gap-1.5 font-body text-sm leading-6 text-ink/65">
-                <li>Sin costo antes de que operaciones confirme el servicio o asigne conductor.</li>
-                <li>Con conductor asignado puede aplicar cargo por cancelación según avance y ventana del traslado.</li>
-                <li>La aceptación formal se confirma al final del formulario.</li>
-              </ul>
-            </section>
-
           <div className="grid grid-cols-1 gap-6">
           <PassportCard>
             <div className="grid gap-6">
@@ -1080,20 +1187,20 @@ export function NuevoTrasladoForm() {
                   <p className="font-body text-sm font-semibold">Datos del vehículo</p>
                   <p className="mt-1 font-body text-xs text-ink/65">Identificación básica para cotizar y documentar el traslado.</p>
                 </div>
-                <label className="flex flex-col gap-1.5">
-                  <span className="font-body text-sm font-medium">Tipo de vehículo</span>
-                  <select
-                    value={datos.tipo}
-                    onChange={(e) => actualizar("tipo", e.target.value as TipoVehiculo)}
-                    className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
-                  >
-                    {Object.entries(ETIQUETA_TIPO_VEHICULO).map(([valor, etiqueta]) => (
-                      <option key={valor} value={valor}>
-                        {etiqueta}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="grid gap-3 rounded-lg border border-route/15 bg-route-soft/60 p-4 sm:grid-cols-3">
+                  <div>
+                    <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Categoría</p>
+                    <p className="mt-1 font-body text-sm font-bold text-ink">{categoriaCatalogo}</p>
+                  </div>
+                  <div>
+                    <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Gama</p>
+                    <p className="mt-1 font-body text-sm font-bold text-ink">{gamaCatalogo}</p>
+                  </div>
+                  <div>
+                    <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Tipo operativo</p>
+                    <p className="mt-1 font-body text-sm font-bold text-ink">{ETIQUETA_TIPO_VEHICULO[datos.tipo]}</p>
+                  </div>
+                </div>
                 <label className="flex flex-col gap-1.5">
                   <span className="font-body text-sm font-medium">Transmisión</span>
                   <select
@@ -1137,6 +1244,23 @@ export function NuevoTrasladoForm() {
                     {modelosDisponibles.map((modelo) => <option key={modelo} value={modelo} />)}
                   </datalist>
                 </div>
+                <label className="flex flex-col gap-1.5">
+                  <span className="font-body text-sm font-medium">Condición</span>
+                  <select
+                    value={datos.condicion}
+                    onChange={(e) => actualizar("condicion", e.target.value as CondicionVehiculo)}
+                    className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark ${claseControl("condicion")}`}
+                    aria-invalid={Boolean(errores.condicion)}
+                  >
+                    <option value="">Selecciona condición</option>
+                    {CONDICIONES_VEHICULO.map((condicion) => (
+                      <option key={condicion.valor} value={condicion.valor}>
+                        {condicion.etiqueta}
+                      </option>
+                    ))}
+                  </select>
+                  {errores.condicion && <p className="font-body text-xs text-danger">{errores.condicion}</p>}
+                </label>
                 <Field
                   etiqueta="Año"
                   type="number"
@@ -1202,17 +1326,18 @@ export function NuevoTrasladoForm() {
               </div>
             </div>
           </PassportCard>
-          <PassportCard>
-            {BloqueRuta()}
-          </PassportCard>
           </div>
           </div>
         )}
 
         {paso === 1 && (
-          <PassportCard>
-            <div className="grid gap-4">
-              <p className="font-body text-sm font-semibold">¿Cuándo lo necesitas?</p>
+          <div className="space-y-4">
+            <PassportCard>
+              {BloqueRuta()}
+            </PassportCard>
+            <PassportCard>
+              <div className="grid gap-4">
+                <p className="font-body text-sm font-semibold">¿Cuándo lo necesitas?</p>
               <label className="flex flex-col gap-1.5">
                 <span className="font-body text-sm font-medium">Disponibilidad</span>
                 <select
@@ -1260,8 +1385,9 @@ export function NuevoTrasladoForm() {
                 onChange={(e) => actualizar("ventanaEntrega", e.target.value)}
                 placeholder="Ej. Mismo día por la tarde"
               />
-            </div>
-          </PassportCard>
+              </div>
+            </PassportCard>
+          </div>
         )}
 
         {paso === 1 && (
@@ -1346,9 +1472,19 @@ export function NuevoTrasladoForm() {
                 <dd>
                   {datos.marca} {datos.modelo} {datos.anio}
                 </dd>
+                <dt className="text-ink/45">Clasificación</dt>
+                <dd>
+                  {categoriaCatalogo} · {gamaCatalogo} · {datos.condicion ? CONDICIONES_VEHICULO.find((c) => c.valor === datos.condicion)?.etiqueta : "Sin condición"}
+                </dd>
                 <dt className="text-ink/45">Ruta</dt>
                 <dd>
                   {datos.origenCiudad} → {datos.destinoCiudad}
+                </dd>
+                <dt className="text-ink/45">Estimación</dt>
+                <dd>
+                  {rutaEstimacion?.distanciaKm !== undefined && rutaEstimacion.tiempoEstimadoHoras !== undefined
+                    ? `${formatearDistancia(rutaEstimacion.distanciaKm)} · ${formatearTiempo(rutaEstimacion.tiempoEstimadoHoras)}`
+                    : "Pendiente"}
                 </dd>
                 <dt className="text-ink/45">Agenda</dt>
                 <dd>{datos.modalidadProgramacion === "programado" ? datos.fechaHoraProgramada : "Lo antes posible"}</dd>

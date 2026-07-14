@@ -60,7 +60,7 @@ begin
   perform set_config('role', 'postgres', true);
   v_id := (v_respuesta->>'id')::uuid;
 
-  return next is((select presupuesto_usuario from public.traslados where id = v_id), 1500::numeric, 'B2.1: conserva el presupuesto como referencia');
+  return next is((select presupuesto_usuario from public.traslados where id = v_id), null::numeric, 'B2.1: ignora presupuesto_usuario inyectado por el cliente');
   return next is((select precio_cotizado from public.traslados where id = v_id), null::numeric, 'B2.2: ignora precio_cotizado inyectado por el cliente');
   return next is((select precio_final from public.traslados where id = v_id), null::numeric, 'B2.3: el precio final nace en null');
   return next ok(

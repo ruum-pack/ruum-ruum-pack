@@ -11,6 +11,7 @@ export const esquemaSolicitudTraslado = z.object({
   anio: z.string().refine((v) => Number.isInteger(Number(v)) && Number(v) >= 1980 && Number(v) <= anioMaximo,
     `Usa un año entre 1980 y ${anioMaximo}.`),
   transmision: z.enum(["manual", "automatica", "electrica"], { message: "Selecciona una transmisión válida." }),
+  condicion: z.enum(["nueva", "seminueva", "rescate_mecanico"], { message: "Selecciona la condición del vehículo." }),
   estadoGeneral: z.enum(["Excelente, sin daños visibles", "Buen estado, desgaste normal", "Detalles estéticos menores", "Rayones o golpes visibles"], { message: "Selecciona un estado general válido." }),
   tieneTarjeta: z.literal(true, { errorMap: () => ({ message: "Se requiere tarjeta de circulación vigente." }) }),
   tieneVerificacion: z.literal(true, { errorMap: () => ({ message: "Se requiere verificación vigente." }) }),

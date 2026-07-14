@@ -1508,8 +1508,8 @@ grant execute on function public.usuario_previsualizar_tarifa(text, text, numeri
 
 -- Reemplaza usuario_crea_traslado (20260713000128):
 --  - ya no acepta/usa presupuesto_usuario como precio -- se ignora si llega.
---  - autoasigna categoria_tarifa/gama (catálogo) y condicion ('seminueva')
---    a un vehículo nuevo en el momento de crearlo.
+--  - autoasigna categoria_tarifa/gama (catálogo) y usa la condicion declarada
+--    por el usuario a un vehículo nuevo en el momento de crearlo.
 --  - si el vehículo (nuevo o reutilizado) tiene clasificación disponible,
 --    calcula precio_cotizado automáticamente con la fórmula vigente y dispara
 --    el estado a 'cotizacion_generada' -- el usuario ya lee su tarifa desde
@@ -1612,14 +1612,13 @@ begin
     v_tiene_placas := coalesce((p_vehiculo->>'tiene_placas')::boolean, false);
     v_puede_circular := coalesce((p_vehiculo->>'puede_circular_rodando')::boolean, false);
 
-    -- Autoasignación (RT-13): categoría/gama por catálogo marca+modelo,
-    -- condición fija en 'seminueva' -- el usuario nunca escribe ninguna de
-    -- las tres. Torre de Control puede corregirlas después si detecta algo
-    -- distinto durante la verificación física, sin que eso reabra la tarifa
-    -- ya mostrada y confirmada.
+    -- Autoasignación (RT-13): categoría/gama por catálogo marca+modelo.
+    -- La condición la declara el usuario en el formulario; Torre de Control
+    -- puede corregirla después si detecta algo distinto durante la
+    -- verificación física.
     select categoria_tarifa, gama into v_categoria_tarifa, v_gama
     from public.catalogar_vehiculo_para_tarifa(p_vehiculo->>'marca', p_vehiculo->>'modelo');
-    v_condicion := 'seminueva';
+    v_condicion := coalesce(nullif(p_vehiculo->>'condicion', '')::public.condicion_vehiculo, 'seminueva');
 
     insert into public.vehiculos (
       usuario_id, tipo, transmision, marca, modelo, anio, color, placas, vin,

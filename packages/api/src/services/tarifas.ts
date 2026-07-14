@@ -210,6 +210,7 @@ export async function previsualizarTarifaUsuario(
     distanciaKm: number;
     tiempoEstimadoHoras: number;
     fechaHora: Date | null;
+    condicion?: Database["public"]["Enums"]["condicion_vehiculo"];
   }
 ): Promise<PrevisualizacionTarifa> {
   const { data, error } = await cliente.rpc("usuario_previsualizar_tarifa", {
@@ -217,7 +218,8 @@ export async function previsualizarTarifaUsuario(
     p_modelo: datos.modelo,
     p_distancia_km: datos.distanciaKm,
     p_tiempo_estimado_horas: datos.tiempoEstimadoHoras,
-    p_fecha_hora: datos.fechaHora ? datos.fechaHora.toISOString() : null
+    p_fecha_hora: datos.fechaHora ? datos.fechaHora.toISOString() : null,
+    p_condicion: datos.condicion ?? "seminueva"
   });
   if (error) throw error;
 

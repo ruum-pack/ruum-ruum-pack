@@ -81,6 +81,7 @@ export interface DatosVehiculoNuevo {
   color: string;
   placas: string;
   vin: string;
+  condicion?: Database["public"]["Enums"]["condicion_vehiculo"];
   estado_general_declarado: string;
   tiene_tarjeta_circulacion: boolean;
   tiene_verificacion: boolean;

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { esquemaSolicitudTraslado } from "./schema";
 
 const valido = {
-  vehiculoSeleccionadoId: "", vehiculosUsuarioIds: [], marca: "Nissan", modelo: "Versa", color: "gris", placas: "ABC123", vin: "VIN123", anio: "2022", transmision: "automatica",
+  vehiculoSeleccionadoId: "", vehiculosUsuarioIds: [], marca: "Nissan", modelo: "Versa", color: "gris", placas: "ABC123", vin: "VIN123", anio: "2022", transmision: "automatica", condicion: "seminueva",
   estadoGeneral: "Buen estado, desgaste normal", tieneTarjeta: true, tieneVerificacion: true, tienePlacas: true, puedeCircular: true,
   origenCodigoPostal: "03100", origenEstado: "CDMX", origenCiudad: "CDMX", origenColonia: "Del Valle", origenCalle: "A", origenNumero: "1",
   destinoCodigoPostal: "06600", destinoEstado: "CDMX", destinoCiudad: "CDMX", destinoColonia: "Juárez", destinoCalle: "B", destinoNumero: "2",

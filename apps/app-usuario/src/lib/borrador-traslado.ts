@@ -35,6 +35,7 @@ export interface BorradorTrasladoLocal {
   modelo: string;
   anio: string;
   color: string;
+  condicion: string;
   estadoGeneral: string;
   tieneTarjeta: boolean;
   tieneVerificacion: boolean;
@@ -62,7 +63,7 @@ export interface BorradorTrasladoLocal {
 }
 
 const CAMPOS_TEXTO = [
-  "tipo", "transmision", "marca", "modelo", "anio", "color", "estadoGeneral",
+  "tipo", "transmision", "marca", "modelo", "anio", "color", "condicion", "estadoGeneral",
   "origenCodigoPostal", "origenEstado", "origenCiudad", "origenColonia",
   "destinoCodigoPostal", "destinoEstado", "destinoCiudad", "destinoColonia",
   "entregaNombre", "entregaApellido", "recepcionNombre", "recepcionApellido",
@@ -106,7 +107,7 @@ export function leerBorradorTrasladoLocal(): BorradorTrasladoLocal | null {
       guardadoEn: dato.guardadoEn,
       expiraEn: dato.expiraEn,
       paso: typeof dato.paso === "number" && Number.isInteger(dato.paso) && dato.paso >= 0 && dato.paso <= 1 ? dato.paso : 0,
-      tipo: "", transmision: "", marca: "", modelo: "", anio: "", color: "", estadoGeneral: "",
+      tipo: "", transmision: "", marca: "", modelo: "", anio: "", color: "", condicion: "", estadoGeneral: "",
       tieneTarjeta: false, tieneVerificacion: false, tienePlacas: false, puedeCircular: false,
       origenCodigoPostal: "", origenEstado: "", origenCiudad: "", origenColonia: "",
       destinoCodigoPostal: "", destinoEstado: "", destinoCiudad: "", destinoColonia: "",
