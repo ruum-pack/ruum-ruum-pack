@@ -1,0 +1,20 @@
+   ▲ Next.js 15.5.19
+   - Local:        http://localhost:3104
+   - Network:      http://192.168.1.4:3104
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 13.1s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1013ms (171 modules)
+ ○ Compiling /traslados/nuevo ...
+ ✓ Compiled /traslados/nuevo in 11.3s (986 modules)
+ GET /traslados/nuevo 200 in 14307ms
+ ○ Compiling /icon.svg ...
+ ✓ Compiled /icon.svg in 1250ms (593 modules)
+ GET /icon.svg?a81a0d4676b9e4ec 200 in 1804ms
+ GET /traslados/nuevo 200 in 1106ms
+ GET /traslados/nuevo 200 in 586ms
+ GET /traslados/nuevo 200 in 690ms
+ GET /traslados/nuevo 200 in 398ms
+ GET /traslados/nuevo 200 in 493ms
