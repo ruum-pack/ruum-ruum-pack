@@ -49,7 +49,9 @@ describe("servicios de tarifas admin", () => {
   });
 
   it("actualiza tarifas de vehículo con admin actual y bloquea negativos", async () => {
-    const cliente = crearClienteFake({ tablas: { admins: { data: { id: "admin-1" } }, tarifas_vehiculo: {} } });
+    const cliente = crearClienteFake({
+      tablas: { admins: { data: { id: "admin-1" } }, tarifas_vehiculo: { data: [{ id: "tarifa-1" }] } }
+    });
 
     await expect(actualizarTarifaVehiculo(cliente as never, "tarifa-1", { base: -1, por_km: 10 })).rejects.toThrow(
       "Base y $/km deben ser mayores o iguales a 0."
@@ -64,8 +66,24 @@ describe("servicios de tarifas admin", () => {
     });
   });
 
+  it("avisa con un mensaje claro cuando el UPDATE no afecta ninguna fila (bloqueo silencioso de RLS)", async () => {
+    const cliente = crearClienteFake({
+      tablas: { admins: { data: { id: "admin-1" } }, tarifas_vehiculo: { data: [] } }
+    });
+
+    await expect(actualizarTarifaVehiculo(cliente as never, "tarifa-1", { base: 900, por_km: 18 })).rejects.toThrow(
+      /permisos de administrador/
+    );
+  });
+
   it("valida factores y configuración antes de escribir", async () => {
-    const cliente = crearClienteFake({ tablas: { admins: { data: { id: "admin-1" } }, tarifas_gama: {}, tarifas_config: {} } });
+    const cliente = crearClienteFake({
+      tablas: {
+        admins: { data: { id: "admin-1" } },
+        tarifas_gama: { data: [{ gama: "premium" }] },
+        tarifas_config: { data: [{ id: true }] }
+      }
+    });
 
     await expect(actualizarFactorGama(cliente as never, "premium", 0)).rejects.toThrow("El factor debe ser mayor a 0.");
     await expect(actualizarConfigTarifas(cliente as never, { tarifa_hora: 50, tope_factor_variable: 0.5 })).rejects.toThrow(

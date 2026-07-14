@@ -72,6 +72,9 @@ async function idAdminActual(cliente: Cliente): Promise<string | null> {
   return data?.id ?? null;
 }
 
+const SIN_PERMISO =
+  "No se guardó ningún cambio. Es probable que tu sesión no tenga permisos de administrador vigentes (revisa que tu usuario esté dado de alta en la tabla admins) -- vuelve a iniciar sesión e inténtalo de nuevo.";
+
 export async function actualizarTarifaVehiculo(
   cliente: Cliente,
   id: string,
@@ -79,21 +82,25 @@ export async function actualizarTarifaVehiculo(
 ) {
   if (cambios.base < 0 || cambios.por_km < 0) throw new Error("Base y $/km deben ser mayores o iguales a 0.");
   const adminId = await idAdminActual(cliente);
-  const { error } = await cliente
+  const { data, error } = await cliente
     .from("tarifas_vehiculo")
     .update({ ...cambios, actualizado_por_admin_id: adminId })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) throw error;
+  if (!data || data.length === 0) throw new Error(SIN_PERMISO);
 }
 
 export async function actualizarFactorGama(cliente: Cliente, gama: TarifaGamaRow["gama"], factor: number) {
   if (factor <= 0) throw new Error("El factor debe ser mayor a 0.");
   const adminId = await idAdminActual(cliente);
-  const { error } = await cliente
+  const { data, error } = await cliente
     .from("tarifas_gama")
     .update({ factor, actualizado_por_admin_id: adminId })
-    .eq("gama", gama);
+    .eq("gama", gama)
+    .select("gama");
   if (error) throw error;
+  if (!data || data.length === 0) throw new Error(SIN_PERMISO);
 }
 
 export async function actualizarFactorCondicion(
@@ -103,28 +110,37 @@ export async function actualizarFactorCondicion(
 ) {
   if (factor <= 0) throw new Error("El factor debe ser mayor a 0.");
   const adminId = await idAdminActual(cliente);
-  const { error } = await cliente
+  const { data, error } = await cliente
     .from("tarifas_condicion")
     .update({ factor, actualizado_por_admin_id: adminId })
-    .eq("condicion", condicion);
+    .eq("condicion", condicion)
+    .select("condicion");
   if (error) throw error;
+  if (!data || data.length === 0) throw new Error(SIN_PERMISO);
 }
 
 export async function actualizarFactorHorario(cliente: Cliente, horario: TarifaHorarioRow["horario"], factor: number) {
   if (factor <= 0) throw new Error("El factor debe ser mayor a 0.");
   const adminId = await idAdminActual(cliente);
-  const { error } = await cliente
+  const { data, error } = await cliente
     .from("tarifas_horario")
     .update({ factor, actualizado_por_admin_id: adminId })
-    .eq("horario", horario);
+    .eq("horario", horario)
+    .select("horario");
   if (error) throw error;
+  if (!data || data.length === 0) throw new Error(SIN_PERMISO);
 }
 
 export async function actualizarFactorDia(cliente: Cliente, dia: TarifaDiaRow["dia"], factor: number) {
   if (factor <= 0) throw new Error("El factor debe ser mayor a 0.");
   const adminId = await idAdminActual(cliente);
-  const { error } = await cliente.from("tarifas_dia").update({ factor, actualizado_por_admin_id: adminId }).eq("dia", dia);
+  const { data, error } = await cliente
+    .from("tarifas_dia")
+    .update({ factor, actualizado_por_admin_id: adminId })
+    .eq("dia", dia)
+    .select("dia");
   if (error) throw error;
+  if (!data || data.length === 0) throw new Error(SIN_PERMISO);
 }
 
 export async function actualizarConfigTarifas(
@@ -147,11 +163,13 @@ export async function actualizarConfigTarifas(
     throw new Error("La fecha de vigencia no es válida.");
   }
   const adminId = await idAdminActual(cliente);
-  const { error } = await cliente
+  const { data, error } = await cliente
     .from("tarifas_config")
     .update({ ...cambios, actualizado_por_admin_id: adminId })
-    .eq("id", true);
+    .eq("id", true)
+    .select("id");
   if (error) throw error;
+  if (!data || data.length === 0) throw new Error(SIN_PERMISO);
 }
 
 export async function actualizarPagoConductorPorCertificacion(
@@ -161,11 +179,13 @@ export async function actualizarPagoConductorPorCertificacion(
 ) {
   if (porcentaje < 0 || porcentaje > 100) throw new Error("El porcentaje debe estar entre 0 y 100.");
   const adminId = await idAdminActual(cliente);
-  const { error } = await cliente
+  const { data, error } = await cliente
     .from("certificacion_pago_conductor")
     .update({ porcentaje, actualizado_por_admin_id: adminId })
-    .eq("certificacion", certificacion);
+    .eq("certificacion", certificacion)
+    .select("certificacion");
   if (error) throw error;
+  if (!data || data.length === 0) throw new Error(SIN_PERMISO);
 }
 
 /**
