@@ -18,7 +18,7 @@ export function AceptarCotizacion({ trasladoId, tipoPago }: { trasladoId: string
       await aceptarCotizacionUsuario(crearClienteNavegador(), trasladoId);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo aceptar la cotización.");
+      setError(e instanceof Error ? e.message : "No se pudo aceptar la tarifa");
       setProcesando(false);
     }
   }

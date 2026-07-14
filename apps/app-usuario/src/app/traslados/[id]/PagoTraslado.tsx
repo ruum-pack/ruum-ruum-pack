@@ -12,14 +12,6 @@ export interface PagoTrasladoProps {
   monto: number;
 }
 
-/**
- * Cierra el hueco que quedaba para "pago al cierre" (PRD §4.6): hasta ahora
- * Stripe solo se montaba en el wizard de nuevo traslado (pago anticipado).
- * Un traslado con tipo_pago "al_cierre" llegaba a `pago_pendiente` sin
- * ningún botón real para pagar — esto lo agrega aquí, en el único lugar
- * donde tiene sentido: el Pasaporte Digital del traslado que ya está
- * esperando ese pago.
- */
 export function PagoTraslado({ trasladoId, monto }: PagoTrasladoProps) {
   const router = useRouter();
   const [pagado, setPagado] = useState(false);

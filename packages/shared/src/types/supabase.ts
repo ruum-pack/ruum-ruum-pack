@@ -1550,23 +1550,35 @@ export type Database = {
         Row: {
           actualizado_en: string
           actualizado_por_admin_id: string | null
+          estado: Database["public"]["Enums"]["estado_politica_tarifaria"]
           id: boolean
+          nombre_version: string
+          notas: string | null
           tarifa_hora: number
           tope_factor_variable: number
+          vigente_desde: string
         }
         Insert: {
           actualizado_en?: string
           actualizado_por_admin_id?: string | null
+          estado?: Database["public"]["Enums"]["estado_politica_tarifaria"]
           id?: boolean
+          nombre_version?: string
+          notas?: string | null
           tarifa_hora: number
           tope_factor_variable: number
+          vigente_desde?: string
         }
         Update: {
           actualizado_en?: string
           actualizado_por_admin_id?: string | null
+          estado?: Database["public"]["Enums"]["estado_politica_tarifaria"]
           id?: boolean
+          nombre_version?: string
+          notas?: string | null
           tarifa_hora?: number
           tope_factor_variable?: number
+          vigente_desde?: string
         }
         Relationships: [
           {
@@ -3438,6 +3450,7 @@ export const Constants = {
         "suspendido",
       ],
       estado_pago: ["pendiente", "completado", "reembolsado", "fallido"],
+      estado_politica_tarifaria: ["borrador", "vigente", "archivada"],
       estado_payout: ["pendiente", "procesado", "fallido"],
       estado_reclamo_seguro: ["abierto", "en_revision", "resuelto"],
       estado_traslado: [

@@ -643,14 +643,14 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
           {pasaporte.estado === "cotizacion_generada" && pasaporte.precio_cotizado != null && (
             <div className="mt-6">
               <Aviso tono="info">
-                Cotización enviada, pendiente de aceptación. La aceptación de la tarifa y el pago se realizan desde el flujo de creación del traslado.
+                Tarifa enviada, pendiente de aceptación. La aceptación de la tarifa y el pago se realizan desde el flujo de creación del traslado.
               </Aviso>
             </div>
           )}
           {pasaporte.estado === "cotizacion_aceptada" && pasaporte.tipo_pago === "anticipado" && precioBase > 0 && traslado?.cotizacion_expira_en && (
             <div className="mt-6">
               <Aviso tono="info">
-                Cotización aceptada, pago anticipado pendiente. Esta pantalla es solo de consulta; el cobro se completa desde el flujo de creación del traslado.
+                Tarifa asignada, pago anticipado pendiente. Esta pantalla es solo de consulta; el cobro se completa desde el flujo de creación del traslado.
               </Aviso>
             </div>
           )}
@@ -661,7 +661,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
             </p>
             <div className="mt-4">
               <Link href={`/soporte?viaje=${pasaporte.traslado_id}`} className="font-body text-sm font-medium text-route-dark">
-                Abrir soporte del viaje
+                Abrir soporte del traslado
               </Link>
             </div>
           </div>

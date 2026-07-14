@@ -10,6 +10,7 @@ type TarifaHorarioRow = Database["public"]["Tables"]["tarifas_horario"]["Row"];
 type TarifaDiaRow = Database["public"]["Tables"]["tarifas_dia"]["Row"];
 type TarifaConfigRow = Database["public"]["Tables"]["tarifas_config"]["Row"];
 type CertificacionPagoRow = Database["public"]["Tables"]["certificacion_pago_conductor"]["Row"];
+type AdminRow = Database["public"]["Tables"]["admins"]["Row"];
 
 export interface ConfiguracionTarifas {
   vehiculo: TarifaVehiculoRow[];
@@ -19,6 +20,7 @@ export interface ConfiguracionTarifas {
   dia: TarifaDiaRow[];
   config: TarifaConfigRow | null;
   certificacionPago: CertificacionPagoRow[];
+  adminActualizacion: Pick<AdminRow, "id" | "nombre"> | null;
 }
 
 /**
@@ -43,6 +45,14 @@ export async function obtenerConfiguracionTarifas(cliente: Cliente): Promise<Con
     if (r.error) throw r.error;
   }
 
+  let adminActualizacion: Pick<AdminRow, "id" | "nombre"> | null = null;
+  const adminId = config.data?.actualizado_por_admin_id;
+  if (adminId) {
+    const { data, error } = await cliente.from("admins").select("id,nombre").eq("id", adminId).maybeSingle();
+    if (error) throw error;
+    adminActualizacion = data;
+  }
+
   return {
     vehiculo: vehiculo.data ?? [],
     gama: gama.data ?? [],
@@ -50,7 +60,8 @@ export async function obtenerConfiguracionTarifas(cliente: Cliente): Promise<Con
     horario: horario.data ?? [],
     dia: dia.data ?? [],
     config: config.data,
-    certificacionPago: certificacionPago.data ?? []
+    certificacionPago: certificacionPago.data ?? [],
+    adminActualizacion
   };
 }
 
@@ -118,10 +129,23 @@ export async function actualizarFactorDia(cliente: Cliente, dia: TarifaDiaRow["d
 
 export async function actualizarConfigTarifas(
   cliente: Cliente,
-  cambios: { tarifa_hora: number; tope_factor_variable: number }
+  cambios: {
+    tarifa_hora: number;
+    tope_factor_variable: number;
+    nombre_version?: string;
+    estado?: TarifaConfigRow["estado"];
+    vigente_desde?: string;
+    notas?: string | null;
+  }
 ) {
   if (cambios.tarifa_hora < 0) throw new Error("La tarifa por hora debe ser mayor o igual a 0.");
   if (cambios.tope_factor_variable < 1) throw new Error("El tope del factor variable debe ser mayor o igual a 1.");
+  if (cambios.nombre_version !== undefined && !cambios.nombre_version.trim()) {
+    throw new Error("El nombre de la versión no puede quedar vacío.");
+  }
+  if (cambios.vigente_desde !== undefined && Number.isNaN(Date.parse(cambios.vigente_desde))) {
+    throw new Error("La fecha de vigencia no es válida.");
+  }
   const adminId = await idAdminActual(cliente);
   const { error } = await cliente
     .from("tarifas_config")
@@ -241,4 +265,44 @@ export async function sugerirTarifaTraslado(cliente: Cliente, trasladoId: string
   if (error) throw error;
   if (data === null) throw new Error("No se pudo calcular una sugerencia de tarifa para este traslado.");
   return data;
+}
+
+export function simularTarifaNormativa(
+  configuracion: ConfiguracionTarifas,
+  entrada: {
+    categoria: TarifaVehiculoRow["categoria"];
+    gama: TarifaGamaRow["gama"];
+    condicion: TarifaCondicionRow["condicion"];
+    horario: TarifaHorarioRow["horario"];
+    dia: TarifaDiaRow["dia"];
+    distanciaKm: number;
+    tiempoHoras: number;
+  }
+) {
+  if (!configuracion.config) throw new Error("No hay configuración general de tarifas.");
+  if (entrada.distanciaKm < 0 || entrada.tiempoHoras < 0) throw new Error("Distancia y tiempo deben ser mayores o iguales a 0.");
+
+  const rango = entrada.distanciaKm <= 15 ? "rango_1" : entrada.distanciaKm <= 45 ? "rango_2" : entrada.distanciaKm <= 75 ? "rango_3" : "rango_4";
+  const vehiculo = configuracion.vehiculo.find((fila) => fila.categoria === entrada.categoria && fila.rango === rango);
+  const gama = configuracion.gama.find((fila) => fila.gama === entrada.gama);
+  const condicion = configuracion.condicion.find((fila) => fila.condicion === entrada.condicion);
+  const horario = configuracion.horario.find((fila) => fila.horario === entrada.horario);
+  const dia = configuracion.dia.find((fila) => fila.dia === entrada.dia);
+
+  if (!vehiculo || !gama || !condicion || !horario || !dia) {
+    throw new Error("La configuración de tarifas está incompleta para simular este caso.");
+  }
+
+  const baseCategoria = vehiculo.base * gama.factor;
+  const subtotal = baseCategoria + entrada.distanciaKm * vehiculo.por_km + entrada.tiempoHoras * configuracion.config.tarifa_hora;
+  const factorVariable = Math.min(condicion.factor * horario.factor * dia.factor, configuracion.config.tope_factor_variable);
+  const tarifa = Math.round(subtotal * factorVariable * 100) / 100;
+
+  return {
+    rango,
+    baseCategoria,
+    subtotal,
+    factorVariable,
+    tarifa
+  };
 }

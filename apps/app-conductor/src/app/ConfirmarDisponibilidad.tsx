@@ -46,7 +46,7 @@ export function ConfirmarDisponibilidad({
           ¿Pasas a no disponible?
         </h2>
         <p className="mt-3 font-body text-sm leading-6 text-ink/65">
-          Dejarás de recibir viajes nuevos hasta que reactives tu disponibilidad.
+          Dejarás de recibir traslados nuevos hasta que reactives tu disponibilidad.
         </p>
         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Button type="button" variant="secundario" onClick={onCancelar} disabled={persistiendo}>

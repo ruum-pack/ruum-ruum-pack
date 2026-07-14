@@ -18,3 +18,10 @@
  GET /traslados/nuevo 200 in 9029ms
  GET /traslados/nuevo 200 in 386ms
  GET /traslados/nuevo 200 in 124ms
+   Reload env: .env.local
+ ✓ Compiled in 4.8s (1181 modules)
+ ✓ Compiled in 2.3s (427 modules)
+ ✓ Compiled in 1202ms (427 modules)
+ ✓ Compiled in 1729ms (427 modules)
+ ✓ Compiled in 1640ms (427 modules)
+ ✓ Compiled in 1078ms (427 modules)

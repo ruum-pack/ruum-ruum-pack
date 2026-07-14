@@ -20,7 +20,7 @@ type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
 type AuditoriaRow = Database["public"]["Tables"]["registro_auditoria"]["Row"];
 
 const ETIQUETA_METRICA: Record<keyof MetricasDashboard, string> = {
-  viajesActivos: "Viajes activos",
+  viajesActivos: "Traslados activos",
   pendientesAsignacion: "Pendientes de asignación",
   cerradosHoy: "Cerrados hoy",
   conductoresActivos: "Conductores activos",
@@ -198,7 +198,7 @@ export default function PaginaDashboard() {
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <Link href="/viajes">
                   <PassportCard className="transition-shadow hover:shadow-md hover:border-signal/40">
-                    <p className="font-body text-sm font-medium">Ver viajes</p>
+                    <p className="font-body text-sm font-medium">Ver traslados</p>
                   </PassportCard>
                 </Link>
                 <Link href="/conductores">

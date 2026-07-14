@@ -30,16 +30,6 @@ const PESTANAS: { id: PestañaViajes; etiqueta: string }[] = [
   { id: "cancelados", etiqueta: "Cancelados" }
 ];
 
-/*
- * ESTATUS_USUARIO — Colapsa 26 estados internos en etiquetas comprensibles.
- *
- * Los 9 estados que antes decían "En revisión" ahora se dividen en 3 grupos:
- *   - "Solicitud recibida"  → el usuario acaba de crear la solicitud
- *   - "En preparación"      → Ruum Ruum la está procesando (doc, cotización, conductor)
- *   - "En revisión"         → estados de incidencia/disputa/reclamación abierta
- *
- * Esto reduce la ambigüedad sin exponer los estados operativos internos.
- */
 const ESTATUS_USUARIO: Record<EstadoTraslado, string> = {
   usuario_pendiente_verificacion: "Solicitud recibida",
   usuario_verificado: "Solicitud recibida",
