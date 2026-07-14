@@ -9,7 +9,6 @@ import {
   actualizarFactorGama,
   actualizarFactorHorario,
   actualizarPagoConductorPorCertificacion,
-  actualizarTarifaVehiculo,
   obtenerConfiguracionTarifas,
   simularTarifaNormativa,
   type ConfiguracionTarifas
@@ -163,11 +162,7 @@ export default function PaginaTarifasAdmin() {
         <div>
           <p className="font-body text-xs font-semibold uppercase tracking-wide text-route-dark">Apartado normativo rector</p>
           <h1 className="mt-1 font-display text-2xl font-semibold">Tarifas</h1>
-          <p className="mt-1 max-w-3xl font-body text-sm leading-6 text-ink/55">
-            Esta pantalla gobierna la fórmula que aplica app-usuario para calcular el precio final de un traslado. No emite cotizaciones ni modifica viajes.
-          </p>
         </div>
-        <Button variant="fantasma" onClick={() => void cargar()} disabled={cargando}>Actualizar</Button>
       </div>
 
       {error && (
@@ -203,7 +198,6 @@ function PoliticaVigente({
   const [nombre, setNombre] = useState(config?.nombre_version ?? "");
   const [estado, setEstado] = useState(config?.estado ?? "borrador");
   const [vigenteDesde, setVigenteDesde] = useState(fechaParaInput(config?.vigente_desde));
-  const [notas, setNotas] = useState(config?.notas ?? "");
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [pendiente, startTransition] = useTransition();
 
@@ -218,7 +212,7 @@ function PoliticaVigente({
           nombre_version: nombre,
           estado,
           vigente_desde: fechaInputAIso(vigenteDesde),
-          notas: notas.trim() || null
+          notas: config.notas
         });
         await onGuardado();
         setMensaje("Política actualizada.");
@@ -240,8 +234,7 @@ function PoliticaVigente({
     <PassportCard>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Política vigente</p>
-          <h2 className="mt-1 font-display text-xl font-semibold">{config.nombre_version}</h2>
+          <h2 className="font-display text-xl font-semibold">{config.nombre_version}</h2>
           <div className="mt-3 flex flex-wrap gap-2 font-body text-xs">
             <span className={`rounded-full border px-3 py-1 font-semibold ${claseEstado(config.estado)}`}>
               {ETIQUETA_ESTADO[config.estado]}
@@ -274,10 +267,6 @@ function PoliticaVigente({
           <input type="datetime-local" value={vigenteDesde} onChange={(e) => setVigenteDesde(e.target.value)} className="mt-1 w-full rounded-lg border border-ink/25 bg-mist px-3 py-2 text-sm" />
         </label>
       </div>
-      <label className="mt-4 block font-body text-sm font-medium text-ink/75">
-        Notas normativas internas
-        <textarea value={notas} onChange={(e) => setNotas(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-ink/25 bg-mist px-3 py-2 text-sm" />
-      </label>
       <div className="mt-4 flex items-center gap-3">
         <Button onClick={guardar} disabled={pendiente}>Guardar política</Button>
         {mensaje && <span className="font-body text-xs text-ink/55">{mensaje}</span>}
@@ -313,28 +302,6 @@ function ParametrosNormativos({
 }) {
   return (
     <div className="grid gap-6">
-      <PassportCard>
-        <h2 className="font-display text-xl font-semibold">Base y $/km por categoría/rango</h2>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[640px] font-body text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-ink/45">
-                <th className="border-b border-ink/10 px-3 py-2">Categoría</th>
-                <th className="border-b border-ink/10 px-3 py-2">Rango</th>
-                <th className="border-b border-ink/10 px-3 py-2">Base</th>
-                <th className="border-b border-ink/10 px-3 py-2">$/km</th>
-                <th className="border-b border-ink/10 px-3 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {datos.vehiculo.map((fila) => (
-                <FilaVehiculo key={`${fila.id}-${fila.base}-${fila.por_km}`} fila={fila} cliente={cliente} onGuardado={onGuardado} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </PassportCard>
-
       <div className="grid gap-6 lg:grid-cols-2">
         <PassportCard>
           <h2 className="font-display text-xl font-semibold">Factor de gama</h2>
@@ -402,7 +369,6 @@ function ParametrosNormativos({
 
         <PassportCard>
           <h2 className="font-display text-xl font-semibold">Pago al conductor por certificación</h2>
-          <p className="mt-1 font-body text-sm text-ink/55">Este porcentaje es normativo para liquidación al conductor; no incrementa el precio al usuario.</p>
           {datos.certificacionPago.map((f) => (
             <CampoEditable key={`${f.certificacion}-${f.porcentaje}`} etiqueta={f.certificacion.replaceAll("_", " ")} valorInicial={f.porcentaje} sufijo="%" onGuardar={async (valor) => {
               if (!cliente) throw new Error("Sin cliente Supabase.");
@@ -413,60 +379,6 @@ function ParametrosNormativos({
         </PassportCard>
       </div>
     </div>
-  );
-}
-
-function FilaVehiculo({
-  fila,
-  cliente,
-  onGuardado
-}: {
-  fila: ConfiguracionTarifas["vehiculo"][number];
-  cliente: ReturnType<typeof crearClienteNavegador> | null;
-  onGuardado: () => Promise<void>;
-}) {
-  const [base, setBase] = useState(String(fila.base));
-  const [porKm, setPorKm] = useState(String(fila.por_km));
-  const [pendiente, startTransition] = useTransition();
-  const [mensaje, setMensaje] = useState<string | null>(null);
-
-  function guardar() {
-    const baseNum = Number(base);
-    const porKmNum = Number(porKm);
-    if (!Number.isFinite(baseNum) || !Number.isFinite(porKmNum)) {
-      setMensaje("Valores inválidos.");
-      return;
-    }
-    setMensaje(null);
-    startTransition(async () => {
-      try {
-        if (!cliente) throw new Error("Sin cliente Supabase.");
-        await actualizarTarifaVehiculo(cliente, fila.id, { base: baseNum, por_km: porKmNum });
-        await onGuardado();
-        setMensaje("Guardado.");
-      } catch (error) {
-        setMensaje(error instanceof Error ? error.message : "No se pudo guardar.");
-      }
-    });
-  }
-
-  return (
-    <tr>
-      <td className="border-b border-ink/10 px-3 py-2 font-medium">{ETIQUETA_CATEGORIA[fila.categoria] ?? fila.categoria}</td>
-      <td className="border-b border-ink/10 px-3 py-2 text-ink/60">{ETIQUETA_RANGO[fila.rango] ?? fila.rango}</td>
-      <td className="border-b border-ink/10 px-3 py-2">
-        <input aria-label={`Base ${ETIQUETA_CATEGORIA[fila.categoria] ?? fila.categoria} ${ETIQUETA_RANGO[fila.rango] ?? fila.rango}`} value={base} onChange={(e) => setBase(e.target.value)} inputMode="decimal" className="w-24 rounded-lg border border-ink/30 bg-mist px-2 py-1 font-body text-sm text-ink" />
-      </td>
-      <td className="border-b border-ink/10 px-3 py-2">
-        <input aria-label={`Kilometraje ${ETIQUETA_CATEGORIA[fila.categoria] ?? fila.categoria} ${ETIQUETA_RANGO[fila.rango] ?? fila.rango}`} value={porKm} onChange={(e) => setPorKm(e.target.value)} inputMode="decimal" className="w-20 rounded-lg border border-ink/30 bg-mist px-2 py-1 font-body text-sm text-ink" />
-      </td>
-      <td className="border-b border-ink/10 px-3 py-2">
-        <div className="flex items-center gap-2">
-          <Button variant="fantasma" onClick={guardar} disabled={pendiente}>Guardar</Button>
-          {mensaje && <span className="font-body text-xs text-ink/55">{mensaje}</span>}
-        </div>
-      </td>
-    </tr>
   );
 }
 
@@ -501,7 +413,6 @@ function SimuladorNormativo({ datos }: { datos: ConfiguracionTarifas }) {
   return (
     <PassportCard>
       <h2 className="font-display text-xl font-semibold">Simulador normativo</h2>
-      <p className="mt-1 font-body text-sm text-ink/55">Valida ejemplos contra la política cargada. No lee ni modifica traslados reales.</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SelectSim<CategoriaTarifa> etiqueta="Categoría" valor={categoria} onChange={setCategoria} opciones={datos.vehiculo.map((v) => v.categoria)} etiquetas={ETIQUETA_CATEGORIA} />
         <SelectSim<GamaTarifa> etiqueta="Gama" valor={gama} onChange={setGama} opciones={datos.gama.map((v) => v.gama)} />
