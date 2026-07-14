@@ -9,6 +9,7 @@ import {
   actualizarFactorGama,
   actualizarFactorHorario,
   actualizarPagoConductorPorCertificacion,
+  actualizarTarifaVehiculo,
   obtenerConfiguracionTarifas,
   simularTarifaNormativa,
   type ConfiguracionTarifas
@@ -177,6 +178,7 @@ export default function PaginaTarifasAdmin() {
         <div className="mt-6 grid gap-6">
           <PoliticaVigente key={datos.config?.actualizado_en ?? "sin-config"} datos={datos} cliente={cliente} onGuardado={cargar} />
           <FormulaVigente datos={datos} />
+          <TarifaBasePorVehiculo datos={datos} cliente={cliente} onGuardado={cargar} />
           <ParametrosNormativos datos={datos} cliente={cliente} onGuardado={cargar} />
           <SimuladorNormativo datos={datos} />
         </div>
@@ -323,6 +325,169 @@ function FormulaVigente({ datos }: { datos: ConfiguracionTarifas }) {
         <PasoFormula numero="4" etiqueta="Tarifa final">
           <Var>Tarifa_final</Var> <Op>=</Op> Subtotal <Op>×</Op> Factor_variable
         </PasoFormula>
+      </div>
+    </PassportCard>
+  );
+}
+
+type TarifaVehiculoRow = ConfiguracionTarifas["vehiculo"][number];
+
+function FilaTarifaVehiculo({
+  fila,
+  cliente,
+  onGuardado
+}: {
+  fila: TarifaVehiculoRow;
+  cliente: ReturnType<typeof crearClienteNavegador> | null;
+  onGuardado: () => Promise<void>;
+}) {
+  const [base, setBase] = useState(String(fila.base));
+  const [porKm, setPorKm] = useState(String(fila.por_km));
+  const [pendiente, startTransition] = useTransition();
+  const [mensaje, setMensaje] = useState<string | null>(null);
+
+  function guardar() {
+    const nuevaBase = Number(base);
+    const nuevoPorKm = Number(porKm);
+    if (!Number.isFinite(nuevaBase) || !Number.isFinite(nuevoPorKm)) {
+      setMensaje("Valor inválido.");
+      return;
+    }
+    setMensaje(null);
+    startTransition(async () => {
+      try {
+        if (!cliente) throw new Error("Sin cliente Supabase.");
+        await actualizarTarifaVehiculo(cliente, fila.id, { base: nuevaBase, por_km: nuevoPorKm });
+        setMensaje("Guardado.");
+        await onGuardado();
+      } catch (error) {
+        setMensaje(error instanceof Error ? error.message : "No se pudo guardar.");
+      }
+    });
+  }
+
+  return (
+    <div className="flex flex-wrap items-end gap-3 border-b border-ink/10 py-3 last:border-b-0">
+      <span className="min-w-40 font-body text-sm font-medium text-ink/75">{ETIQUETA_RANGO[fila.rango] ?? fila.rango}</span>
+      <label className="font-body text-xs text-ink/55">
+        <span className="block">Base</span>
+        <input
+          value={base}
+          onChange={(e) => setBase(e.target.value)}
+          inputMode="decimal"
+          className="mt-1 block w-28 rounded-lg border border-ink/30 bg-mist px-3 py-1.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+        />
+      </label>
+      <label className="font-body text-xs text-ink/55">
+        <span className="block">$/km</span>
+        <input
+          value={porKm}
+          onChange={(e) => setPorKm(e.target.value)}
+          inputMode="decimal"
+          className="mt-1 block w-24 rounded-lg border border-ink/30 bg-mist px-3 py-1.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+        />
+      </label>
+      <Button variant="fantasma" onClick={guardar} disabled={pendiente}>Guardar</Button>
+      {mensaje && <span className="pb-2 font-body text-xs text-ink/55">{mensaje}</span>}
+    </div>
+  );
+}
+
+function TarifaBasePorVehiculo({
+  datos,
+  cliente,
+  onGuardado
+}: {
+  datos: ConfiguracionTarifas;
+  cliente: ReturnType<typeof crearClienteNavegador> | null;
+  onGuardado: () => Promise<void>;
+}) {
+  const [porcentaje, setPorcentaje] = useState("15");
+  const [confirmando, setConfirmando] = useState(false);
+  const [aplicando, startTransition] = useTransition();
+  const [mensaje, setMensaje] = useState<string | null>(null);
+
+  const porCategoria = useMemo(() => {
+    const grupos = new Map<CategoriaTarifa, TarifaVehiculoRow[]>();
+    for (const fila of datos.vehiculo) {
+      const lista = grupos.get(fila.categoria) ?? [];
+      lista.push(fila);
+      grupos.set(fila.categoria, lista);
+    }
+    return grupos;
+  }, [datos.vehiculo]);
+
+  function aplicarAumento() {
+    const pct = Number(porcentaje);
+    if (!Number.isFinite(pct) || pct === 0) {
+      setMensaje("Ingresa un porcentaje válido (puede ser negativo para un descuento).");
+      return;
+    }
+    setMensaje(null);
+    startTransition(async () => {
+      try {
+        if (!cliente) throw new Error("Sin cliente Supabase.");
+        for (const fila of datos.vehiculo) {
+          const nuevaBase = Math.round(fila.base * (1 + pct / 100) * 100) / 100;
+          await actualizarTarifaVehiculo(cliente, fila.id, { base: nuevaBase, por_km: fila.por_km });
+        }
+        setMensaje(`Base actualizada ${pct > 0 ? "+" : ""}${pct}% en las ${datos.vehiculo.length} filas.`);
+        setConfirmando(false);
+        await onGuardado();
+      } catch (error) {
+        setMensaje(error instanceof Error ? error.message : "No se pudo aplicar el aumento.");
+      }
+    });
+  }
+
+  return (
+    <PassportCard>
+      <h2 className="font-display text-xl font-semibold">Tarifa base por categoría y rango</h2>
+      <p className="mt-1 font-body text-sm text-ink/55">
+        Aquí se captura la base ($) y el $/km de cada categoría y rango de distancia. El $/hora general y los factores
+        (gama, condición, horario, día) se ajustan aparte, más abajo.
+      </p>
+
+      <div className="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-route/25 bg-route-soft px-4 py-3">
+        <label className="font-body text-xs font-semibold text-route-dark">
+          <span className="block">Ajuste rápido a todas las bases</span>
+          <div className="mt-1 flex items-center gap-1">
+            <input
+              value={porcentaje}
+              onChange={(e) => setPorcentaje(e.target.value)}
+              inputMode="decimal"
+              className="w-20 rounded-lg border border-route/40 bg-mist px-3 py-1.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+            />
+            <span className="font-body text-sm text-route-dark">%</span>
+          </div>
+        </label>
+        {!confirmando ? (
+          <Button variant="fantasma" onClick={() => setConfirmando(true)} disabled={aplicando || datos.vehiculo.length === 0}>
+            Aplicar a las {datos.vehiculo.length} bases
+          </Button>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-body text-xs text-route-dark">
+              Esto cambia la base de las {datos.vehiculo.length} filas de una vez. ¿Confirmas?
+            </span>
+            <Button variant="fantasma" onClick={aplicarAumento} disabled={aplicando}>Sí, aplicar</Button>
+            <Button variant="fantasma" onClick={() => setConfirmando(false)} disabled={aplicando}>Cancelar</Button>
+          </div>
+        )}
+        {mensaje && <span className="font-body text-xs text-route-dark">{mensaje}</span>}
+      </div>
+
+      <div className="mt-5 grid gap-6 lg:grid-cols-2">
+        {Array.from(porCategoria.entries()).map(([categoria, filas]) => (
+          <div key={categoria}>
+            <h3 className="font-body text-sm font-semibold text-ink/70">{ETIQUETA_CATEGORIA[categoria] ?? categoria}</h3>
+            <div className="mt-2">
+              {filas.map((fila) => (
+                <FilaTarifaVehiculo key={fila.id} fila={fila} cliente={cliente} onGuardado={onGuardado} />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </PassportCard>
   );
