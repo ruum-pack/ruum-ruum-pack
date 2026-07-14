@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
-    "build": "turbo run build",
+    "build": "pnpm -r --workspace-concurrency=1 --filter \"./packages/*\" --filter \"./apps/*\" run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

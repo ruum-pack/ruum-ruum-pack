@@ -31,7 +31,7 @@ export function construirPayloadCreacion(datos: DatosFormulario, vehiculoSelecci
     destino_referencias: datos.destinoReferencias || null, instrucciones_especiales: datos.instruccionesEspeciales,
     modalidad_programacion: datos.modalidadProgramacion, fecha_hora_programada: datos.fechaHoraProgramada ? new Date(datos.fechaHoraProgramada).toISOString() : null,
     tipo_ruta: datos.tipoRuta, ventana_recoleccion: datos.ventanaRecoleccion, ventana_entrega: datos.ventanaEntrega,
-    tipo_servicio: datos.tipoServicio, motivo_servicio: datos.motivoServicio, presupuesto_usuario: Number(datos.precioEstimado) || null,
+    tipo_servicio: datos.tipoServicio, motivo_servicio: datos.motivoServicio,
     distancia_km: coords.distanciaKm ?? null, tiempo_estimado_horas: coords.tiempoEstimadoHoras ?? null
   }};
 }

@@ -14,7 +14,7 @@ export interface DatosFormulario {
   destinoCodigoPostal: string; destinoEstado: string; destinoCiudad: string; destinoColonia: string; destinoCalle: string; destinoNumero: string; destinoReferencias: string;
   entregaNombre: string; entregaApellido: string; entregaTelefono: string; recepcionNombre: string; recepcionApellido: string; recepcionTelefono: string; instruccionesEspeciales: string;
   modalidadProgramacion: ModalidadProgramacion; fechaHoraProgramada: string; tipoRuta: TipoRutaTraslado; ventanaRecoleccion: string; ventanaEntrega: string;
-  tipoServicio: TipoServicioTraslado; motivoServicio: MotivoServicioTraslado; precioEstimado: string;
+  tipoServicio: TipoServicioTraslado; motivoServicio: MotivoServicioTraslado;
 }
 
 export type ErroresFormulario = Partial<Record<keyof DatosFormulario, string>>;

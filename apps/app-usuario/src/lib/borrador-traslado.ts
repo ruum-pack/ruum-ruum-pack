@@ -59,7 +59,6 @@ export interface BorradorTrasladoLocal {
   ventanaEntrega: string;
   tipoServicio: string;
   motivoServicio: string;
-  precioEstimado: string;
 }
 
 const CAMPOS_TEXTO = [
@@ -68,7 +67,7 @@ const CAMPOS_TEXTO = [
   "destinoCodigoPostal", "destinoEstado", "destinoCiudad", "destinoColonia",
   "entregaNombre", "entregaApellido", "recepcionNombre", "recepcionApellido",
   "modalidadProgramacion", "fechaHoraProgramada", "tipoRuta",
-  "ventanaRecoleccion", "ventanaEntrega", "tipoServicio", "motivoServicio", "precioEstimado"
+  "ventanaRecoleccion", "ventanaEntrega", "tipoServicio", "motivoServicio"
 ] as const;
 
 const CAMPOS_BOOLEANOS = ["tieneTarjeta", "tieneVerificacion", "tienePlacas", "puedeCircular"] as const;
@@ -113,7 +112,7 @@ export function leerBorradorTrasladoLocal(): BorradorTrasladoLocal | null {
       destinoCodigoPostal: "", destinoEstado: "", destinoCiudad: "", destinoColonia: "",
       entregaNombre: "", entregaApellido: "", recepcionNombre: "", recepcionApellido: "",
       modalidadProgramacion: "", fechaHoraProgramada: "", tipoRuta: "",
-      ventanaRecoleccion: "", ventanaEntrega: "", tipoServicio: "", motivoServicio: "", precioEstimado: ""
+      ventanaRecoleccion: "", ventanaEntrega: "", tipoServicio: "", motivoServicio: ""
     };
 
     for (const campo of CAMPOS_TEXTO) {

@@ -8,6 +8,7 @@
     "./styles/tokens.css": "./src/styles/tokens.css"
   },
   "scripts": {
+    "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

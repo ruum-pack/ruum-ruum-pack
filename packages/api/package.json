@@ -8,6 +8,7 @@
     "./services": "./src/services/index.ts"
   },
   "scripts": {
+    "build": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

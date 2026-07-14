@@ -7,7 +7,7 @@ const valido = {
   origenCodigoPostal: "03100", origenEstado: "CDMX", origenCiudad: "CDMX", origenColonia: "Del Valle", origenCalle: "A", origenNumero: "1",
   destinoCodigoPostal: "06600", destinoEstado: "CDMX", destinoCiudad: "CDMX", destinoColonia: "Juárez", destinoCalle: "B", destinoNumero: "2",
   entregaNombre: "Ana", entregaApellido: "López", entregaTelefono: "5512345678", recepcionNombre: "Luis", recepcionApellido: "Pérez", recepcionTelefono: "5587654321",
-  modalidadProgramacion: "lo_antes_posible", fechaHoraProgramada: "", zonaHoraria: "America/Mexico_City", tipoRuta: "local", tipoServicio: "personal", motivoServicio: "entrega_cliente", precioEstimado: "1500", aceptaPoliticas: true
+  modalidadProgramacion: "lo_antes_posible", fechaHoraProgramada: "", zonaHoraria: "America/Mexico_City", tipoRuta: "local", tipoServicio: "personal", motivoServicio: "entrega_cliente", aceptaPoliticas: true
 };
 
 describe("esquemaSolicitudTraslado", () => {

@@ -180,6 +180,54 @@ export async function guardarDistanciaYTiempoTraslado(
   if (error) throw error;
 }
 
+export interface PrevisualizacionTarifa {
+  disponible: boolean;
+  motivo?: string;
+  tarifa?: number;
+  categoria_tarifa?: Database["public"]["Enums"]["categoria_tarifa_vehiculo"];
+  gama?: Database["public"]["Enums"]["gama_vehiculo"];
+  condicion?: Database["public"]["Enums"]["condicion_vehiculo"];
+  horario?: Database["public"]["Enums"]["horario_traslado"];
+  dia?: Database["public"]["Enums"]["dia_traslado"];
+}
+
+/**
+ * Previsualiza la tarifa (RT-13) que se le mostrará al usuario, sin crear el
+ * traslado todavía. Se usa en el último paso del wizard de app-usuario, una
+ * vez que ya se capturaron marca/modelo, distancia/tiempo (Mapbox) y fecha/hora
+ * -- el usuario nunca escribe un presupuesto, solo lee este número.
+ *
+ * `disponible: false` significa que el vehículo no está en el catálogo de
+ * autoclasificación (marca/modelo desconocidos o ambiguos); en ese caso no
+ * hay número que mostrar todavía y la solicitud, al crearse, quedará
+ * pendiente de cotización manual por Torre de Control.
+ */
+export async function previsualizarTarifaUsuario(
+  cliente: Cliente,
+  datos: {
+    marca: string;
+    modelo: string;
+    distanciaKm: number;
+    tiempoEstimadoHoras: number;
+    fechaHora: Date | null;
+  }
+): Promise<PrevisualizacionTarifa> {
+  const { data, error } = await cliente.rpc("usuario_previsualizar_tarifa", {
+    p_marca: datos.marca,
+    p_modelo: datos.modelo,
+    p_distancia_km: datos.distanciaKm,
+    p_tiempo_estimado_horas: datos.tiempoEstimadoHoras,
+    p_fecha_hora: datos.fechaHora ? datos.fechaHora.toISOString() : null
+  });
+  if (error) throw error;
+
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("La previsualización de tarifa no devolvió un objeto válido.");
+  }
+
+  return data as unknown as PrevisualizacionTarifa;
+}
+
 /**
  * Sugerencia de tarifa (RT-12) para un traslado ya existente, calculada en
  * el servidor con la fórmula vigente. No escribe precio_cotizado -- el admin

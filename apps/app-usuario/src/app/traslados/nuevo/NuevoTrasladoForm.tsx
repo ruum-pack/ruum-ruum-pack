@@ -7,7 +7,7 @@ import { determinarMomentoPago, calcularCargoCancelacion } from "@ruum/shared/ru
 import type { Database, TipoVehiculo } from "@ruum/shared/types";
 import type { TipoCuenta, Usuario } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
-import { listarVehiculosDeUsuario, obtenerUsuarioActual } from "@ruum/api/services";
+import { listarVehiculosDeUsuario, obtenerUsuarioActual, previsualizarTarifaUsuario, type PrevisualizacionTarifa } from "@ruum/api/services";
 import { esNativo } from "../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../lib/codigos-postales";
@@ -89,9 +89,6 @@ interface DatosFormularioLegacy {
   ventanaEntrega: string;
   tipoServicio: TipoServicioTraslado;
   motivoServicio: MotivoServicioTraslado;
-  // Cotización — motor automático es fase posterior; por ahora es una
-  // estimación manual que el equipo de operaciones ajusta.
-  precioEstimado: string;
 }
 
 const VALORES_INICIALES: DatosFormulario = {
@@ -135,8 +132,7 @@ const VALORES_INICIALES: DatosFormulario = {
   ventanaRecoleccion: "",
   ventanaEntrega: "",
   tipoServicio: "personal",
-  motivoServicio: "entrega_cliente",
-  precioEstimado: ""
+  motivoServicio: "entrega_cliente"
 };
 
 // Usuario sin historial (PRD §4.6): valor temporal mientras se confirma
@@ -263,6 +259,12 @@ export function NuevoTrasladoForm() {
   const [vehiculoSeleccionadoId, setVehiculoSeleccionadoId] = useState<string>("");
   const [errorPaso, setErrorPaso] = useState<string | null>(null);
   const [errores, setErrores] = useState<ErroresFormulario>({});
+  // RT-13 — previsualización de tarifa en vivo (paso "Agenda + Servicio"):
+  // reemplaza el presupuesto que antes tecleaba la persona. null = todavía
+  // no hay suficientes datos o el vehículo no está en el catálogo de
+  // autoclasificación (Torre de Control cotizará esa solicitud a mano).
+  const [previsualizacion, setPrevisualizacion] = useState<PrevisualizacionTarifa | null>(null);
+  const [previsualizando, setPrevisualizando] = useState(false);
 
   // Sprint 4 — borrador NO sensible del wizard (ver lib/borrador-traslado.ts
   // para qué se excluye y por qué). Mismo patrón que
@@ -321,8 +323,7 @@ export function NuevoTrasladoForm() {
         ventanaRecoleccion: datos.ventanaRecoleccion,
         ventanaEntrega: datos.ventanaEntrega,
         tipoServicio: datos.tipoServicio,
-        motivoServicio: datos.motivoServicio,
-        precioEstimado: datos.precioEstimado
+        motivoServicio: datos.motivoServicio
       });
     }, RETRASO_GUARDADO_BORRADOR_MS);
 
@@ -335,7 +336,85 @@ export function NuevoTrasladoForm() {
     datos.destinoCodigoPostal, datos.destinoEstado, datos.destinoCiudad, datos.destinoColonia,
     datos.entregaNombre, datos.entregaApellido, datos.recepcionNombre, datos.recepcionApellido,
     datos.modalidadProgramacion, datos.fechaHoraProgramada, datos.tipoRuta,
-    datos.ventanaRecoleccion, datos.ventanaEntrega, datos.tipoServicio, datos.motivoServicio, datos.precioEstimado
+    datos.ventanaRecoleccion, datos.ventanaEntrega, datos.tipoServicio, datos.motivoServicio
+  ]);
+
+  // RT-13 — calcula la tarifa en vivo apenas hay suficientes datos en el
+  // paso "Agenda + Servicio" (vehículo + origen/destino ya capturados en el
+  // paso 0, fecha/hora capturada en este paso). El usuario ya no escribe
+  // ningún presupuesto: solo lee este número antes de confirmar.
+  useEffect(() => {
+    if (paso !== 1 || !sesionReal) {
+      return;
+    }
+    if (!datos.marca.trim() || !datos.modelo.trim()) {
+      setPrevisualizacion(null);
+      return;
+    }
+    const origenDireccion = domicilioCompleto({
+      calle: datos.origenCalle,
+      numero: datos.origenNumero,
+      colonia: datos.origenColonia,
+      codigoPostal: datos.origenCodigoPostal,
+      ciudad: datos.origenCiudad,
+      estado: datos.origenEstado
+    });
+    const destinoDireccion = domicilioCompleto({
+      calle: datos.destinoCalle,
+      numero: datos.destinoNumero,
+      colonia: datos.destinoColonia,
+      codigoPostal: datos.destinoCodigoPostal,
+      ciudad: datos.destinoCiudad,
+      estado: datos.destinoEstado
+    });
+    if (!origenDireccion.trim() || !destinoDireccion.trim()) {
+      setPrevisualizacion(null);
+      return;
+    }
+    if (datos.modalidadProgramacion === "programado" && !datos.fechaHoraProgramada) {
+      setPrevisualizacion(null);
+      return;
+    }
+
+    let cancelado = false;
+    setPrevisualizando(true);
+    const timer = setTimeout(async () => {
+      try {
+        const coordenadas = await geocodificarRuta(
+          origenDireccion,
+          destinoDireccion,
+          datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined
+        );
+        if (cancelado) return;
+        if (coordenadas.distanciaKm === undefined || coordenadas.tiempoEstimadoHoras === undefined) {
+          setPrevisualizacion(null);
+          return;
+        }
+        const cliente = crearClienteNavegador();
+        const resultado = await previsualizarTarifaUsuario(cliente, {
+          marca: datos.marca,
+          modelo: datos.modelo,
+          distanciaKm: coordenadas.distanciaKm,
+          tiempoEstimadoHoras: coordenadas.tiempoEstimadoHoras,
+          fechaHora: datos.modalidadProgramacion === "programado" && datos.fechaHoraProgramada ? new Date(datos.fechaHoraProgramada) : null
+        });
+        if (!cancelado) setPrevisualizacion(resultado);
+      } catch {
+        if (!cancelado) setPrevisualizacion(null);
+      } finally {
+        if (!cancelado) setPrevisualizando(false);
+      }
+    }, 600);
+
+    return () => {
+      cancelado = true;
+      clearTimeout(timer);
+    };
+  }, [
+    paso, sesionReal, datos.marca, datos.modelo,
+    datos.origenCalle, datos.origenNumero, datos.origenColonia, datos.origenCodigoPostal, datos.origenCiudad, datos.origenEstado,
+    datos.destinoCalle, datos.destinoNumero, datos.destinoColonia, datos.destinoCodigoPostal, datos.destinoCiudad, datos.destinoEstado,
+    datos.modalidadProgramacion, datos.fechaHoraProgramada, datos.origenLat, datos.origenLng, geocodificarRuta
   ]);
 
   function restaurarBorrador() {
@@ -373,8 +452,7 @@ export function NuevoTrasladoForm() {
       ventanaRecoleccion: borrador.ventanaRecoleccion,
       ventanaEntrega: borrador.ventanaEntrega,
       tipoServicio: (borrador.tipoServicio || prev.tipoServicio) as TipoServicioTraslado,
-      motivoServicio: (borrador.motivoServicio || prev.motivoServicio) as MotivoServicioTraslado,
-      precioEstimado: borrador.precioEstimado
+      motivoServicio: (borrador.motivoServicio || prev.motivoServicio) as MotivoServicioTraslado
     }));
 
     // Domicilio preciso (calle, número), teléfonos de contacto, VIN, placas
@@ -445,9 +523,11 @@ export function NuevoTrasladoForm() {
   }, [router]);
 
   const momentoPago = useMemo(() => determinarMomentoPago(usuario), [usuario]);
-  const politicaCancelacion = useMemo(() => calcularCargoCancelacion(Number(datos.precioEstimado) || 0, 0, false, false), [
-    datos.precioEstimado
-  ]);
+  // El monto de este cálculo no se muestra en el wizard (solo el mensaje,
+  // que únicamente depende del porcentaje) -- antes de tener conductor
+  // asignado el porcentaje siempre es 0% aquí, así que el precio ya no
+  // hace falta como argumento.
+  const politicaCancelacion = useMemo(() => calcularCargoCancelacion(0, 0, false, false), []);
 
   function actualizar<K extends keyof DatosFormulario>(campo: K, valor: DatosFormulario[K]) {
     setErrorPaso(null);
@@ -789,18 +869,12 @@ export function NuevoTrasladoForm() {
       return;
     }
 
-    // Stripe requiere un monto positivo; el precio definitivo llegará del cotizador.
-    // El campo es estimación manual — si está vacío o en cero, bloqueamos antes
-    // de crear el vehículo y el traslado en DB (ya que no pueden borrarse fácilmente).
-    const precioNumerico = Number(datos.precioEstimado);
-    if (!datos.precioEstimado || !Number.isFinite(precioNumerico) || precioNumerico <= 0) {
-      setEnviando(false);
-      setResultado({
-        ok: false,
-        mensaje: "Captura el monto estimado del traslado antes de continuar. Es necesario para procesar el pago."
-      });
-      return;
-    }
+    // RT-13 — la tarifa ya no la escribe la persona: la calcula el sistema
+    // (usuario_previsualizar_tarifa / usuario_crea_traslado) a partir de
+    // vehículo + ruta + fecha/hora. No se bloquea el envío si el vehículo no
+    // está en el catálogo de autoclasificación -- esa solicitud se crea igual
+    // y queda pendiente de cotización manual por Torre de Control, como
+    // pasaba con cualquier traslado antes de RT-13.
 
     try {
       registrarEventoUx("traslado_nuevo_enviado", {
@@ -861,7 +935,10 @@ export function NuevoTrasladoForm() {
       // "continuar donde ibas" sobre un traslado que ya se creó).
       setResultado({
         ok: true,
-        mensaje: `Solicitud creada con pago ${nuevoTraslado.tipo_pago === "anticipado" ? "anticipado" : "al cierre"}. Te avisaremos cuando exista una cotización autorizada.`
+        mensaje:
+          nuevoTraslado.precio_cotizado != null
+            ? `Solicitud creada. Tu tarifa es de $${Number(nuevoTraslado.precio_cotizado).toLocaleString("es-MX")} MXN, con pago ${nuevoTraslado.tipo_pago === "anticipado" ? "anticipado" : "al cierre"}.`
+            : `Solicitud creada con pago ${nuevoTraslado.tipo_pago === "anticipado" ? "anticipado" : "al cierre"}. Te avisaremos cuando exista una cotización autorizada.`
       });
       registrarEventoUx("traslado_nuevo_exitoso", {
         tipo_pago: nuevoTraslado.tipo_pago,
@@ -1218,32 +1295,38 @@ export function NuevoTrasladoForm() {
                     <option value="traslado_especial">Traslado especial</option>
                   </select>
                 </label>
-                <Field
-                  etiqueta="Presupuesto aproximado (MXN)"
-                  type="number"
-                  value={datos.precioEstimado}
-                  onChange={(e) => actualizar("precioEstimado", e.target.value)}
-                  ayuda="Este monto es únicamente una referencia y no representa la cotización final."
-                  className={errores.precioEstimado ? "border-danger" : ""}
-                />
-                {errores.precioEstimado && (
-                  <p className="font-body text-xs text-danger mt-1">{errores.precioEstimado}</p>
-                )}
               </div>
             </PassportCard>
 
-            <section className="app-status-strip px-5 py-5" aria-labelledby="titulo-cotizacion-estimada">
+            <section className="app-status-strip px-5 py-5" aria-labelledby="titulo-tarifa-calculada">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p id="titulo-cotizacion-estimada" className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">
-                    Presupuesto aproximado
+                  <p id="titulo-tarifa-calculada" className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">
+                    Tarifa a pagar
                   </p>
-                  <p className="mt-1 font-display text-4xl font-bold leading-tight text-ink">
-                    ${Number(datos.precioEstimado || 0).toLocaleString("es-MX")}
-                  </p>
-                  <p className="mt-2 max-w-sm font-body text-sm leading-6 text-ink/65">
-                    Este monto es únicamente una referencia y no representa la cotización final.
-                  </p>
+                  {previsualizando && (
+                    <p className="mt-1 font-body text-sm text-ink/55">Calculando tarifa…</p>
+                  )}
+                  {!previsualizando && previsualizacion?.disponible && (
+                    <>
+                      <p className="mt-1 font-display text-4xl font-bold leading-tight text-ink">
+                        ${Number(previsualizacion.tarifa ?? 0).toLocaleString("es-MX")}
+                      </p>
+                      <p className="mt-2 max-w-sm font-body text-sm leading-6 text-ink/65">
+                        Este es el monto final calculado para tu traslado, no una estimación.
+                      </p>
+                    </>
+                  )}
+                  {!previsualizando && previsualizacion && !previsualizacion.disponible && (
+                    <p className="mt-1 max-w-sm font-body text-sm leading-6 text-ink/65">
+                      {previsualizacion.motivo ?? "Torre de Control te enviará la cotización manualmente."}
+                    </p>
+                  )}
+                  {!previsualizando && !previsualizacion && (
+                    <p className="mt-1 max-w-sm font-body text-sm leading-6 text-ink/65">
+                      Completa el origen, el destino y la fecha/hora para calcular tu tarifa.
+                    </p>
+                  )}
                 </div>
                 <div className="rounded-lg border border-ink/10 bg-mist/80 px-4 py-3">
                   <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Momento de pago</p>

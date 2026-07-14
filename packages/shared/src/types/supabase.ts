@@ -1455,6 +1455,16 @@ export type Database = {
         Args: { p_ruta: string };
         Returns: undefined;
       };
+      usuario_previsualizar_tarifa: {
+        Args: {
+          p_marca: string;
+          p_modelo: string;
+          p_distancia_km: number;
+          p_tiempo_estimado_horas: number;
+          p_fecha_hora: string | null;
+        };
+        Returns: Json;
+      };
       abrir_disputa_traslado: {
         Args: { p_traslado_id: string; p_abierta_por: Database["public"]["Enums"]["abierta_por_actor"]; p_tipo: Database["public"]["Enums"]["tipo_disputa"]; p_descripcion: string };
         Returns: string;

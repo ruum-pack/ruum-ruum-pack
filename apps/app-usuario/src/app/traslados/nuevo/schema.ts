@@ -29,8 +29,6 @@ export const esquemaSolicitudTraslado = z.object({
   tipoRuta: z.enum(["local", "foraneo"]),
   tipoServicio: z.enum(["personal", "empresarial", "agencia", "lote", "flotilla"]),
   motivoServicio: z.enum(["entrega_cliente", "recuperacion", "traslado_especial"]),
-  precioEstimado: z.string().refine((v) => !v.trim() || (Number.isFinite(Number(v)) && Number(v) >= 100 && Number(v) <= 1_000_000),
-    "El presupuesto debe estar entre $100 y $1,000,000 MXN."),
   aceptaPoliticas: z.literal(true, { errorMap: () => ({ message: "Debes aceptar las políticas de pago y cancelación." }) })
 }).superRefine((d, ctx) => {
   if (d.vehiculoSeleccionadoId && !d.vehiculosUsuarioIds.includes(d.vehiculoSeleccionadoId)) {
