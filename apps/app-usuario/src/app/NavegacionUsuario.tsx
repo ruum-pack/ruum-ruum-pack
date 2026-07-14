@@ -131,7 +131,7 @@ export function NavegacionUsuario() {
                   {menuAbierto && (
                     <div
                       role="menu"
-                      className="absolute right-0 top-full z-50 mt-1 w-44 rounded-xl border border-ink/10 bg-white py-1 shadow-lg"
+                      className="absolute right-0 top-full z-50 mt-1 w-44 rounded-xl border border-ink/10 bg-mist py-1 shadow-lg"
                     >
                       <Link
                         href="/cuenta"

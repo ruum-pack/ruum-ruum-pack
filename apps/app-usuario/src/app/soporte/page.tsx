@@ -122,7 +122,7 @@ function TogglePreferencia({ etiqueta, activo }: { etiqueta: string; activo: boo
   return (
     <label className="flex items-center justify-between gap-4 border-t border-ink/10 py-3 first:border-t-0">
       <span className="font-body text-sm font-semibold text-ink">{etiqueta}</span>
-      <span className={`rounded-full border px-2.5 py-1 font-body text-xs ${activo ? "border-route/30 bg-route-soft text-route-dark" : "border-ink/10 text-ink/45"}`}>
+      <span className={`rounded-full border px-2.5 py-1 font-body text-xs ${activo ? "border-route/30 bg-route-soft text-route-dark" : "border-ink/15 bg-ink/[0.05] text-ink/60"}`}>
         {activo ? "Activa" : "Pausada"}
       </span>
     </label>
@@ -235,7 +235,7 @@ export default async function PaginaSoporte({ searchParams }: { searchParams: Pr
                 <div className="mt-3 flex flex-wrap gap-2">
                   <a
                     href="mailto:soporte@ruumruum.mx"
-                    className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-ink/20 bg-white px-3 py-2 font-body text-sm font-medium text-ink transition hover:border-route-dark hover:text-route-dark"
+                    className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm font-medium text-ink transition hover:border-route-dark hover:text-route-dark"
                   >
                     Enviar correo
                   </a>
@@ -243,7 +243,7 @@ export default async function PaginaSoporte({ searchParams }: { searchParams: Pr
                     href="https://wa.me/5215500000000"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-ink/20 bg-white px-3 py-2 font-body text-sm font-medium text-ink transition hover:border-route-dark hover:text-route-dark"
+                    className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm font-medium text-ink transition hover:border-route-dark hover:text-route-dark"
                   >
                     WhatsApp
                   </a>

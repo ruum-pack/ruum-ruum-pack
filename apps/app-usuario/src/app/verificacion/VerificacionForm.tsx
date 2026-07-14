@@ -288,7 +288,7 @@ export function VerificacionForm({ destino }: Props) {
   }
 
   const campoBase =
-    "w-full rounded-lg border border-app-border-strong bg-white px-3.5 py-2.5 font-body text-sm text-ink outline-none transition focus:border-app-focus focus:ring-2 focus:ring-app-focus-ring";
+    "w-full rounded-lg border border-app-border-strong bg-mist px-3.5 py-2.5 font-body text-sm text-ink outline-none transition focus:border-app-focus focus:ring-2 focus:ring-app-focus-ring";
 
   return (
     <form onSubmit={enviar} className="grid gap-6">

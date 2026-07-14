@@ -479,7 +479,7 @@ export function SeccionPreferencias({ usuario }: { usuario: Usuario }) {
         ].map(([etiqueta, activo]) => (
           <div key={String(etiqueta)} className="flex items-center justify-between border-t border-ink/10 py-3 font-body text-sm">
             <span className="font-semibold">{etiqueta}</span>
-            <span className={`rounded-full border px-2.5 py-1 text-xs ${activo ? "border-route/30 bg-route-soft text-route-dark" : "border-ink/10 text-ink/45"}`}>
+            <span className={`rounded-full border px-2.5 py-1 text-xs ${activo ? "border-route/30 bg-route-soft text-route-dark" : "border-ink/15 bg-ink/[0.05] text-ink/60"}`}>
               {activo ? "Activa" : "Pausada"}
             </span>
           </div>

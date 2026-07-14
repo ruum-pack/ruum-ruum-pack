@@ -14,7 +14,7 @@ export default function CargandoMisViajes() {
         </div>
 
         {/* Skeleton de cards */}
-        <div className="divide-y divide-ink/10 rounded-card border border-ink/10 bg-white">
+        <div className="divide-y divide-ink/10 rounded-card border border-ink/10 bg-mist">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="flex items-center gap-4 p-4">
               <div className="min-w-0 flex-1 space-y-2">
