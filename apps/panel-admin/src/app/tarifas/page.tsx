@@ -331,49 +331,33 @@ function FormulaVigente({ datos }: { datos: ConfiguracionTarifas }) {
 }
 
 type TarifaVehiculoRow = ConfiguracionTarifas["vehiculo"][number];
+type ValorFila = { base: string; porKm: string };
+
+function claveValoresIniciales(vehiculo: TarifaVehiculoRow[]): Record<string, ValorFila> {
+  const mapa: Record<string, ValorFila> = {};
+  for (const fila of vehiculo) {
+    mapa[fila.id] = { base: String(fila.base), porKm: String(fila.por_km) };
+  }
+  return mapa;
+}
 
 function FilaTarifaVehiculo({
   fila,
-  cliente,
-  onGuardado
+  valor,
+  onCambiar
 }: {
   fila: TarifaVehiculoRow;
-  cliente: ReturnType<typeof crearClienteNavegador> | null;
-  onGuardado: () => Promise<void>;
+  valor: ValorFila;
+  onCambiar: (id: string, campo: "base" | "porKm", texto: string) => void;
 }) {
-  const [base, setBase] = useState(String(fila.base));
-  const [porKm, setPorKm] = useState(String(fila.por_km));
-  const [pendiente, startTransition] = useTransition();
-  const [mensaje, setMensaje] = useState<string | null>(null);
-
-  function guardar() {
-    const nuevaBase = Number(base);
-    const nuevoPorKm = Number(porKm);
-    if (!Number.isFinite(nuevaBase) || !Number.isFinite(nuevoPorKm)) {
-      setMensaje("Valor inválido.");
-      return;
-    }
-    setMensaje(null);
-    startTransition(async () => {
-      try {
-        if (!cliente) throw new Error("Sin cliente Supabase.");
-        await actualizarTarifaVehiculo(cliente, fila.id, { base: nuevaBase, por_km: nuevoPorKm });
-        setMensaje("Guardado.");
-        await onGuardado();
-      } catch (error) {
-        setMensaje(error instanceof Error ? error.message : "No se pudo guardar.");
-      }
-    });
-  }
-
   return (
     <div className="flex flex-wrap items-end gap-3 border-b border-ink/10 py-3 last:border-b-0">
       <span className="min-w-40 font-body text-sm font-medium text-ink/75">{ETIQUETA_RANGO[fila.rango] ?? fila.rango}</span>
       <label className="font-body text-xs text-ink/55">
         <span className="block">Base</span>
         <input
-          value={base}
-          onChange={(e) => setBase(e.target.value)}
+          value={valor.base}
+          onChange={(e) => onCambiar(fila.id, "base", e.target.value)}
           inputMode="decimal"
           className="mt-1 block w-28 rounded-lg border border-ink/30 bg-mist px-3 py-1.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
         />
@@ -381,14 +365,12 @@ function FilaTarifaVehiculo({
       <label className="font-body text-xs text-ink/55">
         <span className="block">$/km</span>
         <input
-          value={porKm}
-          onChange={(e) => setPorKm(e.target.value)}
+          value={valor.porKm}
+          onChange={(e) => onCambiar(fila.id, "porKm", e.target.value)}
           inputMode="decimal"
           className="mt-1 block w-24 rounded-lg border border-ink/30 bg-mist px-3 py-1.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
         />
       </label>
-      <Button variant="fantasma" onClick={guardar} disabled={pendiente}>Guardar</Button>
-      {mensaje && <span className="pb-2 font-body text-xs text-ink/55">{mensaje}</span>}
     </div>
   );
 }
@@ -406,6 +388,53 @@ function TarifaBasePorVehiculo({
   const [confirmando, setConfirmando] = useState(false);
   const [aplicando, startTransition] = useTransition();
   const [mensaje, setMensaje] = useState<string | null>(null);
+
+  const [valores, setValores] = useState<Record<string, ValorFila>>(() => claveValoresIniciales(datos.vehiculo));
+  useEffect(() => {
+    setValores(claveValoresIniciales(datos.vehiculo));
+  }, [datos.vehiculo]);
+
+  const [guardandoTabla, startGuardadoTabla] = useTransition();
+  const [mensajeTabla, setMensajeTabla] = useState<string | null>(null);
+
+  const hayCambiosEnTabla = datos.vehiculo.some((fila) => {
+    const v = valores[fila.id];
+    return v && (v.base !== String(fila.base) || v.porKm !== String(fila.por_km));
+  });
+
+  function cambiarValor(id: string, campo: "base" | "porKm", texto: string) {
+    setValores((actual) => ({ ...actual, [id]: { ...actual[id], [campo]: texto } }));
+  }
+
+  function guardarTabla() {
+    const cambios = datos.vehiculo.filter((fila) => {
+      const v = valores[fila.id];
+      return v && (v.base !== String(fila.base) || v.porKm !== String(fila.por_km));
+    });
+
+    for (const fila of cambios) {
+      const v = valores[fila.id];
+      if (!Number.isFinite(Number(v.base)) || !Number.isFinite(Number(v.porKm))) {
+        setMensajeTabla("Hay un valor inválido en la tabla. Revisa antes de guardar.");
+        return;
+      }
+    }
+
+    setMensajeTabla(null);
+    startGuardadoTabla(async () => {
+      try {
+        if (!cliente) throw new Error("Sin cliente Supabase.");
+        for (const fila of cambios) {
+          const v = valores[fila.id];
+          await actualizarTarifaVehiculo(cliente, fila.id, { base: Number(v.base), por_km: Number(v.porKm) });
+        }
+        setMensajeTabla(`Guardado: ${cambios.length} combinación${cambios.length === 1 ? "" : "es"} actualizada${cambios.length === 1 ? "" : "s"}.`);
+        await onGuardado();
+      } catch (error) {
+        setMensajeTabla(error instanceof Error ? error.message : "No se pudo guardar.");
+      }
+    });
+  }
 
   const porCategoria = useMemo(() => {
     const grupos = new Map<CategoriaTarifa, TarifaVehiculoRow[]>();
@@ -483,11 +512,23 @@ function TarifaBasePorVehiculo({
             <h3 className="font-body text-sm font-semibold text-ink/70">{ETIQUETA_CATEGORIA[categoria] ?? categoria}</h3>
             <div className="mt-2">
               {filas.map((fila) => (
-                <FilaTarifaVehiculo key={fila.id} fila={fila} cliente={cliente} onGuardado={onGuardado} />
+                <FilaTarifaVehiculo
+                  key={fila.id}
+                  fila={fila}
+                  valor={valores[fila.id] ?? { base: String(fila.base), porKm: String(fila.por_km) }}
+                  onCambiar={cambiarValor}
+                />
               ))}
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-ink/10 pt-4">
+        <Button variant="primario" onClick={guardarTabla} disabled={!hayCambiosEnTabla || guardandoTabla}>
+          Guardar cambios en la tabla
+        </Button>
+        {mensajeTabla && <span className="font-body text-xs text-ink/55">{mensajeTabla}</span>}
       </div>
     </PassportCard>
   );
