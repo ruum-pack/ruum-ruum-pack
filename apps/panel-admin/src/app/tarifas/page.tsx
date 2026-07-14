@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import {
   actualizarConfigTarifas,
@@ -275,17 +275,54 @@ function PoliticaVigente({
   );
 }
 
+function PasoFormula({
+  numero,
+  etiqueta,
+  children
+}: {
+  numero: string;
+  etiqueta: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-ink/10 bg-mist-dim px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex shrink-0 items-center gap-2 sm:w-40">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-route-dark font-body text-xs font-semibold text-white">
+          {numero}
+        </span>
+        <span className="font-body text-xs font-semibold uppercase tracking-wide text-ink/55">{etiqueta}</span>
+      </div>
+      <code className="font-mono-ruum text-sm leading-7 text-ink sm:text-[0.95rem]">{children}</code>
+    </div>
+  );
+}
+
+function Var({ children }: { children: ReactNode }) {
+  return <span className="font-semibold text-route-dark">{children}</span>;
+}
+
+function Op({ children }: { children: ReactNode }) {
+  return <span className="text-ink/40">{children}</span>;
+}
+
 function FormulaVigente({ datos }: { datos: ConfiguracionTarifas }) {
   return (
     <PassportCard>
       <h2 className="font-display text-xl font-semibold">Fórmula vigente</h2>
-      <div className="mt-4 grid gap-3 font-body text-sm text-ink/70">
-        <code className="rounded-lg bg-ink px-4 py-3 font-mono-ruum text-xs leading-6 text-white">
-          Base_categoria = BaseVehiculo(rango) x F_gama<br />
-          Subtotal = Base_categoria + (Distancia_km x $/km_vehiculo) + (Tiempo_horas x ${datos.config?.tarifa_hora ?? "—"})<br />
-          Factor_variable = MIN(F_condicion x F_horario x F_dia, {datos.config?.tope_factor_variable ?? "—"})<br />
-          Tarifa_final = Subtotal x Factor_variable
-        </code>
+      <p className="mt-1 font-body text-sm text-ink/55">Así se calcula la tarifa final que ve el usuario, paso por paso.</p>
+      <div className="mt-4 grid gap-3">
+        <PasoFormula numero="1" etiqueta="Base por categoría">
+          <Var>Base_categoría</Var> <Op>=</Op> BaseVehículo(rango) <Op>×</Op> <Var>F_gama</Var>
+        </PasoFormula>
+        <PasoFormula numero="2" etiqueta="Subtotal">
+          <Var>Subtotal</Var> <Op>=</Op> Base_categoría <Op>+</Op> (Distancia_km <Op>×</Op> $/km_vehículo) <Op>+</Op> (Tiempo_horas <Op>×</Op> <Var>${datos.config?.tarifa_hora ?? "—"}</Var>)
+        </PasoFormula>
+        <PasoFormula numero="3" etiqueta="Factor variable">
+          <Var>Factor_variable</Var> <Op>=</Op> MIN( F_condición <Op>×</Op> F_horario <Op>×</Op> F_día , <Var>{datos.config?.tope_factor_variable ?? "—"}</Var> )
+        </PasoFormula>
+        <PasoFormula numero="4" etiqueta="Tarifa final">
+          <Var>Tarifa_final</Var> <Op>=</Op> Subtotal <Op>×</Op> Factor_variable
+        </PasoFormula>
       </div>
     </PassportCard>
   );
