@@ -436,6 +436,15 @@ export function NuevoTrasladoForm() {
   const [aceptandoCotizacion, setAceptandoCotizacion] = useState(false);
   const [errorAceptacion, setErrorAceptacion] = useState<string | null>(null);
   const [pagoConfirmado, setPagoConfirmado] = useState(false);
+  const [reintentoAceptacion, setReintentoAceptacion] = useState(0);
+  // Deduplica el intento de aceptación por id de traslado. Un ref (no un
+  // booleano en un cleanup) porque React 18 Strict Mode monta/limpia/vuelve
+  // a montar los efectos en desarrollo: con un flag "cancelado" en el
+  // cleanup, la primera pasada quedaba cancelada antes de que su promesa
+  // resolviera y nunca bajaba `aceptandoCotizacion`, dejando el paso de pago
+  // congelado para siempre en "Confirmando tarifa…". El ref sobrevive esas
+  // dos pasadas sin duplicar la llamada RPC.
+  const trasladoAceptacionIntentado = useRef<string | null>(null);
 
   // El pago anticipado (Stripe) solo puede iniciarse cuando el traslado está
   // en 'cotizacion_aceptada' (ver crear-payment-intent). Como en el wizard
@@ -445,28 +454,24 @@ export function NuevoTrasladoForm() {
   useEffect(() => {
     if (!trasladoCreado) return;
     if (trasladoCreado.tipoPago !== "anticipado" || trasladoCreado.precioCotizado == null) return;
-    if (cotizacionAceptada || aceptandoCotizacion) return;
+    if (trasladoAceptacionIntentado.current === trasladoCreado.id) return;
+    trasladoAceptacionIntentado.current = trasladoCreado.id;
 
-    let cancelado = false;
     setAceptandoCotizacion(true);
     setErrorAceptacion(null);
     (async () => {
       try {
         const cliente = crearClienteNavegador();
         await aceptarCotizacionUsuario(cliente, trasladoCreado.id);
-        if (!cancelado) setCotizacionAceptada(true);
+        setCotizacionAceptada(true);
       } catch (err) {
-        if (!cancelado) {
-          setErrorAceptacion(err instanceof Error ? err.message : "No se pudo confirmar la tarifa para iniciar el pago.");
-        }
+        trasladoAceptacionIntentado.current = null; // permite reintentar
+        setErrorAceptacion(err instanceof Error ? err.message : "No se pudo confirmar la tarifa para iniciar el pago.");
       } finally {
-        if (!cancelado) setAceptandoCotizacion(false);
+        setAceptandoCotizacion(false);
       }
     })();
-    return () => {
-      cancelado = true;
-    };
-  }, [trasladoCreado, cotizacionAceptada, aceptandoCotizacion]);
+  }, [trasladoCreado, reintentoAceptacion]);
   const RETRASO_GUARDADO_BORRADOR_MS = 600;
 
   useEffect(() => {
@@ -1649,7 +1654,12 @@ export function NuevoTrasladoForm() {
                 Tu traslado quedó confirmado con pago al cierre. El cobro se activará más adelante, cuando el servicio esté por concluir.
               </Aviso>
             ) : errorAceptacion ? (
-              <Aviso tono="peligro">{errorAceptacion}</Aviso>
+              <div className="space-y-3">
+                <Aviso tono="peligro">{errorAceptacion}</Aviso>
+                <Button variant="secundario" onClick={() => setReintentoAceptacion((n) => n + 1)}>
+                  Reintentar
+                </Button>
+              </div>
             ) : aceptandoCotizacion || !cotizacionAceptada ? (
               <p className="font-body text-sm text-ink/55">Confirmando tarifa para iniciar el pago…</p>
             ) : !tieneSupabaseConfigurado() ? (
