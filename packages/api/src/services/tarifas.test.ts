@@ -5,6 +5,7 @@ import {
   actualizarTarifaVehiculo,
   guardarDistanciaYTiempoTraslado,
   obtenerConfiguracionTarifas,
+  simularTarifaNormativa,
   sugerirTarifaTraslado
 } from "./tarifas";
 import { crearClienteFake } from "./__tests__/supabase-fake";
@@ -18,7 +19,19 @@ describe("servicios de tarifas admin", () => {
         tarifas_condicion: { data: [{ condicion: "operable" }] },
         tarifas_horario: { data: [{ horario: "diurno" }] },
         tarifas_dia: { data: [{ dia: "habil" }] },
-        tarifas_config: { data: { id: true, tarifa_hora: 120, tope_factor_variable: 2 } },
+        tarifas_config: {
+          data: {
+            id: true,
+            tarifa_hora: 120,
+            tope_factor_variable: 2,
+            nombre_version: "RT-12",
+            estado: "vigente",
+            vigente_desde: "2026-07-14T00:00:00.000Z",
+            notas: null,
+            actualizado_por_admin_id: "admin-1"
+          }
+        },
+        admins: { data: { id: "admin-1", nombre: "Torre Control" } },
         certificacion_pago_conductor: { data: [{ certificacion: "basico", porcentaje: 70 }] }
       }
     });
@@ -30,7 +43,8 @@ describe("servicios de tarifas admin", () => {
       horario: [{ horario: "diurno" }],
       dia: [{ dia: "habil" }],
       config: { tarifa_hora: 120 },
-      certificacionPago: [{ porcentaje: 70 }]
+      certificacionPago: [{ porcentaje: 70 }],
+      adminActualizacion: { id: "admin-1", nombre: "Torre Control" }
     });
   });
 
@@ -100,5 +114,41 @@ describe("servicios de tarifas admin", () => {
     await expect(sugerirTarifaTraslado(cliente as never, "traslado-1")).rejects.toThrow(
       "No se pudo calcular una sugerencia de tarifa para este traslado."
     );
+  });
+
+  it("simula la tarifa normativa sin tocar traslados reales", () => {
+    const configuracion = {
+      vehiculo: [{ id: "tv1", categoria: "ligero_a", rango: "rango_4", base: 750, por_km: 7 }],
+      gama: [{ gama: "entrada", factor: 1 }],
+      condicion: [{ condicion: "seminueva", factor: 1 }],
+      horario: [{ horario: "diurno", factor: 1 }],
+      dia: [{ dia: "entre_semana", factor: 1 }],
+      config: {
+        id: true,
+        tarifa_hora: 21.5,
+        tope_factor_variable: 2,
+        nombre_version: "RT-12",
+        estado: "vigente",
+        vigente_desde: "2026-07-14T00:00:00.000Z",
+        notas: null,
+        actualizado_en: "2026-07-14T00:00:00.000Z",
+        actualizado_por_admin_id: "admin-1"
+      },
+      certificacionPago: [],
+      adminActualizacion: { id: "admin-1", nombre: "Torre Control" }
+    };
+
+    expect(simularTarifaNormativa(configuracion as never, {
+      categoria: "ligero_a",
+      gama: "entrada",
+      condicion: "seminueva",
+      horario: "diurno",
+      dia: "entre_semana",
+      distanciaKm: 196,
+      tiempoHoras: 2.33
+    })).toMatchObject({
+      rango: "rango_4",
+      tarifa: 2172.09
+    });
   });
 });

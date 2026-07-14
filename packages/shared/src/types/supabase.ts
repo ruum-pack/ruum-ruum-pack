@@ -2594,6 +2594,7 @@ export type Database = {
         | "rechazado"
         | "suspendido"
       estado_pago: "pendiente" | "completado" | "reembolsado" | "fallido"
+      estado_politica_tarifaria: "borrador" | "vigente" | "archivada"
       estado_payout: "pendiente" | "procesado" | "fallido"
       estado_reclamo_seguro: "abierto" | "en_revision" | "resuelto"
       estado_traslado:
