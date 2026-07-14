@@ -490,8 +490,12 @@ export function NuevoTrasladoForm() {
     datos.ventanaRecoleccion, datos.ventanaEntrega, datos.tipoServicio, datos.motivoServicio
   ]);
 
-  // Mapbox se consulta solo en la pantalla de origen/destino y con debounce:
-  // antes la tarifa disparaba geocodificación silenciosa y la ruta no se veía.
+  // Se dispara con debounce en cuanto ambas direcciones están completas, sin
+  // importar en qué paso esté la persona: antes solo se intentaba mientras
+  // paso === 1, así que si alguien avanzaba a "¿Cuándo lo trasladamos?" antes
+  // de que el debounce de 650ms terminara, el cálculo se cancelaba (cleanup
+  // del efecto al cambiar de paso) y nunca se reintentaba -- la tarifa se
+  // quedaba sin calcular para siempre porque dependía de esta ruta.
   useEffect(() => {
     const origenDireccion = domicilioCompleto({
       calle: datos.origenCalle,
@@ -517,15 +521,6 @@ export function NuevoTrasladoForm() {
         setRutaCalculando(false);
       }, 0);
       return () => clearTimeout(timer);
-    }
-
-    if (paso !== 1) {
-      // La ruta ya se calculó (o direcciones sin cambios desde el paso
-      // anterior): no se vuelve a consultar Mapbox fuera de la pantalla de
-      // origen/destino, pero tampoco se descarta lo ya calculado — el paso
-      // "¿Cuándo lo trasladamos?" lo sigue mostrando en el resumen y lo usa
-      // para la previsualización de tarifa.
-      return;
     }
 
     let cancelado = false;
@@ -564,7 +559,6 @@ export function NuevoTrasladoForm() {
       clearTimeout(timer);
     };
   }, [
-    paso,
     datos.origenCalle, datos.origenNumero, datos.origenColonia, datos.origenCodigoPostal, datos.origenCiudad, datos.origenEstado,
     datos.destinoCalle, datos.destinoNumero, datos.destinoColonia, datos.destinoCodigoPostal, datos.destinoCiudad, datos.destinoEstado,
     datos.origenLat, datos.origenLng, geocodificarRuta
