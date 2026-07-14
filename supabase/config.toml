@@ -38,10 +38,14 @@ password_requirements = "lower_upper_letters_digits"
 # passwords" (requiere plan Pro o superior). Debe habilitarse manualmente en
 # staging y en producción como parte del despliegue de este PR.
 
-[auth.email]
+e[auth.email]
 enable_signup = true
 double_confirm_changes = true
-enable_confirmations = false
+enable_confirmations = true  
+
+[auth.email.template]
+confirmation_subject = "Confirma tu correo"
+confirmation_content_path = "./supabase/templates/confirmation.html"
 
 [storage]
 enabled = true

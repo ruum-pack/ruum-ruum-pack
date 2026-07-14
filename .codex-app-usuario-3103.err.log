@@ -1,0 +1,22 @@
+AuthApiError: Invalid Refresh Token: Refresh Token Not Found {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+AuthApiError: Invalid Refresh Token: Refresh Token Not Found {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+AuthApiError: Invalid Refresh Token: Refresh Token Not Found {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+AuthApiError: Invalid Refresh Token: Refresh Token Not Found {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\Users\hmlom\ruum\apps\app-usuario\.next\cache\webpack\client-development\15.pack.gz_' -> 'C:\Users\hmlom\ruum\apps\app-usuario\.next\cache\webpack\client-development\15.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\Users\hmlom\ruum\apps\app-usuario\.next\cache\webpack\server-development\12.pack.gz_' -> 'C:\Users\hmlom\ruum\apps\app-usuario\.next\cache\webpack\server-development\12.pack.gz'
