@@ -125,7 +125,7 @@ async function validarMetodoPagoParaEvidenciaInicial(cliente: Cliente, trasladoI
 
   if (error) throw error;
   if (!data) {
-    throw new Error("No se puede completar evidencia inicial: falta método de pago registrado.");
+    throw new Error("No se puede completar evidencia inicial: falta pago anticipado completado o método de pago al cierre.");
   }
 }
 
