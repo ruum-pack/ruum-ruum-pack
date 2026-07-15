@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@ruum/shared/types";
+import type { Database, Json } from "@ruum/shared/types";
 
 type Cliente = SupabaseClient<Database>;
 
@@ -186,6 +186,32 @@ export async function actualizarPagoConductorPorCertificacion(
     .select("certificacion");
   if (error) throw error;
   if (!data || data.length === 0) throw new Error(SIN_PERMISO);
+}
+
+export interface ActualizacionPoliticaTarifariaNormativa {
+  vehiculo?: Array<Pick<TarifaVehiculoRow, "id" | "base" | "por_km">>;
+  gama?: Array<Pick<TarifaGamaRow, "gama" | "factor">>;
+  condicion?: Array<Pick<TarifaCondicionRow, "condicion" | "factor">>;
+  horario?: Array<Pick<TarifaHorarioRow, "horario" | "factor">>;
+  dia?: Array<Pick<TarifaDiaRow, "dia" | "factor">>;
+  certificacion_pago?: Array<Pick<CertificacionPagoRow, "certificacion" | "porcentaje">>;
+  config?: Pick<TarifaConfigRow, "tarifa_hora" | "tope_factor_variable">;
+}
+
+export async function actualizarPoliticaTarifariaNormativa(
+  cliente: Cliente,
+  payload: ActualizacionPoliticaTarifariaNormativa
+) {
+  const rpc = cliente.rpc as unknown as (
+    fn: string,
+    args: { p_payload: Json }
+  ) => Promise<{ data: { actualizadas?: number } | null; error: Error | null }>;
+  const { data, error } = await rpc("admin_actualizar_politica_tarifaria_normativa", {
+    p_payload: payload as Json
+  });
+  if (error) throw error;
+  if (!data || typeof data.actualizadas !== "number") throw new Error("No se pudo confirmar el guardado de tarifas.");
+  return data.actualizadas;
 }
 
 /**

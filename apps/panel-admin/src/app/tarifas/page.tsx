@@ -4,14 +4,10 @@ import { useEffect, useMemo, useState, useTransition, type ReactNode } from "rea
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import {
   actualizarConfigTarifas,
-  actualizarFactorCondicion,
-  actualizarFactorDia,
-  actualizarFactorGama,
-  actualizarFactorHorario,
-  actualizarPagoConductorPorCertificacion,
-  actualizarTarifaVehiculo,
+  actualizarPoliticaTarifariaNormativa,
   obtenerConfiguracionTarifas,
   simularTarifaNormativa,
+  type ActualizacionPoliticaTarifariaNormativa,
   type ConfiguracionTarifas
 } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
@@ -53,6 +49,7 @@ type CondicionTarifa = ConfiguracionTarifas["condicion"][number]["condicion"];
 type HorarioTarifa = ConfiguracionTarifas["horario"][number]["horario"];
 type DiaTarifa = ConfiguracionTarifas["dia"][number]["dia"];
 type TarifaVehiculoRow = ConfiguracionTarifas["vehiculo"][number];
+type TarifaConfigRow = NonNullable<ConfiguracionTarifas["config"]>;
 
 function formatoFecha(valor?: string | null) {
   if (!valor) return "Sin fecha";
@@ -76,80 +73,44 @@ function claseEstado(estado: string) {
   return "border-ink/15 bg-ink/5 text-ink/55";
 }
 
-function CampoEditable({
+function CampoBorrador({
   etiqueta,
-  valorInicial,
+  valor,
   sufijo,
-  requiereConfirmacion,
-  onGuardar
+  invertido,
+  onCambiar
 }: {
   etiqueta: string;
-  valorInicial: number;
+  valor: string;
   sufijo?: string;
-  requiereConfirmacion?: boolean;
-  onGuardar: (valor: number) => Promise<void>;
+  invertido?: boolean;
+  onCambiar: (valor: string) => void;
 }) {
-  const [valor, setValor] = useState(String(valorInicial));
-  const [pendiente, startTransition] = useTransition();
-  const [mensaje, setMensaje] = useState<string | null>(null);
-  const [valorPendiente, setValorPendiente] = useState<number | null>(null);
-
-  function guardar() {
-    const numero = Number(valor);
-    if (!Number.isFinite(numero)) {
-      setMensaje("Valor inválido.");
-      return;
-    }
-    if (requiereConfirmacion) {
-      setValorPendiente(numero);
-      return;
-    }
-    ejecutarGuardado(numero);
-  }
-
-  function ejecutarGuardado(numero: number) {
-    setMensaje(null);
-    startTransition(async () => {
-      try {
-        await onGuardar(numero);
-        setMensaje("Guardado.");
-      } catch (error) {
-        setMensaje(error instanceof Error ? error.message : "No se pudo guardar.");
-      }
-    });
-  }
-
   return (
-    <div className="flex min-w-0 flex-wrap items-end gap-3 rounded-lg border border-ink/10 bg-mist-dim px-3 py-3">
-      <label className="min-w-0 flex-1 font-body text-sm font-medium text-ink/75">
-        <span>{etiqueta}</span>
-        <span className="relative mt-1 block">
-          <input
-            value={valor}
-            onChange={(e) => setValor(e.target.value)}
-            inputMode="decimal"
-            className={`block w-full rounded-lg border border-ink/30 bg-mist py-1.5 pl-3 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark ${sufijo ? "pr-16" : "pr-3"}`}
-          />
-          {sufijo && (
-            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-body text-xs font-semibold text-ink/45">
-              {sufijo}
-            </span>
-          )}
-        </span>
-      </label>
-      <Button variant="fantasma" onClick={guardar} disabled={pendiente}>Guardar</Button>
-      {mensaje && <span className="pb-2 font-body text-xs text-ink/55">{mensaje}</span>}
-      <ConfirmacionImpacto
-        abierto={valorPendiente !== null}
-        onCancelar={() => setValorPendiente(null)}
-        onConfirmar={() => {
-          if (valorPendiente === null) return;
-          const confirmado = valorPendiente;
-          setValorPendiente(null);
-          ejecutarGuardado(confirmado);
-        }}
-      />
-    </div>
+    <label className={`block min-w-0 rounded-lg border px-3 py-3 font-body text-sm font-medium ${
+      invertido ? "border-white/10 bg-white/5 text-white/80" : "border-ink/10 bg-mist-dim text-ink/75"
+    }`}>
+      <span>{etiqueta}</span>
+      <span className="relative mt-1 block">
+        <input
+          value={valor}
+          onChange={(e) => onCambiar(e.target.value)}
+          inputMode="decimal"
+          className={`block w-full rounded-lg border py-1.5 pl-3 pr-16 font-body text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark ${
+            invertido
+              ? "border-white/15 bg-ink/70 text-white placeholder:text-white/35"
+              : "border-ink/30 bg-mist text-ink"
+          }`}
+        />
+        {sufijo && (
+          <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center font-body text-xs font-semibold ${
+            invertido ? "text-white/50" : "text-ink/45"
+          }`}>
+            {sufijo}
+          </span>
+        )}
+      </span>
+    </label>
   );
 }
 
@@ -181,6 +142,7 @@ function ConfirmacionImpacto({
 
 export default function PaginaTarifasAdmin() {
   const [datos, setDatos] = useState<ConfiguracionTarifas>(VACIO);
+  const [configVista, setConfigVista] = useState<TarifaConfigRow | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -194,6 +156,7 @@ export default function PaginaTarifasAdmin() {
       const cliente = crearClienteNavegador();
       const configuracion = await obtenerConfiguracionTarifas(cliente);
       setDatos(configuracion);
+      setConfigVista(configuracion.config);
       setError(configuracion.vehiculo.length === 0
         ? "No se encontró configuración de tarifas. Si no eres admin, este módulo no te mostrará datos (RLS admin-only)."
         : null);
@@ -210,6 +173,7 @@ export default function PaginaTarifasAdmin() {
   }, []);
 
   const cliente = tieneSupabaseConfigurado() ? crearClienteNavegador() : null;
+  const datosFormula = useMemo(() => ({ ...datos, config: configVista ?? datos.config }), [configVista, datos]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
@@ -231,8 +195,8 @@ export default function PaginaTarifasAdmin() {
       ) : (
         <div className="mt-6 grid gap-6">
           <PoliticaVigente key={datos.config?.actualizado_en ?? "sin-config"} datos={datos} cliente={cliente} onGuardado={cargar} />
-          <FormulaVigente datos={datos} />
-          <ParametrosNormativos datos={datos} cliente={cliente} onGuardado={cargar} />
+          <FormulaVigente datos={datosFormula} />
+          <ParametrosNormativos datos={datos} cliente={cliente} onGuardado={cargar} onConfigVista={setConfigVista} />
           <SimuladorNormativo datos={datos} />
         </div>
       )}
@@ -401,30 +365,176 @@ function FormulaVigente({ datos }: { datos: ConfiguracionTarifas }) {
   );
 }
 
+type BorradorTarifas = {
+  vehiculo: Record<string, { base: string; porKm: string }>;
+  gama: Record<string, string>;
+  condicion: Record<string, string>;
+  horario: Record<string, string>;
+  dia: Record<string, string>;
+  certificacion: Record<string, string>;
+  config: { tarifaHora: string; topeFactorVariable: string };
+};
+
+function crearBorradorTarifas(datos: ConfiguracionTarifas): BorradorTarifas {
+  return {
+    vehiculo: Object.fromEntries(datos.vehiculo.map((fila) => [fila.id, { base: String(fila.base), porKm: String(fila.por_km) }])),
+    gama: Object.fromEntries(datos.gama.map((fila) => [fila.gama, String(fila.factor)])),
+    condicion: Object.fromEntries(datos.condicion.map((fila) => [fila.condicion, String(fila.factor)])),
+    horario: Object.fromEntries(datos.horario.map((fila) => [fila.horario, String(fila.factor)])),
+    dia: Object.fromEntries(datos.dia.map((fila) => [fila.dia, String(fila.factor)])),
+    certificacion: Object.fromEntries(datos.certificacionPago.map((fila) => [fila.certificacion, String(fila.porcentaje)])),
+    config: {
+      tarifaHora: String(datos.config?.tarifa_hora ?? ""),
+      topeFactorVariable: String(datos.config?.tope_factor_variable ?? "")
+    }
+  };
+}
+
+function numeroBorrador(valor: string, etiqueta: string) {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) throw new Error(`${etiqueta} tiene un valor inválido.`);
+  return numero;
+}
+
 function ParametrosNormativos({
   datos,
   cliente,
-  onGuardado
+  onGuardado,
+  onConfigVista
 }: {
   datos: ConfiguracionTarifas;
   cliente: ReturnType<typeof crearClienteNavegador> | null;
   onGuardado: () => Promise<void>;
+  onConfigVista: (config: TarifaConfigRow | null) => void;
 }) {
   const requiereConfirmacion = datos.config?.estado === "vigente";
+  const [borrador, setBorrador] = useState<BorradorTarifas>(() => crearBorradorTarifas(datos));
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
+  const [guardando, startGuardado] = useTransition();
+
+  function cambiarVehiculo(id: string, campo: "base" | "porKm", valor: string) {
+    setBorrador((actual) => ({
+      ...actual,
+      vehiculo: { ...actual.vehiculo, [id]: { ...actual.vehiculo[id], [campo]: valor } }
+    }));
+  }
+
+  function cambiarGrupo<K extends keyof Pick<BorradorTarifas, "gama" | "condicion" | "horario" | "dia" | "certificacion">>(
+    grupo: K,
+    clave: string,
+    valor: string
+  ) {
+    setBorrador((actual) => ({ ...actual, [grupo]: { ...actual[grupo], [clave]: valor } }));
+  }
+
+  function cambiarConfig(campo: keyof BorradorTarifas["config"], valor: string) {
+    setBorrador((actual) => ({ ...actual, config: { ...actual.config, [campo]: valor } }));
+    if (!datos.config) return;
+    const siguiente = {
+      ...datos.config,
+      tarifa_hora: campo === "tarifaHora" && Number.isFinite(Number(valor)) ? Number(valor) : Number(borrador.config.tarifaHora),
+      tope_factor_variable: campo === "topeFactorVariable" && Number.isFinite(Number(valor)) ? Number(valor) : Number(borrador.config.topeFactorVariable)
+    };
+    if (Number.isFinite(siguiente.tarifa_hora) && Number.isFinite(siguiente.tope_factor_variable)) {
+      onConfigVista(siguiente);
+    }
+  }
+
+  const hayCambios = useMemo(() => {
+    const original = crearBorradorTarifas(datos);
+    return JSON.stringify(original) !== JSON.stringify(borrador);
+  }, [borrador, datos]);
+
+  function guardar() {
+    if (!hayCambios) return;
+    if (requiereConfirmacion) {
+      setConfirmando(true);
+      return;
+    }
+    guardarConfirmado();
+  }
+
+  function guardarConfirmado() {
+    startGuardado(async () => {
+      try {
+        if (!cliente) throw new Error("Sin cliente Supabase.");
+        if (!datos.config) throw new Error("No existe la configuración general de tarifas.");
+        setMensaje(null);
+
+        const payload: ActualizacionPoliticaTarifariaNormativa = {};
+
+        for (const fila of datos.vehiculo) {
+          const valor = borrador.vehiculo[fila.id];
+          const base = numeroBorrador(valor.base, `Base ${ETIQUETA_CATEGORIA[fila.categoria] ?? fila.categoria}`);
+          const porKm = numeroBorrador(valor.porKm, `$ / km ${ETIQUETA_CATEGORIA[fila.categoria] ?? fila.categoria}`);
+          if (base !== fila.base || porKm !== fila.por_km) {
+            payload.vehiculo = [...(payload.vehiculo ?? []), { id: fila.id, base, por_km: porKm }];
+          }
+        }
+
+        for (const fila of datos.gama) {
+          const factor = numeroBorrador(borrador.gama[fila.gama], `Gama ${fila.gama}`);
+          if (factor !== fila.factor) payload.gama = [...(payload.gama ?? []), { gama: fila.gama, factor }];
+        }
+
+        for (const fila of datos.condicion) {
+          const factor = numeroBorrador(borrador.condicion[fila.condicion], `Condición ${fila.condicion}`);
+          if (factor !== fila.factor) payload.condicion = [...(payload.condicion ?? []), { condicion: fila.condicion, factor }];
+        }
+
+        for (const fila of datos.horario) {
+          const factor = numeroBorrador(borrador.horario[fila.horario], `Horario ${fila.horario}`);
+          if (factor !== fila.factor) payload.horario = [...(payload.horario ?? []), { horario: fila.horario, factor }];
+        }
+
+        for (const fila of datos.dia) {
+          const factor = numeroBorrador(borrador.dia[fila.dia], `Día ${fila.dia}`);
+          if (factor !== fila.factor) payload.dia = [...(payload.dia ?? []), { dia: fila.dia, factor }];
+        }
+
+        for (const fila of datos.certificacionPago) {
+          const porcentaje = numeroBorrador(borrador.certificacion[fila.certificacion], `Pago ${fila.certificacion}`);
+          if (porcentaje !== fila.porcentaje) {
+            payload.certificacion_pago = [...(payload.certificacion_pago ?? []), { certificacion: fila.certificacion, porcentaje }];
+          }
+        }
+
+        const tarifaHora = numeroBorrador(borrador.config.tarifaHora, "Tarifa por hora");
+        const topeFactorVariable = numeroBorrador(borrador.config.topeFactorVariable, "Tope del factor variable");
+        if (tarifaHora !== datos.config.tarifa_hora || topeFactorVariable !== datos.config.tope_factor_variable) {
+          payload.config = { tarifa_hora: tarifaHora, tope_factor_variable: topeFactorVariable };
+        }
+
+        const actualizadas = await actualizarPoliticaTarifariaNormativa(cliente, payload);
+        await onGuardado();
+        setMensaje(`Cambios guardados: ${actualizadas}.`);
+      } catch (error) {
+        setMensaje(error instanceof Error ? error.message : "No se pudieron guardar los cambios.");
+      }
+    });
+  }
+
   return (
     <div className="grid gap-6">
-      <TarifasBaseFijas datos={datos} cliente={cliente} onGuardado={onGuardado} requiereConfirmacion={requiereConfirmacion} />
+      <div className="sticky top-0 z-20 -mx-2 rounded-lg border border-ink/10 bg-mist/95 px-4 py-3 shadow-sm backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="font-body text-sm font-semibold text-ink">Edición de parámetros normativos</p>
+            {mensaje && <p className="mt-1 font-body text-xs text-ink/55">{mensaje}</p>}
+          </div>
+          <Button onClick={guardar} disabled={!hayCambios || guardando}>Guardar cambios</Button>
+        </div>
+      </div>
+
+      <TarifasBaseFijas datos={datos} borrador={borrador} onCambiar={cambiarVehiculo} />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <PassportCard>
           <h2 className="font-display text-xl font-semibold">Factor de gama</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {datos.gama.map((f) => (
-              <CampoEditable key={`${f.gama}-${f.factor}`} etiqueta={f.gama} valorInicial={f.factor} requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
-                if (!cliente) throw new Error("Sin cliente Supabase.");
-                await actualizarFactorGama(cliente, f.gama, valor);
-                await onGuardado();
-              }} />
+              <CampoBorrador key={f.gama} etiqueta={f.gama} valor={borrador.gama[f.gama] ?? ""} onCambiar={(valor) => cambiarGrupo("gama", f.gama, valor)} />
             ))}
           </div>
         </PassportCard>
@@ -433,11 +543,7 @@ function ParametrosNormativos({
           <h2 className="font-display text-xl font-semibold">Factor de condición</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {datos.condicion.map((f) => (
-              <CampoEditable key={`${f.condicion}-${f.factor}`} etiqueta={f.condicion.replaceAll("_", " ")} valorInicial={f.factor} requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
-                if (!cliente) throw new Error("Sin cliente Supabase.");
-                await actualizarFactorCondicion(cliente, f.condicion, valor);
-                await onGuardado();
-              }} />
+              <CampoBorrador key={f.condicion} etiqueta={f.condicion.replaceAll("_", " ")} valor={borrador.condicion[f.condicion] ?? ""} onCambiar={(valor) => cambiarGrupo("condicion", f.condicion, valor)} />
             ))}
           </div>
         </PassportCard>
@@ -446,11 +552,7 @@ function ParametrosNormativos({
           <h2 className="font-display text-xl font-semibold">Factor horario</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {datos.horario.map((f) => (
-              <CampoEditable key={`${f.horario}-${f.factor}`} etiqueta={f.horario} valorInicial={f.factor} requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
-                if (!cliente) throw new Error("Sin cliente Supabase.");
-                await actualizarFactorHorario(cliente, f.horario, valor);
-                await onGuardado();
-              }} />
+              <CampoBorrador key={f.horario} etiqueta={f.horario} valor={borrador.horario[f.horario] ?? ""} onCambiar={(valor) => cambiarGrupo("horario", f.horario, valor)} />
             ))}
           </div>
         </PassportCard>
@@ -459,11 +561,7 @@ function ParametrosNormativos({
           <h2 className="font-display text-xl font-semibold">Factor día</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {datos.dia.map((f) => (
-              <CampoEditable key={`${f.dia}-${f.factor}`} etiqueta={f.dia.replaceAll("_", " ")} valorInicial={f.factor} requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
-                if (!cliente) throw new Error("Sin cliente Supabase.");
-                await actualizarFactorDia(cliente, f.dia, valor);
-                await onGuardado();
-              }} />
+              <CampoBorrador key={f.dia} etiqueta={f.dia.replaceAll("_", " ")} valor={borrador.dia[f.dia] ?? ""} onCambiar={(valor) => cambiarGrupo("dia", f.dia, valor)} />
             ))}
           </div>
         </PassportCard>
@@ -475,16 +573,8 @@ function ParametrosNormativos({
           {datos.config && (
             <>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <CampoEditable key={`tarifa-hora-${datos.config.tarifa_hora}`} etiqueta="Tarifa por hora" valorInicial={datos.config.tarifa_hora} sufijo="$/hora" requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
-                  if (!cliente || !datos.config) throw new Error("Sin cliente Supabase.");
-                  await actualizarConfigTarifas(cliente, { tarifa_hora: valor, tope_factor_variable: datos.config.tope_factor_variable });
-                  await onGuardado();
-                }} />
-                <CampoEditable key={`tope-${datos.config.tope_factor_variable}`} etiqueta="Tope del factor variable" valorInicial={datos.config.tope_factor_variable} sufijo="x" requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
-                  if (!cliente || !datos.config) throw new Error("Sin cliente Supabase.");
-                  await actualizarConfigTarifas(cliente, { tarifa_hora: datos.config.tarifa_hora, tope_factor_variable: valor });
-                  await onGuardado();
-                }} />
+                <CampoBorrador etiqueta="Tarifa por hora" valor={borrador.config.tarifaHora} sufijo="$/hora" onCambiar={(valor) => cambiarConfig("tarifaHora", valor)} />
+                <CampoBorrador etiqueta="Tope del factor variable" valor={borrador.config.topeFactorVariable} sufijo="x" onCambiar={(valor) => cambiarConfig("topeFactorVariable", valor)} />
               </div>
             </>
           )}
@@ -494,29 +584,31 @@ function ParametrosNormativos({
           <h2 className="font-display text-xl font-semibold">Pago al conductor por certificación</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {datos.certificacionPago.map((f) => (
-              <CampoEditable key={`${f.certificacion}-${f.porcentaje}`} etiqueta={f.certificacion.replaceAll("_", " ")} valorInicial={f.porcentaje} sufijo="%" requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
-                if (!cliente) throw new Error("Sin cliente Supabase.");
-                await actualizarPagoConductorPorCertificacion(cliente, f.certificacion, valor);
-                await onGuardado();
-              }} />
+              <CampoBorrador key={f.certificacion} etiqueta={f.certificacion.replaceAll("_", " ")} valor={borrador.certificacion[f.certificacion] ?? ""} sufijo="%" onCambiar={(valor) => cambiarGrupo("certificacion", f.certificacion, valor)} />
             ))}
           </div>
         </PassportCard>
       </div>
+      <ConfirmacionImpacto
+        abierto={confirmando}
+        onCancelar={() => setConfirmando(false)}
+        onConfirmar={() => {
+          setConfirmando(false);
+          guardarConfirmado();
+        }}
+      />
     </div>
   );
 }
 
 function TarifasBaseFijas({
   datos,
-  cliente,
-  onGuardado,
-  requiereConfirmacion
+  borrador,
+  onCambiar
 }: {
   datos: ConfiguracionTarifas;
-  cliente: ReturnType<typeof crearClienteNavegador> | null;
-  onGuardado: () => Promise<void>;
-  requiereConfirmacion: boolean;
+  borrador: BorradorTarifas;
+  onCambiar: (id: string, campo: "base" | "porKm", valor: string) => void;
 }) {
   const porCategoria = useMemo(() => {
     const grupos = new Map<CategoriaTarifa, TarifaVehiculoRow[]>();
@@ -528,15 +620,6 @@ function TarifasBaseFijas({
     return grupos;
   }, [datos.vehiculo]);
 
-  async function guardarFila(fila: TarifaVehiculoRow, cambios: { base?: number; por_km?: number }) {
-    if (!cliente) throw new Error("Sin cliente Supabase.");
-    await actualizarTarifaVehiculo(cliente, fila.id, {
-      base: cambios.base ?? fila.base,
-      por_km: cambios.por_km ?? fila.por_km
-    });
-    await onGuardado();
-  }
-
   return (
     <PassportCard>
       <h2 className="font-display text-xl font-semibold">Tarifas base fijas</h2>
@@ -546,21 +629,21 @@ function TarifasBaseFijas({
             <h3 className="font-body text-sm font-semibold text-ink">{ETIQUETA_CATEGORIA[categoria] ?? categoria}</h3>
             <div className="mt-3 grid gap-3">
               {filas.map((fila) => (
-                <div key={fila.id} className="grid gap-3 rounded-lg border border-ink/10 bg-white px-3 py-3 lg:grid-cols-[minmax(150px,1fr)_minmax(120px,150px)_minmax(120px,150px)]">
-                  <p className="self-end pb-2 font-body text-sm font-medium text-ink/70">{ETIQUETA_RANGO[fila.rango] ?? fila.rango}</p>
-                  <CampoEditable
+                <div key={fila.id} className="grid gap-3 rounded-lg border border-white/10 bg-ink/90 px-3 py-3 shadow-sm lg:grid-cols-[minmax(150px,1fr)_minmax(120px,150px)_minmax(120px,150px)]">
+                  <p className="self-end pb-2 font-body text-sm font-semibold text-white/80">{ETIQUETA_RANGO[fila.rango] ?? fila.rango}</p>
+                  <CampoBorrador
                     etiqueta="Base"
-                    valorInicial={fila.base}
+                    valor={borrador.vehiculo[fila.id]?.base ?? ""}
                     sufijo="$"
-                    requiereConfirmacion={requiereConfirmacion}
-                    onGuardar={(valor) => guardarFila(fila, { base: valor })}
+                    invertido
+                    onCambiar={(valor) => onCambiar(fila.id, "base", valor)}
                   />
-                  <CampoEditable
+                  <CampoBorrador
                     etiqueta="Kilómetro"
-                    valorInicial={fila.por_km}
+                    valor={borrador.vehiculo[fila.id]?.porKm ?? ""}
                     sufijo="$/km"
-                    requiereConfirmacion={requiereConfirmacion}
-                    onGuardar={(valor) => guardarFila(fila, { por_km: valor })}
+                    invertido
+                    onCambiar={(valor) => onCambiar(fila.id, "porKm", valor)}
                   />
                 </div>
               ))}
