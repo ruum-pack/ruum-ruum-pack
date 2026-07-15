@@ -28,3 +28,10 @@
  ✓ Compiled in 1607ms (1000 modules)
  ✓ Compiled in 7.8s (1000 modules)
  ✓ Compiled in 11.1s (1000 modules)
+   ▲ Next.js 15.5.19
+   - Local:        http://localhost:3104
+   - Network:      http://192.168.1.4:3104
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 11.2s

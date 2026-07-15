@@ -2126,17 +2126,27 @@ export type Database = {
           conductor_id: string | null
           conductor_nivel: Database["public"]["Enums"]["nivel_concer"] | null
           conductor_nombre: string | null
+          contacto_entrega_nombre: string | null
+          contacto_entrega_telefono: string | null
+          contacto_recepcion_nombre: string | null
+          contacto_recepcion_telefono: string | null
           creado_en: string | null
+          destino_ciudad: string | null
+          destino_direccion: string | null
           destino_lat: number | null
           destino_lng: number | null
+          destino_referencias: string | null
           distancia_km: number | null
           estado: Database["public"]["Enums"]["estado_traslado"] | null
           evidencia_final_fotos_sincronizadas: number | null
           evidencia_inicial_fotos_sincronizadas: number | null
           incidencias_abiertas: number | null
           monto_pagado: number | null
+          origen_ciudad: string | null
+          origen_direccion: string | null
           origen_lat: number | null
           origen_lng: number | null
+          origen_referencias: string | null
           precio_cotizado: number | null
           precio_final: number | null
           tiempo_estimado_horas: number | null
@@ -2148,6 +2158,7 @@ export type Database = {
           vehiculo_categoria_tarifa:
             | Database["public"]["Enums"]["categoria_tarifa_vehiculo"]
             | null
+          vehiculo_color: string | null
           vehiculo_condicion:
             | Database["public"]["Enums"]["condicion_vehiculo"]
             | null
@@ -2155,7 +2166,9 @@ export type Database = {
           vehiculo_id: string | null
           vehiculo_marca: string | null
           vehiculo_modelo: string | null
+          vehiculo_placas: string | null
           vehiculo_tipo: Database["public"]["Enums"]["tipo_vehiculo"] | null
+          vehiculo_vin: string | null
         }
         Relationships: [
           {

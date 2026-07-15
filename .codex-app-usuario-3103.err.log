@@ -23,3 +23,4 @@ AuthApiError: Invalid Refresh Token: Refresh Token Not Found {
 <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: invalid stored block lengths
 <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\Users\hmlom\ruum\apps\app-usuario\.next\cache\webpack\server-development\0.pack.gz_' -> 'C:\Users\hmlom\ruum\apps\app-usuario\.next\cache\webpack\server-development\0.pack.gz'
 <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: invalid stored block lengths
+ ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...

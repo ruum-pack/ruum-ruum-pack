@@ -131,6 +131,19 @@ export default async function PaginaDetalleViaje({ params }: { params: Promise<{
           trasladoId={pasaporte.traslado_id}
           estado={pasaporte.estado}
           fotosCompletadas={fotosCompletadas}
+          origenDireccion={pasaporte.origen_direccion}
+          origenCiudad={pasaporte.origen_ciudad}
+          origenReferencias={pasaporte.origen_referencias}
+          origenLat={pasaporte.origen_lat}
+          origenLng={pasaporte.origen_lng}
+          contactoEntregaNombre={pasaporte.contacto_entrega_nombre}
+          contactoEntregaTelefono={pasaporte.contacto_entrega_telefono}
+          vehiculoMarca={pasaporte.vehiculo_marca}
+          vehiculoModelo={pasaporte.vehiculo_modelo}
+          vehiculoAnio={pasaporte.vehiculo_anio}
+          vehiculoColor={pasaporte.vehiculo_color}
+          vehiculoPlacas={pasaporte.vehiculo_placas}
+          vehiculoVin={pasaporte.vehiculo_vin}
         />
         <ReportarIncidencia trasladoId={pasaporte.traslado_id} />
         <AbrirDisputaConductor trasladoId={pasaporte.traslado_id} disponible={puedeAbrirDisputa} />

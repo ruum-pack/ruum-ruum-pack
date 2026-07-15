@@ -117,6 +117,27 @@ Ya está conectado: junto al chat hay un botón **"Llamar"** (Twilio Proxy, vía
 igual criterio que `app-usuario`. `/registro` ahora pide el teléfono real del conductor — sin eso, Twilio no
 tiene a quién relacionar con el número virtual de la sesión.
 
+## Flujo "Iniciar viaje" (recolección del vehículo)
+
+`/viajes/[id]` reemplaza el botón plano por dos pantallas dedicadas entre "Iniciar viaje" y la evidencia inicial:
+
+1. **Dirígete al punto de inicio** (estado `conductor_en_camino_al_origen`): dirección y ciudad de recolección,
+   más un mapa estático de la ruta (Mapbox Static Images API, no `mapbox-gl` — más liviano dentro del WebView de
+   Capacitor). Si hay ubicación del conductor (`obtenerUbicacionActual`, solo en el shell nativo) se dibuja la
+   ruta completa con Directions; si no, solo el pin de destino. Sin `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` configurado,
+   la pantalla no muestra mapa, solo la dirección en texto. Botón **"He llegado"** avanza a
+   `conductor_en_punto_de_recoleccion`.
+2. **Contacto y localización del vehículo** (estado `conductor_en_punto_de_recoleccion`): nombre/teléfono de quien
+   entrega (con botón "Llamar" vía `tel:`) y ficha del vehículo (marca, modelo, año, color, placas, VIN). Exige
+   confirmar **ambas** cosas por separado antes de habilitar "Toma evidencias", que encadena las dos transiciones
+   del camino feliz (`verificacion_vehiculo_en_proceso` → `evidencia_inicial_en_proceso`) y navega directo a
+   `/evidencia` — `confirmarEvidenciaCompleta` exige estar exactamente en `evidencia_inicial_en_proceso`, así que
+   no se puede saltar ningún paso del PRD §6, solo la pantalla intermedia.
+
+La dirección de origen, los contactos y color/placas/VIN no estaban expuestos en la vista `pasaporte_digital`
+(sí existían en `traslados`/`vehiculos`, con RLS que ya cubría al conductor asignado) — se agregaron en la
+migración `20260715000100`.
+
 ## Pendiente (siguientes cortes de Fase 4 / Fase 5)
 
 - Subida real de los bytes de cada foto a Supabase Storage — hoy se encolan localmente (cola offline) y se
