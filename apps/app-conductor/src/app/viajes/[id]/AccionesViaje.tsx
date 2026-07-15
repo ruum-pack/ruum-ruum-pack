@@ -33,6 +33,7 @@ export const ETIQUETA_SIGUIENTE_PASO: Partial<Record<EstadoTraslado, string>> = 
   // `if (!etiqueta) return null` ocultaba el botón justo cuando debía
   // aparecer, no solo en el paso anterior que lleva hasta aquí.
   evidencia_inicial_en_proceso: "Continuar evidencia inicial",
+  evidencia_inicial_completada: "Confirmar vehículo recibido",
   vehiculo_recibido: "Iniciar traslado",
   traslado_en_curso: "Llegué a destino",
   llegada_a_destino: "Iniciar evidencia final",
