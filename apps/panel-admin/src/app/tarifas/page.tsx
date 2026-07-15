@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
+import Image from "next/image";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import {
   actualizarConfigTarifas,
@@ -68,7 +69,7 @@ function fechaInputAIso(valor: string) {
 }
 
 function claseEstado(estado: string) {
-  if (estado === "vigente") return "border-success/30 bg-success/10 text-success";
+  if (estado === "vigente") return "border-control/30 bg-control-soft text-control";
   if (estado === "borrador") return "border-route-dark/30 bg-route-dark/10 text-route-dark";
   return "border-ink/15 bg-ink/5 text-ink/55";
 }
@@ -77,35 +78,25 @@ function CampoBorrador({
   etiqueta,
   valor,
   sufijo,
-  invertido,
   onCambiar
 }: {
   etiqueta: string;
   valor: string;
   sufijo?: string;
-  invertido?: boolean;
   onCambiar: (valor: string) => void;
 }) {
   return (
-    <label className={`block min-w-0 rounded-lg border px-3 py-3 font-body text-sm font-medium ${
-      invertido ? "border-white/10 bg-white/5 text-white/80" : "border-ink/10 bg-mist-dim text-ink/75"
-    }`}>
-      <span>{etiqueta}</span>
-      <span className="relative mt-1 block">
+    <label className="block min-w-0 font-body text-sm font-medium text-ink/75">
+      <span className="block">{etiqueta}</span>
+      <span className="relative mt-1.5 block">
         <input
           value={valor}
           onChange={(e) => onCambiar(e.target.value)}
           inputMode="decimal"
-          className={`block w-full rounded-lg border py-1.5 pl-3 pr-16 font-body text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark ${
-            invertido
-              ? "border-white/15 bg-ink/70 text-white placeholder:text-white/35"
-              : "border-ink/30 bg-mist text-ink"
-          }`}
+          className="block w-full rounded-lg border border-ink/20 bg-mist px-3 py-2 pr-16 font-body text-sm text-ink shadow-sm transition-colors hover:border-ink/35 focus:border-route-dark focus:outline-none focus:ring-2 focus:ring-route-dark/20"
         />
         {sufijo && (
-          <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center font-body text-xs font-semibold ${
-            invertido ? "text-white/50" : "text-ink/45"
-          }`}>
+          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center border-l border-ink/10 pl-3 font-mono-ruum text-xs font-medium text-ink/45">
             {sufijo}
           </span>
         )}
@@ -125,15 +116,20 @@ function ConfirmacionImpacto({
 }) {
   if (!abierto) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 px-4" role="dialog" aria-modal="true" aria-labelledby="confirmacion-impacto-titulo">
-      <div className="w-full max-w-md rounded-xl border border-ink/10 bg-white p-6 shadow-2xl">
-        <h2 id="confirmacion-impacto-titulo" className="font-display text-xl font-semibold text-ink">Confirmar cambio vigente</h2>
-        <p className="mt-3 font-body text-sm leading-6 text-ink/70">
-          Esta acción afectará el cálculo de los viajes en curso. ¿Deseas continuar?
-        </p>
-        <div className="mt-5 flex flex-wrap justify-end gap-3">
-          <Button variant="fantasma" onClick={onCancelar}>Cancelar</Button>
-          <Button onClick={onConfirmar}>Sí, continuar</Button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#02050b]/80 px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="confirmacion-impacto-titulo">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-ink/20 bg-mist shadow-[var(--ruum-shadow-4)]">
+        <div className="border-b border-warn/20 bg-warn-soft px-6 py-5">
+          <p className="font-mono-ruum text-xs font-medium uppercase tracking-wide text-warn">Cambio de alto impacto</p>
+          <h2 id="confirmacion-impacto-titulo" className="mt-1 font-display text-xl font-semibold text-ink">Confirmar cambio vigente</h2>
+        </div>
+        <div className="px-6 py-5">
+          <p className="font-body text-sm leading-6 text-ink/70">
+            Esta acción afectará el cálculo de los viajes en curso. ¿Deseas continuar?
+          </p>
+          <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <Button variant="fantasma" onClick={onCancelar}>Cancelar</Button>
+            <Button onClick={onConfirmar}>Sí, continuar</Button>
+          </div>
         </div>
       </div>
     </div>
@@ -177,10 +173,23 @@ export default function PaginaTarifasAdmin() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="font-body text-xs font-semibold uppercase tracking-wide text-route-dark">Apartado normativo rector</p>
-          <h1 className="mt-1 font-display text-2xl font-semibold">Tarifas</h1>
+      <div className="relative min-h-32 overflow-hidden rounded-card border border-ink/10">
+        <Image
+          src="/imagenes/torre-control-flota.webp"
+          alt=""
+          aria-hidden="true"
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 1152px"
+          className="scale-105 object-cover object-[60%_38%]"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(7,11,20,0.97)_0%,rgba(7,11,20,0.84)_52%,rgba(7,11,20,0.42)_100%)]" />
+        <div className="relative flex min-h-32 items-end px-6 py-6 sm:px-8">
+          <div>
+            <p className="font-mono-ruum text-xs font-medium uppercase tracking-wide text-[#65b5ff]">Apartado normativo rector</p>
+            <h1 className="mt-1 font-display text-2xl font-bold text-[#e8edf6]">Tarifas</h1>
+            <p className="mt-1 font-body text-sm text-[#b7c2d4]">Política, fórmula y simulación del precio final de cada traslado.</p>
+          </div>
         </div>
       </div>
 
@@ -191,7 +200,16 @@ export default function PaginaTarifasAdmin() {
       )}
 
       {cargando ? (
-        <p className="mt-8 font-body text-sm text-ink/50">Cargando política tarifaria...</p>
+        <div className="mt-6 grid gap-6" aria-label="Cargando política tarifaria" aria-busy="true">
+          {[1, 2, 3].map((item) => (
+            <div key={item} className="rounded-card border border-ink/10 bg-mist p-6">
+              <div className="h-5 w-48 animate-pulse rounded bg-ink/10" />
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                {[1, 2, 3].map((campo) => <div key={campo} className="h-12 animate-pulse rounded-lg bg-ink/5" />)}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="mt-6 grid gap-6">
           <PoliticaVigente key={datos.config?.actualizado_en ?? "sin-config"} datos={datos} cliente={cliente} onGuardado={cargar} />
@@ -322,7 +340,7 @@ function PasoFormula({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-ink/10 bg-mist-dim px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+    <div className="flex flex-col gap-2 border-b border-ink/10 px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:gap-4">
       <div className="flex shrink-0 items-center gap-2 sm:w-40">
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-route-dark font-body text-xs font-semibold text-white">
           {numero}
@@ -347,7 +365,7 @@ function FormulaVigente({ datos }: { datos: ConfiguracionTarifas }) {
     <PassportCard>
       <h2 className="font-display text-xl font-semibold">Fórmula vigente</h2>
       <p className="mt-1 font-body text-sm text-ink/55">Así se calcula la tarifa final que ve el usuario, paso por paso.</p>
-      <div className="mt-4 grid gap-3">
+      <div className="mt-4 overflow-hidden rounded-lg border border-ink/10 bg-mist-dim">
         <PasoFormula numero="1" etiqueta="Base por categoría">
           <Var>Base_categoría</Var> <Op>=</Op> BaseVehículo(rango) <Op>×</Op> <Var>F_gama</Var>
         </PasoFormula>
@@ -517,7 +535,7 @@ function ParametrosNormativos({
 
   return (
     <div className="grid gap-6">
-      <div className="sticky top-0 z-20 -mx-2 rounded-lg border border-ink/10 bg-mist/95 px-4 py-3 shadow-sm backdrop-blur">
+      <div className="sticky top-3 z-20 -mx-2 rounded-lg border border-route-dark/20 bg-mist/95 px-4 py-3 shadow-[var(--ruum-shadow-2)] backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="font-body text-sm font-semibold text-ink">Edición de parámetros normativos</p>
@@ -621,28 +639,30 @@ function TarifasBaseFijas({
   }, [datos.vehiculo]);
 
   return (
-    <PassportCard>
+    <PassportCard acento>
       <h2 className="font-display text-xl font-semibold">Tarifas base fijas</h2>
-      <div className="mt-4 grid gap-5 xl:grid-cols-2">
+      <p className="mt-1 font-body text-sm text-ink/55">Importes de partida y costo por kilómetro según categoría y rango.</p>
+      <div className="mt-5 grid gap-x-6 gap-y-8 xl:grid-cols-2">
         {Array.from(porCategoria.entries()).map(([categoria, filas]) => (
-          <section key={categoria} className="rounded-lg border border-ink/10 bg-mist px-4 py-4">
-            <h3 className="font-body text-sm font-semibold text-ink">{ETIQUETA_CATEGORIA[categoria] ?? categoria}</h3>
-            <div className="mt-3 grid gap-3">
+          <section key={categoria}>
+            <div className="flex items-center gap-2 border-b border-signal/30 pb-2">
+              <span className="size-2 rounded-full bg-signal" aria-hidden="true" />
+              <h3 className="font-display text-sm font-semibold text-ink">{ETIQUETA_CATEGORIA[categoria] ?? categoria}</h3>
+            </div>
+            <div className="divide-y divide-ink/10">
               {filas.map((fila) => (
-                <div key={fila.id} className="grid gap-3 rounded-lg border border-white/10 bg-ink/90 px-3 py-3 shadow-sm lg:grid-cols-[minmax(150px,1fr)_minmax(120px,150px)_minmax(120px,150px)]">
-                  <p className="self-end pb-2 font-body text-sm font-semibold text-white/80">{ETIQUETA_RANGO[fila.rango] ?? fila.rango}</p>
+                <div key={fila.id} className="grid gap-3 py-4 lg:grid-cols-[minmax(150px,1fr)_minmax(120px,150px)_minmax(120px,150px)]">
+                  <p className="self-center font-body text-sm font-medium leading-5 text-ink/70">{ETIQUETA_RANGO[fila.rango] ?? fila.rango}</p>
                   <CampoBorrador
                     etiqueta="Base"
                     valor={borrador.vehiculo[fila.id]?.base ?? ""}
                     sufijo="$"
-                    invertido
                     onCambiar={(valor) => onCambiar(fila.id, "base", valor)}
                   />
                   <CampoBorrador
                     etiqueta="Kilómetro"
                     valor={borrador.vehiculo[fila.id]?.porKm ?? ""}
                     sufijo="$/km"
-                    invertido
                     onCambiar={(valor) => onCambiar(fila.id, "porKm", valor)}
                   />
                 </div>
@@ -684,7 +704,7 @@ function SimuladorNormativo({ datos }: { datos: ConfiguracionTarifas }) {
   }, [categoria, condicion, datos, dia, distanciaKm, gama, horario, tiempoHoras]);
 
   return (
-    <PassportCard>
+    <PassportCard acento>
       <h2 className="font-display text-xl font-semibold">Simulador normativo</h2>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SelectSim<CategoriaTarifa> etiqueta="Categoría" valor={categoria} onChange={setCategoria} opciones={datos.vehiculo.map((v) => v.categoria)} etiquetas={ETIQUETA_CATEGORIA} />
@@ -701,7 +721,7 @@ function SimuladorNormativo({ datos }: { datos: ConfiguracionTarifas }) {
           <input value={tiempoHoras} onChange={(e) => setTiempoHoras(e.target.value)} inputMode="decimal" className="mt-1 w-full rounded-lg border border-ink/25 bg-mist px-3 py-2 text-sm" />
         </label>
       </div>
-      <div className="mt-5 rounded-lg border border-ink/10 bg-mist px-4 py-4">
+      <div className="mt-5 overflow-hidden rounded-lg border border-route-dark/20 bg-route-soft/40 px-4 py-4">
         {resultado.ok ? (
           <div className="grid gap-2 font-body text-sm text-ink/70 sm:grid-cols-4">
             <DatoSim etiqueta="Rango" valor={ETIQUETA_RANGO[resultado.valor.rango] ?? resultado.valor.rango} />
