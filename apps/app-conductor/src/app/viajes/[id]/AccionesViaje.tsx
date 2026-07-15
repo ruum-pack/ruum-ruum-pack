@@ -38,7 +38,9 @@ export const ETIQUETA_SIGUIENTE_PASO: Partial<Record<EstadoTraslado, string>> = 
   traslado_en_curso: "Llegué a destino",
   llegada_a_destino: "Iniciar evidencia final",
   evidencia_final_en_proceso: "Continuar evidencia final",
-  evidencia_final_completada: "Confirmar entrega"
+  evidencia_final_completada: "Confirmar entrega",
+  entrega_confirmada: "Continuar a pago",
+  pago_completado: "Cerrar servicio"
 };
 
 export interface AccionesViajeProps {
