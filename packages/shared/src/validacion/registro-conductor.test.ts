@@ -45,6 +45,11 @@ describe("validarCampoRegistroConductor", () => {
     expect(validarCampoRegistroConductor("vigenciaLicencia", fechaIsoConOffset(0))).toBe("");
     expect(validarCampoRegistroConductor("vigenciaLicencia", fechaIsoConOffset(45))).toBe("");
   });
+
+  it("exige una vigencia con fecha ISO real", () => {
+    expect(validarCampoRegistroConductor("vigenciaLicencia", "15/07/2027")).toContain("AAAA-MM-DD");
+    expect(validarCampoRegistroConductor("vigenciaLicencia", "2027-99-99")).toContain("AAAA-MM-DD");
+  });
 });
 
 describe("diasParaVencerLicencia", () => {

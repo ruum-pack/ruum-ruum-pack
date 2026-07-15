@@ -14,6 +14,7 @@ import { fortalezaPassword } from "../utils/fortaleza-password";
 const REGEX_CURP = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/i;
 const REGEX_TELEFONO_NACIONAL = /^\d{10}$/;
 const REGEX_EMAIL = /^\S+@\S+\.\S+$/;
+const REGEX_FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Días entre hoy (medianoche local) y una fecha ISO `YYYY-MM-DD`. Negativo = ya venció. */
 export function diasParaVencerLicencia(fechaIso: string) {
@@ -21,6 +22,18 @@ export function diasParaVencerLicencia(fechaIso: string) {
   hoy.setHours(0, 0, 0, 0);
   const vencimiento = new Date(`${fechaIso}T00:00:00`);
   return Math.round((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function esFechaIsoValida(fechaIso: string) {
+  if (!REGEX_FECHA_ISO.test(fechaIso)) return false;
+  const [anio, mes, dia] = fechaIso.split("-").map(Number);
+  const fecha = new Date(`${fechaIso}T00:00:00`);
+  return (
+    !Number.isNaN(fecha.getTime()) &&
+    fecha.getFullYear() === anio &&
+    fecha.getMonth() === mes - 1 &&
+    fecha.getDate() === dia
+  );
 }
 
 function textoRequerido(mensaje: string, min = 2) {
@@ -53,6 +66,7 @@ export const esquemaRegistroConductor = z.object({
   vigenciaLicencia: z
     .string()
     .min(1, "Indica la vigencia de tu licencia")
+    .refine(esFechaIsoValida, "Escribe la vigencia en formato AAAA-MM-DD")
     .refine(
       (valor) => diasParaVencerLicencia(valor) >= 0,
       "Tu licencia está vencida. Necesitas una licencia vigente para registrarte."

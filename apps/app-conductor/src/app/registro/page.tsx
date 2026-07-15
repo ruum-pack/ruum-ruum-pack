@@ -84,6 +84,13 @@ function formatoTelefonoNacional(valor: string) {
   return `${digitos.slice(0, 2)} ${digitos.slice(2, 6)} ${digitos.slice(6)}`;
 }
 
+function formatoFechaIsoParcial(valor: string) {
+  const digitos = valor.replace(/\D/g, "").slice(0, 8);
+  if (digitos.length <= 4) return digitos;
+  if (digitos.length <= 6) return `${digitos.slice(0, 4)}-${digitos.slice(4)}`;
+  return `${digitos.slice(0, 4)}-${digitos.slice(4, 6)}-${digitos.slice(6)}`;
+}
+
 function limpiarTexto(valor: string) {
   return valor.trim().replace(/\s+/g, " ");
 }
@@ -1097,7 +1104,22 @@ export default function PaginaRegistroConductor() {
                   <Field etiqueta="Número de licencia" value={numeroLicencia} onChange={(e) => { setNumeroLicencia(e.target.value); limpiarErrorCampo("numeroLicencia"); }} error={erroresCampos.numeroLicencia || undefined} required />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <SelectField etiqueta="Tipo de licencia" value={tipoLicencia} onChange={(valor) => { setTipoLicencia(valor); limpiarErrorCampo("tipoLicencia"); }} error={erroresCampos.tipoLicencia || undefined} required placeholder="Selecciona el tipo de licencia" opciones={TIPOS_LICENCIA} />
-                    <Field etiqueta="Vigencia" type="date" value={vigenciaLicencia} onChange={(e) => { setVigenciaLicencia(e.target.value); limpiarErrorCampo("vigenciaLicencia"); }} onBlur={() => validarVigenciaLicencia()} error={erroresCampos.vigenciaLicencia || undefined} required />
+                    <Field
+                      etiqueta="Vigencia"
+                      value={vigenciaLicencia}
+                      ayuda="Formato AAAA-MM-DD."
+                      inputMode="numeric"
+                      placeholder="2027-07-15"
+                      pattern="\\d{4}-\\d{2}-\\d{2}"
+                      maxLength={10}
+                      onChange={(e) => {
+                        setVigenciaLicencia(formatoFechaIsoParcial(e.target.value));
+                        limpiarErrorCampo("vigenciaLicencia");
+                      }}
+                      onBlur={() => validarVigenciaLicencia()}
+                      error={erroresCampos.vigenciaLicencia || undefined}
+                      required
+                    />
                   </div>
                   {vigenciaLicencia && !erroresCampos.vigenciaLicencia && diasParaVencerLicencia(vigenciaLicencia) >= 0 && diasParaVencerLicencia(vigenciaLicencia) <= DIAS_ADVERTENCIA_VIGENCIA && (
                     <Aviso tono="atencion">
