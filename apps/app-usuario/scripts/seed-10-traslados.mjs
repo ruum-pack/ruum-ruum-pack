@@ -122,6 +122,24 @@ for (const seed of seeds) {
     continue;
   }
 
+  const trasladoId = data?.id;
+  if (trasladoId && data?.tipo_pago === "anticipado") {
+    const monto = Number(data.precio_cotizado ?? 0);
+    const { error: pagoError } = await supabase.from("pagos").insert({
+      traslado_id: trasladoId,
+      monto,
+      momento: "anticipado",
+      estado: "completado",
+      metodo: "stripe_seed"
+    });
+
+    if (pagoError) {
+      fallidos += 1;
+      console.error(`[ERROR] ${seed.claveIdempotencia}: traslado creado pero no se pudo registrar pago seed: ${pagoError.message}`);
+      continue;
+    }
+  }
+
   creados += 1;
   console.log(`[OK] ${seed.claveIdempotencia}: ${data?.id ?? JSON.stringify(data)}`);
 }
