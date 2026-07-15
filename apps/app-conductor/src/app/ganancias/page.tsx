@@ -1,15 +1,13 @@
 "use client";
-
-"use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Aviso, Button, EstatusBadgeEconomico, PassportCard } from "@ruum/ui";
+import { Aviso, Button, EstatusBadgeEconomico, Field, PassportCard } from "@ruum/ui";
 import { TEXTOS_CARGANDO, type EstatusEconomico } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
-import { obtenerConductorActual, obtenerGananciasConductor } from "@ruum/api/services";
+import { guardarDatosBancariosConductor, obtenerConductorActual, obtenerGananciasConductor } from "@ruum/api/services";
 
-type EstadoCuentaStripe = Database["public"]["Enums"]["estado_cuenta_stripe"];
+type DatosBancariosConductor = Database["public"]["Tables"]["datos_bancarios_conductor"]["Row"];
 type Payout = Database["public"]["Tables"]["payouts_conductor"]["Row"];
 
 interface RegistroGanancia {
@@ -21,11 +19,10 @@ interface RegistroGanancia {
   liberacion: string;
 }
 
-const ETIQUETA_CUENTA_STRIPE: Record<EstadoCuentaStripe, string> = {
-  pendiente_onboarding: "Configuración en proceso",
-  activa: "Cuenta activa",
-  rechazada: "Cuenta rechazada por Stripe",
-  deshabilitada: "Cuenta deshabilitada"
+const ETIQUETA_DATOS_BANCARIOS: Record<Database["public"]["Enums"]["estado_datos_bancarios_conductor"], string> = {
+  en_revision: "Datos en revisión",
+  verificada: "Datos verificados",
+  rechazada: "Datos rechazados"
 };
 
 function moneda(valor: number) {
@@ -41,7 +38,13 @@ function fecha(fechaIso: string) {
 }
 
 export default function PaginaGanancias() {
-  const [estadoCuenta, setEstadoCuenta] = useState<EstadoCuentaStripe | "sin_cuenta" | null>(null);
+  const [datosBancarios, setDatosBancarios] = useState<DatosBancariosConductor | null>(null);
+  const [formularioBanco, setFormularioBanco] = useState({
+    titularCuenta: "",
+    banco: "",
+    clabe: "",
+    numeroTarjeta: ""
+  });
   const [registros, setRegistros] = useState<RegistroGanancia[]>([]);
   const [resumenSemanal, setResumenSemanal] = useState({
     ganancias_generadas: 0,
@@ -51,8 +54,9 @@ export default function PaginaGanancias() {
     fecha_pago: new Date().toISOString().slice(0, 10),
     metodo: "Sin payout programado"
   });
-  const [conectando, setConectando] = useState(false);
+  const [guardandoBanco, setGuardandoBanco] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [avisoBanco, setAvisoBanco] = useState<string | null>(null);
 
   useEffect(() => {
     async function cargar() {
@@ -64,12 +68,19 @@ export default function PaginaGanancias() {
         const cliente = crearClienteNavegador();
         const conductor = await obtenerConductorActual(cliente);
         if (!conductor) {
-          setEstadoCuenta("sin_cuenta");
           return;
         }
 
         const datos = await obtenerGananciasConductor(cliente, conductor.id);
-        setEstadoCuenta(datos.cuentaStripe?.estado ?? "sin_cuenta");
+        setDatosBancarios(datos.datosBancarios);
+        if (datos.datosBancarios) {
+          setFormularioBanco({
+            titularCuenta: datos.datosBancarios.titular_cuenta,
+            banco: datos.datosBancarios.banco,
+            clabe: datos.datosBancarios.clabe,
+            numeroTarjeta: datos.datosBancarios.numero_tarjeta
+          });
+        }
 
         const reales = datos.payouts.map((payout: Payout) => ({
           fecha: payout.periodo_fin,
@@ -90,7 +101,7 @@ export default function PaginaGanancias() {
                 ajustes: Number(actual.ajustes ?? 0),
                 deposito_final: Number(actual.monto_neto ?? 0),
                 fecha_pago: actual.procesado_en ? actual.procesado_en.slice(0, 10) : actual.periodo_fin,
-                metodo: actual.stripe_transfer_id ? "Stripe Connect" : "Transferencia pendiente"
+                metodo: actual.referencia_pago ? "Transferencia bancaria" : "Transferencia pendiente"
               }
             : {
                 ganancias_generadas: 0,
@@ -102,26 +113,38 @@ export default function PaginaGanancias() {
               }
         );
       } catch (err) {
-        setEstadoCuenta("sin_cuenta");
         setError(err instanceof Error ? err.message : "No pudimos cargar tus ganancias.");
       }
     }
     cargar();
   }, []);
 
-  async function conectarStripe() {
-    setConectando(true);
+  function actualizarCampoBanco(campo: keyof typeof formularioBanco, valor: string) {
+    setFormularioBanco((actual) => ({
+      ...actual,
+      [campo]: campo === "clabe" || campo === "numeroTarjeta" ? valor.replace(/\D/g, "") : valor
+    }));
+  }
+
+  async function guardarBanco() {
+    setGuardandoBanco(true);
     setError(null);
+    setAvisoBanco(null);
     try {
       const cliente = crearClienteNavegador();
-      const { data, error: errorFuncion } = await cliente.functions.invoke("crear-cuenta-conductor-stripe");
-      if (errorFuncion) throw errorFuncion;
-      if (data?.error) throw new Error(data.error);
-      if (!data?.url) throw new Error("Stripe no devolvió una URL de configuración.");
-      window.location.href = data.url;
+      const guardado = await guardarDatosBancariosConductor(cliente, formularioBanco);
+      setDatosBancarios(guardado);
+      setFormularioBanco({
+        titularCuenta: guardado.titular_cuenta,
+        banco: guardado.banco,
+        clabe: guardado.clabe,
+        numeroTarjeta: guardado.numero_tarjeta
+      });
+      setAvisoBanco("Datos bancarios guardados. Operación los revisará antes de procesar pagos.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos iniciar la conexión con Stripe.");
-      setConectando(false);
+      setError(err instanceof Error ? err.message : "No pudimos guardar tus datos bancarios.");
+    } finally {
+      setGuardandoBanco(false);
     }
   }
 
@@ -169,20 +192,76 @@ export default function PaginaGanancias() {
       {tieneSupabaseConfigurado() && (
         <section className="mt-6">
           <PassportCard>
-            <p className="font-body text-xs uppercase tracking-wide text-ink/45">Cuenta de pagos (Stripe)</p>
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="font-body text-sm">
-                {estadoCuenta === null
-                  ? "Consultando…"
-                  : estadoCuenta === "sin_cuenta"
-                    ? "Todavía no has conectado una cuenta de pagos."
-                    : ETIQUETA_CUENTA_STRIPE[estadoCuenta]}
-              </p>
-              {(estadoCuenta === "sin_cuenta" || estadoCuenta === "pendiente_onboarding") && (
-                <Button onClick={conectarStripe} disabled={conectando}>
-                  {conectando ? TEXTOS_CARGANDO.conectando : estadoCuenta === "sin_cuenta" ? "Conectar Stripe" : "Continuar configuración"}
-                </Button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="font-body text-xs uppercase tracking-wide text-ink/45">Datos bancarios</p>
+                <h2 className="mt-1 font-display text-xl font-semibold">Cuenta para pagos</h2>
+                <p className="mt-1 font-body text-sm text-ink/60">
+                  Captura tu banco, CLABE y tarjeta para que operación pueda programar tus depósitos.
+                </p>
+              </div>
+              {datosBancarios && (
+                <span className="rounded-full border border-control/30 bg-control-soft px-3 py-1 font-body text-xs font-semibold text-control">
+                  {ETIQUETA_DATOS_BANCARIOS[datosBancarios.estado]}
+                </span>
               )}
+            </div>
+
+            {avisoBanco && (
+              <div className="mt-4">
+                <Aviso tono="info">{avisoBanco}</Aviso>
+              </div>
+            )}
+
+            {datosBancarios?.motivo_rechazo && (
+              <div className="mt-4">
+                <Aviso tono="atencion">{datosBancarios.motivo_rechazo}</Aviso>
+              </div>
+            )}
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <Field
+                etiqueta="Titular de la cuenta"
+                value={formularioBanco.titularCuenta}
+                onChange={(evento) => actualizarCampoBanco("titularCuenta", evento.target.value)}
+                placeholder="Nombre completo"
+              />
+              <Field
+                etiqueta="Banco"
+                value={formularioBanco.banco}
+                onChange={(evento) => actualizarCampoBanco("banco", evento.target.value)}
+                placeholder="BBVA, Banorte, Santander..."
+              />
+              <Field
+                etiqueta="CLABE"
+                value={formularioBanco.clabe}
+                onChange={(evento) => actualizarCampoBanco("clabe", evento.target.value)}
+                placeholder="18 digitos"
+                inputMode="numeric"
+                maxLength={18}
+              />
+              <Field
+                etiqueta="Numero de tarjeta"
+                value={formularioBanco.numeroTarjeta}
+                onChange={(evento) => actualizarCampoBanco("numeroTarjeta", evento.target.value)}
+                placeholder="16 a 19 digitos"
+                inputMode="numeric"
+                maxLength={19}
+              />
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button
+                onClick={guardarBanco}
+                disabled={
+                  guardandoBanco ||
+                  formularioBanco.titularCuenta.trim().length < 3 ||
+                  formularioBanco.banco.trim().length < 2 ||
+                  formularioBanco.clabe.length !== 18 ||
+                  formularioBanco.numeroTarjeta.length < 16
+                }
+              >
+                {guardandoBanco ? TEXTOS_CARGANDO.guardando : "Guardar datos bancarios"}
+              </Button>
             </div>
           </PassportCard>
         </section>

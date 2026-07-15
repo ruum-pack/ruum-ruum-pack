@@ -98,14 +98,15 @@ cd android && ./gradlew assembleDebug
 **iOS no se agregó** — `cap add ios` requiere macOS/Xcode, no disponible en ningún entorno de esta conversación.
 Es el mismo comando (`npx cap add ios`) desde una Mac cuando llegue el momento.
 
-## Fase 6 — Stripe Connect (pago semanal real)
+## Fase 6 — datos bancarios para pagos a conductores
 
-PRD §4.6 — decisión de producto: Stripe Connect (Express). La pantalla de Ganancias consulta el estado real de
-la cuenta del conductor (`cuentas_conductor_stripe`) y tiene un botón "Conectar Stripe" que llama la Edge Function
-`crear-cuenta-conductor-stripe` (ver `supabase/functions/README.md`) y redirige al onboarding real de Stripe.
-El resumen semanal y el detalle por viaje se calculan únicamente desde `payouts_conductor`.
+PRD §4.6 — decisión de producto actual: los cobros al usuario siguen en Stripe, pero el pago semanal al conductor
+ya no usa Stripe Connect. La pantalla de Ganancias permite capturar titular, banco, CLABE y número de tarjeta;
+el guardado pasa por la RPC `conductor_guarda_datos_bancarios`, queda en `datos_bancarios_conductor` con estado
+`en_revision` y registra auditoría sin exponer números completos en el evento.
 
-No se pudo probar un onboarding real de Stripe Connect en este entorno — validado por `tsc`/`next build`.
+El resumen semanal y el detalle por viaje se calculan únicamente desde `payouts_conductor`; cuando operación
+programe una transferencia, la referencia debe registrarse en `payouts_conductor.referencia_pago`.
 
 ## Chat (PRD §4.12)
 

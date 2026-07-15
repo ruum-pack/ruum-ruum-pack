@@ -1,6 +1,4 @@
 "use client";
-
-"use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Aviso, PassportCard } from "@ruum/ui";
@@ -10,7 +8,6 @@ import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } f
 
 type Pago = Database["public"]["Tables"]["pagos"]["Row"];
 type Payout = Database["public"]["Tables"]["payouts_conductor"]["Row"];
-type CuentaStripe = Database["public"]["Tables"]["cuentas_conductor_stripe"]["Row"];
 type Conductor = Database["public"]["Tables"]["conductores"]["Row"];
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
@@ -30,7 +27,7 @@ const DATOS_DEMO: DatosPagosAdmin = {
   ],
   pasaportes: [],
   payoutsConductores: [],
-  cuentasStripeConductores: [],
+  datosBancariosConductores: [],
   conductores: []
 };
 
@@ -67,6 +64,11 @@ function Badge({ children }: { children: React.ReactNode }) {
   return <span className="rounded-full border border-route/30 bg-route-soft px-2.5 py-1 font-body text-xs font-semibold text-route-dark">{children}</span>;
 }
 
+function ultimos4(valor: string | null | undefined) {
+  if (!valor) return "Pendiente";
+  return `•••• ${valor.slice(-4)}`;
+}
+
 export default function PaginaPagosAdmin() {
   const [datos, setDatos] = useState<DatosPagosAdmin>(DATOS_DEMO);
   const [esDemo, setEsDemo] = useState(true);
@@ -90,7 +92,7 @@ export default function PaginaPagosAdmin() {
           setDatos(DATOS_DEMO);
           setEsDemo(true);
         } else {
-          setDatos({ pagosUsuarios: [], pasaportes: [], payoutsConductores: [], cuentasStripeConductores: [], conductores: [] });
+          setDatos({ pagosUsuarios: [], pasaportes: [], payoutsConductores: [], datosBancariosConductores: [], conductores: [] });
           setEsDemo(false);
         }
       } finally {
@@ -102,18 +104,13 @@ export default function PaginaPagosAdmin() {
 
   const pasaportePorId = useMemo(() => new Map<string, Pasaporte>(datos.pasaportes.map((p) => [p.traslado_id, p])), [datos.pasaportes]);
   const conductorPorId = useMemo(() => new Map<string, Conductor>(datos.conductores.map((c) => [c.id, c])), [datos.conductores]);
-  const cuentaPorConductor = useMemo(
-    () => new Map<string, CuentaStripe>(datos.cuentasStripeConductores.map((cuenta) => [cuenta.conductor_id, cuenta])),
-    [datos.cuentasStripeConductores]
-  );
-
   const pagos = datos.pagosUsuarios;
   const payouts = datos.payoutsConductores;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
       <h1 className="font-display text-2xl font-semibold">Pagos</h1>
-      <p className="mt-1 font-body text-sm text-ink/55">Cobros reales de usuarios, Stripe y payouts de conductores.</p>
+      <p className="mt-1 font-body text-sm text-ink/55">Cobros de usuarios, pagos a conductores y datos bancarios operativos.</p>
 
       {esDemo && (
         <div className="mt-4">
@@ -157,7 +154,7 @@ export default function PaginaPagosAdmin() {
 
           <PassportCard>
             <h2 className="font-display text-xl font-semibold">Pagos a conductores</h2>
-            <Tabla columnas={["Conductor", "Periodo", "Bruto", "Ajustes", "Depósito neto", "Estatus", "Stripe Transfer", "Procesado"]}>
+            <Tabla columnas={["Conductor", "Periodo", "Bruto", "Ajustes", "Deposito neto", "Estatus", "Referencia", "Procesado"]}>
               {payouts.length === 0 ? (
                 <tr><td colSpan={8} className="px-3 py-6 text-ink/50">No hay payouts registrados.</td></tr>
               ) : (
@@ -171,7 +168,7 @@ export default function PaginaPagosAdmin() {
                       <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(payout.ajustes)}</td>
                       <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(payout.monto_neto)}</td>
                       <td className="border-b border-ink/10 px-3 py-3"><Badge>{payout.estado}</Badge></td>
-                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{payout.stripe_transfer_id ?? "Pendiente"}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{payout.referencia_pago ?? "Pendiente"}</td>
                       <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{fecha(payout.procesado_en)}</td>
                     </tr>
                   );
@@ -181,17 +178,19 @@ export default function PaginaPagosAdmin() {
           </PassportCard>
 
           <PassportCard>
-            <h2 className="font-display text-xl font-semibold">Cuentas Stripe Connect</h2>
-            <Tabla columnas={["Conductor", "Stripe Account", "Estado", "Actualizado"]}>
-              {datos.cuentasStripeConductores.length === 0 ? (
-                <tr><td colSpan={4} className="px-3 py-6 text-ink/50">No hay cuentas Stripe Connect registradas.</td></tr>
+            <h2 className="font-display text-xl font-semibold">Datos bancarios de conductores</h2>
+            <Tabla columnas={["Conductor", "Banco", "CLABE", "Tarjeta", "Estado", "Actualizado"]}>
+              {datos.datosBancariosConductores.length === 0 ? (
+                <tr><td colSpan={6} className="px-3 py-6 text-ink/50">No hay datos bancarios registrados.</td></tr>
               ) : (
-                datos.cuentasStripeConductores.map((cuenta) => {
+                datos.datosBancariosConductores.map((cuenta) => {
                   const conductor = conductorPorId.get(cuenta.conductor_id);
                   return (
                     <tr key={cuenta.id} className="align-top">
                       <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{conductor?.nombre ?? cuenta.conductor_id.slice(0, 8)}</td>
-                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{cuenta.stripe_account_id}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{cuenta.banco}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{ultimos4(cuenta.clabe)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{ultimos4(cuenta.numero_tarjeta)}</td>
                       <td className="border-b border-ink/10 px-3 py-3"><Badge>{cuenta.estado.replaceAll("_", " ")}</Badge></td>
                       <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{fecha(cuenta.actualizado_en)}</td>
                     </tr>

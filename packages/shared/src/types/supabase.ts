@@ -324,34 +324,46 @@ export type Database = {
           },
         ]
       }
-      cuentas_conductor_stripe: {
+      datos_bancarios_conductor: {
         Row: {
           actualizado_en: string
+          banco: string
+          clabe: string
           conductor_id: string
           creado_en: string
-          estado: Database["public"]["Enums"]["estado_cuenta_stripe"]
+          estado: Database["public"]["Enums"]["estado_datos_bancarios_conductor"]
           id: string
-          stripe_account_id: string
+          motivo_rechazo: string | null
+          numero_tarjeta: string
+          titular_cuenta: string
         }
         Insert: {
           actualizado_en?: string
+          banco: string
+          clabe: string
           conductor_id: string
           creado_en?: string
-          estado?: Database["public"]["Enums"]["estado_cuenta_stripe"]
+          estado?: Database["public"]["Enums"]["estado_datos_bancarios_conductor"]
           id?: string
-          stripe_account_id: string
+          motivo_rechazo?: string | null
+          numero_tarjeta: string
+          titular_cuenta: string
         }
         Update: {
           actualizado_en?: string
+          banco?: string
+          clabe?: string
           conductor_id?: string
           creado_en?: string
-          estado?: Database["public"]["Enums"]["estado_cuenta_stripe"]
+          estado?: Database["public"]["Enums"]["estado_datos_bancarios_conductor"]
           id?: string
-          stripe_account_id?: string
+          motivo_rechazo?: string | null
+          numero_tarjeta?: string
+          titular_cuenta?: string
         }
         Relationships: [
           {
-            foreignKeyName: "cuentas_conductor_stripe_conductor_id_fkey"
+            foreignKeyName: "datos_bancarios_conductor_conductor_id_fkey"
             columns: ["conductor_id"]
             isOneToOne: true
             referencedRelation: "conductores"
@@ -1211,7 +1223,7 @@ export type Database = {
           periodo_fin: string
           periodo_inicio: string
           procesado_en: string | null
-          stripe_transfer_id: string | null
+          referencia_pago: string | null
         }
         Insert: {
           ajustes?: number
@@ -1224,7 +1236,7 @@ export type Database = {
           periodo_fin: string
           periodo_inicio: string
           procesado_en?: string | null
-          stripe_transfer_id?: string | null
+          referencia_pago?: string | null
         }
         Update: {
           ajustes?: number
@@ -1237,7 +1249,7 @@ export type Database = {
           periodo_fin?: string
           periodo_inicio?: string
           procesado_en?: string | null
-          stripe_transfer_id?: string | null
+          referencia_pago?: string | null
         }
         Relationships: [
           {
@@ -2306,6 +2318,15 @@ export type Database = {
         }
         Returns: string
       }
+      conductor_guarda_datos_bancarios: {
+        Args: {
+          p_banco: string
+          p_clabe: string
+          p_numero_tarjeta: string
+          p_titular_cuenta: string
+        }
+        Returns: Database["public"]["Tables"]["datos_bancarios_conductor"]["Row"]
+      }
       conductor_acepta_viaje: {
         Args: { p_traslado_id: string }
         Returns: Database["public"]["Enums"]["estado_traslado"]
@@ -2584,11 +2605,10 @@ export type Database = {
         | "bloqueado_permanente"
         | "modo_prueba_supervisada"
         | "pendiente_verificacion"
-      estado_cuenta_stripe:
-        | "pendiente_onboarding"
-        | "activa"
+      estado_datos_bancarios_conductor:
+        | "en_revision"
+        | "verificada"
         | "rechazada"
-        | "deshabilitada"
       estado_disputa:
         | "abierta"
         | "en_revision"
@@ -2685,6 +2705,7 @@ export type Database = {
         | "resultado_modo_prueba_supervisada"
         | "aceptacion_terminos"
         | "carga_documento_identidad"
+        | "actualizacion_datos_bancarios_conductor"
       gama_vehiculo: "entrada" | "media" | "alta" | "premium"
       horario_traslado: "diurno" | "nocturno"
       momento_incidencia:
@@ -3438,11 +3459,10 @@ export const Constants = {
         "modo_prueba_supervisada",
         "pendiente_verificacion",
       ],
-      estado_cuenta_stripe: [
-        "pendiente_onboarding",
-        "activa",
+      estado_datos_bancarios_conductor: [
+        "en_revision",
+        "verificada",
         "rechazada",
-        "deshabilitada",
       ],
       estado_disputa: [
         "abierta",
@@ -3544,6 +3564,7 @@ export const Constants = {
         "resultado_modo_prueba_supervisada",
         "aceptacion_terminos",
         "carga_documento_identidad",
+        "actualizacion_datos_bancarios_conductor",
       ],
       gama_vehiculo: ["entrada", "media", "alta", "premium"],
       horario_traslado: ["diurno", "nocturno"],

@@ -1,15 +1,15 @@
 # Edge Functions — Fase 6 (Stripe + Twilio)
 
-PRD §4.6 — decisión de producto: **Stripe** (cobro al usuario) + **Stripe Connect Express** (pago semanal al
-conductor). PRD §4.12 — decisión de producto: **Twilio Proxy** (llamadas enmascaradas).
+PRD §4.6 — decisión de producto actual: **Stripe** se mantiene para cobros al usuario; el pago a conductores ya
+no usa Stripe Connect y se opera con datos bancarios capturados en `datos_bancarios_conductor`. PRD §4.12 —
+decisión de producto: **Twilio Proxy** (llamadas enmascaradas).
 
 ## Funciones
 
 | Función | Quién la llama | Qué hace |
 |---|---|---|
 | `crear-payment-intent` | `app-usuario`: wizard de nuevo traslado (pago anticipado) y `/traslados/[id]` (pago al cierre) | Crea un PaymentIntent para el traslado y registra la fila `pagos` (estado `pendiente`) |
-| `stripe-webhook` | Stripe (servidor a servidor) | Recibe los eventos de Stripe y actualiza `pagos`, `cuentas_conductor_stripe` y `payouts_conductor` |
-| `crear-cuenta-conductor-stripe` | `app-conductor`, pantalla Ganancias | Crea (si no existe) la cuenta Stripe Connect Express del conductor y devuelve la URL de onboarding |
+| `stripe-webhook` | Stripe (servidor a servidor) | Recibe eventos de PaymentIntent y actualiza `pagos` y el estado del traslado asociado |
 | `crear-llamada-enmascarada` | Ambas apps, pantalla de chat del traslado | Crea (o reutiliza) la sesión de Twilio Proxy del traslado y devuelve el número virtual al que el cliente abre un enlace `tel:` |
 | `validar-documento-conductor` | `app-conductor`, registro y correcciones | Valida el contenido real, sanea el archivo, lo guarda en el bucket privado y registra/reemplaza la versión mediante RPC |
 | `validar-documento-identidad` | `app-usuario`, verificación | Acepta JPEG, PNG o PDF por multipart limitado, detecta y valida bytes, sella la carga y registra el resultado mediante RPC |
@@ -31,8 +31,7 @@ La lógica de decisión de las 4 funciones está separada en archivos `logica.ts
 `deno test`** — 10 casos para Stripe, 11 para Twilio, 21 en total, sin mocks. Las 4 funciones completas pasan
 `deno check` (typecheck real contra los tipos oficiales de cada librería).
 
-**Las llamadas reales a la API de Stripe ya se probaron en modo de prueba** (PaymentIntent en MXN, cuenta
-Connect Express en México, Account Link de onboarding — las tres con HTTP 200). **Twilio no se pudo probar
+**Las llamadas reales a la API de Stripe ya se probaron en modo de prueba** (PaymentIntent en MXN). **Twilio no se pudo probar
 contra su API real** — a diferencia de Stripe, no se compartieron credenciales de Twilio en esta sesión.
 
 **`stripe-webhook/index.ts` (el handler completo, no solo `logica.ts`) ya se ejecutó de verdad**, vía
@@ -58,11 +57,6 @@ stripe trigger payment_intent.succeeded
 # Twilio — crear el Proxy Service una vez en Twilio Console (Develop → Proxy →
 # Services → Create new Service), copiar su SID a TWILIO_PROXY_SERVICE_SID.
 ```
-
-Un hallazgo real de `deno check` que vale la pena mencionar: los eventos `transfer.paid`/`transfer.failed` que
-se habían planeado al diseñar esto **no existen** en la API de Stripe — los correctos para un objeto `Transfer`
-son `transfer.created`/`transfer.reversed` (la confirmación de que el dinero llegó al banco del conductor es un
-objeto `Payout` distinto, del lado de la cuenta conectada, no cubierto en este corte).
 
 Un gap real encontrado al construir Twilio: **ni `usuarios` ni `conductores` tenían columna de teléfono** — sin
 eso, Twilio Proxy no tiene a quién relacionar con el número virtual. Corregido en `0023_telefonos_twilio.sql`,
@@ -102,7 +96,6 @@ RUUM_APP_CONDUCTOR_URL       https://www.concer.ruumruum-moviliax.online (o tu d
 ```bash
 supabase functions deploy stripe-webhook
 supabase functions deploy crear-payment-intent
-supabase functions deploy crear-cuenta-conductor-stripe
 supabase functions deploy crear-llamada-enmascarada
 supabase functions deploy validar-documento-conductor
 ```
@@ -112,13 +105,12 @@ Supabase deje pasar el preflight `OPTIONS` desde el navegador. La función sigue
 handler y valida el traslado con RLS antes de crear el cobro.
 
 Después de desplegar `stripe-webhook`, registra su URL en Stripe Dashboard → Developers → Webhooks, suscrita a:
-`payment_intent.succeeded`, `payment_intent.payment_failed`, `account.updated`, `transfer.created`,
-`transfer.reversed`.
+`payment_intent.succeeded`, `payment_intent.payment_failed`.
 
 ## Pendiente
 
-- Confirmación de depósito bancario real al conductor (`payout.paid`/`payout.failed`) — requiere un webhook
-  separado del lado de la cuenta conectada ("Connect webhooks"), no cubierto aquí.
+- Flujo operativo para verificar datos bancarios de conductores y marcar `payouts_conductor.referencia_pago`
+  cuando se programe la transferencia.
 - Registrar la duración real de cada llamada (`llamadas_enmascaradas.duracion_segundos`) — necesita el webhook
   de status callback de Twilio Voice, no cubierto en este corte.
 - Cerrar la sesión de Proxy cuando el traslado se cierra (`sesiones_proxy_traslado.cerrada_en`) — hoy se crea

@@ -19,7 +19,7 @@ type DisputaRow = Database["public"]["Tables"]["disputas"]["Row"];
 type ReclamoSeguroRow = Database["public"]["Tables"]["reclamos_seguro"]["Row"];
 type PagoRow = Database["public"]["Tables"]["pagos"]["Row"];
 type PayoutRow = Database["public"]["Tables"]["payouts_conductor"]["Row"];
-type CuentaStripeConductorRow = Database["public"]["Tables"]["cuentas_conductor_stripe"]["Row"];
+type DatosBancariosConductorRow = Database["public"]["Tables"]["datos_bancarios_conductor"]["Row"];
 type NotaRow = Database["public"]["Tables"]["notas_internas_traslado"]["Row"];
 type EvidenciaRow = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
 type TrasladoRow = Database["public"]["Tables"]["traslados"]["Row"];
@@ -36,7 +36,7 @@ export interface DatosPagosAdmin {
   pagosUsuarios: PagoRow[];
   pasaportes: PasaporteRow[];
   payoutsConductores: PayoutRow[];
-  cuentasStripeConductores: CuentaStripeConductorRow[];
+  datosBancariosConductores: DatosBancariosConductorRow[];
   conductores: ConductorRow[];
 }
 
@@ -334,15 +334,15 @@ export async function listarUsuariosAdmin(cliente: Cliente): Promise<UsuarioRow[
 }
 
 export async function listarPagosAdmin(cliente: Cliente): Promise<DatosPagosAdmin> {
-  const [pagos, pasaportes, payouts, cuentasStripe, conductores] = await Promise.all([
+  const [pagos, pasaportes, payouts, datosBancarios, conductores] = await Promise.all([
     cliente.from("pagos").select("*").order("registrado_en", { ascending: false }),
     cliente.from("pasaporte_digital").select("*").order("creado_en", { ascending: false }),
     cliente.from("payouts_conductor").select("*").order("periodo_inicio", { ascending: false }),
-    cliente.from("cuentas_conductor_stripe").select("*").order("actualizado_en", { ascending: false }),
+    cliente.from("datos_bancarios_conductor").select("*").order("actualizado_en", { ascending: false }),
     cliente.from("conductores").select("*").order("creado_en", { ascending: false })
   ]);
 
-  for (const resultado of [pagos, pasaportes, payouts, cuentasStripe, conductores]) {
+  for (const resultado of [pagos, pasaportes, payouts, datosBancarios, conductores]) {
     if (resultado.error) throw resultado.error;
   }
 
@@ -350,7 +350,7 @@ export async function listarPagosAdmin(cliente: Cliente): Promise<DatosPagosAdmi
     pagosUsuarios: pagos.data ?? [],
     pasaportes: pasaportes.data ?? [],
     payoutsConductores: payouts.data ?? [],
-    cuentasStripeConductores: cuentasStripe.data ?? [],
+    datosBancariosConductores: datosBancarios.data ?? [],
     conductores: conductores.data ?? []
   };
 }

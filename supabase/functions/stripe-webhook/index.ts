@@ -1,8 +1,8 @@
 /// <reference lib="deno.ns" />
 /// <reference lib="dom" />
 
-// Edge Function: recibe los webhooks de Stripe y actualiza pagos,
-// cuentas_conductor_stripe y payouts_conductor en consecuencia (PRD §4.6).
+// Edge Function: recibe los webhooks de Stripe y actualiza pagos de usuarios
+// en consecuencia (PRD §4.6).
 //
 // Variables de entorno requeridas en el proyecto de Supabase (Dashboard →
 // Edge Functions → Secrets), nunca en el repo:
@@ -23,7 +23,6 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   esEventoYaProcesado,
   extraerTrasladoId,
-  cuentaConductorEstaActiva,
   esEventoManejado,
   estadoTrasladoSiguienteTrasPago
 } from "./logica.ts";
@@ -164,51 +163,6 @@ Deno.serve(async (req) => {
             );
           }
         }
-        break;
-      }
-
-      case "account.updated": {
-        const cuenta = evento.data.object as Stripe.Account;
-        const activa = cuentaConductorEstaActiva(cuenta.charges_enabled, cuenta.details_submitted);
-        await ejecutarSupabase(
-          supabase
-            .from("cuentas_conductor_stripe")
-            .update({ estado: activa ? "activa" : "pendiente_onboarding" })
-            .eq("stripe_account_id", cuenta.id),
-          "No se pudo actualizar la cuenta Stripe del conductor"
-        );
-        await registrarEventoWebhook("verificacion_cuenta", {
-          stripe_event_id: evento.id,
-          stripe_account_id: cuenta.id,
-          cuenta_activa: activa
-        });
-        break;
-      }
-
-      case "transfer.created":
-      case "transfer.reversed": {
-        // Nota importante: esto marca que la PLATAFORMA movió el dinero al
-        // balance de Stripe del conductor (Transfer) — no que el banco del
-        // conductor ya lo recibió. Esa confirmación final es un objeto
-        // Payout distinto, en el lado de la cuenta conectada
-        // (payout.paid/payout.failed), con su propio endpoint de webhook
-        // "Connect" — no cubierto en este corte (ver README).
-        const transferencia = evento.data.object as Stripe.Transfer;
-        await ejecutarSupabase(
-          supabase
-            .from("payouts_conductor")
-            .update({
-              estado: evento.type === "transfer.created" ? "procesado" : "fallido",
-              procesado_en: new Date().toISOString()
-            })
-            .eq("stripe_transfer_id", transferencia.id),
-          "No se pudo actualizar el payout del conductor"
-        );
-        await registrarEventoWebhook("registro_pago", {
-          stripe_event_id: evento.id,
-          stripe_transfer_id: transferencia.id,
-          estado_payout: evento.type === "transfer.created" ? "procesado" : "fallido"
-        });
         break;
       }
     }

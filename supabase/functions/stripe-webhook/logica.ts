@@ -24,29 +24,13 @@ export function extraerTrasladoId(metadata: Record<string, string> | null | unde
   return metadata?.traslado_id ?? null;
 }
 
-/**
- * PRD §4.6 — onboarding de Stripe Connect (Express) para el conductor.
- * Stripe considera la cuenta operativa cuando ambos flags son true; antes
- * de eso, sigue en revisión/onboarding sin importar cuántos webhooks
- * intermedios lleguen.
- */
-export function cuentaConductorEstaActiva(chargesEnabled: boolean | undefined, detailsSubmitted: boolean | undefined): boolean {
-  return Boolean(chargesEnabled && detailsSubmitted);
-}
-
 export type TipoEventoManejado =
   | "payment_intent.succeeded"
-  | "payment_intent.payment_failed"
-  | "account.updated"
-  | "transfer.created"
-  | "transfer.reversed";
+  | "payment_intent.payment_failed";
 
 const EVENTOS_MANEJADOS: readonly TipoEventoManejado[] = [
   "payment_intent.succeeded",
-  "payment_intent.payment_failed",
-  "account.updated",
-  "transfer.created",
-  "transfer.reversed"
+  "payment_intent.payment_failed"
 ];
 
 export function esEventoManejado(tipo: string): tipo is TipoEventoManejado {

@@ -5,7 +5,7 @@ import { registrarEvento } from "./auditoria";
 type Cliente = SupabaseClient<Database>;
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
 type PayoutRow = Database["public"]["Tables"]["payouts_conductor"]["Row"];
-type CuentaStripeRow = Database["public"]["Tables"]["cuentas_conductor_stripe"]["Row"];
+type DatosBancariosRow = Database["public"]["Tables"]["datos_bancarios_conductor"]["Row"];
 type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
 type SolicitudConductorRow = Database["public"]["Tables"]["solicitudes_conductor"]["Row"];
 type PreferenciasConductorRow = Database["public"]["Tables"]["preferencias_conductor"]["Row"];
@@ -217,23 +217,46 @@ async function obtenerConductorIdActual(cliente: Cliente): Promise<string> {
 }
 
 export interface DatosGananciasConductor {
-  cuentaStripe: CuentaStripeRow | null;
+  datosBancarios: DatosBancariosRow | null;
   payouts: PayoutRow[];
 }
 
 export async function obtenerGananciasConductor(cliente: Cliente, conductorId: string): Promise<DatosGananciasConductor> {
-  const [cuenta, payouts] = await Promise.all([
-    cliente.from("cuentas_conductor_stripe").select("*").eq("conductor_id", conductorId).maybeSingle(),
+  const [datosBancarios, payouts] = await Promise.all([
+    cliente.from("datos_bancarios_conductor").select("*").eq("conductor_id", conductorId).maybeSingle(),
     cliente.from("payouts_conductor").select("*").eq("conductor_id", conductorId).order("periodo_inicio", { ascending: false })
   ]);
 
-  if (cuenta.error) throw cuenta.error;
+  if (datosBancarios.error) throw datosBancarios.error;
   if (payouts.error) throw payouts.error;
 
   return {
-    cuentaStripe: cuenta.data ?? null,
+    datosBancarios: datosBancarios.data ?? null,
     payouts: payouts.data ?? []
   };
+}
+
+export interface DatosBancariosConductorInput {
+  titularCuenta: string;
+  banco: string;
+  clabe: string;
+  numeroTarjeta: string;
+}
+
+export async function guardarDatosBancariosConductor(
+  cliente: Cliente,
+  datos: DatosBancariosConductorInput
+): Promise<DatosBancariosRow> {
+  const { data, error } = await cliente.rpc("conductor_guarda_datos_bancarios", {
+    p_titular_cuenta: datos.titularCuenta,
+    p_banco: datos.banco,
+    p_clabe: datos.clabe,
+    p_numero_tarjeta: datos.numeroTarjeta
+  });
+
+  if (error) throw error;
+  if (!data) throw new Error("No se pudieron guardar los datos bancarios.");
+  return data;
 }
 
 export interface DatosConfiguracionConductor {
