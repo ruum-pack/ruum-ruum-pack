@@ -5,6 +5,20 @@ export interface FotoCapturada {
   dataUrl: string;
 }
 
+async function obtenerFoto(source: CameraSource): Promise<FotoCapturada | null> {
+  if (!esNativo()) return null;
+
+  const foto = await Camera.getPhoto({
+    resultType: CameraResultType.DataUrl,
+    source,
+    quality: 75,
+    saveToGallery: false
+  });
+
+  if (!foto.dataUrl) return null;
+  return { dataUrl: foto.dataUrl };
+}
+
 /**
  * PRD §4.4 — captura de evidencia fotográfica. Solo funciona dentro del
  * shell nativo (cámara real vía Capacitor); en navegador devuelve null para
@@ -12,15 +26,9 @@ export interface FotoCapturada {
  * foto real, ya documentado como modo dev en el README).
  */
 export async function capturarFoto(): Promise<FotoCapturada | null> {
-  if (!esNativo()) return null;
+  return obtenerFoto(CameraSource.Camera);
+}
 
-  const foto = await Camera.getPhoto({
-    resultType: CameraResultType.DataUrl,
-    source: CameraSource.Camera,
-    quality: 75,
-    saveToGallery: false
-  });
-
-  if (!foto.dataUrl) return null;
-  return { dataUrl: foto.dataUrl };
+export async function seleccionarFotoGaleria(): Promise<FotoCapturada | null> {
+  return obtenerFoto(CameraSource.Photos);
 }

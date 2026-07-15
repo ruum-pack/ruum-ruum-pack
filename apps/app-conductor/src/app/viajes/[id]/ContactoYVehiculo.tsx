@@ -31,6 +31,12 @@ function FilaDato({ etiqueta, valor }: { etiqueta: string; valor: string | numbe
   );
 }
 
+function telefonoWhatsApp(telefono: string) {
+  const digitos = telefono.replace(/\D/g, "");
+  if (digitos.length === 10) return `52${digitos}`;
+  return digitos;
+}
+
 /**
  * Pantalla mostrada en el estado conductor_en_punto_de_recoleccion: contacto
  * de quien entrega el vehículo + datos para localizarlo, con dos
@@ -81,12 +87,22 @@ export function ContactoYVehiculo({
         <p className="mt-1 font-display text-base font-semibold text-ink">{contactoNombre}</p>
         <div className="mt-2 flex items-center justify-between gap-3">
           <p className="font-mono-ruum text-sm text-ink/65">{contactoTelefono}</p>
-          <a
-            href={`tel:${contactoTelefono}`}
-            className="rounded-lg border border-route-dark/30 bg-route-soft px-3 py-1.5 font-body text-xs font-semibold text-route-dark hover:bg-route"
-          >
-            Llamar
-          </a>
+          <div className="flex gap-2">
+            <a
+              href={`tel:${contactoTelefono}`}
+              className="rounded-lg border border-route-dark/30 bg-route-soft px-3 py-1.5 font-body text-xs font-semibold text-route-dark hover:bg-route"
+            >
+              Llamar
+            </a>
+            <a
+              href={`https://wa.me/${telefonoWhatsApp(contactoTelefono)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg border border-control/30 bg-control-soft px-3 py-1.5 font-body text-xs font-semibold text-control hover:bg-control-soft/70"
+            >
+              WhatsApp
+            </a>
+          </div>
         </div>
         <Button
           variant={contactoConfirmado ? "secundario" : "primario"}

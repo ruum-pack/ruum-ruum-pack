@@ -95,8 +95,12 @@ export async function sincronizarColaEvidencia(
   let sincronizadas = 0;
 
   for (const item of items) {
+    const { data: sesion } = await cliente.auth.getUser();
+    const authUserId = sesion.user?.id;
+    if (!authUserId) throw new Error("No hay sesión para subir evidencia.");
+
     const extension = extensionDesdeDataUrl(item.dataUrl);
-    const ruta = `${item.trasladoId}/${item.tipo}/${item.localId}-${item.angulo}.${extension}`;
+    const ruta = `${authUserId}/${item.trasladoId}/${item.tipo}/${item.localId}-${item.angulo}.${extension}`;
     const blob = blobDesdeDataUrl(item.dataUrl);
 
     const { error: uploadError } = await cliente.storage.from(BUCKET_EVIDENCIA).upload(ruta, blob, {

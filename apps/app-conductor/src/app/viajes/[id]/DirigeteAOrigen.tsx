@@ -29,6 +29,12 @@ export function DirigeteAOrigen({ trasladoId, origenDireccion, origenCiudad, ori
   const router = useRouter();
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const destinoTexto = encodeURIComponent(`${origenDireccion}, ${origenCiudad}`);
+  const destinoCoordenadas = origenLat !== null && origenLng !== null ? `${origenLat},${origenLng}` : null;
+  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destinoCoordenadas ?? `${origenDireccion}, ${origenCiudad}`)}&travelmode=driving`;
+  const wazeUrl = destinoCoordenadas
+    ? `https://waze.com/ul?ll=${encodeURIComponent(destinoCoordenadas)}&navigate=yes`
+    : `https://waze.com/ul?q=${destinoTexto}&navigate=yes`;
 
   async function heLlegado() {
     setProcesando(true);
@@ -58,6 +64,25 @@ export function DirigeteAOrigen({ trasladoId, origenDireccion, origenCiudad, ori
           <MapaRutaOrigen destino={{ lat: origenLat, lng: origenLng }} />
         </div>
       )}
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <a
+          href={googleMapsUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-lg border border-route-dark/30 bg-route-soft px-3 py-2 text-center font-body text-sm font-semibold text-route-dark hover:bg-route"
+        >
+          Abrir en Google Maps
+        </a>
+        <a
+          href={wazeUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-lg border border-route-dark/30 bg-route-soft px-3 py-2 text-center font-body text-sm font-semibold text-route-dark hover:bg-route"
+        >
+          Abrir en Waze
+        </a>
+      </div>
 
       {error && (
         <div className="mt-3" role="status" aria-live="polite" aria-atomic="true">
