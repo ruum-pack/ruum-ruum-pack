@@ -9,6 +9,7 @@ import {
   actualizarFactorGama,
   actualizarFactorHorario,
   actualizarPagoConductorPorCertificacion,
+  actualizarTarifaVehiculo,
   obtenerConfiguracionTarifas,
   simularTarifaNormativa,
   type ConfiguracionTarifas
@@ -51,6 +52,7 @@ type GamaTarifa = ConfiguracionTarifas["gama"][number]["gama"];
 type CondicionTarifa = ConfiguracionTarifas["condicion"][number]["condicion"];
 type HorarioTarifa = ConfiguracionTarifas["horario"][number]["horario"];
 type DiaTarifa = ConfiguracionTarifas["dia"][number]["dia"];
+type TarifaVehiculoRow = ConfiguracionTarifas["vehiculo"][number];
 
 function formatoFecha(valor?: string | null) {
   if (!valor) return "Sin fecha";
@@ -78,16 +80,19 @@ function CampoEditable({
   etiqueta,
   valorInicial,
   sufijo,
+  requiereConfirmacion,
   onGuardar
 }: {
   etiqueta: string;
   valorInicial: number;
   sufijo?: string;
+  requiereConfirmacion?: boolean;
   onGuardar: (valor: number) => Promise<void>;
 }) {
   const [valor, setValor] = useState(String(valorInicial));
   const [pendiente, startTransition] = useTransition();
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [valorPendiente, setValorPendiente] = useState<number | null>(null);
 
   function guardar() {
     const numero = Number(valor);
@@ -95,6 +100,14 @@ function CampoEditable({
       setMensaje("Valor inválido.");
       return;
     }
+    if (requiereConfirmacion) {
+      setValorPendiente(numero);
+      return;
+    }
+    ejecutarGuardado(numero);
+  }
+
+  function ejecutarGuardado(numero: number) {
     setMensaje(null);
     startTransition(async () => {
       try {
@@ -107,19 +120,61 @@ function CampoEditable({
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-3 border-b border-ink/10 py-3 last:border-b-0">
-      <label className="min-w-44 font-body text-sm font-medium text-ink/75">
+    <div className="flex min-w-0 flex-wrap items-end gap-3 rounded-lg border border-ink/10 bg-mist-dim px-3 py-3">
+      <label className="min-w-0 flex-1 font-body text-sm font-medium text-ink/75">
         <span>{etiqueta}</span>
-        <input
-          value={valor}
-          onChange={(e) => setValor(e.target.value)}
-          inputMode="decimal"
-          className="mt-1 block w-32 rounded-lg border border-ink/30 bg-mist px-3 py-1.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
-        />
+        <span className="relative mt-1 block">
+          <input
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+            inputMode="decimal"
+            className={`block w-full rounded-lg border border-ink/30 bg-mist py-1.5 pl-3 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark ${sufijo ? "pr-16" : "pr-3"}`}
+          />
+          {sufijo && (
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-body text-xs font-semibold text-ink/45">
+              {sufijo}
+            </span>
+          )}
+        </span>
       </label>
-      {sufijo && <span className="pb-2 font-body text-xs text-ink/45">{sufijo}</span>}
       <Button variant="fantasma" onClick={guardar} disabled={pendiente}>Guardar</Button>
       {mensaje && <span className="pb-2 font-body text-xs text-ink/55">{mensaje}</span>}
+      <ConfirmacionImpacto
+        abierto={valorPendiente !== null}
+        onCancelar={() => setValorPendiente(null)}
+        onConfirmar={() => {
+          if (valorPendiente === null) return;
+          const confirmado = valorPendiente;
+          setValorPendiente(null);
+          ejecutarGuardado(confirmado);
+        }}
+      />
+    </div>
+  );
+}
+
+function ConfirmacionImpacto({
+  abierto,
+  onCancelar,
+  onConfirmar
+}: {
+  abierto: boolean;
+  onCancelar: () => void;
+  onConfirmar: () => void;
+}) {
+  if (!abierto) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 px-4" role="dialog" aria-modal="true" aria-labelledby="confirmacion-impacto-titulo">
+      <div className="w-full max-w-md rounded-xl border border-ink/10 bg-white p-6 shadow-2xl">
+        <h2 id="confirmacion-impacto-titulo" className="font-display text-xl font-semibold text-ink">Confirmar cambio vigente</h2>
+        <p className="mt-3 font-body text-sm leading-6 text-ink/70">
+          Esta acción afectará el cálculo de los viajes en curso. ¿Deseas continuar?
+        </p>
+        <div className="mt-5 flex flex-wrap justify-end gap-3">
+          <Button variant="fantasma" onClick={onCancelar}>Cancelar</Button>
+          <Button onClick={onConfirmar}>Sí, continuar</Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -199,9 +254,19 @@ function PoliticaVigente({
   const [estado, setEstado] = useState(config?.estado ?? "borrador");
   const [vigenteDesde, setVigenteDesde] = useState(fechaParaInput(config?.vigente_desde));
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
   const [pendiente, startTransition] = useTransition();
 
   function guardar() {
+    if (!cliente || !config) return;
+    if (config.estado === "vigente") {
+      setConfirmando(true);
+      return;
+    }
+    guardarConfirmado();
+  }
+
+  function guardarConfirmado() {
     if (!cliente || !config) return;
     setMensaje(null);
     startTransition(async () => {
@@ -271,6 +336,14 @@ function PoliticaVigente({
         <Button onClick={guardar} disabled={pendiente}>Guardar política</Button>
         {mensaje && <span className="font-body text-xs text-ink/55">{mensaje}</span>}
       </div>
+      <ConfirmacionImpacto
+        abierto={confirmando}
+        onCancelar={() => setConfirmando(false)}
+        onConfirmar={() => {
+          setConfirmando(false);
+          guardarConfirmado();
+        }}
+      />
     </PassportCard>
   );
 }
@@ -337,51 +410,62 @@ function ParametrosNormativos({
   cliente: ReturnType<typeof crearClienteNavegador> | null;
   onGuardado: () => Promise<void>;
 }) {
+  const requiereConfirmacion = datos.config?.estado === "vigente";
   return (
     <div className="grid gap-6">
-      <div className="grid gap-6 lg:grid-cols-2">
+      <TarifasBaseFijas datos={datos} cliente={cliente} onGuardado={onGuardado} requiereConfirmacion={requiereConfirmacion} />
+
+      <div className="grid gap-6 xl:grid-cols-2">
         <PassportCard>
           <h2 className="font-display text-xl font-semibold">Factor de gama</h2>
-          {datos.gama.map((f) => (
-            <CampoEditable key={`${f.gama}-${f.factor}`} etiqueta={f.gama} valorInicial={f.factor} onGuardar={async (valor) => {
-              if (!cliente) throw new Error("Sin cliente Supabase.");
-              await actualizarFactorGama(cliente, f.gama, valor);
-              await onGuardado();
-            }} />
-          ))}
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {datos.gama.map((f) => (
+              <CampoEditable key={`${f.gama}-${f.factor}`} etiqueta={f.gama} valorInicial={f.factor} requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
+                if (!cliente) throw new Error("Sin cliente Supabase.");
+                await actualizarFactorGama(cliente, f.gama, valor);
+                await onGuardado();
+              }} />
+            ))}
+          </div>
         </PassportCard>
 
         <PassportCard>
           <h2 className="font-display text-xl font-semibold">Factor de condición</h2>
-          {datos.condicion.map((f) => (
-            <CampoEditable key={`${f.condicion}-${f.factor}`} etiqueta={f.condicion.replaceAll("_", " ")} valorInicial={f.factor} onGuardar={async (valor) => {
-              if (!cliente) throw new Error("Sin cliente Supabase.");
-              await actualizarFactorCondicion(cliente, f.condicion, valor);
-              await onGuardado();
-            }} />
-          ))}
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {datos.condicion.map((f) => (
+              <CampoEditable key={`${f.condicion}-${f.factor}`} etiqueta={f.condicion.replaceAll("_", " ")} valorInicial={f.factor} requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
+                if (!cliente) throw new Error("Sin cliente Supabase.");
+                await actualizarFactorCondicion(cliente, f.condicion, valor);
+                await onGuardado();
+              }} />
+            ))}
+          </div>
         </PassportCard>
 
         <PassportCard>
           <h2 className="font-display text-xl font-semibold">Factor horario</h2>
-          {datos.horario.map((f) => (
-            <CampoEditable key={`${f.horario}-${f.factor}`} etiqueta={f.horario} valorInicial={f.factor} onGuardar={async (valor) => {
-              if (!cliente) throw new Error("Sin cliente Supabase.");
-              await actualizarFactorHorario(cliente, f.horario, valor);
-              await onGuardado();
-            }} />
-          ))}
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {datos.horario.map((f) => (
+              <CampoEditable key={`${f.horario}-${f.factor}`} etiqueta={f.horario} valorInicial={f.factor} requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
+                if (!cliente) throw new Error("Sin cliente Supabase.");
+                await actualizarFactorHorario(cliente, f.horario, valor);
+                await onGuardado();
+              }} />
+            ))}
+          </div>
         </PassportCard>
 
         <PassportCard>
           <h2 className="font-display text-xl font-semibold">Factor día</h2>
-          {datos.dia.map((f) => (
-            <CampoEditable key={`${f.dia}-${f.factor}`} etiqueta={f.dia.replaceAll("_", " ")} valorInicial={f.factor} onGuardar={async (valor) => {
-              if (!cliente) throw new Error("Sin cliente Supabase.");
-              await actualizarFactorDia(cliente, f.dia, valor);
-              await onGuardado();
-            }} />
-          ))}
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {datos.dia.map((f) => (
+              <CampoEditable key={`${f.dia}-${f.factor}`} etiqueta={f.dia.replaceAll("_", " ")} valorInicial={f.factor} requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
+                if (!cliente) throw new Error("Sin cliente Supabase.");
+                await actualizarFactorDia(cliente, f.dia, valor);
+                await onGuardado();
+              }} />
+            ))}
+          </div>
         </PassportCard>
       </div>
 
@@ -390,32 +474,101 @@ function ParametrosNormativos({
           <h2 className="font-display text-xl font-semibold">Configuración general</h2>
           {datos.config && (
             <>
-              <CampoEditable key={`tarifa-hora-${datos.config.tarifa_hora}`} etiqueta="Tarifa por hora" valorInicial={datos.config.tarifa_hora} sufijo="$/hora" onGuardar={async (valor) => {
-                if (!cliente || !datos.config) throw new Error("Sin cliente Supabase.");
-                await actualizarConfigTarifas(cliente, { tarifa_hora: valor, tope_factor_variable: datos.config.tope_factor_variable });
-                await onGuardado();
-              }} />
-              <CampoEditable key={`tope-${datos.config.tope_factor_variable}`} etiqueta="Tope del factor variable" valorInicial={datos.config.tope_factor_variable} sufijo="máximo condición x horario x día" onGuardar={async (valor) => {
-                if (!cliente || !datos.config) throw new Error("Sin cliente Supabase.");
-                await actualizarConfigTarifas(cliente, { tarifa_hora: datos.config.tarifa_hora, tope_factor_variable: valor });
-                await onGuardado();
-              }} />
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <CampoEditable key={`tarifa-hora-${datos.config.tarifa_hora}`} etiqueta="Tarifa por hora" valorInicial={datos.config.tarifa_hora} sufijo="$/hora" requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
+                  if (!cliente || !datos.config) throw new Error("Sin cliente Supabase.");
+                  await actualizarConfigTarifas(cliente, { tarifa_hora: valor, tope_factor_variable: datos.config.tope_factor_variable });
+                  await onGuardado();
+                }} />
+                <CampoEditable key={`tope-${datos.config.tope_factor_variable}`} etiqueta="Tope del factor variable" valorInicial={datos.config.tope_factor_variable} sufijo="x" requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
+                  if (!cliente || !datos.config) throw new Error("Sin cliente Supabase.");
+                  await actualizarConfigTarifas(cliente, { tarifa_hora: datos.config.tarifa_hora, tope_factor_variable: valor });
+                  await onGuardado();
+                }} />
+              </div>
             </>
           )}
         </PassportCard>
 
         <PassportCard>
           <h2 className="font-display text-xl font-semibold">Pago al conductor por certificación</h2>
-          {datos.certificacionPago.map((f) => (
-            <CampoEditable key={`${f.certificacion}-${f.porcentaje}`} etiqueta={f.certificacion.replaceAll("_", " ")} valorInicial={f.porcentaje} sufijo="%" onGuardar={async (valor) => {
-              if (!cliente) throw new Error("Sin cliente Supabase.");
-              await actualizarPagoConductorPorCertificacion(cliente, f.certificacion, valor);
-              await onGuardado();
-            }} />
-          ))}
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {datos.certificacionPago.map((f) => (
+              <CampoEditable key={`${f.certificacion}-${f.porcentaje}`} etiqueta={f.certificacion.replaceAll("_", " ")} valorInicial={f.porcentaje} sufijo="%" requiereConfirmacion={requiereConfirmacion} onGuardar={async (valor) => {
+                if (!cliente) throw new Error("Sin cliente Supabase.");
+                await actualizarPagoConductorPorCertificacion(cliente, f.certificacion, valor);
+                await onGuardado();
+              }} />
+            ))}
+          </div>
         </PassportCard>
       </div>
     </div>
+  );
+}
+
+function TarifasBaseFijas({
+  datos,
+  cliente,
+  onGuardado,
+  requiereConfirmacion
+}: {
+  datos: ConfiguracionTarifas;
+  cliente: ReturnType<typeof crearClienteNavegador> | null;
+  onGuardado: () => Promise<void>;
+  requiereConfirmacion: boolean;
+}) {
+  const porCategoria = useMemo(() => {
+    const grupos = new Map<CategoriaTarifa, TarifaVehiculoRow[]>();
+    for (const fila of datos.vehiculo) {
+      const lista = grupos.get(fila.categoria) ?? [];
+      lista.push(fila);
+      grupos.set(fila.categoria, lista);
+    }
+    return grupos;
+  }, [datos.vehiculo]);
+
+  async function guardarFila(fila: TarifaVehiculoRow, cambios: { base?: number; por_km?: number }) {
+    if (!cliente) throw new Error("Sin cliente Supabase.");
+    await actualizarTarifaVehiculo(cliente, fila.id, {
+      base: cambios.base ?? fila.base,
+      por_km: cambios.por_km ?? fila.por_km
+    });
+    await onGuardado();
+  }
+
+  return (
+    <PassportCard>
+      <h2 className="font-display text-xl font-semibold">Tarifas base fijas</h2>
+      <div className="mt-4 grid gap-5 xl:grid-cols-2">
+        {Array.from(porCategoria.entries()).map(([categoria, filas]) => (
+          <section key={categoria} className="rounded-lg border border-ink/10 bg-mist px-4 py-4">
+            <h3 className="font-body text-sm font-semibold text-ink">{ETIQUETA_CATEGORIA[categoria] ?? categoria}</h3>
+            <div className="mt-3 grid gap-3">
+              {filas.map((fila) => (
+                <div key={fila.id} className="grid gap-3 rounded-lg border border-ink/10 bg-white px-3 py-3 lg:grid-cols-[minmax(150px,1fr)_minmax(120px,150px)_minmax(120px,150px)]">
+                  <p className="self-end pb-2 font-body text-sm font-medium text-ink/70">{ETIQUETA_RANGO[fila.rango] ?? fila.rango}</p>
+                  <CampoEditable
+                    etiqueta="Base"
+                    valorInicial={fila.base}
+                    sufijo="$"
+                    requiereConfirmacion={requiereConfirmacion}
+                    onGuardar={(valor) => guardarFila(fila, { base: valor })}
+                  />
+                  <CampoEditable
+                    etiqueta="Kilómetro"
+                    valorInicial={fila.por_km}
+                    sufijo="$/km"
+                    requiereConfirmacion={requiereConfirmacion}
+                    onGuardar={(valor) => guardarFila(fila, { por_km: valor })}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </PassportCard>
   );
 }
 
