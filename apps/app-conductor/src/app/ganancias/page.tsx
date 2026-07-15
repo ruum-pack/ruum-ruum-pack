@@ -25,6 +25,8 @@ const ETIQUETA_DATOS_BANCARIOS: Record<Database["public"]["Enums"]["estado_datos
   rechazada: "Datos rechazados"
 };
 
+const FECHA_PAGO_INICIAL = "Pendiente";
+
 function moneda(valor: number) {
   return `$${valor.toLocaleString("es-MX")}`;
 }
@@ -51,7 +53,7 @@ export default function PaginaGanancias() {
     gastos_autorizados: 0,
     ajustes: 0,
     deposito_final: 0,
-    fecha_pago: new Date().toISOString().slice(0, 10),
+    fecha_pago: FECHA_PAGO_INICIAL,
     metodo: "Sin payout programado"
   });
   const [guardandoBanco, setGuardandoBanco] = useState(false);
@@ -108,7 +110,7 @@ export default function PaginaGanancias() {
                 gastos_autorizados: 0,
                 ajustes: 0,
                 deposito_final: 0,
-                fecha_pago: new Date().toISOString().slice(0, 10),
+                fecha_pago: FECHA_PAGO_INICIAL,
                 metodo: "Sin payout programado"
               }
         );
