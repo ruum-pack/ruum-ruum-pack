@@ -94,7 +94,7 @@ export function ContactoYVehiculo({
           onClick={() => setContactoConfirmado(true)}
           disabled={contactoConfirmado}
         >
-          {contactoConfirmado ? "✓ Contacté a la persona" : "Confirmar que contacté a la persona"}
+          {contactoConfirmado ? "✓ Contacto confirmado" : "Confirmar contacto con la persona"}
         </Button>
       </div>
 
@@ -114,7 +114,7 @@ export function ContactoYVehiculo({
           onClick={() => setVehiculoLocalizado(true)}
           disabled={vehiculoLocalizado}
         >
-          {vehiculoLocalizado ? "✓ Vehículo localizado" : "Confirmar vehículo localizado"}
+          {vehiculoLocalizado ? "✓ Vehículo localizado" : "Confirmar que localicé el vehículo"}
         </Button>
       </div>
 

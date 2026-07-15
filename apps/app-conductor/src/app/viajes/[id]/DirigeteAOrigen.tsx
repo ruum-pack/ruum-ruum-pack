@@ -48,6 +48,7 @@ export function DirigeteAOrigen({ trasladoId, origenDireccion, origenCiudad, ori
   return (
     <div className="mt-6 rounded-xl border border-route/25 bg-route-soft/40 p-4">
       <p className="font-mono-ruum text-[10px] uppercase tracking-widest text-route-dark/70">Dirígete al punto de inicio</p>
+      <p className="mt-2 font-body text-xs font-semibold text-ink/55">Dirección de recolección</p>
       <p className="mt-1 font-display text-base font-semibold text-ink">{origenDireccion}</p>
       <p className="font-body text-sm text-ink/60">{origenCiudad}</p>
       {origenReferencias && <p className="mt-1 font-body text-xs text-ink/50">Referencias: {origenReferencias}</p>}
