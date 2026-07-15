@@ -110,14 +110,6 @@ export default async function PaginaDetalleViaje({ params }: { params: Promise<{
 
         <dl className="mt-8 grid grid-cols-1 gap-4 border-t sm:grid-cols-2 border-ink/10 pt-6 font-body text-sm">
           <div>
-            <dt className="text-ink/45">Monto estimado</dt>
-            <dd className="mt-0.5 font-mono-ruum">${pasaporte.precio_cotizado?.toLocaleString("es-MX") ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-ink/45">Momento de pago</dt>
-            <dd className="mt-0.5 font-medium capitalize">{pasaporte.tipo_pago?.replaceAll("_", " ") ?? "—"}</dd>
-          </div>
-          <div>
             <dt className="text-ink/45">Evidencia inicial</dt>
             <dd className="mt-0.5 font-mono-ruum">{pasaporte.evidencia_inicial_fotos_sincronizadas} / 5 fotos</dd>
           </div>

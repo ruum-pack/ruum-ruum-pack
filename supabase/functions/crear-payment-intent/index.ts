@@ -129,21 +129,21 @@ Deno.serve(async (req) => {
 
   // El cobro anticipado se dispara al crear la solicitud (cualquier estado,
   // como hasta ahora). El cobro al cierre solo tiene sentido una vez que el
-  // traslado de verdad está esperando ese pago — "pago_pendiente" es el
-  // único estado al que llega esa transición (ver TRANSICIONES,
-  // entrega_confirmada -> pago_pendiente -> pago_completado). Sin este
-  // guard, cualquier traslado "al_cierre" en cualquier estado podría iniciar
-  // un cobro antes de tiempo.
+  // traslado de verdad está esperando ese pago. El conductor no resuelve
+  // pagos: al cierre, el cobro puede iniciarse en entrega_confirmada
+  // (usuario/admin) y se mantiene compatibilidad con pago_pendiente para
+  // traslados históricos que ya hayan llegado a ese estado.
   const esCobroAnticipadoValido =
     traslado.tipo_pago === "anticipado" && traslado.estado === "cotizacion_aceptada";
-  const esCobroAlCierreValido = traslado.tipo_pago === "al_cierre" && traslado.estado === "pago_pendiente";
+  const esCobroAlCierreValido =
+    traslado.tipo_pago === "al_cierre" && ["entrega_confirmada", "pago_pendiente"].includes(traslado.estado);
 
   if (!esCobroAnticipadoValido && !esCobroAlCierreValido) {
     return respuestaJson(
       {
         error:
           traslado.tipo_pago === "al_cierre"
-            ? "El pago al cierre solo puede iniciarse cuando el traslado está en estado 'pago_pendiente'"
+            ? "El pago al cierre solo puede iniciarse cuando la entrega está confirmada"
             : traslado.tipo_pago === "anticipado"
               ? "Acepta la cotización antes de iniciar el pago anticipado"
               : "Este traslado no tiene un cobro pendiente que iniciar"
