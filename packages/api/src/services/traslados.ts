@@ -20,7 +20,8 @@ type EventoConductorTraslado =
   | "iniciar_traslado"
   | "llegada_destino"
   | "iniciar_evidencia_final"
-  | "confirmar_entrega";
+  | "confirmar_entrega"
+  | "cerrar_viaje";
 
 async function obtenerUsuarioIdActual(cliente: Cliente): Promise<string> {
   const { data: sesion } = await cliente.auth.getUser();
@@ -402,7 +403,8 @@ const EVENTO_CONDUCTOR_POR_ESTADO: Partial<Record<EstadoTraslado, EventoConducto
   vehiculo_recibido: "iniciar_traslado",
   traslado_en_curso: "llegada_destino",
   llegada_a_destino: "iniciar_evidencia_final",
-  evidencia_final_completada: "confirmar_entrega"
+  evidencia_final_completada: "confirmar_entrega",
+  entrega_confirmada: "cerrar_viaje"
 };
 
 /**

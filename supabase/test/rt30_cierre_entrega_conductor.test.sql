@@ -1,10 +1,10 @@
--- RT-30 / RT-31 -- El conductor confirma entrega, pero no resuelve pagos.
+-- RT-30 / RT-31 / RT-34 -- El conductor confirma entrega y cierra viaje, pero no resuelve pagos.
 
 create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(4);
+select plan(5);
 
 create or replace function pg_temp.crear_traslado_rt30(
   p_usuario_id uuid,
@@ -90,11 +90,22 @@ select throws_ok(
   'RT-31.1: el conductor no resuelve pasos de pago'
 );
 
-select throws_ok(
-  format($sql$ select public.conductor_avanza_traslado(%L, 'cerrar_servicio') $sql$, :'traslado_entrega'),
-  'P0001',
-  'Evento de conductor no soportado: cerrar_servicio',
-  'RT-31.2: el conductor no cierra servicio desde pago'
+select is(
+  public.conductor_avanza_traslado(:'traslado_entrega', 'cerrar_viaje')::text,
+  'servicio_cerrado',
+  'RT-34.1: el conductor cierra el viaje sin resolver pago'
+);
+
+select ok(
+  exists (
+    select 1
+    from public.registro_auditoria
+    where traslado_id = :'traslado_entrega'::uuid
+      and evento = 'cierre_traslado'
+      and actor = 'conductor'
+      and datos->>'evento_conductor' = 'cerrar_viaje'
+  ),
+  'RT-34.2: el cierre operativo queda auditado como accion del conductor'
 );
 
 select * from finish();

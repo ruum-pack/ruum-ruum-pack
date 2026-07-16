@@ -41,7 +41,7 @@ export const TRANSICIONES: Record<EstadoTraslado, EstadoTraslado[]> = {
   llegada_a_destino: ["evidencia_final_en_proceso"],
   evidencia_final_en_proceso: ["evidencia_final_completada"],
   evidencia_final_completada: ["entrega_confirmada"],
-  entrega_confirmada: ["pago_pendiente", "pago_completado"],
+  entrega_confirmada: ["servicio_cerrado", "pago_pendiente", "pago_completado"],
   pago_pendiente: ["pago_completado"],
   pago_completado: ["servicio_cerrado"],
   servicio_cerrado: ["dano_no_reportado_en_revision", "disputa_abierta"],

@@ -130,13 +130,13 @@ Deno.serve(async (req) => {
   // El cobro anticipado se dispara al crear la solicitud (cualquier estado,
   // como hasta ahora). El cobro al cierre solo tiene sentido una vez que el
   // traslado de verdad está esperando ese pago. El conductor no resuelve
-  // pagos: al cierre, el cobro puede iniciarse en entrega_confirmada
-  // (usuario/admin) y se mantiene compatibilidad con pago_pendiente para
-  // traslados históricos que ya hayan llegado a ese estado.
+  // pagos: al cierre, el cobro puede iniciarse en entrega_confirmada o
+  // servicio_cerrado (usuario/admin) y se mantiene compatibilidad con
+  // pago_pendiente para traslados históricos.
   const esCobroAnticipadoValido =
     traslado.tipo_pago === "anticipado" && traslado.estado === "cotizacion_aceptada";
   const esCobroAlCierreValido =
-    traslado.tipo_pago === "al_cierre" && ["entrega_confirmada", "pago_pendiente"].includes(traslado.estado);
+    traslado.tipo_pago === "al_cierre" && ["entrega_confirmada", "pago_pendiente", "servicio_cerrado"].includes(traslado.estado);
 
   if (!esCobroAnticipadoValido && !esCobroAlCierreValido) {
     return respuestaJson(
