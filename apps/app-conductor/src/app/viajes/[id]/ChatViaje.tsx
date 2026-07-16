@@ -113,72 +113,84 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
   }
 
   return (
-    <div className="mt-6">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <details className="group mt-6 overflow-hidden rounded-lg border border-ink/10 bg-mist">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 transition-colors hover:bg-signal-soft/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-dark [&::-webkit-details-marker]:hidden">
+        <div>
           <p className="font-body text-xs uppercase tracking-wide text-ink/45">Chat con el usuario</p>
-          {disponible && avisoVisto && (
-            <div className="relative">
-              <button
-                type="button"
-                aria-label="Ver aviso de comunicación"
-                aria-expanded={popoverAvisoAbierto}
-                onClick={() => setPopoverAvisoAbierto((abierto) => !abierto)}
-                className="flex size-8 items-center justify-center rounded-full border border-route/20 bg-route-soft font-body text-sm font-semibold text-route-dark transition hover:border-route-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-dark"
-              >
-                ⓘ
-              </button>
-              {popoverAvisoAbierto && (
-                <div
-                  role="dialog"
-                  aria-label="Aviso de comunicación"
-                  className="absolute left-0 z-20 mt-2 w-72 rounded-xl border border-route/20 bg-mist p-3 font-body text-sm leading-5 text-route-dark shadow-[0_14px_40px_rgba(26,31,46,0.16)]"
+          <p className="mt-1 font-body text-sm font-semibold text-ink">
+            {disponible ? "Mensajes y llamada enmascarada" : "Conversación cerrada"}
+          </p>
+        </div>
+        <span className="font-mono-ruum text-lg leading-none text-ink/45 transition-transform group-open:rotate-45" aria-hidden>
+          +
+        </span>
+      </summary>
+      <div className="border-t border-ink/10 px-4 pb-4 pt-4">
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            {disponible && avisoVisto && (
+              <div className="relative">
+                <button
+                  type="button"
+                  aria-label="Ver aviso de comunicación"
+                  aria-expanded={popoverAvisoAbierto}
+                  onClick={() => setPopoverAvisoAbierto((abierto) => !abierto)}
+                  className="flex size-8 items-center justify-center rounded-full border border-route/20 bg-route-soft font-body text-sm font-semibold text-route-dark transition hover:border-route-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-dark"
                 >
-                  {MENSAJES_CLAVE_UX.comunicacion}
-                </div>
-              )}
-            </div>
+                  i
+                </button>
+                {popoverAvisoAbierto && (
+                  <div
+                    role="dialog"
+                    aria-label="Aviso de comunicación"
+                    className="absolute left-0 z-20 mt-2 w-72 rounded-xl border border-route/20 bg-mist p-3 font-body text-sm leading-5 text-route-dark shadow-[0_14px_40px_rgba(26,31,46,0.16)]"
+                  >
+                    {MENSAJES_CLAVE_UX.comunicacion}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          {disponible && (
+            <Button variant="secundario" onClick={manejarLlamada} disabled={llamando}>
+              {llamando ? TEXTOS_CARGANDO.conectando : "Llamar"}
+            </Button>
           )}
         </div>
-        {disponible && (
-          <Button variant="secundario" onClick={manejarLlamada} disabled={llamando}>
-            {llamando ? TEXTOS_CARGANDO.conectando : "Llamar"}
-          </Button>
+        {errorLlamada && (
+          <div className="mb-2">
+            <Aviso tono="peligro">{errorLlamada}</Aviso>
+          </div>
         )}
+        {errorChat && (
+          <div className="mb-2">
+            <Aviso tono="peligro">{errorChat}</Aviso>
+          </div>
+        )}
+        {disponible && !avisoVisto && (
+          <div className="mb-2">
+            <Aviso tono="info">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span>{MENSAJES_CLAVE_UX.comunicacion}</span>
+                <button
+                  type="button"
+                  onClick={confirmarAvisoVisto}
+                  className="self-start rounded-lg border border-route/30 bg-mist px-3 py-2 font-body text-sm font-semibold text-route-dark transition hover:border-route-dark hover:bg-route-soft sm:self-auto"
+                >
+                  Entendido
+                </button>
+              </div>
+            </Aviso>
+          </div>
+        )}
+        <Chat
+          propio="conductor"
+          mensajes={mensajes}
+          onEnviar={manejarEnvio}
+          deshabilitado={!disponible}
+          mensajeDeshabilitado="El chat se cerró junto con el traslado"
+        />
       </div>
-      {errorLlamada && (
-        <div className="mb-2">
-          <Aviso tono="peligro">{errorLlamada}</Aviso>
-        </div>
-      )}
-      {errorChat && (
-        <div className="mb-2">
-          <Aviso tono="peligro">{errorChat}</Aviso>
-        </div>
-      )}
-      {disponible && !avisoVisto && (
-        <div className="mb-2">
-          <Aviso tono="info">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <span>{MENSAJES_CLAVE_UX.comunicacion}</span>
-              <button
-                type="button"
-                onClick={confirmarAvisoVisto}
-                className="self-start rounded-lg border border-route/30 bg-mist px-3 py-2 font-body text-sm font-semibold text-route-dark transition hover:border-route-dark hover:bg-route-soft sm:self-auto"
-              >
-                Entendido
-              </button>
-            </div>
-          </Aviso>
-        </div>
-      )}
-      <Chat
-        propio="conductor"
-        mensajes={mensajes}
-        onEnviar={manejarEnvio}
-        deshabilitado={!disponible}
-        mensajeDeshabilitado="El chat se cerró junto con el traslado"
-      />
-    </div>
+    </details>
   );
 }

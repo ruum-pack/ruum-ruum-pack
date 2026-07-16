@@ -56,33 +56,40 @@ export function ReportarIncidencia({ trasladoId }: { trasladoId: string }) {
   }
 
   return (
-    <div className="mt-6 rounded-lg border border-ink/10 px-4 py-4">
-      <p className="font-body text-sm font-semibold">Reportar incidencia</p>
-      {mensaje && (
-        <div className="mt-3" role="status" aria-live="polite" aria-atomic="true">
-          <Aviso tono={mensaje.tono}>{mensaje.texto}</Aviso>
+    <details className="group mt-6 overflow-hidden rounded-lg border border-ink/10 bg-mist">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 font-body text-sm font-semibold transition-colors hover:bg-signal-soft/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-dark [&::-webkit-details-marker]:hidden">
+        <span>Reportar incidencia</span>
+        <span className="font-mono-ruum text-lg leading-none text-ink/45 transition-transform group-open:rotate-45" aria-hidden>
+          +
+        </span>
+      </summary>
+      <div className="border-t border-ink/10 px-4 pb-4 pt-4">
+        {mensaje && (
+          <div role="status" aria-live="polite" aria-atomic="true">
+            <Aviso tono={mensaje.tono}>{mensaje.texto}</Aviso>
+          </div>
+        )}
+        <div className="mt-4 grid gap-3">
+          <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoIncidencia)} className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm">
+            {TIPOS.map((opcion) => (
+              <option key={opcion} value={opcion}>
+                {ETIQUETA_TIPO_INCIDENCIA[opcion]}
+              </option>
+            ))}
+          </select>
+          <select value={momento} onChange={(e) => setMomento(e.target.value as MomentoIncidencia)} className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm">
+            {MOMENTOS.map((opcion) => (
+              <option key={opcion.valor} value={opcion.valor}>
+                {opcion.etiqueta}
+              </option>
+            ))}
+          </select>
+          <Field etiqueta="Descripción" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Describe qué ocurrió y qué apoyo necesitas" />
+          <Button onClick={enviar} disabled={procesando || descripcion.trim().length < 10}>
+            {procesando ? "Reportando..." : "Reportar incidencia"}
+          </Button>
         </div>
-      )}
-      <div className="mt-4 grid gap-3">
-        <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoIncidencia)} className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm">
-          {TIPOS.map((opcion) => (
-            <option key={opcion} value={opcion}>
-              {ETIQUETA_TIPO_INCIDENCIA[opcion]}
-            </option>
-          ))}
-        </select>
-        <select value={momento} onChange={(e) => setMomento(e.target.value as MomentoIncidencia)} className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm">
-          {MOMENTOS.map((opcion) => (
-            <option key={opcion.valor} value={opcion.valor}>
-              {opcion.etiqueta}
-            </option>
-          ))}
-        </select>
-        <Field etiqueta="Descripción" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Describe qué ocurrió y qué apoyo necesitas" />
-        <Button onClick={enviar} disabled={procesando || descripcion.trim().length < 10}>
-          {procesando ? "Reportando..." : "Reportar incidencia"}
-        </Button>
       </div>
-    </div>
+    </details>
   );
 }

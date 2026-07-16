@@ -80,6 +80,14 @@ function inicioSemanaDomingo(fecha = new Date()) {
   return inicio;
 }
 
+function estaSemanaActual(fechaIso: string) {
+  const inicio = inicioSemanaDomingo();
+  const fin = new Date(inicio);
+  fin.setDate(inicio.getDate() + 7);
+  const fecha = new Date(fechaIso);
+  return fecha >= inicio && fecha < fin;
+}
+
 function diasSemanaActual() {
   const inicio = inicioSemanaDomingo();
   return Array.from({ length: 7 }, (_, i) => {
@@ -280,13 +288,27 @@ export default function PaginaViajes() {
   const disponiblesVisibles = disponibles.filter((viaje) => !rechazados.includes(viaje.traslado_id));
   const lista = pestana === "solicitados" ? disponiblesVisibles : aceptados;
   const estadisticasCompletas = useMemo(() => {
-    const activos = aceptados.filter((viaje) => !["servicio_cerrado", "cancelado"].includes(viaje.estado));
+    const activos = aceptados.filter((viaje) => !["servicio_cerrado", "servicio_cancelado", "traslado_fallido"].includes(viaje.estado));
 
     return {
       activos: activos.length,
       pendientes: disponiblesVisibles.length
     };
   }, [aceptados, disponiblesVisibles]);
+  const metricasSemana = useMemo(() => {
+    const trasladosSemana = aceptados.filter((viaje) =>
+      estaSemanaActual((detalles[viaje.traslado_id] ?? detalleFallback(viaje)).fechaHora)
+    );
+    const gananciasSemana = trasladosSemana.reduce(
+      (total, viaje) => total + (detalles[viaje.traslado_id] ?? detalleFallback(viaje)).montoConductor,
+      0
+    );
+
+    return {
+      traslados: trasladosSemana.length,
+      ganancias: gananciasSemana
+    };
+  }, [aceptados, detalles]);
   const calendario = useMemo(() => {
     const todos = [
       ...disponiblesVisibles.map((viaje) => ({ viaje, tipo: "Ofertado" })),
@@ -360,19 +382,38 @@ export default function PaginaViajes() {
       </section>
 
       <section className="mt-6">
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           {PESTANAS.map((p) => (
             <button
               key={p.id}
+              type="button"
               onClick={() => setPestana(p.id)}
+              aria-pressed={pestana === p.id}
               className={[
-                "rounded-lg border px-4 py-3 text-left font-body text-sm font-medium transition-colors",
-                pestana === p.id ? "border-signal bg-signal text-ink shadow-sm" : "border-ink/10 bg-mist text-ink/60 hover:border-signal/40 hover:bg-signal-soft/40"
+                "relative overflow-hidden rounded-card border border-ink/15 border-l-4 border-l-signal bg-mist p-5 text-left shadow-1",
+                "transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-signal/45 hover:shadow-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2",
+                pestana === p.id ? "ring-2 ring-signal/45" : ""
               ].join(" ")}
             >
-              <span className="font-semibold">{p.etiqueta}</span>
-              <span className="ml-2 font-mono-ruum text-xs">
-                {p.id === "solicitados" ? disponiblesVisibles.length : aceptados.length}
+              <svg
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-40 w-full text-ink opacity-[0.04]"
+                viewBox="0 0 420 160"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M-20 112C38 58 82 58 140 112s102 54 160 0 102-54 160 0M-20 86C38 32 82 32 140 86s102 54 160 0 102-54 160 0M-20 138C38 84 82 84 140 138s102 54 160 0 102-54 160 0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                />
+              </svg>
+              <span className="relative block font-body text-xs font-medium uppercase tracking-wide text-ink/45">{p.etiqueta}</span>
+              <span className="relative mt-2 block font-display text-3xl font-bold text-ink">
+                {p.id === "solicitados" ? metricasSemana.traslados : formatearMoneda(metricasSemana.ganancias)}
+              </span>
+              <span className="relative mt-1 block font-body text-xs text-ink/45">
+                {p.id === "solicitados" ? "programado(s)" : "monto estimado"}
               </span>
             </button>
           ))}
