@@ -31,8 +31,8 @@ type RechazoPendiente = {
 };
 
 const PESTANAS: { id: Pestana; etiqueta: string }[] = [
-  { id: "solicitados", etiqueta: "Viajes solicitados" },
-  { id: "aceptados", etiqueta: "Viajes aceptados" }
+  { id: "solicitados", etiqueta: "Traslados esta semana" },
+  { id: "aceptados", etiqueta: "Ganancias esta semana" }
 ];
 
 function detalleFallback(viaje: PasaporteRow): DetalleOperativo {
@@ -279,6 +279,14 @@ export default function PaginaViajes() {
 
   const disponiblesVisibles = disponibles.filter((viaje) => !rechazados.includes(viaje.traslado_id));
   const lista = pestana === "solicitados" ? disponiblesVisibles : aceptados;
+  const estadisticasCompletas = useMemo(() => {
+    const activos = aceptados.filter((viaje) => !["servicio_cerrado", "cancelado"].includes(viaje.estado));
+
+    return {
+      activos: activos.length,
+      pendientes: disponiblesVisibles.length
+    };
+  }, [aceptados, disponiblesVisibles]);
   const calendario = useMemo(() => {
     const todos = [
       ...disponiblesVisibles.map((viaje) => ({ viaje, tipo: "Ofertado" })),
@@ -297,14 +305,11 @@ export default function PaginaViajes() {
           <Link href="/panel" className="font-body text-sm text-ink/55 underline-offset-4 hover:underline">
             Panel
           </Link>
-          <h1 className="mt-2 font-display text-3xl font-semibold">Viajes</h1>
+          <h1 className="mt-2 font-display text-3xl font-semibold">Traslados</h1>
           <p className="mt-2 font-body text-sm text-ink/60">
             Centro operativo para aceptar viajes, consultar procesos activos y planear tu semana.
           </p>
         </div>
-        <Link href="/ganancias">
-          <Button variant="secundario">Mis ganancias</Button>
-        </Link>
       </header>
 
       <section className="mt-6">
@@ -335,6 +340,23 @@ export default function PaginaViajes() {
             ))}
           </div>
         </PassportCard>
+        <details className="mt-4 rounded-xl border border-ink/10 bg-mist">
+          <summary className="cursor-pointer px-4 py-3 font-body text-sm font-semibold text-ink/70">
+            Ver estadísticas completas
+          </summary>
+          <div className="grid gap-3 border-t border-ink/10 px-4 py-4 sm:grid-cols-2">
+            <div>
+              <p className="font-body text-xs uppercase tracking-wide text-ink/45">Activos</p>
+              <p className="mt-1 font-display text-2xl font-semibold">{estadisticasCompletas.activos}</p>
+              <p className="font-body text-xs text-ink/45">en seguimiento</p>
+            </div>
+            <div>
+              <p className="font-body text-xs uppercase tracking-wide text-ink/45">Pendientes</p>
+              <p className="mt-1 font-display text-2xl font-semibold">{estadisticasCompletas.pendientes}</p>
+              <p className="font-body text-xs text-ink/45">por aceptar</p>
+            </div>
+          </div>
+        </details>
       </section>
 
       <section className="mt-6">

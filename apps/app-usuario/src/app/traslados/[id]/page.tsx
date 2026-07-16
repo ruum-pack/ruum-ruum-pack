@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { obtenerPasaporteDigital, obtenerUltimaUbicacionTraslado, type UbicacionTraslado } from "@ruum/api/services";
 import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_INCIDENCIA, ETIQUETA_TIPO_VEHICULO, MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
@@ -12,6 +13,7 @@ import { CalificarTraslado } from "./CalificarTraslado";
 import { AbrirDisputa } from "./AbrirDisputa";
 import { ExportarPasaportePdf } from "./ExportarPasaportePdf";
 import { SeguimientoTrasladoTiempoReal } from "./SeguimientoTrasladoTiempoReal";
+import { PasaporteTabs } from "./PasaporteTabs";
 
 import { NavegacionUsuario } from "../../NavegacionUsuario";
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -312,6 +314,107 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | number | 
   );
 }
 
+function AcordeonPasaporte({
+  titulo,
+  descripcion,
+  children,
+  abierto = false
+}: {
+  titulo: string;
+  descripcion?: string;
+  children: ReactNode;
+  abierto?: boolean;
+}) {
+  return (
+    <details open={abierto} className="group rounded-card border border-ink/15 bg-mist shadow-1">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-dark sm:px-6">
+        <span>
+          <span className="block font-display text-base font-semibold text-ink">{titulo}</span>
+          {descripcion && <span className="mt-1 block font-body text-xs leading-5 text-ink/55">{descripcion}</span>}
+        </span>
+        <span className="grid size-8 shrink-0 place-items-center rounded-full border border-ink/15 font-body text-lg leading-none text-ink/65 transition group-open:rotate-45">
+          +
+        </span>
+      </summary>
+      <div className="border-t border-ink/10 px-5 py-5 sm:px-6">{children}</div>
+    </details>
+  );
+}
+
+function AccionesRapidasPasaporte({ trasladoId }: { trasladoId: string }) {
+  return (
+    <nav
+      aria-label="Acciones rápidas del traslado"
+      className="sticky top-0 z-30 mt-4 rounded-[var(--ruum-radius-modal)] border border-ink/10 bg-mist/95 p-2 shadow-3 backdrop-blur"
+    >
+      <div className="grid grid-cols-3 gap-2">
+        <a
+          href="#chat-conductor"
+          className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] bg-ink px-3 text-center font-body text-xs font-semibold text-mist transition hover:bg-ink-soft focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-dark"
+        >
+          Chat
+        </a>
+        <Link
+          href={`/soporte?viaje=${trasladoId}`}
+          className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border border-route-dark bg-route-dark px-3 text-center font-body text-xs font-semibold text-mist transition hover:bg-[#0a4b8c] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-dark"
+        >
+          Soporte
+        </Link>
+        <a
+          href="#acciones-incidencia"
+          className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border border-ink/20 bg-mist px-3 text-center font-body text-xs font-semibold text-ink transition hover:border-ink/40 hover:bg-mist-dim focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-dark"
+        >
+          Incidencia
+        </a>
+      </div>
+    </nav>
+  );
+}
+
+function LineaTiempoVisual({ estadoActual }: { estadoActual: EstadoTraslado }) {
+  return (
+    <ol className="mt-5">
+      {LINEA_TIEMPO.map((paso, indice) => {
+        const estado = estadoDePaso(estadoActual, paso.estado);
+        const esUltimo = indice === LINEA_TIEMPO.length - 1;
+
+        return (
+          <li key={paso.etiqueta} className="relative grid grid-cols-[28px_1fr] gap-3 pb-5 last:pb-0">
+            {!esUltimo && (
+              <span
+                aria-hidden
+                className={[
+                  "absolute left-[13px] top-7 h-[calc(100%-1.75rem)] w-0.5",
+                  estado === "pendiente" ? "bg-ink/12" : "bg-control/45"
+                ].join(" ")}
+              />
+            )}
+            <span
+              className={[
+                "relative z-10 mt-0.5 grid size-7 place-items-center rounded-full border font-mono-ruum text-[11px] font-semibold",
+                estado === "completado"
+                  ? "border-control bg-control text-mist"
+                  : estado === "actual"
+                    ? "border-signal bg-signal text-ink shadow-2"
+                    : "border-ink/20 bg-mist text-ink/35"
+              ].join(" ")}
+              aria-hidden
+            >
+              {indice + 1}
+            </span>
+            <div className={estado === "pendiente" ? "pt-0.5 text-ink/45" : "pt-0.5 text-ink"}>
+              <p className="font-body text-sm font-semibold">{paso.etiqueta}</p>
+              <p className="mt-0.5 font-body text-xs">
+                {estado === "actual" ? "Estado actual" : estado === "completado" ? "Completado" : "Pendiente"}
+              </p>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 function EvidenciaMomento({
   titulo,
   descripcion,
@@ -528,285 +631,272 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
         </dl>
       </PassportCard>
 
-      <SeguimientoTrasladoTiempoReal
-        trasladoId={pasaporte.traslado_id ?? id}
-        estado={pasaporte.estado}
-        origen={{ lat: pasaporte.origen_lat, lng: pasaporte.origen_lng }}
-        destino={{ lat: pasaporte.destino_lat, lng: pasaporte.destino_lng }}
-        ubicacionInicial={ultimaUbicacion}
-      />
+      <AccionesRapidasPasaporte trasladoId={pasaporte.traslado_id} />
 
-      <section className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Información completa del traslado</h2>
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <Dato etiqueta="Origen" valor={traslado ? `${traslado.origen_direccion}, ${traslado.origen_ciudad}` : null} />
-            <Dato
-              etiqueta="Destino"
-              valor={traslado ? `${traslado.destino_direccion}, ${traslado.destino_ciudad}` : null}
-            />
-            <Dato etiqueta="Entrega" valor={traslado?.contacto_entrega_nombre} />
-            <Dato etiqueta="Recibe" valor={traslado?.contacto_recepcion_nombre} />
-            <Dato etiqueta="Teléfono entrega" valor={traslado?.contacto_entrega_telefono} />
-            <Dato etiqueta="Teléfono recepción" valor={traslado?.contacto_recepcion_telefono} />
-          </dl>
-
-          <div className="mt-6 rounded-lg border border-route/20 bg-route-soft/40 px-4 py-4">
-            <p className="font-body text-xs uppercase tracking-wide text-route-dark">Ruta general</p>
-            <p className="mt-2 font-body text-sm text-ink">
-              {traslado
-                ? `${traslado.origen_ciudad} → ${traslado.destino_ciudad}`
-                : "La ruta se mostrará cuando operación confirme origen y destino."}
-            </p>
-          </div>
-        </PassportCard>
-
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Conductor asignado</h2>
-          <div className="mt-5 flex items-center gap-4">
-            <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-ink text-mist font-display text-xl">
-              {iniciales(conductor?.nombre ?? pasaporte.conductor_nombre)}
-            </div>
-            <div>
-              <p className="font-body text-base font-semibold">{conductor?.nombre ?? pasaporte.conductor_nombre ?? "Por asignar"}</p>
-              <p className="mt-1 font-body text-sm text-ink/55">
-                {conductor ? `ID interno ${conductor.id.slice(0, 8).toUpperCase()}` : "Se mostrará cuando sea asignado"}
-              </p>
-            </div>
-          </div>
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <Dato etiqueta="Certificación" valor={conductor?.nivel_operativo_vigente ?? pasaporte.conductor_nivel} />
-            <Dato
-              etiqueta="Calificación"
-              valor={
-                pasaporte.conductor_calificacion ? `${pasaporte.conductor_calificacion.toFixed(1)} / 5` : "Sin calificación"
-              }
-            />
-            <Dato etiqueta="Estatus" valor={conductor?.estado ?? pasaporte.conductor_estado} />
-            <Dato etiqueta="Canal autorizado" valor={conductor ? "Chat y llamada enmascarada" : "Pendiente"} />
-          </dl>
-          <p className="mt-5 font-body text-xs leading-5 text-ink/50">
-            {pasaporte.conductor_id ? MENSAJES_CLAVE_UX.conductor_asignado : "Se mostrará cuando sea asignado."}
-          </p>
-          <CalificarTraslado
-            trasladoId={pasaporte.traslado_id}
-            conductorId={pasaporte.conductor_id}
-            mostrar={mostrarPromptCalificacion}
-          />
-        </PassportCard>
+      <section id="chat-conductor" className="mt-4 scroll-mt-28">
+        <AcordeonPasaporte titulo="Chat con el conductor" descripcion="Comunicación autorizada y llamada enmascarada.">
+          <ChatTraslado trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />
+        </AcordeonPasaporte>
       </section>
 
-      <section className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Datos del vehículo</h2>
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <Dato etiqueta="Marca" valor={vehiculo?.marca ?? pasaporte.vehiculo_marca} />
-            <Dato etiqueta="Modelo" valor={vehiculo?.modelo ?? pasaporte.vehiculo_modelo} />
-            <Dato etiqueta="Año" valor={vehiculo?.anio ?? pasaporte.vehiculo_anio} />
-            <Dato
-              etiqueta="Tipo"
-              valor={(vehiculo?.tipo ?? pasaporte.vehiculo_tipo) ? ETIQUETA_TIPO_VEHICULO[vehiculo?.tipo ?? pasaporte.vehiculo_tipo!] : null}
-            />
-          </dl>
-          <div className="mt-5 grid gap-2 font-body text-sm">
-            {[
-              ["Tarjeta de circulación", vehiculo?.tiene_tarjeta_circulacion],
-              ["Verificación vehicular", vehiculo?.tiene_verificacion],
-              ["Placas instaladas", vehiculo?.tiene_placas],
-              ["Puede circular rodando", vehiculo?.puede_circular_rodando]
-            ].map(([etiqueta, listo]) => (
-              <div key={String(etiqueta)} className="flex items-center justify-between border-t border-ink/10 py-2 first:border-t-0">
-                <span>{etiqueta}</span>
-                <span className={listo ? "text-control" : "text-ink/45"}>{listo ? "Confirmado" : "Pendiente"}</span>
-              </div>
-            ))}
-          </div>
-        </PassportCard>
-
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Línea de tiempo del viaje</h2>
-          <ol className="mt-5 space-y-3">
-            {LINEA_TIEMPO.map((paso) => {
-              const estado = estadoDePaso(pasaporte.estado, paso.estado);
-              return (
-                <li key={paso.etiqueta} className="flex gap-3">
-                  <span
-                    className={[
-                      "mt-0.5 size-3 shrink-0 rounded-full border",
-                      estado === "completado"
-                        ? "border-control bg-control"
-                        : estado === "actual"
-                          ? "border-signal bg-signal"
-                          : "border-ink/20 bg-mist"
-                    ].join(" ")}
-                  />
-                  <div>
-                    <p className={estado === "pendiente" ? "font-body text-sm text-ink/45" : "font-body text-sm font-medium"}>
-                      {paso.etiqueta}
-                    </p>
-                    {estado === "actual" && <p className="mt-0.5 font-body text-xs text-ink">Estado actual</p>}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </PassportCard>
-      </section>
-
-      <section className="mt-6">
-        <PassportCard>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="font-body text-xs uppercase tracking-wide text-ink/45">15.6 Sección: Evidencia</p>
-              <h2 className="mt-1 font-display text-xl font-semibold">Documentación visual y operativa</h2>
-            </div>
-            <p className="font-body text-sm text-ink/55">La evidencia debe sentirse como tranquilidad, no como trámite.</p>
-          </div>
-
-          <div className="mt-6 space-y-6">
-            <EvidenciaMomento
-              titulo="Evidencia inicial"
-              descripcion={MENSAJES_CLAVE_UX.evidencia_inicial}
-              fotos={evidenciaInicial}
-            />
-            <EvidenciaDurante pasaporte={pasaporte} traslado={traslado} incidencias={incidencias} />
-            <EvidenciaMomento
-              titulo="Evidencia final"
-              descripcion="Fotos finales exteriores e interiores, kilometraje y combustible final, confirmación de entrega, observaciones finales y aceptación del receptor cuando aplique."
-              fotos={evidenciaFinal}
-            />
-          </div>
-        </PassportCard>
-      </section>
-
-      <section className="mt-6 grid gap-6 lg:grid-cols-2">
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Reportes e incidencias</h2>
-          {incidencias.length > 0 ? (
-            <div className="mt-5 space-y-4">
-              {incidencias.map((incidencia) => (
-                <div key={incidencia.id} className="rounded-lg border border-ink/10 px-4 py-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="font-body text-sm font-semibold">{ETIQUETA_TIPO_INCIDENCIA[incidencia.tipo]}</p>
-                    <span className={incidencia.resuelta ? "font-body text-xs text-control" : "font-body text-xs text-warn"}>
-                      {incidencia.resuelta ? "Resuelta" : "Abierta"}
-                    </span>
-                  </div>
-                  <p className="mt-2 font-body text-sm text-ink/65">{incidencia.descripcion}</p>
-                  <p className="mt-2 font-body text-xs text-ink/45">
-                    {incidencia.momento.replaceAll("_", " ")} · {formatoFecha(incidencia.creada_en)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 rounded-lg border border-dashed border-ink/15 px-3 py-3 font-body text-sm text-ink/50">
-              No hay incidencias reportadas para este traslado.
-            </p>
-          )}
+      <section id="acciones-incidencia" className="mt-4 scroll-mt-28">
+        <AcordeonPasaporte titulo="Reportar incidencia" descripcion="Da aviso a soporte sin buscar el formulario al final de la página.">
           <ReportarIncidenciaUsuario trasladoId={pasaporte.traslado_id} />
-          <AbrirDisputa trasladoId={pasaporte.traslado_id} disponible={puedeAbrirDisputa} />
-          <CancelarTraslado
-            trasladoId={pasaporte.traslado_id}
-            estado={pasaporte.estado}
-            precio={precioBase}
-            fechaProgramada={traslado?.fecha_hora_programada ?? null}
-            conductorAsignado={Boolean(pasaporte.conductor_id)}
-          />
-        </PassportCard>
-
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Pago y soporte</h2>
-          <p className="mt-1 font-body text-sm text-ink/55">{MENSAJES_CLAVE_UX.pago}</p>
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <Dato etiqueta="Tipo de pago" valor={pasaporte.tipo_pago.replaceAll("_", " ")} />
-            <Dato etiqueta="Precio cotizado" valor={formatoMoneda(pasaporte.precio_cotizado)} />
-            <Dato etiqueta="Precio final" valor={formatoMoneda(pasaporte.precio_final ?? precioBase)} />
-            <Dato etiqueta="Monto pagado" valor={formatoMoneda(pasaporte.monto_pagado)} />
-          </dl>
-          {pagos.length > 0 && (
-            <div className="mt-5 space-y-3">
-              {pagos.map((pago) => (
-                <div key={pago.id} className="flex items-center justify-between border-t border-ink/10 pt-3 font-body text-sm">
-                  <span>{pago.metodo} · {pago.momento.replaceAll("_", " ")}</span>
-                  <span className="font-mono-ruum">{formatoMoneda(pago.monto)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {pasaporte.estado === "pago_pendiente" && (
-            <div className="mt-6">
-              <Aviso tono="atencion">
-                Pago pendiente. El cobro al cierre se realiza desde la app, fuera de esta pantalla de consulta.
-              </Aviso>
-            </div>
-          )}
-          {pasaporte.estado === "cotizacion_generada" && pasaporte.precio_cotizado != null && (
-            <div className="mt-6">
-              <Aviso tono="info">
-                Tarifa enviada, pendiente de aceptación. La aceptación de la tarifa y el pago se realizan desde el flujo de creación del traslado.
-              </Aviso>
-            </div>
-          )}
-          {pasaporte.estado === "cotizacion_aceptada" && pasaporte.tipo_pago === "anticipado" && precioBase > 0 && traslado?.cotizacion_expira_en && (
-            <div className="mt-6">
-              <Aviso tono="info">
-                Tarifa asignada, pago anticipado pendiente. Esta pantalla es solo de consulta; el cobro se completa desde el flujo de creación del traslado.
-              </Aviso>
-            </div>
-          )}
-          <div className="mt-6 rounded-lg border border-ink/10 px-4 py-4">
-            <p className="font-body text-sm font-semibold">Contacto con soporte</p>
-            <p className="mt-1 font-body text-sm text-ink/60">
-              {MENSAJES_CLAVE_UX.comunicacion} Si hay una incidencia abierta, soporte dará seguimiento desde este mismo expediente.
-            </p>
-            <div className="mt-4">
-              <Link href={`/soporte?viaje=${pasaporte.traslado_id}`} className="font-body text-sm font-medium text-route-dark">
-                Abrir soporte del traslado
-              </Link>
-            </div>
-          </div>
-        </PassportCard>
+        </AcordeonPasaporte>
       </section>
 
-      {(disputas.length > 0 || reclamosSeguro.length > 0) && (
-        <section className="mt-6">
-          <PassportCard>
-            <h2 className="font-display text-xl font-semibold">Disputas, reclamos y resoluciones</h2>
-            <div className="mt-5 space-y-3">
-              {disputas.map((disputa) => (
-                <div key={disputa.id} className="rounded-lg border border-ink/10 px-4 py-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="font-body text-sm font-semibold">{disputa.tipo.replaceAll("_", " ")}</p>
-                    <span className="font-body text-xs text-ink/50">{disputa.estado.replaceAll("_", " ")}</span>
-                  </div>
-                  <p className="mt-2 font-body text-sm text-ink/65">{disputa.descripcion}</p>
-                  {disputa.resolucion && (
-                    <p className="mt-2 font-body text-sm text-control">
-                      Resolución: {disputa.resolucion.replaceAll("_", " ")}
-                      {disputa.resolucion_detalle ? ` · ${disputa.resolucion_detalle}` : ""}
-                    </p>
-                  )}
+      <PasaporteTabs
+        trazabilidad={
+          <div id="trazabilidad" className="space-y-6">
+            <SeguimientoTrasladoTiempoReal
+              trasladoId={pasaporte.traslado_id ?? id}
+              estado={pasaporte.estado}
+              origen={{ lat: pasaporte.origen_lat, lng: pasaporte.origen_lng }}
+              destino={{ lat: pasaporte.destino_lat, lng: pasaporte.destino_lng }}
+              ubicacionInicial={ultimaUbicacion}
+            />
+
+            <PassportCard>
+              <h2 className="font-display text-xl font-semibold">Progreso del traslado</h2>
+              <p className="mt-1 font-body text-sm leading-6 text-ink/60">
+                Los pasos completados quedan sellados, el punto actual queda resaltado y los pasos futuros permanecen en gris.
+              </p>
+              <div className="mt-6">
+                <EstadoStepper estado={pasaporte.estado} />
+              </div>
+              <LineaTiempoVisual estadoActual={pasaporte.estado} />
+            </PassportCard>
+          </div>
+        }
+        evidencias={
+          <section id="evidencias" className="space-y-6">
+            <PassportCard>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="font-body text-xs uppercase tracking-wide text-ink/45">Evidencia documental</p>
+                  <h2 className="mt-1 font-display text-xl font-semibold">Fotos y bitácora operativa</h2>
                 </div>
-              ))}
-              {reclamosSeguro.map((reclamo) => (
-                <div key={reclamo.id} className="rounded-lg border border-ink/10 px-4 py-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="font-body text-sm font-semibold">Reclamo de seguro</p>
-                    <span className="font-body text-xs text-ink/50">{reclamo.estado.replaceAll("_", " ")}</span>
-                  </div>
-                  <p className="mt-2 font-body text-sm text-ink/65">
-                    Abierto {formatoFecha(reclamo.abierto_en)}
-                    {reclamo.resuelto_en ? ` · Resuelto ${formatoFecha(reclamo.resuelto_en)}` : ""}
+                <p className="font-body text-sm text-ink/55">La evidencia se consulta por momento, sin mezclarla con soporte o pago.</p>
+              </div>
+
+              <div className="mt-6 space-y-6">
+                <EvidenciaMomento
+                  titulo="Evidencia inicial"
+                  descripcion={MENSAJES_CLAVE_UX.evidencia_inicial}
+                  fotos={evidenciaInicial}
+                />
+                <EvidenciaDurante pasaporte={pasaporte} traslado={traslado} incidencias={incidencias} />
+                <EvidenciaMomento
+                  titulo="Evidencia final"
+                  descripcion="Fotos finales exteriores e interiores, kilometraje y combustible final, confirmación de entrega, observaciones finales y aceptación del receptor cuando aplique."
+                  fotos={evidenciaFinal}
+                />
+              </div>
+            </PassportCard>
+          </section>
+        }
+        detalles={
+          <section id="detalles" className="space-y-4">
+            <AcordeonPasaporte titulo="Ruta y contactos" descripcion="Origen, destino y personas autorizadas." abierto>
+              <dl className="grid gap-4 sm:grid-cols-2">
+                <Dato etiqueta="Origen" valor={traslado ? `${traslado.origen_direccion}, ${traslado.origen_ciudad}` : null} />
+                <Dato etiqueta="Destino" valor={traslado ? `${traslado.destino_direccion}, ${traslado.destino_ciudad}` : null} />
+                <Dato etiqueta="Entrega" valor={traslado?.contacto_entrega_nombre} />
+                <Dato etiqueta="Recibe" valor={traslado?.contacto_recepcion_nombre} />
+                <Dato etiqueta="Teléfono entrega" valor={traslado?.contacto_entrega_telefono} />
+                <Dato etiqueta="Teléfono recepción" valor={traslado?.contacto_recepcion_telefono} />
+              </dl>
+              <div className="mt-6 rounded-lg border border-route/20 bg-route-soft/40 px-4 py-4">
+                <p className="font-body text-xs uppercase tracking-wide text-route-dark">Ruta general</p>
+                <p className="mt-2 font-body text-sm text-ink">
+                  {traslado
+                    ? `${traslado.origen_ciudad} → ${traslado.destino_ciudad}`
+                    : "La ruta se mostrará cuando operación confirme origen y destino."}
+                </p>
+              </div>
+            </AcordeonPasaporte>
+
+            <AcordeonPasaporte titulo="Conductor asignado" descripcion="Identidad, certificación y canal autorizado.">
+              <div className="flex items-center gap-4">
+                <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-ink font-display text-xl text-mist">
+                  {iniciales(conductor?.nombre ?? pasaporte.conductor_nombre)}
+                </div>
+                <div>
+                  <p className="font-body text-base font-semibold">{conductor?.nombre ?? pasaporte.conductor_nombre ?? "Por asignar"}</p>
+                  <p className="mt-1 font-body text-sm text-ink/55">
+                    {conductor ? `ID interno ${conductor.id.slice(0, 8).toUpperCase()}` : "Se mostrará cuando sea asignado"}
                   </p>
                 </div>
-              ))}
-            </div>
-          </PassportCard>
-        </section>
-      )}
+              </div>
+              <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+                <Dato etiqueta="Certificación" valor={conductor?.nivel_operativo_vigente ?? pasaporte.conductor_nivel} />
+                <Dato
+                  etiqueta="Calificación"
+                  valor={
+                    pasaporte.conductor_calificacion ? `${pasaporte.conductor_calificacion.toFixed(1)} / 5` : "Sin calificación"
+                  }
+                />
+                <Dato etiqueta="Estatus" valor={conductor?.estado ?? pasaporte.conductor_estado} />
+                <Dato etiqueta="Canal autorizado" valor={conductor ? "Chat y llamada enmascarada" : "Pendiente"} />
+              </dl>
+              <p className="mt-5 font-body text-xs leading-5 text-ink/50">
+                {pasaporte.conductor_id ? MENSAJES_CLAVE_UX.conductor_asignado : "Se mostrará cuando sea asignado."}
+              </p>
+              <CalificarTraslado
+                trasladoId={pasaporte.traslado_id}
+                conductorId={pasaporte.conductor_id}
+                mostrar={mostrarPromptCalificacion}
+              />
+            </AcordeonPasaporte>
 
-      <ChatTraslado trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />
+            <AcordeonPasaporte titulo="Datos del vehículo" descripcion="Ficha técnica y documentos declarados.">
+              <dl className="grid gap-4 sm:grid-cols-2">
+                <Dato etiqueta="Marca" valor={vehiculo?.marca ?? pasaporte.vehiculo_marca} />
+                <Dato etiqueta="Modelo" valor={vehiculo?.modelo ?? pasaporte.vehiculo_modelo} />
+                <Dato etiqueta="Año" valor={vehiculo?.anio ?? pasaporte.vehiculo_anio} />
+                <Dato
+                  etiqueta="Tipo"
+                  valor={(vehiculo?.tipo ?? pasaporte.vehiculo_tipo) ? ETIQUETA_TIPO_VEHICULO[vehiculo?.tipo ?? pasaporte.vehiculo_tipo!] : null}
+                />
+              </dl>
+              <div className="mt-5 grid gap-2 font-body text-sm">
+                {[
+                  ["Tarjeta de circulación", vehiculo?.tiene_tarjeta_circulacion],
+                  ["Verificación vehicular", vehiculo?.tiene_verificacion],
+                  ["Placas instaladas", vehiculo?.tiene_placas],
+                  ["Puede circular rodando", vehiculo?.puede_circular_rodando]
+                ].map(([etiqueta, listo]) => (
+                  <div key={String(etiqueta)} className="flex items-center justify-between border-t border-ink/10 py-2 first:border-t-0">
+                    <span>{etiqueta}</span>
+                    <span className={listo ? "text-control" : "text-ink/45"}>{listo ? "Confirmado" : "Pendiente"}</span>
+                  </div>
+                ))}
+              </div>
+            </AcordeonPasaporte>
+
+            <AcordeonPasaporte titulo="Reportes e incidencias" descripcion="Acciones disponibles durante y después del traslado.">
+              <div>
+                {incidencias.length > 0 ? (
+                  <div className="space-y-4">
+                    {incidencias.map((incidencia) => (
+                      <div key={incidencia.id} className="rounded-lg border border-ink/10 px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="font-body text-sm font-semibold">{ETIQUETA_TIPO_INCIDENCIA[incidencia.tipo]}</p>
+                          <span className={incidencia.resuelta ? "font-body text-xs text-control" : "font-body text-xs text-warn"}>
+                            {incidencia.resuelta ? "Resuelta" : "Abierta"}
+                          </span>
+                        </div>
+                        <p className="mt-2 font-body text-sm text-ink/65">{incidencia.descripcion}</p>
+                        <p className="mt-2 font-body text-xs text-ink/45">
+                          {incidencia.momento.replaceAll("_", " ")} · {formatoFecha(incidencia.creada_en)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-lg border border-dashed border-ink/15 px-3 py-3 font-body text-sm text-ink/50">
+                    No hay incidencias reportadas para este traslado.
+                  </p>
+                )}
+                <AbrirDisputa trasladoId={pasaporte.traslado_id} disponible={puedeAbrirDisputa} />
+                <CancelarTraslado
+                  trasladoId={pasaporte.traslado_id}
+                  estado={pasaporte.estado}
+                  precio={precioBase}
+                  fechaProgramada={traslado?.fecha_hora_programada ?? null}
+                  conductorAsignado={Boolean(pasaporte.conductor_id)}
+                />
+              </div>
+            </AcordeonPasaporte>
+
+            <AcordeonPasaporte titulo="Pago y soporte" descripcion="Tarifa, pagos registrados y contacto de ayuda.">
+              <p className="font-body text-sm text-ink/55">{MENSAJES_CLAVE_UX.pago}</p>
+              <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+                <Dato etiqueta="Tipo de pago" valor={pasaporte.tipo_pago.replaceAll("_", " ")} />
+                <Dato etiqueta="Precio cotizado" valor={formatoMoneda(pasaporte.precio_cotizado)} />
+                <Dato etiqueta="Precio final" valor={formatoMoneda(pasaporte.precio_final ?? precioBase)} />
+                <Dato etiqueta="Monto pagado" valor={formatoMoneda(pasaporte.monto_pagado)} />
+              </dl>
+              {pagos.length > 0 && (
+                <div className="mt-5 space-y-3">
+                  {pagos.map((pago) => (
+                    <div key={pago.id} className="flex items-center justify-between border-t border-ink/10 pt-3 font-body text-sm">
+                      <span>{pago.metodo} · {pago.momento.replaceAll("_", " ")}</span>
+                      <span className="font-mono-ruum">{formatoMoneda(pago.monto)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {pasaporte.estado === "pago_pendiente" && (
+                <div className="mt-6">
+                  <Aviso tono="atencion">
+                    Pago pendiente. El cobro al cierre se realiza desde la app, fuera de esta pantalla de consulta.
+                  </Aviso>
+                </div>
+              )}
+              {pasaporte.estado === "cotizacion_generada" && pasaporte.precio_cotizado != null && (
+                <div className="mt-6">
+                  <Aviso tono="info">
+                    Tarifa enviada, pendiente de aceptación. La aceptación de la tarifa y el pago se realizan desde el flujo de creación del traslado.
+                  </Aviso>
+                </div>
+              )}
+              {pasaporte.estado === "cotizacion_aceptada" && pasaporte.tipo_pago === "anticipado" && precioBase > 0 && traslado?.cotizacion_expira_en && (
+                <div className="mt-6">
+                  <Aviso tono="info">
+                    Tarifa asignada, pago anticipado pendiente. Esta pantalla es solo de consulta; el cobro se completa desde el flujo de creación del traslado.
+                  </Aviso>
+                </div>
+              )}
+              <div id="soporte-pasaporte" className="mt-6 rounded-lg border border-ink/10 px-4 py-4">
+                <p className="font-body text-sm font-semibold">Contacto con soporte</p>
+                <p className="mt-1 font-body text-sm text-ink/60">
+                  {MENSAJES_CLAVE_UX.comunicacion} Si hay una incidencia abierta, soporte dará seguimiento desde este mismo expediente.
+                </p>
+                <div className="mt-4">
+                  <Link href={`/soporte?viaje=${pasaporte.traslado_id}`} className="font-body text-sm font-medium text-route-dark">
+                    Abrir soporte del traslado
+                  </Link>
+                </div>
+              </div>
+            </AcordeonPasaporte>
+
+            {(disputas.length > 0 || reclamosSeguro.length > 0) && (
+              <AcordeonPasaporte titulo="Disputas, reclamos y resoluciones" descripcion="Historial de resolución posterior al servicio.">
+                <div className="space-y-3">
+                  {disputas.map((disputa) => (
+                    <div key={disputa.id} className="rounded-lg border border-ink/10 px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-body text-sm font-semibold">{disputa.tipo.replaceAll("_", " ")}</p>
+                        <span className="font-body text-xs text-ink/50">{disputa.estado.replaceAll("_", " ")}</span>
+                      </div>
+                      <p className="mt-2 font-body text-sm text-ink/65">{disputa.descripcion}</p>
+                      {disputa.resolucion && (
+                        <p className="mt-2 font-body text-sm text-control">
+                          Resolución: {disputa.resolucion.replaceAll("_", " ")}
+                          {disputa.resolucion_detalle ? ` · ${disputa.resolucion_detalle}` : ""}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                  {reclamosSeguro.map((reclamo) => (
+                    <div key={reclamo.id} className="rounded-lg border border-ink/10 px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-body text-sm font-semibold">Reclamo de seguro</p>
+                        <span className="font-body text-xs text-ink/50">{reclamo.estado.replaceAll("_", " ")}</span>
+                      </div>
+                      <p className="mt-2 font-body text-sm text-ink/65">
+                        Abierto {formatoFecha(reclamo.abierto_en)}
+                        {reclamo.resuelto_en ? ` · Resuelto ${formatoFecha(reclamo.resuelto_en)}` : ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </AcordeonPasaporte>
+            )}
+          </section>
+        }
+      />
       </div>
     </main>
   );

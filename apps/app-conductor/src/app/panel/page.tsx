@@ -49,22 +49,6 @@ const ESTILO_DISPONIBILIDAD: Record<Disponibilidad, string> = {
 const OPCIONES_DISPONIBILIDAD: Disponibilidad[] = ["disponible", "no_disponible"];
 const ESTADOS_TERMINALES = ["servicio_cerrado", "servicio_cancelado", "traslado_fallido"];
 
-function inicioSemana(fecha = new Date()) {
-  const copia = new Date(fecha);
-  const dia = copia.getDay() || 7;
-  copia.setHours(0, 0, 0, 0);
-  copia.setDate(copia.getDate() - dia + 1);
-  return copia;
-}
-
-function estaSemana(fechaIso: string) {
-  return new Date(fechaIso) >= inicioSemana();
-}
-
-function formatearMoneda(valor: number) {
-  return `$${valor.toLocaleString("es-MX")}`;
-}
-
 function nombreVehiculo(viaje: PasaporteRow) {
   return [viaje.vehiculo_marca, viaje.vehiculo_modelo, viaje.vehiculo_anio].filter(Boolean).join(" ") || "Vehículo";
 }
@@ -175,18 +159,9 @@ export default function PaginaPanel() {
   }, [router]);
 
   const resumen = useMemo(() => {
-    const viajesSemana = viajesAceptados.filter((viaje) => estaSemana(viaje.actualizado_en));
-    const activos = viajesAceptados.filter(
-      (viaje) => !ESTADOS_TERMINALES.includes(viaje.estado)
-    );
-    const realizados = viajesAceptados.filter((viaje) => viaje.estado === "servicio_cerrado" && estaSemana(viaje.actualizado_en)).length;
-
     return {
-      realizados,
-      viajesSemana: viajesSemana.length,
-      activos: activos.length,
-      pendientes: viajesDisponibles.length,
-      gananciasSemana: viajesSemana.reduce((total, viaje) => total + Number(viaje.precio_final ?? viaje.precio_cotizado ?? 0), 0)
+      aceptados: viajesAceptados.length,
+      pendientes: viajesDisponibles.length
     };
   }, [viajesAceptados, viajesDisponibles]);
   const viajeActivoFab = useMemo(
@@ -411,39 +386,22 @@ export default function PaginaPanel() {
         <p className="mb-3 font-body text-xs uppercase tracking-wide text-ink/45">Zona B · Stats</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <PassportCard acento>
-            <p className="font-body text-xs font-medium uppercase tracking-wide text-ink/45">Viajes esta semana</p>
+            <p className="font-body text-xs font-medium uppercase tracking-wide text-ink/45">Traslados solicitados</p>
             <div className="mt-2 flex items-baseline gap-2">
-            <p className="font-display text-3xl font-bold">{resumen.viajesSemana}</p>
+              <p className="font-display text-3xl font-bold">{resumen.pendientes}</p>
             </div>
-            <p className="font-body text-xs text-ink/45">{resumen.realizados} completado(s)</p>
+            <p className="font-body text-xs text-ink/45">por aceptar</p>
           </PassportCard>
           <PassportCard acento>
-            <p className="font-body text-xs font-medium uppercase tracking-wide text-ink/45">Ganancias esta semana</p>
+            <p className="font-body text-xs font-medium uppercase tracking-wide text-ink/45">Traslados aceptados</p>
             <div className="mt-2 flex items-baseline gap-2">
-              <p className="font-display text-3xl font-bold">{formatearMoneda(resumen.gananciasSemana)}</p>
+              <p className="font-display text-3xl font-bold">{resumen.aceptados}</p>
             </div>
-            <Link href="/ganancias" className="font-body text-xs font-semibold text-route-dark">
-              Ver desglose
+            <Link href="/viajes" className="font-body text-xs font-semibold text-route-dark">
+              Ver traslados
             </Link>
           </PassportCard>
         </div>
-        <details className="mt-4 rounded-xl border border-ink/10 bg-mist">
-          <summary className="cursor-pointer px-4 py-3 font-body text-sm font-semibold text-ink/70">
-            Ver estadísticas completas
-          </summary>
-          <div className="grid gap-3 border-t border-ink/10 px-4 py-4 sm:grid-cols-2">
-            <div>
-              <p className="font-body text-xs uppercase tracking-wide text-ink/45">Activos</p>
-              <p className="mt-1 font-display text-2xl font-semibold">{resumen.activos}</p>
-              <p className="font-body text-xs text-ink/45">en seguimiento</p>
-            </div>
-            <div>
-              <p className="font-body text-xs uppercase tracking-wide text-ink/45">Pendientes</p>
-              <p className="mt-1 font-display text-2xl font-semibold">{resumen.pendientes}</p>
-              <p className="font-body text-xs text-ink/45">por aceptar</p>
-            </div>
-          </div>
-        </details>
       </section>
 
       <section className="mt-6">
