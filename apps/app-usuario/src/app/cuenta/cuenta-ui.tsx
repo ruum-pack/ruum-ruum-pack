@@ -302,7 +302,7 @@ export function LayoutCuenta({ cuenta, children }: { cuenta: CuentaReal; childre
       </div>
       <div className="fixed bottom-6 right-6 z-50 sm:hidden">
         <Link href="/traslados/nuevo">
-          <Button className="shadow-lg">Solicitar traslado</Button>
+          <Button className="shadow-2">Solicitar traslado</Button>
         </Link>
       </div>
     </main>

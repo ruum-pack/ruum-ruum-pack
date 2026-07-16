@@ -155,7 +155,7 @@ function ViajeCard({ viaje }: { viaje: ViajeLista }) {
   return (
     <Link
       href={`/traslados/${pasaporte.traslado_id}`}
-      className="app-card app-card-interactive group block rounded-lg bg-mist px-4 py-4 text-ink no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-dark"
+      className="app-card app-card-interactive group block rounded-lg bg-mist px-4 py-4 text-ink no-underline focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-dark"
       aria-label={`Ver Pasaporte Digital del viaje ${pasaporte.traslado_id.slice(0, 8).toUpperCase()}`}
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

@@ -38,7 +38,7 @@ export function Chat({ propio, mensajes, onEnviar, deshabilitado, mensajeDeshabi
   }
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-card border border-ink/15 bg-mist shadow-[0_1px_2px_rgba(26,31,46,0.08)]">
+    <div className="flex flex-col overflow-hidden rounded-card border border-ink/15 bg-mist shadow-1">
       <div className="flex-1 space-y-3 overflow-y-auto p-4" style={{ maxHeight: 360, minHeight: 180 }}>
         {mensajes.length === 0 ? (
           <p className="font-body text-sm text-ink/65">Todavía no hay mensajes.</p>

@@ -180,7 +180,7 @@ export function NavegacionUsuario() {
                       id="menu-cuenta-usuario"
                       role="menu"
                       onKeyDown={manejarTeclasMenuCuenta}
-                      className="absolute right-0 top-full z-50 mt-1 w-44 rounded-xl border border-ink/10 bg-mist py-1 shadow-lg"
+                      className="absolute right-0 top-full z-50 mt-1 w-44 rounded-[var(--ruum-radius-modal)] border border-ink/10 bg-mist py-1 shadow-3"
                     >
                       <Link
                         href="/cuenta"

@@ -16,7 +16,7 @@ export function Aviso({ tono = "info", children }: AvisoProps) {
   return (
     <div
       role={tono === "peligro" ? "alert" : "status"}
-      className={`rounded-xl border px-4 py-3 font-body text-sm leading-5 shadow-[0_1px_2px_rgba(26,31,46,0.04)] ${ESTILOS[tono]}`}
+      className={`rounded-xl border px-4 py-3 font-body text-sm leading-5 shadow-1 ${ESTILOS[tono]}`}
     >
       {children}
     </div>

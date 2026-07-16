@@ -50,7 +50,7 @@ export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassNam
           <button
             type="button"
             onClick={() => setPasswordVisible((visible) => !visible)}
-            className={`absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg text-ink/55 transition-colors hover:bg-ink/[0.05] hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark disabled:cursor-not-allowed disabled:opacity-40 ${passwordToggleClassName}`}
+            className={`absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg text-ink/55 transition-colors hover:bg-ink/[0.05] hover:text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark disabled:cursor-not-allowed disabled:opacity-40 ${passwordToggleClassName}`}
             style={{ right: "0.5rem", width: "2.25rem", height: "2.25rem" }}
             aria-label={passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"}
             disabled={props.disabled}

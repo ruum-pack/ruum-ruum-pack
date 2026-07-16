@@ -915,7 +915,7 @@ export function NuevoTrasladoForm() {
             aria-pressed={subpasoRuta === "origen"}
             onClick={() => setSubpasoRuta("origen")}
             className={[
-              "rounded-lg px-3 py-2.5 text-left font-body text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-dark",
+              "rounded-lg px-3 py-2.5 text-left font-body text-sm font-semibold transition focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-dark",
               subpasoRuta === "origen" ? "bg-signal text-ink shadow-sm" : "text-ink/65 hover:bg-ink/[0.04] hover:text-ink"
             ].join(" ")}
           >
@@ -927,7 +927,7 @@ export function NuevoTrasladoForm() {
             aria-pressed={subpasoRuta === "destino_contactos"}
             onClick={() => setSubpasoRuta("destino_contactos")}
             className={[
-              "rounded-lg px-3 py-2.5 text-left font-body text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-dark",
+              "rounded-lg px-3 py-2.5 text-left font-body text-sm font-semibold transition focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-dark",
               subpasoRuta === "destino_contactos" ? "bg-signal text-ink shadow-sm" : "text-ink/65 hover:bg-ink/[0.04] hover:text-ink"
             ].join(" ")}
           >
@@ -1054,7 +1054,7 @@ export function NuevoTrasladoForm() {
               <label htmlFor="telefono-entrega" className="font-body text-sm font-medium">Teléfono</label>
               <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("entregaTelefono")}`}>
                 <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">+52</span>
-                <input id="telefono-entrega" value={datos.entregaTelefono} onChange={(e) => actualizarTelefono("entregaTelefono", e.target.value)} inputMode="numeric" maxLength={10} className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark" placeholder="10 dígitos" aria-label="Teléfono de entrega (10 dígitos)" aria-invalid={Boolean(errores.entregaTelefono)} aria-describedby={errores.entregaTelefono ? "telefono-entrega-error" : undefined} />
+                <input id="telefono-entrega" value={datos.entregaTelefono} onChange={(e) => actualizarTelefono("entregaTelefono", e.target.value)} inputMode="numeric" maxLength={10} className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark" placeholder="10 dígitos" aria-label="Teléfono de entrega (10 dígitos)" aria-invalid={Boolean(errores.entregaTelefono)} aria-describedby={errores.entregaTelefono ? "telefono-entrega-error" : undefined} />
               </div>
               {errores.entregaTelefono && <p id="telefono-entrega-error" className="font-body text-xs text-danger">{errores.entregaTelefono}</p>}
             </div>
@@ -1067,13 +1067,13 @@ export function NuevoTrasladoForm() {
               <label htmlFor="telefono-recepcion" className="font-body text-sm font-medium">Teléfono</label>
               <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("recepcionTelefono")}`}>
                 <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">+52</span>
-                <input id="telefono-recepcion" value={datos.recepcionTelefono} onChange={(e) => actualizarTelefono("recepcionTelefono", e.target.value)} inputMode="numeric" maxLength={10} className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark" placeholder="10 dígitos" aria-label="Teléfono de recepción (10 dígitos)" aria-invalid={Boolean(errores.recepcionTelefono)} aria-describedby={errores.recepcionTelefono ? "telefono-recepcion-error" : undefined} />
+                <input id="telefono-recepcion" value={datos.recepcionTelefono} onChange={(e) => actualizarTelefono("recepcionTelefono", e.target.value)} inputMode="numeric" maxLength={10} className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark" placeholder="10 dígitos" aria-label="Teléfono de recepción (10 dígitos)" aria-invalid={Boolean(errores.recepcionTelefono)} aria-describedby={errores.recepcionTelefono ? "telefono-recepcion-error" : undefined} />
               </div>
               {errores.recepcionTelefono && <p id="telefono-recepcion-error" className="font-body text-xs text-danger">{errores.recepcionTelefono}</p>}
             </div>
             <label className="flex flex-col gap-1.5">
               <span className="font-body text-sm font-medium">Instrucciones especiales</span>
-              <textarea value={datos.instruccionesEspeciales} onChange={(e) => actualizar("instruccionesEspeciales", e.target.value)} maxLength={1000} aria-label="Instrucciones especiales para el traslado" className="min-h-24 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark" />
+              <textarea value={datos.instruccionesEspeciales} onChange={(e) => actualizar("instruccionesEspeciales", e.target.value)} maxLength={1000} aria-label="Instrucciones especiales para el traslado" className="min-h-24 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark" />
             </label>
           </div>
         )}
@@ -1454,7 +1454,7 @@ export function NuevoTrasladoForm() {
                   <select
                     value={datos.condicion}
                     onChange={(e) => actualizar("condicion", e.target.value as CondicionVehiculo)}
-                    className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark ${claseControl("condicion")}`}
+                    className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark ${claseControl("condicion")}`}
                     aria-invalid={Boolean(errores.condicion)}
                   >
                     <option value="">Selecciona condición</option>
@@ -1488,7 +1488,7 @@ export function NuevoTrasladoForm() {
                   <select
                     value={datos.estadoGeneral}
                     onChange={(e) => actualizar("estadoGeneral", e.target.value)}
-                    className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark ${claseControl("estadoGeneral")}`}
+                    className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark ${claseControl("estadoGeneral")}`}
                     aria-invalid={Boolean(errores.estadoGeneral)}
                   >
                     <option value="">Selecciona estado</option>
@@ -1715,7 +1715,7 @@ export function NuevoTrasladoForm() {
             </label>
 
             <section
-              className="sticky bottom-4 z-20 rounded-card border border-ink/15 bg-mist px-5 py-5 shadow-[0_16px_40px_rgba(26,31,46,0.18)]"
+              className="sticky bottom-4 z-20 rounded-[var(--ruum-radius-modal)] border border-ink/15 bg-mist px-5 py-5 shadow-3"
               aria-labelledby="titulo-tarifa-flotante"
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

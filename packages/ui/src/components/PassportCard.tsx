@@ -18,7 +18,7 @@ export function PassportCard({ children, folio, acento = false, className = "" }
   return (
     <div
       className={[
-        "relative overflow-hidden rounded-card border border-ink/15 bg-mist shadow-[0_1px_2px_rgba(26,31,46,0.08)]",
+        "relative overflow-hidden rounded-card border border-ink/15 bg-mist shadow-1",
         "transition-[border-color,box-shadow,transform] duration-200",
         acento ? "border-l-4 border-l-signal" : "",
         className

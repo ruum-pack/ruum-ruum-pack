@@ -102,7 +102,7 @@ function CampoReporte({ etiqueta, children }: { etiqueta: string; children: Reac
 
 function SelectBase({ children }: { children: React.ReactNode }) {
   return (
-    <select className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark">
+    <select className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark">
       {children}
     </select>
   );
@@ -112,7 +112,7 @@ function TextAreaBase() {
   return (
     <textarea
       rows={4}
-      className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+      className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
       placeholder="Describe lo que pasó, incluye ubicación aproximada, hora y cualquier evidencia relevante."
     />
   );

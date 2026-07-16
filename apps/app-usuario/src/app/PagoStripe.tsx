@@ -1,6 +1,4 @@
 "use client";
-
-"use client";
 import { useEffect, useState } from "react";
 import { Button, Aviso } from "@ruum/ui";
 import { crearClienteNavegador } from "../lib/supabase-browser";
@@ -8,6 +6,22 @@ import { crearClienteNavegador } from "../lib/supabase-browser";
 const clavePublica = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const aparienciaStripe = {
+  variables: {
+    colorPrimary: "#0E5CAB",
+    fontFamily: "Inter, sans-serif",
+    borderRadius: "10px"
+  },
+  rules: {
+    ".Input:focus": {
+      borderColor: "#0E5CAB",
+      boxShadow: "0 0 0 3px rgba(14, 92, 171, 0.24)"
+    },
+    ".Tab:focus": {
+      boxShadow: "0 0 0 3px rgba(14, 92, 171, 0.24)"
+    }
+  }
+};
 
 export function tieneStripePublicoConfigurado(): boolean {
   return Boolean(clavePublica);
@@ -133,7 +147,7 @@ export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
   const { Elements, PaymentElement, useStripe, useElements, stripePromise } = stripeModule;
 
   return (
-    <Elements stripe={stripePromise as any} options={{ clientSecret }}>
+    <Elements stripe={stripePromise as any} options={{ clientSecret, appearance: aparienciaStripe }}>
       <FormularioPago onPagado={onPagado} PaymentElement={PaymentElement} useStripe={useStripe} useElements={useElements} />
     </Elements>
   );

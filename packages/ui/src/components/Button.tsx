@@ -33,7 +33,7 @@ export function Button({ variant = "primario", loading = false, disabled, classN
       className={[
         "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-3",
         "font-display text-sm font-bold leading-5 transition-[background-color,border-color,box-shadow,transform] duration-150",
-        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
+        "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2",
         "disabled:cursor-not-allowed disabled:transform-none disabled:opacity-45 disabled:shadow-none",
         ESTILOS[variant],
         className

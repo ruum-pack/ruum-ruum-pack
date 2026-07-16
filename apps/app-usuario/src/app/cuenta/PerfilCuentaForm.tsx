@@ -253,7 +253,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
             accept="image/*"
             onChange={(e) => void cargarFoto(e.target.files?.[0])}
             disabled={subiendoFoto}
-            className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+            className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-mist focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
           />
           <span className="font-body text-xs text-ink/65">
             {subiendoFoto ? "Subiendo fotografía..." : "Puedes subir una imagen nueva cuando quieras."}
@@ -272,7 +272,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
             maxLength={10}
             required
             autoComplete="tel-national"
-            className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+            className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
             placeholder="10 dígitos"
           />
         </div>
@@ -299,7 +299,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
                 value={ciudad}
                 onChange={(e) => setCiudad(e.target.value)}
                 required
-                className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+                className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
               >
                 {ciudadesCp.map((opcion) => (
                   <option key={opcion} value={opcion}>
@@ -312,7 +312,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
                 value={ciudad}
                 onChange={(e) => setCiudad(e.target.value)}
                 required
-                className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+                className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
               />
             )}
           </label>
@@ -323,7 +323,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
                 value={colonia}
                 onChange={(e) => setColonia(e.target.value)}
                 required
-                className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+                className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
               >
                 {coloniasCp.map((opcion) => (
                   <option key={opcion} value={opcion}>
@@ -336,7 +336,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
                 value={colonia}
                 onChange={(e) => setColonia(e.target.value)}
                 required
-                className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+                className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
               />
             )}
           </label>
