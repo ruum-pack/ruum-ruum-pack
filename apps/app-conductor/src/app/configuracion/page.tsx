@@ -3,14 +3,16 @@
 import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Aviso, Button, PassportCard } from "@ruum/ui";
+import { Aviso, Button, Field, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import {
   actualizarPerfilConductor,
+  guardarDatosBancariosConductor,
   guardarPreferenciasConductor,
   obtenerConductorActual,
   obtenerConfiguracionConductor,
+  obtenerGananciasConductor,
   subirDocumentoConductor,
   subirFotoPerfilConductor,
   type TipoDocumentoConductor
@@ -20,6 +22,7 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supab
 
 type Bloque = "cuenta" | "documentos" | "preferencias" | "soporte";
 type Conductor = Database["public"]["Tables"]["conductores"]["Row"];
+type DatosBancariosConductor = Database["public"]["Tables"]["datos_bancarios_conductor"]["Row"];
 type Documento = Database["public"]["Tables"]["documentos_conductor"]["Row"];
 type Preferencias = Database["public"]["Tables"]["preferencias_conductor"]["Row"];
 
@@ -66,10 +69,16 @@ const SOPORTE = [
   { etiqueta: "Preguntas frecuentes", href: "#preguntas-frecuentes" },
   { etiqueta: "Contactar por WhatsApp", href: WHATSAPP_SOPORTE },
   { etiqueta: "Llamar a soporte", href: "tel:+525500004911" },
+  { etiqueta: "Enviar correo electrónico", href: "mailto:soporte-conductores@ruumruum.mx?subject=Soporte%20conductor" },
   { etiqueta: "Reportar problema", href: "/viajes" },
-  { etiqueta: "Ayuda con pagos y documentos", href: "mailto:soporte-conductores@ruumruum.mx?subject=Ayuda%20con%20pagos%20o%20documentos" },
   { etiqueta: "Términos y aviso de privacidad", href: "https://ruumruum.mx/legal" }
 ];
+
+const ETIQUETA_DATOS_BANCARIOS: Record<Database["public"]["Enums"]["estado_datos_bancarios_conductor"], string> = {
+  en_revision: "Datos en revisión",
+  verificada: "Datos verificados",
+  rechazada: "Datos rechazados"
+};
 
 const PERFIL_DEFAULT = {
   nombre: "",
@@ -132,13 +141,21 @@ function telefonoE164(valor: string) {
 export default function PaginaConfiguracion() {
   const [bloque, setBloque] = useState<Bloque>("cuenta");
   const [conductor, setConductor] = useState<Conductor | null>(null);
+  const [datosBancarios, setDatosBancarios] = useState<DatosBancariosConductor | null>(null);
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [prefs, setPrefs] = useState(PREFS_DEFAULT);
   const [perfil, setPerfil] = useState(PERFIL_DEFAULT);
+  const [formularioBanco, setFormularioBanco] = useState({
+    titularCuenta: "",
+    banco: "",
+    clabe: "",
+    numeroTarjeta: ""
+  });
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [tipoDocumento, setTipoDocumento] = useState<TipoDocumentoConductor>("documento_operativo");
   const [subiendoDocumento, setSubiendoDocumento] = useState(false);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [guardandoBanco, setGuardandoBanco] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const [pendiente, startTransition] = useTransition();
@@ -158,7 +175,17 @@ export default function PaginaConfiguracion() {
         return;
       }
       const datos = await obtenerConfiguracionConductor(cliente, actual.id);
+      const ganancias = await obtenerGananciasConductor(cliente, actual.id);
       setConductor(datos.conductor);
+      setDatosBancarios(ganancias.datosBancarios);
+      if (ganancias.datosBancarios) {
+        setFormularioBanco({
+          titularCuenta: ganancias.datosBancarios.titular_cuenta,
+          banco: ganancias.datosBancarios.banco,
+          clabe: ganancias.datosBancarios.clabe,
+          numeroTarjeta: ganancias.datosBancarios.numero_tarjeta
+        });
+      }
       setPerfil({
         nombre: datos.conductor.nombre ?? "",
         telefono: datos.conductor.telefono ?? "",
@@ -255,6 +282,34 @@ export default function PaginaConfiguracion() {
     });
   }
 
+  function actualizarCampoBanco(campo: keyof typeof formularioBanco, valor: string) {
+    setFormularioBanco((actual) => ({
+      ...actual,
+      [campo]: campo === "clabe" || campo === "numeroTarjeta" ? valor.replace(/\D/g, "") : valor
+    }));
+  }
+
+  async function guardarBanco() {
+    setGuardandoBanco(true);
+    setMensaje(null);
+    try {
+      const cliente = crearClienteNavegador();
+      const guardado = await guardarDatosBancariosConductor(cliente, formularioBanco);
+      setDatosBancarios(guardado);
+      setFormularioBanco({
+        titularCuenta: guardado.titular_cuenta,
+        banco: guardado.banco,
+        clabe: guardado.clabe,
+        numeroTarjeta: guardado.numero_tarjeta
+      });
+      setMensaje("Datos bancarios guardados.");
+    } catch (error) {
+      setMensaje(traducirErrorOperativo(error, "No pudimos guardar tus datos bancarios."));
+    } finally {
+      setGuardandoBanco(false);
+    }
+  }
+
   async function subirDocumento(evento: ChangeEvent<HTMLInputElement>) {
     const archivo = evento.target.files?.[0];
     if (!archivo || !conductor) return;
@@ -283,6 +338,7 @@ export default function PaginaConfiguracion() {
       const fotoUrl = await subirFotoPerfilConductor(cliente, conductor.id, archivo);
       setConductor({ ...conductor, foto_perfil_url: fotoUrl });
       setMensaje("Fotografía de perfil actualizada.");
+      await cargar();
     } catch (error) {
       setMensaje(traducirErrorOperativo(error, "No pudimos actualizar la fotografía de perfil."));
     } finally {
@@ -432,6 +488,74 @@ export default function PaginaConfiguracion() {
           </PassportCard>
 
           <PassportCard>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="font-body text-xs uppercase tracking-wide text-ink/45">Datos bancarios</p>
+                <h2 className="mt-1 font-display text-xl font-semibold">Cuenta para pagos</h2>
+                <p className="mt-1 font-body text-sm text-ink/60">
+                  Captura tu banco, CLABE y tarjeta para programar tus depósitos.
+                </p>
+              </div>
+              {datosBancarios && (
+                <span className="rounded-full border border-control/30 bg-control-soft px-3 py-1 font-body text-xs font-semibold text-control">
+                  {ETIQUETA_DATOS_BANCARIOS[datosBancarios.estado]}
+                </span>
+              )}
+            </div>
+
+            {datosBancarios?.motivo_rechazo && (
+              <div className="mt-4">
+                <Aviso tono="atencion">{datosBancarios.motivo_rechazo}</Aviso>
+              </div>
+            )}
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <Field
+                etiqueta="Titular de la cuenta"
+                value={formularioBanco.titularCuenta}
+                onChange={(evento) => actualizarCampoBanco("titularCuenta", evento.target.value)}
+                placeholder="Nombre completo"
+              />
+              <Field
+                etiqueta="Banco"
+                value={formularioBanco.banco}
+                onChange={(evento) => actualizarCampoBanco("banco", evento.target.value)}
+                placeholder="BBVA, Banorte, Santander..."
+              />
+              <Field
+                etiqueta="CLABE"
+                value={formularioBanco.clabe}
+                onChange={(evento) => actualizarCampoBanco("clabe", evento.target.value)}
+                placeholder="18 digitos"
+                inputMode="numeric"
+                maxLength={18}
+              />
+              <Field
+                etiqueta="Numero de tarjeta"
+                value={formularioBanco.numeroTarjeta}
+                onChange={(evento) => actualizarCampoBanco("numeroTarjeta", evento.target.value)}
+                placeholder="16 a 19 digitos"
+                inputMode="numeric"
+                maxLength={19}
+              />
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button
+                onClick={guardarBanco}
+                disabled={
+                  guardandoBanco ||
+                  formularioBanco.titularCuenta.trim().length < 3 ||
+                  formularioBanco.banco.trim().length < 2 ||
+                  formularioBanco.clabe.length !== 18 ||
+                  formularioBanco.numeroTarjeta.length < 16
+                }
+              >
+                {guardandoBanco ? "Guardando..." : "Guardar datos bancarios"}
+              </Button>
+            </div>
+          </PassportCard>
+
+          <PassportCard>
             <p className="font-body text-xs uppercase tracking-wide text-ink/45">Validación operativa</p>
             <dl className="mt-4 grid gap-4">
               {dato("Documentos vigentes", conductor?.documentos_vigentes ? "Sí" : "No")}
@@ -439,7 +563,6 @@ export default function PaginaConfiguracion() {
               {dato("Suspensiones activas", conductor?.suspensiones_activas ?? 0)}
               {dato("Alta", conductor ? fecha(conductor.creado_en) : "Sin datos")}
             </dl>
-            <Aviso tono="atencion">La validación final de documentos y bancos la realiza operación.</Aviso>
           </PassportCard>
         </section>
       ) : bloque === "documentos" ? (
