@@ -3,8 +3,7 @@
 import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Aviso, Button, EstatusBadgeEconomico, PassportCard } from "@ruum/ui";
-import type { EstatusEconomico } from "@ruum/shared/constants";
+import { Aviso, Button, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import {
@@ -13,6 +12,7 @@ import {
   obtenerConductorActual,
   obtenerConfiguracionConductor,
   subirDocumentoConductor,
+  subirFotoPerfilConductor,
   type TipoDocumentoConductor
 } from "@ruum/api/services";
 import { limpiarBorradorRegistroLocal } from "../../lib/borrador-registro";
@@ -22,10 +22,9 @@ type Bloque = "cuenta" | "documentos" | "preferencias" | "soporte";
 type Conductor = Database["public"]["Tables"]["conductores"]["Row"];
 type Documento = Database["public"]["Tables"]["documentos_conductor"]["Row"];
 type Preferencias = Database["public"]["Tables"]["preferencias_conductor"]["Row"];
-type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
 const BLOQUES: { id: Bloque; titulo: string; descripcion: string }[] = [
-  { id: "cuenta", titulo: "Cuenta", descripcion: "Perfil, seguridad, banco e historial de viajes." },
+  { id: "cuenta", titulo: "Cuenta", descripcion: "Perfil, seguridad y validación operativa." },
   { id: "documentos", titulo: "Documentos", descripcion: "Expediente operativo, vigencias y carga desde celular." },
   { id: "preferencias", titulo: "Preferencias", descripcion: "Notificaciones y tipos de viaje que quieres recibir." },
   { id: "soporte", titulo: "Soporte", descripcion: "Ayuda, reportes, cierre de sesión y eliminación de cuenta." }
@@ -61,12 +60,53 @@ const TIPOS_DOCUMENTO: { valor: TipoDocumentoConductor; etiqueta: string }[] = [
   { valor: "documento_operativo", etiqueta: "Documento operativo adicional" }
 ];
 
+const WHATSAPP_SOPORTE = "https://wa.me/525500004911?text=Hola%20Ruum%20Ruum%2C%20necesito%20soporte%20como%20conductor.";
+
 const SOPORTE = [
   { etiqueta: "Preguntas frecuentes", href: "#preguntas-frecuentes" },
-  { etiqueta: "Contacto con soporte", href: "tel:+525500004911" },
+  { etiqueta: "Contactar por WhatsApp", href: WHATSAPP_SOPORTE },
+  { etiqueta: "Llamar a soporte", href: "tel:+525500004911" },
   { etiqueta: "Reportar problema", href: "/viajes" },
   { etiqueta: "Ayuda con pagos y documentos", href: "mailto:soporte-conductores@ruumruum.mx?subject=Ayuda%20con%20pagos%20o%20documentos" },
   { etiqueta: "Términos y aviso de privacidad", href: "https://ruumruum.mx/legal" }
+];
+
+const PERFIL_DEFAULT = {
+  nombre: "",
+  telefono: "",
+  curp: "",
+  licencia_numero: "",
+  licencia_tipo: "",
+  licencia_vigencia: "",
+  codigo_postal: "",
+  estado_residencia: "",
+  ciudad_municipio: "",
+  colonia: "",
+  calle: "",
+  numero: "",
+  referencias: "",
+  contacto_emergencia_nombre: "",
+  contacto_emergencia_telefono: ""
+};
+
+type CampoPerfil = keyof typeof PERFIL_DEFAULT;
+
+const CAMPOS_PERFIL: { clave: CampoPerfil; etiqueta: string; tipo?: string; colSpan?: string }[] = [
+  { clave: "nombre", etiqueta: "Nombre completo" },
+  { clave: "telefono", etiqueta: "Teléfono" },
+  { clave: "curp", etiqueta: "CURP" },
+  { clave: "licencia_numero", etiqueta: "Número de licencia" },
+  { clave: "licencia_tipo", etiqueta: "Tipo de licencia" },
+  { clave: "licencia_vigencia", etiqueta: "Vigencia de licencia", tipo: "date" },
+  { clave: "codigo_postal", etiqueta: "Código postal" },
+  { clave: "estado_residencia", etiqueta: "Estado" },
+  { clave: "ciudad_municipio", etiqueta: "Ciudad o municipio" },
+  { clave: "colonia", etiqueta: "Colonia" },
+  { clave: "calle", etiqueta: "Calle" },
+  { clave: "numero", etiqueta: "Número" },
+  { clave: "referencias", etiqueta: "Referencias", colSpan: "sm:col-span-2" },
+  { clave: "contacto_emergencia_nombre", etiqueta: "Contacto de emergencia" },
+  { clave: "contacto_emergencia_telefono", etiqueta: "Teléfono de emergencia" }
 ];
 
 function dato(label: string, valor: string | number | null | undefined) {
@@ -83,32 +123,22 @@ function fecha(fechaIso: string | null | undefined) {
   return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium" }).format(new Date(fechaIso));
 }
 
-function nombreVehiculo(viaje: Pasaporte) {
-  return [viaje.vehiculo_marca, viaje.vehiculo_modelo, viaje.vehiculo_anio].filter(Boolean).join(" ") || "Vehiculo";
-}
-
 function telefonoE164(valor: string) {
   const normalizado = valor.trim();
   if (!normalizado) return normalizado;
   return (normalizado.startsWith("+") ? normalizado : `+${normalizado}`).replace(/\s+/g, "");
 }
 
-function estatusEconomicoDeViaje(viaje: Pasaporte): EstatusEconomico {
-  if (viaje.estado === "servicio_cerrado") return "pagado";
-  if (viaje.estado === "servicio_cancelado" || viaje.estado === "traslado_fallido") return "revocado";
-  return "pendiente";
-}
-
 export default function PaginaConfiguracion() {
   const [bloque, setBloque] = useState<Bloque>("cuenta");
   const [conductor, setConductor] = useState<Conductor | null>(null);
   const [documentos, setDocumentos] = useState<Documento[]>([]);
-  const [historial, setHistorial] = useState<Pasaporte[]>([]);
   const [prefs, setPrefs] = useState(PREFS_DEFAULT);
-  const [perfil, setPerfil] = useState({ nombre: "", telefono: "" });
+  const [perfil, setPerfil] = useState(PERFIL_DEFAULT);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [tipoDocumento, setTipoDocumento] = useState<TipoDocumentoConductor>("documento_operativo");
   const [subiendoDocumento, setSubiendoDocumento] = useState(false);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const [pendiente, startTransition] = useTransition();
@@ -129,9 +159,24 @@ export default function PaginaConfiguracion() {
       }
       const datos = await obtenerConfiguracionConductor(cliente, actual.id);
       setConductor(datos.conductor);
-      setPerfil({ nombre: datos.conductor.nombre ?? "", telefono: datos.conductor.telefono ?? "" });
+      setPerfil({
+        nombre: datos.conductor.nombre ?? "",
+        telefono: datos.conductor.telefono ?? "",
+        curp: datos.conductor.curp ?? "",
+        licencia_numero: datos.conductor.licencia_numero ?? "",
+        licencia_tipo: datos.conductor.licencia_tipo ?? "",
+        licencia_vigencia: datos.conductor.licencia_vigencia ?? "",
+        codigo_postal: datos.conductor.codigo_postal ?? "",
+        estado_residencia: datos.conductor.estado_residencia ?? "",
+        ciudad_municipio: datos.conductor.ciudad_municipio ?? "",
+        colonia: datos.conductor.colonia ?? "",
+        calle: datos.conductor.calle ?? "",
+        numero: datos.conductor.numero ?? "",
+        referencias: datos.conductor.referencias ?? "",
+        contacto_emergencia_nombre: datos.conductor.contacto_emergencia_nombre ?? "",
+        contacto_emergencia_telefono: datos.conductor.contacto_emergencia_telefono ?? ""
+      });
       setDocumentos(datos.documentos);
-      setHistorial(datos.historial);
       setPrefs({ ...PREFS_DEFAULT, ...(datos.preferencias as Preferencias | null ?? {}) });
     } catch {
       setMensaje("No se pudo cargar la configuración real. Revisa tu sesión.");
@@ -173,7 +218,20 @@ export default function PaginaConfiguracion() {
         const cliente = crearClienteNavegador();
         await actualizarPerfilConductor(cliente, conductor.id, {
           nombre: perfil.nombre,
-          telefono: telefonoE164(perfil.telefono)
+          telefono: telefonoE164(perfil.telefono),
+          curp: perfil.curp,
+          licencia_numero: perfil.licencia_numero,
+          licencia_tipo: perfil.licencia_tipo,
+          licencia_vigencia: perfil.licencia_vigencia,
+          codigo_postal: perfil.codigo_postal,
+          estado_residencia: perfil.estado_residencia,
+          ciudad_municipio: perfil.ciudad_municipio,
+          colonia: perfil.colonia,
+          calle: perfil.calle,
+          numero: perfil.numero,
+          referencias: perfil.referencias,
+          contacto_emergencia_nombre: perfil.contacto_emergencia_nombre,
+          contacto_emergencia_telefono: telefonoE164(perfil.contacto_emergencia_telefono)
         });
         setMensaje("Perfil actualizado.");
         await cargar();
@@ -211,6 +269,24 @@ export default function PaginaConfiguracion() {
       setMensaje(traducirErrorOperativo(error,"No pudimos registrar uno de tus documentos."));
     } finally {
       setSubiendoDocumento(false);
+      evento.target.value = "";
+    }
+  }
+
+  async function subirFotoPerfil(evento: ChangeEvent<HTMLInputElement>) {
+    const archivo = evento.target.files?.[0];
+    if (!archivo || !conductor) return;
+    setMensaje(null);
+    setSubiendoFoto(true);
+    try {
+      const cliente = crearClienteNavegador();
+      const fotoUrl = await subirFotoPerfilConductor(cliente, conductor.id, archivo);
+      setConductor({ ...conductor, foto_perfil_url: fotoUrl });
+      setMensaje("Fotografía de perfil actualizada.");
+    } catch (error) {
+      setMensaje(traducirErrorOperativo(error, "No pudimos actualizar la fotografía de perfil."));
+    } finally {
+      setSubiendoFoto(false);
       evento.target.value = "";
     }
   }
@@ -302,25 +378,53 @@ export default function PaginaConfiguracion() {
         >
           <PassportCard>
             <p className="font-body text-xs uppercase tracking-wide text-ink/45">Perfil del conductor</p>
-            <div className="mt-4 flex flex-col gap-5 sm:flex-row">
-              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-signal-soft font-display text-3xl font-semibold text-ink">
-                {(perfil.nombre || "CD").slice(0, 2).toUpperCase()}
+            <div className="mt-4 flex flex-col gap-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-signal-soft font-display text-3xl font-semibold text-ink">
+                  {conductor?.foto_perfil_url ? (
+                    <img src={conductor.foto_perfil_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    (perfil.nombre || "CD").slice(0, 2).toUpperCase()
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <label
+                    aria-disabled={!conductor || subiendoFoto}
+                    className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-ink/15 bg-mist px-4 py-2 font-body text-sm font-semibold text-ink/70 hover:border-signal aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+                  >
+                    {subiendoFoto ? "Subiendo..." : "Subir o actualizar foto"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={subirFotoPerfil}
+                      disabled={!conductor || subiendoFoto}
+                    />
+                  </label>
+                  <p className="font-body text-xs text-ink/50">JPG, PNG o WEBP. Tamaño máximo: 5 MB.</p>
+                </div>
               </div>
-              <div className="grid flex-1 gap-4 sm:grid-cols-2">
-                <label className="grid gap-1 font-body text-xs uppercase tracking-wide text-ink/45">
-                  Nombre completo
-                  <input value={perfil.nombre} onChange={(e) => setPerfil({ ...perfil, nombre: e.target.value })} className="rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm normal-case tracking-normal text-ink" />
-                </label>
-                <label className="grid gap-1 font-body text-xs uppercase tracking-wide text-ink/45">
-                  Teléfono
-                  <input value={perfil.telefono} onChange={(e) => setPerfil({ ...perfil, telefono: e.target.value })} className="rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm normal-case tracking-normal text-ink" />
-                </label>
-                {dato("Estado operativo", conductor?.estado ?? "Sin datos")}
-                {dato("Nivel CONCER", conductor?.nivel_operativo_vigente ?? "Básico")}
-                {dato("Calificación", conductor?.calificacion_promedio ?? 5)}
-                {dato("Traslados completados", conductor?.traslados_completados ?? 0)}
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {CAMPOS_PERFIL.map((campo) => (
+                  <label key={campo.clave} className={`grid gap-1 font-body text-xs uppercase tracking-wide text-ink/45 ${campo.colSpan ?? ""}`}>
+                    {campo.etiqueta}
+                    <input
+                      type={campo.tipo ?? "text"}
+                      value={perfil[campo.clave]}
+                      onChange={(e) => setPerfil({ ...perfil, [campo.clave]: e.target.value })}
+                      className="rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm normal-case tracking-normal text-ink"
+                    />
+                  </label>
+                ))}
               </div>
             </div>
+            <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+              {dato("Estado operativo", conductor?.estado ?? "Sin datos")}
+              {dato("Nivel CONCER", conductor?.nivel_operativo_vigente ?? "Básico")}
+              {dato("Calificación", conductor?.calificacion_promedio ?? 5)}
+              {dato("Traslados completados", conductor?.traslados_completados ?? 0)}
+            </dl>
             <div className="mt-5 flex flex-wrap gap-3">
               <Button variant="secundario" onClick={guardarPerfil} disabled={!conductor || pendiente}>{pendiente ? "Guardando..." : "Guardar perfil"}</Button>
               <Link href="/recuperar-password"><Button variant="fantasma">Cambiar contraseña</Button></Link>
@@ -336,28 +440,6 @@ export default function PaginaConfiguracion() {
               {dato("Alta", conductor ? fecha(conductor.creado_en) : "Sin datos")}
             </dl>
             <Aviso tono="atencion">La validación final de documentos y bancos la realiza operación.</Aviso>
-          </PassportCard>
-
-          <PassportCard>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-body text-xs uppercase tracking-wide text-ink/45">Historial de viajes</p>
-                <h2 className="mt-1 font-display text-xl font-semibold">Últimos movimientos</h2>
-              </div>
-              <Link href="/viajes" className="font-body text-sm font-medium text-route-dark">Ver todos</Link>
-            </div>
-            <div className="mt-4 divide-y divide-ink/10">
-              {historial.length === 0 && <p className="py-4 font-body text-sm text-ink/55">No hay viajes reales en tu historial todavía.</p>}
-              {historial.map((viaje) => (
-                <div key={viaje.traslado_id} className="grid gap-2 py-3 font-body text-sm sm:grid-cols-[0.8fr_1.4fr_0.9fr_0.8fr_0.8fr] sm:items-center">
-                  <span className="text-ink/50">{fecha(viaje.actualizado_en)}</span>
-                  <span className="font-medium">{nombreVehiculo(viaje)}</span>
-                  <span>{viaje.estado.replaceAll("_", " ")}</span>
-                  <EstatusBadgeEconomico estatus={estatusEconomicoDeViaje(viaje)} className="justify-self-start" />
-                  <span className="font-mono-ruum">${Number(viaje.precio_final ?? viaje.precio_cotizado ?? 0).toLocaleString("es-MX")}</span>
-                </div>
-              ))}
-            </div>
           </PassportCard>
         </section>
       ) : bloque === "documentos" ? (
@@ -488,14 +570,20 @@ export default function PaginaConfiguracion() {
             <h2 className="mt-1 font-display text-xl font-semibold">Ayuda operativa</h2>
             <div className="mt-5 grid gap-3">
               {SOPORTE.map((opcion) => (
-                <a key={opcion.etiqueta} href={opcion.href} className="rounded-lg border border-ink/10 px-4 py-3 text-left font-body text-sm font-medium text-ink/70 hover:border-ink/25">
+                <a
+                  key={opcion.etiqueta}
+                  href={opcion.href}
+                  target={opcion.href.startsWith("http") ? "_blank" : undefined}
+                  rel={opcion.href.startsWith("http") ? "noreferrer" : undefined}
+                  className="rounded-lg border border-ink/10 px-4 py-3 text-left font-body text-sm font-medium text-ink/70 hover:border-ink/25"
+                >
                   {opcion.etiqueta}
                 </a>
               ))}
             </div>
             <div id="preguntas-frecuentes" className="mt-5 rounded-lg border border-ink/10 px-4 py-3">
               <p className="font-body text-sm font-semibold">Preguntas frecuentes</p>
-              <p className="mt-1 font-body text-sm text-ink/60">Para urgencias operativas usa Contacto con soporte. Para emergencias reales, usa el botón Emergencia / 911 dentro del viaje activo.</p>
+              <p className="mt-1 font-body text-sm text-ink/60">Para urgencias operativas usa WhatsApp o llamada. Para emergencias reales, usa el botón Emergencia / 911 dentro del viaje activo.</p>
             </div>
           </PassportCard>
 

@@ -174,6 +174,7 @@ export type Database = {
           estado: Database["public"]["Enums"]["estado_conductor"]
           estado_expediente: Database["public"]["Enums"]["estado_expediente_conductor"]
           estado_residencia: string | null
+          foto_perfil_url: string | null
           id: string
           incidencias_graves_12m: number
           incidencias_graves_6m: number
@@ -215,6 +216,7 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_conductor"]
           estado_expediente?: Database["public"]["Enums"]["estado_expediente_conductor"]
           estado_residencia?: string | null
+          foto_perfil_url?: string | null
           id?: string
           incidencias_graves_12m?: number
           incidencias_graves_6m?: number
@@ -256,6 +258,7 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_conductor"]
           estado_expediente?: Database["public"]["Enums"]["estado_expediente_conductor"]
           estado_residencia?: string | null
+          foto_perfil_url?: string | null
           id?: string
           incidencias_graves_12m?: number
           incidencias_graves_6m?: number

@@ -21,6 +21,9 @@ export type TipoDocumentoConductor =
 const TAMANO_MAX_DOCUMENTO_BYTES = 10 * 1024 * 1024;
 const EXTENSIONES_DOCUMENTO_PERMITIDAS = new Set(["jpg", "jpeg", "png", "webp", "pdf"]);
 const TIPOS_MIME_DOCUMENTO_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+const TAMANO_MAX_FOTO_PERFIL_BYTES = 5 * 1024 * 1024;
+const EXTENSIONES_FOTO_PERFIL_PERMITIDAS = new Set(["jpg", "jpeg", "png", "webp"]);
+const TIPOS_MIME_FOTO_PERFIL_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function extensionArchivo(nombre: string) {
   return nombre.split(".").pop()?.toLowerCase() ?? "";
@@ -35,6 +38,28 @@ function validarArchivoDocumentoConductor(archivo: File) {
   if (!EXTENSIONES_DOCUMENTO_PERMITIDAS.has(extension) || !TIPOS_MIME_DOCUMENTO_PERMITIDOS.has(archivo.type)) {
     throw new Error("El documento debe ser una imagen JPG, PNG, WEBP o un PDF.");
   }
+}
+
+function validarFotoPerfilConductor(archivo: File) {
+  if (archivo.size > TAMANO_MAX_FOTO_PERFIL_BYTES) {
+    throw new Error("La fotografía debe pesar máximo 5 MB.");
+  }
+
+  const extension = extensionArchivo(archivo.name);
+  if (!EXTENSIONES_FOTO_PERFIL_PERMITIDAS.has(extension) || !TIPOS_MIME_FOTO_PERFIL_PERMITIDOS.has(archivo.type)) {
+    throw new Error("La fotografía debe ser JPG, PNG o WEBP.");
+  }
+}
+
+function textoONull(valor: string | null | undefined) {
+  const limpio = valor?.trim() ?? "";
+  return limpio ? limpio : null;
+}
+
+function telefonoONull(valor: string | null | undefined) {
+  const telefono = valor?.trim() ?? "";
+  if (!telefono) return null;
+  return (telefono.startsWith("+") ? telefono : `+${telefono}`).replace(/\s+/g, "");
 }
 
 /** Conductor asociado a la sesión de Supabase Auth actual, si existe. */
@@ -271,26 +296,37 @@ export async function obtenerConfiguracionConductor(cliente: Cliente, conductorI
     cliente.from("conductores").select("*").eq("id", conductorId).maybeSingle(),
     cliente.from("documentos_conductor").select("*").eq("conductor_id", conductorId).order("creado_en", { ascending: false }),
     cliente.from("preferencias_conductor").select("*").eq("conductor_id", conductorId).maybeSingle(),
-    cliente
-      .from("pasaporte_digital")
-      .select("*")
-      .eq("conductor_id", conductorId)
-      .order("actualizado_en", { ascending: false })
-      .limit(12)
+    listarHistorialViajesConductor(cliente, conductorId)
   ]);
 
   if (conductor.error) throw conductor.error;
   if (documentos.error) throw documentos.error;
   if (preferencias.error) throw preferencias.error;
-  if (historial.error) throw historial.error;
   if (!conductor.data) throw new Error("No se encontró el conductor.");
 
   return {
     conductor: conductor.data,
     documentos: documentos.data ?? [],
     preferencias: preferencias.data ?? null,
-    historial: historial.data ?? []
+    historial
   };
+}
+
+export async function listarHistorialViajesConductor(cliente: Cliente, conductorId: string): Promise<PasaporteRow[]> {
+  const conductorAutenticado = await obtenerConductorIdActual(cliente);
+  if (conductorAutenticado !== conductorId) {
+    throw new Error("No puedes consultar el historial de otro conductor.");
+  }
+
+  const { data, error } = await cliente
+    .from("pasaporte_digital")
+    .select("*")
+    .eq("conductor_id", conductorId)
+    .order("actualizado_en", { ascending: false })
+    .limit(12);
+
+  if (error) throw error;
+  return data ?? [];
 }
 
 export type PreferenciasConductorInput = Omit<PreferenciasConductorRow, "conductor_id" | "actualizado_en">;
@@ -412,20 +448,73 @@ export async function subirDocumentoSolicitudConductor(
   return subirDocumentoValidado(cliente, solicitudId, tipo, archivo, documentoAnteriorId);
 }
 
-export async function actualizarPerfilConductor(cliente: Cliente, conductorId: string, datos: { nombre: string; telefono: string }) {
+export type PerfilConductorActualizable = {
+  nombre: string;
+  telefono: string;
+  curp?: string;
+  licencia_numero?: string;
+  licencia_tipo?: string;
+  licencia_vigencia?: string;
+  codigo_postal?: string;
+  estado_residencia?: string;
+  ciudad_municipio?: string;
+  colonia?: string;
+  calle?: string;
+  numero?: string;
+  referencias?: string;
+  contacto_emergencia_nombre?: string;
+  contacto_emergencia_telefono?: string;
+};
+
+export async function actualizarPerfilConductor(cliente: Cliente, conductorId: string, datos: PerfilConductorActualizable) {
   const conductorAutenticado = await obtenerConductorIdActual(cliente);
   if (conductorAutenticado !== conductorId) {
     throw new Error("No puedes modificar el perfil de otro conductor.");
   }
 
-  const telefono = datos.telefono.trim();
   const { error } = await cliente
     .from("conductores")
     .update({
       nombre: datos.nombre.trim(),
-      telefono: telefono ? (telefono.startsWith("+") ? telefono : `+${telefono}`).replace(/\s+/g, "") : null
+      telefono: telefonoONull(datos.telefono),
+      curp: textoONull(datos.curp)?.toUpperCase() ?? null,
+      licencia_numero: textoONull(datos.licencia_numero),
+      licencia_tipo: textoONull(datos.licencia_tipo),
+      licencia_vigencia: textoONull(datos.licencia_vigencia),
+      codigo_postal: textoONull(datos.codigo_postal),
+      estado_residencia: textoONull(datos.estado_residencia),
+      ciudad_municipio: textoONull(datos.ciudad_municipio),
+      colonia: textoONull(datos.colonia),
+      calle: textoONull(datos.calle),
+      numero: textoONull(datos.numero),
+      referencias: textoONull(datos.referencias),
+      contacto_emergencia_nombre: textoONull(datos.contacto_emergencia_nombre),
+      contacto_emergencia_telefono: telefonoONull(datos.contacto_emergencia_telefono)
     })
     .eq("id", conductorId);
 
   if (error) throw error;
+}
+
+export async function subirFotoPerfilConductor(cliente: Cliente, conductorId: string, archivo: File): Promise<string> {
+  const conductorAutenticado = await obtenerConductorIdActual(cliente);
+  if (conductorAutenticado !== conductorId) {
+    throw new Error("No puedes modificar el perfil de otro conductor.");
+  }
+
+  validarFotoPerfilConductor(archivo);
+  const extension = extensionArchivo(archivo.name) || "jpg";
+  const path = `${conductorId}/perfil.${extension}`;
+  const { error: errorSubida } = await cliente.storage.from("fotos-perfil-conductor").upload(path, archivo, {
+    upsert: true,
+    contentType: archivo.type
+  });
+
+  if (errorSubida) throw errorSubida;
+
+  const { data } = cliente.storage.from("fotos-perfil-conductor").getPublicUrl(path);
+  const fotoUrl = `${data.publicUrl}?v=${Date.now()}`;
+  const { error } = await cliente.from("conductores").update({ foto_perfil_url: fotoUrl }).eq("id", conductorId);
+  if (error) throw error;
+  return fotoUrl;
 }

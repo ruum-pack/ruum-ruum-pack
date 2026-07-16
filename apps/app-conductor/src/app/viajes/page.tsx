@@ -1,15 +1,20 @@
 "use client";
-
-"use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Aviso, PassportCard, EstadoBadge } from "@ruum/ui";
-import { ETIQUETA_TIPO_VEHICULO, MOTIVOS_RECHAZO, type MotivoRechazo } from "@ruum/shared/constants";
+import { Button, Aviso, PassportCard, EstadoBadge, EstatusBadgeEconomico } from "@ruum/ui";
+import { ETIQUETA_TIPO_VEHICULO, MOTIVOS_RECHAZO, type EstatusEconomico, type MotivoRechazo } from "@ruum/shared/constants";
 import { esElegibleParaViaje } from "@ruum/shared/rules";
 import type { Database, Conductor } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
-import { listarViajesDisponibles, listarViajesAceptados, aceptarViaje, obtenerConductorActual, registrarEvento } from "@ruum/api/services";
+import {
+  listarViajesDisponibles,
+  listarViajesAceptados,
+  aceptarViaje,
+  obtenerConductorActual,
+  listarHistorialViajesConductor,
+  registrarEvento
+} from "@ruum/api/services";
 import { ESTADOS_QUE_REQUIEREN_EVIDENCIA, ETIQUETA_SIGUIENTE_PASO } from "./[id]/AccionesViaje";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -110,6 +115,12 @@ function nombreVehiculo(viaje: PasaporteRow) {
   return [viaje.vehiculo_marca, viaje.vehiculo_modelo, viaje.vehiculo_anio].filter(Boolean).join(" ") || "Vehículo";
 }
 
+function estatusEconomicoDeViaje(viaje: PasaporteRow): EstatusEconomico {
+  if (viaje.estado === "servicio_cerrado") return "pagado";
+  if (viaje.estado === "servicio_cancelado" || viaje.estado === "traslado_fallido") return "revocado";
+  return "pendiente";
+}
+
 function useIsMobile() {
   const [esMobile, setEsMobile] = useState(false);
 
@@ -133,6 +144,7 @@ export default function PaginaViajes() {
   const [disponibles, setDisponibles] = useState<PasaporteRow[]>([]);
   const [rechazados, setRechazados] = useState<string[]>([]);
   const [aceptados, setAceptados] = useState<PasaporteRow[]>([]);
+  const [historial, setHistorial] = useState<PasaporteRow[]>([]);
   const [detalles, setDetalles] = useState<Record<string, DetalleOperativo>>({});
   const [cargando, setCargando] = useState(true);
   const [aceptando, setAceptando] = useState<string | null>(null);
@@ -181,9 +193,10 @@ export default function PaginaViajes() {
 
         if (conductorActual) setConductor(conductorActual);
 
-        const [listaDisponibles, listaAceptados] = await Promise.all([
+        const [listaDisponibles, listaAceptados, historialViajes] = await Promise.all([
           listarViajesDisponibles(cliente),
-          conductorActual ? listarViajesAceptados(cliente, conductorActual.id) : Promise.resolve([])
+          conductorActual ? listarViajesAceptados(cliente, conductorActual.id) : Promise.resolve([]),
+          conductorActual ? listarHistorialViajesConductor(cliente, conductorActual.id) : Promise.resolve([])
         ]);
 
         const todos = [...listaDisponibles, ...listaAceptados];
@@ -211,6 +224,7 @@ export default function PaginaViajes() {
 
         setDisponibles(listaDisponibles);
         setAceptados(listaAceptados);
+        setHistorial(historialViajes);
         if (!conductorActual) {
           setAviso("Inicia sesión como conductor para aceptar y ver tus viajes.");
         }
@@ -606,6 +620,37 @@ export default function PaginaViajes() {
             })
           )}
         </div>
+      </section>
+
+      <section className="mt-6">
+        <PassportCard>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-body text-xs uppercase tracking-wide text-ink/45">Historial de viajes</p>
+              <h2 className="mt-1 font-display text-xl font-semibold">Últimos movimientos</h2>
+            </div>
+            <span className="font-body text-sm font-medium text-ink/45">{historial.length} registro(s)</span>
+          </div>
+          <div className="mt-4 divide-y divide-ink/10">
+            {historial.length === 0 && (
+              <p className="py-4 font-body text-sm text-ink/55">No hay traslados reales en tu historial todavía.</p>
+            )}
+            {historial.map((viaje) => (
+              <div
+                key={viaje.traslado_id}
+                className="grid gap-2 py-3 font-body text-sm sm:grid-cols-[0.8fr_1.4fr_0.9fr_0.8fr_0.8fr] sm:items-center"
+              >
+                <span className="text-ink/50">{formatearFecha(viaje.actualizado_en)}</span>
+                <span className="font-medium">{nombreVehiculo(viaje)}</span>
+                <span>{viaje.estado.replaceAll("_", " ")}</span>
+                <EstatusBadgeEconomico estatus={estatusEconomicoDeViaje(viaje)} className="justify-self-start" />
+                <span className="font-mono-ruum">
+                  {formatearMoneda(Number(viaje.precio_final ?? viaje.precio_cotizado ?? 0))}
+                </span>
+              </div>
+            ))}
+          </div>
+        </PassportCard>
       </section>
 
       {viajeParaRechazar && (
