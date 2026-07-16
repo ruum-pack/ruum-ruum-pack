@@ -10,6 +10,8 @@ import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
 import { DirigeteAOrigen } from "./DirigeteAOrigen";
 import { ContactoYVehiculo } from "./ContactoYVehiculo";
+import { DirigeteADestino } from "./DirigeteADestino";
+import { ContactoRecepcionVehiculo } from "./ContactoRecepcionVehiculo";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
@@ -33,10 +35,10 @@ export const ETIQUETA_SIGUIENTE_PASO: Partial<Record<EstadoTraslado, string>> = 
   // `if (!etiqueta) return null` ocultaba el botón justo cuando debía
   // aparecer, no solo en el paso anterior que lleva hasta aquí.
   evidencia_inicial_en_proceso: "Continuar evidencia inicial",
-  evidencia_inicial_completada: "Confirmar vehículo recibido",
+  evidencia_inicial_completada: "Dirígete al punto de entrega",
   vehiculo_recibido: "Iniciar traslado",
   traslado_en_curso: "Llegué a destino",
-  llegada_a_destino: "Iniciar evidencia final",
+  llegada_a_destino: "Contacto de entrega",
   evidencia_final_en_proceso: "Continuar evidencia final",
   evidencia_final_completada: "Confirmar entrega"
 };
@@ -50,8 +52,15 @@ export interface AccionesViajeProps {
   origenReferencias?: string | null;
   origenLat?: number | null;
   origenLng?: number | null;
+  destinoDireccion?: string | null;
+  destinoCiudad?: string | null;
+  destinoReferencias?: string | null;
+  destinoLat?: number | null;
+  destinoLng?: number | null;
   contactoEntregaNombre?: string | null;
   contactoEntregaTelefono?: string | null;
+  contactoRecepcionNombre?: string | null;
+  contactoRecepcionTelefono?: string | null;
   vehiculoMarca?: string | null;
   vehiculoModelo?: string | null;
   vehiculoAnio?: number | null;
@@ -69,8 +78,15 @@ export function AccionesViaje({
   origenReferencias,
   origenLat = null,
   origenLng = null,
+  destinoDireccion,
+  destinoCiudad,
+  destinoReferencias,
+  destinoLat = null,
+  destinoLng = null,
   contactoEntregaNombre,
   contactoEntregaTelefono,
+  contactoRecepcionNombre,
+  contactoRecepcionTelefono,
   vehiculoMarca = null,
   vehiculoModelo = null,
   vehiculoAnio = null,
@@ -110,6 +126,41 @@ export function AccionesViaje({
         trasladoId={trasladoId}
         contactoNombre={contactoEntregaNombre}
         contactoTelefono={contactoEntregaTelefono}
+        vehiculoMarca={vehiculoMarca}
+        vehiculoModelo={vehiculoModelo}
+        vehiculoAnio={vehiculoAnio}
+        vehiculoColor={vehiculoColor}
+        vehiculoPlacas={vehiculoPlacas}
+        vehiculoVin={vehiculoVin}
+      />
+    );
+  }
+
+  if (estado === "evidencia_inicial_completada") {
+    if (!destinoDireccion || !destinoCiudad) {
+      return <Aviso tono="peligro">Falta la dirección de entrega para continuar.</Aviso>;
+    }
+    return (
+      <DirigeteADestino
+        trasladoId={trasladoId}
+        destinoDireccion={destinoDireccion}
+        destinoCiudad={destinoCiudad}
+        destinoReferencias={destinoReferencias}
+        destinoLat={destinoLat}
+        destinoLng={destinoLng}
+      />
+    );
+  }
+
+  if (estado === "llegada_a_destino") {
+    if (!contactoRecepcionNombre || !contactoRecepcionTelefono) {
+      return <Aviso tono="peligro">Falta el contacto de recepción para continuar.</Aviso>;
+    }
+    return (
+      <ContactoRecepcionVehiculo
+        trasladoId={trasladoId}
+        contactoNombre={contactoRecepcionNombre}
+        contactoTelefono={contactoRecepcionTelefono}
         vehiculoMarca={vehiculoMarca}
         vehiculoModelo={vehiculoModelo}
         vehiculoAnio={vehiculoAnio}

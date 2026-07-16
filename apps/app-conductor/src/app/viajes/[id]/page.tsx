@@ -128,8 +128,15 @@ export default async function PaginaDetalleViaje({ params }: { params: Promise<{
           origenReferencias={pasaporte.origen_referencias}
           origenLat={pasaporte.origen_lat}
           origenLng={pasaporte.origen_lng}
+          destinoDireccion={pasaporte.destino_direccion}
+          destinoCiudad={pasaporte.destino_ciudad}
+          destinoReferencias={pasaporte.destino_referencias}
+          destinoLat={pasaporte.destino_lat}
+          destinoLng={pasaporte.destino_lng}
           contactoEntregaNombre={pasaporte.contacto_entrega_nombre}
           contactoEntregaTelefono={pasaporte.contacto_entrega_telefono}
+          contactoRecepcionNombre={pasaporte.contacto_recepcion_nombre}
+          contactoRecepcionTelefono={pasaporte.contacto_recepcion_telefono}
           vehiculoMarca={pasaporte.vehiculo_marca}
           vehiculoModelo={pasaporte.vehiculo_modelo}
           vehiculoAnio={pasaporte.vehiculo_anio}

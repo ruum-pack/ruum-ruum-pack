@@ -37,6 +37,7 @@ interface InspeccionEvidencia {
   tarjetaCirculacion: string;
   placaDelantera: string;
   placaTrasera: string;
+  notas: string;
 }
 
 const INSPECCION_INICIAL: InspeccionEvidencia = {
@@ -47,7 +48,8 @@ const INSPECCION_INICIAL: InspeccionEvidencia = {
   talonVerificacion: "",
   tarjetaCirculacion: "",
   placaDelantera: "",
-  placaTrasera: ""
+  placaTrasera: "",
+  notas: ""
 };
 
 const ETIQUETA_ANGULO: Record<AnguloEvidencia, string> = {
@@ -263,7 +265,8 @@ export default function PaginaEvidencia() {
       talonVerificacion: data.talon_verificacion ?? "",
       tarjetaCirculacion: data.tarjeta_circulacion ?? "",
       placaDelantera: data.placa_delantera ?? "",
-      placaTrasera: data.placa_trasera ?? ""
+      placaTrasera: data.placa_trasera ?? "",
+      notas: data.notas ?? ""
     });
   }, [id]);
 
@@ -290,7 +293,8 @@ export default function PaginaEvidencia() {
           talon_verificacion: inspeccion.talonVerificacion.trim() || null,
           tarjeta_circulacion: inspeccion.tarjetaCirculacion.trim() || null,
           placa_delantera: inspeccion.placaDelantera.trim() || null,
-          placa_trasera: inspeccion.placaTrasera.trim() || null
+          placa_trasera: inspeccion.placaTrasera.trim() || null,
+          notas: inspeccion.notas.trim() || null
         },
         { onConflict: "traslado_id,tipo" }
       );
@@ -532,7 +536,7 @@ export default function PaginaEvidencia() {
       <p className="mt-2 font-body text-sm text-ink/60">
         {tipo === "inicial"
           ? `${MENSAJES_CLAVE_UX.evidencia_inicial} Los 5 ángulos son obligatorios.`
-          : "Documenta el estado del vehículo al llegar, para comparar contra la evidencia inicial."}
+          : "Documenta el estado del vehículo en el punto de entrega. Los 5 ángulos son obligatorios."}
       </p>
 
       {aviso && (
@@ -602,6 +606,15 @@ export default function PaginaEvidencia() {
             valor={inspeccion.placaTrasera}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaTrasera: valor }))}
           />
+          <label className="grid gap-1 sm:col-span-2">
+            <span className="font-mono-ruum text-[10px] uppercase tracking-widest text-ink/45">Notas o comentarios</span>
+            <textarea
+              value={inspeccion.notas}
+              onChange={(event) => setInspeccion((actual) => ({ ...actual, notas: event.target.value }))}
+              rows={3}
+              className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm text-ink outline-none focus:border-signal"
+            />
+          </label>
         </div>
       </PassportCard>
 
