@@ -10,3 +10,4 @@ export * from "./incidencias";
 export * from "./soporte";
 export * from "./disputas";
 export * from "./tarifas";
+export * from "./ubicaciones";

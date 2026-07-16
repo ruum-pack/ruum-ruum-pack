@@ -4,6 +4,8 @@ import { esNativo } from "./capacitor";
 export interface Coordenadas {
   lat: number;
   lng: number;
+  precisionM?: number | null;
+  velocidadMps?: number | null;
 }
 
 /**
@@ -21,7 +23,12 @@ export async function obtenerUbicacionActual(): Promise<Coordenadas | null> {
     if (permiso.location === "denied") return null;
 
     const posicion = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-    return { lat: posicion.coords.latitude, lng: posicion.coords.longitude };
+    return {
+      lat: posicion.coords.latitude,
+      lng: posicion.coords.longitude,
+      precisionM: posicion.coords.accuracy ?? null,
+      velocidadMps: posicion.coords.speed ?? null
+    };
   } catch {
     return null;
   }

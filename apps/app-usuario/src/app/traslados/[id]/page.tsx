@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { obtenerPasaporteDigital } from "@ruum/api/services";
+import { obtenerPasaporteDigital, obtenerUltimaUbicacionTraslado, type UbicacionTraslado } from "@ruum/api/services";
 import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_INCIDENCIA, ETIQUETA_TIPO_VEHICULO, MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
@@ -11,6 +11,7 @@ import { CancelarTraslado } from "./CancelarTraslado";
 import { CalificarTraslado } from "./CalificarTraslado";
 import { AbrirDisputa } from "./AbrirDisputa";
 import { ExportarPasaportePdf } from "./ExportarPasaportePdf";
+import { SeguimientoTrasladoTiempoReal } from "./SeguimientoTrasladoTiempoReal";
 
 import { NavegacionUsuario } from "../../NavegacionUsuario";
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -186,7 +187,8 @@ async function obtenerDatos(id: string) {
       disputas: [] as Disputa[],
       reclamosSeguro: [] as ReclamoSeguroUsuario[],
       calificacion: null as Calificacion | null,
-      pagos: [] as Pago[]
+      pagos: [] as Pago[],
+      ultimaUbicacion: null as UbicacionTraslado | null
     };
   }
 
@@ -203,11 +205,23 @@ async function obtenerDatos(id: string) {
       disputas: [] as Disputa[],
       reclamosSeguro: [] as ReclamoSeguroUsuario[],
       calificacion: null as Calificacion | null,
-      pagos: [] as Pago[]
+      pagos: [] as Pago[],
+      ultimaUbicacion: null as UbicacionTraslado | null
     };
   }
 
-  const [trasladoRes, vehiculoRes, conductorRes, evidenciaRes, incidenciasRes, disputasRes, reclamosSeguroRes, calificacionRes, pagosRes] = await Promise.all([
+  const [
+    trasladoRes,
+    vehiculoRes,
+    conductorRes,
+    evidenciaRes,
+    incidenciasRes,
+    disputasRes,
+    reclamosSeguroRes,
+    calificacionRes,
+    pagosRes,
+    ultimaUbicacion
+  ] = await Promise.all([
     cliente
       .from("traslados")
       .select(
@@ -238,7 +252,8 @@ async function obtenerDatos(id: string) {
       .eq("traslado_id", id)
       .order("abierto_en", { ascending: false }),
     cliente.from("calificaciones_traslado").select("*").eq("traslado_id", id).maybeSingle(),
-    cliente.from("pagos").select("*").eq("traslado_id", id).order("registrado_en", { ascending: false })
+    cliente.from("pagos").select("*").eq("traslado_id", id).order("registrado_en", { ascending: false }),
+    obtenerUltimaUbicacionTraslado(cliente, id)
   ]);
 
   for (const resultado of [trasladoRes, vehiculoRes, conductorRes, evidenciaRes, incidenciasRes, disputasRes, reclamosSeguroRes, calificacionRes, pagosRes]) {
@@ -255,7 +270,8 @@ async function obtenerDatos(id: string) {
     disputas: disputasRes.data ?? [],
     reclamosSeguro: reclamosSeguroRes.data ?? [],
     calificacion: calificacionRes.data ?? null,
-    pagos: pagosRes.data ?? []
+    pagos: pagosRes.data ?? [],
+    ultimaUbicacion
   };
 }
 
@@ -370,7 +386,7 @@ function EvidenciaDurante({
 
 export default async function PaginaTraslado({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { pasaporte, traslado, vehiculo, conductor, evidencia, incidencias, disputas, reclamosSeguro, calificacion, pagos } = await obtenerDatos(id);
+  const { pasaporte, traslado, vehiculo, conductor, evidencia, incidencias, disputas, reclamosSeguro, calificacion, pagos, ultimaUbicacion } = await obtenerDatos(id);
 
   if (!pasaporte) {
     return (
@@ -466,6 +482,14 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
           <Dato etiqueta="Pago" valor={`${formatoMoneda(pasaporte.monto_pagado)} pagado`} />
         </dl>
       </PassportCard>
+
+      <SeguimientoTrasladoTiempoReal
+        trasladoId={pasaporte.traslado_id ?? id}
+        estado={pasaporte.estado}
+        origen={{ lat: pasaporte.origen_lat, lng: pasaporte.origen_lng }}
+        destino={{ lat: pasaporte.destino_lat, lng: pasaporte.destino_lng }}
+        ubicacionInicial={ultimaUbicacion}
+      />
 
       <section className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <PassportCard>

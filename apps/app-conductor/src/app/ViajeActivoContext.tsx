@@ -2,10 +2,11 @@
 
 "use client";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { activarSoporteEmergenciaConductor } from "@ruum/api/services";
+import { activarSoporteEmergenciaConductor, registrarUbicacionTraslado } from "@ruum/api/services";
 import type { Database } from "@ruum/shared/types";
 import { ESTADOS_TRASLADO } from "@ruum/shared/states";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
+import { obtenerUbicacionActual } from "../lib/ubicacion";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
@@ -23,10 +24,28 @@ const ViajeActivoContext = createContext<ViajeActivoContextValue | null>(null);
 
 const INDICE_INICIO_EMERGENCIA = ESTADOS_TRASLADO.indexOf("conductor_asignado");
 const INDICE_FIN_EMERGENCIA = ESTADOS_TRASLADO.indexOf("evidencia_final_completada");
+const ESTADOS_SEGUIMIENTO_UBICACION: EstadoTraslado[] = [
+  "conductor_en_camino_al_origen",
+  "conductor_en_punto_de_recoleccion",
+  "verificacion_vehiculo_en_proceso",
+  "evidencia_inicial_en_proceso",
+  "evidencia_inicial_completada",
+  "vehiculo_recibido",
+  "traslado_en_curso",
+  "incidencia_reportada",
+  "llegada_a_destino",
+  "evidencia_final_en_proceso",
+  "evidencia_final_completada",
+  "entrega_confirmada"
+];
 
 export function viajePermiteFabEmergencia(estado: EstadoTraslado) {
   const indice = ESTADOS_TRASLADO.indexOf(estado);
   return indice >= INDICE_INICIO_EMERGENCIA && indice <= INDICE_FIN_EMERGENCIA;
+}
+
+export function viajePermiteSeguimientoUbicacion(estado: EstadoTraslado) {
+  return ESTADOS_SEGUIMIENTO_UBICACION.includes(estado);
 }
 
 export function ViajeActivoProvider({ children }: { children: React.ReactNode }) {
@@ -43,6 +62,7 @@ export function ViajeActivoProvider({ children }: { children: React.ReactNode })
   return (
     <ViajeActivoContext.Provider value={value}>
       {children}
+      <ReportadorUbicacionConductor />
       <FabEmergencia911 />
     </ViajeActivoContext.Provider>
   );
@@ -60,9 +80,53 @@ export function RegistroViajeActivo({ viaje }: { viaje: ViajeActivo | null }) {
   const { registrarViajeActivo } = useViajeActivo();
 
   useEffect(() => {
-    registrarViajeActivo(viaje && viajePermiteFabEmergencia(viaje.estado) ? viaje : null);
+    registrarViajeActivo(
+      viaje && (viajePermiteFabEmergencia(viaje.estado) || viajePermiteSeguimientoUbicacion(viaje.estado)) ? viaje : null
+    );
     return () => registrarViajeActivo(null);
   }, [registrarViajeActivo, viaje]);
+
+  return null;
+}
+
+function ReportadorUbicacionConductor() {
+  const { viajeActivo } = useViajeActivo();
+
+  useEffect(() => {
+    if (!viajeActivo || !viajePermiteSeguimientoUbicacion(viajeActivo.estado) || !tieneSupabaseConfigurado()) {
+      return;
+    }
+
+    let cancelado = false;
+    const cliente = crearClienteNavegador();
+
+    async function reportar() {
+      const ubicacion = await obtenerUbicacionActual();
+      if (!ubicacion || cancelado) return;
+
+      try {
+        await registrarUbicacionTraslado(cliente, {
+          trasladoId: viajeActivo!.trasladoId,
+          lat: ubicacion.lat,
+          lng: ubicacion.lng,
+          precisionM: ubicacion.precisionM,
+          velocidadMps: ubicacion.velocidadMps
+        });
+      } catch {
+        // El seguimiento no debe bloquear el flujo operativo del conductor.
+      }
+    }
+
+    void reportar();
+    const intervalo = window.setInterval(() => {
+      void reportar();
+    }, 30_000);
+
+    return () => {
+      cancelado = true;
+      window.clearInterval(intervalo);
+    };
+  }, [viajeActivo]);
 
   return null;
 }
