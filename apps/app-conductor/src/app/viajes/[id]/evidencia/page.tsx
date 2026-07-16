@@ -52,6 +52,13 @@ const INSPECCION_INICIAL: InspeccionEvidencia = {
   notas: ""
 };
 
+const OPCIONES_COMBUSTIBLE = ["R", "1/8", "1/4", "3/8", "1/2", "3/4", "1/1"];
+const OPCIONES_LLAVES = ["1", "2", "3"];
+const OPCIONES_SI_NO = [
+  { valor: "si", etiqueta: "Sí" },
+  { valor: "no", etiqueta: "No" }
+];
+
 const ETIQUETA_ANGULO: Record<AnguloEvidencia, string> = {
   frente: "Frente",
   lado_piloto: "Lado piloto",
@@ -155,6 +162,40 @@ function CampoSiNo({
         <option value="">Selecciona</option>
         <option value="si">Sí</option>
         <option value="no">No</option>
+      </select>
+    </label>
+  );
+}
+
+function CampoSelect({
+  etiqueta,
+  valor,
+  opciones,
+  onChange
+}: {
+  etiqueta: string;
+  valor: string;
+  opciones: Array<string | { valor: string; etiqueta: string }>;
+  onChange: (valor: string) => void;
+}) {
+  return (
+    <label className="grid gap-1">
+      <span className="font-mono-ruum text-[10px] uppercase tracking-widest text-ink/45">{etiqueta}</span>
+      <select
+        value={valor}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-h-10 rounded-lg border border-ink/15 bg-mist px-3 font-body text-sm text-ink outline-none focus:border-signal"
+      >
+        <option value="">Selecciona</option>
+        {opciones.map((opcion) => {
+          const valorOpcion = typeof opcion === "string" ? opcion : opcion.valor;
+          const etiquetaOpcion = typeof opcion === "string" ? opcion : opcion.etiqueta;
+          return (
+            <option key={valorOpcion} value={valorOpcion}>
+              {etiquetaOpcion}
+            </option>
+          );
+        })}
       </select>
     </label>
   );
@@ -565,9 +606,10 @@ export default function PaginaEvidencia() {
           </Button>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <CampoTexto
+          <CampoSelect
             etiqueta="Combustible"
             valor={inspeccion.combustible}
+            opciones={OPCIONES_COMBUSTIBLE}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, combustible: valor }))}
           />
           <CampoTexto
@@ -576,9 +618,10 @@ export default function PaginaEvidencia() {
             valor={inspeccion.kilometraje}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, kilometraje: valor }))}
           />
-          <CampoTexto
+          <CampoSelect
             etiqueta="Llaves recibidas"
             valor={inspeccion.llavesRecibidas}
+            opciones={OPCIONES_LLAVES}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, llavesRecibidas: valor }))}
           />
           <CampoSiNo
@@ -586,24 +629,28 @@ export default function PaginaEvidencia() {
             valor={inspeccion.hologramaVerificacion}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, hologramaVerificacion: valor }))}
           />
-          <CampoTexto
+          <CampoSelect
             etiqueta="Talón de verificación"
             valor={inspeccion.talonVerificacion}
+            opciones={OPCIONES_SI_NO}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, talonVerificacion: valor }))}
           />
-          <CampoTexto
+          <CampoSelect
             etiqueta="Tarjeta de circulación"
             valor={inspeccion.tarjetaCirculacion}
+            opciones={OPCIONES_SI_NO}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, tarjetaCirculacion: valor }))}
           />
-          <CampoTexto
+          <CampoSelect
             etiqueta="Placa delantera"
             valor={inspeccion.placaDelantera}
+            opciones={OPCIONES_SI_NO}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaDelantera: valor }))}
           />
-          <CampoTexto
+          <CampoSelect
             etiqueta="Placa trasera"
             valor={inspeccion.placaTrasera}
+            opciones={OPCIONES_SI_NO}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaTrasera: valor }))}
           />
           <label className="grid gap-1 sm:col-span-2">
