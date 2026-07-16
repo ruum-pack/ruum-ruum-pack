@@ -52,7 +52,7 @@ function ContenidoOnboarding() {
               <p className="max-w-[120px] font-display text-xs font-extrabold uppercase leading-4 tracking-[0.08em] text-[#e6e9ef]">
                 {titulo}
               </p>
-              <p className="max-w-[120px] font-body text-xs leading-5 text-[#aeb6c7]">
+              <p className="max-w-[120px] font-body text-xs leading-5 text-[var(--ruum-dark-text-tertiary)]">
                 {descripcion}
               </p>
             </div>

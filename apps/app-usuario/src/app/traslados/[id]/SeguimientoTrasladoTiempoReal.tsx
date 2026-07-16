@@ -5,6 +5,7 @@ import { obtenerUltimaUbicacionTraslado, suscribirUbicacionTraslado, type Ubicac
 import { Aviso, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { SkeletonMapa } from "../../components/SkeletonMapa";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
@@ -74,8 +75,10 @@ export function SeguimientoTrasladoTiempoReal({
 }: SeguimientoTrasladoTiempoRealProps) {
   const [ubicacion, setUbicacion] = useState<UbicacionTraslado | null>(ubicacionInicial);
   const [cargando, setCargando] = useState(false);
+  const [mapaCargadoUrl, setMapaCargadoUrl] = useState<string | null>(null);
 
   const mapaUrl = useMemo(() => construirMapa(origen, destino, ubicacion), [destino, origen, ubicacion]);
+  const mapaCargado = mapaUrl != null && mapaCargadoUrl === mapaUrl;
   const visible = estado ? ESTADOS_VISIBLES.includes(estado) : false;
 
   useEffect(() => {
@@ -126,8 +129,14 @@ export function SeguimientoTrasladoTiempoReal({
 
         {mapaUrl ? (
           <div className="mt-5 overflow-hidden rounded-lg border border-ink/10 bg-ink/5">
+            {!mapaCargado && <SkeletonMapa className="h-72 rounded-lg" />}
             {/* eslint-disable-next-line @next/next/no-img-element -- Mapa estático generado por Mapbox para render ligero. */}
-            <img src={mapaUrl} alt="Mapa con la ruta y la última ubicación del conductor" className="h-72 w-full object-cover" />
+            <img
+              src={mapaUrl}
+              alt="Mapa con la ruta y la última ubicación del conductor"
+              onLoad={() => setMapaCargadoUrl(mapaUrl)}
+              className={mapaCargado ? "h-72 w-full object-cover" : "hidden"}
+            />
           </div>
         ) : (
           <div className="mt-5">

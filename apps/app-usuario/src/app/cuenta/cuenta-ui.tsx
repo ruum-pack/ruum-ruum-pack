@@ -161,7 +161,7 @@ function FilaConfiguracion({
         <span className="block font-display text-sm font-bold leading-tight text-ink">{titulo}</span>
         {descripcion && <span className="mt-1 block text-xs leading-4 text-ink/55">{descripcion}</span>}
       </span>
-      {detalle && <span className="shrink-0 rounded-full border border-route/30 px-2 py-1 text-[11px] text-route-dark">{detalle}</span>}
+      {detalle && <span className="shrink-0 rounded-full border border-route/30 px-2 py-1 text-xs text-route-dark">{detalle}</span>}
       <span className="text-lg leading-none text-route-dark transition-transform group-hover:translate-x-0.5">›</span>
     </Link>
   );
@@ -170,7 +170,7 @@ function FilaConfiguracion({
 function GrupoConfiguracion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-2 font-mono-ruum text-[11px] uppercase tracking-wide text-route-dark">{titulo}</p>
+      <p className="mb-2 font-mono-ruum text-xs uppercase tracking-wide text-route-dark">{titulo}</p>
       <div className="grid gap-3 sm:grid-cols-2">{children}</div>
     </div>
   );

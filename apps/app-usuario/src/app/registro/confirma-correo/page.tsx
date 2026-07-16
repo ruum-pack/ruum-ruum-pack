@@ -85,7 +85,7 @@ if (!correo) {
         <LogoRuum className="mx-auto mt-8" />
         <div className="mt-12 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7">
           <h1 className="font-display text-[22px] font-extrabold text-white">No encontramos tu correo</h1>
-          <p className="mt-3 font-body text-sm text-[#c9cfda]">
+          <p className="mt-3 font-body text-sm text-[var(--ruum-dark-text-secondary)]">
             El correo electrónico no está disponible. Puedes volver a la página de registro para intentarlo de nuevo.
           </p>
           <Link href="/registro" className={`${botonAzul} mt-6 inline-block`}>
@@ -103,11 +103,11 @@ if (!correo) {
         <div className="mt-12 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7 text-center shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
           <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#f5a623]/15 text-[#f5a623]" aria-hidden>✉</div>
           <h1 className="mt-5 font-display text-[22px] font-extrabold text-white">Revisa tu correo</h1>
-          <p className="mt-3 font-body text-sm leading-6 text-[#c9cfda]">
+          <p className="mt-3 font-body text-sm leading-6 text-[var(--ruum-dark-text-secondary)]">
             Enviamos un enlace de confirmación{correo ? <> a <strong className="text-white">{correo}</strong></> : " al correo registrado"}.
             Ábrelo para activar tu cuenta.
           </p>
-          <p className="mt-3 font-body text-xs leading-5 text-[#c9cfda]">
+          <p className="mt-3 font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
             Si no lo encuentras, revisa spam o correo no deseado. Hasta confirmar tu correo todavía no puedes solicitar un traslado.
           </p>
 

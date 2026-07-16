@@ -76,10 +76,13 @@ export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stripeModule, setStripeModule] = useState<{ Elements: any; PaymentElement: any; useStripe: any; useElements: any; stripePromise: any } | null>(null);
+  const [reintento, setReintento] = useState(0);
 
   useEffect(() => {
     async function iniciar() {
       try {
+        setError(null);
+        setClientSecret(null);
         if (!clavePublica) {
           setError("Stripe no está configurado — el cobro real no está disponible en este entorno.");
           return;
@@ -104,18 +107,27 @@ export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
     }
 
     iniciar();
-  }, [trasladoId]);
+  }, [trasladoId, reintento]);
 
   if (error) {
     return (
-      <div role="status" aria-live="polite" aria-atomic="true">
+      <div className="grid gap-3" role="status" aria-live="polite" aria-atomic="true">
         <Aviso tono="peligro">{error}</Aviso>
+        <Button type="button" variant="secundario" onClick={() => setReintento((valor) => valor + 1)}>
+          Reintentar
+        </Button>
       </div>
     );
   }
 
   if (!clientSecret || !stripeModule) {
-    return <p className="font-body text-sm text-ink/50">Preparando el cobro…</p>;
+    return (
+      <div className="grid gap-4" aria-label="Preparando el cobro">
+        <div className="h-12 animate-pulse rounded-lg bg-ink/8" />
+        <div className="h-12 animate-pulse rounded-lg bg-ink/6" />
+        <div className="h-11 animate-pulse rounded-lg bg-ink/8" />
+      </div>
+    );
   }
 
   const { Elements, PaymentElement, useStripe, useElements, stripePromise } = stripeModule;

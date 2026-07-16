@@ -43,7 +43,7 @@ export default function ErrorGlobal({
           </Link>
         </div>
         {process.env.NODE_ENV === "development" && error.message && (
-          <p className="mt-6 max-w-lg font-mono text-[11px] text-red-600 opacity-70">
+          <p className="mt-6 max-w-lg font-mono text-xs text-red-600 opacity-70">
             {error.message}
           </p>
         )}

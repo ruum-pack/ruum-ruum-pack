@@ -79,7 +79,7 @@ export default function PaginaRecuperarPassword() {
               <h1 className="font-display text-[22px] font-extrabold leading-tight text-white">
                 Correo enviado
               </h1>
-              <p className="font-body text-sm leading-6 text-[#c9cfda]">
+              <p className="font-body text-sm leading-6 text-[var(--ruum-dark-text-secondary)]">
                 Revisa tu bandeja de entrada en{" "}
                 <span className="font-semibold text-white">{email}</span>, incluyendo
                 la carpeta de spam. El enlace expira en 60 minutos.
@@ -101,7 +101,7 @@ export default function PaginaRecuperarPassword() {
               <h1 className="font-display text-[22px] font-extrabold leading-tight text-white">
                 Recuperar contraseña
               </h1>
-              <p className="mt-2 font-body text-xs leading-5 text-[#c9cfda]">
+              <p className="mt-2 font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
                 Escribe el correo con el que te registraste y te enviamos un enlace para crear una nueva contraseña.
               </p>
 

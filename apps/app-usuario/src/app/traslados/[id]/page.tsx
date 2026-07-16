@@ -121,6 +121,34 @@ function formatoMoneda(monto: number | null | undefined) {
   return `$${Number(monto ?? 0).toLocaleString("es-MX")}`;
 }
 
+function pasaporteMuestraQr(estado: EstadoTraslado) {
+  return [
+    "conductor_en_camino_al_origen",
+    "conductor_en_punto_de_recoleccion",
+    "verificacion_vehiculo_en_proceso",
+    "evidencia_inicial_en_proceso",
+    "llegada_a_destino",
+    "evidencia_final_en_proceso",
+    "evidencia_final_completada",
+    "entrega_confirmada"
+  ].includes(estado);
+}
+
+function PatronQrPasaporte({ folio }: { folio: string }) {
+  const bits = Array.from({ length: 49 }, (_, indice) => {
+    const codigo = folio.charCodeAt(indice % folio.length) + indice * 17;
+    return codigo % 3 !== 0;
+  });
+
+  return (
+    <div className="grid size-[120px] grid-cols-7 gap-1 rounded-lg border border-ink/15 bg-mist p-2" aria-label="QR de verificación del pasaporte">
+      {bits.map((activo, indice) => (
+        <span key={indice} className={activo ? "rounded-[2px] bg-ink" : "rounded-[2px] bg-ink/[0.06]"} aria-hidden />
+      ))}
+    </div>
+  );
+}
+
 function iniciales(nombre: string | null | undefined) {
   if (!nombre) return "RR";
   return nombre
@@ -317,7 +345,7 @@ function EvidenciaMomento({
               )}
               <div className="border-t border-ink/10 px-3 py-2">
                 <p className="font-body text-xs font-medium">{ETIQUETA_ANGULO[foto.angulo]}</p>
-                <p className="mt-0.5 font-body text-[11px] text-ink/45">
+                <p className="mt-0.5 font-body text-xs text-ink/45">
                   {foto.sincronizada ? "Sincronizada" : "Pendiente de sincronizar"} · {formatoFecha(foto.capturada_en)}
                 </p>
               </div>
@@ -437,11 +465,11 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
     <main className="app-page">
       <NavegacionUsuario />
       <div className="app-container py-12">
-      <PassportCard folio={pasaporte.traslado_id.slice(0, 8).toUpperCase()}>
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+      <PassportCard folio={`#RM-${pasaporte.traslado_id.slice(0, 4).toUpperCase()}`}>
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="font-body text-xs uppercase tracking-wide text-ink/45">PASAPORTE DIGITAL (detalles del traslado)</p>
-            <h1 className="mt-1 font-display text-2xl font-semibold">
+            <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/55">RUUM — PASAPORTE DIGITAL</p>
+            <h1 className="mt-3 font-display text-lg font-bold leading-tight text-ink">
               {vehiculoNombre || "Traslado de vehículo"}
               {pasaporte.vehiculo_tipo && (
                 <span className="ml-2 align-middle font-body text-sm font-normal text-ink/50">
@@ -449,16 +477,33 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
                 </span>
               )}
             </h1>
-            <p className="mt-2 font-body text-sm text-ink/60">
-              Folio {pasaporte.traslado_id.slice(0, 8).toUpperCase()} · Actualizado {formatoFecha(pasaporte.actualizado_en)}
+            <p className="mt-1 font-mono-ruum text-xs text-ink/60">
+              Placas {pasaporte.vehiculo_placas ?? "Pendiente"}
+              {pasaporte.vehiculo_color ? ` · ${pasaporte.vehiculo_color}` : ""}
+            </p>
+            <p className="mt-3 font-body text-xs text-ink/60">
+              Actualizado {formatoFecha(pasaporte.actualizado_en)}
             </p>
           </div>
-          <EstadoBadge estado={pasaporte.estado} />
+          <div className="rounded-lg border border-ink/10 bg-mist/80 px-3 py-2">
+            <EstadoBadge estado={pasaporte.estado} />
+          </div>
         </div>
 
-        <div className="mt-8">
-          <EstadoStepper estado={pasaporte.estado} />
-        </div>
+        <dl className="mt-8 grid gap-4 border-t border-ink/10 pt-6 sm:grid-cols-2">
+          <Dato etiqueta="Origen" valor={pasaporte.origen_ciudad} />
+          <Dato etiqueta="Destino" valor={pasaporte.destino_ciudad} />
+        </dl>
+
+        {pasaporteMuestraQr(pasaporte.estado) && (
+          <div className="mt-6 flex flex-col gap-4 border-t border-ink/10 pt-6 sm:flex-row sm:items-end sm:justify-between">
+            <PatronQrPasaporte folio={pasaporte.traslado_id} />
+            <div className="font-body text-sm text-ink/60">
+              <p className="font-semibold text-ink">Verificación de identidad</p>
+              <p className="mt-1">Válido hasta entrega.</p>
+            </div>
+          </div>
+        )}
 
         {pasaporte.tiene_incidencia_abierta && (
           <div className="mt-6">

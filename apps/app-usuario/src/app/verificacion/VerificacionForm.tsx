@@ -307,10 +307,10 @@ export function VerificacionForm() {
             className={campoBase}
           />
           {cpConsultando && (
-            <span className="font-body text-[11px] text-ink/45">Buscando…</span>
+            <span className="font-body text-xs text-ink/45">Buscando…</span>
           )}
           {cpAviso && (
-            <span className="font-body text-[11px] text-amber-700">{cpAviso}</span>
+            <span className="font-body text-xs text-amber-700">{cpAviso}</span>
           )}
         </label>
 
@@ -407,7 +407,7 @@ export function VerificacionForm() {
             maxLength={300}
             aria-label="Referencias del domicilio"
           />
-          <span className="text-right font-body text-[11px] text-ink/40">{referencias.length}/300</span>
+          <span className="text-right font-body text-xs text-ink/40">{referencias.length}/300</span>
         </label>
       </fieldset>
 
@@ -458,7 +458,7 @@ export function VerificacionForm() {
           />
         </label>
         {docAviso && (
-          <p className="font-body text-[11px] text-red-600" role="alert" aria-live="assertive">
+          <p className="font-body text-xs text-red-600" role="alert" aria-live="assertive">
             {docAviso}
           </p>
         )}

@@ -54,7 +54,7 @@ export function Chat({ propio, mensajes, onEnviar, deshabilitado, mensajeDeshabi
                   ].join(" ")}
                 >
                   <p>{m.contenido}</p>
-                  <p className="mt-1 text-[10px] text-ink/60">
+                  <p className="mt-1 text-xs text-ink/60">
                     {new Date(m.enviado_en).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>

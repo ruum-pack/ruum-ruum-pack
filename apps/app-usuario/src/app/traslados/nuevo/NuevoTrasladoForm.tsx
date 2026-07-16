@@ -323,7 +323,7 @@ function CampoCodigoPostal({
         <div className="rounded-lg border border-ink/10 bg-mist px-3 py-2">
           {sugerenciasMapbox.length > 0 && (
             <div>
-              <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Referencias Mapbox</p>
+              <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Referencias Mapbox</p>
               <div className="mt-1 grid gap-1">
                 {sugerenciasMapbox.map((opcion) => (
                   <p
@@ -338,7 +338,7 @@ function CampoCodigoPostal({
           )}
           {sugerencias.length > 0 && (
             <div className={sugerenciasMapbox.length ? "mt-2 border-t border-ink/10 pt-2" : ""}>
-              <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Colonias sugeridas</p>
+              <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Colonias sugeridas</p>
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {sugerencias.map((opcion) => (
                   <button
@@ -1029,11 +1029,11 @@ export function NuevoTrasladoForm() {
                 ) : rutaEstimacion?.distanciaKm !== undefined && rutaEstimacion.tiempoEstimadoHoras !== undefined ? (
                   <dl className="grid grid-cols-2 gap-2 rounded-lg bg-mist px-4 py-3 text-center font-body">
                     <div>
-                      <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink/45">Distancia</dt>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-ink/45">Distancia</dt>
                       <dd className="mt-1 text-sm font-bold text-ink">{formatearDistancia(rutaEstimacion.distanciaKm)}</dd>
                     </div>
                     <div>
-                      <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink/45">Tiempo</dt>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-ink/45">Tiempo</dt>
                       <dd className="mt-1 text-sm font-bold text-ink">{formatearTiempo(rutaEstimacion.tiempoEstimadoHoras)}</dd>
                     </div>
                   </dl>
@@ -1394,15 +1394,15 @@ export function NuevoTrasladoForm() {
                 </div>
                 <div className="grid gap-3 rounded-lg border border-route/15 bg-route-soft/60 p-4 sm:grid-cols-3">
                   <div>
-                    <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Categoría</p>
+                    <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Categoría</p>
                     <p className="mt-1 font-body text-sm font-bold text-ink">{categoriaCatalogo}</p>
                   </div>
                   <div>
-                    <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Gama</p>
+                    <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Gama</p>
                     <p className="mt-1 font-body text-sm font-bold text-ink">{gamaCatalogo}</p>
                   </div>
                   <div>
-                    <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-ink/45">Tipo operativo</p>
+                    <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Tipo operativo</p>
                     <p className="mt-1 font-body text-sm font-bold text-ink">{ETIQUETA_TIPO_VEHICULO[datos.tipo]}</p>
                   </div>
                 </div>
@@ -1713,6 +1713,53 @@ export function NuevoTrasladoForm() {
               />
               <span>Acepto la política de cancelación y que el pago es solo por medios electrónicos.</span>
             </label>
+
+            <section
+              className="sticky bottom-4 z-20 rounded-card border border-ink/15 bg-mist px-5 py-5 shadow-[0_16px_40px_rgba(26,31,46,0.18)]"
+              aria-labelledby="titulo-tarifa-flotante"
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p id="titulo-tarifa-flotante" className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">
+                    Tarifa estimada
+                  </p>
+                  {previsualizando ? (
+                    <p className="mt-2 font-body text-sm text-ink/55">Calculando tarifa…</p>
+                  ) : previsualizacion?.disponible ? (
+                    <p className="mt-1 font-display text-[32px] font-extrabold leading-none text-ink">
+                      ${Number(previsualizacion.tarifa ?? 0).toLocaleString("es-MX")}
+                      <span className="ml-1 font-body text-sm font-medium text-ink/55">MXN</span>
+                    </p>
+                  ) : (
+                    <p className="mt-2 max-w-sm font-body text-sm leading-6 text-ink/65">
+                      {previsualizacion?.motivo ?? "Completa la agenda para calcular la tarifa."}
+                    </p>
+                  )}
+                  <p className="mt-2 max-w-xs font-body text-xs leading-5 text-ink/60">{momentoPago.razon}</p>
+                </div>
+                <div className="flex flex-col items-stretch gap-2 sm:w-48">
+                  <Button
+                    onClick={enviarSolicitud}
+                    disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}
+                    aria-disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}
+                    aria-describedby={!aceptaPoliticasPagoCancelacion ? "confirmar-solicitud-ayuda" : undefined}
+                  >
+                    {enviando
+                      ? TEXTOS_CARGANDO.enviando
+                      : cargandoSesion
+                        ? "Validando sesión…"
+                        : previsualizacion?.disponible && momentoPago.momento === "anticipado"
+                          ? "Confirmar y pagar"
+                          : "Confirmar solicitud"}
+                  </Button>
+                  {!aceptaPoliticasPagoCancelacion && (
+                    <p id="confirmar-solicitud-ayuda" className="font-body text-xs leading-5 text-ink/65">
+                      Acepta la política arriba para continuar.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
           </div>
         )}
 
@@ -1795,23 +1842,7 @@ export function NuevoTrasladoForm() {
             >
               Continuar
             </Button>
-          ) : (
-            <div className="flex flex-col items-end gap-2">
-              <Button
-                onClick={enviarSolicitud}
-                disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}
-                aria-disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}
-                aria-describedby={!aceptaPoliticasPagoCancelacion ? "confirmar-solicitud-ayuda" : undefined}
-              >
-                {enviando ? TEXTOS_CARGANDO.enviando : cargandoSesion ? "Validando sesión…" : "Confirmar solicitud"}
-              </Button>
-              {!aceptaPoliticasPagoCancelacion && (
-                <p id="confirmar-solicitud-ayuda" className="max-w-56 text-right font-body text-xs leading-5 text-ink/65">
-                  Acepta la política arriba para continuar.
-                </p>
-              )}
-            </div>
-          )}
+          ) : null}
         </div>
       )}
       </div>

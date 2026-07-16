@@ -52,7 +52,7 @@ function BarraProgreso({ paso }: { paso: 1 | 2 }) {
               n <= paso ? "bg-[#f5a623]" : "bg-[#4d5668]",
             ].join(" ")}
           />
-          <span className="font-body text-xs text-[#aeb6c7]">
+          <span className="font-body text-xs text-[var(--ruum-dark-text-tertiary)]">
             {n === 1 ? "Datos básicos" : "Acceso"}
           </span>
         </div>
@@ -212,7 +212,7 @@ export default function PaginaRegistro() {
               ← Atrás
             </Link>
           )}
-          <span className="font-body text-xs text-[#aeb6c7]">Paso {paso} de 2</span>
+          <span className="font-body text-xs text-[var(--ruum-dark-text-tertiary)]">Paso {paso} de 2</span>
         </div>
 
         <LogoRuum className="mx-auto mt-8 text-center" />
@@ -226,7 +226,7 @@ export default function PaginaRegistro() {
               <h1 className="font-display text-[22px] font-extrabold leading-tight text-white">
                 Crea tu cuenta
               </h1>
-              <p className="mt-2 font-body text-xs leading-5 text-[#c9cfda]">
+              <p className="mt-2 font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
                 Solo necesitamos tus datos básicos para empezar.
               </p>
 
@@ -241,7 +241,7 @@ export default function PaginaRegistro() {
                       "rounded-lg border py-2.5 font-body text-sm font-semibold transition",
                       tipoCuenta === tipo
                         ? "border-[#f5a623] bg-[#f5a623]/10 text-[#f5a623]"
-                        : "border-[#4d5668] text-white/50 hover:border-white/30 hover:text-white/70",
+                        : "border-[#4d5668] text-[var(--ruum-dark-text-tertiary)] hover:border-white/30 hover:text-white",
                     ].join(" ")}
                   >
                     {tipo === "personal" ? "Personal" : "Empresa"}
@@ -299,7 +299,7 @@ export default function PaginaRegistro() {
               <h1 className="font-display text-[22px] font-extrabold leading-tight text-white">
                 Elige tus credenciales
               </h1>
-              <p className="font-body text-xs leading-5 text-[#c9cfda]">
+              <p className="font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
                 Con esto accederás a tu cuenta y recibirás notificaciones de tus traslados.
               </p>
 
@@ -324,7 +324,7 @@ export default function PaginaRegistro() {
                     required
                     autoComplete="new-password"
                     placeholder="Mínimo 8 caracteres"
-                    className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[#aeb6c7] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                    className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[var(--ruum-dark-text-tertiary)] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
                   />
                 {password.length > 0 && (
                   <>
@@ -346,7 +346,7 @@ export default function PaginaRegistro() {
                       ))}
                     </div>
                     {pwd.etiqueta && (
-                      <span className="font-body text-xs leading-5 text-[#aeb6c7]">
+                      <span className="font-body text-xs leading-5 text-[var(--ruum-dark-text-tertiary)]">
                         {pwd.etiqueta}
                       </span>
                     )}
@@ -364,7 +364,7 @@ export default function PaginaRegistro() {
                 required
                 autoComplete="new-password"
                 placeholder="Repite tu contraseña"
-                className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[#aeb6c7] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[var(--ruum-dark-text-tertiary)] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
               />
 
               {/* Términos — inline, no como .docx descargable */}
@@ -375,7 +375,7 @@ export default function PaginaRegistro() {
                   onChange={(e) => setAceptaTerminos(e.target.checked)}
                   className="mt-0.5 flex-shrink-0 accent-[#f5a623]"
                 />
-                <span className="font-body text-xs leading-5 text-[#c9cfda]">
+                <span className="font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
                   Acepto los{" "}
                   <Link
                     href="/legal/terminos"

@@ -79,7 +79,7 @@ export function LoginCliente({ motivo, siguiente }: LoginClienteProps) {
 
         <div className="mt-14 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
           <h1 className="font-display text-[22px] font-extrabold leading-tight text-white">Iniciar sesión</h1>
-          <p className="mt-2 font-body text-xs leading-5 text-[#c9cfda]">
+          <p className="mt-2 font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
             Accede para ver tus traslados reales y solicitar nuevos.
           </p>
           {motivo === "email_confirmation" && (
@@ -117,7 +117,7 @@ export function LoginCliente({ motivo, siguiente }: LoginClienteProps) {
               required
               autoComplete="current-password"
               placeholder="Tu contraseña"
-              className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[#aeb6c7] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+              className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[var(--ruum-dark-text-tertiary)] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
             />
 
             <div className="flex justify-end">

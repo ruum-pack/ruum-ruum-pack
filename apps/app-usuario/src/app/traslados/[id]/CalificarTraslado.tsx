@@ -67,7 +67,7 @@ export function CalificarTraslado({
           maxLength={500}
           aria-label="Comentario de calificación"
         />
-        <span className="text-right font-body text-[11px] text-ink/40">{comentario.length}/500</span>
+        <span className="text-right font-body text-xs text-ink/40">{comentario.length}/500</span>
       </label>
       <div className="mt-3 flex items-center gap-3">
         <Button onClick={enviar} disabled={pendiente}>

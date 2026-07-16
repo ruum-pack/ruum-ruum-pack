@@ -72,7 +72,7 @@ export function AbrirDisputa({
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="font-body text-xs font-medium text-ink/70">
-            Descripción <span className="text-ink/40 text-[11px]">(mín. 20 caracteres)</span>
+            Descripción <span className="text-xs text-ink/40">(mín. 20 caracteres)</span>
           </span>
           <textarea
             value={descripcion}

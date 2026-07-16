@@ -5,7 +5,15 @@ import Link from "next/link";
 export default function ErrorMisViajes({ reset }: { reset: () => void }) {
   return (
     <main className="app-page">
-      <div className="app-container py-20 text-center">
+      <div className="app-container flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
+        <div className="mb-6 flex size-16 items-center justify-center rounded-full bg-danger-soft">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+            className="text-danger" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4m0 4h.01" />
+          </svg>
+        </div>
         <h1 className="font-display text-xl font-semibold">No pudimos cargar tus viajes</h1>
         <p className="mt-2 font-body text-sm text-ink/60">
           Puede ser una falla temporal de conexión. Intenta de nuevo en unos segundos.

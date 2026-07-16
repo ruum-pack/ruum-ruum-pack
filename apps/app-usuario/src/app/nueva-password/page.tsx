@@ -85,7 +85,7 @@ export default function PaginaNuevaPassword() {
 
         <div className="mt-14 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
           {verificando ? (
-            <p className="font-body text-sm text-[#c9cfda] text-center py-4">Verificando enlace…</p>
+            <p className="font-body text-sm text-[var(--ruum-dark-text-secondary)] text-center py-4">Verificando enlace…</p>
           ) : listo ? (
             <div className="grid gap-4 text-center">
               <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#e6f9f0]">
@@ -94,14 +94,14 @@ export default function PaginaNuevaPassword() {
                   aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
               </div>
               <h1 className="font-display text-[22px] font-extrabold text-white">Contraseña actualizada</h1>
-              <p className="font-body text-sm text-[#c9cfda]">
+              <p className="font-body text-sm text-[var(--ruum-dark-text-secondary)]">
                 Tu contraseña fue actualizada. Los cambios son inmediatos. Redirigiendo al inicio…
               </p>
             </div>
           ) : !sesionLista ? (
             <div className="grid gap-4">
               <h1 className="font-display text-[22px] font-extrabold text-white">Enlace inválido o expirado</h1>
-              <p className="font-body text-sm leading-6 text-[#c9cfda]">
+              <p className="font-body text-sm leading-6 text-[var(--ruum-dark-text-secondary)]">
                 El enlace de recuperación expiró o ya fue usado. Los enlaces son válidos por 60 minutos y solo se pueden usar una vez.
               </p>
               <Link href="/recuperar-password" className={botonAzul}>
@@ -113,7 +113,7 @@ export default function PaginaNuevaPassword() {
               <h1 className="font-display text-[22px] font-extrabold leading-tight text-white">
                 Nueva contraseña
               </h1>
-              <p className="mt-2 font-body text-xs leading-5 text-[#c9cfda]">
+              <p className="mt-2 font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
                 Elige una contraseña segura. Mínimo 8 caracteres.
               </p>
 
@@ -131,7 +131,7 @@ export default function PaginaNuevaPassword() {
                     minLength={8}
                     autoComplete="new-password"
                     placeholder="Mínimo 8 caracteres"
-                    className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[#aeb6c7] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                    className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[var(--ruum-dark-text-tertiary)] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
                   />
                   {password.length > 0 && (
                     <>
@@ -146,7 +146,7 @@ export default function PaginaNuevaPassword() {
                         ))}
                       </div>
                       {pwd.etiqueta && (
-                        <span className="font-body text-xs text-[#aeb6c7]">{pwd.etiqueta}</span>
+                        <span className="font-body text-xs text-[var(--ruum-dark-text-tertiary)]">{pwd.etiqueta}</span>
                       )}
                     </>
                   )}
@@ -162,7 +162,7 @@ export default function PaginaNuevaPassword() {
                   required
                   autoComplete="new-password"
                   placeholder="Repite tu contraseña"
-                  className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[#aeb6c7] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                  className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[var(--ruum-dark-text-tertiary)] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
                 />
 
                 {error && (

@@ -34,7 +34,7 @@ export function EstadoStepper({ estado }: EstadoStepperProps) {
             />
             <p
               className={[
-                "mt-1.5 font-mono-ruum text-[10px] uppercase tracking-wide",
+                "mt-1.5 font-mono-ruum text-xs uppercase tracking-wide",
                 actual ? "text-ink" : sellada ? "text-ink" : "text-ink/40"
               ].join(" ")}
             >
