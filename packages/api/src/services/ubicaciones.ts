@@ -2,6 +2,7 @@ import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
 
 type Cliente = SupabaseClient<Database>;
+type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
 export interface UbicacionTraslado {
   id: string;
@@ -22,8 +23,18 @@ export interface DatosUbicacionTraslado {
   velocidadMps?: number | null;
 }
 
+export interface EstadoTrasladoRealtime {
+  id: string;
+  estado: EstadoTraslado;
+  actualizado_en: string;
+}
+
 function tablaUbicaciones(cliente: Cliente) {
   return (cliente as unknown as SupabaseClient).from("ubicaciones_traslado");
+}
+
+function tablaTrasladosRealtime(cliente: Cliente) {
+  return (cliente as unknown as SupabaseClient).from("traslados");
 }
 
 async function obtenerConductorIdActual(cliente: Cliente): Promise<string> {
@@ -84,6 +95,36 @@ export function suscribirUbicacionTraslado(
         filter: `traslado_id=eq.${trasladoId}`
       },
       (payload) => alRecibir(payload.new as UbicacionTraslado)
+    )
+    .subscribe();
+}
+
+export async function obtenerEstadoTrasladoRealtime(cliente: Cliente, trasladoId: string): Promise<EstadoTrasladoRealtime | null> {
+  const { data, error } = await tablaTrasladosRealtime(cliente)
+    .select("id, estado, actualizado_en")
+    .eq("id", trasladoId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as EstadoTrasladoRealtime | null) ?? null;
+}
+
+export function suscribirEstadoTraslado(
+  cliente: Cliente,
+  trasladoId: string,
+  alRecibir: (estado: EstadoTrasladoRealtime) => void
+): RealtimeChannel {
+  return cliente
+    .channel(`estado-traslado-${trasladoId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "traslados",
+        filter: `id=eq.${trasladoId}`
+      },
+      (payload) => alRecibir(payload.new as EstadoTrasladoRealtime)
     )
     .subscribe();
 }

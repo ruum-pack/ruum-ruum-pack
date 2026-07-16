@@ -1,12 +1,10 @@
 "use client";
-
-"use client";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { activarSoporteEmergenciaConductor, registrarUbicacionTraslado } from "@ruum/api/services";
 import type { Database } from "@ruum/shared/types";
 import { ESTADOS_TRASLADO } from "@ruum/shared/states";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
-import { obtenerUbicacionActual } from "../lib/ubicacion";
+import { observarUbicacionActual, obtenerUbicacionActual, type Coordenadas } from "../lib/ubicacion";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
@@ -46,6 +44,19 @@ export function viajePermiteFabEmergencia(estado: EstadoTraslado) {
 
 export function viajePermiteSeguimientoUbicacion(estado: EstadoTraslado) {
   return ESTADOS_SEGUIMIENTO_UBICACION.includes(estado);
+}
+
+function distanciaMetros(a: Coordenadas, b: Coordenadas) {
+  const radioTierra = 6_371_000;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+  const deltaLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const deltaLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const h =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
+
+  return 2 * radioTierra * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
 export function ViajeActivoProvider({ children }: { children: React.ReactNode }) {
@@ -99,9 +110,10 @@ function ReportadorUbicacionConductor() {
 
     let cancelado = false;
     const cliente = crearClienteNavegador();
+    let ultimaReportada: Coordenadas | null = null;
+    let ultimoReporteMs = 0;
 
-    async function reportar() {
-      const ubicacion = await obtenerUbicacionActual();
+    async function reportar(ubicacion: Coordenadas | null) {
       if (!ubicacion || cancelado) return;
 
       try {
@@ -112,19 +124,39 @@ function ReportadorUbicacionConductor() {
           precisionM: ubicacion.precisionM,
           velocidadMps: ubicacion.velocidadMps
         });
+        ultimaReportada = ubicacion;
+        ultimoReporteMs = Date.now();
       } catch {
         // El seguimiento no debe bloquear el flujo operativo del conductor.
       }
     }
 
-    void reportar();
-    const intervalo = window.setInterval(() => {
-      void reportar();
+    function debeReportar(ubicacion: Coordenadas) {
+      if (!ultimaReportada) return true;
+
+      const tiempoDesdeUltimoReporte = Date.now() - ultimoReporteMs;
+      return tiempoDesdeUltimoReporte >= 10_000 || distanciaMetros(ultimaReportada, ubicacion) >= 50;
+    }
+
+    void obtenerUbicacionActual().then((ubicacion) => reportar(ubicacion));
+
+    let cancelarObservacion: (() => void) | null = null;
+    void observarUbicacionActual((ubicacion) => {
+      if (debeReportar(ubicacion)) {
+        void reportar(ubicacion);
+      }
+    }).then((cancelar) => {
+      cancelarObservacion = cancelar;
+    });
+
+    const respaldo = window.setInterval(() => {
+      void obtenerUbicacionActual().then((ubicacion) => reportar(ubicacion));
     }, 30_000);
 
     return () => {
       cancelado = true;
-      window.clearInterval(intervalo);
+      cancelarObservacion?.();
+      window.clearInterval(respaldo);
     };
   }, [viajeActivo]);
 

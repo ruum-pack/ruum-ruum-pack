@@ -1,8 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { obtenerUltimaUbicacionTraslado, suscribirUbicacionTraslado, type UbicacionTraslado } from "@ruum/api/services";
-import { Aviso, PassportCard } from "@ruum/ui";
+import {
+  obtenerEstadoTrasladoRealtime,
+  obtenerUltimaUbicacionTraslado,
+  suscribirEstadoTraslado,
+  suscribirUbicacionTraslado,
+  type UbicacionTraslado
+} from "@ruum/api/services";
+import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
+import { Aviso, EstadoBadge, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 import { SkeletonMapa } from "../../components/SkeletonMapa";
@@ -74,23 +81,37 @@ export function SeguimientoTrasladoTiempoReal({
   ubicacionInicial
 }: SeguimientoTrasladoTiempoRealProps) {
   const [ubicacion, setUbicacion] = useState<UbicacionTraslado | null>(ubicacionInicial);
+  const [estadoRealtime, setEstadoRealtime] = useState<EstadoTraslado | null>(null);
+  const [estadoActualizadoEn, setEstadoActualizadoEn] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
   const [mapaCargadoUrl, setMapaCargadoUrl] = useState<string | null>(null);
 
+  const estadoEnVivo = estadoRealtime ?? estado;
   const mapaUrl = useMemo(() => construirMapa(origen, destino, ubicacion), [destino, origen, ubicacion]);
   const mapaCargado = mapaUrl != null && mapaCargadoUrl === mapaUrl;
-  const visible = estado ? ESTADOS_VISIBLES.includes(estado) : false;
+  const visible = estadoEnVivo ? ESTADOS_VISIBLES.includes(estadoEnVivo) : false;
 
   useEffect(() => {
-    if (!visible || !tieneSupabaseConfigurado()) return;
+    if (!tieneSupabaseConfigurado()) return;
 
     const cliente = crearClienteNavegador();
-    const canal = suscribirUbicacionTraslado(cliente, trasladoId, setUbicacion);
+    const canalEstado = suscribirEstadoTraslado(cliente, trasladoId, (traslado) => {
+      setEstadoRealtime(traslado.estado);
+      setEstadoActualizadoEn(traslado.actualizado_en);
+    });
+    const canalUbicacion = suscribirUbicacionTraslado(cliente, trasladoId, setUbicacion);
+
+    void obtenerEstadoTrasladoRealtime(cliente, trasladoId).then((traslado) => {
+      if (!traslado) return;
+      setEstadoRealtime(traslado.estado);
+      setEstadoActualizadoEn(traslado.actualizado_en);
+    });
 
     return () => {
-      void cliente.removeChannel(canal);
+      void cliente.removeChannel(canalEstado);
+      void cliente.removeChannel(canalUbicacion);
     };
-  }, [trasladoId, visible]);
+  }, [trasladoId]);
 
   async function refrescar() {
     if (!tieneSupabaseConfigurado()) return;
@@ -98,7 +119,15 @@ export function SeguimientoTrasladoTiempoReal({
     setCargando(true);
     try {
       const cliente = crearClienteNavegador();
-      setUbicacion(await obtenerUltimaUbicacionTraslado(cliente, trasladoId));
+      const [ultimaUbicacion, estadoActual] = await Promise.all([
+        obtenerUltimaUbicacionTraslado(cliente, trasladoId),
+        obtenerEstadoTrasladoRealtime(cliente, trasladoId)
+      ]);
+      setUbicacion(ultimaUbicacion);
+      if (estadoActual) {
+        setEstadoRealtime(estadoActual.estado);
+        setEstadoActualizadoEn(estadoActual.actualizado_en);
+      }
     } finally {
       setCargando(false);
     }
@@ -117,6 +146,20 @@ export function SeguimientoTrasladoTiempoReal({
               La ubicación se actualiza automáticamente mientras el conductor mantiene abierta la app.
             </p>
           </div>
+          {estadoEnVivo && <EstadoBadge estado={estadoEnVivo} />}
+        </div>
+
+        <div className="mt-5 rounded-[var(--ruum-radius-field)] border border-route/20 bg-route-soft px-4 py-3">
+          <p className="font-body text-xs uppercase tracking-wide text-route-dark/80">Estado en vivo</p>
+          <p className="mt-1 font-display text-base font-semibold text-ink">
+            {estadoEnVivo ? ETIQUETA_ESTADO_TRASLADO[estadoEnVivo] : "Esperando actualización"}
+          </p>
+          <p className="mt-1 font-body text-xs text-ink/60">
+            Actualizado {formatoHora(estadoActualizadoEn ?? ubicacion?.registrado_en)}
+          </p>
+        </div>
+
+        <div className="mt-4 flex justify-end">
           <button
             type="button"
             onClick={refrescar}
