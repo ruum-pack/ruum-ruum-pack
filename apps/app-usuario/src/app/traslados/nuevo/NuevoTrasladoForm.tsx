@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button, Field, Aviso, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO, MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { determinarMomentoPago, calcularCargoCancelacion } from "@ruum/shared/rules";
@@ -36,6 +37,13 @@ const CAMPOS_PASO_VEHICULO = new Set([
 ]);
 const CAMPOS_PASO_RUTA = new Set([
   "origenCodigoPostal", "origenEstado", "origenCiudad", "origenColonia", "origenCalle", "origenNumero",
+  "destinoCodigoPostal", "destinoEstado", "destinoCiudad", "destinoColonia", "destinoCalle", "destinoNumero",
+  "entregaNombre", "entregaApellido", "entregaTelefono", "recepcionNombre", "recepcionApellido", "recepcionTelefono"
+]);
+const CAMPOS_RUTA_ORIGEN = new Set([
+  "origenCodigoPostal", "origenEstado", "origenCiudad", "origenColonia", "origenCalle", "origenNumero"
+]);
+const CAMPOS_RUTA_DESTINO_CONTACTOS = new Set([
   "destinoCodigoPostal", "destinoEstado", "destinoCiudad", "destinoColonia", "destinoCalle", "destinoNumero",
   "entregaNombre", "entregaApellido", "entregaTelefono", "recepcionNombre", "recepcionApellido", "recepcionTelefono"
 ]);
@@ -173,6 +181,7 @@ const USUARIO_PENDIENTE = {
 };
 
 type PrefijoDomicilio = "origen" | "destino";
+type SubpasoRuta = "origen" | "destino_contactos";
 
 function soloDigitos(valor: string, maximo?: number) {
   const limpio = valor.replace(/\D/g, "");
@@ -387,6 +396,7 @@ export function NuevoTrasladoForm() {
   }, [clasificacionesCatalogo]);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<{ ok: boolean; mensaje: string } | null>(null);
+  const [bloqueoVerificacion, setBloqueoVerificacion] = useState<string | null>(null);
   const [usuario, setUsuario] = useState<Usuario>(USUARIO_PENDIENTE);
   const [sesionReal, setSesionReal] = useState(false);
   const [cargandoSesion, setCargandoSesion] = useState(tieneSupabaseConfigurado());
@@ -395,6 +405,7 @@ export function NuevoTrasladoForm() {
   const [cpAviso, setCpAviso] = useState<Record<PrefijoDomicilio, string | null>>({ origen: null, destino: null });
   const [cpOpciones, setCpOpciones] = useState<Record<PrefijoDomicilio, DatosCodigoPostal | null>>({ origen: null, destino: null });
   const [placesOpciones, setPlacesOpciones] = useState<Record<PrefijoDomicilio, string[]>>({ origen: [], destino: [] });
+  const [subpasoRuta, setSubpasoRuta] = useState<SubpasoRuta>("origen");
   const [vehiculosGuardados, setVehiculosGuardados] = useState<VehiculoGuardado[]>([]);
   const [vehiculoSeleccionadoId, setVehiculoSeleccionadoId] = useState<string>("");
   const [errorPaso, setErrorPaso] = useState<string | null>(null);
@@ -741,7 +752,11 @@ export function NuevoTrasladoForm() {
         }
         if (real) {
           if (real.estado_verificacion !== "verificado") {
-            router.replace("/verificacion?next=/traslados/nuevo");
+            setBloqueoVerificacion(
+              real.estado_verificacion === "en_revision"
+                ? "Tu cuenta está en revisión. Podrás solicitar traslados cuando el equipo apruebe tu documentación."
+                : "Necesitamos verificar tu cuenta antes de que solicites un traslado."
+            );
             return;
           }
           setUsuario({
@@ -887,136 +902,181 @@ export function NuevoTrasladoForm() {
   }
 
   function BloqueRuta() {
+    const hayErroresOrigen = Object.keys(errores).some((campo) => CAMPOS_RUTA_ORIGEN.has(campo));
+    const hayErroresDestinoContactos = Object.keys(errores).some((campo) => CAMPOS_RUTA_DESTINO_CONTACTOS.has(campo));
+
     return (
       <div className="grid gap-4">
         <p className="font-body text-sm font-semibold">¿De dónde sale y a dónde llega?</p>
-        <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
-          <p className="font-body text-sm font-semibold">Domicilio de origen</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <CampoCodigoPostal
-              valor={datos.origenCodigoPostal}
-              ciudadActual={datos.origenCiudad}
-              opciones={cpOpciones.origen}
-              sugerenciasMapbox={placesOpciones.origen}
-              consultando={cpConsultando === "origen"}
-              aviso={cpAviso.origen}
-              error={errores.origenCodigoPostal}
-              onCambiar={(valor) => actualizarCodigoPostal("origen", valor)}
-              onSalir={(valor) => consultarCodigoPostal("origen", valor)}
-              onAplicarSugerencia={(ciudad, colonia) => aplicarSugerenciaCp("origen", ciudad, colonia)}
-            />
-            <Field etiqueta="Estado" value={datos.origenEstado} onChange={(e) => actualizar("origenEstado", e.target.value)} error={errores.origenEstado} />
-            <Field etiqueta="Ciudad" value={datos.origenCiudad} onChange={(e) => actualizar("origenCiudad", e.target.value)} error={errores.origenCiudad} />
-            <Field etiqueta="Colonia" value={datos.origenColonia} onChange={(e) => actualizar("origenColonia", e.target.value)} error={errores.origenColonia} />
-            <Field etiqueta="Calle" value={datos.origenCalle} onChange={(e) => actualizar("origenCalle", e.target.value)} error={errores.origenCalle} />
-            <Field etiqueta="Número" value={datos.origenNumero} onChange={(e) => actualizar("origenNumero", e.target.value)} error={errores.origenNumero} />
-          </div>
-          <Field etiqueta="Referencias" value={datos.origenReferencias} onChange={(e) => actualizar("origenReferencias", e.target.value)} placeholder="Entre calles, color de fachada, acceso, piso, etc." />
+
+        <div className="grid grid-cols-2 gap-2 rounded-xl border border-ink/10 bg-mist p-1" aria-label="Secciones de origen y destino">
+          <button
+            type="button"
+            aria-pressed={subpasoRuta === "origen"}
+            onClick={() => setSubpasoRuta("origen")}
+            className={[
+              "rounded-lg px-3 py-2.5 text-left font-body text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-dark",
+              subpasoRuta === "origen" ? "bg-signal text-ink shadow-sm" : "text-ink/65 hover:bg-ink/[0.04] hover:text-ink"
+            ].join(" ")}
+          >
+            Origen
+            {hayErroresOrigen && <span className="ml-2 text-danger" aria-label="con errores">•</span>}
+          </button>
+          <button
+            type="button"
+            aria-pressed={subpasoRuta === "destino_contactos"}
+            onClick={() => setSubpasoRuta("destino_contactos")}
+            className={[
+              "rounded-lg px-3 py-2.5 text-left font-body text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-dark",
+              subpasoRuta === "destino_contactos" ? "bg-signal text-ink shadow-sm" : "text-ink/65 hover:bg-ink/[0.04] hover:text-ink"
+            ].join(" ")}
+          >
+            Destino y contactos
+            {hayErroresDestinoContactos && <span className="ml-2 text-danger" aria-label="con errores">•</span>}
+          </button>
         </div>
-        {esNativo() && (
-          <div>
-            <Button
-              type="button"
-              variant="secundario"
-              onClick={async () => {
-                const coords = await obtenerUbicacionActual();
-                if (coords) {
-                  actualizar("origenLat", coords.lat);
-                  actualizar("origenLng", coords.lng);
-                }
-              }}
-            >
-              Usar mi ubicación actual
-            </Button>
-            {datos.origenLat !== undefined && <p className="mt-1 font-body text-xs text-ink/45">Ubicación capturada ✓</p>}
+
+        {subpasoRuta === "origen" && (
+          <div className="grid gap-4" aria-label="Origen del traslado">
+            <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
+              <p className="font-body text-sm font-semibold">Domicilio de origen</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <CampoCodigoPostal
+                  valor={datos.origenCodigoPostal}
+                  ciudadActual={datos.origenCiudad}
+                  opciones={cpOpciones.origen}
+                  sugerenciasMapbox={placesOpciones.origen}
+                  consultando={cpConsultando === "origen"}
+                  aviso={cpAviso.origen}
+                  error={errores.origenCodigoPostal}
+                  onCambiar={(valor) => actualizarCodigoPostal("origen", valor)}
+                  onSalir={(valor) => consultarCodigoPostal("origen", valor)}
+                  onAplicarSugerencia={(ciudad, colonia) => aplicarSugerenciaCp("origen", ciudad, colonia)}
+                />
+                <Field etiqueta="Estado" value={datos.origenEstado} onChange={(e) => actualizar("origenEstado", e.target.value)} error={errores.origenEstado} />
+                <Field etiqueta="Ciudad" value={datos.origenCiudad} onChange={(e) => actualizar("origenCiudad", e.target.value)} error={errores.origenCiudad} />
+                <Field etiqueta="Colonia" value={datos.origenColonia} onChange={(e) => actualizar("origenColonia", e.target.value)} error={errores.origenColonia} />
+                <Field etiqueta="Calle" value={datos.origenCalle} onChange={(e) => actualizar("origenCalle", e.target.value)} error={errores.origenCalle} />
+                <Field etiqueta="Número" value={datos.origenNumero} onChange={(e) => actualizar("origenNumero", e.target.value)} error={errores.origenNumero} />
+              </div>
+              <Field etiqueta="Referencias" value={datos.origenReferencias} onChange={(e) => actualizar("origenReferencias", e.target.value)} placeholder="Entre calles, color de fachada, acceso, piso, etc." />
+            </div>
+            {esNativo() && (
+              <div>
+                <Button
+                  type="button"
+                  variant="secundario"
+                  onClick={async () => {
+                    const coords = await obtenerUbicacionActual();
+                    if (coords) {
+                      actualizar("origenLat", coords.lat);
+                      actualizar("origenLng", coords.lng);
+                    }
+                  }}
+                >
+                  Usar mi ubicación actual
+                </Button>
+                {datos.origenLat !== undefined && <p className="mt-1 font-body text-xs text-ink/45">Ubicación capturada ✓</p>}
+              </div>
+            )}
+            <div className="flex justify-end">
+              <Button type="button" onClick={() => setSubpasoRuta("destino_contactos")}>
+                Continuar con destino
+              </Button>
+            </div>
           </div>
         )}
-        <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
-          <p className="font-body text-sm font-semibold">Domicilio de destino</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <CampoCodigoPostal
-              valor={datos.destinoCodigoPostal}
-              ciudadActual={datos.destinoCiudad}
-              opciones={cpOpciones.destino}
-              sugerenciasMapbox={placesOpciones.destino}
-              consultando={cpConsultando === "destino"}
-              aviso={cpAviso.destino}
-              error={errores.destinoCodigoPostal}
-              onCambiar={(valor) => actualizarCodigoPostal("destino", valor)}
-              onSalir={(valor) => consultarCodigoPostal("destino", valor)}
-              onAplicarSugerencia={(ciudad, colonia) => aplicarSugerenciaCp("destino", ciudad, colonia)}
-            />
-            <Field etiqueta="Estado" value={datos.destinoEstado} onChange={(e) => actualizar("destinoEstado", e.target.value)} error={errores.destinoEstado} />
-            <Field etiqueta="Ciudad" value={datos.destinoCiudad} onChange={(e) => actualizar("destinoCiudad", e.target.value)} error={errores.destinoCiudad} />
-            <Field etiqueta="Colonia" value={datos.destinoColonia} onChange={(e) => actualizar("destinoColonia", e.target.value)} error={errores.destinoColonia} />
-            <Field etiqueta="Calle" value={datos.destinoCalle} onChange={(e) => actualizar("destinoCalle", e.target.value)} error={errores.destinoCalle} />
-            <Field etiqueta="Número" value={datos.destinoNumero} onChange={(e) => actualizar("destinoNumero", e.target.value)} error={errores.destinoNumero} />
-          </div>
-          <Field etiqueta="Referencias" value={datos.destinoReferencias} onChange={(e) => actualizar("destinoReferencias", e.target.value)} placeholder="Entre calles, color de fachada, acceso, piso, etc." />
-        </div>
-        <section className="rounded-lg border border-route/20 bg-route-soft px-4 py-4" aria-labelledby="titulo-estimacion-ruta">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p id="titulo-estimacion-ruta" className="font-body text-sm font-semibold text-ink">
-                Distancia y tiempo estimado
-              </p>
-              <p className="mt-1 font-body text-xs leading-5 text-ink/65">
-                Se calcula con Mapbox usando origen y destino. Si no se puede resolver, operaciones lo revisará.
-              </p>
+
+        {subpasoRuta === "destino_contactos" && (
+          <div className="grid gap-4" aria-label="Destino y contactos del traslado">
+            <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
+              <p className="font-body text-sm font-semibold">Domicilio de destino</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <CampoCodigoPostal
+                  valor={datos.destinoCodigoPostal}
+                  ciudadActual={datos.destinoCiudad}
+                  opciones={cpOpciones.destino}
+                  sugerenciasMapbox={placesOpciones.destino}
+                  consultando={cpConsultando === "destino"}
+                  aviso={cpAviso.destino}
+                  error={errores.destinoCodigoPostal}
+                  onCambiar={(valor) => actualizarCodigoPostal("destino", valor)}
+                  onSalir={(valor) => consultarCodigoPostal("destino", valor)}
+                  onAplicarSugerencia={(ciudad, colonia) => aplicarSugerenciaCp("destino", ciudad, colonia)}
+                />
+                <Field etiqueta="Estado" value={datos.destinoEstado} onChange={(e) => actualizar("destinoEstado", e.target.value)} error={errores.destinoEstado} />
+                <Field etiqueta="Ciudad" value={datos.destinoCiudad} onChange={(e) => actualizar("destinoCiudad", e.target.value)} error={errores.destinoCiudad} />
+                <Field etiqueta="Colonia" value={datos.destinoColonia} onChange={(e) => actualizar("destinoColonia", e.target.value)} error={errores.destinoColonia} />
+                <Field etiqueta="Calle" value={datos.destinoCalle} onChange={(e) => actualizar("destinoCalle", e.target.value)} error={errores.destinoCalle} />
+                <Field etiqueta="Número" value={datos.destinoNumero} onChange={(e) => actualizar("destinoNumero", e.target.value)} error={errores.destinoNumero} />
+              </div>
+              <Field etiqueta="Referencias" value={datos.destinoReferencias} onChange={(e) => actualizar("destinoReferencias", e.target.value)} placeholder="Entre calles, color de fachada, acceso, piso, etc." />
             </div>
-            {rutaCalculando ? (
-              <p className="rounded-full bg-mist px-3 py-1.5 font-body text-xs font-semibold text-route-dark">
-                Calculando ruta...
-              </p>
-            ) : rutaEstimacion?.distanciaKm !== undefined && rutaEstimacion.tiempoEstimadoHoras !== undefined ? (
-              <dl className="grid grid-cols-2 gap-2 rounded-lg bg-mist px-4 py-3 text-center font-body">
+            <section className="rounded-lg border border-route/20 bg-route-soft px-4 py-4" aria-labelledby="titulo-estimacion-ruta">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink/45">Distancia</dt>
-                  <dd className="mt-1 text-sm font-bold text-ink">{formatearDistancia(rutaEstimacion.distanciaKm)}</dd>
+                  <p id="titulo-estimacion-ruta" className="font-body text-sm font-semibold text-ink">
+                    Distancia y tiempo estimado
+                  </p>
+                  <p className="mt-1 font-body text-xs leading-5 text-ink/65">
+                    Se calcula con Mapbox usando origen y destino. Si no se puede resolver, operaciones lo revisará.
+                  </p>
                 </div>
-                <div>
-                  <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink/45">Tiempo</dt>
-                  <dd className="mt-1 text-sm font-bold text-ink">{formatearTiempo(rutaEstimacion.tiempoEstimadoHoras)}</dd>
-                </div>
-              </dl>
-            ) : (
-              <p className="rounded-full bg-mist px-3 py-1.5 font-body text-xs font-semibold text-ink/55">
-                Completa ambas direcciones
-              </p>
-            )}
+                {rutaCalculando ? (
+                  <p className="rounded-full bg-mist px-3 py-1.5 font-body text-xs font-semibold text-route-dark">
+                    Calculando ruta...
+                  </p>
+                ) : rutaEstimacion?.distanciaKm !== undefined && rutaEstimacion.tiempoEstimadoHoras !== undefined ? (
+                  <dl className="grid grid-cols-2 gap-2 rounded-lg bg-mist px-4 py-3 text-center font-body">
+                    <div>
+                      <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink/45">Distancia</dt>
+                      <dd className="mt-1 text-sm font-bold text-ink">{formatearDistancia(rutaEstimacion.distanciaKm)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink/45">Tiempo</dt>
+                      <dd className="mt-1 text-sm font-bold text-ink">{formatearTiempo(rutaEstimacion.tiempoEstimadoHoras)}</dd>
+                    </div>
+                  </dl>
+                ) : (
+                  <p className="rounded-full bg-mist px-3 py-1.5 font-body text-xs font-semibold text-ink/55">
+                    Completa ambas direcciones
+                  </p>
+                )}
+              </div>
+              {rutaAviso && <p className="mt-3 font-body text-xs leading-5 text-danger">{rutaAviso}</p>}
+            </section>
+            <p className="font-body text-sm font-semibold">Quien entrega el vehículo</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field etiqueta="Nombre" value={datos.entregaNombre} onChange={(e) => actualizar("entregaNombre", e.target.value)} error={errores.entregaNombre} />
+              <Field etiqueta="Apellido" value={datos.entregaApellido} onChange={(e) => actualizar("entregaApellido", e.target.value)} error={errores.entregaApellido} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="telefono-entrega" className="font-body text-sm font-medium">Teléfono</label>
+              <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("entregaTelefono")}`}>
+                <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">+52</span>
+                <input id="telefono-entrega" value={datos.entregaTelefono} onChange={(e) => actualizarTelefono("entregaTelefono", e.target.value)} inputMode="numeric" maxLength={10} className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark" placeholder="10 dígitos" aria-label="Teléfono de entrega (10 dígitos)" aria-invalid={Boolean(errores.entregaTelefono)} aria-describedby={errores.entregaTelefono ? "telefono-entrega-error" : undefined} />
+              </div>
+              {errores.entregaTelefono && <p id="telefono-entrega-error" className="font-body text-xs text-danger">{errores.entregaTelefono}</p>}
+            </div>
+            <p className="mt-2 font-body text-sm font-semibold">Quien recibe el vehículo</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field etiqueta="Nombre" value={datos.recepcionNombre} onChange={(e) => actualizar("recepcionNombre", e.target.value)} error={errores.recepcionNombre} />
+              <Field etiqueta="Apellido" value={datos.recepcionApellido} onChange={(e) => actualizar("recepcionApellido", e.target.value)} error={errores.recepcionApellido} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="telefono-recepcion" className="font-body text-sm font-medium">Teléfono</label>
+              <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("recepcionTelefono")}`}>
+                <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">+52</span>
+                <input id="telefono-recepcion" value={datos.recepcionTelefono} onChange={(e) => actualizarTelefono("recepcionTelefono", e.target.value)} inputMode="numeric" maxLength={10} className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark" placeholder="10 dígitos" aria-label="Teléfono de recepción (10 dígitos)" aria-invalid={Boolean(errores.recepcionTelefono)} aria-describedby={errores.recepcionTelefono ? "telefono-recepcion-error" : undefined} />
+              </div>
+              {errores.recepcionTelefono && <p id="telefono-recepcion-error" className="font-body text-xs text-danger">{errores.recepcionTelefono}</p>}
+            </div>
+            <label className="flex flex-col gap-1.5">
+              <span className="font-body text-sm font-medium">Instrucciones especiales</span>
+              <textarea value={datos.instruccionesEspeciales} onChange={(e) => actualizar("instruccionesEspeciales", e.target.value)} maxLength={1000} aria-label="Instrucciones especiales para el traslado" className="min-h-24 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark" />
+            </label>
           </div>
-          {rutaAviso && <p className="mt-3 font-body text-xs leading-5 text-danger">{rutaAviso}</p>}
-        </section>
-        <p className="font-body text-sm font-semibold">Quien entrega el vehículo</p>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field etiqueta="Nombre" value={datos.entregaNombre} onChange={(e) => actualizar("entregaNombre", e.target.value)} error={errores.entregaNombre} />
-          <Field etiqueta="Apellido" value={datos.entregaApellido} onChange={(e) => actualizar("entregaApellido", e.target.value)} error={errores.entregaApellido} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="telefono-entrega" className="font-body text-sm font-medium">Teléfono</label>
-          <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("entregaTelefono")}`}>
-            <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">+52</span>
-            <input id="telefono-entrega" value={datos.entregaTelefono} onChange={(e) => actualizarTelefono("entregaTelefono", e.target.value)} inputMode="numeric" maxLength={10} className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark" placeholder="10 dígitos" aria-label="Teléfono de entrega (10 dígitos)" aria-invalid={Boolean(errores.entregaTelefono)} />
-          </div>
-          {errores.entregaTelefono && <p className="font-body text-xs text-danger">{errores.entregaTelefono}</p>}
-        </div>
-        <p className="mt-2 font-body text-sm font-semibold">Quien recibe el vehículo</p>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field etiqueta="Nombre" value={datos.recepcionNombre} onChange={(e) => actualizar("recepcionNombre", e.target.value)} error={errores.recepcionNombre} />
-          <Field etiqueta="Apellido" value={datos.recepcionApellido} onChange={(e) => actualizar("recepcionApellido", e.target.value)} error={errores.recepcionApellido} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="telefono-recepcion" className="font-body text-sm font-medium">Teléfono</label>
-          <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("recepcionTelefono")}`}>
-            <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">+52</span>
-            <input id="telefono-recepcion" value={datos.recepcionTelefono} onChange={(e) => actualizarTelefono("recepcionTelefono", e.target.value)} inputMode="numeric" maxLength={10} className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark" placeholder="10 dígitos" aria-label="Teléfono de recepción (10 dígitos)" aria-invalid={Boolean(errores.recepcionTelefono)} />
-          </div>
-          {errores.recepcionTelefono && <p className="font-body text-xs text-danger">{errores.recepcionTelefono}</p>}
-        </div>
-        <label className="flex flex-col gap-1.5">
-          <span className="font-body text-sm font-medium">Instrucciones especiales</span>
-          <textarea value={datos.instruccionesEspeciales} onChange={(e) => actualizar("instruccionesEspeciales", e.target.value)} maxLength={1000} aria-label="Instrucciones especiales para el traslado" className="min-h-24 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark" />
-        </label>
+        )}
       </div>
     );
   }
@@ -1032,6 +1092,10 @@ export function NuevoTrasladoForm() {
     const totalErrores = Object.keys(siguientesErrores).length;
     setErrores(siguientesErrores);
     setErrorPaso(totalErrores ? `${totalErrores} ${totalErrores === 1 ? "campo requiere" : "campos requieren"} atención.` : null);
+    if (paso === 1 && totalErrores > 0) {
+      const primerCampo = Object.keys(siguientesErrores)[0];
+      setSubpasoRuta(CAMPOS_RUTA_ORIGEN.has(primerCampo) ? "origen" : "destino_contactos");
+    }
     return totalErrores === 0;
   }
 
@@ -1193,6 +1257,35 @@ export function NuevoTrasladoForm() {
 
   if (resultado) {
     return <EstadoCreacion resultado={resultado} volver={() => setResultado(null)} />;
+  }
+
+  if (bloqueoVerificacion) {
+    return (
+      <main className="app-page">
+        <NavegacionUsuario />
+        <div className="mx-auto max-w-xl px-6 py-12">
+          <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Verificación requerida</p>
+          <h1 className="mt-2 font-display text-2xl font-semibold">Antes de solicitar un traslado</h1>
+          <div className="mt-5">
+            <Aviso tono="atencion">{bloqueoVerificacion}</Aviso>
+          </div>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/verificacion?next=/traslados/nuevo"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-signal px-5 py-3 font-display text-sm font-bold text-ink shadow-sm transition hover:-translate-y-0.5 hover:bg-signal/90 focus-visible:outline-route-dark"
+            >
+              Ir a verificación
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-ink/20 bg-mist px-5 py-3 font-body text-sm font-medium text-ink transition hover:border-ink/40 focus-visible:outline-route-dark"
+            >
+              Volver al inicio
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -1703,9 +1796,21 @@ export function NuevoTrasladoForm() {
               Continuar
             </Button>
           ) : (
-            <Button onClick={enviarSolicitud} disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}>
-              {enviando ? TEXTOS_CARGANDO.enviando : cargandoSesion ? "Validando sesión…" : "Confirmar solicitud"}
-            </Button>
+            <div className="flex flex-col items-end gap-2">
+              <Button
+                onClick={enviarSolicitud}
+                disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}
+                aria-disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}
+                aria-describedby={!aceptaPoliticasPagoCancelacion ? "confirmar-solicitud-ayuda" : undefined}
+              >
+                {enviando ? TEXTOS_CARGANDO.enviando : cargandoSesion ? "Validando sesión…" : "Confirmar solicitud"}
+              </Button>
+              {!aceptaPoliticasPagoCancelacion && (
+                <p id="confirmar-solicitud-ayuda" className="max-w-56 text-right font-body text-xs leading-5 text-ink/65">
+                  Acepta la política arriba para continuar.
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}

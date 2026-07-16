@@ -5,6 +5,7 @@ const fondoPublicoTransparente = "bg-[#070b14]/95";
 const bordePublico = "border-[#4d5668]";
 const campoPublico = "bg-[#101a2c]";
 const textoSecundarioPublico = "text-[#d4d9e2]";
+const textoFuncionalPublico = "text-[#aeb6c7]";
 const acentoPublico = "bg-[#f5a623]";
 const focoPublico = "focus:border-[#3aa5ff] focus:ring-[#3aa5ff]/25";
 const focoAcentoPublico = "focus-visible:ring-[#f5a623]/70 focus-visible:ring-offset-[#070b14]";
@@ -104,7 +105,7 @@ export function IconoLinea({ tipo }: { tipo: "escudo" | "maletin" | "pin" | "can
 }
 
 export const campoOscuro =
-  `w-full rounded-lg border ${bordePublico} ${campoPublico} px-3.5 py-2.5 font-body text-sm text-white outline-none transition placeholder:text-white/40 ${focoPublico}`;
+  `w-full rounded-lg border ${bordePublico} ${campoPublico} px-3.5 py-2.5 font-body text-sm text-white outline-none transition placeholder:text-[#aeb6c7] ${focoPublico}`;
 
 export const etiquetaOscura = `font-body text-xs font-medium ${textoSecundarioPublico}`;
 export const botonAzul =
@@ -126,7 +127,7 @@ export function CampoOscuro({
     <div className="flex flex-col gap-1.5">
       <label htmlFor={inputId} className={etiquetaOscura}>{etiqueta}</label>
       <input {...props} id={inputId} aria-describedby={ariaDescribedBy} className={`${campoOscuro} ${props.className ?? ""}`} />
-      {ayuda ? <span id={ayudaId} className="font-body text-[11px] leading-4 text-white/42">{ayuda}</span> : null}
+      {ayuda ? <span id={ayudaId} className={`font-body text-xs leading-5 ${textoFuncionalPublico}`}>{ayuda}</span> : null}
     </div>
   );
 }

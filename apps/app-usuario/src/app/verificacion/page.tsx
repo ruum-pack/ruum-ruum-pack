@@ -17,7 +17,7 @@ interface Props {
 }
 
 /* Pantalla de espera para usuarios que ya enviaron su documentación */
-function EsperandoRevision({ destino }: { destino: string }) {
+function EsperandoRevision() {
   return (
     <div className="grid gap-5">
       <div className="flex justify-center">
@@ -95,19 +95,19 @@ function EsperandoRevision({ destino }: { destino: string }) {
         Ir al inicio
       </Link>
 
-      <Link
-        href={destino}
-        className="text-center font-body text-xs text-ink/45 underline-offset-4 hover:text-ink/70 hover:underline"
+      <div
+        aria-disabled="true"
+        className="rounded-lg border border-ink/10 bg-mist px-4 py-3 text-center font-body text-xs leading-5 text-ink/60"
       >
-        Intentar solicitar traslado de todos modos
-      </Link>
+        Podrás solicitar tu traslado cuando tu cuenta quede aprobada.
+      </div>
     </div>
   );
 }
 
 export default async function PaginaVerificacion({ searchParams }: Props) {
   const { next } = await searchParams;
-  const destino = next?.startsWith("/") && !next.startsWith("//") ? next : "/traslados/nuevo";
+  void next;
 
   /* Leer estado actual del usuario para decidir qué mostrar */
   let estadoVerificacion: string | null = null;
@@ -137,7 +137,7 @@ export default async function PaginaVerificacion({ searchParams }: Props) {
 
         <div className="mx-auto max-w-lg">
           {yaEnRevision ? (
-            <EsperandoRevision destino={destino} />
+            <EsperandoRevision />
           ) : (
             <>
               <div className="mb-8">
@@ -213,7 +213,7 @@ export default async function PaginaVerificacion({ searchParams }: Props) {
                 </p>
               </div>
 
-              <VerificacionForm destino={destino} />
+              <VerificacionForm />
             </>
           )}
         </div>

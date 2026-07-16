@@ -52,7 +52,7 @@ function BarraProgreso({ paso }: { paso: 1 | 2 }) {
               n <= paso ? "bg-[#f5a623]" : "bg-[#4d5668]",
             ].join(" ")}
           />
-          <span className="font-body text-[10px] text-white/40">
+          <span className="font-body text-xs text-[#aeb6c7]">
             {n === 1 ? "Datos básicos" : "Acceso"}
           </span>
         </div>
@@ -212,7 +212,7 @@ export default function PaginaRegistro() {
               ← Atrás
             </Link>
           )}
-          <span className="font-body text-[10px] text-white/35">Paso {paso} de 2</span>
+          <span className="font-body text-xs text-[#aeb6c7]">Paso {paso} de 2</span>
         </div>
 
         <LogoRuum className="mx-auto mt-8 text-center" />
@@ -324,7 +324,7 @@ export default function PaginaRegistro() {
                     required
                     autoComplete="new-password"
                     placeholder="Mínimo 8 caracteres"
-                    className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-white/40 focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                    className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[#aeb6c7] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
                   />
                 {password.length > 0 && (
                   <>
@@ -346,7 +346,7 @@ export default function PaginaRegistro() {
                       ))}
                     </div>
                     {pwd.etiqueta && (
-                      <span className="font-body text-[11px] leading-4 text-white/42">
+                      <span className="font-body text-xs leading-5 text-[#aeb6c7]">
                         {pwd.etiqueta}
                       </span>
                     )}
@@ -364,7 +364,7 @@ export default function PaginaRegistro() {
                 required
                 autoComplete="new-password"
                 placeholder="Repite tu contraseña"
-                className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-white/40 focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[#aeb6c7] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
               />
 
               {/* Términos — inline, no como .docx descargable */}
@@ -375,7 +375,7 @@ export default function PaginaRegistro() {
                   onChange={(e) => setAceptaTerminos(e.target.checked)}
                   className="mt-0.5 flex-shrink-0 accent-[#f5a623]"
                 />
-                <span className="font-body text-[11px] leading-5 text-[#c9cfda]">
+                <span className="font-body text-xs leading-5 text-[#c9cfda]">
                   Acepto los{" "}
                   <Link
                     href="/legal/terminos"

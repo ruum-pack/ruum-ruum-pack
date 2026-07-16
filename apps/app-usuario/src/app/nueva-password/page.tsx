@@ -131,7 +131,7 @@ export default function PaginaNuevaPassword() {
                     minLength={8}
                     autoComplete="new-password"
                     placeholder="Mínimo 8 caracteres"
-                    className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-white/40 focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                    className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[#aeb6c7] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
                   />
                   {password.length > 0 && (
                     <>
@@ -146,7 +146,7 @@ export default function PaginaNuevaPassword() {
                         ))}
                       </div>
                       {pwd.etiqueta && (
-                        <span className="font-body text-[11px] text-white/42">{pwd.etiqueta}</span>
+                        <span className="font-body text-xs text-[#aeb6c7]">{pwd.etiqueta}</span>
                       )}
                     </>
                   )}
@@ -162,7 +162,7 @@ export default function PaginaNuevaPassword() {
                   required
                   autoComplete="new-password"
                   placeholder="Repite tu contraseña"
-                  className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-white/40 focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                  className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[#aeb6c7] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
                 />
 
                 {error && (

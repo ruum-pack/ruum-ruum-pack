@@ -117,13 +117,13 @@ export function LoginCliente({ motivo, siguiente }: LoginClienteProps) {
               required
               autoComplete="current-password"
               placeholder="Tu contraseña"
-              className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-white/40 focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+              className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[#aeb6c7] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
             />
 
             <div className="flex justify-end">
               <Link
                 href="/recuperar-password"
-                className="font-body text-[11px] text-[#f1d797] underline-offset-2 hover:underline"
+                className="font-body text-xs text-[#f1d797] underline-offset-2 hover:underline"
               >
                 ¿Olvidaste tu contraseña?
               </Link>

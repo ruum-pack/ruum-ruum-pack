@@ -34,7 +34,7 @@ function esErrorRed(error: unknown) {
 }
 
 /* ── Pantalla de confirmación — se muestra tras envío exitoso ── */
-function ConfirmacionEnRevision({ destino }: { destino: string }) {
+function ConfirmacionEnRevision() {
   return (
     <div className="grid gap-5">
       {/* Ícono de éxito */}
@@ -123,21 +123,17 @@ function ConfirmacionEnRevision({ destino }: { destino: string }) {
         Ir al inicio
       </Link>
 
-      <Link
-        href={destino}
-        className="text-center font-body text-xs text-ink/45 underline-offset-4 hover:text-ink/70 hover:underline"
+      <div
+        aria-disabled="true"
+        className="rounded-lg border border-ink/10 bg-mist px-4 py-3 text-center font-body text-xs leading-5 text-ink/60"
       >
-        Intentar solicitar traslado de todos modos
-      </Link>
+        Podrás solicitar tu traslado cuando tu cuenta quede aprobada.
+      </div>
     </div>
   );
 }
 
-interface Props {
-  destino: string;
-}
-
-export function VerificacionForm({ destino }: Props) {
+export function VerificacionForm() {
   const router = useRouter();
 
   /* Domicilio — campos individuales que coinciden con la tabla usuarios (migración 0039) */
@@ -284,7 +280,7 @@ export function VerificacionForm({ destino }: Props) {
 
   /* Mostrar confirmación tras envío exitoso */
   if (enviado) {
-    return <ConfirmacionEnRevision destino={destino} />;
+    return <ConfirmacionEnRevision />;
   }
 
   const campoBase =

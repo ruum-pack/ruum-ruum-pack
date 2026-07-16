@@ -1,7 +1,7 @@
 "use client";
 
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoMarca } from "@ruum/ui";
@@ -72,6 +72,8 @@ export function NavegacionUsuario() {
   const router = useRouter();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const menuCuentaRef = useRef<HTMLDivElement>(null);
+  const botonCuentaRef = useRef<HTMLButtonElement>(null);
+  const menuCuentaPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!menuAbierto) return;
@@ -90,6 +92,47 @@ export function NavegacionUsuario() {
     await cliente.auth.signOut();
     router.push("/");
     router.refresh();
+  }
+
+  function cerrarMenuCuentaConFoco() {
+    setMenuAbierto(false);
+    window.requestAnimationFrame(() => botonCuentaRef.current?.focus());
+  }
+
+  function enfocarItemMenuCuenta(direccion: 1 | -1) {
+    const items = Array.from(menuCuentaPanelRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+    if (items.length === 0) return;
+
+    const indiceActual = items.indexOf(document.activeElement as HTMLElement);
+    const siguienteIndice = indiceActual === -1 ? (direccion === 1 ? 0 : items.length - 1) : (indiceActual + direccion + items.length) % items.length;
+    items[siguienteIndice]?.focus();
+  }
+
+  function manejarTeclasMenuCuenta(evento: KeyboardEvent<HTMLDivElement>) {
+    if (evento.key === "Escape") {
+      evento.preventDefault();
+      cerrarMenuCuentaConFoco();
+      return;
+    }
+
+    if (evento.key === "ArrowDown" || evento.key === "ArrowUp") {
+      evento.preventDefault();
+      enfocarItemMenuCuenta(evento.key === "ArrowDown" ? 1 : -1);
+    }
+  }
+
+  function manejarTeclasBotonCuenta(evento: KeyboardEvent<HTMLButtonElement>) {
+    if (evento.key === "Escape" && menuAbierto) {
+      evento.preventDefault();
+      cerrarMenuCuentaConFoco();
+      return;
+    }
+
+    if (evento.key === "ArrowDown" || evento.key === "ArrowUp") {
+      evento.preventDefault();
+      setMenuAbierto(true);
+      window.requestAnimationFrame(() => enfocarItemMenuCuenta(evento.key === "ArrowDown" ? 1 : -1));
+    }
   }
 
   return (
@@ -114,9 +157,12 @@ export function NavegacionUsuario() {
               return (
                 <div key={href} ref={menuCuentaRef} className="relative">
                   <button
+                    ref={botonCuentaRef}
                     onClick={() => setMenuAbierto(v => !v)}
+                    onKeyDown={manejarTeclasBotonCuenta}
                     aria-expanded={menuAbierto}
                     aria-haspopup="menu"
+                    aria-controls={menuAbierto ? "menu-cuenta-usuario" : undefined}
                     aria-label="Menú de cuenta"
                     className={[
                       "inline-flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 font-body text-sm font-medium",
@@ -130,7 +176,10 @@ export function NavegacionUsuario() {
                   </button>
                   {menuAbierto && (
                     <div
+                      ref={menuCuentaPanelRef}
+                      id="menu-cuenta-usuario"
                       role="menu"
+                      onKeyDown={manejarTeclasMenuCuenta}
                       className="absolute right-0 top-full z-50 mt-1 w-44 rounded-xl border border-ink/10 bg-mist py-1 shadow-lg"
                     >
                       <Link

@@ -27,7 +27,7 @@ function ContenidoOnboarding() {
             <p className="font-body text-xs font-semibold text-[#f5a623]">
               Cuenta creada
             </p>
-            <p className="mt-0.5 font-body text-[11px] leading-4 text-[#d7dce5]">
+            <p className="mt-0.5 font-body text-xs leading-5 text-[#d7dce5]">
               Tu cuenta está lista. Mueve tu auto sin soltar el control.
             </p>
           </div>
@@ -39,7 +39,7 @@ function ContenidoOnboarding() {
             <br />
             sin soltar el control.
           </h1>
-          <p className="mt-4 max-w-[275px] font-body text-[11px] leading-5 text-[#d7dce5]">
+          <p className="mt-4 max-w-[275px] font-body text-xs leading-5 text-[#d7dce5]">
             Plataforma digital para traslados vehiculares con conductores certificados,
             evidencia en cada etapa y control total del viaje.
           </p>
@@ -49,10 +49,10 @@ function ContenidoOnboarding() {
           {pilares.map(([tipo, titulo, descripcion]) => (
             <div key={titulo} className="space-y-2">
               <IconoLinea tipo={tipo} />
-              <p className="max-w-[120px] font-display text-[11px] font-extrabold uppercase leading-4 tracking-[0.08em] text-[#e6e9ef]">
+              <p className="max-w-[120px] font-display text-xs font-extrabold uppercase leading-4 tracking-[0.08em] text-[#e6e9ef]">
                 {titulo}
               </p>
-              <p className="max-w-[120px] font-body text-[10px] leading-4 text-[#8d96a8]">
+              <p className="max-w-[120px] font-body text-xs leading-5 text-[#aeb6c7]">
                 {descripcion}
               </p>
             </div>
