@@ -12,7 +12,6 @@ import {
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import { formatearFechaRelativa, formatearPrecio } from "@ruum/shared/utils";
 import type { Database } from "@ruum/shared/types";
-import { BotonFlotanteSolicitarTraslado } from "./BotonFlotanteSolicitarTraslado";
 import { construirNotificaciones, obtenerHistorial, obtenerViajeActivo } from "../lib/inicio";
 import { PILARES_CONFIANZA } from "../lib/pilares-confianza";
 
@@ -162,7 +161,7 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
               href="/traslados/nuevo"
               className="mt-2 inline-block font-body text-sm font-medium text-route-dark underline-offset-4 hover:underline"
             >
-              Solicita tu primer traslado →
+              Solicita un traslado →
             </Link>
           </div>
         )}
@@ -199,8 +198,8 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
                 : "Disponible con un traslado activo"
             }
             href={viajeActivo ? `/traslados/${viajeActivo.traslado_id}` : undefined}
-            ctaVacio="Solicitar traslado"
-            ctaHref="/traslados/nuevo"
+            ctaVacio="Ver mis traslados"
+            ctaHref="/mis-viajes"
           />
           <AccesoRapido
             titulo="Mis traslados"
@@ -269,7 +268,6 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
         ))}
       </section>
 
-      <BotonFlotanteSolicitarTraslado mostrar={!viajeActivo} />
     </div>
   );
 }

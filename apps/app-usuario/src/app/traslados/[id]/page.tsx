@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { obtenerPasaporteDigital } from "@ruum/api/services";
 import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_INCIDENCIA, ETIQUETA_TIPO_VEHICULO, MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
@@ -11,6 +10,7 @@ import { ReportarIncidenciaUsuario } from "./ReportarIncidencia";
 import { CancelarTraslado } from "./CancelarTraslado";
 import { CalificarTraslado } from "./CalificarTraslado";
 import { AbrirDisputa } from "./AbrirDisputa";
+import { ExportarPasaportePdf } from "./ExportarPasaportePdf";
 
 import { NavegacionUsuario } from "../../NavegacionUsuario";
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -43,6 +43,7 @@ type Conductor = Pick<
   "id" | "nombre" | "estado" | "nivel_operativo_vigente" | "calificacion_promedio" | "traslados_completados"
 >;
 type FotoEvidencia = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
+type FotoEvidenciaVisual = FotoEvidencia & { url_visual?: string | null };
 type Incidencia = Database["public"]["Tables"]["incidencias"]["Row"];
 type Pago = Database["public"]["Tables"]["pagos"]["Row"];
 type Calificacion = Database["public"]["Tables"]["calificaciones_traslado"]["Row"];
@@ -142,6 +143,35 @@ function calcularHorasDesdeCierre(actualizadoEn: string) {
   return (Date.now() - new Date(actualizadoEn).getTime()) / (1000 * 60 * 60);
 }
 
+function rutaEvidenciaDesdeUrl(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    const marcador = "/storage/v1/object/public/evidencia/";
+    const indice = parsed.pathname.indexOf(marcador);
+    if (indice >= 0) return decodeURIComponent(parsed.pathname.slice(indice + marcador.length));
+  } catch {
+    // Si ya viene como path relativo del bucket, se usa tal cual.
+  }
+  return url.startsWith("http") ? null : url;
+}
+
+async function firmarUrlsEvidencia(
+  cliente: Awaited<ReturnType<typeof crearClienteServidor>>,
+  fotos: FotoEvidencia[]
+): Promise<FotoEvidenciaVisual[]> {
+  return Promise.all(
+    fotos.map(async (foto) => {
+      const ruta = rutaEvidenciaDesdeUrl(foto.url);
+      if (!ruta) return { ...foto, url_visual: foto.url };
+
+      const { data, error } = await cliente.storage.from("evidencia").createSignedUrl(ruta, 60 * 30);
+      if (error || !data?.signedUrl) return { ...foto, url_visual: foto.url };
+      return { ...foto, url_visual: data.signedUrl };
+    })
+  );
+}
+
 async function obtenerDatos(id: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -151,7 +181,7 @@ async function obtenerDatos(id: string) {
       traslado: null,
       vehiculo: null,
       conductor: null,
-      evidencia: [] as FotoEvidencia[],
+      evidencia: [] as FotoEvidenciaVisual[],
       incidencias: [] as Incidencia[],
       disputas: [] as Disputa[],
       reclamosSeguro: [] as ReclamoSeguroUsuario[],
@@ -168,7 +198,7 @@ async function obtenerDatos(id: string) {
       traslado: null,
       vehiculo: null,
       conductor: null,
-      evidencia: [] as FotoEvidencia[],
+      evidencia: [] as FotoEvidenciaVisual[],
       incidencias: [] as Incidencia[],
       disputas: [] as Disputa[],
       reclamosSeguro: [] as ReclamoSeguroUsuario[],
@@ -220,7 +250,7 @@ async function obtenerDatos(id: string) {
     traslado: trasladoRes.data,
     vehiculo: vehiculoRes.data,
     conductor: conductorRes.data,
-    evidencia: evidenciaRes.data ?? [],
+    evidencia: await firmarUrlsEvidencia(cliente, evidenciaRes.data ?? []),
     incidencias: incidenciasRes.data ?? [],
     disputas: disputasRes.data ?? [],
     reclamosSeguro: reclamosSeguroRes.data ?? [],
@@ -245,7 +275,7 @@ function EvidenciaMomento({
 }: {
   titulo: string;
   descripcion: string;
-  fotos: FotoEvidencia[];
+  fotos: FotoEvidenciaVisual[];
 }) {
   return (
     <div className="border-t border-ink/10 pt-5 first:border-t-0 first:pt-0">
@@ -261,8 +291,9 @@ function EvidenciaMomento({
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {fotos.map((foto) => (
             <div key={foto.id} className="overflow-hidden rounded-lg border border-ink/10 bg-mist">
-              {foto.url?.startsWith("http") ? (
-                <Image src={foto.url} alt={ETIQUETA_ANGULO[foto.angulo]} width={400} height={300} className="aspect-[4/3] w-full object-cover" />
+              {foto.url_visual?.startsWith("http") ? (
+                // eslint-disable-next-line @next/next/no-img-element -- URL firmada temporal de Supabase Storage.
+                <img src={foto.url_visual} alt={ETIQUETA_ANGULO[foto.angulo]} className="aspect-[4/3] w-full object-cover" />
               ) : (
                 <div className="flex aspect-[4/3] items-center justify-center bg-ink/5 px-3 text-center font-body text-xs text-ink/45">
                   Foto registrada
@@ -393,7 +424,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
       <PassportCard folio={pasaporte.traslado_id.slice(0, 8).toUpperCase()}>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="font-body text-xs uppercase tracking-wide text-ink/45">Detalle del viaje y Pasaporte Digital</p>
+            <p className="font-body text-xs uppercase tracking-wide text-ink/45">PASAPORTE DIGITAL (detalles del traslado)</p>
             <h1 className="mt-1 font-display text-2xl font-semibold">
               {vehiculoNombre || "Traslado de vehículo"}
               {pasaporte.vehiculo_tipo && (
@@ -422,8 +453,9 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
         )}
 
         {pasaporte.estado === "servicio_cerrado" && (
-          <div className="mt-6">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Aviso tono="info">{MENSAJES_CLAVE_UX.cierre}</Aviso>
+            <ExportarPasaportePdf />
           </div>
         )}
 
