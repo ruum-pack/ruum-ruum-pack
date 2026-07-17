@@ -2338,6 +2338,10 @@ export type Database = {
         Args: { p_evento: string; p_traslado_id: string }
         Returns: Database["public"]["Enums"]["estado_traslado"]
       }
+      conductor_confirmar_llegada_destino: {
+        Args: { p_traslado_id: string }
+        Returns: Database["public"]["Enums"]["estado_traslado"]
+      }
       consentimientos_solicitud_completos: {
         Args: { p_solicitud_id: string }
         Returns: boolean

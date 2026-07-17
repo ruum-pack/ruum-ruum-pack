@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState, useTransition } from "react";
-import { Aviso, Button, PassportCard } from "@ruum/ui";
+import { Aviso, Button, Card } from "@ruum/ui";
 import { actualizarPerfilConductor, subirFotoPerfilConductor } from "@ruum/api/services";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
@@ -93,7 +93,10 @@ export default function PaginaPerfilCuenta() {
   }
 
   useEffect(() => {
-    void cargar();
+    const timer = window.setTimeout(() => {
+      void cargar();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   function guardarPerfil() {
@@ -157,7 +160,7 @@ export default function PaginaPerfilCuenta() {
     <div className="mx-auto max-w-4xl px-6 py-10 sm:py-14">
       <CuentaHeader titulo="Perfil" descripcion="Actualiza tus datos personales y de contacto operativo." />
       {mensaje && <div className="mt-5"><Aviso tono="info">{mensaje}</Aviso></div>}
-      <PassportCard className="mt-6">
+      <Card className="mt-6">
         {cargando ? <p className="font-body text-sm text-text-secondary">Cargando perfil...</p> : (
           <div className="grid gap-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -201,7 +204,7 @@ export default function PaginaPerfilCuenta() {
             </Button>
           </div>
         )}
-      </PassportCard>
+      </Card>
     </div>
   );
 }

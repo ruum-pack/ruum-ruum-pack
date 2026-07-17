@@ -4,11 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { NextOperationalAction } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
-import type { Database } from "@ruum/shared/types";
+import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
-import { avanzarEstadoTraslado } from "@ruum/api/services";
+import { distanciaMetrosEntre, obtenerUbicacionActual } from "../../../lib/ubicacion";
+import { createNavigationOptions } from "../../../lib/navigation-launcher";
+import { confirmarLlegadaDestino } from "@ruum/api/services";
+import { NavigationLauncher } from "./NavigationLauncher";
 
-type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
+const RADIO_CONFIRMACION_LLEGADA_M = 500;
 
 export interface DirigeteADestinoProps {
   trasladoId: string;
@@ -32,20 +35,35 @@ export function DirigeteADestino({
   const router = useRouter();
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const destinoCoordenadas = destinoLat !== null && destinoLng !== null ? `${destinoLat},${destinoLng}` : null;
-  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destinoCoordenadas ?? `${destinoDireccion}, ${destinoCiudad}`)}&travelmode=driving`;
+  const [confirmacionLejanaM, setConfirmacionLejanaM] = useState<number | null>(null);
+  const navigationTarget = {
+    lat: destinoLat,
+    lng: destinoLng,
+    address: `${destinoDireccion}, ${destinoCiudad}`
+  };
+  const primaryNavigationUrl = createNavigationOptions(navigationTarget)[0].href;
 
-  async function heLlegado() {
+  async function heLlegado(confirmarFueraDeGeocerca = false) {
     setProcesando(true);
     setError(null);
     try {
+      if (!confirmarFueraDeGeocerca && destinoLat !== null && destinoLng !== null) {
+        const ubicacion = await obtenerUbicacionActual();
+        if (ubicacion) {
+          const distanciaM = distanciaMetrosEntre(ubicacion, { lat: destinoLat, lng: destinoLng });
+          if (distanciaM > RADIO_CONFIRMACION_LLEGADA_M) {
+            setConfirmacionLejanaM(distanciaM);
+            return;
+          }
+        }
+      }
+
+      setConfirmacionLejanaM(null);
       const cliente = crearClienteNavegador();
-      const recibido = (await avanzarEstadoTraslado(cliente, trasladoId, "evidencia_inicial_completada")) as EstadoTraslado;
-      const enCurso = (await avanzarEstadoTraslado(cliente, trasladoId, recibido)) as EstadoTraslado;
-      await avanzarEstadoTraslado(cliente, trasladoId, enCurso);
+      await confirmarLlegadaDestino(cliente, trasladoId);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos registrar tu llegada al punto de entrega.");
+      setError(traducirErrorOperativo(err, "No pudimos registrar tu llegada al punto de entrega."));
     } finally {
       setProcesando(false);
     }
@@ -70,13 +88,25 @@ export function DirigeteADestino({
           </>
         }
         eta="ETA por confirmar al abrir navegación"
-        primaryCta={{ label: "Abrir navegación", href: googleMapsUrl, external: true }}
-        secondaryCta={{ label: procesando ? TEXTOS_CARGANDO.actualizando : "He llegado", onClick: () => void heLlegado(), disabled: procesando }}
+        primaryCta={{ label: "Abrir navegación", href: primaryNavigationUrl, external: true }}
+        secondaryCta={{
+          label: procesando ? TEXTOS_CARGANDO.actualizando : confirmacionLejanaM ? "Confirmar de todos modos" : "He llegado",
+          variant: "quiet",
+          onClick: () => void heLlegado(Boolean(confirmacionLejanaM)),
+          disabled: procesando
+        }}
         loading={procesando}
         error={error}
         nextStep="Confirma tu llegada al punto de entrega."
         stageLabel="Paso 5 de 7"
       />
+      <NavigationLauncher target={navigationTarget} />
+      {confirmacionLejanaM && (
+        <div className="mt-3 rounded-xl border border-warning bg-warn-soft px-4 py-3 font-body text-sm leading-6 text-warning">
+          Estás a más de {RADIO_CONFIRMACION_LLEGADA_M} m del punto de entrega
+          {` (${Math.round(confirmacionLejanaM)} m aprox.)`}. ¿Deseas confirmar la llegada de todos modos?
+        </div>
+      )}
     </div>
   );
 }

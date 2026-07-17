@@ -2,6 +2,10 @@
 
 import { ChangeEvent } from "react";
 import type { Database } from "@ruum/shared/types";
+import {
+  estadoVigenciaLicencia,
+  vencimientoDocumentoDesdeLicencia
+} from "@ruum/shared/validacion";
 import type { TipoDocumentoConductor } from "@ruum/api/services";
 import { Button } from "@ruum/ui";
 import { fechaCuenta, type ConductorCuenta } from "../cuenta-utils";
@@ -35,14 +39,6 @@ const ESTILO_ESTADO: Record<EstadoChecklist, { texto: string; clase: string }> =
   vencido: { texto: "Vencido", clase: "border-danger-action bg-danger-soft text-danger-action" }
 };
 
-function diasHasta(fechaIso: string | null | undefined) {
-  if (!fechaIso) return null;
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const fecha = new Date(`${fechaIso}T00:00:00`);
-  return Math.ceil((fecha.getTime() - hoy.getTime()) / 86_400_000);
-}
-
 function documentoActual(documentos: Documento[], tipo: TipoDocumentoConductor) {
   return documentos
     .filter((documento) => documento.tipo === tipo && documento.es_actual)
@@ -50,14 +46,14 @@ function documentoActual(documentos: Documento[], tipo: TipoDocumentoConductor) 
 }
 
 function vencimientoDocumento(conductor: ConductorCuenta | null, tipo: TipoDocumentoConductor) {
-  return tipo === "licencia_frente" || tipo === "licencia_reverso" ? conductor?.licencia_vigencia ?? null : null;
+  return vencimientoDocumentoDesdeLicencia(tipo, conductor?.licencia_vigencia);
 }
 
 function estadoDocumento(documento: Documento | null, vencimiento: string | null): EstadoChecklist {
-  const dias = diasHasta(vencimiento);
-  if (dias !== null && dias < 0) return "vencido";
+  const estadoVigencia = estadoVigenciaLicencia(vencimiento);
+  if (estadoVigencia === "vencida") return "vencido";
   if (documento?.estado === "rechazado") return "rechazado";
-  if (documento?.estado === "aprobado" && dias !== null && dias <= 30) return "por_vencer";
+  if (documento?.estado === "aprobado" && estadoVigencia === "por_vencer") return "por_vencer";
   if (documento?.estado === "aprobado") return "aprobado";
   if (documento?.estado === "en_revision") return "en_revision";
   if (documento) return "cargado";

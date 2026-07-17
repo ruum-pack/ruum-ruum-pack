@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" data-theme="dark">
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link">Saltar al contenido</a>
         <ViajeActivoProvider>

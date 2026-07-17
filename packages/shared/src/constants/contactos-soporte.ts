@@ -10,6 +10,10 @@ export type CanalSoporte = {
 
 export type ConfiguracionContactosSoporte = {
   ambiente: AmbienteRuum;
+  validacion: {
+    esValida: boolean;
+    problemas: string[];
+  };
   soporte: {
     telefono: CanalSoporte;
     whatsapp: CanalSoporte;
@@ -39,6 +43,8 @@ const CONTACTOS_PRUEBA = {
   correoSoporte: "soporte-conductores-pruebas@example.test",
   telefonoEmergencia: "5500000911"
 };
+
+const CORREO_BASICO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function ambienteRuum(valor: string | undefined): AmbienteRuum {
   if (valor === "production" || valor === "staging" || valor === "test") return valor;
@@ -103,6 +109,43 @@ function canalCorreo(etiqueta: string, correo: string, asunto: string, ambiente:
   };
 }
 
+function telefonoSoporteValido(valor: string) {
+  return telefonoNacional(valor).length === 10;
+}
+
+function telefonoEmergenciaValido(valor: string) {
+  const nacional = telefonoNacional(valor);
+  return nacional === "911" || nacional.length === 10;
+}
+
+function validarContactos(entrada: {
+  ambiente: AmbienteRuum;
+  telefonoSoporte: string;
+  correoSoporte: string;
+  telefonoEmergencia: string;
+  esPrueba: boolean;
+}) {
+  const problemas: string[] = [];
+
+  if (!telefonoSoporteValido(entrada.telefonoSoporte)) {
+    problemas.push("NEXT_PUBLIC_RUUM_SOPORTE_TELEFONO debe ser un teléfono nacional de 10 dígitos.");
+  }
+  if (!CORREO_BASICO.test(entrada.correoSoporte)) {
+    problemas.push("NEXT_PUBLIC_RUUM_SOPORTE_CORREO debe ser un correo válido.");
+  }
+  if (!telefonoEmergenciaValido(entrada.telefonoEmergencia)) {
+    problemas.push("NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO debe ser 911 o un teléfono nacional de 10 dígitos.");
+  }
+  if (entrada.ambiente === "production" && entrada.esPrueba) {
+    problemas.push("Producción no puede arrancar con contactos de demostración.");
+  }
+
+  return {
+    esValida: problemas.length === 0,
+    problemas
+  };
+}
+
 export function crearConfiguracionContactosSoporte(entrada: EntradaContactosSoporte = {}): ConfiguracionContactosSoporte {
   const ambiente = ambienteRuum(entrada.ambiente);
   const defaults = ambiente === "production" ? CONTACTOS_PRODUCCION : CONTACTOS_PRUEBA;
@@ -110,9 +153,15 @@ export function crearConfiguracionContactosSoporte(entrada: EntradaContactosSopo
   const telefonoSoporte = entrada.telefonoSoporte || defaults.telefonoSoporte;
   const correoSoporte = entrada.correoSoporte || defaults.correoSoporte;
   const telefonoEmergencia = entrada.telefonoEmergencia || defaults.telefonoEmergencia;
+  const validacion = validarContactos({ ambiente, telefonoSoporte, correoSoporte, telefonoEmergencia, esPrueba });
+
+  if (ambiente === "production" && !validacion.esValida) {
+    throw new Error(`Contactos oficiales de Ruum incompletos: ${validacion.problemas.join(" ")}`);
+  }
 
   return {
     ambiente,
+    validacion,
     soporte: {
       telefono: canalTelefono("Llamar a soporte", telefonoSoporte, ambiente, esPrueba),
       whatsapp: canalWhatsApp(telefonoSoporte, ambiente, esPrueba),

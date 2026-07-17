@@ -43,7 +43,7 @@ const ESTADO_SECCION: Record<EstadoSeccionRevision, { texto: string; clase: stri
   en_revision: { texto: "En revisión", clase: "border-route-action bg-route-soft text-route-action" },
   requiere_actualizacion: { texto: "Requiere actualización", clase: "border-danger-action bg-danger-soft text-danger-action" },
   pendiente: { texto: "Pendiente", clase: "border-border bg-surface-elevated text-text-secondary" },
-  no_solicitado: { texto: "No solicitado", clase: "border-border bg-surface-elevated text-text-secondary" }
+  no_solicitado: { texto: "Sin enviar", clase: "border-border bg-surface-elevated text-text-secondary" }
 };
 
 interface Props {

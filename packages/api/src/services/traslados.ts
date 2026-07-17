@@ -250,6 +250,9 @@ async function validarElegibilidadAceptacion(cliente: Cliente, trasladoId: strin
   if (errorTraslado) throw errorTraslado;
   if (!conductor) throw new Error("No se encontró el conductor para validar elegibilidad.");
   if (!traslado) throw new Error("No se encontró el traslado para validar elegibilidad.");
+  if (conductor.estado_expediente !== "aprobado") {
+    throw new Error("Tu expediente todavía no está aprobado para aceptar viajes.");
+  }
   if (traslado.estado !== "pendiente_de_conductor" || traslado.conductor_id !== null) {
     throw new Error("El viaje ya no está disponible para aceptación.");
   }
@@ -434,4 +437,13 @@ export async function avanzarEstadoTraslado(cliente: Cliente, trasladoId: string
 
   if (error) throw error;
   return data ?? siguiente;
+}
+
+export async function confirmarLlegadaDestino(cliente: Cliente, trasladoId: string) {
+  const { data, error } = await cliente.rpc("conductor_confirmar_llegada_destino", {
+    p_traslado_id: trasladoId
+  });
+
+  if (error) throw error;
+  return data ?? "llegada_a_destino";
 }

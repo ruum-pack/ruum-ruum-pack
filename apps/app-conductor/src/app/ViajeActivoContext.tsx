@@ -1,12 +1,14 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
+import { App } from "@capacitor/app";
 import { listarViajesAceptados, obtenerConductorActual, registrarUbicacionTraslado } from "@ruum/api/services";
 import type { Database } from "@ruum/shared/types";
 import { ESTADOS_TRASLADO } from "@ruum/shared/states";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
 import { getTripPresentation } from "../lib/trip-presentation";
 import { observarUbicacionActual, obtenerUbicacionActual, type Coordenadas } from "../lib/ubicacion";
+import { esNativo } from "../lib/capacitor";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -86,6 +88,10 @@ function folioDesdeId(trasladoId: string) {
 
 function direccionActualDeViaje(viaje: RegistroViajeActivoInput) {
   const presentation = getTripPresentation(viaje.estado);
+  if (presentation.requiresControlTowerDecision || presentation.primaryAction.action === "contact_support") {
+    return "Torre de Control dará indicaciones";
+  }
+
   const usaDestino = ["go_destination", "mark_arrived_destination", "capture_destination_record", "confirm_delivery", "close_trip"].includes(
     presentation.primaryAction.action
   );
@@ -182,11 +188,24 @@ export function ViajeActivoProvider({ children }: { children: React.ReactNode })
       if (document.visibilityState === "visible") void cargarViajeActivo();
     };
     document.addEventListener("visibilitychange", alVolver);
+    let limpiarAppState: (() => void) | null = null;
+    if (esNativo()) {
+      void App.addListener("appStateChange", ({ isActive }) => {
+        if (isActive) void cargarViajeActivo();
+      }).then((handle) => {
+        if (cancelado) {
+          void handle.remove();
+        } else {
+          limpiarAppState = () => handle.remove();
+        }
+      });
+    }
 
     return () => {
       cancelado = true;
       window.clearInterval(intervalo);
       document.removeEventListener("visibilitychange", alVolver);
+      limpiarAppState?.();
     };
   }, [pathname]);
 

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  DIAS_ADVERTENCIA_VIGENCIA_LICENCIA,
   diasParaVencerLicencia,
+  estadoVigenciaLicencia,
+  tipoDocumentoUsaVigenciaLicencia,
   validarCampoRegistroConductor,
-  validarRegistroConductor
+  validarRegistroConductor,
+  vencimientoDocumentoDesdeLicencia
 } from "./registro-conductor";
 
 function fechaIsoConOffset(dias: number) {
@@ -57,6 +61,25 @@ describe("diasParaVencerLicencia", () => {
     expect(diasParaVencerLicencia(fechaIsoConOffset(0))).toBe(0);
     expect(diasParaVencerLicencia(fechaIsoConOffset(30))).toBe(30);
     expect(diasParaVencerLicencia(fechaIsoConOffset(-2))).toBe(-2);
+  });
+
+  it("clasifica la vigencia de licencia con el umbral compartido", () => {
+    const referencia = new Date("2026-07-17T18:00:00");
+
+    expect(estadoVigenciaLicencia(null, referencia)).toBe("sin_vigencia");
+    expect(estadoVigenciaLicencia("2026-07-16", referencia)).toBe("vencida");
+    expect(estadoVigenciaLicencia("2026-08-16", referencia)).toBe("por_vencer");
+    expect(estadoVigenciaLicencia("2026-08-17", referencia)).toBe("vigente");
+    expect(DIAS_ADVERTENCIA_VIGENCIA_LICENCIA).toBe(30);
+  });
+
+  it("aplica la vigencia de licencia solo a documentos de licencia", () => {
+    expect(tipoDocumentoUsaVigenciaLicencia("licencia_frente")).toBe(true);
+    expect(tipoDocumentoUsaVigenciaLicencia("licencia_reverso")).toBe(true);
+    expect(tipoDocumentoUsaVigenciaLicencia("identificacion_oficial")).toBe(false);
+
+    expect(vencimientoDocumentoDesdeLicencia("licencia_frente", "2027-01-01")).toBe("2027-01-01");
+    expect(vencimientoDocumentoDesdeLicencia("documento_operativo", "2027-01-01")).toBeNull();
   });
 });
 

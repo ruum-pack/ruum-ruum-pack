@@ -11,7 +11,7 @@ export interface PassportCardProps {
   className?: string;
 }
 
-/** Tarjeta exclusiva para identidad, expediente, documentación y pasaporte digital. */
+/** Tarjeta exclusiva para identidad, pasaporte digital, certificados verificables y expediente resumido. */
 export function PassportCard({ children, folio, acento = false, clip = true, className = "" }: PassportCardProps) {
   return (
     <div

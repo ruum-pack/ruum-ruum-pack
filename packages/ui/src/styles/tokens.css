@@ -69,7 +69,8 @@
   --shadow-4: 0 24px 64px rgba(26, 31, 46, 0.24);
 }
 
-:root {
+:root,
+[data-theme="light"] {
   color-scheme: light;
 
   /* Tokens semánticos: consumir estos valores en CSS de producto. */
@@ -109,6 +110,46 @@
   --ruum-radius-field: 10px;
   --ruum-radius-card: 12px;
   --ruum-radius-modal: 16px;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Tema oscuro explícito: solo tokens semánticos.
+     Los aliases históricos ink/mist/paper conservan su significado original. */
+  --ruum-canvas: #070b14;
+  --ruum-surface: #101a2c;
+  --ruum-surface-elevated: #162238;
+  --ruum-surface-subtle: #0d1626;
+  --ruum-surface-strong: #05080f;
+  --ruum-border: rgba(122, 162, 214, 0.2);
+  --ruum-border-strong: rgba(122, 162, 214, 0.38);
+  --ruum-text-primary: #e8edf6;
+  --ruum-text: #e8edf6;
+  --ruum-text-secondary: #b7c2d4;
+  --ruum-text-tertiary: #8b98ad;
+  --ruum-text-disabled: #6f7c92;
+  --ruum-dark-text-secondary: #b7c2d4;
+  --ruum-dark-text-tertiary: #8b98ad;
+  --ruum-focus: #4da3ff;
+  --ruum-focus-ring: rgba(77, 163, 255, 0.3);
+  --ruum-action-primary: #f5a623;
+  --ruum-action-primary-hover: #d88f16;
+  --ruum-action-primary-active: #c77f0a;
+  --ruum-route: #4da3ff;
+  --ruum-route-hover: #3a8ee6;
+  --ruum-route-active: #2d79c8;
+  --ruum-success: #3ddc97;
+  --ruum-warning: #f0b429;
+  --ruum-danger: #ff6b6b;
+  --ruum-danger-hover: #e45a5a;
+  --ruum-danger-active: #c94d4d;
+  --ruum-action: #f5a623;
+  --ruum-action-hover: #d88f16;
+  --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.4);
+  --ruum-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.55);
+  --ruum-shadow-4: 0 24px 64px rgba(0, 0, 0, 0.65);
 }
 
 html {

@@ -32,6 +32,17 @@ function usaDestinoActual(action: ReturnType<typeof getTripPresentation>["primar
 }
 
 function direccionActual(pasaporte: Pasaporte, action: ReturnType<typeof getTripPresentation>["primaryAction"]["action"]) {
+  if (["contact_support", "review_status", "view_available_trips", "none"].includes(action)) {
+    return {
+      etiqueta: "Seguimiento operativo",
+      direccion: "Espera indicaciones de Torre de Control",
+      ciudad: null,
+      referencias: null,
+      lat: null,
+      lng: null
+    };
+  }
+
   const destino = usaDestinoActual(action);
   return {
     etiqueta: destino ? "Dirección de entrega" : "Dirección de recolección",
@@ -157,9 +168,11 @@ export default async function PaginaDetalleViaje({
             </p>
             <h1 className="mt-1 truncate font-display text-xl font-semibold">{presentation.title}</h1>
           </div>
-          <EstadoBadge estado={pasaporte.estado} />
+          <div className="hidden md:block">
+            <EstadoBadge estado={pasaporte.estado} />
+          </div>
         </div>
-        <div className="mt-4">
+        <div className="mt-4 hidden md:block">
           <EstadoStepper estado={pasaporte.estado} currentLabel={presentation.title} />
         </div>
 
@@ -242,6 +255,18 @@ export default async function PaginaDetalleViaje({
             </span>
           </summary>
           <div className="grid gap-5 border-t border-border px-4 py-4 font-body text-sm">
+            <div className="grid gap-3 sm:grid-cols-2 md:hidden">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-text-tertiary">Estado operativo</p>
+                <div className="mt-2">
+                  <EstadoBadge estado={pasaporte.estado} />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-text-tertiary">Progreso</p>
+                <p className="mt-1 font-body font-semibold">Paso {presentation.stage} de {presentation.totalStages}</p>
+              </div>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-sm font-semibold text-text-tertiary">Origen</p>

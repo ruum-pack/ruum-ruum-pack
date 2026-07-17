@@ -15,13 +15,31 @@ const REGEX_CURP = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/i;
 const REGEX_TELEFONO_NACIONAL = /^\d{10}$/;
 const REGEX_EMAIL = /^\S+@\S+\.\S+$/;
 const REGEX_FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+export const DIAS_ADVERTENCIA_VIGENCIA_LICENCIA = 30;
+export type EstadoVigenciaLicencia = "sin_vigencia" | "vigente" | "por_vencer" | "vencida";
 
 /** Días entre hoy (medianoche local) y una fecha ISO `YYYY-MM-DD`. Negativo = ya venció. */
-export function diasParaVencerLicencia(fechaIso: string) {
-  const hoy = new Date();
+export function diasParaVencerLicencia(fechaIso: string, referencia = new Date()) {
+  const hoy = new Date(referencia);
   hoy.setHours(0, 0, 0, 0);
   const vencimiento = new Date(`${fechaIso}T00:00:00`);
   return Math.round((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+export function tipoDocumentoUsaVigenciaLicencia(tipoDocumento: string) {
+  return tipoDocumento === "licencia_frente" || tipoDocumento === "licencia_reverso";
+}
+
+export function vencimientoDocumentoDesdeLicencia(tipoDocumento: string, vigenciaLicencia: string | null | undefined) {
+  return tipoDocumentoUsaVigenciaLicencia(tipoDocumento) ? vigenciaLicencia ?? null : null;
+}
+
+export function estadoVigenciaLicencia(fechaIso: string | null | undefined, referencia = new Date()): EstadoVigenciaLicencia {
+  if (!fechaIso) return "sin_vigencia";
+  const dias = diasParaVencerLicencia(fechaIso, referencia);
+  if (dias < 0) return "vencida";
+  if (dias <= DIAS_ADVERTENCIA_VIGENCIA_LICENCIA) return "por_vencer";
+  return "vigente";
 }
 
 function esFechaIsoValida(fechaIso: string) {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { NextOperationalAction } from "@ruum/ui";
+import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
 
@@ -46,7 +47,7 @@ export function ContactoRecepcionVehiculo({
       await avanzarEstadoTraslado(cliente, trasladoId, "llegada_a_destino");
       router.push(`/viajes/${trasladoId}/evidencia`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos iniciar el registro final del vehículo. Intenta de nuevo.");
+      setError(traducirErrorOperativo(err, "No pudimos iniciar el registro final del vehículo. Intenta de nuevo."));
       setProcesando(false);
     }
   }

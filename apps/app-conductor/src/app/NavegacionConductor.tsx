@@ -150,7 +150,7 @@ export function NavegacionConductor() {
                   href={`/viajes/${viajeActivo.trasladoId}#reportar-problema`}
                   className="inline-flex min-h-11 items-center justify-center rounded-lg border border-route-action bg-surface px-2 py-2 text-center font-body text-sm font-semibold text-route-action"
                 >
-                  Incidencia
+                  Problema
                 </Link>
                 <Link
                   href={`/viajes/${viajeActivo.trasladoId}#emergencia`}
@@ -166,11 +166,11 @@ export function NavegacionConductor() {
 
       <div className="fixed inset-x-0 bottom-0 z-40 md:hidden">
         {viajeActivo && (
-          <div className="px-3 pb-2">
+          <div className="conductor-mobile-active-trip px-3 pb-2">
             <Link
               href={`/viajes/${viajeActivo.trasladoId}`}
               aria-label={`Abrir viaje activo ${viajeActivo.folio}: ${viajeActivo.etapa}`}
-              className="mx-auto grid min-h-20 max-w-md grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-route-action bg-route-soft px-4 py-3 shadow-[0_16px_48px_rgba(0,0,0,0.38)] backdrop-blur"
+              className="conductor-mobile-active-trip-card mx-auto grid max-w-md grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-route-action bg-route-soft px-4 py-2.5 shadow-[0_16px_48px_rgba(0,0,0,0.38)] backdrop-blur"
             >
               <span className="min-w-0">
                 <span className="flex min-w-0 items-center gap-2">
@@ -178,13 +178,16 @@ export function NavegacionConductor() {
                     Viaje activo · {viajeActivo.folio}
                   </span>
                   {hayAccionPendiente && (
-                    <span className="inline-flex shrink-0 items-center rounded-full border border-warning bg-warn-soft px-2 py-0.5 font-body text-[11px] font-bold text-warning">
-                      Acción
+                    <span className="inline-flex size-3 shrink-0 rounded-full bg-warning ring-2 ring-surface" aria-hidden />
+                  )}
+                  {hayAccionPendiente && (
+                    <span className="sr-only">
+                      Acción pendiente
                     </span>
                   )}
                 </span>
                 <span className="mt-1 block truncate font-body text-sm font-bold text-text-primary">{viajeActivo.etapa}</span>
-                <span className="mt-0.5 block truncate font-body text-sm text-text-secondary">{viajeActivo.destinoActual}</span>
+                <span className="conductor-mobile-active-trip-destination mt-0.5 block truncate font-body text-sm text-text-secondary">{viajeActivo.destinoActual}</span>
               </span>
               <span className="inline-flex min-h-11 items-center justify-center rounded-xl bg-route-action px-3 font-body text-sm font-bold text-surface">
                 Abrir

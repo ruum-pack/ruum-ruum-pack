@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button, Card } from "@ruum/ui";
 import { CONTACTOS_SOPORTE_CONDUCTOR } from "../../../lib/contactos-soporte";
 import { CuentaHeader } from "../CuentaHeader";
@@ -20,7 +21,7 @@ export default function PaginaSoporteCuenta() {
               {opcion.etiqueta}
             </a>
           ))}
-          <a href="/viajes"><Button variant="secondary">Reportar problema en un viaje</Button></a>
+          <Link href="/viajes"><Button variant="secondary">Reportar problema en un viaje</Button></Link>
         </div>
       </Card>
     </div>

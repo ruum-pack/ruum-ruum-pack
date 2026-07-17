@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Aviso, Button, Field } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
+import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { activarSoporteEmergenciaConductor, reportarIncidencia } from "@ruum/api/services";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 
@@ -166,15 +167,71 @@ async function subirEvidenciaIncidencia(
 
 export function ReportarIncidencia({ trasladoId }: { trasladoId: string }) {
   const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
   const [problema, setProblema] = useState<ProblemaVisible | null>(null);
   const [detalle, setDetalle] = useState("");
   const [adjunto, setAdjunto] = useState<File | null>(null);
   const [procesando, setProcesando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const tituloRef = useRef<HTMLHeadingElement | null>(null);
+  const elementoPrevioRef = useRef<HTMLElement | null>(null);
 
   const opcion = problema ? opcionPorId(problema) : null;
   const detalleMinimo = opcion?.urgente ? 5 : 10;
   const puedeEnviar = Boolean(opcion) && detalle.trim().length >= detalleMinimo;
+
+  const cerrarSheet = useCallback(() => {
+    if (procesando) return;
+    setAbierto(false);
+  }, [procesando]);
+
+  useEffect(() => {
+    if (!abierto) return;
+    const previoOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.setTimeout(() => tituloRef.current?.focus(), 0);
+
+    function manejarTecla(evento: KeyboardEvent) {
+      if (evento.key === "Escape") {
+        evento.preventDefault();
+        cerrarSheet();
+        return;
+      }
+
+      if (evento.key !== "Tab") return;
+      const dialogo = dialogRef.current;
+      if (!dialogo) return;
+      const enfocables = Array.from(
+        dialogo.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((elemento) => !elemento.hasAttribute("disabled") && elemento.offsetParent !== null);
+      if (enfocables.length === 0) return;
+
+      const primero = enfocables[0];
+      const ultimo = enfocables[enfocables.length - 1];
+      if (evento.shiftKey && document.activeElement === primero) {
+        evento.preventDefault();
+        ultimo.focus();
+      } else if (!evento.shiftKey && document.activeElement === ultimo) {
+        evento.preventDefault();
+        primero.focus();
+      }
+    }
+
+    document.addEventListener("keydown", manejarTecla);
+    return () => {
+      document.removeEventListener("keydown", manejarTecla);
+      document.body.style.overflow = previoOverflow;
+      elementoPrevioRef.current?.focus();
+    };
+  }, [abierto, cerrarSheet]);
+
+  function abrirSheet() {
+    elementoPrevioRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setAbierto(true);
+  }
 
   async function enviar() {
     if (!opcion) return;
@@ -202,87 +259,130 @@ export function ReportarIncidencia({ trasladoId }: { trasladoId: string }) {
       });
       setDetalle("");
       setAdjunto(null);
+      setProblema(null);
+      setAbierto(false);
       router.refresh();
     } catch (err) {
-      setMensaje({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos reportar el problema." });
+      setMensaje({ tono: "danger", texto: traducirErrorOperativo(err, "No pudimos reportar el problema.") });
     } finally {
       setProcesando(false);
     }
   }
 
   return (
-    <details id="reportar-problema" className="group mt-6 overflow-hidden rounded-lg border border-border bg-surface">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 font-body text-sm font-semibold transition-colors hover:bg-signal-soft/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action [&::-webkit-details-marker]:hidden">
-        <span>Reportar un problema</span>
-        <span className="font-display text-lg leading-none text-text-tertiary transition-transform group-open:rotate-45" aria-hidden>
-          +
-        </span>
-      </summary>
-      <div className="border-t border-border px-4 pb-4 pt-4">
-        {mensaje && (
-          <div role="status" aria-live="polite" aria-atomic="true">
-            <Aviso tono={mensaje.tono}>{mensaje.texto}</Aviso>
-          </div>
-        )}
-
-        <fieldset className="mt-4">
-          <legend className="font-display text-lg font-semibold">¿Qué está ocurriendo?</legend>
-          <div className="mt-3 grid gap-2">
-            {OPCIONES.map((opcionProblema) => {
-              const activo = problema === opcionProblema.id;
-              return (
-                <button
-                  key={opcionProblema.id}
-                  type="button"
-                  onClick={() => {
-                    setProblema(opcionProblema.id);
-                    setMensaje(null);
-                  }}
-                  className={[
-                    "rounded-xl border px-3 py-3 text-left transition",
-                    activo ? "border-route-action bg-route-soft" : "border-border bg-surface-elevated hover:border-route-action",
-                    opcionProblema.urgente ? "border-danger-action" : ""
-                  ].join(" ")}
-                >
-                  <span className="block font-body text-sm font-semibold text-text-primary">{opcionProblema.etiqueta}</span>
-                  <span className="mt-1 block font-body text-sm leading-6 text-text-secondary">{opcionProblema.ayuda}</span>
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-
-        {opcion && (
-          <div className="mt-5 grid gap-4">
-            {opcion.urgente && (
-              <Aviso tono="danger">Este caso se enviará como urgente. Si hay riesgo inmediato, usa el panel de emergencia.</Aviso>
-            )}
-            <Field
-              etiqueta={opcion.pregunta}
-              value={detalle}
-              onChange={(event) => setDetalle(event.target.value)}
-              placeholder={opcion.placeholder}
-            />
-            {opcion.requiereEvidencia && (
-              <label className="grid gap-1">
-                <span className="font-body text-sm font-semibold text-text-tertiary">Evidencia</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => setAdjunto(event.target.files?.[0] ?? null)}
-                  className="rounded-lg border border-border bg-surface px-3 py-2 font-body text-base text-text-primary"
-                />
-                <span className="font-body text-xs text-text-tertiary">
-                  {adjunto ? `Adjunto listo: ${adjunto.name}` : "Adjunta una foto si te ayuda a explicar el problema."}
-                </span>
-              </label>
-            )}
-            <Button onClick={enviar} disabled={!puedeEnviar || procesando} loading={procesando}>
-              {procesando ? TEXTOS_CARGANDO.enviando : opcion.urgente ? "Enviar urgente" : "Enviar reporte"}
-            </Button>
-          </div>
-        )}
+    <section id="reportar-problema" className="mt-6 rounded-lg border border-border bg-surface px-4 py-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="font-body text-sm font-semibold text-text-primary">Reportar un problema</p>
+          <p className="mt-1 font-body text-sm leading-6 text-text-secondary">
+            Abre un reporte operativo cuando algo impide avanzar o requiere seguimiento.
+          </p>
+        </div>
+        <Button variant="secondary" className="min-h-12 w-full sm:w-auto" onClick={abrirSheet}>
+          Abrir reporte
+        </Button>
       </div>
-    </details>
+
+      {mensaje && !abierto && (
+        <div className="mt-4" role="status" aria-live="polite" aria-atomic="true">
+          <Aviso tono={mensaje.tono}>{mensaje.texto}</Aviso>
+        </div>
+      )}
+
+      {abierto && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60 px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-[max(12px,env(safe-area-inset-top))]" role="presentation">
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reportar-problema-titulo"
+            className="mx-auto flex max-h-[min(86dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-[0_-18px_70px_rgba(26,31,46,0.28)] sm:rounded-2xl"
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-4">
+              <div>
+                <p className="font-body text-sm font-semibold text-route-action">Reporte operativo</p>
+                <h2 id="reportar-problema-titulo" ref={tituloRef} tabIndex={-1} className="mt-1 font-display text-xl font-semibold text-text-primary">
+                  ¿Qué está ocurriendo?
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={cerrarSheet}
+                disabled={procesando}
+                className="min-h-11 min-w-11 rounded-lg border border-border px-3 py-2 font-body text-sm font-semibold text-text-secondary disabled:text-disabled"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="overflow-y-auto px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-4">
+              {mensaje && (
+                <div role="status" aria-live="polite" aria-atomic="true">
+                  <Aviso tono={mensaje.tono}>{mensaje.texto}</Aviso>
+                </div>
+              )}
+
+              <fieldset className="mt-4">
+                <legend className="sr-only">¿Qué está ocurriendo?</legend>
+                <div className="mt-3 grid gap-2">
+                  {OPCIONES.map((opcionProblema) => {
+                    const activo = problema === opcionProblema.id;
+                    return (
+                      <button
+                        key={opcionProblema.id}
+                        type="button"
+                        onClick={() => {
+                          setProblema(opcionProblema.id);
+                          setMensaje(null);
+                        }}
+                        className={[
+                          "rounded-xl border px-3 py-3 text-left transition",
+                          activo ? "border-route-action bg-route-soft" : "border-border bg-surface-elevated hover:border-route-action",
+                          opcionProblema.urgente ? "border-danger-action" : ""
+                        ].join(" ")}
+                      >
+                        <span className="block font-body text-sm font-semibold text-text-primary">{opcionProblema.etiqueta}</span>
+                        <span className="mt-1 block font-body text-sm leading-6 text-text-secondary">{opcionProblema.ayuda}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
+              {opcion && (
+                <div className="mt-5 grid gap-4">
+                  {opcion.urgente && (
+                    <Aviso tono="danger">Este caso se enviará como urgente. Si hay riesgo inmediato, usa el panel de emergencia.</Aviso>
+                  )}
+                  <Field
+                    etiqueta={opcion.pregunta}
+                    value={detalle}
+                    onChange={(event) => setDetalle(event.target.value)}
+                    placeholder={opcion.placeholder}
+                  />
+                  {opcion.requiereEvidencia && (
+                    <label className="grid gap-1">
+                      <span className="font-body text-sm font-semibold text-text-tertiary">Evidencia</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) => setAdjunto(event.target.files?.[0] ?? null)}
+                        className="rounded-lg border border-border bg-surface px-3 py-2 font-body text-base text-text-primary"
+                      />
+                      <span className="font-body text-xs text-text-tertiary">
+                        {adjunto ? `Adjunto listo: ${adjunto.name}` : "Adjunta una foto si te ayuda a explicar el problema."}
+                      </span>
+                    </label>
+                  )}
+                  <Button onClick={enviar} disabled={!puedeEnviar || procesando} loading={procesando}>
+                    {procesando ? TEXTOS_CARGANDO.enviando : opcion.urgente ? "Enviar urgente" : "Enviar reporte"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

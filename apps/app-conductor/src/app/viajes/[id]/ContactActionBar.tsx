@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { Aviso, Button } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
+import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearLlamadaEnmascarada, enviarMensaje } from "@ruum/api/services";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { CONTACTOS_SOPORTE_CONDUCTOR } from "../../../lib/contactos-soporte";
+import { MENSAJES_RAPIDOS_CONTACTO } from "./quick-messages";
 
 export type ContactRole = "origen" | "destino" | "soporte";
 
@@ -15,8 +17,6 @@ export interface ContactActionBarProps {
   name?: string | null;
   phone?: string | null;
 }
-
-const QUICK_MESSAGES = ["Ya llegué.", "Estoy a cinco minutos.", "No encuentro el acceso.", "No localizo el vehículo."];
 
 const ROLE_LABEL: Record<ContactRole, string> = {
   origen: "Contacto de entrega",
@@ -45,15 +45,15 @@ export function ContactActionBar({ trasladoId, role, name, phone }: ContactActio
     setMessage(null);
     try {
       if (isSupport) {
-        window.location.href = CONTACTOS_SOPORTE_CONDUCTOR.soporte.telefono.href;
+        window.location.assign(CONTACTOS_SOPORTE_CONDUCTOR.soporte.telefono.href);
         return;
       }
 
       const cliente = crearClienteNavegador();
       const numero = await crearLlamadaEnmascarada(cliente, trasladoId);
-      window.location.href = `tel:${numero}`;
+      window.location.assign(`tel:${numero}`);
     } catch (err) {
-      setMessage({ tone: "danger", text: err instanceof Error ? err.message : "No pudimos iniciar la llamada." });
+      setMessage({ tone: "danger", text: traducirErrorOperativo(err, "No pudimos iniciar la llamada.") });
     } finally {
       setBusy(null);
     }
@@ -64,7 +64,7 @@ export function ContactActionBar({ trasladoId, role, name, phone }: ContactActio
     setMessage(null);
     try {
       if (isSupport) {
-        window.location.href = supportWhatsAppUrl(text);
+        window.location.assign(supportWhatsAppUrl(text));
         return;
       }
 
@@ -72,7 +72,7 @@ export function ContactActionBar({ trasladoId, role, name, phone }: ContactActio
       await enviarMensaje(cliente, trasladoId, text);
       setMessage({ tone: "info", text: "Mensaje enviado." });
     } catch (err) {
-      setMessage({ tone: "danger", text: err instanceof Error ? err.message : "No pudimos enviar el mensaje." });
+      setMessage({ tone: "danger", text: traducirErrorOperativo(err, "No pudimos enviar el mensaje.") });
     } finally {
       setBusy(null);
     }
@@ -86,23 +86,31 @@ export function ContactActionBar({ trasladoId, role, name, phone }: ContactActio
           <p className="mt-1 break-words font-display text-lg font-semibold">{displayName}</p>
           {displayPhone && <p className="mt-1 break-words font-body text-sm text-text-secondary">{displayPhone}</p>}
         </div>
+      </div>
+
+      <div className="mt-4">
+        <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+          {isSupport ? "Mensaje rápido a soporte" : "Mensaje rápido por Ruum"}
+        </p>
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {MENSAJES_RAPIDOS_CONTACTO.map((quickMessage) => (
+            <button
+              key={quickMessage}
+              type="button"
+              onClick={() => void sendQuickMessage(quickMessage)}
+              disabled={busy !== null}
+              className="min-h-11 rounded-lg border border-route-action bg-route-soft px-3 py-2 text-left font-body text-sm font-semibold text-route-action transition hover:bg-surface disabled:cursor-wait disabled:border-border disabled:bg-surface disabled:text-disabled"
+            >
+              {busy === quickMessage ? TEXTOS_CARGANDO.enviando : quickMessage}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-3">
         <Button variant="secondary" className="w-full sm:w-auto" onClick={callContact} disabled={busy !== null || (!isSupport && !phone)}>
           {busy === "call" ? TEXTOS_CARGANDO.conectando : "Llamar"}
         </Button>
-      </div>
-
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {QUICK_MESSAGES.map((quickMessage) => (
-          <button
-            key={quickMessage}
-            type="button"
-            onClick={() => void sendQuickMessage(quickMessage)}
-            disabled={busy !== null}
-            className="min-h-11 rounded-lg border border-border bg-surface px-3 py-2 text-left font-body text-sm font-semibold text-secondary transition hover:border-route-action hover:bg-route-soft disabled:cursor-wait disabled:text-disabled"
-          >
-            {busy === quickMessage ? TEXTOS_CARGANDO.enviando : quickMessage}
-          </button>
-        ))}
       </div>
 
       {message && (

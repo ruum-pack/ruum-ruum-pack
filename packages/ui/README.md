@@ -136,7 +136,7 @@ Componentes:
 - `TripCard`: traslado, oportunidad o viaje.
 - `FinancialCard`: importes, pagos o ganancias.
 - `AlertCard`: aviso destacado o bloqueo.
-- `PassportCard`: solo identidad, expediente, documentacion o pasaporte digital.
+- `PassportCard`: solo identidad, pasaporte digital, certificados verificables o expediente resumido.
 
 Props comunes:
 
@@ -244,9 +244,21 @@ Uso incorrecto:
 />
 ```
 
+Acciones secundarias de confirmacion operativa:
+
+```tsx
+<NextOperationalAction
+  title="Dirigete al punto de recoleccion"
+  instruction="Abre navegacion. Cuando estes en el punto, confirma tu llegada."
+  primaryCta={{ label: "Abrir navegacion", href: mapsUrl, external: true }}
+  secondaryCta={{ label: "He llegado", onClick: confirmarLlegada, variant: "quiet" }}
+/>
+```
+
 Accesibilidad:
 
 - Mantiene un solo CTA primario.
+- Las acciones secundarias que cambian estado operativo usan `quiet` salvo que deban ser la accion principal de la pantalla.
 - `error` se presenta dentro de `Aviso tono="danger"`.
 - En 320 px, `context`, `eta` y CTA deben romper linea sin ocultarse.
 
@@ -476,7 +488,7 @@ Uso correcto:
 Uso incorrecto:
 
 ```tsx
-<div className="grid grid-cols-7 text-[9px]">
+<div className="grid grid-cols-7 text-xs">
   {etapas.map((etapa) => <span>{etapa}</span>)}
 </div>
 ```

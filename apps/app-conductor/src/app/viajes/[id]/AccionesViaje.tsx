@@ -6,6 +6,7 @@ import { Aviso, NextOperationalAction } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { TRANSICIONES } from "@ruum/shared/states";
 import type { Database } from "@ruum/shared/types";
+import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
 import type { TripPresentation } from "../../../lib/trip-presentation";
@@ -193,9 +194,14 @@ export function AccionesViaje({
   }
 
   const requiereEvidencia = ESTADOS_QUE_REQUIEREN_EVIDENCIA.includes(estado);
-  const siguientePosible = TRANSICIONES[estado]?.[0];
+  const siguientePosible = presentation.canContinue && !presentation.requiresControlTowerDecision ? TRANSICIONES[estado]?.[0] : undefined;
   const etiqueta = presentation.primaryAction.label;
   const ejecutarAccionSinTransicion = () => {
+    if (presentation.primaryAction.action === "contact_support") {
+      router.push("/cuenta/soporte");
+      return;
+    }
+
     if (presentation.primaryAction.action === "review_status") {
       router.refresh();
       return;
@@ -224,6 +230,26 @@ export function AccionesViaje({
     );
   }
 
+  if (!presentation.canContinue || presentation.requiresControlTowerDecision) {
+    return (
+      <NextOperationalAction
+        title={presentation.title}
+        instruction={presentation.instruction}
+        context={contextoVehiculo(vehiculoMarca, vehiculoModelo, vehiculoAnio, vehiculoPlacas)}
+        eta="Torre de Control debe confirmar el siguiente movimiento."
+        primaryCta={{
+          label: etiqueta,
+          onClick: ejecutarAccionSinTransicion,
+          variant: "secondary"
+        }}
+        secondaryCta={{ label: "Emergencia", onClick: () => router.push(`/viajes/${trasladoId}#emergencia`), variant: "emergency" }}
+        error={error}
+        nextStep={presentation.nextStep}
+        stageLabel={`Paso ${presentation.stage} de ${presentation.totalStages}`}
+      />
+    );
+  }
+
   async function avanzar() {
     setProcesando(true);
     setError(null);
@@ -233,7 +259,7 @@ export function AccionesViaje({
       await avanzarEstadoTraslado(cliente, trasladoId, estado);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos actualizar el viaje. Intenta de nuevo.");
+      setError(traducirErrorOperativo(err, "No pudimos actualizar el viaje. Intenta de nuevo."));
     } finally {
       setProcesando(false);
     }

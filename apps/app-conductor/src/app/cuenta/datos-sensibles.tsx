@@ -26,7 +26,7 @@ const TEXTOS: Record<TipoDatoSensible, { titulo: string; finalidad: string; acce
   contacto_emergencia: {
     titulo: "Contacto de emergencia",
     finalidad: "Lo usamos únicamente si ocurre una eventualidad durante un traslado.",
-    acceso: "Solo soporte y operación cuando existe una incidencia o emergencia.",
+    acceso: "Solo soporte y operación cuando existe un problema operativo o emergencia.",
     proteccion: "Se muestra enmascarado fuera de edición y se protege con las reglas de acceso de tu cuenta."
   },
   documentos: {
@@ -56,12 +56,12 @@ export function DatosSensiblesInfo({ tipo, compacto = false }: { tipo: TipoDatoS
   return (
     <div className={`rounded-lg border border-route-action/15 bg-route-soft ${compacto ? "px-3 py-3" : "px-4 py-4"}`}>
       <p className="font-body text-sm font-semibold text-text-primary">{texto.titulo}</p>
-      <dl className="mt-2 grid gap-2 font-body text-xs leading-5 text-text-secondary">
+      <dl className="mt-2 grid gap-2 font-body text-sm leading-6 text-text-secondary">
         <div><dt className="font-semibold text-text-secondary">¿Por qué lo pedimos?</dt><dd>{texto.finalidad}</dd></div>
         <div><dt className="font-semibold text-text-secondary">¿Quién puede verlo?</dt><dd>{texto.acceso}</dd></div>
         <div><dt className="font-semibold text-text-secondary">¿Cómo se protege?</dt><dd>{texto.proteccion}</dd></div>
       </dl>
-      <Link href="/legal/privacidad" target="_blank" className="mt-2 inline-block font-body text-xs font-semibold text-route-action underline-offset-4 hover:underline">
+      <Link href="/legal/privacidad" target="_blank" className="mt-2 inline-block font-body text-sm font-semibold text-route-action underline-offset-4 hover:underline">
         Ver aviso de privacidad
       </Link>
     </div>

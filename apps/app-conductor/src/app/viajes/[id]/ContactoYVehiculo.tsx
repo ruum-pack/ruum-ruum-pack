@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { NextOperationalAction } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
+import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
 
@@ -61,7 +62,7 @@ export function ContactoYVehiculo({
       await avanzarEstadoTraslado(cliente, trasladoId, siguiente);
       router.push(`/viajes/${trasladoId}/evidencia`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos iniciar la verificación del vehículo. Intenta de nuevo.");
+      setError(traducirErrorOperativo(err, "No pudimos iniciar la verificación del vehículo. Intenta de nuevo."));
       setProcesando(false);
     }
   }

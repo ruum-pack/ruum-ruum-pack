@@ -24,6 +24,19 @@ function desdePosicionWeb(posicion: GeolocationPosition): Coordenadas {
   };
 }
 
+export function distanciaMetrosEntre(origen: Pick<Coordenadas, "lat" | "lng">, destino: Pick<Coordenadas, "lat" | "lng">) {
+  const radioTierraM = 6_371_000;
+  const latOrigen = (origen.lat * Math.PI) / 180;
+  const latDestino = (destino.lat * Math.PI) / 180;
+  const deltaLat = ((destino.lat - origen.lat) * Math.PI) / 180;
+  const deltaLng = ((destino.lng - origen.lng) * Math.PI) / 180;
+  const a =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(latOrigen) * Math.cos(latDestino) * Math.sin(deltaLng / 2) ** 2;
+
+  return radioTierraM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 /**
  * PRD §4.4/§4.15 — coordenadas para etiquetar cada foto de evidencia y para
  * el tracking durante el traslado. Solo primer plano en este corte: tracking

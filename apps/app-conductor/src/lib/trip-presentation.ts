@@ -16,9 +16,16 @@ export type TripPresentationAction =
   | "review_status"
   | "none";
 
+export type TripPresentationIncidentStatus = {
+  canContinue?: boolean;
+  requiresControlTowerDecision?: boolean;
+};
+
 export type TripPresentation = {
   stage: number;
   totalStages: number;
+  canContinue: boolean;
+  requiresControlTowerDecision: boolean;
   title: string;
   instruction: string;
   primaryAction: {
@@ -38,11 +45,14 @@ function presentation(
   action: TripPresentationAction,
   label: string,
   nextStep?: string,
-  secondaryActions: string[] = ["Contactar soporte Ruum", "Reportar un problema"]
+  secondaryActions: string[] = ["Contactar soporte Ruum", "Reportar un problema"],
+  operationalStatus: TripPresentationIncidentStatus = {}
 ): TripPresentation {
   return {
     stage,
     totalStages: TOTAL_STAGES,
+    canContinue: operationalStatus.canContinue ?? true,
+    requiresControlTowerDecision: operationalStatus.requiresControlTowerDecision ?? false,
     title,
     instruction,
     primaryAction: { label, action },
@@ -51,7 +61,7 @@ function presentation(
   };
 }
 
-export function getTripPresentation(estado: EstadoTraslado): TripPresentation {
+export function getTripPresentation(estado: EstadoTraslado, incidentStatus: TripPresentationIncidentStatus = {}): TripPresentation {
   switch (estado) {
     case "conductor_asignado":
     case "conductor_en_camino_al_origen":
@@ -97,16 +107,38 @@ export function getTripPresentation(estado: EstadoTraslado): TripPresentation {
     case "evidencia_inicial_completada":
     case "vehiculo_recibido":
     case "traslado_en_curso":
-    case "incidencia_reportada":
       return presentation(
         5,
         "Dirígete al punto de entrega",
-        estado === "incidencia_reportada"
-          ? "Hay un problema reportado. Si puedes continuar, mantén comunicación por los canales autorizados y dirígete al punto de entrega."
-          : "Conduce hacia el punto de entrega y mantén el registro del vehículo y la comunicación al día.",
+        "Conduce hacia el punto de entrega y mantén el registro del vehículo y la comunicación al día.",
         estado === "traslado_en_curso" ? "mark_arrived_destination" : "go_destination",
         estado === "traslado_en_curso" ? "Confirmar llegada a destino" : "Abrir ruta de entrega",
         "Al llegar, registra el estado final del vehículo."
+      );
+
+    case "incidencia_reportada":
+      if (incidentStatus.canContinue === true && incidentStatus.requiresControlTowerDecision !== true) {
+        return presentation(
+          5,
+          "Continúa con indicación operativa",
+          "El problema ya fue revisado y puedes continuar hacia el punto de entrega. Mantén comunicación por los canales autorizados.",
+          "go_destination",
+          "Abrir ruta de entrega",
+          "Al llegar, registra el estado final del vehículo.",
+          ["Contactar soporte Ruum", "Reportar un problema"],
+          { canContinue: true, requiresControlTowerDecision: false }
+        );
+      }
+
+      return presentation(
+        5,
+        "Espera indicaciones de Torre de Control",
+        "Hay un problema reportado y aún no está confirmado que puedas continuar. Mantente disponible, conserva el vehículo seguro y espera la instrucción operativa.",
+        "contact_support",
+        "Contactar soporte Ruum",
+        "Torre de Control indicará si el traslado continúa, cambia de plan o se detiene.",
+        ["Emergencia", "Reportar un problema"],
+        { canContinue: false, requiresControlTowerDecision: true }
       );
 
     case "llegada_a_destino":

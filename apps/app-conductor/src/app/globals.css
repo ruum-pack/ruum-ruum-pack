@@ -40,6 +40,10 @@
   bottom: calc(80px + env(safe-area-inset-bottom));
 }
 
+.conductor-mobile-active-trip-card {
+  min-height: 4.5rem;
+}
+
 @media (min-width: 640px) {
   .conductor-content {
     width: min(100% - 48px, 1120px);
@@ -49,16 +53,70 @@
 
 @media (max-width: 767px) {
   /* La navegación inferior ocupa espacio real para no tapar acciones finales. */
+  :root {
+    --conductor-mobile-nav-offset: 80px;
+    --conductor-mobile-active-trip-offset: 92px;
+    --conductor-mobile-page-reserve: 196px;
+  }
+
   .conductor-page {
-    padding-bottom: max(104px, calc(80px + env(safe-area-inset-bottom))) !important;
+    padding-bottom: max(104px, calc(var(--conductor-mobile-nav-offset) + env(safe-area-inset-bottom))) !important;
   }
 
   body.conductor-tiene-viaje-activo .conductor-page {
-    padding-bottom: max(196px, calc(172px + env(safe-area-inset-bottom))) !important;
+    padding-bottom: max(
+      var(--conductor-mobile-page-reserve),
+      calc(var(--conductor-mobile-nav-offset) + var(--conductor-mobile-active-trip-offset) + env(safe-area-inset-bottom))
+    ) !important;
   }
 
   body.conductor-tiene-viaje-activo .conductor-toast-bottom {
-    bottom: calc(172px + env(safe-area-inset-bottom));
+    bottom: calc(var(--conductor-mobile-nav-offset) + var(--conductor-mobile-active-trip-offset) + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 767px) and (max-height: 600px) {
+  :root {
+    --conductor-mobile-active-trip-offset: 72px;
+    --conductor-mobile-page-reserve: 168px;
+  }
+
+  body.conductor-tiene-viaje-activo .conductor-page {
+    padding-bottom: max(
+      var(--conductor-mobile-page-reserve),
+      calc(var(--conductor-mobile-nav-offset) + var(--conductor-mobile-active-trip-offset) + env(safe-area-inset-bottom))
+    ) !important;
+  }
+
+  body.conductor-tiene-viaje-activo .conductor-toast-bottom {
+    bottom: calc(var(--conductor-mobile-nav-offset) + var(--conductor-mobile-active-trip-offset) + env(safe-area-inset-bottom));
+  }
+
+  .conductor-mobile-active-trip-card {
+    min-height: 3.5rem;
+  }
+
+  .conductor-mobile-active-trip-destination {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) and (max-height: 430px) {
+  :root {
+    --conductor-mobile-active-trip-offset: 0px;
+    --conductor-mobile-page-reserve: 104px;
+  }
+
+  body.conductor-tiene-viaje-activo .conductor-page {
+    padding-bottom: max(104px, calc(var(--conductor-mobile-nav-offset) + env(safe-area-inset-bottom))) !important;
+  }
+
+  body.conductor-tiene-viaje-activo .conductor-toast-bottom {
+    bottom: calc(var(--conductor-mobile-nav-offset) + env(safe-area-inset-bottom));
+  }
+
+  .conductor-mobile-active-trip {
+    display: none;
   }
 }
 
@@ -126,68 +184,15 @@
  */
 
 /* =========================================================================
- * TEMA NOCTURNO NEÓN — app-conductor (siempre activo)
+ * TEMA NOCTURNO NEÓN — app-conductor
  *
- * La estética del onboarding se extiende a toda la app
- * reasignando los tokens de @ruum/ui. Las utilidades Tailwind (text-ink,
- * bg-mist, bg-signal, …) leen estas variables, por lo que cada pantalla
- * hereda el tema sin tocar su marcado.
+ * El tema se activa explícitamente con <html data-theme="dark">.
+ * Los tokens semánticos viven en @ruum/ui; aquí solo quedan ajustes visuales
+ * locales. No invertir aliases históricos como ink/mist/paper.
  * ========================================================================= */
-:root {
-  color-scheme: dark;
-
-  /* --- Paleta Tailwind (@theme de @ruum/ui) reasignada --- */
-  --color-ink: #e8edf6;            /* texto principal, ahora claro */
-  --color-ink-soft: #c7d2e2;
-  --color-steel: #93a0b5;
-  --color-mist: #101a2c;           /* superficie de tarjetas, ahora oscura */
-  --color-mist-dim: #0b1322;
-  --color-signal: #f5a623;         /* dorado de marca, sin cambios */
-  --color-signal-soft: rgba(245, 166, 35, 0.14);
-  --color-route: #3aa5ff;          /* azul neón del onboarding */
-  --color-route-dark: #4da3ff;     /* legible como texto sobre fondo oscuro */
-  --color-route-soft: rgba(58, 165, 255, 0.14);
-  --color-control: #3ddc97;
-  --color-control-soft: rgba(61, 220, 151, 0.13);
-  --color-warn: #f0b429;
-  --color-warn-soft: rgba(240, 180, 41, 0.12);
-  --color-danger: #ff6b6b;
-  --color-danger-soft: rgba(255, 107, 107, 0.12);
-
-  /* --- Tokens semánticos --- */
-  --ruum-canvas: #070b14;
-  --ruum-surface: #101a2c;
-  --ruum-surface-elevated: #162238;
-  --ruum-surface-subtle: #0d1626;
-  --ruum-surface-strong: #05080f;
-  --ruum-border: rgba(122, 162, 214, 0.2);
-  --ruum-border-strong: rgba(122, 162, 214, 0.38);
-  --ruum-text-primary: #e8edf6;
-  --ruum-text: #e8edf6;
-  --ruum-text-secondary: #b7c2d4;
-  --ruum-text-tertiary: #8b98ad;
-  --ruum-text-disabled: #6f7c92;
-  --ruum-focus: #4da3ff;
-  --ruum-focus-ring: rgba(77, 163, 255, 0.3);
-  --ruum-action-primary: #f5a623;
-  --ruum-action-primary-hover: #d88f16;
-  --ruum-action-primary-active: #c77f0a;
-  --ruum-route: #4da3ff;
-  --ruum-route-hover: #3a8ee6;
-  --ruum-route-active: #2d79c8;
-  --ruum-success: #3ddc97;
-  --ruum-warning: #f0b429;
-  --ruum-danger: #ff6b6b;
-  --ruum-danger-hover: #e45a5a;
-  --ruum-danger-active: #c94d4d;
-  --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.4);
-  --ruum-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.55);
-  --ruum-shadow-4: 0 24px 64px rgba(0, 0, 0, 0.65);
-}
 
 /* Lienzo con los mismos resplandores radiales del onboarding. */
-body {
+html[data-theme="dark"] body {
   background:
     radial-gradient(circle at 12% 0%, rgba(58, 165, 255, 0.1), transparent 42%),
     radial-gradient(circle at 95% 100%, rgba(168, 232, 32, 0.06), transparent 38%),
@@ -195,57 +200,52 @@ body {
   background-attachment: fixed;
 }
 
-::selection {
+html[data-theme="dark"] ::selection {
   background: var(--color-signal);
   color: var(--ruum-surface-strong);
 }
 
-/* --- Correcciones de contraste para pares fondo+texto invertidos ---
- * Al aclarar --color-ink y oscurecer --color-mist, los componentes que
- * combinan superficie de color con text-ink/text-mist necesitan texto
- * fijo: dorado y azul brillante piden texto oscuro; rojos piden claro. */
-.bg-signal { color: var(--ruum-surface-strong); }
-.bg-route-dark { color: var(--ruum-surface-strong); }
-.bg-control { color: var(--ruum-surface-strong); }
-.bg-danger { color: var(--ruum-surface-strong); }
-/* Marco de la ilustración del registro: conservar fondo oscuro real. */
-.bg-ink { background-color: var(--ruum-surface-subtle); }
+/* --- Correcciones de contraste para superficies de marca sobre tema oscuro. */
+html[data-theme="dark"] .bg-signal { color: var(--ruum-surface-strong); }
+html[data-theme="dark"] .bg-route-dark { color: var(--color-mist); }
+html[data-theme="dark"] .bg-control { color: var(--color-mist); }
+html[data-theme="dark"] .bg-danger { color: var(--color-mist); }
 /* Folio del PassportCard: se posiciona sobre el listón dorado. */
-.rounded-card > span.font-mono-ruum.absolute { color: var(--ruum-surface-strong); }
+html[data-theme="dark"] .rounded-card > span.font-mono-ruum.absolute { color: var(--ruum-surface-strong); }
 
 /* --- Superficies locales del conductor en clave neón --- */
-.conductor-status-panel {
+html[data-theme="dark"] .conductor-status-panel {
   border-color: rgba(58, 165, 255, 0.3);
   background: rgba(58, 165, 255, 0.08);
 }
 
-.conductor-auth-shell {
+html[data-theme="dark"] .conductor-auth-shell {
   background:
     linear-gradient(180deg, rgba(7, 11, 20, 0.78) 0%, rgba(7, 11, 20, 0.94) 62%, var(--ruum-canvas) 100%),
     url("/imagenes/onboarding-paso2.webp") center / cover no-repeat,
     var(--ruum-canvas);
 }
 
-.conductor-auth-card {
+html[data-theme="dark"] .conductor-auth-card {
   background: rgba(13, 22, 38, 0.92);
   border-color: rgba(122, 162, 214, 0.25);
   color: var(--ruum-text);
   backdrop-filter: blur(6px);
 }
 
-.ruum-skip-link {
+html[data-theme="dark"] .ruum-skip-link {
   background: var(--ruum-surface);
   color: var(--ruum-route);
   border-color: var(--ruum-route);
 }
 
-input,
-select,
-textarea {
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
   color-scheme: dark;
 }
 
-input::placeholder,
-textarea::placeholder {
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
   color: var(--ruum-text-disabled);
 }

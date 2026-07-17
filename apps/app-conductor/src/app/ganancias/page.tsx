@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Aviso, Button, Card, DriverEarning, FinancialCard } from "@ruum/ui";
+import { Aviso, Button, Card, DriverEarning, FinancialAmount, FinancialCard } from "@ruum/ui";
 import { type EstadoEconomicoExplicito } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
+import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { obtenerConductorActual, obtenerGananciasConductor } from "@ruum/api/services";
 
@@ -36,7 +37,7 @@ export default function PaginaGanancias() {
     ajustes: 0,
     deposito_final: 0,
     fecha_pago: FECHA_PAGO_INICIAL,
-    metodo: "Sin payout programado",
+    metodo: "Sin pago programado",
     estatus: "sin_calcular" as EstadoEconomicoExplicito
   });
   const [error, setError] = useState<string | null>(null);
@@ -83,12 +84,12 @@ export default function PaginaGanancias() {
                 ajustes: 0,
                 deposito_final: 0,
                 fecha_pago: FECHA_PAGO_INICIAL,
-                metodo: "Sin payout programado",
+                metodo: "Sin pago programado",
                 estatus: "sin_calcular"
               }
         );
       } catch (err) {
-        setError(err instanceof Error ? err.message : "No pudimos cargar tus ganancias.");
+        setError(traducirErrorOperativo(err, "No pudimos cargar tus ganancias."));
       }
     }
     cargar();
@@ -148,19 +149,19 @@ export default function PaginaGanancias() {
         </FinancialCard>
         <FinancialCard>
           <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Gastos autorizados</p>
-          <DriverEarning amount={resumen.gastos} status={resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
+          <FinancialAmount amount={resumen.gastos} status={resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
         </FinancialCard>
         <FinancialCard>
           <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Ajustes</p>
-          <DriverEarning amount={resumen.ajustes} status={resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
+          <FinancialAmount amount={resumen.ajustes} status={resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
         </FinancialCard>
         <FinancialCard>
           <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Retenciones</p>
-          <DriverEarning amount={resumen.retenciones} status={resumen.retenciones > 0 ? "retenido" : resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
+          <FinancialAmount amount={resumen.retenciones} status={resumen.retenciones > 0 ? "retenido" : resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
         </FinancialCard>
         <FinancialCard>
           <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Depósito final</p>
-          <DriverEarning amount={resumen.deposito} status={resumenSemanal.estatus} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
+          <FinancialAmount amount={resumen.deposito} status={resumenSemanal.estatus} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
         </FinancialCard>
       </section>
 
@@ -182,15 +183,15 @@ export default function PaginaGanancias() {
             </div>
             <div className="flex justify-between gap-4 border-t border-border pt-3">
               <dt className="text-text-tertiary">Gastos registrados y autorizados</dt>
-              <dd><DriverEarning amount={resumenSemanal.gastos_autorizados} status={resumenSemanal.estatus} currency="MXN" amountClassName="text-sm" /></dd>
+              <dd><FinancialAmount amount={resumenSemanal.gastos_autorizados} status={resumenSemanal.estatus} currency="MXN" amountClassName="text-sm" /></dd>
             </div>
             <div className="flex justify-between gap-4 border-t border-border pt-3">
               <dt className="text-text-tertiary">Ajustes o retenciones</dt>
-              <dd><DriverEarning amount={resumenSemanal.ajustes} status={resumenSemanal.ajustes > 0 ? "retenido" : resumenSemanal.estatus} currency="MXN" amountClassName="text-sm" /></dd>
+              <dd><FinancialAmount amount={resumenSemanal.ajustes} status={resumenSemanal.ajustes > 0 ? "retenido" : resumenSemanal.estatus} currency="MXN" amountClassName="text-sm" /></dd>
             </div>
             <div className="flex justify-between gap-4 border-t border-border pt-3">
               <dt className="font-semibold text-text-primary">Depósito final</dt>
-              <dd><DriverEarning amount={resumenSemanal.deposito_final} status={resumenSemanal.estatus} currency="MXN" amountClassName="text-sm font-semibold" /></dd>
+              <dd><FinancialAmount amount={resumenSemanal.deposito_final} status={resumenSemanal.estatus} currency="MXN" amountClassName="text-sm font-semibold" /></dd>
             </div>
           </dl>
         </FinancialCard>
@@ -220,13 +221,13 @@ export default function PaginaGanancias() {
                 </div>
                 <div>
                   <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Gastos autorizados</p>
-                  <DriverEarning amount={registro.gastos} status={registro.estatus} currency="MXN" className="mt-1" amountClassName="text-sm" />
+                  <FinancialAmount amount={registro.gastos} status={registro.estatus} currency="MXN" className="mt-1" amountClassName="text-sm" />
                 </div>
                 <div>
                   <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Liberación estimada</p>
                   <p className="mt-1 font-body text-sm">{fecha(registro.liberacion)}</p>
                 </div>
-                <DriverEarning amount={null} status={registro.estatus} currency="MXN" amountClassName="sr-only" auxiliaryText="" />
+                <FinancialAmount amount={null} status={registro.estatus} currency="MXN" amountClassName="sr-only" auxiliaryText="" />
               </div>
             </FinancialCard>
           ))}

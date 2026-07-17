@@ -5,6 +5,7 @@ import { Button } from "@ruum/ui";
 import { abrirDisputa } from "@ruum/api/services";
 import { ETIQUETA_TIPO_DISPUTA, GLOSARIO_OPERATIVO, MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
+import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 
 type TipoDisputa = Database["public"]["Enums"]["tipo_disputa"];
@@ -41,7 +42,7 @@ export function AbrirDisputaConductor({
         setEnviada(true);
         setMensaje("Revisión solicitada a operación.");
       } catch (error) {
-        setMensaje(error instanceof Error ? error.message : "No se pudo solicitar la revisión.");
+        setMensaje(traducirErrorOperativo(error, "No se pudo solicitar la revisión."));
       }
     });
   }

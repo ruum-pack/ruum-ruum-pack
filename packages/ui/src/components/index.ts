@@ -5,6 +5,7 @@ export * from "./Field";
 export * from "./Aviso";
 export * from "./EstadoBadge";
 export * from "./EstatusBadgeEconomico";
+export * from "./FinancialAmount";
 export * from "./DriverEarning";
 export * from "./NextOperationalAction";
 export * from "./EstadoStepper";

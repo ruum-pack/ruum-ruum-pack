@@ -9,7 +9,7 @@ Las tarjetas de `@ruum/ui` se eligen por intencion, no por apariencia heredada.
 | `TripCard` | Viajes, oportunidades y traslados aceptados. | `p-5 sm:p-6` | `border-border-strong` con hover operativo | `shadow-1` |
 | `FinancialCard` | Montos, depositos, ganancias, retenciones y datos bancarios. | `p-5 sm:p-6` | `border-success` | `shadow-1` |
 | `AlertCard` | Bloqueos, avisos prioritarios y soporte critico. | `p-5 sm:p-6` | `border-warning` | `shadow-1` |
-| `PassportCard` | Identidad, expediente, documentos y pasaporte digital. | `p-5 sm:p-6` | `border-border` con patron documental | `shadow-1` |
+| `PassportCard` | Identidad, pasaporte digital, certificados verificables y expediente resumido. | `p-5 sm:p-6` | `border-border` con patron documental | `shadow-1` |
 
 Reglas:
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState } from "react";
-import { Aviso, Button, PassportCard } from "@ruum/ui";
+import { Aviso, Button, Card } from "@ruum/ui";
 import { obtenerConfiguracionConductor, subirDocumentoConductor, type TipoDocumentoConductor } from "@ruum/api/services";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import type { Database } from "@ruum/shared/types";
@@ -32,7 +32,10 @@ export default function PaginaDocumentosCuenta() {
   }
 
   useEffect(() => {
-    void cargar();
+    const timer = window.setTimeout(() => {
+      void cargar();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   async function subirDocumento(tipoDocumento: TipoDocumentoConductor, evento: ChangeEvent<HTMLInputElement>) {
@@ -57,7 +60,7 @@ export default function PaginaDocumentosCuenta() {
     <div className="mx-auto max-w-4xl px-6 py-10 sm:py-14">
       <CuentaHeader titulo="Documentos" descripcion="Consulta y actualiza tu expediente operativo." />
       {mensaje && <div className="mt-5"><Aviso tono="info">{mensaje}</Aviso></div>}
-      <PassportCard className="mt-6">
+      <Card className="mt-6">
         {cargando ? <p className="font-body text-sm text-text-secondary">Cargando documentos...</p> : (
           <div className="grid gap-5">
             <div>
@@ -71,7 +74,7 @@ export default function PaginaDocumentosCuenta() {
             <DriverDocumentChecklist conductor={conductor} documentos={documentos} subiendo={subiendo} onUpload={subirDocumento} />
           </div>
         )}
-      </PassportCard>
+      </Card>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Aviso, Button } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
+import { traducirErrorOperativo } from "@ruum/shared/utils";
 import {
   activarSoporteEmergenciaConductor,
   registrarInteraccionPanelEmergenciaConductor,
@@ -57,15 +58,49 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
   const [confirmando911, setConfirmando911] = useState(false);
   const [procesando, setProcesando] = useState<AccionPanel | null>(null);
   const [mensaje, setMensaje] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   const tituloRef = useRef<HTMLHeadingElement | null>(null);
+  const elementoPrevioRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!abierto) return;
     const previoOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.setTimeout(() => tituloRef.current?.focus(), 0);
+
+    function manejarTecla(evento: KeyboardEvent) {
+      if (evento.key === "Escape") {
+        evento.preventDefault();
+        cerrarPanel();
+        return;
+      }
+
+      if (evento.key !== "Tab") return;
+      const dialogo = dialogRef.current;
+      if (!dialogo) return;
+      const enfocables = Array.from(
+        dialogo.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((elemento) => !elemento.hasAttribute("disabled") && elemento.offsetParent !== null);
+      if (enfocables.length === 0) return;
+
+      const primero = enfocables[0];
+      const ultimo = enfocables[enfocables.length - 1];
+      if (evento.shiftKey && document.activeElement === primero) {
+        evento.preventDefault();
+        ultimo.focus();
+      } else if (!evento.shiftKey && document.activeElement === ultimo) {
+        evento.preventDefault();
+        primero.focus();
+      }
+    }
+
+    document.addEventListener("keydown", manejarTecla);
     return () => {
+      document.removeEventListener("keydown", manejarTecla);
       document.body.style.overflow = previoOverflow;
+      elementoPrevioRef.current?.focus();
     };
   }, [abierto]);
 
@@ -81,6 +116,7 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
   async function abrirPanel() {
     setMensaje(null);
     setConfirmando911(false);
+    elementoPrevioRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setAbierto(true);
     await registrar("apertura", "panel");
   }
@@ -107,7 +143,7 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
       await registrar("seleccion", "llamar_911_confirmado");
       window.location.href = CONTACTOS_SOPORTE_CONDUCTOR.emergencia.telefono.href;
     } catch (err) {
-      setMensaje({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos activar la llamada de emergencia." });
+      setMensaje({ tono: "danger", texto: traducirErrorOperativo(err, "No pudimos activar la llamada de emergencia.") });
     } finally {
       setProcesando(null);
     }
@@ -133,8 +169,16 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
       });
 
       if (navigator.share) {
-        await navigator.share({ title: "Ubicación de emergencia", text: texto, url });
-        setMensaje({ tono: "info", texto: "Ubicación lista para compartir." });
+        try {
+          await navigator.share({ title: "Ubicación de emergencia", text: texto, url });
+          setMensaje({ tono: "info", texto: "Ubicación lista para compartir." });
+        } catch (err) {
+          if (err instanceof DOMException && err.name === "AbortError") {
+            setMensaje({ tono: "info", texto: "Compartir ubicación fue cancelado." });
+          } else {
+            throw err;
+          }
+        }
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(texto);
         setMensaje({ tono: "info", texto: "Ubicación copiada. Puedes pegarla en el chat o WhatsApp." });
@@ -142,7 +186,7 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
         window.location.href = `sms:?body=${encodeURIComponent(texto)}`;
       }
     } catch (err) {
-      setMensaje({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos compartir la ubicación." });
+      setMensaje({ tono: "danger", texto: traducirErrorOperativo(err, "No pudimos compartir la ubicación.") });
     } finally {
       setProcesando(null);
     }
@@ -165,7 +209,7 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
       await registrar("seleccion", tipo);
       setMensaje({ tono: "info", texto: "Reporte enviado. Torre de Control dará seguimiento." });
     } catch (err) {
-      setMensaje({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos registrar el reporte." });
+      setMensaje({ tono: "danger", texto: traducirErrorOperativo(err, "No pudimos registrar el reporte.") });
     } finally {
       setProcesando(null);
     }
@@ -195,8 +239,9 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
       </div>
 
       {abierto && (
-        <div className="fixed inset-0 z-50 bg-surface-elevated5 px-3 py-[max(12px,env(safe-area-inset-top))]" role="presentation">
+        <div className="fixed inset-0 z-50 bg-black/60 px-3 py-[max(12px,env(safe-area-inset-top))]" role="presentation">
           <div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="emergency-panel-title"
@@ -232,9 +277,9 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
                     disabled={Boolean(procesando)}
                     className={[
                       "min-h-16 rounded-xl border px-4 py-3 text-left transition disabled:cursor-wait disabled:text-disabled",
-                      "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger",
+                      "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger-action",
                       es911
-                        ? "border-danger-action bg-danger text-surface shadow-[0_10px_28px_rgba(179,38,38,0.24)]"
+                        ? "border-danger-action bg-danger-action text-white shadow-[0_10px_28px_rgba(179,38,38,0.24)]"
                         : "border-border bg-surface text-text-primary hover:border-route-action hover:bg-route-soft"
                     ].join(" ")}
                   >
@@ -254,7 +299,7 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
                       </span>
                       {indice === 0 && <span className="font-body text-sm font-semibold">Primero</span>}
                     </span>
-                    <span className={["mt-1 block font-body text-sm leading-6", es911 ? "text-text-secondary" : "text-text-secondary"].join(" ")}>
+                    <span className={["mt-1 block font-body text-sm leading-6", es911 ? "text-white/90" : "text-text-secondary"].join(" ")}>
                       {es911 && confirmando911 ? "Toca de nuevo para confirmar la llamada." : opcion.descripcion}
                     </span>
                   </button>

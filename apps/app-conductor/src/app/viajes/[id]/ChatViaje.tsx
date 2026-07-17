@@ -5,8 +5,10 @@ import { Chat, type MensajeChat, Aviso } from "@ruum/ui";
 import { MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { chatDisponible } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
+import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { obtenerMensajes, enviarMensaje, suscribirseAMensajes } from "@ruum/api/services";
+import { MENSAJES_RAPIDOS_CONTACTO } from "./quick-messages";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
@@ -35,6 +37,8 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [avisoVisto, setAvisoVisto] = useState(() => leerAvisoVisto(trasladoId));
   const [popoverAvisoAbierto, setPopoverAvisoAbierto] = useState(false);
+  const [chatAbierto, setChatAbierto] = useState(false);
+  const [enviandoRapido, setEnviandoRapido] = useState<string | null>(null);
   const [errorChat, setErrorChat] = useState<string | null>(null);
   const clienteRef = useRef<ReturnType<typeof crearClienteNavegador> | null>(null);
 
@@ -49,7 +53,7 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
   }, [trasladoId]);
 
   useEffect(() => {
-    if (!disponible) return;
+    if (!disponible || !chatAbierto) return;
 
     let cliente: ReturnType<typeof crearClienteNavegador>;
     try {
@@ -57,7 +61,7 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
     } catch (err) {
       const timer = setTimeout(() => {
         setMensajes([]);
-        setErrorChat(err instanceof Error ? err.message : "No pudimos inicializar el chat.");
+        setErrorChat(traducirErrorOperativo(err, "No pudimos inicializar el chat."));
       }, 0);
       return () => clearTimeout(timer);
     }
@@ -68,7 +72,7 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
       .then(setMensajes)
       .catch((err) => {
         setMensajes([]);
-        setErrorChat(err instanceof Error ? err.message : "No pudimos cargar el chat.");
+        setErrorChat(traducirErrorOperativo(err, "No pudimos cargar el chat."));
       });
 
     const canal = suscribirseAMensajes(cliente, trasladoId, (nuevo) => {
@@ -78,13 +82,32 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
     return () => {
       cliente.removeChannel(canal);
     };
-  }, [trasladoId, disponible]);
+  }, [trasladoId, disponible, chatAbierto]);
+
+  function obtenerClienteChat() {
+    if (clienteRef.current) return clienteRef.current;
+    const cliente = crearClienteNavegador();
+    clienteRef.current = cliente;
+    return cliente;
+  }
 
   async function manejarEnvio(contenido: string) {
-    if (!clienteRef.current) return;
-    await enviarMensaje(clienteRef.current, trasladoId, contenido);
+    const cliente = obtenerClienteChat();
+    await enviarMensaje(cliente, trasladoId, contenido);
     // No hace falta actualizar el estado local aquí: la suscripción de
     // Realtime ya lo va a recibir, igual que le llegaría al usuario.
+  }
+
+  async function enviarMensajeRapido(contenido: string) {
+    setEnviandoRapido(contenido);
+    setErrorChat(null);
+    try {
+      await manejarEnvio(contenido);
+    } catch (err) {
+      setErrorChat(traducirErrorOperativo(err, "No pudimos enviar el mensaje."));
+    } finally {
+      setEnviandoRapido(null);
+    }
   }
 
   function confirmarAvisoVisto() {
@@ -94,12 +117,35 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
   }
 
   return (
-    <details id="chat-contacto" className="group mt-6 overflow-hidden rounded-lg border border-border bg-surface">
+    <section id="chat-contacto" className="mt-6 rounded-lg border border-border bg-surface">
+      {disponible && (
+        <div className="px-4 py-4">
+          <p className="font-body text-sm font-semibold text-text-tertiary">Mensajes rápidos</p>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {MENSAJES_RAPIDOS_CONTACTO.map((mensajeRapido) => (
+              <button
+                key={mensajeRapido}
+                type="button"
+                onClick={() => void enviarMensajeRapido(mensajeRapido)}
+                disabled={enviandoRapido !== null}
+                className="min-h-11 rounded-lg border border-border bg-surface-elevated px-3 py-2 text-left font-body text-sm font-semibold text-text-secondary transition hover:border-route-action hover:bg-route-soft hover:text-route-action disabled:cursor-not-allowed disabled:text-disabled"
+              >
+                {enviandoRapido === mensajeRapido ? "Enviando..." : mensajeRapido}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <details
+        className={["group overflow-hidden", disponible ? "border-t border-border" : ""].join(" ")}
+        open={chatAbierto}
+        onToggle={(evento) => setChatAbierto(evento.currentTarget.open)}
+      >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 transition-colors hover:bg-signal-soft/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action [&::-webkit-details-marker]:hidden">
         <div>
           <p className="font-body text-sm font-semibold text-text-tertiary">Chat del viaje</p>
           <p className="mt-1 font-body text-sm font-semibold text-text-primary">
-            {disponible ? "Escribir mensaje" : "Conversación cerrada"}
+            {disponible ? "Abrir conversación completa" : "Conversación cerrada"}
           </p>
         </div>
         <span className="font-display text-lg leading-none text-text-tertiary transition-transform group-open:rotate-45" aria-hidden>
@@ -162,6 +208,7 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
           mensajeDeshabilitado="El chat se cerró junto con el traslado"
         />
       </div>
-    </details>
+      </details>
+    </section>
   );
 }
