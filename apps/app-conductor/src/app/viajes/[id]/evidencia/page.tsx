@@ -1,12 +1,9 @@
 "use client";
-
-"use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Aviso, PassportCard } from "@ruum/ui";
-import { MENSAJE_EVIDENCIA_SINCRONIZANDO, MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
+import { GLOSARIO_OPERATIVO, MENSAJE_EVIDENCIA_SINCRONIZANDO, MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { evidenciaCompleta } from "@ruum/shared/rules";
-import { ANGULOS_OBLIGATORIOS } from "@ruum/shared/types";
 import type { AnguloEvidencia, FotoEvidencia, TipoEvidencia } from "@ruum/shared/types";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
@@ -27,6 +24,16 @@ import {
 import { RegistroViajeActivo } from "../../../ViajeActivoContext";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
+type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
+
+type EvidenceRequirement = {
+  angulo: AnguloEvidencia;
+  titulo: string;
+  instruccion: string;
+  guia: string;
+  obligatorio: boolean;
+  permiteNoAplica: boolean;
+};
 
 interface InspeccionEvidencia {
   combustible: string;
@@ -69,6 +76,67 @@ const ETIQUETA_ANGULO: Record<AnguloEvidencia, string> = {
   adicional: "Adicional"
 };
 
+function listaEvidenciaObligatoria(tipo: TipoEvidencia): EvidenceRequirement[] {
+  const prefijo = tipo === "inicial" ? "antes de moverlo" : "antes de entregar";
+  return [
+    {
+      angulo: "frente",
+      titulo: "Frente",
+      instruccion: `Toma el vehículo completo de frente ${prefijo}. Incluye placas y defensa.`,
+      guia: "Alinea la defensa dentro del marco.",
+      obligatorio: true,
+      permiteNoAplica: false
+    },
+    {
+      angulo: "lado_piloto",
+      titulo: "Lado piloto",
+      instruccion: "Captura todo el costado del conductor, de espejo a defensa trasera.",
+      guia: "Coloca el vehículo horizontal dentro de la silueta.",
+      obligatorio: true,
+      permiteNoAplica: false
+    },
+    {
+      angulo: "lado_copiloto",
+      titulo: "Lado copiloto",
+      instruccion: "Captura todo el costado del copiloto, sin cortar defensas ni llantas.",
+      guia: "Deja aire alrededor de las cuatro llantas.",
+      obligatorio: true,
+      permiteNoAplica: false
+    },
+    {
+      angulo: "trasera",
+      titulo: "Trasera",
+      instruccion: "Toma la parte trasera completa. Incluye placas, cajuela y defensa.",
+      guia: "Centra la placa y la defensa.",
+      obligatorio: true,
+      permiteNoAplica: false
+    },
+    {
+      angulo: "tablero",
+      titulo: "Tablero",
+      instruccion: "Captura el tablero con kilometraje visible y sin reflejos fuertes.",
+      guia: "El odómetro debe quedar legible.",
+      obligatorio: true,
+      permiteNoAplica: false
+    },
+    {
+      angulo: "dano_previo",
+      titulo: tipo === "inicial" ? "Daños preexistentes" : "Daños visibles",
+      instruccion:
+        tipo === "inicial"
+          ? "Registra golpes, rayones o piezas dañadas antes de iniciar el traslado."
+          : "Registra cualquier cambio visible detectado al llegar al destino.",
+      guia: "Acércate al daño y toma una foto clara.",
+      obligatorio: false,
+      permiteNoAplica: true
+    }
+  ];
+}
+
+function fotoSrc(foto?: FotoEvidencia) {
+  return foto?.local_path || foto?.url || null;
+}
+
 // PRD §4.4 — tipo de evidencia según en qué punto del flujo está el viaje.
 function tipoEvidenciaPorEstado(estado: EstadoTraslado): TipoEvidencia | null {
   if (estado === "verificacion_vehiculo_en_proceso" || estado === "evidencia_inicial_en_proceso") return "inicial";
@@ -100,12 +168,231 @@ function BadgeSincronizacion({ sincronizada }: { sincronizada: boolean }) {
       className={[
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1",
         "font-body text-xs font-semibold",
-        sincronizada ? "border-control/30 bg-control-soft text-control" : "border-warn/40 bg-warn-soft text-warn"
+        sincronizada ? "border-success bg-control-soft text-success" : "border-warning bg-warn-soft text-warning"
       ].join(" ")}
     >
       {sincronizada ? <IconoCheck /> : <IconoReloj />}
       {sincronizada ? "Sincronizada" : "Pendiente de subir"}
     </span>
+  );
+}
+
+function EvidenceChecklist({
+  items,
+  activeIndex,
+  statusFor,
+  onSelect
+}: {
+  items: EvidenceRequirement[];
+  activeIndex: number;
+  statusFor: (item: EvidenceRequirement) => "listo" | "pendiente" | "omitido";
+  onSelect: (index: number) => void;
+}) {
+  return (
+    <nav aria-label="Checklist de evidencia" className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-6">
+      {items.map((item, index) => {
+        const status = statusFor(item);
+        const active = activeIndex === index;
+        return (
+          <button
+            key={item.angulo}
+            type="button"
+            onClick={() => onSelect(index)}
+            className={[
+              "min-h-14 rounded-xl border px-2 py-2 text-left transition",
+              active ? "border-route-action bg-route-soft" : "border-border bg-surface",
+              status === "listo" ? "text-success" : status === "omitido" ? "text-text-tertiary" : "text-text-primary"
+            ].join(" ")}
+          >
+            <span className="block font-body text-xs font-semibold">{index + 1}</span>
+            <span className="mt-1 block truncate font-body text-xs font-semibold">{item.titulo}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function VehicleSilhouette({ label }: { label: string }) {
+  return (
+    <div className="relative flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-route-action bg-route-soft">
+      <div className="absolute inset-x-8 top-1/2 h-16 -translate-y-1/2 rounded-[40px] border-2 border-route-action/70" />
+      <div className="absolute left-[25%] top-[calc(50%+22px)] size-8 rounded-full border-2 border-route-action/70 bg-surface" />
+      <div className="absolute right-[25%] top-[calc(50%+22px)] size-8 rounded-full border-2 border-route-action/70 bg-surface" />
+      <p className="relative max-w-[220px] text-center font-body text-sm font-semibold text-route-action">{label}</p>
+    </div>
+  );
+}
+
+function EvidencePreview({
+  foto,
+  onRepeat,
+  disabled
+}: {
+  foto?: FotoEvidencia;
+  onRepeat: () => void;
+  disabled?: boolean;
+}) {
+  const src = fotoSrc(foto);
+  if (!foto || !src) return null;
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface">
+      {/* eslint-disable-next-line @next/next/no-img-element -- la foto puede estar en dataUrl local offline. */}
+      <img src={src} alt="Vista previa de la evidencia capturada" className="h-52 w-full object-cover" />
+      <div className="flex items-center justify-between gap-3 px-3 py-3">
+        <BadgeSincronizacion sincronizada={Boolean(foto.sincronizada)} />
+        <Button variant="secondary" onClick={onRepeat} disabled={disabled}>
+          Repetir
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function EvidenceCaptureStep({
+  item,
+  step,
+  total,
+  foto,
+  noAplica,
+  busy,
+  onCapture,
+  onGallery,
+  onNoAplica
+}: {
+  item: EvidenceRequirement;
+  step: number;
+  total: number;
+  foto?: FotoEvidencia;
+  noAplica: boolean;
+  busy: boolean;
+  onCapture: () => void;
+  onGallery: () => void;
+  onNoAplica: (checked: boolean) => void;
+}) {
+  return (
+    <PassportCard className="mt-5">
+      <p className="font-body text-sm font-semibold text-route-action">
+        {step} de {total}
+      </p>
+      <h2 className="mt-2 font-display text-2xl font-semibold">{item.titulo}</h2>
+      <p className="mt-2 font-body text-base leading-7 text-text-secondary">{item.instruccion}</p>
+      <div className="mt-4">
+        <VehicleSilhouette label={item.guia} />
+      </div>
+      <EvidencePreview foto={foto} onRepeat={onCapture} disabled={busy} />
+      {item.permiteNoAplica && (
+        <label className="mt-4 flex min-h-11 items-center gap-3 rounded-xl border border-border bg-surface-elevated px-3 py-2 font-body text-sm font-semibold">
+          <input type="checkbox" checked={noAplica} onChange={(event) => onNoAplica(event.target.checked)} className="size-4 accent-route" />
+          No aplica
+        </label>
+      )}
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <Button onClick={onCapture} loading={busy}>
+          {foto ? "Repetir foto" : "Tomar foto"}
+        </Button>
+        <Button variant="secondary" onClick={onGallery} loading={busy}>
+          Elegir de galería
+        </Button>
+      </div>
+    </PassportCard>
+  );
+}
+
+function EvidenceSyncStatus({
+  pendientesSubida,
+  sincronizando,
+  missing,
+  complete
+}: {
+  pendientesSubida: number;
+  sincronizando: boolean;
+  missing: string[];
+  complete: boolean;
+}) {
+  if (pendientesSubida > 0) {
+    return (
+      <Aviso tono="atencion">
+        {pendientesSubida} foto{pendientesSubida === 1 ? "" : "s"} pendiente{pendientesSubida === 1 ? "" : "s"} de subir.
+        {sincronizando ? ` ${MENSAJE_EVIDENCIA_SINCRONIZANDO}.` : " Puedes completar el flujo offline; el envío se habilita al sincronizar."}
+      </Aviso>
+    );
+  }
+
+  if (!complete) {
+    return <Aviso tono="atencion">Falta: {missing.join(", ")}.</Aviso>;
+  }
+
+  return <Aviso tono="info">Registro completo y sincronizado. Revisa antes de enviar.</Aviso>;
+}
+
+function EvidenceReview({
+  items,
+  fotos,
+  noAplica,
+  resultado,
+  pendientesSubida,
+  sincronizando,
+  inspeccion,
+  enviando,
+  onBackToMissing,
+  onConfirm
+}: {
+  items: EvidenceRequirement[];
+  fotos: FotoEvidencia[];
+  noAplica: Set<AnguloEvidencia>;
+  resultado: ReturnType<typeof evidenciaCompleta>;
+  pendientesSubida: number;
+  sincronizando: boolean;
+  inspeccion: InspeccionEvidencia;
+  enviando: boolean;
+  onBackToMissing: () => void;
+  onConfirm: () => void;
+}) {
+  const missingLabels = resultado.angulosFaltantes.map((angulo) => ETIQUETA_ANGULO[angulo as AnguloEvidencia] ?? angulo);
+  const blocked = !resultado.completa || pendientesSubida > 0;
+
+  return (
+    <PassportCard className="mt-5">
+      <p className="font-body text-sm font-semibold text-route-action">Revisión final</p>
+      <h2 className="mt-2 font-display text-2xl font-semibold">Confirma el registro completo</h2>
+      <div className="mt-4">
+        <EvidenceSyncStatus pendientesSubida={pendientesSubida} sincronizando={sincronizando} missing={missingLabels} complete={resultado.completa} />
+      </div>
+      <div className="mt-5 grid gap-3">
+        {items.map((item) => {
+          const foto = fotos.find((candidate) => candidate.angulo === item.angulo);
+          const omitted = noAplica.has(item.angulo);
+          return (
+            <div key={item.angulo} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface-elevated px-3 py-3">
+              <div>
+                <p className="font-body text-sm font-semibold">{item.titulo}</p>
+                <p className="font-body text-xs text-text-tertiary">{item.obligatorio ? "Obligatoria" : "Opcional"}</p>
+              </div>
+              {foto ? <BadgeSincronizacion sincronizada={Boolean(foto.sincronizada)} /> : <span className="font-body text-xs text-text-tertiary">{omitted ? "No aplica" : "Falta"}</span>}
+            </div>
+          );
+        })}
+      </div>
+      <details className="mt-5 rounded-xl border border-border bg-surface">
+        <summary className="cursor-pointer px-4 py-3 font-body text-sm font-semibold">Datos de inspección</summary>
+        <dl className="grid gap-2 border-t border-border px-4 py-3 font-body text-sm sm:grid-cols-2">
+          <div><dt className="text-text-tertiary">Combustible</dt><dd>{inspeccion.combustible || "Sin capturar"}</dd></div>
+          <div><dt className="text-text-tertiary">Kilometraje</dt><dd>{inspeccion.kilometraje || "Sin capturar"}</dd></div>
+          <div><dt className="text-text-tertiary">Llaves</dt><dd>{inspeccion.llavesRecibidas || "Sin capturar"}</dd></div>
+          <div><dt className="text-text-tertiary">Notas</dt><dd>{inspeccion.notas || "Sin notas"}</dd></div>
+        </dl>
+      </details>
+      <div className="mt-5 grid gap-2 sm:grid-cols-2">
+        <Button variant="secondary" onClick={onBackToMissing}>
+          Revisar faltantes
+        </Button>
+        <Button onClick={onConfirm} disabled={blocked} loading={enviando}>
+          {enviando ? TEXTOS_CARGANDO.confirmando : "Enviar registro"}
+        </Button>
+      </div>
+    </PassportCard>
   );
 }
 
@@ -131,12 +418,12 @@ function CampoTexto({
 }) {
   return (
     <label className="grid gap-1">
-      <span className="font-mono-ruum text-[10px] uppercase tracking-widest text-ink/45">{etiqueta}</span>
+      <span className="font-body text-sm font-semibold text-text-tertiary">{etiqueta}</span>
       <input
         type={tipo}
         value={valor}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-10 rounded-lg border border-ink/15 bg-mist px-3 font-body text-sm text-ink outline-none focus:border-signal"
+        className="min-h-11 rounded-lg border border-border bg-surface px-3 font-body text-base text-text-primary outline-none focus:border-signal"
       />
     </label>
   );
@@ -153,11 +440,11 @@ function CampoSiNo({
 }) {
   return (
     <label className="grid gap-1">
-      <span className="font-mono-ruum text-[10px] uppercase tracking-widest text-ink/45">{etiqueta}</span>
+      <span className="font-body text-sm font-semibold text-text-tertiary">{etiqueta}</span>
       <select
         value={valor}
         onChange={(event) => onChange(event.target.value as "" | "si" | "no")}
-        className="min-h-10 rounded-lg border border-ink/15 bg-mist px-3 font-body text-sm text-ink outline-none focus:border-signal"
+        className="min-h-11 rounded-lg border border-border bg-surface px-3 font-body text-base text-text-primary outline-none focus:border-signal"
       >
         <option value="">Selecciona</option>
         <option value="si">Sí</option>
@@ -180,11 +467,11 @@ function CampoSelect({
 }) {
   return (
     <label className="grid gap-1">
-      <span className="font-mono-ruum text-[10px] uppercase tracking-widest text-ink/45">{etiqueta}</span>
+      <span className="font-body text-sm font-semibold text-text-tertiary">{etiqueta}</span>
       <select
         value={valor}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-10 rounded-lg border border-ink/15 bg-mist px-3 font-body text-sm text-ink outline-none focus:border-signal"
+        className="min-h-11 rounded-lg border border-border bg-surface px-3 font-body text-base text-text-primary outline-none focus:border-signal"
       >
         <option value="">Selecciona</option>
         {opciones.map((opcion) => {
@@ -208,6 +495,7 @@ export default function PaginaEvidencia() {
   const anguloArchivoRef = useRef<AnguloEvidencia | null>(null);
 
   const [estadoActual, setEstadoActual] = useState<EstadoTraslado | null>(null);
+  const [pasaporteActual, setPasaporteActual] = useState<PasaporteRow | null>(null);
   const [tipo, setTipo] = useState<TipoEvidencia | null>(null);
   const [fotos, setFotos] = useState<FotoEvidencia[]>([]);
   const [inspeccion, setInspeccion] = useState<InspeccionEvidencia>(INSPECCION_INICIAL);
@@ -217,6 +505,8 @@ export default function PaginaEvidencia() {
   const [sincronizando, setSincronizando] = useState(false);
   const [pendientesSubida, setPendientesSubida] = useState(0);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [pasoActivo, setPasoActivo] = useState(0);
+  const [noAplica, setNoAplica] = useState<Set<AnguloEvidencia>>(new Set());
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setMostrarSkeleton(false), 300);
@@ -272,7 +562,7 @@ export default function PaginaEvidencia() {
         setAviso(`${subidas} foto${subidas === 1 ? "" : "s"} sincronizada${subidas === 1 ? "" : "s"}.`);
       }
     } catch (err) {
-      setAviso(err instanceof Error ? err.message : "No pudimos sincronizar la evidencia pendiente.");
+      setAviso(err instanceof Error ? err.message : "No pudimos sincronizar el registro pendiente del vehículo.");
     } finally {
       setSincronizando(false);
     }
@@ -354,7 +644,7 @@ export default function PaginaEvidencia() {
   useEffect(() => {
     async function cargar() {
       if (!tieneSupabaseConfigurado()) {
-        setAviso("Supabase no está configurado. No se puede cargar evidencia real.");
+        setAviso("Supabase no está configurado. No se puede cargar el registro del vehículo.");
         setCargando(false);
         return;
       }
@@ -368,6 +658,7 @@ export default function PaginaEvidencia() {
         }
         const tipoDetectado = tipoEvidenciaPorEstado(pasaporte.estado);
         setEstadoActual(pasaporte.estado);
+        setPasaporteActual(pasaporte);
         setTipo(tipoDetectado);
         if (tipoDetectado) {
           const [remotas] = await Promise.all([
@@ -378,7 +669,7 @@ export default function PaginaEvidencia() {
           setFotos([...remotas, ...locales.filter((local) => local.tipo === tipoDetectado && !remotas.some((remota) => remota.id === local.id))]);
         }
       } catch (err) {
-        setAviso(err instanceof Error ? err.message : "No pudimos cargar la evidencia.");
+        setAviso(err instanceof Error ? err.message : "No pudimos cargar el registro del vehículo.");
       } finally {
         setCargando(false);
       }
@@ -399,23 +690,23 @@ export default function PaginaEvidencia() {
 
   if (cargando || mostrarSkeleton) {
     return (
-      <div aria-label="Cargando evidencia" aria-busy="true" className="mx-auto max-w-xl px-6 py-12">
-        <h1 className="font-display text-2xl font-semibold">Evidencia</h1>
-        <p className="mt-2 font-body text-sm text-ink/60">Preparando checklist de ángulos obligatorios.</p>
+      <div aria-label="Cargando registro del vehículo" aria-busy="true" className="mx-auto max-w-xl px-6 py-12">
+        <h1 className="font-display text-2xl font-semibold">{GLOSARIO_OPERATIVO.evidencia}</h1>
+        <p className="mt-2 font-body text-sm text-text-secondary">Preparando checklist de ángulos obligatorios.</p>
 
         <PassportCard className="mt-6">
           <div className="grid gap-4">
-            {ANGULOS_OBLIGATORIOS.map((angulo) => (
-              <div key={angulo} className="h-10 animate-pulse rounded-lg bg-ink/8" />
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="h-10 animate-pulse rounded-lg bg-surface-elevated" />
             ))}
           </div>
         </PassportCard>
 
         <div className="mt-6 flex items-center justify-between gap-4">
-          <p className="font-mono-ruum text-xs uppercase tracking-wide text-ink/50">
-            0 / {ANGULOS_OBLIGATORIOS.length} ángulos
+          <p className="font-body text-sm font-semibold text-text-tertiary">
+            0 / 6 pasos
           </p>
-          <Button disabled={true}>Confirmar evidencia</Button>
+          <Button disabled={true}>Confirmar registro</Button>
         </div>
       </div>
     );
@@ -424,11 +715,11 @@ export default function PaginaEvidencia() {
   if (!tipo) {
     return (
       <div className="mx-auto max-w-xl px-6 py-20 text-center">
-        <h1 className="font-display text-xl font-semibold">Este viaje no está en fase de evidencia</h1>
-        <p className="mt-3 font-body text-sm text-ink/60">Vuelve al detalle del viaje para ver el paso actual.</p>
+        <h1 className="font-display text-xl font-semibold">Este viaje no está en fase de registro del vehículo</h1>
+        <p className="mt-3 font-body text-sm text-text-secondary">Vuelve al detalle del viaje para ver el paso actual.</p>
         {aviso && (
           <div className="mt-4 text-left">
-            <Aviso tono="peligro">{aviso}</Aviso>
+            <Aviso tono="danger">{aviso}</Aviso>
           </div>
         )}
       </div>
@@ -436,7 +727,31 @@ export default function PaginaEvidencia() {
   }
 
   const resultado = evidenciaCompleta(fotos, tipo);
-  const capturados = new Set(fotos.map((f) => f.angulo));
+  const requisitos = listaEvidenciaObligatoria(tipo);
+  const pasoEsRevision = pasoActivo >= requisitos.length;
+  const requisitoActivo = requisitos[Math.min(pasoActivo, requisitos.length - 1)];
+  const fotoPorAngulo = (angulo: AnguloEvidencia) =>
+    fotos
+      .filter((foto) => foto.angulo === angulo && foto.tipo === tipo)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+  const requisitosCompletados = requisitos.filter((item) => {
+    const foto = fotoPorAngulo(item.angulo);
+    if (item.obligatorio) return Boolean(foto);
+    return Boolean(foto) || noAplica.has(item.angulo);
+  }).length;
+  const etiquetasFaltantes = resultado.angulosFaltantes.map((angulo) => ETIQUETA_ANGULO[angulo as AnguloEvidencia] ?? angulo);
+
+  function statusRequisito(item: EvidenceRequirement) {
+    const foto = fotoPorAngulo(item.angulo);
+    if (foto) return "listo" as const;
+    if (!item.obligatorio && noAplica.has(item.angulo)) return "omitido" as const;
+    return "pendiente" as const;
+  }
+
+  function irASiguientePendiente() {
+    const pendiente = requisitos.findIndex((item) => statusRequisito(item) === "pendiente");
+    setPasoActivo(pendiente >= 0 ? pendiente : requisitos.length);
+  }
 
   async function registrarFotoLocal(angulo: AnguloEvidencia, dataUrl: string) {
     if (!tipo) return;
@@ -453,8 +768,16 @@ export default function PaginaEvidencia() {
     });
     const locales = await cargarPendientesLocales();
     setFotos((prev) => [...prev.filter((foto) => foto.id !== localId), ...locales.filter((local) => local.tipo === tipo)]);
+    setNoAplica((actual) => {
+      const siguiente = new Set(actual);
+      siguiente.delete(angulo);
+      return siguiente;
+    });
     setAviso("Foto guardada en este dispositivo. Se subirá automáticamente al recuperar señal.");
     void drenarCola();
+    const indiceActual = requisitos.findIndex((item) => item.angulo === angulo);
+    const siguientePendiente = requisitos.findIndex((item, index) => index > indiceActual && statusRequisito(item) === "pendiente");
+    setPasoActivo(siguientePendiente >= 0 ? siguientePendiente : requisitos.length);
   }
 
   async function capturar(angulo: AnguloEvidencia) {
@@ -540,7 +863,7 @@ export default function PaginaEvidencia() {
     setAviso(null);
 
     if (!estadoActual) {
-      setAviso("No pudimos confirmar la evidencia porque no se cargó el estado actual del viaje.");
+      setAviso("No pudimos confirmar el registro del vehículo porque no se cargó el estado actual del viaje.");
       setEnviando(null);
       return;
     }
@@ -553,7 +876,7 @@ export default function PaginaEvidencia() {
       await confirmarEvidenciaCompleta(cliente, id, estadoActual, tipo);
       router.push(`/viajes/${id}`);
     } catch (err) {
-      setAviso(err instanceof Error ? err.message : "No pudimos confirmar la evidencia.");
+      setAviso(err instanceof Error ? err.message : "No pudimos confirmar el registro del vehículo.");
     } finally {
       setEnviando(null);
     }
@@ -566,19 +889,35 @@ export default function PaginaEvidencia() {
           estadoActual
             ? {
                 trasladoId: id,
-                estado: estadoActual
+                estado: estadoActual,
+                origenDireccion: pasaporteActual?.origen_direccion,
+                origenCiudad: pasaporteActual?.origen_ciudad,
+                destinoDireccion: pasaporteActual?.destino_direccion,
+                destinoCiudad: pasaporteActual?.destino_ciudad
               }
             : null
         }
       />
-      <h1 className="font-display text-2xl font-semibold">
-        Evidencia {tipo === "inicial" ? "inicial" : "final"}
-      </h1>
-      <p className="mt-2 font-body text-sm text-ink/60">
-        {tipo === "inicial"
-          ? `${MENSAJES_CLAVE_UX.evidencia_inicial} Los 5 ángulos son obligatorios.`
-          : "Documenta el estado del vehículo en el punto de entrega. Los 5 ángulos son obligatorios."}
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-body text-sm font-semibold text-route-action">
+            {requisitosCompletados} de {requisitos.length}
+          </p>
+          <h1 className="mt-1 font-display text-2xl font-semibold">
+            Registro {tipo === "inicial" ? "inicial" : "final"} del vehículo
+          </h1>
+          <p className="mt-2 font-body text-sm text-text-secondary">
+            {tipo === "inicial"
+              ? `${MENSAJES_CLAVE_UX.evidencia_inicial} Sigue una foto a la vez.`
+              : "Registra el estado del vehículo en el punto de entrega, una foto a la vez."}
+          </p>
+        </div>
+        <Button variant="secondary" onClick={() => setPasoActivo(requisitos.length)}>
+          Revisar
+        </Button>
+      </div>
+
+      <EvidenceChecklist items={requisitos} activeIndex={pasoActivo} statusFor={statusRequisito} onSelect={setPasoActivo} />
 
       {aviso && (
         <div className="mt-4">
@@ -586,26 +925,56 @@ export default function PaginaEvidencia() {
         </div>
       )}
 
-      {pendientesSubida > 0 && (
-        <div className="mt-4">
-          <Aviso tono="atencion">
-            {pendientesSubida} foto{pendientesSubida === 1 ? "" : "s"} pendiente{pendientesSubida === 1 ? "" : "s"} de subir.
-            {sincronizando ? ` ${MENSAJE_EVIDENCIA_SINCRONIZANDO}.` : " Se sincronizarán automáticamente al recuperar conexión."}
-          </Aviso>
-        </div>
+      <div className="mt-4">
+        <EvidenceSyncStatus pendientesSubida={pendientesSubida} sincronizando={sincronizando} missing={etiquetasFaltantes} complete={resultado.completa} />
+      </div>
+
+      <input
+        ref={inputArchivoRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => void procesarArchivoSeleccionado(event.target.files?.[0])}
+      />
+
+      {pasoEsRevision ? (
+        <EvidenceReview
+          items={requisitos}
+          fotos={fotos}
+          noAplica={noAplica}
+          resultado={resultado}
+          pendientesSubida={pendientesSubida}
+          sincronizando={sincronizando}
+          inspeccion={inspeccion}
+          enviando={enviando === "confirmar"}
+          onBackToMissing={irASiguientePendiente}
+          onConfirm={() => void confirmar()}
+        />
+      ) : (
+        <EvidenceCaptureStep
+          item={requisitoActivo}
+          step={pasoActivo + 1}
+          total={requisitos.length}
+          foto={fotoPorAngulo(requisitoActivo.angulo)}
+          noAplica={noAplica.has(requisitoActivo.angulo)}
+          busy={enviando === requisitoActivo.angulo}
+          onCapture={() => void capturar(requisitoActivo.angulo)}
+          onGallery={() => void seleccionarGaleria(requisitoActivo.angulo)}
+          onNoAplica={(checked) => {
+            if (!requisitoActivo.permiteNoAplica) return;
+            setNoAplica((actual) => {
+              const siguiente = new Set(actual);
+              if (checked) siguiente.add(requisitoActivo.angulo);
+              else siguiente.delete(requisitoActivo.angulo);
+              return siguiente;
+            });
+          }}
+        />
       )}
 
-      <PassportCard className="mt-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="font-body text-xs uppercase tracking-wide text-ink/45">Inspección operativa</p>
-            <h2 className="mt-1 font-display text-lg font-semibold">Datos del vehículo</h2>
-          </div>
-          <Button variant="secundario" onClick={() => void guardarInspeccion()} loading={enviando === "inspeccion"}>
-            Guardar
-          </Button>
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <details className="mt-6 rounded-xl border border-border bg-surface">
+        <summary className="cursor-pointer px-4 py-3 font-body text-sm font-semibold">Datos de inspección</summary>
+        <div className="grid gap-3 border-t border-border px-4 py-4 sm:grid-cols-2">
           <CampoSelect
             etiqueta="Combustible"
             valor={inspeccion.combustible}
@@ -629,83 +998,24 @@ export default function PaginaEvidencia() {
             valor={inspeccion.hologramaVerificacion}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, hologramaVerificacion: valor }))}
           />
-          <CampoSelect
-            etiqueta="Talón de verificación"
-            valor={inspeccion.talonVerificacion}
-            opciones={OPCIONES_SI_NO}
-            onChange={(valor) => setInspeccion((actual) => ({ ...actual, talonVerificacion: valor }))}
-          />
-          <CampoSelect
-            etiqueta="Tarjeta de circulación"
-            valor={inspeccion.tarjetaCirculacion}
-            opciones={OPCIONES_SI_NO}
-            onChange={(valor) => setInspeccion((actual) => ({ ...actual, tarjetaCirculacion: valor }))}
-          />
-          <CampoSelect
-            etiqueta="Placa delantera"
-            valor={inspeccion.placaDelantera}
-            opciones={OPCIONES_SI_NO}
-            onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaDelantera: valor }))}
-          />
-          <CampoSelect
-            etiqueta="Placa trasera"
-            valor={inspeccion.placaTrasera}
-            opciones={OPCIONES_SI_NO}
-            onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaTrasera: valor }))}
-          />
+          <CampoSelect etiqueta="Talón de verificación" valor={inspeccion.talonVerificacion} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, talonVerificacion: valor }))} />
+          <CampoSelect etiqueta="Tarjeta de circulación" valor={inspeccion.tarjetaCirculacion} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, tarjetaCirculacion: valor }))} />
+          <CampoSelect etiqueta="Placa delantera" valor={inspeccion.placaDelantera} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaDelantera: valor }))} />
+          <CampoSelect etiqueta="Placa trasera" valor={inspeccion.placaTrasera} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaTrasera: valor }))} />
           <label className="grid gap-1 sm:col-span-2">
-            <span className="font-mono-ruum text-[10px] uppercase tracking-widest text-ink/45">Notas o comentarios</span>
+            <span className="font-body text-sm font-semibold text-text-tertiary">Notas o comentarios</span>
             <textarea
               value={inspeccion.notas}
               onChange={(event) => setInspeccion((actual) => ({ ...actual, notas: event.target.value }))}
               rows={3}
-              className="rounded-lg border border-ink/15 bg-mist px-3 py-2 font-body text-sm text-ink outline-none focus:border-signal"
+              className="rounded-lg border border-border bg-surface px-3 py-2 font-body text-base text-text-primary outline-none focus:border-signal"
             />
           </label>
+          <Button variant="secondary" onClick={() => void guardarInspeccion()} loading={enviando === "inspeccion"}>
+            Guardar inspección
+          </Button>
         </div>
-      </PassportCard>
-
-      <PassportCard className="mt-6">
-        <input
-          ref={inputArchivoRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(event) => void procesarArchivoSeleccionado(event.target.files?.[0])}
-        />
-        <div className="space-y-3">
-          {ANGULOS_OBLIGATORIOS.map((angulo) => {
-            const foto = fotos.find((item) => item.angulo === angulo);
-            const yaCapturado = capturados.has(angulo);
-            return (
-              <div key={angulo} className="flex items-center justify-between gap-4 border-b border-ink/10 pb-3 last:border-0 last:pb-0">
-                <span className="font-body text-sm">{ETIQUETA_ANGULO[angulo]}</span>
-                {yaCapturado ? (
-                  <BadgeSincronizacion sincronizada={Boolean(foto?.sincronizada)} />
-                ) : (
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Button variant="secundario" onClick={() => capturar(angulo)} loading={enviando === angulo}>
-                      {enviando === angulo ? "Guardando…" : "Cámara"}
-                    </Button>
-                    <Button variant="secundario" onClick={() => seleccionarGaleria(angulo)} loading={enviando === angulo}>
-                      Galería
-                    </Button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </PassportCard>
-
-      <div className="mt-6 flex items-center justify-between">
-        <p className="font-mono-ruum text-xs uppercase tracking-wide text-ink/50">
-          {ANGULOS_OBLIGATORIOS.length - resultado.angulosFaltantes.length} / {ANGULOS_OBLIGATORIOS.length} ángulos
-        </p>
-        <Button onClick={confirmar} disabled={!resultado.completa} loading={enviando === "confirmar"}>
-          {enviando === "confirmar" ? TEXTOS_CARGANDO.confirmando : "Confirmar evidencia completa"}
-        </Button>
-      </div>
+      </details>
     </div>
   );
 }

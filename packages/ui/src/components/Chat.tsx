@@ -38,10 +38,10 @@ export function Chat({ propio, mensajes, onEnviar, deshabilitado, mensajeDeshabi
   }
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-card border border-ink/15 bg-mist shadow-1">
+    <div className="flex flex-col overflow-hidden rounded-card border border-border bg-surface shadow-1">
       <div className="flex-1 space-y-3 overflow-y-auto p-4" style={{ maxHeight: 360, minHeight: 180 }}>
         {mensajes.length === 0 ? (
-          <p className="font-body text-sm text-ink/65">Todavía no hay mensajes.</p>
+          <p className="font-body text-sm text-text-secondary">Todavía no hay mensajes.</p>
         ) : (
           mensajes.map((m) => {
             const esPropio = m.remitente === propio;
@@ -50,11 +50,11 @@ export function Chat({ propio, mensajes, onEnviar, deshabilitado, mensajeDeshabi
                 <div
                   className={[
                     "max-w-[75%] rounded-xl px-3.5 py-2.5 font-body text-sm leading-5 shadow-[0_1px_1px_rgba(26,31,46,0.06)]",
-                    esPropio ? "bg-signal text-ink" : "bg-mist-dim text-ink"
+                    esPropio ? "bg-signal text-text-primary" : "bg-surface-elevated text-text-primary"
                   ].join(" ")}
                 >
                   <p>{m.contenido}</p>
-                  <p className="mt-1 text-xs text-ink/60">
+                  <p className="mt-1 text-xs text-text-secondary">
                     {new Date(m.enviado_en).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
@@ -64,13 +64,13 @@ export function Chat({ propio, mensajes, onEnviar, deshabilitado, mensajeDeshabi
         )}
       </div>
 
-      <form onSubmit={manejarEnvio} className="flex gap-2 border-t border-ink/10 bg-mist-dim/45 p-3">
+      <form onSubmit={manejarEnvio} className="flex gap-2 border-t border-border bg-surface-elevated p-3">
         <input
           value={borrador}
           onChange={(e) => setBorrador(e.target.value)}
           disabled={deshabilitado}
           placeholder={deshabilitado ? mensajeDeshabilitado ?? "Chat no disponible" : "Escribe un mensaje"}
-          className="min-h-11 flex-1 rounded-[10px] border border-ink/30 bg-mist px-3 py-2 font-body text-sm transition focus:border-route-dark focus:outline-none focus:ring-[3px] focus:ring-route-dark/20 disabled:cursor-not-allowed disabled:bg-mist-dim disabled:opacity-50"
+          className="min-h-11 flex-1 rounded-[10px] border border-border-strong bg-surface px-3 py-2 font-body text-base transition focus:border-route-action focus:outline-none focus:ring-[3px] focus:ring-route-action/20 disabled:cursor-not-allowed disabled:bg-surface-elevated disabled:text-disabled"
         />
         <Button type="submit" disabled={deshabilitado || enviando || !borrador.trim()}>
           Enviar

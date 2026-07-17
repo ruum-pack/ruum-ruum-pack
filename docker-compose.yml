@@ -1,0 +1,61 @@
+services:
+  # App Usuario
+  app-usuario:
+    build:
+      context: .
+      dockerfile: ./apps/Dockerfile
+      target: dev
+    ports: ["3000:3000"]
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_SUPABASE_URL: http://supabase:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOezdA5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY
+    depends_on: [supabase]
+    restart: unless-stopped
+
+  # App Conductor
+  app-conductor:
+    build:
+      context: .
+      dockerfile: ./apps/Dockerfile
+      target: dev
+    ports: ["3001:3001"]
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_SUPABASE_URL: http://supabase:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOezdA5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY
+    depends_on: [supabase]
+    restart: unless-stopped
+
+  # Panel Admin
+  panel-admin:
+    build:
+      context: .
+      dockerfile: ./apps/Dockerfile
+      target: dev
+    ports: ["3002:3002"]
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_SUPABASE_URL: http://supabase:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOezdA5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY
+    depends_on: [supabase]
+    restart: unless-stopped
+
+  # Supabase Local
+  supabase:
+    image: supabase/supabase-local:latest
+    ports:
+      - "54321:54321"  # API
+      - "54322:54322"  # DB
+      - "54323:54323"  # Studio
+    volumes:
+      - ./supabase:/app/supabase
+      - supabase_data:/var/lib/supabase
+    environment:
+      POSTGRES_PASSWORD: ruum_local_2026
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOezdA5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9zX3Jvb2xlIiwiZXhwIjE5ODM4MTI5OTZ9.b6pKdRb8sZ9xX7cV8bN9mP7Q9rS8tU7vW9xY8zW7vU9tS7rP8qN7oM6lK5jI4hG3fE2dD1cB0aA
+    restart: unless-stopped
+
+volumes:
+  supabase_data:

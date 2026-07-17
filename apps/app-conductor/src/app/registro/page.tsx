@@ -25,13 +25,34 @@ import {
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 import { guardarBorradorRegistroLocal, leerBorradorRegistroLocal, limpiarBorradorRegistroLocal, type BorradorRegistroLocal as BorradorRegistro } from "../../lib/borrador-registro";
+import { DatosSensiblesInfo, enmascararNombreArchivo, enmascararUltimos } from "../cuenta/datos-sensibles";
 
 const PASOS = [
-  "Vamos a conocerte",
-  "¿Dónde vives?",
-  "Tus documentos",
-  "Verificación",
-  "Revisa tu información"
+  {
+    titulo: "Cuenta",
+    objetivo: "Crea o confirma el acceso con el que podrás retomar tu registro.",
+    tiempo: "2 min"
+  },
+  {
+    titulo: "Identidad",
+    objetivo: "Confirma quién eres y dónde podemos validar tu operación.",
+    tiempo: "4 min"
+  },
+  {
+    titulo: "Licencia y experiencia",
+    objetivo: "Registra la licencia con la que conducirás y tus autorizaciones.",
+    tiempo: "3 min"
+  },
+  {
+    titulo: "Documentos",
+    objetivo: "Carga tus archivos solo cuando tu cuenta ya esté verificada.",
+    tiempo: "3 min"
+  },
+  {
+    titulo: "Revisión y envío",
+    objetivo: "Revisa todo tu expediente antes de enviarlo a operación.",
+    tiempo: "2 min"
+  }
 ];
 
 const TIPOS_DOCUMENTO = {
@@ -170,12 +191,14 @@ export default function PaginaRegistroConductor() {
   const [sesionAutenticada,setSesionAutenticada]=useState(false);
   const [solicitudRemotaId,setSolicitudRemotaId]=useState<string|null>(null);
   const [documentosRemotos,setDocumentosRemotos]=useState<Set<string>>(new Set());
+  const [borradorLocalGuardado,setBorradorLocalGuardado]=useState(false);
   const [estadoGuardadoRemoto,setEstadoGuardadoRemoto]=useState<EstadoGuardadoRemoto>("inactivo");
   const [detalleGuardadoRemoto,setDetalleGuardadoRemoto]=useState<string|null>(null);
   const [reintentoConexion,setReintentoConexion]=useState(0);
   const hidratacionRemotaCompletaRef=useRef(false);
   const omitirPrimerGuardadoRemotoRef=useRef(false);
   const ultimoGuardadoRemotoRef=useRef("");
+  const solicitudRemotaIdRef=useRef<string|null>(null);
   const aceptadosEnRef=useRef(new Date().toISOString());
   const telemetriaSesionRef=useRef("");
   const telemetriaInicioRef=useRef(0);
@@ -305,9 +328,6 @@ export default function PaginaRegistroConductor() {
   function validarPaso(indice = paso) {
     if (indice === 0) {
       return [
-        validarCampo("nombre", nombre),
-        validarCampo("apellidos", apellidos),
-        validarCurp(),
         validarTelefono("telefono", telefono, setTelefono),
         validarCampo("email", email),
         sesionAutenticada ? setCampoError("password", "") : validarPassword(),
@@ -316,13 +336,18 @@ export default function PaginaRegistroConductor() {
     }
     if (indice === 1) {
       return [
+        validarCampo("nombre", nombre),
+        validarCampo("apellidos", apellidos),
+        validarCurp(),
         validarCampo("codigoPostal", codigoPostal),
         validarCampo("estado", estado),
         validarCampo("ciudad", ciudad),
         validarCampo("colonia", colonia),
         validarCampo("calle", calle),
         validarCampo("numero", numero),
-        validarCampo("referencias", referencias)
+        validarCampo("referencias", referencias),
+        validarCampo("contactoEmergenciaNombre", contactoEmergenciaNombre),
+        validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono)
       ].every(Boolean);
     }
     if (indice === 2) {
@@ -330,17 +355,16 @@ export default function PaginaRegistroConductor() {
         validarCampo("numeroLicencia", numeroLicencia),
         validarCampo("tipoLicencia", tipoLicencia),
         validarVigenciaLicencia(),
-        validarDocumento("licenciaFrente"),
-        validarDocumento("licenciaReverso"),
-        validarDocumento("identificacionOficial")
+        setCampoError("autorizaVerificacion", autorizaVerificacion ? "" : "Debes autorizar la verificación de antecedentes"),
+        setCampoError("declaraSinSuspensiones", declaraSinSuspensiones ? "" : "Debes confirmar esta declaración")
       ].every(Boolean);
     }
     if (indice === 3) {
       return [
-        setCampoError("autorizaVerificacion", autorizaVerificacion ? "" : "Debes autorizar la verificación de antecedentes"),
-        setCampoError("declaraSinSuspensiones", declaraSinSuspensiones ? "" : "Debes confirmar esta declaración"),
-        validarCampo("contactoEmergenciaNombre", contactoEmergenciaNombre),
-        validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono)
+        setCampoError("cuentaVerificada", sesionAutenticada ? "" : "Confirma tu cuenta antes de cargar documentos"),
+        validarDocumento("licenciaFrente"),
+        validarDocumento("licenciaReverso"),
+        validarDocumento("identificacionOficial")
       ].every(Boolean);
     }
     return [
@@ -377,8 +401,12 @@ export default function PaginaRegistroConductor() {
     );
   }
 
-  function avanzar() {
+  async function avanzar() {
     setError(null);
+    if (paso === 0 && !sesionAutenticada) {
+      const cuentaLista = await crearCuentaParaContinuar();
+      if (!cuentaLista) return;
+    }
     if (validarPaso()) {
       registrarTelemetria("paso_completado",paso+1);
       setPaso((actual) => Math.min(actual + 1, PASOS.length - 1));
@@ -491,7 +519,7 @@ export default function PaginaRegistroConductor() {
     }
   }
 
-  async function procesarSolicitudAutenticada(cliente: ReturnType<typeof crearClienteNavegador>) {
+  async function prepararSolicitudBorrador(cliente: ReturnType<typeof crearClienteNavegador>) {
     const inicio = await iniciarSolicitudConductor(cliente);
     if (!inicio.solicitudId) {
       throw new Error(
@@ -502,12 +530,63 @@ export default function PaginaRegistroConductor() {
     }
     setSesionAutenticada(true);
     setSolicitudRemotaId(inicio.solicitudId);
-    hidratacionRemotaCompletaRef.current=true;
-    omitirPrimerGuardadoRemotoRef.current=true;
+    solicitudRemotaIdRef.current = inicio.solicitudId;
+    hidratacionRemotaCompletaRef.current = true;
+    omitirPrimerGuardadoRemotoRef.current = true;
     limpiarBorradorRegistroLocal();
+    await guardarBorradorConductor(cliente, contratoExpediente(), Math.max(paso + 1, 1));
+    setEstadoGuardadoRemoto("guardado");
+    return inicio.solicitudId;
+  }
+
+  async function crearCuentaParaContinuar() {
+    if (!validarPaso(0)) return false;
+    if (!tieneSupabaseConfigurado()) {
+      setError("Supabase no está configurado. El registro no está disponible en este entorno.");
+      return false;
+    }
+    setEnviando(true);
+    setError(null);
+    try {
+      const cliente = crearClienteNavegador();
+      if (sesionAutenticada) {
+        if (!solicitudRemotaIdRef.current && !solicitudRemotaId) await prepararSolicitudBorrador(cliente);
+        return true;
+      }
+      const { data: datosAuth, error: errorAuth } = await cliente.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          data: {
+            tipo_registro: "conductor",
+            version_registro: 2
+          }
+        }
+      });
+      if (errorAuth) throw errorAuth;
+      if (!datosAuth.user) throw new Error("No se pudo crear la cuenta. Intenta de nuevo.");
+      limpiarBorradorRegistroLocal();
+      if (datosAuth.session) {
+        await prepararSolicitudBorrador(cliente);
+        setSesionActivaTrasRegistro(true);
+        return true;
+      }
+      setEsperaReenvioOtp(ESPERA_REENVIO_OTP_SEGUNDOS);
+      setPendienteOtp(true);
+      return false;
+    } catch (err) {
+      setError(traducirErrorAuth(err));
+      return false;
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function procesarSolicitudAutenticada(cliente: ReturnType<typeof crearClienteNavegador>) {
+    const solicitudId = solicitudRemotaIdRef.current ?? solicitudRemotaId ?? await prepararSolicitudBorrador(cliente);
     await registrarConsentimientosConductor(
       cliente,
-      inicio.solicitudId,
+      solicitudId,
       [
         { tipoDocumento: "terminos_servicio", version: 1 },
         { tipoDocumento: "aviso_privacidad", version: 1 },
@@ -518,7 +597,7 @@ export default function PaginaRegistroConductor() {
       VERSION_APP_REGISTRO
     );
     await guardarBorradorConductor(cliente, contratoExpediente(), PASOS.length);
-    await cargarDocumentos(cliente, inicio.solicitudId);
+    await cargarDocumentos(cliente, solicitudId);
     const resultado=await enviarSolicitudConductor(cliente);
     registrarTelemetria("solicitud_enviada",PASOS.length,"enviado");
     return resultado;
@@ -543,6 +622,16 @@ export default function PaginaRegistroConductor() {
 
     try {
       const cliente = crearClienteNavegador();
+      if (!sesionAutenticada) {
+        const cuentaLista = await crearCuentaParaContinuar();
+        if (!cuentaLista) return;
+        cuentaCreada = true;
+        setSesionActivaTrasRegistro(true);
+        await procesarSolicitudAutenticada(cliente);
+        limpiarBorradorRegistroLocal();
+        setEnviado(true);
+        return;
+      }
       if (sesionAutenticada) {
         setSesionActivaTrasRegistro(true);
         await procesarSolicitudAutenticada(cliente);
@@ -614,6 +703,12 @@ export default function PaginaRegistroConductor() {
       cuentaVerificada=true;
 
       setSesionActivaTrasRegistro(true);
+      if (paso < PASOS.length - 1) {
+        await prepararSolicitudBorrador(cliente);
+        setPendienteOtp(false);
+        setPaso((actual) => Math.min(actual + 1, PASOS.length - 1));
+        return;
+      }
       await procesarSolicitudAutenticada(cliente);
       limpiarBorradorRegistroLocal();
       setPendienteOtp(false);
@@ -692,6 +787,7 @@ export default function PaginaRegistroConductor() {
           const inicio = await iniciarSolicitudConductor(cliente);
           if (!inicio.solicitudId) { router.replace("/panel"); return; }
           setSolicitudRemotaId(inicio.solicitudId);
+          solicitudRemotaIdRef.current=inicio.solicitudId;
           hidratacionRemotaCompletaRef.current=true;
           omitirPrimerGuardadoRemotoRef.current=true;
           setEstadoGuardadoRemoto("guardado");
@@ -745,6 +841,7 @@ export default function PaginaRegistroConductor() {
           identificacionOficial:tiposRemotos.has("identificacion_oficial")?"subido":"pendiente"
         });
         setSolicitudRemotaId(solicitud.id);
+        solicitudRemotaIdRef.current=solicitud.id;
         setPaso(Math.min(Math.max((solicitud.paso_actual??1)-1,0),PASOS.length-1));
         omitirPrimerGuardadoRemotoRef.current=true;
         hidratacionRemotaCompletaRef.current=true;
@@ -820,6 +917,7 @@ export default function PaginaRegistroConductor() {
 
     const timer = setTimeout(() => {
       guardarBorradorRegistroLocal({ paso,nombre,apellidos,telefono,email,codigoPostal,estado,ciudad,colonia,tipoLicencia,vigenciaLicencia });
+      setBorradorLocalGuardado(true);
     }, RETRASO_GUARDADO_LOCAL_MS);
 
     return () => clearTimeout(timer);
@@ -861,10 +959,10 @@ export default function PaginaRegistroConductor() {
   return (
     <div className="conductor-auth-shell flex items-center justify-center px-4 py-10 sm:px-6">
       <section className="conductor-auth-card p-6 sm:p-8" aria-labelledby="titulo-registro-conductor">
-        <div className="-mx-2 -mt-2 mb-6 overflow-hidden rounded-xl border border-route/20 bg-ink">
+        <div className="-mx-2 -mt-2 mb-6 overflow-hidden rounded-xl border border-route-action bg-surface-strong">
           <Image
             src="/imagenes/registro-conductor.png"
-            alt="Vehículo con puntos de evidencia digital para la certificación de traslado"
+            alt="Vehículo con puntos de registro digital para la certificación de traslado"
             width={1222}
             height={1222}
             priority
@@ -875,21 +973,21 @@ export default function PaginaRegistroConductor() {
         <div className="flex items-center gap-3">
           <LogoMarca tamano={34} color="signal" />
           <div>
-            <p className="font-display text-lg font-extrabold tracking-tight text-ink">
+            <p className="font-display text-lg font-extrabold tracking-tight text-text-primary">
               ruum<span className="text-signal">ruum</span>
             </p>
-            <p className="font-mono-ruum text-[10px] uppercase tracking-[0.14em] text-ink/50">ruum by Movilia</p>
+            <p className="font-body text-xs font-semibold text-text-tertiary">ruum by Movilia</p>
           </div>
         </div>
 
         {pendienteOtp ? (
           <div className="py-4">
-            <h1 id="titulo-registro-conductor" className="mt-4 font-display text-2xl font-bold text-ink">
+            <h1 id="titulo-registro-conductor" className="mt-4 font-display text-2xl font-bold text-text-primary">
               Confirma tu correo
             </h1>
-            <p className="mt-3 font-body text-sm leading-6 text-ink/65">
+            <p className="mt-3 font-body text-sm leading-6 text-text-secondary">
               Enviamos un código de {CODIGO_OTP_LONGITUD} dígitos a{" "}
-              <span className="font-semibold text-ink">{email.trim().toLowerCase()}</span>. Escríbelo aquí para
+              <span className="font-semibold text-text-primary">{email.trim().toLowerCase()}</span>. Escríbelo aquí para
               activar tu cuenta y subir tus documentos sin salir de la app.
             </p>
 
@@ -908,7 +1006,7 @@ export default function PaginaRegistroConductor() {
                 required
               />
 
-              {errorOtp && <Aviso tono="peligro">{errorOtp}</Aviso>}
+              {errorOtp && <Aviso tono="danger">{errorOtp}</Aviso>}
 
               <Button type="submit" loading={verificandoOtp} disabled={verificandoOtp || codigoOtp.length !== CODIGO_OTP_LONGITUD}>
                 {verificandoOtp ? "Verificando…" : "Confirmar y activar"}
@@ -919,7 +1017,7 @@ export default function PaginaRegistroConductor() {
                   type="button"
                   onClick={() => void reenviarCodigoOtp()}
                   disabled={esperaReenvioOtp > 0 || reenviandoOtp}
-                  className="font-body text-sm font-semibold text-route-dark hover:underline disabled:cursor-not-allowed disabled:text-ink/35 disabled:no-underline"
+                  className="inline-flex min-h-11 items-center font-body text-sm font-semibold text-route-action hover:underline disabled:cursor-not-allowed disabled:text-text-disabled disabled:no-underline"
                 >
                   {reenviandoOtp
                     ? "Reenviando…"
@@ -930,7 +1028,7 @@ export default function PaginaRegistroConductor() {
                 <button
                   type="button"
                   onClick={() => router.push("/login")}
-                  className="font-body text-sm text-ink/55 hover:text-ink hover:underline"
+                  className="inline-flex min-h-11 items-center font-body text-sm text-text-secondary hover:text-text-primary hover:underline"
                 >
                   Ya confirmé desde el enlace del correo
                 </button>
@@ -939,13 +1037,13 @@ export default function PaginaRegistroConductor() {
           </div>
         ) : enviado ? (
           <div className="py-8 text-center">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-control-soft font-display text-xl font-bold text-control" aria-hidden>✓</div>
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-control-soft font-display text-xl font-bold text-success" aria-hidden>✓</div>
             <h1 id="titulo-registro-conductor" className="mt-5 font-display text-2xl font-bold">Solicitud en revisión</h1>
-            <p className="mt-3 font-body text-sm leading-6 text-ink/65">
+            <p className="mt-3 font-body text-sm leading-6 text-text-secondary">
               Tu cuenta está pendiente de validación. Cuando la revisión esté completa, podrás consultar y aceptar viajes.
             </p>
             <Button
-              variant="secundario"
+              variant="secondary"
               className="mt-7"
               onClick={() => router.push(sesionActivaTrasRegistro ? "/panel" : "/login")}
             >
@@ -954,45 +1052,54 @@ export default function PaginaRegistroConductor() {
           </div>
         ) : (
           <>
-            <h1 id="titulo-registro-conductor" className="mt-8 font-display text-2xl font-bold text-ink">Registro de conductor</h1>
-            <p className="mt-2 font-body text-sm leading-6 text-ink/65">
-              Completa los cinco pasos para enviar tu solicitud a ruum ruum by Movilia.
+            <h1 id="titulo-registro-conductor" className="mt-8 font-display text-2xl font-bold text-text-primary">Registro de conductor</h1>
+            <p className="mt-2 font-body text-sm leading-6 text-text-secondary">
+              Completa una etapa a la vez. Guardamos tu avance para que puedas continuar posteriormente.
             </p>
 
             {borradorDisponible && (
-              <div className="mt-5 rounded-xl border border-route/25 bg-route-soft p-4">
-                <p className="font-body text-sm font-semibold text-ink">Encontramos un registro sin terminar</p>
-                <p className="mt-1 font-body text-xs leading-5 text-ink/65">
+              <div className="mt-5 rounded-xl border border-route-action bg-route-soft p-4">
+                <p className="font-body text-sm font-semibold text-text-primary">Encontramos un registro sin terminar</p>
+                <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
                   Guardado el {new Date(borradorDisponible.guardadoEn).toLocaleString("es-MX")} y disponible por 24 horas.
                   Por seguridad no guardamos CURP, contraseña, domicilio preciso, licencia, contacto ni archivos.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button type="button" onClick={restaurarBorrador}>Continuar donde iba</Button>
-                  <Button type="button" variant="fantasma" onClick={descartarBorrador}>Empezar de cero</Button>
+                  <Button type="button" variant="quiet" onClick={descartarBorrador}>Empezar de cero</Button>
                 </div>
               </div>
             )}
 
             <div className="mt-6 grid grid-cols-5 gap-2" aria-label="Progreso de registro">
-              {PASOS.map((titulo, indice) => (
+              {PASOS.map((pasoInfo, indice) => (
                 <button
-                  key={titulo}
+                  key={pasoInfo.titulo}
                   type="button"
                   onClick={() => indice < paso && setPaso(indice)}
                   className={[
                     "h-2 rounded-full transition-colors",
-                    indice <= paso ? "bg-signal" : "bg-ink/10",
+                    indice <= paso ? "bg-signal" : "bg-surface-elevated",
                     indice < paso ? "cursor-pointer" : "cursor-default"
                   ].join(" ")}
-                  aria-label={`Paso ${indice + 1}: ${titulo}`}
+                  aria-label={`Paso ${indice + 1}: ${pasoInfo.titulo}`}
                 />
               ))}
             </div>
-            <p className="mt-3 font-mono-ruum text-[11px] uppercase tracking-[0.12em] text-ink/45">
-              Paso {paso + 1} de {PASOS.length}
+            <p className="mt-3 font-body text-sm font-semibold text-text-tertiary">
+              Paso {paso + 1} de {PASOS.length} · {PASOS[paso].tiempo}
             </p>
+            <div className="mt-2 rounded-xl border border-border bg-surface px-4 py-3">
+              <p className="font-body text-sm font-semibold text-text-primary">{PASOS[paso].titulo}</p>
+              <p className="mt-1 font-body text-sm leading-6 text-text-secondary">{PASOS[paso].objetivo}</p>
+            </div>
+            {!sesionAutenticada&&borradorLocalGuardado&&(
+              <p className="mt-2 font-body text-xs font-medium text-text-secondary" role="status" aria-live="polite">
+                Guardado en este dispositivo
+              </p>
+            )}
             {sesionAutenticada&&estadoGuardadoRemoto!=="inactivo"&&(
-              <p className={`mt-2 font-body text-xs font-medium ${estadoGuardadoRemoto==="error"?"text-danger":estadoGuardadoRemoto==="sin_conexion"?"text-warn":"text-ink/55"}`} role="status" aria-live="polite" title={detalleGuardadoRemoto??undefined}>
+              <p className={`mt-2 font-body text-xs font-medium ${estadoGuardadoRemoto==="error"?"text-danger-action":estadoGuardadoRemoto==="sin_conexion"?"text-warning":"text-secondary"}`} role="status" aria-live="polite" title={detalleGuardadoRemoto??undefined}>
                 {TEXTO_GUARDADO_REMOTO[estadoGuardadoRemoto]}
                 {estadoGuardadoRemoto==="error"&&detalleGuardadoRemoto?`: ${detalleGuardadoRemoto}`:""}
               </p>
@@ -1000,19 +1107,17 @@ export default function PaginaRegistroConductor() {
 
             {!tieneSupabaseConfigurado() && (
               <div className="mt-5">
-                <Aviso tono="peligro">Supabase no está configurado. El registro no está disponible en este entorno.</Aviso>
+                <Aviso tono="danger">Supabase no está configurado. El registro no está disponible en este entorno.</Aviso>
               </div>
             )}
 
             <form className="mt-6 grid gap-5" onSubmit={crearCuenta}>
               {paso === 0 && (
                 <fieldset className="grid gap-4">
-                  <legend className="font-display text-xl font-bold text-ink">Vamos a conocerte</legend>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field etiqueta="Nombre (s)" value={nombre} onChange={(e) => { setNombre(e.target.value); limpiarErrorCampo("nombre"); }} onBlur={() => validarCampo("nombre", nombre)} error={erroresCampos.nombre || undefined} required autoComplete="given-name" />
-                    <Field etiqueta="Apellido (s)" value={apellidos} onChange={(e) => { setApellidos(e.target.value); limpiarErrorCampo("apellidos"); }} onBlur={() => validarCampo("apellidos", apellidos)} error={erroresCampos.apellidos || undefined} required autoComplete="family-name" />
-                  </div>
-                  <Field etiqueta="CURP" value={curp} onChange={(e) => { setCurp(e.target.value.toUpperCase()); limpiarErrorCampo("curp"); }} onBlur={() => validarCurp()} error={erroresCampos.curp || undefined} required maxLength={18} autoComplete="off" />
+                  <legend className="font-display text-xl font-bold text-text-primary">Cuenta</legend>
+                  <p className="font-body text-sm leading-6 text-text-secondary">
+                    Usaremos este acceso para guardar tu avance y permitirte continuar después. Los documentos se pedirán cuando la cuenta esté verificada.
+                  </p>
                   <Field etiqueta="Teléfono" ayuda="10 dígitos, sin lada internacional." type="tel" inputMode="numeric" value={formatoTelefonoNacional(telefono)} onChange={(e) => { setTelefono(soloDigitos(e.target.value)); limpiarErrorCampo("telefono"); }} onBlur={() => validarTelefono("telefono", telefono, setTelefono)} error={erroresCampos.telefono || undefined} required autoComplete="tel-national" />
                   <Field etiqueta="Correo electrónico" type="email" value={email} onChange={(e) => { setEmail(e.target.value); limpiarErrorCampo("email"); }} onBlur={() => validarCampo("email", email)} error={erroresCampos.email || undefined} required autoComplete="email" readOnly={sesionAutenticada} />
                   {!sesionAutenticada&&<div className="grid gap-4 sm:grid-cols-2">
@@ -1032,13 +1137,13 @@ export default function PaginaRegistroConductor() {
                                       : fuerzaPassword.nivel === 2
                                         ? "bg-signal"
                                         : "bg-control"
-                                    : "bg-ink/15"
+                                    : "bg-surface-elevated"
                                 ].join(" ")}
                               />
                             ))}
                           </div>
                           {fuerzaPassword.etiqueta && (
-                            <span className="font-body text-[11px] leading-4 text-ink/55">{fuerzaPassword.etiqueta}</span>
+                            <span className="font-body text-xs leading-4 text-text-secondary">{fuerzaPassword.etiqueta}</span>
                           )}
                         </div>
                       )}
@@ -1050,7 +1155,13 @@ export default function PaginaRegistroConductor() {
 
               {paso === 1 && (
                 <fieldset className="grid gap-4">
-                  <legend className="font-display text-xl font-bold text-ink">¿Dónde vives?</legend>
+                  <legend className="font-display text-xl font-bold text-text-primary">Identidad</legend>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field etiqueta="Nombre (s)" value={nombre} onChange={(e) => { setNombre(e.target.value); limpiarErrorCampo("nombre"); }} onBlur={() => validarCampo("nombre", nombre)} error={erroresCampos.nombre || undefined} required autoComplete="given-name" />
+                    <Field etiqueta="Apellido (s)" value={apellidos} onChange={(e) => { setApellidos(e.target.value); limpiarErrorCampo("apellidos"); }} onBlur={() => validarCampo("apellidos", apellidos)} error={erroresCampos.apellidos || undefined} required autoComplete="family-name" />
+                  </div>
+                  <Field etiqueta="CURP" value={curp} onChange={(e) => { setCurp(e.target.value.toUpperCase()); limpiarErrorCampo("curp"); }} onBlur={() => validarCurp()} error={erroresCampos.curp || undefined} required maxLength={18} autoComplete="off" />
+                  <DatosSensiblesInfo tipo="curp" compacto />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field etiqueta="Código Postal" inputMode="numeric" value={codigoPostal} ayuda={consultandoCp ? "Buscando domicilio..." : "Al capturar 5 dígitos se completa el domicilio."} onChange={(e) => {
                       const cp = soloDigitos(e.target.value, 5);
@@ -1095,12 +1206,17 @@ export default function PaginaRegistroConductor() {
                     <Field etiqueta="Número" value={numero} onChange={(e) => { setNumero(e.target.value); limpiarErrorCampo("numero"); }} error={erroresCampos.numero || undefined} required />
                   </div>
                   <Field etiqueta="Referencias" value={referencias} onChange={(e) => { setReferencias(e.target.value); limpiarErrorCampo("referencias"); }} error={erroresCampos.referencias || undefined} required />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field etiqueta="Contacto de emergencia (nombre)" value={contactoEmergenciaNombre} onChange={(e) => { setContactoEmergenciaNombre(e.target.value); limpiarErrorCampo("contactoEmergenciaNombre"); }} error={erroresCampos.contactoEmergenciaNombre || undefined} required />
+                    <Field etiqueta="Teléfono del contacto" type="tel" inputMode="numeric" value={formatoTelefonoNacional(contactoEmergenciaTelefono)} onChange={(e) => { setContactoEmergenciaTelefono(soloDigitos(e.target.value)); limpiarErrorCampo("contactoEmergenciaTelefono"); }} onBlur={() => validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono)} error={erroresCampos.contactoEmergenciaTelefono || undefined} required autoComplete="tel-national" />
+                  </div>
+                  <DatosSensiblesInfo tipo="contacto_emergencia" compacto />
                 </fieldset>
               )}
 
               {paso === 2 && (
                 <fieldset className="grid gap-4">
-                  <legend className="font-display text-xl font-bold text-ink">Tus documentos</legend>
+                  <legend className="font-display text-xl font-bold text-text-primary">Licencia y experiencia</legend>
                   <Field etiqueta="Número de licencia" value={numeroLicencia} onChange={(e) => { setNumeroLicencia(e.target.value); limpiarErrorCampo("numeroLicencia"); }} error={erroresCampos.numeroLicencia || undefined} required />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <SelectField etiqueta="Tipo de licencia" value={tipoLicencia} onChange={(valor) => { setTipoLicencia(valor); limpiarErrorCampo("tipoLicencia"); }} error={erroresCampos.tipoLicencia || undefined} required placeholder="Selecciona el tipo de licencia" opciones={TIPOS_LICENCIA} />
@@ -1126,91 +1242,100 @@ export default function PaginaRegistroConductor() {
                       Tu licencia vence en {diasParaVencerLicencia(vigenciaLicencia)} día{diasParaVencerLicencia(vigenciaLicencia) === 1 ? "" : "s"}. Puedes continuar, pero procura renovarla pronto para no perder actividad.
                     </Aviso>
                   )}
-                  <CampoDocumento
-                    etiqueta="Foto de tu licencia (frente)"
-                    archivo={documentos.licenciaFrente}
-                    estado={estadoDocumentos.licenciaFrente}
-                    error={erroresCampos.licenciaFrente || undefined}
-                    onSeleccionar={(archivo) => cambiarDocumento("licenciaFrente", archivo)}
-                  />
-                  <CampoDocumento
-                    etiqueta="Foto de tu licencia (reverso)"
-                    archivo={documentos.licenciaReverso}
-                    estado={estadoDocumentos.licenciaReverso}
-                    error={erroresCampos.licenciaReverso || undefined}
-                    onSeleccionar={(archivo) => cambiarDocumento("licenciaReverso", archivo)}
-                  />
-                  <CampoDocumento
-                    etiqueta="Foto de tu Identificación oficial (INE/pasaporte)"
-                    archivo={documentos.identificacionOficial}
-                    estado={estadoDocumentos.identificacionOficial}
-                    error={erroresCampos.identificacionOficial || undefined}
-                    onSeleccionar={(archivo) => cambiarDocumento("identificacionOficial", archivo)}
-                  />
+                  <DatosSensiblesInfo tipo="licencia" compacto />
+                  <label className="flex gap-3 rounded-xl border border-border bg-surface p-4 font-body text-sm leading-6 text-text-secondary">
+                    <input type="checkbox" checked={autorizaVerificacion} onChange={(e) => { setAutorizaVerificacion(e.target.checked); limpiarErrorCampo("autorizaVerificacion"); }} className="mt-1 size-4 accent-route-dark" />
+                    <span>Autorizo la verificación de antecedentes y de mi historial de manejo ante las autoridades correspondientes.</span>
+                  </label>
+                  {erroresCampos.autorizaVerificacion && <p className="font-body text-xs font-medium text-danger-action">{erroresCampos.autorizaVerificacion}</p>}
+                  <label className="flex gap-3 rounded-xl border border-border bg-surface p-4 font-body text-sm leading-6 text-text-secondary">
+                    <input type="checkbox" checked={declaraSinSuspensiones} onChange={(e) => { setDeclaraSinSuspensiones(e.target.checked); limpiarErrorCampo("declaraSinSuspensiones"); }} className="mt-1 size-4 accent-route-dark" />
+                    <span>Declaro que no tengo suspensiones vigentes de licencia ni procesos legales activos relacionados con el manejo de vehículos.</span>
+                  </label>
+                  {erroresCampos.declaraSinSuspensiones && <p className="font-body text-xs font-medium text-danger-action">{erroresCampos.declaraSinSuspensiones}</p>}
                 </fieldset>
               )}
 
               {paso === 3 && (
                 <fieldset className="grid gap-4">
-                  <legend className="font-display text-xl font-bold text-ink">Verificación y contacto de emergencia</legend>
-                  <label className="flex gap-3 rounded-xl border border-ink/15 bg-mist p-4 font-body text-sm leading-6 text-ink/75">
-                    <input type="checkbox" checked={autorizaVerificacion} onChange={(e) => { setAutorizaVerificacion(e.target.checked); limpiarErrorCampo("autorizaVerificacion"); }} className="mt-1 size-4 accent-route-dark" />
-                    <span>Autorizo la verificación de antecedentes y de mi historial de manejo ante las autoridades correspondientes.</span>
-                  </label>
-                  {erroresCampos.autorizaVerificacion && <p className="font-body text-xs font-medium text-danger">{erroresCampos.autorizaVerificacion}</p>}
-                  <label className="flex gap-3 rounded-xl border border-ink/15 bg-mist p-4 font-body text-sm leading-6 text-ink/75">
-                    <input type="checkbox" checked={declaraSinSuspensiones} onChange={(e) => { setDeclaraSinSuspensiones(e.target.checked); limpiarErrorCampo("declaraSinSuspensiones"); }} className="mt-1 size-4 accent-route-dark" />
-                    <span>Declaro que no tengo suspensiones vigentes de licencia ni procesos legales activos relacionados con el manejo de vehículos.</span>
-                  </label>
-                  {erroresCampos.declaraSinSuspensiones && <p className="font-body text-xs font-medium text-danger">{erroresCampos.declaraSinSuspensiones}</p>}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field etiqueta="Contacto de emergencia (nombre)" value={contactoEmergenciaNombre} onChange={(e) => { setContactoEmergenciaNombre(e.target.value); limpiarErrorCampo("contactoEmergenciaNombre"); }} error={erroresCampos.contactoEmergenciaNombre || undefined} required />
-                    <Field etiqueta="Teléfono del contacto" type="tel" inputMode="numeric" value={formatoTelefonoNacional(contactoEmergenciaTelefono)} onChange={(e) => { setContactoEmergenciaTelefono(soloDigitos(e.target.value)); limpiarErrorCampo("contactoEmergenciaTelefono"); }} onBlur={() => validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono)} error={erroresCampos.contactoEmergenciaTelefono || undefined} required autoComplete="tel-national" />
-                  </div>
+                  <legend className="font-display text-xl font-bold text-text-primary">Documentos</legend>
+                  <DatosSensiblesInfo tipo="documentos" compacto />
+                  {!sesionAutenticada ? (
+                    <Aviso tono="atencion">
+                      Primero confirma tu cuenta. Después podrás cargar documentos y continuar desde cualquier dispositivo.
+                    </Aviso>
+                  ) : (
+                    <>
+                      <CampoDocumento
+                        etiqueta="Foto de tu licencia (frente)"
+                        archivo={documentos.licenciaFrente}
+                        estado={estadoDocumentos.licenciaFrente}
+                        error={erroresCampos.licenciaFrente || undefined}
+                        onSeleccionar={(archivo) => cambiarDocumento("licenciaFrente", archivo)}
+                      />
+                      <CampoDocumento
+                        etiqueta="Foto de tu licencia (reverso)"
+                        archivo={documentos.licenciaReverso}
+                        estado={estadoDocumentos.licenciaReverso}
+                        error={erroresCampos.licenciaReverso || undefined}
+                        onSeleccionar={(archivo) => cambiarDocumento("licenciaReverso", archivo)}
+                      />
+                      <CampoDocumento
+                        etiqueta="Foto de tu Identificación oficial (INE/pasaporte)"
+                        archivo={documentos.identificacionOficial}
+                        estado={estadoDocumentos.identificacionOficial}
+                        error={erroresCampos.identificacionOficial || undefined}
+                        onSeleccionar={(archivo) => cambiarDocumento("identificacionOficial", archivo)}
+                      />
+                    </>
+                  )}
+                  {erroresCampos.cuentaVerificada && <p className="font-body text-xs font-medium text-danger-action">{erroresCampos.cuentaVerificada}</p>}
                 </fieldset>
               )}
 
               {paso === 4 && (
                 <fieldset className="grid gap-4">
-                  <legend className="font-display text-xl font-bold text-ink">Revisa tu información</legend>
-                  <p className="font-body text-sm leading-6 text-ink/65">Verifica que todo sea correcto antes de enviar tu registro.</p>
-                  <div className="grid gap-3 rounded-xl border border-ink/15 bg-mist p-4 font-body text-sm text-ink/75">
-                    <Resumen titulo="Datos personales" valores={[nombreCompleto, curp.trim().toUpperCase(), formatoTelefonoNacional(telefono), email.trim().toLowerCase()]} />
-                    <Resumen titulo="Domicilio" valores={[`${calle} ${numero}`, `${colonia}, ${ciudad}`, `${estado}, C.P. ${codigoPostal}`, referencias]} />
-                    <Resumen titulo="Documentación" valores={[`Licencia ${numeroLicencia}`, `Tipo ${tipoLicencia}`, `Vigente hasta ${vigenciaLicencia}`, documentos.licenciaFrente?.name ?? "Licencia frente pendiente", documentos.licenciaReverso?.name ?? "Licencia reverso pendiente", documentos.identificacionOficial?.name ?? "Identificación pendiente"]} />
-                    <Resumen titulo="Verificación" valores={[autorizaVerificacion ? "Autoriza verificación de antecedentes" : "Verificación pendiente", declaraSinSuspensiones ? "Sin suspensiones ni procesos activos declarados" : "Declaración pendiente", `Emergencia: ${contactoEmergenciaNombre} · ${formatoTelefonoNacional(contactoEmergenciaTelefono)}`]} />
+                  <legend className="font-display text-xl font-bold text-text-primary">Revisa tu información</legend>
+                  <p className="font-body text-sm leading-6 text-text-secondary">Verifica que todo sea correcto antes de enviar tu registro.</p>
+                  <div className="grid gap-3 rounded-xl border border-border bg-surface p-4 font-body text-sm text-text-secondary">
+                    <Resumen titulo="Cuenta" valores={[formatoTelefonoNacional(telefono), email.trim().toLowerCase(), sesionAutenticada ? "Cuenta verificada" : "Cuenta pendiente de verificación"]} onEditar={() => setPaso(0)} />
+                    <Resumen titulo="Identidad" valores={[nombreCompleto, `CURP ${enmascararUltimos(curp.trim().toUpperCase())}`, `${calle} ${numero}`, `${colonia}, ${ciudad}`, `${estado}, C.P. ${codigoPostal}`, referencias, `Emergencia: contacto registrado · ${enmascararUltimos(contactoEmergenciaTelefono)}`]} onEditar={() => setPaso(1)} />
+                    <Resumen titulo="Licencia y experiencia" valores={[`Licencia ${enmascararUltimos(numeroLicencia)}`, `Tipo ${tipoLicencia}`, `Vigente hasta ${vigenciaLicencia}`, autorizaVerificacion ? "Autoriza verificación de antecedentes" : "Verificación pendiente", declaraSinSuspensiones ? "Sin suspensiones ni procesos activos declarados" : "Declaración pendiente"]} onEditar={() => setPaso(2)} />
+                    <Resumen titulo="Documentos" valores={[documentos.licenciaFrente?.name ? enmascararNombreArchivo(documentos.licenciaFrente.name) : (documentosRemotos.has("licencia_frente") ? "Licencia frente guardada" : "Licencia frente pendiente"), documentos.licenciaReverso?.name ? enmascararNombreArchivo(documentos.licenciaReverso.name) : (documentosRemotos.has("licencia_reverso") ? "Licencia reverso guardada" : "Licencia reverso pendiente"), documentos.identificacionOficial?.name ? enmascararNombreArchivo(documentos.identificacionOficial.name) : (documentosRemotos.has("identificacion_oficial") ? "Identificación guardada" : "Identificación pendiente")]} onEditar={() => setPaso(3)} />
                   </div>
-                  <label className="flex gap-3 rounded-xl border border-route-dark/20 bg-route-soft p-4 font-body text-sm leading-6 text-ink/75">
+                  <label className="flex gap-3 rounded-xl border border-route-action/20 bg-route-soft p-4 font-body text-sm leading-6 text-text-secondary">
                     <input type="checkbox" checked={aceptaTerminos} onChange={(e) => { setAceptaTerminos(e.target.checked); limpiarErrorCampo("aceptaTerminos"); }} className="mt-1 size-4 accent-route-dark" />
                     <span>
                       He leído y acepto los{" "}
-                      <a href="/legal/terminos" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-route-dark underline underline-offset-2 hover:no-underline">
+                      <a href="/legal/terminos" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-route-action underline underline-offset-2 hover:no-underline">
                         términos y condiciones
                       </a>{" "}
                       de ruum ruum by Movilia.
                     </span>
                   </label>
-                  {erroresCampos.aceptaTerminos && <p className="font-body text-xs font-medium text-danger">{erroresCampos.aceptaTerminos}</p>}
-                  <label className="flex gap-3 rounded-xl border border-route-dark/20 bg-route-soft p-4 font-body text-sm leading-6 text-ink/75">
+                  {erroresCampos.aceptaTerminos && <p className="font-body text-xs font-medium text-danger-action">{erroresCampos.aceptaTerminos}</p>}
+                  <label className="flex gap-3 rounded-xl border border-route-action/20 bg-route-soft p-4 font-body text-sm leading-6 text-text-secondary">
                     <input type="checkbox" checked={confirmaPrivacidad} onChange={(e) => { setConfirmaPrivacidad(e.target.checked); limpiarErrorCampo("confirmaPrivacidad"); }} className="mt-1 size-4 accent-route-dark" />
                     <span>
                       Confirmo que he leído el{" "}
-                      <a href="/legal/privacidad" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-route-dark underline underline-offset-2 hover:no-underline">
+                      <a href="/legal/privacidad" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-route-action underline underline-offset-2 hover:no-underline">
                         aviso de privacidad
                       </a>{" "}
                       de ruum ruum by Movilia.
                     </span>
                   </label>
-                  {erroresCampos.confirmaPrivacidad && <p className="font-body text-xs font-medium text-danger">{erroresCampos.confirmaPrivacidad}</p>}
+                  {erroresCampos.confirmaPrivacidad && <p className="font-body text-xs font-medium text-danger-action">{erroresCampos.confirmaPrivacidad}</p>}
                 </fieldset>
               )}
 
-              {error && <Aviso tono="peligro">{error}</Aviso>}
+              {error && <Aviso tono="danger">{error}</Aviso>}
 
               <div className="grid gap-3 sm:grid-cols-2">
-                {paso > 0 && <Button type="button" variant="secundario" onClick={volver}>Atrás</Button>}
+                {paso > 0 && <Button type="button" variant="secondary" onClick={volver}>Atrás</Button>}
                 {paso < PASOS.length - 1 ? (
-                  <Button type="button" className={paso === 0 ? "sm:col-start-2" : ""} onClick={avanzar}>Continuar</Button>
+                  <Button type="button" className={paso === 0 ? "sm:col-start-2" : ""} onClick={avanzar} loading={enviando} disabled={enviando}>
+                    {paso === 0 && !sesionAutenticada ? "Crear cuenta y continuar" : "Continuar"}
+                  </Button>
                 ) : (
                   <Button type="submit" disabled={!puedeEnviar || !tieneSupabaseConfigurado()} loading={enviando}>
                     {enviando ? TEXTOS_CARGANDO.enviando : "Enviar registro"}
@@ -1219,9 +1344,9 @@ export default function PaginaRegistroConductor() {
               </div>
             </form>
 
-            <p className="mt-6 text-center font-body text-sm text-ink/60">
+            <p className="mt-6 text-center font-body text-sm text-text-secondary">
               ¿Ya tienes cuenta?{" "}
-              <button type="button" onClick={() => router.push("/login")} className="font-semibold text-route-dark hover:underline">
+              <button type="button" onClick={() => router.push("/login")} className="inline-flex min-h-11 items-center font-semibold text-route-action hover:underline">
                 Inicia sesión
               </button>
             </p>
@@ -1255,9 +1380,9 @@ function SelectField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="font-body text-sm font-semibold text-ink">
+      <label htmlFor={id} className="font-body text-sm font-semibold text-text-primary">
         {etiqueta}
-        {required ? <span className="ml-1 text-danger" aria-hidden> *</span> : null}
+        {required ? <span className="ml-1 text-danger-action" aria-hidden> *</span> : null}
       </label>
       <select
         id={id}
@@ -1267,10 +1392,10 @@ function SelectField({
         required={required}
         aria-invalid={Boolean(error)}
         className={[
-          "w-full min-h-12 rounded-[10px] border bg-mist px-3.5 py-2.5 font-body text-sm text-ink shadow-[inset_0_1px_0_rgba(26,31,46,0.02)]",
-          "transition-[border-color,box-shadow,background-color] duration-150 hover:border-ink/50 focus:border-route-dark focus:outline-none focus:ring-[3px] focus:ring-route-dark/20",
-          error ? "border-danger bg-danger-soft/20 focus:border-danger focus:ring-danger/15" : "border-ink/30",
-          "disabled:cursor-not-allowed disabled:border-ink/10 disabled:bg-mist-dim disabled:text-ink/50"
+          "w-full min-h-12 rounded-[10px] border bg-surface px-3.5 py-2.5 font-body text-base text-text-primary shadow-[inset_0_1px_0_rgba(26,31,46,0.02)]",
+          "transition-[border-color,box-shadow,background-color] duration-150 hover:border-border-strong focus:border-route-action focus:outline-none focus:ring-[3px] focus:ring-route-action/20",
+          error ? "border-danger-action bg-danger-soft/20 focus:border-danger-action focus:ring-danger/15" : "border-border-strong",
+          "disabled:cursor-not-allowed disabled:border-border disabled:bg-surface-elevated disabled:text-text-tertiary"
         ].join(" ")}
       >
         <option value="">{placeholder}</option>
@@ -1278,18 +1403,19 @@ function SelectField({
           <option key={opcion} value={opcion}>{opcion}</option>
         ))}
       </select>
-      {error ? <p role="alert" className="font-body text-xs font-medium leading-5 text-danger">{error}</p> : null}
+      {error ? <p role="alert" className="font-body text-sm font-medium leading-5 text-danger-action">{error}</p> : null}
     </div>
   );
 }
 
 function textoEstadoDocumento(estado: EstadoDocumento, nombreArchivo: string) {
+  const nombreProtegido = enmascararNombreArchivo(nombreArchivo);
   return {
     pendiente: "",
-    listo: `Listo para subir: ${nombreArchivo}`,
-    subiendo: `Subiendo: ${nombreArchivo}`,
-    subido: `Subido correctamente: ${nombreArchivo}`,
-    error: nombreArchivo ? `Error al subir: ${nombreArchivo}` : "Error en el archivo seleccionado"
+    listo: `Listo para subir: ${nombreProtegido}`,
+    subiendo: `Subiendo: ${nombreProtegido}`,
+    subido: `Subido correctamente: ${nombreProtegido}`,
+    error: nombreArchivo ? `Error al subir: ${nombreProtegido}` : "Error en el archivo seleccionado"
   }[estado];
 }
 
@@ -1323,13 +1449,13 @@ function CampoDocumento({
     };
   }, [previewUrl]);
 
-  const colorTexto = estado === "error" ? "text-danger" : estado === "subido" ? "text-control" : "text-ink/60";
+  const colorTexto = estado === "error" ? "text-danger-action" : estado === "subido" ? "text-success" : "text-text-secondary";
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="font-body text-sm font-semibold text-ink">
+      <label className="font-body text-sm font-semibold text-text-primary">
         {etiqueta}
-        <span className="ml-1 text-danger" aria-hidden> *</span>
+        <span className="ml-1 text-danger-action" aria-hidden> *</span>
       </label>
       <input
         ref={inputRef}
@@ -1346,55 +1472,62 @@ function CampoDocumento({
       {archivo ? (
         <div
           className={[
-            "flex items-center gap-3 rounded-[10px] border bg-mist px-3.5 py-2.5",
-            error ? "border-danger bg-danger-soft/20" : "border-ink/30"
+            "flex items-center gap-3 rounded-[10px] border bg-surface px-3.5 py-2.5",
+            error ? "border-danger-action bg-danger-soft/20" : "border-border-strong"
           ].join(" ")}
         >
           {previewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- preview local de un File antes de subir, next/image no soporta blob: directamente
             <img src={previewUrl} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
           ) : (
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-ink/[0.06] font-mono-ruum text-[10px] font-semibold text-ink/50" aria-hidden>
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-surface-elevated font-body text-xs font-semibold text-text-tertiary" aria-hidden>
               PDF
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate font-body text-sm text-ink">{archivo.name}</p>
+            <p className="truncate font-body text-sm text-text-primary">{enmascararNombreArchivo(archivo.name)}</p>
             {estado !== "pendiente" && (
-              <p className={`font-body text-xs font-medium leading-5 ${colorTexto}`}>
+              <p className={`font-body text-sm font-medium leading-5 ${colorTexto}`}>
                 {textoEstadoDocumento(estado, archivo.name)}
               </p>
             )}
           </div>
-          <Button type="button" variant="fantasma" onClick={() => inputRef.current?.click()}>
+          <Button type="button" variant="quiet" onClick={() => inputRef.current?.click()}>
             Tomar otra foto
           </Button>
         </div>
       ) : estado==="subido" ? (
-        <div className="rounded-[10px] border border-control/30 bg-control-soft px-3.5 py-3">
-          <p className="font-body text-sm font-semibold text-control">Documento guardado en tu expediente</p>
-          <p className="mt-1 font-body text-xs text-ink/55">No necesitas volver a cargarlo en este dispositivo.</p>
+        <div className="rounded-[10px] border border-success bg-control-soft px-3.5 py-3">
+          <p className="font-body text-sm font-semibold text-success">Documento guardado en tu expediente</p>
+          <p className="mt-1 font-body text-sm text-text-secondary">No necesitas volver a cargarlo en este dispositivo.</p>
         </div>
       ) : (
-        <Button type="button" variant="secundario" onClick={() => inputRef.current?.click()}>
+        <Button type="button" variant="secondary" onClick={() => inputRef.current?.click()}>
           Elegir o tomar foto
         </Button>
       )}
 
       {error ? (
-        <p role="alert" className="font-body text-xs font-medium leading-5 text-danger">{error}</p>
+        <p role="alert" className="font-body text-sm font-medium leading-5 text-danger-action">{error}</p>
       ) : null}
     </div>
   );
 }
 
-function Resumen({ titulo, valores }: { titulo: string; valores: Array<string | undefined> }) {
+function Resumen({ titulo, valores, onEditar }: { titulo: string; valores: Array<string | undefined>; onEditar?: () => void }) {
   return (
-    <div className="border-b border-ink/10 pb-3 last:border-0 last:pb-0">
-      <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">{titulo}</p>
+    <div className="border-b border-border pb-3 last:border-0 last:pb-0">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-body text-sm font-semibold text-text-tertiary">{titulo}</p>
+        {onEditar && (
+          <button type="button" onClick={onEditar} className="inline-flex min-h-11 items-center font-body text-sm font-semibold text-route-action underline-offset-4 hover:underline">
+            Editar
+          </button>
+        )}
+      </div>
       <ul className="mt-2 grid gap-1">
         {valores.filter(Boolean).map((valor) => (
-          <li key={valor} className="font-body text-sm text-ink/75">{valor}</li>
+          <li key={valor} className="font-body text-sm text-text-secondary">{valor}</li>
         ))}
       </ul>
     </div>

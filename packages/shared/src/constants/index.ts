@@ -8,3 +8,5 @@ export * from "./motivos-rechazo";
 export * from "./terminos";
 export * from "./estatus-economico";
 export * from "./textos-cargando";
+export * from "./contactos-soporte";
+export * from "./glosario-operativo";

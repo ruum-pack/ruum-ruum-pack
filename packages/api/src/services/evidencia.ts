@@ -113,7 +113,7 @@ async function evaluarDanoNoReportado(cliente: Cliente, trasladoId: string) {
     await crearIncidenciaSistemaDanoNoReportado(
       cliente,
       trasladoId,
-      "La evidencia final incluye daño visible que no aparece en la evidencia inicial y no fue reportado durante el traslado."
+      "El registro final del vehículo incluye daño visible que no aparece en el registro inicial y no fue reportado durante el traslado."
     );
   }
 }
@@ -125,7 +125,7 @@ async function validarMetodoPagoParaEvidenciaInicial(cliente: Cliente, trasladoI
 
   if (error) throw error;
   if (!data) {
-    throw new Error("No se puede completar evidencia inicial: falta pago anticipado completado o método de pago al cierre.");
+    throw new Error("No se puede completar el registro inicial del vehículo: falta pago anticipado completado o método de pago al cierre.");
   }
 }
 
@@ -149,12 +149,12 @@ export async function confirmarEvidenciaCompleta(
 
   const resultado = await evaluarCompletitud(cliente, trasladoId, tipo);
   if (!resultado.completa) {
-    throw new Error(`Evidencia ${tipo} incompleta: faltan ${resultado.angulosFaltantes.join(", ")}`);
+    throw new Error(`Registro ${tipo} del vehículo incompleto: faltan ${resultado.angulosFaltantes.join(", ")}`);
   }
 
   const estadoEsperado: EstadoTraslado = tipo === "inicial" ? "evidencia_inicial_en_proceso" : "evidencia_final_en_proceso";
   if (estadoActual !== estadoEsperado) {
-    throw new Error(`No se puede confirmar evidencia ${tipo} desde ${estadoActual}`);
+    throw new Error(`No se puede confirmar el registro ${tipo} del vehículo desde ${estadoActual}`);
   }
 
   const siguienteEstado: EstadoTraslado =

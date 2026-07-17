@@ -56,32 +56,32 @@ export default function PaginaNuevaPasswordConductor() {
         <div className="flex items-center gap-3">
           <LogoMarca tamano={34} color="signal" />
           <div>
-            <p className="font-display text-lg font-extrabold tracking-tight text-ink">
+            <p className="font-display text-lg font-extrabold tracking-tight text-text-primary">
               ruum<span className="text-signal">ruum</span>
             </p>
-            <p className="font-mono-ruum text-[10px] uppercase tracking-[0.14em] text-ink/50">Conductor</p>
+            <p className="font-body text-xs font-semibold text-text-tertiary">Conductor</p>
           </div>
         </div>
 
-        <h1 id="titulo-nueva-pwd" className="mt-8 font-display text-2xl font-bold text-ink">
+        <h1 id="titulo-nueva-pwd" className="mt-8 font-display text-2xl font-bold text-text-primary">
           Nueva contraseña
         </h1>
 
         {verificando ? (
-          <p className="mt-6 font-body text-sm text-ink/55">Verificando enlace…</p>
+          <p className="mt-6 font-body text-sm text-text-secondary">Verificando enlace…</p>
         ) : listo ? (
           <div className="mt-6 grid gap-3 text-center">
-            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#e6f9f0]">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-control-soft text-success">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="#1d9e75" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
                 aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
             </div>
-            <p className="font-body text-sm text-ink/70">Contraseña actualizada. Redirigiendo…</p>
+            <p className="font-body text-sm text-text-secondary">Contraseña actualizada. Redirigiendo…</p>
           </div>
         ) : !sesionLista ? (
           <div className="mt-6 grid gap-4">
-            <Aviso tono="peligro">El enlace expiró o ya fue usado. Los enlaces son válidos por 60 minutos.</Aviso>
-            <Link href="/recuperar-password" className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-signal font-display text-sm font-bold text-ink transition hover:bg-signal/90">
+            <Aviso tono="danger">El enlace expiró o ya fue usado. Los enlaces son válidos por 60 minutos.</Aviso>
+            <Link href="/recuperar-password" className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-signal font-display text-sm font-bold text-text-primary transition hover:bg-signal/90">
               Solicitar un nuevo enlace
             </Link>
           </div>
@@ -108,12 +108,12 @@ export default function PaginaNuevaPasswordConductor() {
                           "h-1 flex-1 rounded-full transition-all",
                           n <= pwd.nivel
                             ? pwd.nivel === 1 ? "bg-danger" : pwd.nivel === 2 ? "bg-signal" : "bg-control"
-                            : "bg-ink/15"
+                            : "bg-surface-elevated"
                         ].join(" ")}
                       />
                     ))}
                   </div>
-                  {pwd.etiqueta && <span className="font-body text-[11px] leading-4 text-ink/55">{pwd.etiqueta}</span>}
+                  {pwd.etiqueta && <span className="font-body text-xs leading-4 text-text-secondary">{pwd.etiqueta}</span>}
                 </div>
               )}
             </div>
@@ -131,7 +131,7 @@ export default function PaginaNuevaPasswordConductor() {
 
             {error && (
               <div role="status" aria-live="polite" aria-atomic="true">
-                <Aviso tono="peligro">{error}</Aviso>
+                <Aviso tono="danger">{error}</Aviso>
               </div>
             )}
             <Button type="submit" loading={enviando} disabled={enviando} className="mt-2 w-full">

@@ -1,13 +1,12 @@
 "use client";
 
-"use client";
 import { useEffect, useRef, useState } from "react";
-import { Chat, type MensajeChat, Button, Aviso } from "@ruum/ui";
-import { MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
+import { Chat, type MensajeChat, Aviso } from "@ruum/ui";
+import { MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { chatDisponible } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
-import { obtenerMensajes, enviarMensaje, suscribirseAMensajes, crearLlamadaEnmascarada } from "@ruum/api/services";
+import { obtenerMensajes, enviarMensaje, suscribirseAMensajes } from "@ruum/api/services";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
@@ -88,24 +87,6 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
     // Realtime ya lo va a recibir, igual que le llegaría al usuario.
   }
 
-  const [llamando, setLlamando] = useState(false);
-  const [errorLlamada, setErrorLlamada] = useState<string | null>(null);
-
-  async function manejarLlamada() {
-    setLlamando(true);
-    setErrorLlamada(null);
-
-    try {
-      const cliente = crearClienteNavegador();
-      const numero = await crearLlamadaEnmascarada(cliente, trasladoId);
-      window.location.href = `tel:${numero}`;
-    } catch (err) {
-      setErrorLlamada(err instanceof Error ? err.message : "No pudimos iniciar la llamada.");
-    } finally {
-      setLlamando(false);
-    }
-  }
-
   function confirmarAvisoVisto() {
     if (guardarAvisoVisto(trasladoId)) {
       setAvisoVisto(true);
@@ -113,19 +94,19 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
   }
 
   return (
-    <details className="group mt-6 overflow-hidden rounded-lg border border-ink/10 bg-mist">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 transition-colors hover:bg-signal-soft/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-dark [&::-webkit-details-marker]:hidden">
+    <details id="chat-contacto" className="group mt-6 overflow-hidden rounded-lg border border-border bg-surface">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 transition-colors hover:bg-signal-soft/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action [&::-webkit-details-marker]:hidden">
         <div>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Chat con el usuario</p>
-          <p className="mt-1 font-body text-sm font-semibold text-ink">
-            {disponible ? "Mensajes y llamada enmascarada" : "Conversación cerrada"}
+          <p className="font-body text-sm font-semibold text-text-tertiary">Chat del viaje</p>
+          <p className="mt-1 font-body text-sm font-semibold text-text-primary">
+            {disponible ? "Escribir mensaje" : "Conversación cerrada"}
           </p>
         </div>
-        <span className="font-mono-ruum text-lg leading-none text-ink/45 transition-transform group-open:rotate-45" aria-hidden>
+        <span className="font-display text-lg leading-none text-text-tertiary transition-transform group-open:rotate-45" aria-hidden>
           +
         </span>
       </summary>
-      <div className="border-t border-ink/10 px-4 pb-4 pt-4">
+      <div className="border-t border-border px-4 pb-4 pt-4">
         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             {disponible && avisoVisto && (
@@ -135,7 +116,7 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
                   aria-label="Ver aviso de comunicación"
                   aria-expanded={popoverAvisoAbierto}
                   onClick={() => setPopoverAvisoAbierto((abierto) => !abierto)}
-                  className="flex size-8 items-center justify-center rounded-full border border-route/20 bg-route-soft font-body text-sm font-semibold text-route-dark transition hover:border-route-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-dark"
+                  className="flex size-11 items-center justify-center rounded-full border border-route-action bg-route-soft font-body text-sm font-semibold text-route-action transition hover:border-route-action focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
                 >
                   i
                 </button>
@@ -143,7 +124,7 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
                   <div
                     role="dialog"
                     aria-label="Aviso de comunicación"
-                    className="absolute left-0 z-20 mt-2 w-72 rounded-xl border border-route/20 bg-mist p-3 font-body text-sm leading-5 text-route-dark shadow-[0_14px_40px_rgba(26,31,46,0.16)]"
+                    className="absolute left-0 z-20 mt-2 w-72 rounded-xl border border-route-action bg-surface p-3 font-body text-sm leading-5 text-route-action shadow-3"
                   >
                     {MENSAJES_CLAVE_UX.comunicacion}
                   </div>
@@ -151,20 +132,10 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
               </div>
             )}
           </div>
-          {disponible && (
-            <Button variant="secundario" onClick={manejarLlamada} disabled={llamando}>
-              {llamando ? TEXTOS_CARGANDO.conectando : "Llamar"}
-            </Button>
-          )}
         </div>
-        {errorLlamada && (
-          <div className="mb-2">
-            <Aviso tono="peligro">{errorLlamada}</Aviso>
-          </div>
-        )}
         {errorChat && (
           <div className="mb-2">
-            <Aviso tono="peligro">{errorChat}</Aviso>
+            <Aviso tono="danger">{errorChat}</Aviso>
           </div>
         )}
         {disponible && !avisoVisto && (
@@ -175,7 +146,7 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
                 <button
                   type="button"
                   onClick={confirmarAvisoVisto}
-                  className="self-start rounded-lg border border-route/30 bg-mist px-3 py-2 font-body text-sm font-semibold text-route-dark transition hover:border-route-dark hover:bg-route-soft sm:self-auto"
+                  className="min-h-11 self-start rounded-lg border border-route-action bg-surface px-3 py-2 font-body text-sm font-semibold text-route-action transition hover:border-route-action hover:bg-route-soft sm:self-auto"
                 >
                   Entendido
                 </button>

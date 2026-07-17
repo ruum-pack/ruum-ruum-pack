@@ -19,8 +19,8 @@ export default function ErrorGlobalConductor({
       descripcion="Ocurrió un error inesperado. Puedes recargar esta vista o volver al panel."
       detalle={process.env.NODE_ENV === "development" ? error.message : undefined}
       acciones={[
-        { etiqueta: "Recargar", onClick: reset, variant: "primario" },
-        { etiqueta: "Ir al panel", href: "/", variant: "fantasma" }
+        { etiqueta: "Recargar", onClick: reset, variant: "primary" },
+        { etiqueta: "Ir al panel", href: "/", variant: "quiet" }
       ]}
     />
   );

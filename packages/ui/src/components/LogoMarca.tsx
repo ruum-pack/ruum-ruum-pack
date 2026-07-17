@@ -11,10 +11,10 @@ export interface LogoMarcaProps {
   className?: string;
 }
 
-const COLOR_HEX: Record<NonNullable<LogoMarcaProps["color"]>, string> = {
-  signal: "#f5a623",
-  route: "#1e88e5",
-  control: "#08734f"
+const COLOR_TOKEN: Record<NonNullable<LogoMarcaProps["color"]>, string> = {
+  signal: "var(--color-signal)",
+  route: "var(--color-route)",
+  control: "var(--color-control)"
 };
 
 /**
@@ -53,7 +53,7 @@ export function LogoMarca({ tamano = 28, color = "signal", className = "" }: Log
         strokeLinecap="round"
       />
       <circle cx="14" cy="44" r="4.5" fill="var(--color-asphalt)" stroke="var(--color-signal)" strokeWidth="3" />
-      <circle cx="52" cy="26" r="4.5" fill={COLOR_HEX[color]} />
+      <circle cx="52" cy="26" r="4.5" fill={COLOR_TOKEN[color]} />
       <path d="M43 43 L50 50 L58 37" fill="none" stroke="var(--color-signal)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

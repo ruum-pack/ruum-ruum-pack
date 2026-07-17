@@ -39,34 +39,34 @@ export default function PaginaRecuperarPasswordConductor() {
         <div className="flex items-center gap-3">
           <LogoMarca tamano={34} color="signal" />
           <div>
-            <p className="font-display text-lg font-extrabold tracking-tight text-ink">
+            <p className="font-display text-lg font-extrabold tracking-tight text-text-primary">
               ruum<span className="text-signal">ruum</span>
             </p>
-            <p className="font-mono-ruum text-[10px] uppercase tracking-[0.14em] text-ink/50">Conductor</p>
+            <p className="font-body text-xs font-semibold text-text-tertiary">Conductor</p>
           </div>
         </div>
 
-        <h1 id="titulo-recuperar" className="mt-8 font-display text-2xl font-bold text-ink">
+        <h1 id="titulo-recuperar" className="mt-8 font-display text-2xl font-bold text-text-primary">
           Recuperar contraseña
         </h1>
-        <p className="mt-2 font-body text-sm leading-6 text-ink/65">
+        <p className="mt-2 font-body text-sm leading-6 text-text-secondary">
           Escribe el correo con el que te registraste y te enviamos un enlace.
         </p>
 
         {enviado ? (
           <div className="mt-6 grid gap-4 text-center">
-            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#e6f9f0]">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-control-soft text-success">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="#1d9e75" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
                 aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
             </div>
-            <p className="font-body text-sm leading-6 text-ink/70">
+            <p className="font-body text-sm leading-6 text-text-secondary">
               Correo enviado a <strong>{email}</strong>. Revisa tu bandeja incluyendo spam. El enlace expira en 60 minutos.
             </p>
             <button
               type="button"
               onClick={() => { setEnviado(false); setEmail(""); }}
-              className="font-body text-sm text-route-dark underline-offset-2 hover:underline"
+              className="font-body text-sm text-route-action underline-offset-2 hover:underline"
             >
               Solicitar otro enlace
             </button>
@@ -83,7 +83,7 @@ export default function PaginaRecuperarPasswordConductor() {
             />
             {error && (
               <div role="status" aria-live="polite" aria-atomic="true">
-                <Aviso tono="peligro">{error}</Aviso>
+                <Aviso tono="danger">{error}</Aviso>
               </div>
             )}
             <Button type="submit" disabled={enviando} className="mt-2 w-full">
@@ -92,8 +92,8 @@ export default function PaginaRecuperarPasswordConductor() {
           </form>
         )}
 
-        <p className="mt-6 text-center font-body text-sm text-ink/60">
-          <Link href="/login" className="font-semibold text-route-dark hover:underline">
+        <p className="mt-6 text-center font-body text-sm text-text-secondary">
+          <Link href="/login" className="font-semibold text-route-action hover:underline">
             ← Volver al inicio de sesión
           </Link>
         </p>

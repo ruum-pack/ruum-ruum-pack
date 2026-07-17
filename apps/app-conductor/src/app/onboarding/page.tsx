@@ -9,7 +9,7 @@ import { marcarOnboardingVisto } from "../../lib/onboarding-visto";
 /**
  * Recorrido de bienvenida del conductor — 3 pantallas antes de pedir
  * registro o documentos. Presenta la promesa central de la app:
- * 1) panel semanal, 2) aceptación de viajes en ruta, 3) evidencia
+ * 1) panel semanal, 2) aceptación de viajes en ruta, 3) registro
  * operativa que respalda pagos claros y a tiempo.
  *
  * Las tres ilustraciones comparten la estética nocturna neón
@@ -29,7 +29,7 @@ const PASOS: Paso[] = [
     tag: "Tu semana, de un vistazo",
     titulo: (
       <>
-        Todos tus viajes y <span className="text-[#a8e820]">ganancias</span>, en un solo panel
+        Todos tus viajes y <span className="text-success">ganancias</span>, en un solo panel
       </>
     ),
     descripcion:
@@ -46,10 +46,10 @@ const PASOS: Paso[] = [
     )
   },
   {
-    tag: "Solicitados, aceptados, en curso",
+    tag: "Disponibles, próximos, en curso",
     titulo: (
       <>
-        Acepta viajes <span className="text-[#3aa5ff]">fácilmente</span>
+        Acepta viajes <span className="text-route-action">fácilmente</span>
       </>
     ),
     descripcion:
@@ -68,15 +68,15 @@ const PASOS: Paso[] = [
     tag: "Transparencia en cada corte",
     titulo: (
       <>
-        Evidencia que respalda <span className="text-[#a8e820]">pagos claros</span>
+        Registro del vehículo que respalda <span className="text-success">pagos claros</span>
       </>
     ),
     descripcion:
-      "Documenta cada operación con evidencia fotográfica y recibe cortes puntuales con su desglose. Sin sorpresas.",
+      "Documenta cada operación con registro fotográfico del vehículo y recibe cortes puntuales con su desglose. Sin sorpresas.",
     hero: (
       <Image
         src="/imagenes/onboarding-paso3.webp"
-        alt="Vehículo con puntos de evidencia fotográfica verificados alrededor"
+        alt="Vehículo con puntos de registro fotográfico verificados alrededor"
         width={860}
         height={860}
         className="max-h-full w-auto rounded-3xl object-contain"
@@ -118,12 +118,12 @@ export default function PaginaOnboarding() {
 
   return (
     <div
-      className="flex min-h-dvh flex-col text-white"
+      className="flex min-h-dvh flex-col text-text-primary"
       style={{
         background:
           "radial-gradient(circle at 12% 8%, rgba(58,165,255,0.14), transparent 42%)," +
           "radial-gradient(circle at 92% 88%, rgba(168,232,32,0.08), transparent 38%)," +
-          "#070b14"
+          "var(--ruum-canvas)"
       }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
@@ -136,13 +136,13 @@ export default function PaginaOnboarding() {
             <p className="font-display text-sm font-extrabold tracking-tight">
               ruum<span className="text-signal">ruum</span>
             </p>
-            <p className="font-mono-ruum text-[9px] uppercase tracking-[0.16em] text-white/45">Conductor</p>
+            <p className="font-body text-xs font-semibold text-text-tertiary">Conductor</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => void finalizar("/login")}
-          className="rounded-lg px-3 py-2 font-display text-xs font-semibold text-white/60 transition hover:text-white"
+          className="inline-flex min-h-11 items-center rounded-lg px-3 py-2 font-display text-xs font-semibold text-text-secondary transition hover:text-text-primary"
         >
           Omitir
         </button>
@@ -151,7 +151,7 @@ export default function PaginaOnboarding() {
       {/* hero */}
       <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-2">
         <div className="relative flex h-full max-h-[46dvh] w-full max-w-sm items-center justify-center">
-          <span className="absolute left-0 top-1 z-10 rounded-full border border-white/15 bg-[#0b1322]/80 px-3 py-1.5 font-mono-ruum text-[9px] uppercase tracking-[0.12em] text-[#3aa5ff] backdrop-blur">
+          <span className="absolute left-0 top-1 z-10 rounded-full border border-border bg-surface-elevated px-3 py-1.5 font-body text-xs font-semibold text-route-action backdrop-blur">
             Paso {paso + 1} de {PASOS.length}
           </span>
           {actual.hero}
@@ -175,24 +175,24 @@ export default function PaginaOnboarding() {
               className={
                 i === paso
                   ? "h-1.5 w-6 rounded-full bg-signal transition-all"
-                  : "h-1.5 w-1.5 rounded-full bg-white/25 transition-all"
+                  : "h-1.5 w-1.5 rounded-full bg-text-tertiary transition-all"
               }
             />
           ))}
         </div>
 
-        <p className="font-mono-ruum text-[10px] uppercase tracking-[0.16em] text-white/45">{actual.tag}</p>
+        <p className="font-body text-sm font-semibold text-text-tertiary">{actual.tag}</p>
         <h1 className="mt-2 max-w-[320px] font-display text-[23px] font-bold leading-tight">{actual.titulo}</h1>
-        <p className="mt-3 max-w-[300px] font-body text-[13px] leading-6 text-white/60">{actual.descripcion}</p>
+        <p className="mt-3 max-w-[300px] font-body text-[13px] leading-6 text-text-secondary">{actual.descripcion}</p>
 
         <div className="mt-7 flex w-full flex-col gap-2.5">
-          <Button variant="primario" className="w-full" onClick={avanzar}>
+          <Button variant="primary" className="w-full" onClick={avanzar}>
             {esUltimo ? "Crear mi cuenta" : "Comenzar →"}
           </Button>
           <button
             type="button"
             onClick={() => void finalizar("/login")}
-            className="w-full rounded-xl px-5 py-3 font-display text-sm font-semibold text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+            className="min-h-12 w-full rounded-xl px-5 py-3 font-display text-sm font-semibold text-text-secondary transition hover:bg-surface-elevated hover:text-text-primary"
           >
             Ya tengo una cuenta
           </button>

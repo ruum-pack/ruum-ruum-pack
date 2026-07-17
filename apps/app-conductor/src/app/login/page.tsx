@@ -50,19 +50,19 @@ export default function PaginaLogin() {
         <div className="flex items-center gap-3">
           <LogoMarca tamano={34} color="signal" />
           <div>
-            <p className="font-display text-lg font-extrabold tracking-tight text-ink">
+            <p className="font-display text-lg font-extrabold tracking-tight text-text-primary">
               ruum<span className="text-signal">ruum</span>
             </p>
-            <p className="font-mono-ruum text-[10px] uppercase tracking-[0.14em] text-ink/50">Conductor</p>
+            <p className="font-body text-xs font-semibold text-text-tertiary">Conductor</p>
           </div>
         </div>
 
-        <h1 id="titulo-inicio-conductor" className="mt-8 font-display text-2xl font-bold text-ink">Iniciar sesión</h1>
-        <p className="mt-2 font-body text-sm leading-6 text-ink/65">Accede a tus viajes, evidencia y ganancias operativas.</p>
+        <h1 id="titulo-inicio-conductor" className="mt-8 font-display text-2xl font-bold text-text-primary">Iniciar sesión</h1>
+        <p className="mt-2 font-body text-sm leading-6 text-text-secondary">Accede a tus viajes, registro del vehículo y ganancias operativas.</p>
 
         {!tieneSupabaseConfigurado() && (
           <div className="mt-6">
-            <Aviso tono="peligro">
+            <Aviso tono="danger">
               Supabase no está configurado. No es posible iniciar sesión en este entorno.
             </Aviso>
           </div>
@@ -88,14 +88,14 @@ export default function PaginaLogin() {
 
             {error && (
               <div role="status" aria-live="polite" aria-atomic="true">
-                <Aviso tono="peligro">{error}</Aviso>
+                <Aviso tono="danger">{error}</Aviso>
               </div>
             )}
 
             <div className="flex justify-end">
               <Link
                 href="/recuperar-password"
-                className="font-body text-xs text-route-dark underline-offset-2 hover:underline"
+                className="font-body text-xs text-route-action underline-offset-2 hover:underline"
               >
                 ¿Olvidaste tu contraseña?
               </Link>
@@ -106,9 +106,9 @@ export default function PaginaLogin() {
             </Button>
         </form>
 
-        <p className="mt-6 text-center font-body text-sm text-ink/60">
+        <p className="mt-6 text-center font-body text-sm text-text-secondary">
           ¿Todavía no eres conductor certificado?{" "}
-          <Link href="/registro" className="font-semibold text-route-dark hover:underline">
+          <Link href="/registro" className="font-semibold text-route-action hover:underline">
             Solicitar certificación
           </Link>
         </p>

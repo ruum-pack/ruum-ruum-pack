@@ -323,7 +323,7 @@ export async function cancelarTraslado(cliente: Cliente, trasladoId: string, mot
 
   if (!usuarioPuedeCancelar(traslado.estado)) {
     throw new Error(
-      "Este traslado ya no puede cancelarse: el vehículo ya está en verificación o en tránsito. Abre una disputa o reporta una incidencia."
+      "Este traslado ya no puede cancelarse: el vehículo ya está en verificación o en tránsito. Solicita una revisión o reporta un problema."
     );
   }
 

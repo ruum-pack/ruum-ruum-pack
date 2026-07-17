@@ -35,7 +35,7 @@ export function ConfirmarDisponibilidad({
     <dialog
       ref={dialogRef}
       aria-labelledby="confirmar-disponibilidad-titulo"
-      className="w-[min(92vw,420px)] rounded-2xl border border-ink/10 bg-mist p-0 text-ink shadow-[0_24px_80px_rgba(26,31,46,0.28)] backdrop:bg-ink/45"
+      className="w-[min(92vw,420px)] rounded-2xl border border-border bg-surface p-0 text-text-primary shadow-[0_24px_80px_rgba(26,31,46,0.28)] backdrop:bg-surface-strong"
       onCancel={(evento) => {
         evento.preventDefault();
         if (!persistiendo) onCancelar();
@@ -45,14 +45,14 @@ export function ConfirmarDisponibilidad({
         <h2 id="confirmar-disponibilidad-titulo" className="font-display text-xl font-semibold">
           ¿Pasas a no disponible?
         </h2>
-        <p className="mt-3 font-body text-sm leading-6 text-ink/65">
+        <p className="mt-3 font-body text-sm leading-6 text-text-secondary">
           Dejarás de recibir traslados nuevos hasta que reactives tu disponibilidad.
         </p>
         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button type="button" variant="secundario" onClick={onCancelar} disabled={persistiendo}>
+          <Button type="button" variant="secondary" onClick={onCancelar} disabled={persistiendo}>
             Cancelar
           </Button>
-          <Button type="button" variant="primario" onClick={onConfirmar} loading={persistiendo}>
+          <Button type="button" variant="primary" onClick={onConfirmar} loading={persistiendo}>
             Confirmar
           </Button>
         </div>

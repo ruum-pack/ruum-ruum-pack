@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Aviso, PassportCard, EstadoBadge } from "@ruum/ui";
+import { AlertCard, Button, Card, FinancialCard, OperationalCard, TripCard, Aviso, DriverEarning } from "@ruum/ui";
+import { GLOSARIO_OPERATIVO } from "@ruum/shared/constants";
 import type { Conductor } from "@ruum/shared/types";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
@@ -16,38 +17,19 @@ import {
   obtenerConductorActual,
   obtenerSolicitudConductorActual
 } from "@ruum/api/services";
-import { RegistroViajeActivo, viajePermiteFabEmergencia } from "../ViajeActivoContext";
+import { RegistroViajeActivo, viajeEsOperacionActiva } from "../ViajeActivoContext";
+import { getTripPresentation } from "../../lib/trip-presentation";
 import { ConfirmarDisponibilidad } from "../ConfirmarDisponibilidad";
 import { EstadoRevisionConductor } from "./EstadoRevisionConductor";
 import { limpiarBorradorRegistroLocal } from "../../lib/borrador-registro";
+import { MapaRutaOrigen } from "../viajes/[id]/MapaRutaOrigen";
+import { ContactActionBar, type ContactRole } from "../viajes/[id]/ContactActionBar";
+import { ESTADOS_QUE_REQUIEREN_EVIDENCIA } from "../viajes/[id]/AccionesViaje";
+import { DriverAvailabilityControl, type DriverAvailability } from "./DriverAvailabilityControl";
 
-type Disponibilidad = "disponible" | "no_disponible" | "en_viaje";
+type Disponibilidad = DriverAvailability;
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
-
-const ESTADOS_DISPONIBILIDAD: Record<Disponibilidad, { etiqueta: string; descripcion: string }> = {
-  disponible: {
-    etiqueta: "Disponible",
-    descripcion: "Puedes recibir y aceptar viajes compatibles con tu perfil operativo."
-  },
-  no_disponible: {
-    etiqueta: "No disponible",
-    descripcion: "No aparecerás como candidato para nuevos viajes hasta que actives tu disponibilidad."
-  },
-  en_viaje: {
-    etiqueta: "En viaje",
-    descripcion: "Estado automático mientras tienes un traslado activo; termina al cerrar la operación."
-  }
-};
-
-const ESTILO_DISPONIBILIDAD: Record<Disponibilidad, string> = {
-  disponible: "border-control/30 bg-control-soft text-control",
-  no_disponible: "border-ink/15 bg-ink/[0.03] text-ink/55",
-  en_viaje: "border-route/30 bg-route-soft text-route-dark"
-};
-
-const OPCIONES_DISPONIBILIDAD: Disponibilidad[] = ["disponible", "no_disponible"];
-const ESTADOS_TERMINALES = ["servicio_cerrado", "servicio_cancelado", "traslado_fallido"];
 
 function nombreVehiculo(viaje: PasaporteRow) {
   return [viaje.vehiculo_marca, viaje.vehiculo_modelo, viaje.vehiculo_anio].filter(Boolean).join(" ") || "Vehículo";
@@ -55,6 +37,59 @@ function nombreVehiculo(viaje: PasaporteRow) {
 
 function folioViaje(viaje: PasaporteRow) {
   return viaje.traslado_id.slice(0, 8).toUpperCase();
+}
+
+function destinoOperativo(viaje: PasaporteRow) {
+  const presentation = getTripPresentation(viaje.estado);
+  const vaADestino = ["go_destination", "mark_arrived_destination", "capture_destination_record", "confirm_delivery", "close_trip"].includes(
+    presentation.primaryAction.action
+  );
+  const direccion = vaADestino ? viaje.destino_direccion : viaje.origen_direccion;
+  const ciudad = vaADestino ? viaje.destino_ciudad : viaje.origen_ciudad;
+
+  if (direccion && ciudad) return `${direccion} · ${ciudad}`;
+  if (direccion) return direccion;
+  if (ciudad) return ciudad;
+  return vaADestino ? "Punto de entrega" : "Punto de recolección";
+}
+
+function usaDestinoActual(action: ReturnType<typeof getTripPresentation>["primaryAction"]["action"]) {
+  return ["go_destination", "mark_arrived_destination", "capture_destination_record", "confirm_delivery", "close_trip"].includes(action);
+}
+
+function puntoActual(viaje: PasaporteRow, action: ReturnType<typeof getTripPresentation>["primaryAction"]["action"]) {
+  const destino = usaDestinoActual(action);
+  return {
+    lat: destino ? viaje.destino_lat : viaje.origen_lat,
+    lng: destino ? viaje.destino_lng : viaje.origen_lng,
+    etiqueta: destino ? "Punto de entrega" : "Punto de recolección"
+  };
+}
+
+function contactoRelevante(viaje: PasaporteRow, action: ReturnType<typeof getTripPresentation>["primaryAction"]["action"]) {
+  const destino = usaDestinoActual(action);
+  return {
+    role: destino ? ("destino" as ContactRole) : ("origen" as ContactRole),
+    name: destino ? viaje.contacto_recepcion_nombre : viaje.contacto_entrega_nombre,
+    phone: destino ? viaje.contacto_recepcion_telefono : viaje.contacto_entrega_telefono
+  };
+}
+
+function fechaViaje(viaje: PasaporteRow) {
+  const fecha = viaje.creado_en ?? viaje.actualizado_en;
+  if (!fecha) return "Fecha por confirmar";
+  return new Intl.DateTimeFormat("es-MX", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Mexico_City"
+  }).format(new Date(fecha));
+}
+
+function esViajePorCerrar(viaje: PasaporteRow) {
+  return ["llegada_a_destino", "evidencia_final_en_proceso", "evidencia_final_completada", "entrega_confirmada"].includes(viaje.estado);
 }
 
 export default function PaginaPanel() {
@@ -158,45 +193,42 @@ export default function PaginaPanel() {
     cargar();
   }, [router]);
 
-  const resumen = useMemo(() => {
+  const viajeActivoPrincipal = useMemo(
+    () => viajesAceptados.find((viaje) => viajeEsOperacionActiva(viaje.estado)) ?? null,
+    [viajesAceptados]
+  );
+  const presentationActiva = viajeActivoPrincipal ? getTripPresentation(viajeActivoPrincipal.estado) : null;
+  const proximoViaje = useMemo(
+    () => viajesAceptados.find((viaje) => !viajeEsOperacionActiva(viaje.estado)) ?? null,
+    [viajesAceptados]
+  );
+  const documentoBloqueante = Boolean(conductor && !conductor.documentos_vigentes);
+  const avisoPrioritario = useMemo(() => {
+    if (documentoBloqueante) {
+      return {
+        tono: "atencion" as const,
+        titulo: "Documento pendiente",
+        cuerpo: "Actualiza tus documentos para evitar bloqueos al recibir oportunidades."
+      };
+    }
+    if (errorDisponibilidad) {
+      return { tono: "danger" as const, titulo: "No pudimos actualizar el panel", cuerpo: errorDisponibilidad };
+    }
+    if (disponibilidad === "no_disponible") {
+      return {
+        tono: "info" as const,
+        titulo: "No estás disponible",
+        cuerpo: "Activa tu disponibilidad cuando puedas recibir nuevos viajes."
+      };
+    }
     return {
-      aceptados: viajesAceptados.length,
-      pendientes: viajesDisponibles.length
+      tono: "info" as const,
+      titulo: viajesDisponibles.length > 0 ? "Oportunidades listas" : "Sin oportunidades nuevas",
+      cuerpo: viajesDisponibles.length > 0
+        ? `Hay ${viajesDisponibles.length} oportunidad(es) disponible(s).`
+        : "Te avisaremos cuando haya viajes compatibles con tu perfil."
     };
-  }, [viajesAceptados, viajesDisponibles]);
-  const viajeActivoFab = useMemo(
-    () => viajesAceptados.find((viaje) => viajePermiteFabEmergencia(viaje.estado)) ?? null,
-    [viajesAceptados]
-  );
-  const viajesActivos = useMemo(
-    () => viajesAceptados.filter((viaje) => !ESTADOS_TERMINALES.includes(viaje.estado)),
-    [viajesAceptados]
-  );
-  const viajeActivoPrincipal = viajesActivos[0] ?? null;
-
-  const mensajes = useMemo(
-    () => [
-      {
-        titulo: viajesDisponibles.length > 0 ? "Viajes disponibles" : "Sin viajes nuevos",
-        cuerpo:
-          viajesDisponibles.length > 0
-            ? `Hay ${viajesDisponibles.length} viaje(s) pendiente(s) de aceptación.`
-            : "Te avisaremos cuando haya viajes compatibles con tu perfil."
-      },
-      {
-        titulo: "Pago semanal",
-        cuerpo: "Consulta tus depósitos y payouts registrados en la sección de ganancias."
-      },
-      {
-        titulo: "Operación",
-        cuerpo:
-          disponibilidad === "en_viaje"
-            ? "Tienes un traslado activo. Mantén evidencia y comunicación al día."
-            : "Activa tu disponibilidad para aparecer en la asignación de viajes."
-      }
-    ],
-    [disponibilidad, viajesDisponibles.length]
-  );
+  }, [disponibilidad, documentoBloqueante, errorDisponibilidad, viajesDisponibles.length]);
 
   const persistirDisponibilidad = useCallback(
     async (nuevaDisponibilidad: Exclude<Disponibilidad, "en_viaje">) => {
@@ -261,14 +293,23 @@ export default function PaginaPanel() {
     );
   }
 
+  const puntoActivo = viajeActivoPrincipal && presentationActiva ? puntoActual(viajeActivoPrincipal, presentationActiva.primaryAction.action) : null;
+  const contactoActivo = viajeActivoPrincipal && presentationActiva ? contactoRelevante(viajeActivoPrincipal, presentationActiva.primaryAction.action) : null;
+  const requiereEvidenciaActiva = viajeActivoPrincipal ? ESTADOS_QUE_REQUIEREN_EVIDENCIA.includes(viajeActivoPrincipal.estado) : false;
+  const requiereCierreActivo = viajeActivoPrincipal ? esViajePorCerrar(viajeActivoPrincipal) : false;
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
       <RegistroViajeActivo
         viaje={
-          viajeActivoFab
+          viajeActivoPrincipal
             ? {
-                trasladoId: viajeActivoFab.traslado_id,
-                estado: viajeActivoFab.estado
+                trasladoId: viajeActivoPrincipal.traslado_id,
+                estado: viajeActivoPrincipal.estado,
+                origenDireccion: viajeActivoPrincipal.origen_direccion,
+                origenCiudad: viajeActivoPrincipal.origen_ciudad,
+                destinoDireccion: viajeActivoPrincipal.destino_direccion,
+                destinoCiudad: viajeActivoPrincipal.destino_ciudad
               }
             : null
         }
@@ -276,183 +317,189 @@ export default function PaginaPanel() {
       <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-semibold leading-tight">Panel</h1>
-          <p className="mt-1 font-body text-sm text-ink/55">Hola, {conductor?.nombre ?? "conductor"}</p>
+          <p className="mt-1 font-body text-sm text-text-secondary">Hola, {conductor?.nombre ?? "conductor"}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/configuracion">
-            <Button variant="fantasma">Configuración</Button>
+          <Link href="/cuenta">
+            <Button variant="quiet">Configuración</Button>
           </Link>
           {conductor ? (
-            <button onClick={cerrarSesion} className="font-body text-sm text-ink/60 hover:text-ink">
+            <button onClick={cerrarSesion} className="inline-flex min-h-11 items-center font-body text-sm text-text-secondary hover:text-text-primary">
               Cerrar sesión
             </button>
           ) : (
-            <Link href="/login" className="font-body text-sm font-medium text-ink/70 hover:text-ink">
+            <Link href="/login" className="font-body text-sm font-medium text-text-secondary hover:text-text-primary">
               Iniciar sesión
             </Link>
           )}
         </div>
       </header>
 
-      {errorDisponibilidad && (
-        <div className="mt-4">
-          <Aviso tono="peligro">{errorDisponibilidad}</Aviso>
-        </div>
-      )}
-
-      <section className="mt-8">
-        <PassportCard>
-          <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
-            <div>
-              <p className="font-body text-xs uppercase tracking-wide text-ink/45">Zona A · Disponibilidad</p>
-              <h2 className="mt-2 font-display text-2xl font-semibold">
-                {viajeActivoPrincipal ? "Tienes un viaje activo" : "Listo para operar"}
-              </h2>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <span
-                  title={ESTADOS_DISPONIBILIDAD[disponibilidad].descripcion}
-                  aria-describedby="descripcion-disponibilidad"
-                  className={[
-                    "inline-flex items-center rounded-full border px-3 py-1.5 font-body text-sm font-semibold",
-                    ESTILO_DISPONIBILIDAD[disponibilidad]
-                  ].join(" ")}
-                  aria-busy={persistiendoDisponibilidad || undefined}
-                >
-                  {persistiendoDisponibilidad && (
-                    <span className="mr-2 size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
-                  )}
-                  {ESTADOS_DISPONIBILIDAD[disponibilidad].etiqueta}
-                </span>
-                <div
-                  role="radiogroup"
-                  aria-label="Disponibilidad para recibir viajes"
-                  aria-describedby="descripcion-disponibilidad"
-                  className="inline-flex rounded-xl border border-ink/10 bg-mist p-1"
-                >
-                  {OPCIONES_DISPONIBILIDAD.map((opcion) => {
-                    const activo = disponibilidad === opcion;
-                    return (
-                      <button
-                        key={opcion}
-                        type="button"
-                        role="radio"
-                        aria-checked={activo}
-                        title={ESTADOS_DISPONIBILIDAD[opcion].descripcion}
-                        disabled={disponibilidad === "en_viaje" || persistiendoDisponibilidad}
-                        onClick={() => seleccionarDisponibilidad(opcion)}
-                        className={[
-                          "min-h-10 rounded-lg px-3 py-2 font-body text-sm font-semibold transition",
-                          activo
-                            ? "bg-route-dark text-mist shadow-sm"
-                            : "text-ink/65 hover:bg-ink/[0.05] hover:text-ink",
-                          disponibilidad === "en_viaje" || persistiendoDisponibilidad ? "cursor-not-allowed opacity-55" : ""
-                        ].join(" ")}
-                      >
-                        {ESTADOS_DISPONIBILIDAD[opcion].etiqueta}
-                      </button>
-                    );
-                  })}
+      {viajeActivoPrincipal && presentationActiva ? (
+        <main className="mt-8 grid gap-5" aria-label="Viaje activo">
+          <OperationalCard>
+            <div className="grid gap-5 lg:grid-cols-[1fr_0.7fr] lg:items-center">
+              <div>
+                <p className="font-body text-sm font-semibold text-route-action">
+                  Viaje activo · Folio {folioViaje(viajeActivoPrincipal)}
+                </p>
+                <h2 className="mt-2 font-display text-3xl font-semibold leading-tight">{presentationActiva.title}</h2>
+                <p className="mt-3 max-w-2xl font-body text-sm leading-6 text-text-secondary">{presentationActiva.instruction}</p>
+                <div className="mt-4 rounded-xl border border-route-action bg-route-soft px-4 py-3">
+                  <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Destino actual</p>
+                  <p className="mt-1 break-words font-body text-base font-semibold text-text-primary">{destinoOperativo(viajeActivoPrincipal)}</p>
                 </div>
               </div>
-              <p id="descripcion-disponibilidad" className="mt-3 font-body text-sm text-ink/55">
-                {ESTADOS_DISPONIBILIDAD[disponibilidad].descripcion}
-              </p>
-            </div>
-            <div className="grid gap-3">
-              {viajeActivoPrincipal ? (
+              <div className="grid gap-3">
                 <Link href={`/viajes/${viajeActivoPrincipal.traslado_id}`}>
-                  <Button variant="primario" className="min-h-14 w-full text-base">
-                    Continuar viaje {folioViaje(viajeActivoPrincipal)}
+                  <Button variant="primary" className="min-h-14 w-full text-base">
+                    {presentationActiva.primaryAction.label}
                   </Button>
                 </Link>
-              ) : (
-                <Link href="/viajes">
-                  <Button variant="primario" className="min-h-14 w-full text-base">
-                    Ver viajes disponibles ({viajesDisponibles.length})
-                  </Button>
-                </Link>
-              )}
-              <p className="font-body text-sm text-ink/55">
-                {viajeActivoPrincipal
-                  ? `${nombreVehiculo(viajeActivoPrincipal)} · mantén evidencia y comunicación al día.`
-                  : "Revisa solicitudes compatibles y acepta solo las que puedas cubrir."}
-              </p>
-            </div>
-          </div>
-        </PassportCard>
-      </section>
-
-      <section className="mt-6">
-        <p className="mb-3 font-body text-xs uppercase tracking-wide text-ink/45">Zona B · Stats</p>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <PassportCard acento>
-            <p className="font-body text-xs font-medium uppercase tracking-wide text-ink/45">Traslados solicitados</p>
-            <div className="mt-2 flex items-baseline gap-2">
-              <p className="font-display text-3xl font-bold">{resumen.pendientes}</p>
-            </div>
-            <p className="font-body text-xs text-ink/45">por aceptar</p>
-          </PassportCard>
-          <PassportCard acento>
-            <p className="font-body text-xs font-medium uppercase tracking-wide text-ink/45">Traslados aceptados</p>
-            <div className="mt-2 flex items-baseline gap-2">
-              <p className="font-display text-3xl font-bold">{resumen.aceptados}</p>
-            </div>
-            <Link href="/viajes" className="font-body text-xs font-semibold text-route-dark">
-              Ver traslados
-            </Link>
-          </PassportCard>
-        </div>
-      </section>
-
-      <section className="mt-6">
-        <PassportCard>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="font-body text-xs uppercase tracking-wide text-ink/45">Zona C · Feed</p>
-              <h2 className="mt-1 font-display text-xl font-semibold">Actividad operativa</h2>
-            </div>
-            <Link href="/viajes">
-              <Button variant="secundario">Ver todos</Button>
-            </Link>
-          </div>
-          <div className="mt-5 divide-y divide-ink/10">
-            {viajesDisponibles.slice(0, 2).map((viaje) => (
-              <Link
-                key={`pendiente-${viaje.traslado_id}`}
-                href="/viajes"
-                className="flex items-center justify-between gap-4 py-3"
-              >
-                <div>
-                  <p className="font-body text-sm font-semibold">{nombreVehiculo(viaje)}</p>
-                  <p className="mt-0.5 font-body text-xs text-ink/45">Pendiente de aceptación · Folio {folioViaje(viaje)}</p>
-                </div>
-                <span className="rounded-full border border-signal/30 bg-signal-soft px-2.5 py-1 font-body text-xs font-semibold text-ink">
-                  Nuevo
-                </span>
-              </Link>
-            ))}
-            {viajesActivos.slice(0, 2).map((viaje) => (
-              <Link
-                key={`activo-${viaje.traslado_id}`}
-                href={`/viajes/${viaje.traslado_id}`}
-                className="flex items-center justify-between gap-4 py-3"
-              >
-                <div>
-                  <p className="font-body text-sm font-semibold">{nombreVehiculo(viaje)}</p>
-                  <p className="mt-0.5 font-body text-xs text-ink/45">Viaje activo · Folio {folioViaje(viaje)}</p>
-                </div>
-                <EstadoBadge estado={viaje.estado} conTexto={false} />
-              </Link>
-            ))}
-            {mensajes.map((mensaje) => (
-              <div key={mensaje.titulo} className="py-3">
-                <p className="font-body text-sm font-semibold">{mensaje.titulo}</p>
-                <p className="mt-1 font-body text-sm text-ink/60">{mensaje.cuerpo}</p>
+                <p className="font-body text-sm text-text-secondary">{nombreVehiculo(viajeActivoPrincipal)}</p>
               </div>
-            ))}
-          </div>
-        </PassportCard>
-      </section>
+            </div>
+          </OperationalCard>
+
+          <Card>
+            <p className="mb-3 font-body text-xs uppercase tracking-wide text-text-tertiary">Mapa</p>
+            {puntoActivo?.lat !== null && puntoActivo?.lng !== null && puntoActivo ? (
+              <MapaRutaOrigen destino={{ lat: puntoActivo.lat, lng: puntoActivo.lng }} />
+            ) : (
+              <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-border bg-surface-elevated px-4 text-center font-body text-sm text-tertiary">
+                Mapa no disponible. Usa la dirección del {puntoActivo?.etiqueta.toLowerCase() ?? "punto actual"}.
+              </div>
+            )}
+          </Card>
+
+          {contactoActivo && (
+            <Card>
+              <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Contacto</p>
+              <ContactActionBar
+                trasladoId={viajeActivoPrincipal.traslado_id}
+                role={contactoActivo.role}
+                name={contactoActivo.name}
+                phone={contactoActivo.phone}
+              />
+            </Card>
+          )}
+
+          <OperationalCard>
+            <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Evidencia o requisito pendiente</p>
+            <h2 className="mt-1 font-display text-xl font-semibold">
+              {requiereEvidenciaActiva ? GLOSARIO_OPERATIVO.evidencia : requiereCierreActivo ? "Cierre pendiente" : "Sin requisito bloqueante"}
+            </h2>
+            <p className="mt-2 font-body text-sm text-text-secondary">
+              {requiereEvidenciaActiva
+                ? "Completa el registro del vehículo antes de continuar."
+                : requiereCierreActivo
+                  ? "Confirma entrega o cierre operativo para terminar el traslado."
+                  : "Continúa con la acción principal del viaje activo."}
+            </p>
+            {(requiereEvidenciaActiva || requiereCierreActivo) && (
+              <Link href={requiereEvidenciaActiva ? `/viajes/${viajeActivoPrincipal.traslado_id}/evidencia` : `/viajes/${viajeActivoPrincipal.traslado_id}`}>
+                <Button variant="secondary" className="mt-4 w-full sm:w-auto">
+                  {requiereEvidenciaActiva ? "Abrir registro" : "Abrir viaje"}
+                </Button>
+              </Link>
+            )}
+          </OperationalCard>
+
+          <AlertCard>
+            <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Soporte</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <Link href={`/viajes/${viajeActivoPrincipal.traslado_id}#contacto`}>
+                <Button variant="secondary" className="w-full">Contacto</Button>
+              </Link>
+              <Link href={`/viajes/${viajeActivoPrincipal.traslado_id}#reportar-problema`}>
+                <Button variant="secondary" className="w-full">Reportar problema</Button>
+              </Link>
+              <Link href={`/viajes/${viajeActivoPrincipal.traslado_id}#emergencia`}>
+                <Button variant="emergency" className="w-full">Emergencia</Button>
+              </Link>
+            </div>
+          </AlertCard>
+        </main>
+      ) : (
+        <main className="mt-8 grid gap-5" aria-label="Inicio operativo">
+          <OperationalCard>
+            <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+              <DriverAvailabilityControl
+                value={disponibilidad}
+                saving={persistiendoDisponibilidad}
+                onChange={seleccionarDisponibilidad}
+              />
+              <Link href="/viajes?vista=disponibles">
+                <Button variant="primary" className="min-h-14 w-full text-base">
+                  Ver oportunidades ({viajesDisponibles.length})
+                </Button>
+              </Link>
+            </div>
+          </OperationalCard>
+
+          <TripCard>
+            <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Próximo viaje</p>
+            {proximoViaje ? (
+              <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="font-display text-xl font-semibold">{nombreVehiculo(proximoViaje)}</h2>
+                  <p className="mt-1 font-body text-sm text-text-secondary">{fechaViaje(proximoViaje)} · Folio {folioViaje(proximoViaje)}</p>
+                </div>
+                <Link href={`/viajes/${proximoViaje.traslado_id}`}>
+                  <Button variant="secondary" className="w-full sm:w-auto">Ver viaje</Button>
+                </Link>
+              </div>
+            ) : (
+              <p className="mt-2 font-body text-sm text-text-secondary">Aún no tienes viajes aceptados próximos.</p>
+            )}
+          </TripCard>
+
+          {documentoBloqueante ? (
+            <AlertCard>
+              <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Documento bloqueante</p>
+              <div className="mt-2">
+                <h2 className="font-display text-xl font-semibold">Revisa tus documentos</h2>
+                <p className="mt-2 font-body text-sm text-text-secondary">
+                  Este pendiente puede bloquear oportunidades. Atiéndelo antes de aceptar nuevos viajes.
+                </p>
+                <Link href="/cuenta/documentos">
+                  <Button variant="primary" className="mt-4 w-full sm:w-auto">Abrir documentos</Button>
+                </Link>
+              </div>
+            </AlertCard>
+          ) : (
+            <TripCard>
+              <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Oportunidades cercanas</p>
+              <div className="mt-3 grid gap-3">
+                {viajesDisponibles.slice(0, 2).map((viaje) => (
+                  <Link key={viaje.traslado_id} href="/viajes?vista=disponibles" className="rounded-xl border border-border px-4 py-3 hover:border-route-action hover:bg-route-soft">
+                    <p className="font-body text-sm font-semibold">{nombreVehiculo(viaje)}</p>
+                    <p className="mt-1 font-body text-xs text-text-tertiary">Folio {folioViaje(viaje)}</p>
+                  </Link>
+                ))}
+                {viajesDisponibles.length === 0 && <p className="font-body text-sm text-text-secondary">No hay oportunidades disponibles por ahora.</p>}
+              </div>
+            </TripCard>
+          )}
+
+          <FinancialCard>
+            <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Ganancia semanal</p>
+            <DriverEarning amount={null} status="sin_calcular" currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
+            <Link href="/ganancias" className="mt-3 inline-flex font-body text-sm font-semibold text-route-action hover:underline">
+              Abrir módulo de ganancias
+            </Link>
+          </FinancialCard>
+
+          <AlertCard>
+            <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Aviso prioritario</p>
+            <div className="mt-2">
+              <Aviso tono={avisoPrioritario.tono}>
+                <strong>{avisoPrioritario.titulo}.</strong> {avisoPrioritario.cuerpo}
+              </Aviso>
+            </div>
+          </AlertCard>
+        </main>
+      )}
 
       <ConfirmarDisponibilidad
         abierto={disponibilidadPendiente === "no_disponible"}

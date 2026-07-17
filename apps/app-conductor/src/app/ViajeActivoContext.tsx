@@ -1,27 +1,48 @@
 "use client";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { activarSoporteEmergenciaConductor, registrarUbicacionTraslado } from "@ruum/api/services";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
+import { listarViajesAceptados, obtenerConductorActual, registrarUbicacionTraslado } from "@ruum/api/services";
 import type { Database } from "@ruum/shared/types";
 import { ESTADOS_TRASLADO } from "@ruum/shared/states";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
+import { getTripPresentation } from "../lib/trip-presentation";
 import { observarUbicacionActual, obtenerUbicacionActual, type Coordenadas } from "../lib/ubicacion";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
+type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
-type ViajeActivo = {
+export type ViajeActivo = {
   trasladoId: string;
   estado: EstadoTraslado;
+  folio: string;
+  etapa: string;
+  destinoActual: string;
 };
 
 type ViajeActivoContextValue = {
   viajeActivo: ViajeActivo | null;
-  registrarViajeActivo: (viaje: ViajeActivo | null) => void;
+  registrarViajeActivo: (viaje: RegistroViajeActivoInput | null) => void;
 };
 
 const ViajeActivoContext = createContext<ViajeActivoContextValue | null>(null);
 
 const INDICE_INICIO_EMERGENCIA = ESTADOS_TRASLADO.indexOf("conductor_asignado");
 const INDICE_FIN_EMERGENCIA = ESTADOS_TRASLADO.indexOf("evidencia_final_completada");
+const ESTADOS_OPERACION_ACTIVA: EstadoTraslado[] = [
+  "conductor_asignado",
+  "conductor_en_camino_al_origen",
+  "conductor_en_punto_de_recoleccion",
+  "verificacion_vehiculo_en_proceso",
+  "evidencia_inicial_en_proceso",
+  "evidencia_inicial_completada",
+  "vehiculo_recibido",
+  "traslado_en_curso",
+  "incidencia_reportada",
+  "llegada_a_destino",
+  "evidencia_final_en_proceso",
+  "evidencia_final_completada",
+  "entrega_confirmada"
+];
 const ESTADOS_SEGUIMIENTO_UBICACION: EstadoTraslado[] = [
   "conductor_en_camino_al_origen",
   "conductor_en_punto_de_recoleccion",
@@ -37,13 +58,68 @@ const ESTADOS_SEGUIMIENTO_UBICACION: EstadoTraslado[] = [
   "entrega_confirmada"
 ];
 
-export function viajePermiteFabEmergencia(estado: EstadoTraslado) {
+type RegistroViajeActivoInput = Partial<ViajeActivo> & {
+  trasladoId: string;
+  estado: EstadoTraslado;
+  origenDireccion?: string | null;
+  origenCiudad?: string | null;
+  destinoDireccion?: string | null;
+  destinoCiudad?: string | null;
+};
+
+export function viajePermiteEmergencia(estado: EstadoTraslado) {
   const indice = ESTADOS_TRASLADO.indexOf(estado);
   return indice >= INDICE_INICIO_EMERGENCIA && indice <= INDICE_FIN_EMERGENCIA;
 }
 
 export function viajePermiteSeguimientoUbicacion(estado: EstadoTraslado) {
   return ESTADOS_SEGUIMIENTO_UBICACION.includes(estado);
+}
+
+export function viajeEsOperacionActiva(estado: EstadoTraslado) {
+  return ESTADOS_OPERACION_ACTIVA.includes(estado);
+}
+
+function folioDesdeId(trasladoId: string) {
+  return trasladoId.slice(0, 8).toUpperCase();
+}
+
+function direccionActualDeViaje(viaje: RegistroViajeActivoInput) {
+  const presentation = getTripPresentation(viaje.estado);
+  const usaDestino = ["go_destination", "mark_arrived_destination", "capture_destination_record", "confirm_delivery", "close_trip"].includes(
+    presentation.primaryAction.action
+  );
+  const direccion = usaDestino ? viaje.destinoDireccion : viaje.origenDireccion;
+  const ciudad = usaDestino ? viaje.destinoCiudad : viaje.origenCiudad;
+
+  if (direccion && ciudad) return `${direccion} · ${ciudad}`;
+  if (direccion) return direccion;
+  if (ciudad) return ciudad;
+  return usaDestino ? "Punto de entrega" : "Punto de recolección";
+}
+
+function normalizarViajeActivo(viaje: RegistroViajeActivoInput, previo?: ViajeActivo | null): ViajeActivo | null {
+  if (!viajeEsOperacionActiva(viaje.estado)) return null;
+
+  const presentation = getTripPresentation(viaje.estado);
+  return {
+    trasladoId: viaje.trasladoId,
+    estado: viaje.estado,
+    folio: viaje.folio ?? previo?.folio ?? folioDesdeId(viaje.trasladoId),
+    etapa: viaje.etapa ?? presentation.title,
+    destinoActual: viaje.destinoActual ?? previo?.destinoActual ?? direccionActualDeViaje(viaje)
+  };
+}
+
+function viajeActivoDesdePasaporte(viaje: PasaporteRow): ViajeActivo | null {
+  return normalizarViajeActivo({
+    trasladoId: viaje.traslado_id,
+    estado: viaje.estado,
+    origenDireccion: viaje.origen_direccion,
+    origenCiudad: viaje.origen_ciudad,
+    destinoDireccion: viaje.destino_direccion,
+    destinoCiudad: viaje.destino_ciudad
+  });
 }
 
 function distanciaMetros(a: Coordenadas, b: Coordenadas) {
@@ -60,21 +136,64 @@ function distanciaMetros(a: Coordenadas, b: Coordenadas) {
 }
 
 export function ViajeActivoProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [viajeActivo, setViajeActivo] = useState<ViajeActivo | null>(null);
+  const registrarViajeActivo = useCallback((viaje: RegistroViajeActivoInput | null) => {
+    setViajeActivo((previo) => (viaje ? normalizarViajeActivo(viaje, previo) : null));
+  }, []);
 
   const value = useMemo(
     () => ({
       viajeActivo,
-      registrarViajeActivo: setViajeActivo
+      registrarViajeActivo
     }),
-    [viajeActivo]
+    [registrarViajeActivo, viajeActivo]
   );
+
+  useEffect(() => {
+    if (!tieneSupabaseConfigurado()) return;
+    if (pathname === "/login" || pathname === "/registro" || pathname === "/onboarding") {
+      setViajeActivo(null);
+      return;
+    }
+
+    let cancelado = false;
+
+    async function cargarViajeActivo() {
+      try {
+        const cliente = crearClienteNavegador();
+        const conductor = await obtenerConductorActual(cliente);
+        if (!conductor) {
+          if (!cancelado) setViajeActivo(null);
+          return;
+        }
+
+        const viajes = await listarViajesAceptados(cliente, conductor.id);
+        const activo = viajes.find((viaje) => viajeEsOperacionActiva(viaje.estado));
+        if (!cancelado) setViajeActivo(activo ? viajeActivoDesdePasaporte(activo) : null);
+      } catch {
+        if (!cancelado) setViajeActivo(null);
+      }
+    }
+
+    void cargarViajeActivo();
+    const intervalo = window.setInterval(() => void cargarViajeActivo(), 45_000);
+    const alVolver = () => {
+      if (document.visibilityState === "visible") void cargarViajeActivo();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+
+    return () => {
+      cancelado = true;
+      window.clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", alVolver);
+    };
+  }, [pathname]);
 
   return (
     <ViajeActivoContext.Provider value={value}>
       {children}
       <ReportadorUbicacionConductor />
-      <FabEmergencia911 />
     </ViajeActivoContext.Provider>
   );
 }
@@ -87,13 +206,11 @@ export function useViajeActivo() {
   return contexto;
 }
 
-export function RegistroViajeActivo({ viaje }: { viaje: ViajeActivo | null }) {
+export function RegistroViajeActivo({ viaje }: { viaje: RegistroViajeActivoInput | null }) {
   const { registrarViajeActivo } = useViajeActivo();
 
   useEffect(() => {
-    registrarViajeActivo(
-      viaje && (viajePermiteFabEmergencia(viaje.estado) || viajePermiteSeguimientoUbicacion(viaje.estado)) ? viaje : null
-    );
+    registrarViajeActivo(viaje && viajeEsOperacionActiva(viaje.estado) ? viaje : null);
     return () => registrarViajeActivo(null);
   }, [registrarViajeActivo, viaje]);
 
@@ -161,43 +278,4 @@ function ReportadorUbicacionConductor() {
   }, [viajeActivo]);
 
   return null;
-}
-
-function FabEmergencia911() {
-  const { viajeActivo } = useViajeActivo();
-  const [procesando, setProcesando] = useState(false);
-
-  if (!viajeActivo || !viajePermiteFabEmergencia(viajeActivo.estado)) {
-    return null;
-  }
-
-  async function activarEmergencia() {
-    if (!viajeActivo || procesando) return;
-
-    setProcesando(true);
-    try {
-      if (tieneSupabaseConfigurado()) {
-        const cliente = crearClienteNavegador();
-        await activarSoporteEmergenciaConductor(cliente, viajeActivo.trasladoId);
-      }
-      window.location.href = "tel:911";
-    } finally {
-      setProcesando(false);
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={activarEmergencia}
-      disabled={procesando}
-      aria-label="Llamar al 911 y activar alerta de emergencia"
-      className="fixed left-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-danger bg-danger text-mist shadow-[0_14px_36px_rgba(179,38,38,0.34)] transition hover:-translate-y-0.5 hover:bg-[#8f1d1d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger disabled:cursor-not-allowed disabled:opacity-60"
-      style={{ bottom: "calc(80px + env(safe-area-inset-bottom))" }}
-    >
-      <span aria-hidden="true" className="font-display text-lg font-extrabold leading-none">
-        911
-      </span>
-    </button>
-  );
 }

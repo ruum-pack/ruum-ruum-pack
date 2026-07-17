@@ -25,6 +25,31 @@
   --color-danger: #b32626;
   --color-danger-soft: #fdecec;
 
+  /* Tokens semánticos Tailwind. Usar estos en producto nuevo. */
+  --color-primary: var(--ruum-text-primary);
+  --color-secondary: var(--ruum-text-secondary);
+  --color-tertiary: var(--ruum-text-tertiary);
+  --color-disabled: var(--ruum-text-disabled);
+  --color-text-primary: var(--ruum-text-primary);
+  --color-text-secondary: var(--ruum-text-secondary);
+  --color-text-tertiary: var(--ruum-text-tertiary);
+  --color-text-disabled: var(--ruum-text-disabled);
+  --color-surface: var(--ruum-surface);
+  --color-surface-elevated: var(--ruum-surface-elevated);
+  --color-border: var(--ruum-border);
+  --color-border-strong: var(--ruum-border-strong);
+  --color-action-primary: var(--ruum-action-primary);
+  --color-action-primary-hover: var(--ruum-action-primary-hover);
+  --color-action-primary-active: var(--ruum-action-primary-active);
+  --color-route-action: var(--ruum-route);
+  --color-route-action-hover: var(--ruum-route-hover);
+  --color-route-action-active: var(--ruum-route-active);
+  --color-success: var(--ruum-success);
+  --color-warning: var(--ruum-warning);
+  --color-danger-action: var(--ruum-danger);
+  --color-danger-action-hover: var(--ruum-danger-hover);
+  --color-danger-action-active: var(--ruum-danger-active);
+
   /* Alias de compatibilidad para componentes ya escritos. */
   --color-paper: var(--color-mist);
   --color-paper-dim: var(--color-mist-dim);
@@ -50,17 +75,31 @@
   /* Tokens semánticos: consumir estos valores en CSS de producto. */
   --ruum-canvas: #f4f5f7;
   --ruum-surface: #ffffff;
+  --ruum-surface-elevated: #ffffff;
   --ruum-surface-subtle: #f8f9fb;
   --ruum-surface-strong: #1a1f2e;
   --ruum-border: #d6dae3;
   --ruum-border-strong: #aeb6c5;
+  --ruum-text-primary: #1a1f2e;
   --ruum-text: #1a1f2e;
   --ruum-text-secondary: #4d5668;
   --ruum-text-tertiary: #687287;
+  --ruum-text-disabled: #8791a3;
   --ruum-dark-text-secondary: #c9cfda;
   --ruum-dark-text-tertiary: #9aa2b5;
   --ruum-focus: #0e5cab;
   --ruum-focus-ring: rgba(14, 92, 171, 0.24);
+  --ruum-action-primary: #f5a623;
+  --ruum-action-primary-hover: #d88f16;
+  --ruum-action-primary-active: #c77f0a;
+  --ruum-route: #0e5cab;
+  --ruum-route-hover: #0a4b8c;
+  --ruum-route-active: #083c70;
+  --ruum-success: #08734f;
+  --ruum-warning: #76500e;
+  --ruum-danger: #b32626;
+  --ruum-danger-hover: #8f1d1d;
+  --ruum-danger-active: #751616;
   --ruum-action: #f5a623;
   --ruum-action-hover: #d88f16;
   --ruum-shadow-1: 0 1px 2px rgba(26, 31, 46, 0.08);

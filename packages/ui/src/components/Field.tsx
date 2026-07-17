@@ -22,20 +22,20 @@ export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassNam
   const esPassword = type === "password";
   const inputType = esPassword && passwordVisible ? "text" : type;
   const inputClassName = [
-    "w-full min-h-12 rounded-[10px] border bg-mist px-3.5 py-2.5 font-body text-sm text-ink shadow-[inset_0_1px_0_rgba(26,31,46,0.02)]",
+    "w-full min-h-12 rounded-[10px] border bg-surface px-3.5 py-2.5 font-body text-base text-text-primary shadow-[inset_0_1px_0_rgba(26,31,46,0.02)]",
     esPassword ? "pr-11" : "",
-    "placeholder:text-ink/45 transition-[border-color,box-shadow,background-color] duration-150",
-    "hover:border-ink/50 focus:border-route-dark focus:outline-none focus:ring-[3px] focus:ring-route-dark/20",
-    error ? "border-danger bg-danger-soft/20 focus:border-danger focus:ring-danger/15" : "border-ink/30",
-    "disabled:cursor-not-allowed disabled:border-ink/10 disabled:bg-mist-dim disabled:text-ink/50",
+    "placeholder:text-text-tertiary transition-[border-color,box-shadow,background-color] duration-150",
+    "hover:border-border-strong focus:border-route-action focus:outline-none focus:ring-[3px] focus:ring-route-action/20",
+    error ? "border-danger-action bg-danger-soft focus:border-danger-action focus:ring-danger-action/15" : "border-border-strong",
+    "disabled:cursor-not-allowed disabled:border-border disabled:bg-surface-elevated disabled:text-text-disabled",
     className
   ].join(" ");
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={inputId} className={`font-body text-sm font-semibold text-ink ${etiquetaClassName}`}>
+      <label htmlFor={inputId} className={`font-body text-sm font-semibold text-text-primary ${etiquetaClassName}`}>
         {etiqueta}
-        {props.required ? <span className="ml-1 text-danger" aria-hidden> *</span> : null}
+        {props.required ? <span className="ml-1 text-danger-action" aria-hidden> *</span> : null}
       </label>
       {esPassword ? (
         <div className="relative">
@@ -50,8 +50,8 @@ export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassNam
           <button
             type="button"
             onClick={() => setPasswordVisible((visible) => !visible)}
-            className={`absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg text-ink/55 transition-colors hover:bg-ink/[0.05] hover:text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark disabled:cursor-not-allowed disabled:opacity-40 ${passwordToggleClassName}`}
-            style={{ right: "0.5rem", width: "2.25rem", height: "2.25rem" }}
+            className={`absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-action disabled:cursor-not-allowed disabled:text-text-disabled ${passwordToggleClassName}`}
+            style={{ right: "0.375rem", width: "2.75rem", height: "2.75rem" }}
             aria-label={passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"}
             disabled={props.disabled}
           >
@@ -69,12 +69,12 @@ export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassNam
         />
       )}
       {ayuda ? (
-        <p id={helpId} className="font-body text-xs leading-5 text-ink/60">
+        <p id={helpId} className="font-body text-sm leading-5 text-text-secondary">
           {ayuda}
         </p>
       ) : null}
       {error ? (
-        <p id={errorId} role="alert" className="font-body text-xs font-medium leading-5 text-danger">
+        <p id={errorId} role="alert" className="font-body text-sm font-medium leading-5 text-danger-action">
           {error}
         </p>
       ) : null}

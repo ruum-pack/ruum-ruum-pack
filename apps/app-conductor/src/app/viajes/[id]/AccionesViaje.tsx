@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Aviso } from "@ruum/ui";
+import { Aviso, NextOperationalAction } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { TRANSICIONES } from "@ruum/shared/states";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
+import type { TripPresentation } from "../../../lib/trip-presentation";
 import { DirigeteAOrigen } from "./DirigeteAOrigen";
 import { ContactoYVehiculo } from "./ContactoYVehiculo";
 import { DirigeteADestino } from "./DirigeteADestino";
@@ -19,34 +20,47 @@ type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 // en vez de "avanzar" directo, llevan a la pantalla de captura.
 export const ESTADOS_QUE_REQUIEREN_EVIDENCIA: EstadoTraslado[] = ["evidencia_inicial_en_proceso", "evidencia_final_en_proceso"];
 
-// Próximo paso "del camino feliz" en lenguaje llano, para el botón. No es
-// una traducción de los 32 nombres técnicos (PRD §6) — solo de los que un
-// conductor puede disparar él mismo desde esta pantalla.
-export const ETIQUETA_SIGUIENTE_PASO: Partial<Record<EstadoTraslado, string>> = {
-  conductor_asignado: "Iniciar viaje",
-  // No dispara avanzar() aquí: en /viajes (lista) solo navega al detalle,
-  // donde vive la pantalla real "Dirígete al punto de inicio".
-  conductor_en_camino_al_origen: "Dirígete al punto de inicio",
-  conductor_en_punto_de_recoleccion: "Iniciar verificación del vehículo",
-  verificacion_vehiculo_en_proceso: "Iniciar evidencia inicial",
-  // Bug real: faltaban estos dos. El estado de "...en_proceso" es donde la
-  // pantalla SÍ necesita mostrar el botón hacia /evidencia (lo decide
-  // requiereEvidencia más abajo) — sin una etiqueta aquí, el bail-out
-  // `if (!etiqueta) return null` ocultaba el botón justo cuando debía
-  // aparecer, no solo en el paso anterior que lleva hasta aquí.
-  evidencia_inicial_en_proceso: "Continuar evidencia inicial",
-  evidencia_inicial_completada: "Dirígete al punto de entrega",
-  vehiculo_recibido: "Iniciar traslado",
-  traslado_en_curso: "Llegué a destino",
-  llegada_a_destino: "Contacto de entrega",
-  evidencia_final_en_proceso: "Continuar evidencia final",
-  evidencia_final_completada: "Confirmar entrega",
-  entrega_confirmada: "Cerrar viaje"
-};
+function contextoDireccion(direccion?: string | null, ciudad?: string | null, referencias?: string | null) {
+  if (!direccion && !ciudad) return null;
+
+  return (
+    <>
+      {direccion}
+      {ciudad && (
+        <>
+          <br />
+          <span className="font-normal text-text-secondary">{ciudad}</span>
+        </>
+      )}
+      {referencias && (
+        <>
+          <br />
+          <span className="font-normal text-text-tertiary">Referencias: {referencias}</span>
+        </>
+      )}
+    </>
+  );
+}
+
+function contextoVehiculo(marca?: string | null, modelo?: string | null, anio?: number | null, placas?: string | null) {
+  const nombre = [marca, modelo, anio].filter(Boolean).join(" ") || "Vehículo asignado";
+  return (
+    <>
+      {nombre}
+      {placas && (
+        <>
+          <br />
+          <span className="font-normal text-text-secondary">Placas: {placas}</span>
+        </>
+      )}
+    </>
+  );
+}
 
 export interface AccionesViajeProps {
   trasladoId: string;
   estado: EstadoTraslado;
+  presentation: TripPresentation;
   fotosCompletadas?: number;
   origenDireccion?: string | null;
   origenCiudad?: string | null;
@@ -73,6 +87,7 @@ export interface AccionesViajeProps {
 export function AccionesViaje({
   trasladoId,
   estado,
+  presentation,
   fotosCompletadas = 0,
   origenDireccion,
   origenCiudad,
@@ -104,11 +119,13 @@ export function AccionesViaje({
   // contacto/vehículo, datos que ese botón no sabe mostrar.
   if (estado === "conductor_en_camino_al_origen") {
     if (!origenDireccion || !origenCiudad) {
-      return <Aviso tono="peligro">Falta la dirección de origen para continuar.</Aviso>;
+      return <Aviso tono="danger">Falta la dirección de origen para continuar.</Aviso>;
     }
     return (
       <DirigeteAOrigen
         trasladoId={trasladoId}
+        title={presentation.title}
+        primaryActionLabel={presentation.primaryAction.label}
         origenDireccion={origenDireccion}
         origenCiudad={origenCiudad}
         origenReferencias={origenReferencias}
@@ -120,11 +137,12 @@ export function AccionesViaje({
 
   if (estado === "conductor_en_punto_de_recoleccion") {
     if (!contactoEntregaNombre || !contactoEntregaTelefono) {
-      return <Aviso tono="peligro">Falta el contacto de entrega para continuar.</Aviso>;
+      return <Aviso tono="danger">Falta el contacto de entrega para continuar.</Aviso>;
     }
     return (
       <ContactoYVehiculo
         trasladoId={trasladoId}
+        primaryActionLabel={presentation.primaryAction.label}
         contactoNombre={contactoEntregaNombre}
         contactoTelefono={contactoEntregaTelefono}
         vehiculoMarca={vehiculoMarca}
@@ -139,11 +157,12 @@ export function AccionesViaje({
 
   if (estado === "evidencia_inicial_completada") {
     if (!destinoDireccion || !destinoCiudad) {
-      return <Aviso tono="peligro">Falta la dirección de entrega para continuar.</Aviso>;
+      return <Aviso tono="danger">Falta la dirección de entrega para continuar.</Aviso>;
     }
     return (
       <DirigeteADestino
         trasladoId={trasladoId}
+        title={presentation.title}
         destinoDireccion={destinoDireccion}
         destinoCiudad={destinoCiudad}
         destinoReferencias={destinoReferencias}
@@ -155,11 +174,12 @@ export function AccionesViaje({
 
   if (estado === "llegada_a_destino") {
     if (!contactoRecepcionNombre || !contactoRecepcionTelefono) {
-      return <Aviso tono="peligro">Falta el contacto de recepción para continuar.</Aviso>;
+      return <Aviso tono="danger">Falta el contacto de recepción para continuar.</Aviso>;
     }
     return (
       <ContactoRecepcionVehiculo
         trasladoId={trasladoId}
+        primaryActionLabel={presentation.primaryAction.label}
         contactoNombre={contactoRecepcionNombre}
         contactoTelefono={contactoRecepcionTelefono}
         vehiculoMarca={vehiculoMarca}
@@ -174,19 +194,32 @@ export function AccionesViaje({
 
   const requiereEvidencia = ESTADOS_QUE_REQUIEREN_EVIDENCIA.includes(estado);
   const siguientePosible = TRANSICIONES[estado]?.[0];
-  const etiqueta = ETIQUETA_SIGUIENTE_PASO[estado];
+  const etiqueta = presentation.primaryAction.label;
+  const ejecutarAccionSinTransicion = () => {
+    if (presentation.primaryAction.action === "review_status") {
+      router.refresh();
+      return;
+    }
 
-  if (!siguientePosible || !etiqueta) {
-    return null; // Estado terminal o que no corresponde a una acción del conductor.
-  }
+    router.push("/viajes");
+  };
 
   if (requiereEvidencia) {
     return (
-      <div className="mt-6">
-        <p className="mb-2 font-body text-xs text-ink/55">
+      <div>
+        <p className="mb-2 font-body text-xs text-text-secondary">
           {fotosCompletadas} de 5 ángulos capturados
         </p>
-        <Button onClick={() => router.push(`/viajes/${trasladoId}/evidencia`)}>{etiqueta}</Button>
+        <NextOperationalAction
+          title={presentation.title}
+          instruction={presentation.instruction}
+          context={contextoVehiculo(vehiculoMarca, vehiculoModelo, vehiculoAnio, vehiculoPlacas)}
+          eta="Tiempo de registro: 3 a 5 minutos"
+          primaryCta={{ label: etiqueta, onClick: () => router.push(`/viajes/${trasladoId}/evidencia`) }}
+          secondaryCta={{ label: "Reportar un problema", onClick: () => router.push(`/viajes/${trasladoId}#reportar-problema`) }}
+          nextStep={presentation.nextStep}
+          stageLabel={`Paso ${presentation.stage} de ${presentation.totalStages}`}
+        />
       </div>
     );
   }
@@ -207,15 +240,28 @@ export function AccionesViaje({
   }
 
   return (
-    <div className="mt-6">
-      {error && (
-        <div className="mb-3" role="status" aria-live="polite" aria-atomic="true">
-          <Aviso tono="peligro">{error}</Aviso>
-        </div>
-      )}
-      <Button onClick={avanzar} disabled={procesando}>
-        {procesando ? TEXTOS_CARGANDO.actualizando : etiqueta}
-      </Button>
-    </div>
+    <NextOperationalAction
+      title={presentation.title}
+      instruction={presentation.instruction}
+      context={
+        presentation.primaryAction.action === "go_origin" || presentation.primaryAction.action === "mark_arrived_origin"
+          ? contextoDireccion(origenDireccion, origenCiudad, origenReferencias)
+          : presentation.primaryAction.action === "go_destination" || presentation.primaryAction.action === "mark_arrived_destination"
+            ? contextoDireccion(destinoDireccion, destinoCiudad, destinoReferencias)
+            : contextoVehiculo(vehiculoMarca, vehiculoModelo, vehiculoAnio, vehiculoPlacas)
+      }
+      eta="ETA por confirmar al abrir navegación"
+      primaryCta={{
+        label: procesando ? TEXTOS_CARGANDO.actualizando : etiqueta,
+        onClick: siguientePosible ? avanzar : ejecutarAccionSinTransicion,
+        disabled: procesando,
+        variant: siguientePosible ? "primary" : "secondary"
+      }}
+      secondaryCta={{ label: "Contactar soporte", onClick: () => router.push("/cuenta/soporte") }}
+      loading={procesando}
+      error={error}
+      nextStep={presentation.nextStep}
+      stageLabel={`Paso ${presentation.stage} de ${presentation.totalStages}`}
+    />
   );
 }

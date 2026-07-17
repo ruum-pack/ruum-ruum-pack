@@ -3,11 +3,11 @@ import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
 import { CATEGORIA_POR_ESTADO, type CategoriaEstado } from "../lib/estado-visual";
 
 const ESTILO_POR_CATEGORIA: Record<CategoriaEstado, string> = {
-  inicial: "bg-ink-soft/10 text-ink-soft border-ink-soft/20",
-  activo: "bg-route-soft text-route-dark border-route/25",
-  atencion: "bg-warn-soft text-warn border-warn/35",
-  completado: "bg-control-soft text-control border-control/25",
-  fallido: "bg-danger-soft text-danger border-danger/25"
+  inicial: "bg-surface-elevated text-text-secondary border-border",
+  activo: "bg-route-soft text-route-action border-route-action",
+  atencion: "bg-warn-soft text-warning border-warning",
+  completado: "bg-control-soft text-success border-success",
+  fallido: "bg-danger-soft text-danger-action border-danger-action"
 };
 
 export interface EstadoBadgeProps {

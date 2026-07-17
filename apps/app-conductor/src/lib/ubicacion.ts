@@ -8,6 +8,11 @@ export interface Coordenadas {
   velocidadMps?: number | null;
 }
 
+export type ResultadoUbicacion =
+  | { estado: "ok"; coordenadas: Coordenadas }
+  | { estado: "denegado" }
+  | { estado: "no_disponible" };
+
 export type CancelarObservacionUbicacion = () => void;
 
 function desdePosicionWeb(posicion: GeolocationPosition): Coordenadas {
@@ -27,31 +32,39 @@ function desdePosicionWeb(posicion: GeolocationPosition): Coordenadas {
  * plugin JS resuelva por sí solo.
  */
 export async function obtenerUbicacionActual(): Promise<Coordenadas | null> {
+  const resultado = await obtenerUbicacionActualConEstado();
+  return resultado.estado === "ok" ? resultado.coordenadas : null;
+}
+
+export async function obtenerUbicacionActualConEstado(): Promise<ResultadoUbicacion> {
   try {
     if (!esNativo()) {
-      if (typeof navigator === "undefined" || !navigator.geolocation) return null;
+      if (typeof navigator === "undefined" || !navigator.geolocation) return { estado: "no_disponible" };
 
-      return await new Promise<Coordenadas | null>((resolve) => {
+      return await new Promise<ResultadoUbicacion>((resolve) => {
         navigator.geolocation.getCurrentPosition(
-          (posicion) => resolve(desdePosicionWeb(posicion)),
-          () => resolve(null),
+          (posicion) => resolve({ estado: "ok", coordenadas: desdePosicionWeb(posicion) }),
+          (error) => resolve(error.code === error.PERMISSION_DENIED ? { estado: "denegado" } : { estado: "no_disponible" }),
           { enableHighAccuracy: true, maximumAge: 10_000, timeout: 12_000 }
         );
       });
     }
 
     const permiso = await Geolocation.requestPermissions();
-    if (permiso.location === "denied") return null;
+    if (permiso.location === "denied") return { estado: "denegado" };
 
     const posicion = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
     return {
-      lat: posicion.coords.latitude,
-      lng: posicion.coords.longitude,
-      precisionM: posicion.coords.accuracy ?? null,
-      velocidadMps: posicion.coords.speed ?? null
+      estado: "ok",
+      coordenadas: {
+        lat: posicion.coords.latitude,
+        lng: posicion.coords.longitude,
+        precisionM: posicion.coords.accuracy ?? null,
+        velocidadMps: posicion.coords.speed ?? null
+      }
     };
   } catch {
-    return null;
+    return { estado: "no_disponible" };
   }
 }
 

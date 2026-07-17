@@ -10,7 +10,7 @@ type ActorReporte = Database["public"]["Enums"]["actor_reporte"];
 async function resolverActorReporte(cliente: Cliente, trasladoId: string): Promise<{ actor: ActorReporte; actorId: string }> {
   const { data: sesion } = await cliente.auth.getUser();
   if (!sesion.user) {
-    throw new Error("Debes iniciar sesión para reportar una incidencia.");
+    throw new Error("Debes iniciar sesión para reportar un problema.");
   }
 
   const [{ data: usuario, error: errorUsuario }, { data: conductor, error: errorConductor }] = await Promise.all([
@@ -43,7 +43,7 @@ async function resolverActorReporte(cliente: Cliente, trasladoId: string): Promi
     if (data) return { actor: "usuario", actorId: usuario.id };
   }
 
-  throw new Error("No tienes acceso para reportar incidencias en este traslado.");
+  throw new Error("No tienes acceso para reportar problemas en este traslado.");
 }
 
 export async function reportarIncidencia(
@@ -55,7 +55,7 @@ export async function reportarIncidencia(
 ) {
   const texto = descripcion.trim();
   if (texto.length < 10) {
-    throw new Error("Describe la incidencia con al menos 10 caracteres.");
+    throw new Error("Describe el problema con al menos 10 caracteres.");
   }
 
   const { actor, actorId } = await resolverActorReporte(cliente, trasladoId);

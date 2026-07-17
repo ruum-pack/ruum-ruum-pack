@@ -4,29 +4,28 @@ export interface PassportCardProps {
   children: ReactNode;
   /** Folio o identificador corto a mostrar en la esquina, estilo sello. */
   folio?: string;
-  /** Acento de prioridad para métricas y elementos que requieren atención visual. */
+  /** Acento documental para registros que requieren atención visual. */
   acento?: boolean;
+  /** Permite contenido sticky o overlays que deben sobresalir de la tarjeta. */
+  clip?: boolean;
   className?: string;
 }
 
-/**
- * Tarjeta base del Pasaporte Digital y superficies operativas.
- * Funciona en las tres apps para que los datos, estados y acciones se lean
- * igual, sin importar el rol del usuario.
- */
-export function PassportCard({ children, folio, acento = false, className = "" }: PassportCardProps) {
+/** Tarjeta exclusiva para identidad, expediente, documentación y pasaporte digital. */
+export function PassportCard({ children, folio, acento = false, clip = true, className = "" }: PassportCardProps) {
   return (
     <div
       className={[
-        "relative overflow-hidden rounded-card border border-ink/15 bg-mist shadow-1",
+        "relative rounded-card border border-border bg-surface shadow-1",
+        clip ? "overflow-hidden" : "",
         "transition-[border-color,box-shadow,transform] duration-200",
-        acento ? "border-l-4 border-l-signal" : "",
+        acento ? "border-l-4 border-l-action-primary" : "",
         className
       ].join(" ")}
     >
       <svg
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-40 w-full text-ink opacity-[0.04]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-40 w-full text-text-tertiary opacity-20"
         viewBox="0 0 420 160"
         preserveAspectRatio="none"
       >
@@ -42,11 +41,11 @@ export function PassportCard({ children, folio, acento = false, className = "" }
           className="absolute right-0 top-0 flex h-10 w-10 items-start justify-end overflow-hidden"
           aria-hidden
         >
-          <div className="absolute right-[-20px] top-[-20px] h-10 w-10 rotate-45 bg-signal" />
+          <div className="absolute right-[-20px] top-[-20px] h-10 w-10 rotate-45 bg-action-primary" />
         </div>
       )}
       {folio && (
-        <span className="absolute right-2.5 top-2.5 font-mono-ruum text-xs font-medium tracking-wide text-ink">
+        <span className="absolute right-2.5 top-2.5 font-mono-ruum text-xs font-medium tracking-wide text-text-primary">
           {folio}
         </span>
       )}

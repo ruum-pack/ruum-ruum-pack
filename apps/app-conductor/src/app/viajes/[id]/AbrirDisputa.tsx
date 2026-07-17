@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@ruum/ui";
 import { abrirDisputa } from "@ruum/api/services";
-import { ETIQUETA_TIPO_DISPUTA, MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
+import { ETIQUETA_TIPO_DISPUTA, GLOSARIO_OPERATIVO, MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 
@@ -39,22 +39,22 @@ export function AbrirDisputaConductor({
         const cliente = crearClienteNavegador();
         await abrirDisputa(cliente, trasladoId, tipo, descripcion);
         setEnviada(true);
-        setMensaje("Disputa abierta para revisión de operación.");
+        setMensaje("Revisión solicitada a operación.");
       } catch (error) {
-        setMensaje(error instanceof Error ? error.message : "No se pudo abrir la disputa.");
+        setMensaje(error instanceof Error ? error.message : "No se pudo solicitar la revisión.");
       }
     });
   }
 
   return (
-    <div className="mt-5 rounded-lg border border-warn/25 bg-warn-soft/35 px-4 py-4">
-      <p className="font-body text-sm font-semibold">Abrir disputa post-cierre</p>
-      <p className="mt-1 font-body text-sm text-ink/65">{MENSAJES_CLAVE_UX.disputa}</p>
+    <div className="mt-5 rounded-lg border border-warning bg-warn-soft px-4 py-4">
+      <p className="font-body text-sm font-semibold">{GLOSARIO_OPERATIVO.disputa}</p>
+      <p className="mt-1 font-body text-sm text-text-secondary">{MENSAJES_CLAVE_UX.disputa}</p>
       <div className="mt-3 grid gap-3">
         <select
           value={tipo}
           onChange={(evento) => setTipo(evento.target.value as TipoDisputa)}
-          className="rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm"
+          className="rounded-lg border border-border-strong bg-surface px-3 py-2 font-body text-base"
         >
           {TIPOS.map((valor) => (
             <option key={valor} value={valor}>
@@ -65,16 +65,16 @@ export function AbrirDisputaConductor({
         <textarea
           value={descripcion}
           onChange={(evento) => setDescripcion(evento.target.value)}
-          className="min-h-24 rounded-lg border border-ink/50 bg-mist px-3 py-2 font-body text-sm"
+          className="min-h-24 rounded-lg border border-border-strong bg-surface px-3 py-2 font-body text-base"
           placeholder="Describe qué debe revisar operación"
         />
       </div>
       <div className="mt-3 flex items-center gap-3">
-        <Button variant="secundario" onClick={enviar} disabled={pendiente}>
-          {pendiente ? TEXTOS_CARGANDO.enviando : "Enviar disputa"}
+        <Button variant="secondary" onClick={enviar} disabled={pendiente}>
+          {pendiente ? TEXTOS_CARGANDO.enviando : "Solicitar revisión"}
         </Button>
         <div role="status" aria-live="polite" aria-atomic="true" className="min-h-[20px]">
-          {mensaje && <span className="font-body text-sm text-ink/60">{mensaje}</span>}
+          {mensaje && <span className="font-body text-sm text-text-secondary">{mensaje}</span>}
         </div>
       </div>
     </div>

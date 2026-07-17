@@ -8,7 +8,7 @@ type AbiertaPor = Database["public"]["Enums"]["abierta_por_actor"];
 
 async function actorActual(cliente: Cliente): Promise<AbiertaPor> {
   const { data: sesion } = await cliente.auth.getUser();
-  if (!sesion.user) throw new Error("No hay sesión para abrir disputa.");
+  if (!sesion.user) throw new Error("No hay sesión para solicitar revisión de un traslado.");
 
   const [usuario, conductor] = await Promise.all([
     cliente.from("usuarios").select("id").eq("auth_user_id", sesion.user.id).maybeSingle(),
@@ -30,7 +30,7 @@ export async function abrirDisputa(
 ) {
   const descripcionLimpia = descripcion.trim();
   if (descripcionLimpia.length < 10) {
-    throw new Error("Describe la disputa con al menos 10 caracteres.");
+    throw new Error("Describe la revisión con al menos 10 caracteres.");
   }
 
   const { data: traslado, error: errorTraslado } = await cliente
@@ -40,11 +40,11 @@ export async function abrirDisputa(
     .maybeSingle();
 
   if (errorTraslado) throw errorTraslado;
-  if (!traslado) throw new Error("No se encontró el traslado para abrir disputa.");
+  if (!traslado) throw new Error("No se encontró el traslado para solicitar revisión.");
 
   const horasDesdeCierre = (Date.now() - new Date(traslado.actualizado_en).getTime()) / (1000 * 60 * 60);
   if (!puedeAbrirseDisputa(horasDesdeCierre)) {
-    throw new Error("El plazo de 72 horas para abrir una disputa ya venció.");
+    throw new Error("El plazo de 72 horas para solicitar revisión ya venció.");
   }
 
   const abiertaPor = await actorActual(cliente);

@@ -27,7 +27,7 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "Ruum Ruum Conductor",
-  description: "Conductores certificados, evidencia operativa y trazabilidad en cada viaje."
+  description: "Conductores certificados, registro operativo del vehículo y trazabilidad en cada viaje."
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
