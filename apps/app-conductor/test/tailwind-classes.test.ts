@@ -41,4 +41,30 @@ describe("clases Tailwind semánticas", () => {
 
     expect(hallazgos).toEqual([]);
   });
+
+  it("define color-scheme de controles nativos por tema", () => {
+    const tokensCss = readFileSync(join(process.cwd(), "..", "..", "packages", "ui", "src", "styles", "tokens.css"), "utf8");
+
+    expect(tokensCss).toContain('[data-theme="light"] input');
+    expect(tokensCss).toContain('[data-theme="dark"] input');
+    expect(tokensCss).toContain("color-scheme: dark;");
+    expect(tokensCss).not.toMatch(/(^|\n)input,\s*\nselect,\s*\ntextarea\s*\{\s*\n\s*color-scheme:\s*light;/);
+  });
+
+  it("no usa text-xs en errores, rechazos o información sensible", () => {
+    const patronCritico =
+      /text-xs[^"'`>\n]*(?:danger-action|warning|rechaz|motivo|privacidad|aviso|error|bloqueante)|(?:rechaz|motivo|privacidad|aviso|error|bloqueante)[^"'`>\n]*text-xs/i;
+    const hallazgos = RAICES_REVISION.flatMap((raiz) =>
+      archivosRevisables(raiz).flatMap((ruta) => {
+        const contenido = readFileSync(ruta, "utf8");
+        return contenido
+          .split("\n")
+          .map((linea, indice) => ({ linea, indice: indice + 1 }))
+          .filter(({ linea }) => patronCritico.test(linea))
+          .map(({ linea, indice }) => `${ruta}:${indice}: ${linea.trim()}`);
+      })
+    );
+
+    expect(hallazgos).toEqual([]);
+  });
 });

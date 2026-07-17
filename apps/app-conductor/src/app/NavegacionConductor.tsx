@@ -120,7 +120,7 @@ export function NavegacionConductor() {
                 <p className="flex items-center gap-2 font-body text-sm font-semibold text-route-action">
                   <span>Viaje activo · {viajeActivo.folio}</span>
                   {hayAccionPendiente && (
-                    <span className="rounded-full border border-warning bg-warn-soft px-2 py-0.5 font-body text-xs font-bold text-warning">
+                    <span className="rounded-full border border-warning bg-warn-soft px-2 py-0.5 font-body text-sm font-bold text-warning">
                       Acción pendiente
                     </span>
                   )}

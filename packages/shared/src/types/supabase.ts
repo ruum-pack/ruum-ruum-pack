@@ -283,6 +283,30 @@ export type Database = {
         }
         Relationships: []
       }
+      configuracion_contactos_soporte: {
+        Row: {
+          actualizado_en: string
+          ambiente: string
+          emergencia_telefono: string
+          soporte_correo: string
+          soporte_telefono: string
+        }
+        Insert: {
+          actualizado_en?: string
+          ambiente: string
+          emergencia_telefono: string
+          soporte_correo: string
+          soporte_telefono: string
+        }
+        Update: {
+          actualizado_en?: string
+          ambiente?: string
+          emergencia_telefono?: string
+          soporte_correo?: string
+          soporte_telefono?: string
+        }
+        Relationships: []
+      }
       consentimientos_usuario: {
         Row: {
           aceptado_en: string
@@ -848,6 +872,72 @@ export type Database = {
           },
           {
             foreignKeyName: "evidencia_fotos_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evidencia_inspecciones: {
+        Row: {
+          actualizado_en: string
+          combustible: string | null
+          creado_en: string
+          holograma_verificacion: boolean | null
+          id: string
+          kilometraje: number | null
+          llaves_recibidas: string | null
+          notas: string | null
+          placa_delantera: string | null
+          placa_trasera: string | null
+          talon_verificacion: string | null
+          tarjeta_circulacion: string | null
+          tipo: Database["public"]["Enums"]["tipo_evidencia"]
+          traslado_id: string
+        }
+        Insert: {
+          actualizado_en?: string
+          combustible?: string | null
+          creado_en?: string
+          holograma_verificacion?: boolean | null
+          id?: string
+          kilometraje?: number | null
+          llaves_recibidas?: string | null
+          notas?: string | null
+          placa_delantera?: string | null
+          placa_trasera?: string | null
+          talon_verificacion?: string | null
+          tarjeta_circulacion?: string | null
+          tipo: Database["public"]["Enums"]["tipo_evidencia"]
+          traslado_id: string
+        }
+        Update: {
+          actualizado_en?: string
+          combustible?: string | null
+          creado_en?: string
+          holograma_verificacion?: boolean | null
+          id?: string
+          kilometraje?: number | null
+          llaves_recibidas?: string | null
+          notas?: string | null
+          placa_delantera?: string | null
+          placa_trasera?: string | null
+          talon_verificacion?: string | null
+          tarjeta_circulacion?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_evidencia"]
+          traslado_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidencia_inspecciones_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "evidencia_inspecciones_traslado_id_fkey"
             columns: ["traslado_id"]
             isOneToOne: false
             referencedRelation: "traslados"
@@ -1878,6 +1968,61 @@ export type Database = {
           },
         ]
       }
+      ubicaciones_traslado: {
+        Row: {
+          conductor_id: string
+          id: string
+          lat: number
+          lng: number
+          precision_m: number | null
+          registrado_en: string
+          traslado_id: string
+          velocidad_mps: number | null
+        }
+        Insert: {
+          conductor_id: string
+          id?: string
+          lat: number
+          lng: number
+          precision_m?: number | null
+          registrado_en?: string
+          traslado_id: string
+          velocidad_mps?: number | null
+        }
+        Update: {
+          conductor_id?: string
+          id?: string
+          lat?: number
+          lng?: number
+          precision_m?: number | null
+          registrado_en?: string
+          traslado_id?: string
+          velocidad_mps?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ubicaciones_traslado_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ubicaciones_traslado_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "ubicaciones_traslado_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios: {
         Row: {
           actualizado_en: string
@@ -2230,6 +2375,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_actualizar_politica_tarifaria_normativa: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       admin_asigna_conductor: {
         Args: { p_conductor_id: string; p_traslado_id: string }
         Returns: Database["public"]["Enums"]["estado_traslado"]
@@ -2269,6 +2418,18 @@ export type Database = {
       aprobar_solicitud_conductor_admin: {
         Args: { p_motivo?: string; p_solicitud_id: string }
         Returns: string
+      }
+      auth_es_conductor_de_traslado: {
+        Args: { p_conductor_id: string; p_traslado_id: string }
+        Returns: boolean
+      }
+      auth_es_conductor_de_traslado_activo: {
+        Args: { p_conductor_id: string; p_traslado_id: string }
+        Returns: boolean
+      }
+      auth_es_usuario_de_traslado: {
+        Args: { p_traslado_id: string }
+        Returns: boolean
       }
       calcular_tarifa_traslado: {
         Args: {
@@ -2321,15 +2482,6 @@ export type Database = {
         }
         Returns: string
       }
-      conductor_guarda_datos_bancarios: {
-        Args: {
-          p_banco: string
-          p_clabe: string
-          p_numero_tarjeta: string
-          p_titular_cuenta: string
-        }
-        Returns: Database["public"]["Tables"]["datos_bancarios_conductor"]["Row"]
-      }
       conductor_acepta_viaje: {
         Args: { p_traslado_id: string }
         Returns: Database["public"]["Enums"]["estado_traslado"]
@@ -2339,8 +2491,42 @@ export type Database = {
         Returns: Database["public"]["Enums"]["estado_traslado"]
       }
       conductor_confirmar_llegada_destino: {
-        Args: { p_traslado_id: string }
+        Args: {
+          p_distancia_m?: number
+          p_fuera_geocerca?: boolean
+          p_traslado_id: string
+        }
         Returns: Database["public"]["Enums"]["estado_traslado"]
+      }
+      conductor_guarda_datos_bancarios: {
+        Args: {
+          p_banco: string
+          p_clabe: string
+          p_numero_tarjeta: string
+          p_titular_cuenta: string
+        }
+        Returns: {
+          actualizado_en: string
+          banco: string
+          clabe: string
+          conductor_id: string
+          creado_en: string
+          estado: Database["public"]["Enums"]["estado_datos_bancarios_conductor"]
+          id: string
+          motivo_rechazo: string | null
+          numero_tarjeta: string
+          titular_cuenta: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "datos_bancarios_conductor"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      conductor_operativamente_aprobado: {
+        Args: { p_auth_user_id?: string }
+        Returns: boolean
       }
       consentimientos_solicitud_completos: {
         Args: { p_solicitud_id: string }
@@ -2549,28 +2735,17 @@ export type Database = {
         }
         Returns: Json
       }
-      usuario_previsualizar_tarifa:
-        | {
-            Args: {
-              p_distancia_km: number
-              p_fecha_hora: string
-              p_marca: string
-              p_modelo: string
-              p_tiempo_estimado_horas: number
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_condicion?: Database["public"]["Enums"]["condicion_vehiculo"]
-              p_distancia_km: number
-              p_fecha_hora?: string
-              p_marca: string
-              p_modelo: string
-              p_tiempo_estimado_horas: number
-            }
-            Returns: Json
-          }
+      usuario_previsualizar_tarifa: {
+        Args: {
+          p_condicion?: Database["public"]["Enums"]["condicion_vehiculo"]
+          p_distancia_km: number
+          p_fecha_hora?: string
+          p_marca: string
+          p_modelo: string
+          p_tiempo_estimado_horas: number
+        }
+        Returns: Json
+      }
       validar_ruta_documento_conductor: {
         Args: {
           p_auth_user_id?: string
@@ -2634,8 +2809,8 @@ export type Database = {
         | "rechazado"
         | "suspendido"
       estado_pago: "pendiente" | "completado" | "reembolsado" | "fallido"
-      estado_politica_tarifaria: "borrador" | "vigente" | "archivada"
       estado_payout: "pendiente" | "procesado" | "fallido"
+      estado_politica_tarifaria: "borrador" | "vigente" | "archivada"
       estado_reclamo_seguro: "abierto" | "en_revision" | "resuelto"
       estado_traslado:
         | "usuario_pendiente_verificacion"
@@ -3491,8 +3666,8 @@ export const Constants = {
         "suspendido",
       ],
       estado_pago: ["pendiente", "completado", "reembolsado", "fallido"],
-      estado_politica_tarifaria: ["borrador", "vigente", "archivada"],
       estado_payout: ["pendiente", "procesado", "fallido"],
+      estado_politica_tarifaria: ["borrador", "vigente", "archivada"],
       estado_reclamo_seguro: ["abierto", "en_revision", "resuelto"],
       estado_traslado: [
         "usuario_pendiente_verificacion",

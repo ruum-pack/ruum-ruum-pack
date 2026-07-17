@@ -71,12 +71,12 @@ export function LicenseStep({
         <input type="checkbox" checked={autorizaVerificacion} onChange={(e) => { setAutorizaVerificacion(e.target.checked); limpiarErrorCampo("autorizaVerificacion"); }} className="mt-1 size-4 accent-route-dark" />
         <span>Autorizo la verificación de antecedentes y de mi historial de manejo ante las autoridades correspondientes.</span>
       </label>
-      {erroresCampos.autorizaVerificacion && <p className="font-body text-xs font-medium text-danger-action">{erroresCampos.autorizaVerificacion}</p>}
+      {erroresCampos.autorizaVerificacion && <p className="font-body text-sm font-medium text-danger-action">{erroresCampos.autorizaVerificacion}</p>}
       <label className="flex gap-3 rounded-xl border border-border bg-surface p-4 font-body text-sm leading-6 text-text-secondary">
         <input type="checkbox" checked={declaraSinSuspensiones} onChange={(e) => { setDeclaraSinSuspensiones(e.target.checked); limpiarErrorCampo("declaraSinSuspensiones"); }} className="mt-1 size-4 accent-route-dark" />
         <span>Declaro que no tengo suspensiones vigentes de licencia ni procesos legales activos relacionados con el manejo de vehículos.</span>
       </label>
-      {erroresCampos.declaraSinSuspensiones && <p className="font-body text-xs font-medium text-danger-action">{erroresCampos.declaraSinSuspensiones}</p>}
+      {erroresCampos.declaraSinSuspensiones && <p className="font-body text-sm font-medium text-danger-action">{erroresCampos.declaraSinSuspensiones}</p>}
     </fieldset>
   );
 }

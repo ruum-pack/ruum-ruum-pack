@@ -124,7 +124,7 @@ export function TripOpportunityList({
               </div>
 
               {requisitoExcepcional && (
-                <div className="rounded-lg border border-warning bg-warn-soft px-3 py-2 font-body text-xs font-semibold text-warning">
+                <div className="rounded-lg border border-warning bg-warn-soft px-3 py-2 font-body text-sm font-semibold text-warning">
                   Requisito excepcional: {requisitoExcepcional}
                 </div>
               )}

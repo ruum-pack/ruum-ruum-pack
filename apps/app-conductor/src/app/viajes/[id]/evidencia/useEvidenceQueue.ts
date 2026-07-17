@@ -8,9 +8,24 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib
 import {
   contarColaEvidencia,
   encolarEvidencia,
+  type ItemColaEvidencia,
   leerColaEvidenciaDeTraslado,
   sincronizarColaEvidencia
 } from "../../../../lib/cola-offline";
+
+export function itemColaAFotoEvidencia(item: ItemColaEvidencia): FotoEvidencia {
+  return {
+    id: item.localId,
+    traslado_id: item.trasladoId,
+    tipo: item.tipo,
+    angulo: item.angulo as AnguloEvidencia,
+    local_path: item.dataUrl,
+    timestamp: item.capturadaEn,
+    ...(item.lat !== undefined ? { lat: item.lat } : {}),
+    ...(item.lng !== undefined ? { lng: item.lng } : {}),
+    sincronizada: false
+  };
+}
 
 export function useEvidenceQueue({ trasladoId, tipo }: { trasladoId: string; tipo: TipoEvidencia | null }) {
   const [sincronizando, setSincronizando] = useState(false);
@@ -19,19 +34,7 @@ export function useEvidenceQueue({ trasladoId, tipo }: { trasladoId: string; tip
   const cargarPendientesLocales = useCallback(async () => {
     const pendientes = await leerColaEvidenciaDeTraslado(trasladoId);
     setPendientesSubida(pendientes.length);
-    return pendientes.map(
-      (item): FotoEvidencia => ({
-        id: item.localId,
-        traslado_id: item.trasladoId,
-        tipo: item.tipo,
-        angulo: item.angulo as AnguloEvidencia,
-        local_path: item.dataUrl,
-        timestamp: item.capturadaEn,
-        ...(item.lat !== undefined ? { lat: item.lat } : {}),
-        ...(item.lng !== undefined ? { lng: item.lng } : {}),
-        sincronizada: false
-      })
-    );
+    return pendientes.map(itemColaAFotoEvidencia);
   }, [trasladoId]);
 
   const registrarFotoEnCola = useCallback(

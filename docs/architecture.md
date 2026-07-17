@@ -76,6 +76,10 @@ Si un reset limpio falla, se corrige la migracion temprana rota, no se tapa con 
 
 `supabase/test` contiene regresiones transaccionales. La matriz completa por flujo vive en `docs/sql-test-matrix.md` y cubre traslado, pago, identidad, conductor, admin, auditoria, RLS y metricas.
 
+### Contratos API/Supabase
+
+La documentacion de contratos vive por superficie. OpenAPI solo aplica cuando hay endpoints HTTP donde aporte valor; no reemplaza los contratos de RLS, RPC SQL, triggers, Realtime, Storage ni maquinas de estado. La guia operativa vive en `docs/contratos-api-supabase.md`.
+
 ### Edge Functions
 
 `supabase/functions` contiene funciones para Stripe, Twilio, validacion documental y limpieza de documentos. Sus secretos se documentan en `supabase/functions/.env.example`.
@@ -121,5 +125,6 @@ git diff --check
 - `apps/app-conductor/README.md`
 - `apps/panel-admin/README.md`
 - `supabase/functions/README.md`
+- `docs/contratos-api-supabase.md`
 - `docs/registro-conductor-regresion.md`
 - `docs/RT-12-modelo-de-tarifas.md`

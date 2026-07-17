@@ -121,7 +121,7 @@ export function DriverDocumentChecklist({
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="font-display text-lg font-semibold">{requerido.etiqueta}</h2>
                   {requerido.bloqueante && (
-                    <span className="rounded-full border border-danger-action bg-surface px-2.5 py-1 font-body text-xs font-bold text-danger-action">
+                    <span className="rounded-full border border-danger-action bg-surface px-2.5 py-1 font-body text-sm font-bold text-danger-action">
                       Bloqueante
                     </span>
                   )}
@@ -139,7 +139,7 @@ export function DriverDocumentChecklist({
                 </dl>
                 {rechazo && estado === "rechazado" && (
                   <div className="mt-3 rounded-lg border border-danger-action bg-surface px-3 py-3">
-                    <p className="font-body text-xs uppercase tracking-wide text-danger-action">Motivo de rechazo</p>
+                    <p className="font-body text-sm font-semibold text-danger-action">Motivo de rechazo</p>
                     <p className="mt-1 font-body text-sm text-text-secondary">{rechazo}</p>
                     <p className="mt-2 font-body text-sm font-semibold text-danger-action">Siguiente acción: reemplaza este documento con una versión corregida.</p>
                   </div>

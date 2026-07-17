@@ -95,7 +95,7 @@ export function ReviewStep({
           de ruum ruum by Movilia.
         </span>
       </label>
-      {erroresCampos.aceptaTerminos && <p className="font-body text-xs font-medium text-danger-action">{erroresCampos.aceptaTerminos}</p>}
+      {erroresCampos.aceptaTerminos && <p className="font-body text-sm font-medium text-danger-action">{erroresCampos.aceptaTerminos}</p>}
       <label className="flex gap-3 rounded-xl border border-route-action/20 bg-route-soft p-4 font-body text-sm leading-6 text-text-secondary">
         <input type="checkbox" checked={confirmaPrivacidad} onChange={(e) => { setConfirmaPrivacidad(e.target.checked); limpiarErrorCampo("confirmaPrivacidad"); }} className="mt-1 size-4 accent-route-dark" />
         <span>
@@ -106,7 +106,7 @@ export function ReviewStep({
           de ruum ruum by Movilia.
         </span>
       </label>
-      {erroresCampos.confirmaPrivacidad && <p className="font-body text-xs font-medium text-danger-action">{erroresCampos.confirmaPrivacidad}</p>}
+      {erroresCampos.confirmaPrivacidad && <p className="font-body text-sm font-medium text-danger-action">{erroresCampos.confirmaPrivacidad}</p>}
     </fieldset>
   );
 }

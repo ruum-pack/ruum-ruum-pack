@@ -1,9 +1,11 @@
 import { Preferences } from "@capacitor/preferences";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
+import { createLogger, errorCode } from "@ruum/shared/utils";
 
 const CLAVE_COLA = "ruum_cola_evidencia";
 const BUCKET_EVIDENCIA = "evidencia";
+const logger = createLogger("evidencia_offline");
 
 export interface ItemColaEvidencia {
   /** UUID generado en el dispositivo — es la clave de idempotencia al subir (ver propuesta de arquitectura, sección 5). */
@@ -17,37 +19,86 @@ export interface ItemColaEvidencia {
   capturadaEn: string;
 }
 
+export interface EvidenceQueueStorage {
+  read(): Promise<ItemColaEvidencia[]>;
+  write(items: ItemColaEvidencia[]): Promise<void>;
+  clear(): Promise<void>;
+}
+
+export class CapacitorPreferencesEvidenceStorage implements EvidenceQueueStorage {
+  async read(): Promise<ItemColaEvidencia[]> {
+    const { value } = await Preferences.get({ key: CLAVE_COLA });
+    if (!value) return [];
+    try {
+      return JSON.parse(value) as ItemColaEvidencia[];
+    } catch {
+      return [];
+    }
+  }
+
+  async write(items: ItemColaEvidencia[]): Promise<void> {
+    await Preferences.set({ key: CLAVE_COLA, value: JSON.stringify(items) });
+  }
+
+  async clear(): Promise<void> {
+    await this.write([]);
+  }
+}
+
+export class InMemoryEvidenceStorage implements EvidenceQueueStorage {
+  private items: ItemColaEvidencia[];
+
+  constructor(initialItems: ItemColaEvidencia[] = []) {
+    this.items = [...initialItems];
+  }
+
+  async read(): Promise<ItemColaEvidencia[]> {
+    return [...this.items];
+  }
+
+  async write(items: ItemColaEvidencia[]): Promise<void> {
+    this.items = [...items];
+  }
+
+  async clear(): Promise<void> {
+    this.items = [];
+  }
+}
+
+let storageColaEvidencia: EvidenceQueueStorage = new CapacitorPreferencesEvidenceStorage();
+
+export function configurarStorageColaEvidencia(storage: EvidenceQueueStorage) {
+  storageColaEvidencia = storage;
+}
+
 /**
  * Cola local de evidencia pendiente de subir. La propuesta de arquitectura
- * original (sección 11) planteaba SQLite local; aquí se usa
- * @capacitor/preferences (key-value simple) como simplificación deliberada
- * para este corte — alcanza para encolar unas pocas fotos pendientes de
- * sincronizar, que es el caso real mientras Supabase Storage no está
- * conectado (ver README, sección Pendiente). Si el volumen de cola
- * justifica una base relacional local más adelante, migrar a
- * @capacitor-community/sqlite es un cambio de implementación detrás de
- * esta misma interfaz, no un cambio de contrato.
+ * original (sección 11) planteaba SQLite local; la lógica de cola ya depende
+ * de EvidenceQueueStorage para poder sustituir Preferences por SQLite o
+ * IndexedDB sin cambiar el contrato que consume la pantalla de evidencia.
  */
 export async function encolarEvidencia(item: ItemColaEvidencia): Promise<void> {
   const cola = await leerColaEvidencia();
-  cola.push(item);
-  await Preferences.set({ key: CLAVE_COLA, value: JSON.stringify(cola) });
+  const sinDuplicados = cola.filter(
+    (existente) =>
+      existente.localId !== item.localId &&
+      !(
+        existente.trasladoId === item.trasladoId &&
+        existente.tipo === item.tipo &&
+        existente.angulo === item.angulo
+      )
+  );
+  await storageColaEvidencia.write([...sinDuplicados, item]);
 }
 
 export async function leerColaEvidencia(): Promise<ItemColaEvidencia[]> {
-  const { value } = await Preferences.get({ key: CLAVE_COLA });
-  if (!value) return [];
-  try {
-    return JSON.parse(value) as ItemColaEvidencia[];
-  } catch {
-    return [];
-  }
+  return storageColaEvidencia.read();
 }
 
 export async function quitarDeColaEvidencia(localId: string): Promise<void> {
   const cola = await leerColaEvidencia();
   const restante = cola.filter((item) => item.localId !== localId);
-  await Preferences.set({ key: CLAVE_COLA, value: JSON.stringify(restante) });
+  await storageColaEvidencia.write(restante);
 }
 
 export async function contarColaEvidencia(trasladoId?: string): Promise<number> {
@@ -83,6 +134,33 @@ function blobDesdeDataUrl(dataUrl: string): Blob {
   return new Blob([buffer], { type: mime });
 }
 
+function isOnline() {
+  if (typeof navigator === "undefined") return null;
+  return navigator.onLine;
+}
+
+function logEvidenceSyncFailed(
+  item: ItemColaEvidencia,
+  stage: "auth" | "local_payload" | "storage_upload" | "evidence_upsert",
+  error: unknown,
+  queueSize: number
+) {
+  logger.error(
+    "evidence_sync_failed",
+    {
+      tripId: item.trasladoId,
+      evidenceType: item.tipo,
+      angle: item.angulo,
+      isOnline: isOnline(),
+      retryCount: null,
+      queueSize,
+      stage,
+      errorCode: errorCode(error)
+    },
+    "offline_recoverable"
+  );
+}
+
 export async function sincronizarColaEvidencia(
   cliente: SupabaseClient<Database>,
   opciones: {
@@ -97,17 +175,30 @@ export async function sincronizarColaEvidencia(
   for (const item of items) {
     const { data: sesion } = await cliente.auth.getUser();
     const authUserId = sesion.user?.id;
-    if (!authUserId) throw new Error("No hay sesión para subir evidencia.");
+    if (!authUserId) {
+      const error = new Error("No hay sesión para subir evidencia.");
+      logEvidenceSyncFailed(item, "auth", error, items.length);
+      throw error;
+    }
+
+    let blob: Blob;
+    try {
+      blob = blobDesdeDataUrl(item.dataUrl);
+    } catch (error) {
+      logEvidenceSyncFailed(item, "local_payload", error, items.length);
+      throw error;
+    }
 
     const extension = extensionDesdeDataUrl(item.dataUrl);
     const ruta = `${authUserId}/${item.trasladoId}/${item.tipo}/${item.localId}-${item.angulo}.${extension}`;
-    const blob = blobDesdeDataUrl(item.dataUrl);
-
     const { error: uploadError } = await cliente.storage.from(BUCKET_EVIDENCIA).upload(ruta, blob, {
       upsert: true,
       contentType: blob.type || "image/jpeg"
     });
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      logEvidenceSyncFailed(item, "storage_upload", uploadError, items.length);
+      throw uploadError;
+    }
 
     const { data: publicUrl } = cliente.storage.from(BUCKET_EVIDENCIA).getPublicUrl(ruta);
     const { error: evidenciaError } = await cliente.from("evidencia_fotos").upsert(
@@ -126,7 +217,10 @@ export async function sincronizarColaEvidencia(
       { onConflict: "id" }
     );
 
-    if (evidenciaError) throw evidenciaError;
+    if (evidenciaError) {
+      logEvidenceSyncFailed(item, "evidence_upsert", evidenciaError, items.length);
+      throw evidenciaError;
+    }
 
     await quitarDeColaEvidencia(item.localId);
     sincronizadas += 1;

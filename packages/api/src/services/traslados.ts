@@ -439,9 +439,15 @@ export async function avanzarEstadoTraslado(cliente: Cliente, trasladoId: string
   return data ?? siguiente;
 }
 
-export async function confirmarLlegadaDestino(cliente: Cliente, trasladoId: string) {
+export async function confirmarLlegadaDestino(
+  cliente: Cliente,
+  trasladoId: string,
+  geocerca?: { fueraGeocerca?: boolean; distanciaM?: number | null }
+) {
   const { data, error } = await cliente.rpc("conductor_confirmar_llegada_destino", {
-    p_traslado_id: trasladoId
+    p_traslado_id: trasladoId,
+    p_fuera_geocerca: Boolean(geocerca?.fueraGeocerca),
+    p_distancia_m: geocerca?.distanciaM ?? null
   });
 
   if (error) throw error;

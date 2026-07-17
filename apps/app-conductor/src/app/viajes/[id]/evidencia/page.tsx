@@ -82,7 +82,7 @@ export default function PaginaEvidencia() {
 
   const cargarInspeccion = useCallback(async (tipoEvidencia: TipoEvidencia) => {
     const cliente = crearClienteNavegador();
-    const { data, error } = await (cliente as any)
+    const { data, error } = await cliente
       .from("evidencia_inspecciones")
       .select("*")
       .eq("traslado_id", id)
@@ -124,7 +124,7 @@ export default function PaginaEvidencia() {
         throw new Error("El kilometraje debe ser un número válido.");
       }
 
-      const { error } = await (cliente as any).from("evidencia_inspecciones").upsert(
+      const { error } = await cliente.from("evidencia_inspecciones").upsert(
         {
           traslado_id: id,
           tipo,

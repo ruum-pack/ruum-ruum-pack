@@ -49,7 +49,7 @@ export function DocumentsStep({
           />
         </>
       )}
-      {erroresCampos.cuentaVerificada && <p className="font-body text-xs font-medium text-danger-action">{erroresCampos.cuentaVerificada}</p>}
+      {erroresCampos.cuentaVerificada && <p className="font-body text-sm font-medium text-danger-action">{erroresCampos.cuentaVerificada}</p>}
     </fieldset>
   );
 }

@@ -4,7 +4,7 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(7);
+select plan(14);
 
 create or replace function pg_temp.crear_traslado_rt36(
   p_usuario_id uuid,
@@ -67,11 +67,63 @@ values
 select pg_temp.crear_traslado_rt36(
   '93600000-0000-4000-8000-000000000101',
   '93600000-0000-4000-8000-000000000201',
-  'evidencia_inicial_completada'
+  'traslado_en_curso'
 ) as traslado_atomico
 \gset
 
 select set_config('request.jwt.claim.sub', '93600000-0000-4000-8000-000000000002', true);
+
+select is(
+  (
+    select count(*)::int
+    from public.estado_transiciones_validas
+    where (estado_actual, estado_siguiente) in (
+      ('evidencia_inicial_completada', 'llegada_a_destino'),
+      ('vehiculo_recibido', 'llegada_a_destino')
+    )
+  ),
+  0,
+  'RT-36.0: la llegada atomica no amplia transiciones globales'
+);
+
+select pg_temp.crear_traslado_rt36(
+  '93600000-0000-4000-8000-000000000101',
+  '93600000-0000-4000-8000-000000000201',
+  'evidencia_inicial_completada'
+) as traslado_salto_directo
+\gset
+
+select throws_like(
+  format($sql$ update public.traslados set estado = 'llegada_a_destino' where id = %L $sql$, :'traslado_salto_directo'),
+  '%Transición de estado inválida: evidencia_inicial_completada -> llegada_a_destino%',
+  'RT-36.0b: un update generico no puede saltar directo a destino'
+);
+
+select pg_temp.crear_traslado_rt36(
+  '93600000-0000-4000-8000-000000000101',
+  '93600000-0000-4000-8000-000000000201',
+  'evidencia_inicial_completada'
+) as traslado_sin_recepcion
+\gset
+
+select throws_like(
+  format($sql$ select public.conductor_confirmar_llegada_destino(%L) $sql$, :'traslado_sin_recepcion'),
+  '%No se puede confirmar llegada a destino desde estado evidencia_inicial_completada%',
+  'RT-36.0c: la RPC no repara silenciosamente evidencia inicial sin recepcion'
+);
+
+select pg_temp.crear_traslado_rt36(
+  '93600000-0000-4000-8000-000000000101',
+  '93600000-0000-4000-8000-000000000201',
+  'vehiculo_recibido'
+) as traslado_sin_inicio
+\gset
+
+select throws_like(
+  format($sql$ select public.conductor_confirmar_llegada_destino(%L) $sql$, :'traslado_sin_inicio'),
+  '%No se puede confirmar llegada a destino desde estado vehiculo_recibido%',
+  'RT-36.0d: la RPC no repara silenciosamente un traslado no iniciado'
+);
 
 select is(
   public.conductor_confirmar_llegada_destino(:'traslado_atomico')::text,
@@ -98,8 +150,9 @@ select ok(
       and evento = 'llegada_destino'
       and actor = 'conductor'
       and datos->>'accion' = 'conductor_confirmar_llegada_destino'
-      and datos->>'estado_anterior' = 'evidencia_inicial_completada'
+      and datos->>'estado_anterior' = 'traslado_en_curso'
       and datos->>'estado_nuevo' = 'llegada_a_destino'
+      and datos->>'fuera_geocerca' = 'false'
   ),
   'RT-36.3: la auditoria conserva estado anterior y accion atomica'
 );
@@ -134,6 +187,43 @@ select set_config('request.jwt.claim.sub', '93600000-0000-4000-8000-000000000002
 select pg_temp.crear_traslado_rt36(
   '93600000-0000-4000-8000-000000000101',
   '93600000-0000-4000-8000-000000000201',
+  'traslado_en_curso'
+) as traslado_fuera_geocerca
+\gset
+
+select is(
+  (
+    select datos
+    from public.registro_auditoria
+    where traslado_id = :'traslado_fuera_geocerca'::uuid
+      and evento = 'llegada_destino'
+    limit 1
+  ),
+  null::jsonb,
+  'RT-36.7: traslado de prueba inicia sin auditoria de llegada'
+);
+
+select is(
+  public.conductor_confirmar_llegada_destino(:'traslado_fuera_geocerca', true, 742.4)::text,
+  'llegada_a_destino',
+  'RT-36.8: confirma llegada fuera de geocerca y conserva metadata'
+);
+
+select ok(
+  exists (
+    select 1
+    from public.registro_auditoria
+    where traslado_id = :'traslado_fuera_geocerca'::uuid
+      and evento = 'llegada_destino'
+      and datos->>'fuera_geocerca' = 'true'
+      and datos->>'distancia_m' = '742'
+  ),
+  'RT-36.9: auditoria registra fuera_geocerca y distancia_m'
+);
+
+select pg_temp.crear_traslado_rt36(
+  '93600000-0000-4000-8000-000000000101',
+  '93600000-0000-4000-8000-000000000201',
   'conductor_en_camino_al_origen'
 ) as traslado_invalido
 \gset
@@ -141,7 +231,7 @@ select pg_temp.crear_traslado_rt36(
 select throws_like(
   format($sql$ select public.conductor_confirmar_llegada_destino(%L) $sql$, :'traslado_invalido'),
   '%No se puede confirmar llegada a destino desde estado conductor_en_camino_al_origen%',
-  'RT-36.7: estados previos a la ruta activa no pueden confirmar destino'
+  'RT-36.10: estados previos a la ruta activa no pueden confirmar destino'
 );
 
 select * from finish();

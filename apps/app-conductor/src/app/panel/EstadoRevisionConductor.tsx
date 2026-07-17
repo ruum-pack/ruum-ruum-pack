@@ -234,7 +234,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
                 {doc?.nombre_archivo && <p className="mt-1 font-body text-xs text-text-tertiary">{enmascararNombreArchivo(doc.nombre_archivo)}</p>}
 
                 {(doc?.motivo_rechazo||doc?.notas_admin) && (
-                  <p className="mt-2 rounded-lg bg-warn-soft px-3 py-2 font-body text-xs text-warning">
+                  <p className="mt-2 rounded-lg bg-warn-soft px-3 py-2 font-body text-sm text-warning">
                     Motivo: {doc.motivo_rechazo??doc.notas_admin}
                   </p>
                 )}

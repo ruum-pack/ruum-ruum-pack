@@ -156,7 +156,7 @@ export function AccionesViaje({
     );
   }
 
-  if (estado === "evidencia_inicial_completada") {
+  if (estado === "traslado_en_curso") {
     if (!destinoDireccion || !destinoCiudad) {
       return <Aviso tono="danger">Falta la dirección de entrega para continuar.</Aviso>;
     }

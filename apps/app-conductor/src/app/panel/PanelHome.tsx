@@ -66,7 +66,7 @@ export function PanelHome({
 
       {documentoBloqueante ? (
         <AlertCard>
-          <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Documento bloqueante</p>
+          <p className="font-body text-sm font-semibold text-text-tertiary">Documento bloqueante</p>
           <div className="mt-2">
             <h2 className="font-display text-xl font-semibold">Revisa tus documentos</h2>
             <p className="mt-2 font-body text-sm text-text-secondary">

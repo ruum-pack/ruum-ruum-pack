@@ -6,6 +6,8 @@ export type TripPresentationAction =
   | "confirm_contact"
   | "inspect_vehicle"
   | "capture_origin_record"
+  | "confirm_vehicle_received"
+  | "start_trip"
   | "go_destination"
   | "mark_arrived_destination"
   | "capture_destination_record"
@@ -105,14 +107,32 @@ export function getTripPresentation(estado: EstadoTraslado, incidentStatus: Trip
       );
 
     case "evidencia_inicial_completada":
+      return presentation(
+        5,
+        "Confirma que recibiste el vehículo",
+        "Antes de iniciar el traslado, confirma que el vehículo ya fue recibido y que el registro inicial quedó completo.",
+        "confirm_vehicle_received",
+        "Confirmar recepción",
+        "Después iniciarás el traslado hacia el punto de entrega."
+      );
+
     case "vehiculo_recibido":
+      return presentation(
+        5,
+        "Inicia el traslado",
+        "Cuando estés listo para mover el vehículo, inicia el traslado. La llegada a destino solo se confirma después de comenzar esta etapa.",
+        "start_trip",
+        "Iniciar traslado",
+        "Después podrás confirmar la llegada al punto de entrega."
+      );
+
     case "traslado_en_curso":
       return presentation(
         5,
         "Dirígete al punto de entrega",
         "Conduce hacia el punto de entrega y mantén el registro del vehículo y la comunicación al día.",
-        estado === "traslado_en_curso" ? "mark_arrived_destination" : "go_destination",
-        estado === "traslado_en_curso" ? "Confirmar llegada a destino" : "Abrir ruta de entrega",
+        "mark_arrived_destination",
+        "Confirmar llegada a destino",
         "Al llegar, registra el estado final del vehículo."
       );
 

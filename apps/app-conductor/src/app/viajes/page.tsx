@@ -457,7 +457,7 @@ export default function PaginaViajes() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="font-body text-sm font-semibold">Viaje rechazado</p>
-              <p className="mt-0.5 font-body text-xs text-text-secondary">{rechazoPendiente.motivo}</p>
+              <p className="mt-0.5 font-body text-sm text-text-secondary">{rechazoPendiente.motivo}</p>
             </div>
             <button
               type="button"

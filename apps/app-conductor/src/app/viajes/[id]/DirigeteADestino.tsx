@@ -58,9 +58,13 @@ export function DirigeteADestino({
         }
       }
 
-      setConfirmacionLejanaM(null);
       const cliente = crearClienteNavegador();
-      await confirmarLlegadaDestino(cliente, trasladoId);
+      const distanciaConfirmadaM = confirmacionLejanaM;
+      await confirmarLlegadaDestino(cliente, trasladoId, {
+        fueraGeocerca: Boolean(confirmarFueraDeGeocerca && distanciaConfirmadaM),
+        distanciaM: confirmarFueraDeGeocerca ? distanciaConfirmadaM : null
+      });
+      setConfirmacionLejanaM(null);
       router.refresh();
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos registrar tu llegada al punto de entrega."));
