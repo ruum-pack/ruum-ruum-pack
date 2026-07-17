@@ -118,7 +118,7 @@ export default function PaginaRecuperarPassword() {
 
                 {error && (
                   <div aria-live="polite" aria-atomic="true">
-                    <Aviso tono="peligro">{error}</Aviso>
+                    <Aviso tono="danger">{error}</Aviso>
                   </div>
                 )}
 

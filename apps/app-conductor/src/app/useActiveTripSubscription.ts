@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { App } from "@capacitor/app";
 import { listarViajesAceptados, obtenerConductorActual } from "@ruum/api/services";
+import { createLogger, errorCode } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
 import { esNativo } from "../lib/capacitor";
 import {
@@ -15,12 +16,15 @@ import {
 
 const RUTAS_SIN_VIAJE_ACTIVO = new Set(["/login", "/registro", "/onboarding"]);
 const INTERVALO_REFRESCO_VIAJE_ACTIVO_MS = 45_000;
+const logger = createLogger("active_trip");
 
 export function useActiveTripSubscription(pathname: string) {
   const [viajeActivo, setViajeActivo] = useState<ViajeActivo | null>(null);
+  const [viajeActivoSinActualizar, setViajeActivoSinActualizar] = useState(false);
   const rutaSinViajeActivo = RUTAS_SIN_VIAJE_ACTIVO.has(pathname);
   const registrarViajeActivo = useCallback((viaje: RegistroViajeActivoInput | null) => {
     setViajeActivo((previo) => (viaje ? normalizarViajeActivo(viaje, previo) : null));
+    setViajeActivoSinActualizar(false);
   }, []);
 
   useEffect(() => {
@@ -34,15 +38,29 @@ export function useActiveTripSubscription(pathname: string) {
         const cliente = crearClienteNavegador();
         const conductor = await obtenerConductorActual(cliente);
         if (!conductor) {
-          if (!cancelado) setViajeActivo(null);
+          if (!cancelado) {
+            setViajeActivo(null);
+            setViajeActivoSinActualizar(false);
+          }
           return;
         }
 
         const viajes = await listarViajesAceptados(cliente, conductor.id);
         const activo = viajes.find((viaje) => viajeEsOperacionActiva(viaje.estado));
-        if (!cancelado) setViajeActivo(activo ? viajeActivoDesdePasaporte(activo) : null);
-      } catch {
-        if (!cancelado) setViajeActivo(null);
+        if (!cancelado) {
+          setViajeActivo(activo ? viajeActivoDesdePasaporte(activo) : null);
+          setViajeActivoSinActualizar(false);
+        }
+      } catch (error) {
+        logger.warn(
+          "active_trip_refresh_failed",
+          {
+            errorCode: errorCode(error),
+            isOnline: typeof navigator === "undefined" ? null : navigator.onLine
+          },
+          "connectivity"
+        );
+        if (!cancelado) setViajeActivoSinActualizar(true);
       }
     }
 
@@ -76,6 +94,7 @@ export function useActiveTripSubscription(pathname: string) {
 
   return {
     viajeActivo: rutaSinViajeActivo ? null : viajeActivo,
+    viajeActivoSinActualizar: rutaSinViajeActivo ? false : viajeActivoSinActualizar,
     registrarViajeActivo
   };
 }

@@ -185,7 +185,7 @@ export default function PaginaRegistro() {
           <LogoRuum className="mx-auto" />
           <h1 className="mt-16 font-display text-2xl font-extrabold">Crear cuenta</h1>
           <div className="mt-6">
-            <Aviso tono="peligro">
+            <Aviso tono="danger">
               Supabase no está configurado. El registro no está disponible en este entorno.
             </Aviso>
           </div>
@@ -283,7 +283,7 @@ export default function PaginaRegistro() {
 
               {error && (
               <div role="status" aria-live="polite" aria-atomic="true" className="mt-4">
-                <Aviso tono="peligro">{error}</Aviso>
+                <Aviso tono="danger">{error}</Aviso>
               </div>
             )}
 
@@ -400,7 +400,7 @@ export default function PaginaRegistro() {
 
               {error && (
               <div role="status" aria-live="polite" aria-atomic="true">
-                <Aviso tono="peligro">{error}</Aviso>
+                <Aviso tono="danger">{error}</Aviso>
               </div>
             )}
 

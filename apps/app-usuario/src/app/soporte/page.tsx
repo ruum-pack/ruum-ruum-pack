@@ -167,7 +167,7 @@ export default async function PaginaSoporte({ searchParams }: { searchParams: Pr
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Link href="/mis-viajes">
-            <Button variant="secundario">Mis viajes</Button>
+            <Button variant="secondary">Mis viajes</Button>
           </Link>
           <Link href="/cuenta">
             <Button>Mi cuenta</Button>

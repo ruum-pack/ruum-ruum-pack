@@ -12,7 +12,8 @@ import { capturarFoto, seleccionarFotoGaleria } from "../../../../lib/camara";
 import {
   obtenerPasaporteDigital,
   obtenerEvidenciaDeTraslado,
-  confirmarEvidenciaCompleta
+  confirmarEvidenciaCompleta,
+  firmarUrlsEvidencia
 } from "@ruum/api/services";
 import { EvidenceWizard } from "./EvidenceWizard";
 import { useEvidenceQueue } from "./useEvidenceQueue";
@@ -65,7 +66,11 @@ export default function PaginaEvidencia() {
       obtenerEvidenciaDeTraslado(cliente, id, tipo),
       cargarPendientesLocales()
     ]);
-    setFotos([...remotas, ...locales.filter((local) => !remotas.some((remota) => remota.id === local.id))]);
+    const remotasFirmadas = await firmarUrlsEvidencia(cliente, remotas);
+    setFotos([
+      ...remotasFirmadas,
+      ...locales.filter((local) => !remotasFirmadas.some((remota) => remota.id === local.id))
+    ]);
   }, [cargarPendientesLocales, id, tipo]);
 
   const drenarCola = useCallback(async () => {
@@ -178,7 +183,13 @@ export default function PaginaEvidencia() {
             cargarInspeccion(tipoDetectado)
           ]);
           const locales = await cargarPendientesLocales();
-          setFotos([...remotas, ...locales.filter((local) => local.tipo === tipoDetectado && !remotas.some((remota) => remota.id === local.id))]);
+          const remotasFirmadas = await firmarUrlsEvidencia(cliente, remotas);
+          setFotos([
+            ...remotasFirmadas,
+            ...locales.filter(
+              (local) => local.tipo === tipoDetectado && !remotasFirmadas.some((remota) => remota.id === local.id)
+            )
+          ]);
         }
       } catch (err) {
         setAviso(traducirErrorOperativo(err, "No pudimos cargar el registro del vehículo."));

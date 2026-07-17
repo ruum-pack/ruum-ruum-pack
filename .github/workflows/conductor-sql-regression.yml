@@ -1,0 +1,68 @@
+name: Conductor SQL regression
+
+on:
+  pull_request:
+    paths:
+      - "apps/app-conductor/**"
+      - "packages/api/src/services/traslados.ts"
+      - "packages/shared/src/states/**"
+      - "supabase/migrations/**"
+      - "supabase/test/rt35*"
+      - "supabase/test/rt36*"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/conductor-sql-regression.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/app-conductor/**"
+      - "packages/api/src/services/traslados.ts"
+      - "packages/shared/src/states/**"
+      - "supabase/migrations/**"
+      - "supabase/test/rt35*"
+      - "supabase/test/rt36*"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/conductor-sql-regression.yml"
+
+jobs:
+  conductor-sql-regression:
+    name: SQL conductor operation guards
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+
+      - name: Start local Supabase
+        run: pnpm db:start
+
+      - name: Reset local database
+        run: pnpm db:reset
+
+      - name: Run conductor SQL regression tests
+        run: >
+          supabase test db
+          supabase/test/rt35_conductor_no_aprobado_no_opera.test.sql
+          supabase/test/rt36_conductor_confirma_llegada_destino_atomica.test.sql
+
+      - name: Stop local Supabase
+        if: always()
+        run: pnpm db:stop

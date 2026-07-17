@@ -83,7 +83,7 @@ export default function PaginaLogin() {
 
             {error && (
               <div role="status" aria-live="polite" aria-atomic="true">
-                <Aviso tono="peligro">{error}</Aviso>
+                <Aviso tono="danger">{error}</Aviso>
               </div>
             )}
 

@@ -33,19 +33,19 @@ export function FacturacionCuentaForm({ usuario, empresa }: { usuario: Usuario; 
   const [usoCfdi, setUsoCfdi] = useState(datoFiscal(usuario, empresa, "uso_cfdi"));
   const [correoFacturacion, setCorreoFacturacion] = useState(empresa?.correo_facturacion ?? usuario.correo_facturacion ?? "");
   const [guardando, setGuardando] = useState(false);
-  const [mensaje, setMensaje] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
+  const [mensaje, setMensaje] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     setMensaje(null);
 
     if (!rfc || rfc.length < 12 || !razonSocial.trim() || !regimenFiscal.trim() || codigoPostalFiscal.length !== 5 || !usoCfdi.trim()) {
-      setMensaje({ tono: "peligro", texto: "Completa RFC, razón social, régimen fiscal, CP fiscal y uso de CFDI." });
+      setMensaje({ tono: "danger", texto: "Completa RFC, razón social, régimen fiscal, CP fiscal y uso de CFDI." });
       return;
     }
 
     if (!tieneSupabaseConfigurado()) {
-      setMensaje({ tono: "peligro", texto: "Supabase no está configurado. No se pueden guardar cambios." });
+      setMensaje({ tono: "danger", texto: "Supabase no está configurado. No se pueden guardar cambios." });
       return;
     }
 
@@ -61,7 +61,7 @@ export function FacturacionCuentaForm({ usuario, empresa }: { usuario: Usuario; 
       });
       setMensaje({ tono: "info", texto: "Datos de facturación actualizados." });
     } catch (err) {
-      setMensaje({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos guardar los datos fiscales." });
+      setMensaje({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos guardar los datos fiscales." });
     } finally {
       setGuardando(false);
     }

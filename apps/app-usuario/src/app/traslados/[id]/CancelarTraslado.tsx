@@ -32,7 +32,7 @@ export function CancelarTraslado({
   const router = useRouter();
   const [motivo, setMotivo] = useState("");
   const [procesando, setProcesando] = useState(false);
-  const [mensaje, setMensaje] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
+  const [mensaje, setMensaje] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
   const [confirmando, setConfirmando] = useState(false);
 
   const terminal = ["servicio_cerrado", "servicio_cancelado", "traslado_fallido"].includes(estado);
@@ -49,7 +49,7 @@ export function CancelarTraslado({
     setConfirmando(false);
     try {
       if (!tieneSupabaseConfigurado()) {
-        setMensaje({ tono: "peligro", texto: "Supabase no está configurado. No se puede cancelar el traslado." });
+        setMensaje({ tono: "danger", texto: "Supabase no está configurado. No se puede cancelar el traslado." });
         return;
       }
       const cliente = crearClienteNavegador();
@@ -60,7 +60,7 @@ export function CancelarTraslado({
       });
       router.refresh();
     } catch (err) {
-      setMensaje({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos cancelar el traslado." });
+      setMensaje({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos cancelar el traslado." });
     } finally {
       setProcesando(false);
     }
@@ -97,14 +97,14 @@ export function CancelarTraslado({
           )}
           <div className="mt-4 flex gap-2">
             <Button
-              variant="peligro"
+              variant="danger"
               onClick={cancelar}
               disabled={procesando}
             >
               {procesando ? "Cancelando…" : "Sí, cancelar el viaje"}
             </Button>
             <Button
-              variant="secundario"
+              variant="secondary"
               onClick={() => setConfirmando(false)}
               disabled={procesando}
             >
@@ -121,7 +121,7 @@ export function CancelarTraslado({
             placeholder="Cuéntanos por qué necesitas cancelar"
           />
           <Button
-            variant="peligro"
+            variant="danger"
             onClick={() => setConfirmando(true)}
             disabled={procesando}
           >

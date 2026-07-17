@@ -95,7 +95,7 @@ export default function PaginaMetricasRegistro() {
         </div>
       </div>
 
-      {error&&<div className="mt-5"><Aviso tono="peligro">{error}</Aviso></div>}
+      {error&&<div className="mt-5"><Aviso tono="danger">{error}</Aviso></div>}
       {cargando&&<p className="mt-5 font-body text-sm text-ink/50">Actualizando indicadores…</p>}
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-6" aria-label="Resumen del periodo">

@@ -83,9 +83,9 @@ function AccionesEmpresa({ empresa, onActualizado }: { empresa: Empresa; onActua
         />
       </label>
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="fantasma" onClick={() => cambiar("verificado")} disabled={pendiente}>Aprobar RFC / CFDI</Button>
-        <Button variant="fantasma" onClick={() => cambiar("rechazado")} disabled={pendiente}>Rechazar</Button>
-        <Button variant="fantasma" onClick={() => cambiar("en_revision")} disabled={pendiente}>Solicitar actualización</Button>
+        <Button variant="quiet" onClick={() => cambiar("verificado")} disabled={pendiente}>Aprobar RFC / CFDI</Button>
+        <Button variant="quiet" onClick={() => cambiar("rechazado")} disabled={pendiente}>Rechazar</Button>
+        <Button variant="quiet" onClick={() => cambiar("en_revision")} disabled={pendiente}>Solicitar actualización</Button>
         {mensaje && <span className="font-body text-sm text-ink/60">{mensaje}</span>}
       </div>
     </div>

@@ -30,7 +30,7 @@ export function AceptarCotizacion({ trasladoId, tipoPago }: { trasladoId: string
           ? "Al aceptar podrás realizar el pago anticipado por el precio cotizado."
           : "Al aceptar, el servicio se confirmará sin solicitar un pago inicial."}
       </p>
-      {error && <Aviso tono="peligro">{error}</Aviso>}
+      {error && <Aviso tono="danger">{error}</Aviso>}
       <Button onClick={aceptar} disabled={procesando}>{procesando ? "Aceptando…" : "Aceptar cotización"}</Button>
     </div>
   );

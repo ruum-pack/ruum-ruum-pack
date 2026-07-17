@@ -93,7 +93,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
   const [referencias, setReferencias] = useState(usuario.referencias ?? "");
   const [correoFacturacion, setCorreoFacturacion] = useState(usuario.correo_facturacion ?? "");
   const [guardando, setGuardando] = useState(false);
-  const [mensaje, setMensaje] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
+  const [mensaje, setMensaje] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
   const [cpConsultando, setCpConsultando] = useState(false);
   const [cpAviso, setCpAviso] = useState<string | null>(null);
   const [ciudadesCp, setCiudadesCp] = useState<string[]>(usuario.ciudad ? [usuario.ciudad] : []);
@@ -148,7 +148,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
     setMensaje(null);
 
     if (telefono.length !== 10) {
-      setMensaje({ tono: "peligro", texto: "El teléfono debe tener 10 dígitos; el prefijo +52 ya está aplicado." });
+      setMensaje({ tono: "danger", texto: "El teléfono debe tener 10 dígitos; el prefijo +52 ya está aplicado." });
       return;
     }
 
@@ -162,12 +162,12 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
       !calle.trim() ||
       !numero.trim()
     ) {
-      setMensaje({ tono: "peligro", texto: "Completa nombre, apellido, teléfono y domicilio antes de guardar." });
+      setMensaje({ tono: "danger", texto: "Completa nombre, apellido, teléfono y domicilio antes de guardar." });
       return;
     }
 
     if (!tieneSupabaseConfigurado()) {
-      setMensaje({ tono: "peligro", texto: "Supabase no está configurado. No se pueden guardar cambios." });
+      setMensaje({ tono: "danger", texto: "Supabase no está configurado. No se pueden guardar cambios." });
       return;
     }
 
@@ -190,7 +190,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
       });
       setMensaje({ tono: "info", texto: "Datos de cuenta actualizados." });
     } catch (err) {
-      setMensaje({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos guardar los cambios." });
+      setMensaje({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos guardar los cambios." });
     } finally {
       setGuardando(false);
     }
@@ -201,12 +201,12 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
     setMensaje(null);
 
     if (!archivo.type.startsWith("image/")) {
-      setMensaje({ tono: "peligro", texto: "Selecciona una imagen para la fotografía de perfil." });
+      setMensaje({ tono: "danger", texto: "Selecciona una imagen para la fotografía de perfil." });
       return;
     }
 
     if (!tieneSupabaseConfigurado()) {
-      setMensaje({ tono: "peligro", texto: "Supabase no está configurado. No se puede subir la fotografía." });
+      setMensaje({ tono: "danger", texto: "Supabase no está configurado. No se puede subir la fotografía." });
       return;
     }
 
@@ -216,7 +216,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
       setFotoUrl(nuevaFotoUrl);
       setMensaje({ tono: "info", texto: "Fotografía actualizada." });
     } catch (err) {
-      setMensaje({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos subir la fotografía." });
+      setMensaje({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos subir la fotografía." });
     } finally {
       setSubiendoFoto(false);
     }

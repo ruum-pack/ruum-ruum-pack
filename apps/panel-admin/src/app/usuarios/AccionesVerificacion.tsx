@@ -67,7 +67,7 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
     <div className="mt-3 flex flex-col gap-3">
       {error && (
         <div role="status" aria-live="polite" aria-atomic="true">
-          <Aviso tono="peligro">{error}</Aviso>
+          <Aviso tono="danger">{error}</Aviso>
         </div>
       )}
 
@@ -83,7 +83,7 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
             Abrir identificación (enlace válido 30 min)
           </a>
         ) : (
-          <Button variant="fantasma" onClick={verDocumento} disabled={procesando}>
+          <Button variant="quiet" onClick={verDocumento} disabled={procesando}>
             Ver identificación
           </Button>
         )
@@ -102,7 +102,7 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
             <Button onClick={() => cambiarEstado("verificado")} disabled={procesando}>
               {procesando ? "Aprobando…" : "Confirmar aprobación"}
             </Button>
-            <Button variant="secundario" onClick={() => setConfirmando(null)} disabled={procesando}>
+            <Button variant="secondary" onClick={() => setConfirmando(null)} disabled={procesando}>
               Cancelar
             </Button>
           </div>
@@ -130,13 +130,13 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
           </label>
           <div className="mt-3 flex gap-2">
             <Button
-              variant="peligro"
+              variant="danger"
               onClick={() => cambiarEstado("rechazado", motivoRechazo)}
               disabled={procesando || motivoRechazo.trim().length < 10}
             >
               {procesando ? "Rechazando…" : "Confirmar rechazo"}
             </Button>
-            <Button variant="secundario" onClick={() => { setConfirmando(null); setMotivoRechazo(""); }} disabled={procesando}>
+            <Button variant="secondary" onClick={() => { setConfirmando(null); setMotivoRechazo(""); }} disabled={procesando}>
               Cancelar
             </Button>
           </div>
@@ -145,7 +145,7 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
         /* Botones de acción principales */
         <div className="flex flex-wrap gap-2">
           {usuario.estado_verificacion === "pendiente" && (
-            <Button variant="secundario" onClick={() => cambiarEstado("en_revision")} disabled={procesando}>
+            <Button variant="secondary" onClick={() => cambiarEstado("en_revision")} disabled={procesando}>
               Marcar en revisión
             </Button>
           )}
@@ -156,7 +156,7 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
             Aprobar cuenta
           </Button>
           <Button
-            variant="peligro"
+            variant="danger"
             onClick={() => setConfirmando("rechazar")}
             disabled={procesando}
           >

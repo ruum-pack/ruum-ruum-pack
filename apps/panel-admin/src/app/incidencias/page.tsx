@@ -174,7 +174,7 @@ export default function PaginaIncidenciasAdmin() {
 
             <div className="mt-5 flex flex-wrap gap-2">
               {ACCIONES.map((accion) => (
-                <Button key={accion} variant="fantasma">
+                <Button key={accion} variant="quiet">
                   {accion}
                 </Button>
               ))}

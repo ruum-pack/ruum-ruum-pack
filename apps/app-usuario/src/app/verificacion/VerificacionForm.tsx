@@ -466,7 +466,7 @@ export function VerificacionForm() {
 
       {error && (
         <div role="alert" aria-live="assertive">
-          <Aviso tono="peligro">{error}</Aviso>
+          <Aviso tono="danger">{error}</Aviso>
         </div>
       )}
 

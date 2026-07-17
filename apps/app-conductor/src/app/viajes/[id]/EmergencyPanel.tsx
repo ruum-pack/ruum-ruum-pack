@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Aviso, Button } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
-import { traducirErrorOperativo } from "@ruum/shared/utils";
+import { createLogger, errorCode, traducirErrorOperativo } from "@ruum/shared/utils";
 import {
   activarSoporteEmergenciaConductor,
   registrarInteraccionPanelEmergenciaConductor,
@@ -14,6 +14,7 @@ import { CONTACTOS_SOPORTE_CONDUCTOR } from "../../../lib/contactos-soporte";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 
 type AccionPanel = "llamar_911" | "contactar_soporte" | "compartir_ubicacion" | "reportar_accidente" | "no_puedo_continuar";
+const logger = createLogger("emergency_panel");
 
 const OPCIONES: Array<{
   id: AccionPanel;
@@ -108,7 +109,18 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
     try {
       const cliente = crearClienteNavegador();
       await registrarInteraccionPanelEmergenciaConductor(cliente, trasladoId, accion, opcion, datos);
-    } catch {
+    } catch (error) {
+      logger.warn(
+        "emergency_audit_failed",
+        {
+          tripId: trasladoId,
+          action: accion,
+          option: opcion,
+          isOnline: typeof navigator === "undefined" ? null : navigator.onLine,
+          errorCode: errorCode(error)
+        },
+        "unexpected_exception"
+      );
       // La emergencia no debe bloquearse si la auditoría temporalmente falla.
     }
   }

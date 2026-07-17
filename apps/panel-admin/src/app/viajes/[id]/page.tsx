@@ -59,12 +59,12 @@ export default function PaginaDetalleViajeAdmin() {
   const [causaFallido, setCausaFallido] = useState<CausaFallido>("operativo");
   const [notaNueva, setNotaNueva] = useState("");
   const [procesando, setProcesando] = useState<"conductor" | "estado" | "precio" | "nota" | "fallido" | "sugerencia" | null>(null);
-  const [aviso, setAviso] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
+  const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
   const [adminId, setAdminId] = useState(ADMIN_DEMO.id);
   /* Ítem 17 — foco al aviso tras cada acción para operadores de teclado */
   const avisoRef = useRef<HTMLDivElement>(null);
 
-  function mostrarAviso(aviso: { tono: "info" | "peligro"; texto: string }) {
+  function mostrarAviso(aviso: { tono: "info" | "danger"; texto: string }) {
     setAviso(aviso);
     setTimeout(() => avisoRef.current?.focus(), 50);
   }
@@ -139,7 +139,7 @@ export default function PaginaDetalleViajeAdmin() {
       setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
       setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
     } catch (err) {
-      mostrarAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos asignar el conductor." });
+      mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos asignar el conductor." });
     } finally {
       setProcesando(null);
     }
@@ -165,7 +165,7 @@ export default function PaginaDetalleViajeAdmin() {
       setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
       setEstadoSeleccionado("");
     } catch (err) {
-      mostrarAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos cambiar el estatus." });
+      mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos cambiar el estatus." });
     } finally {
       setProcesando(null);
     }
@@ -178,7 +178,7 @@ export default function PaginaDetalleViajeAdmin() {
   async function guardarClasificacionVehiculo() {
     if (!pasaporte || !pasaporte.vehiculo_id) return;
     if (!categoriaTarifaInput || !gamaInput || !condicionInput) {
-      mostrarAviso({ tono: "peligro", texto: "Selecciona categoría, gama y condición." });
+      mostrarAviso({ tono: "danger", texto: "Selecciona categoría, gama y condición." });
       return;
     }
     if (esDemo) {
@@ -197,7 +197,7 @@ export default function PaginaDetalleViajeAdmin() {
       setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
       mostrarAviso({ tono: "info", texto: "Clasificación del vehículo guardada." });
     } catch (err) {
-      mostrarAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No se pudo guardar la clasificación." });
+      mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No se pudo guardar la clasificación." });
     } finally {
       setProcesando(null);
     }
@@ -213,11 +213,11 @@ export default function PaginaDetalleViajeAdmin() {
       pasaporte.origen_lat == null || pasaporte.origen_lng == null ||
       pasaporte.destino_lat == null || pasaporte.destino_lng == null
     ) {
-      mostrarAviso({ tono: "peligro", texto: "El traslado no tiene coordenadas de origen/destino completas." });
+      mostrarAviso({ tono: "danger", texto: "El traslado no tiene coordenadas de origen/destino completas." });
       return;
     }
     if (!tieneMapboxConfigurado()) {
-      mostrarAviso({ tono: "peligro", texto: "NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN no está configurado en este entorno." });
+      mostrarAviso({ tono: "danger", texto: "NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN no está configurado en este entorno." });
       return;
     }
 
@@ -231,7 +231,7 @@ export default function PaginaDetalleViajeAdmin() {
         [pasaporte.destino_lng, pasaporte.destino_lat]
       );
       if (distanciaKm == null || tiempoHoras == null) {
-        mostrarAviso({ tono: "peligro", texto: "Mapbox Directions no devolvió una ruta calculable para este origen/destino." });
+        mostrarAviso({ tono: "danger", texto: "Mapbox Directions no devolvió una ruta calculable para este origen/destino." });
         return;
       }
 
@@ -249,7 +249,7 @@ export default function PaginaDetalleViajeAdmin() {
       });
     } catch (err) {
       mostrarAviso({
-        tono: "peligro",
+        tono: "danger",
         texto: err instanceof Error ? err.message : "No se pudo calcular la sugerencia de tarifa."
       });
     } finally {
@@ -262,7 +262,7 @@ export default function PaginaDetalleViajeAdmin() {
 
     const valor = Number(precioFinalInput);
     if (!precioFinalInput.trim() || Number.isNaN(valor) || valor <= 0) {
-      mostrarAviso({ tono: "peligro", texto: "Ingresa una cotización mayor a cero." });
+      mostrarAviso({ tono: "danger", texto: "Ingresa una cotización mayor a cero." });
       return;
     }
 
@@ -284,7 +284,7 @@ export default function PaginaDetalleViajeAdmin() {
       setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
       setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
     } catch (err) {
-      mostrarAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos emitir la cotización." });
+      mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos emitir la cotización." });
     } finally {
       setProcesando(null);
     }
@@ -310,7 +310,7 @@ export default function PaginaDetalleViajeAdmin() {
       setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
       setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
     } catch (err) {
-      mostrarAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos marcar el traslado como fallido." });
+      mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos marcar el traslado como fallido." });
     } finally {
       setProcesando(null);
     }
@@ -338,7 +338,7 @@ export default function PaginaDetalleViajeAdmin() {
       setNotas(await obtenerNotasInternas(cliente, pasaporte.traslado_id));
       setNotaNueva("");
     } catch (err) {
-      mostrarAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos guardar la nota." });
+      mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos guardar la nota." });
     } finally {
       setProcesando(null);
     }
@@ -583,7 +583,7 @@ export default function PaginaDetalleViajeAdmin() {
               <option value="seminueva">Seminueva</option>
               <option value="rescate_mecanico">Rescate mecánico</option>
             </select>
-            <Button variant="fantasma" onClick={guardarClasificacionVehiculo} disabled={procesando === "sugerencia"}>
+            <Button variant="quiet" onClick={guardarClasificacionVehiculo} disabled={procesando === "sugerencia"}>
               Guardar clasificación
             </Button>
           </div>
@@ -598,7 +598,7 @@ export default function PaginaDetalleViajeAdmin() {
             Define el precio autorizado que verá y deberá aceptar el usuario. Esto no realiza ningún cobro automáticamente.
           </p>
           <div className="mt-3">
-            <Button variant="fantasma" onClick={sugerirTarifa} disabled={procesando === "sugerencia"}>
+            <Button variant="quiet" onClick={sugerirTarifa} disabled={procesando === "sugerencia"}>
               {procesando === "sugerencia" ? "Calculando ruta…" : "Calcular distancia (Mapbox) y sugerir tarifa"}
             </Button>
             {pasaporte.distancia_km != null && pasaporte.tiempo_estimado_horas != null && (

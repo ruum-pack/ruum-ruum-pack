@@ -189,6 +189,7 @@ function conductorDemo(datos: Pick<ConductorRow, "id" | "nombre"> & Partial<Cond
     estado: "activo",
     estado_expediente: "aprobado",
     estado_residencia: "Ciudad de México",
+    foto_perfil_url: null,
     id: datos.id,
     incidencias_graves_12m: 0,
     incidencias_graves_6m: 0,

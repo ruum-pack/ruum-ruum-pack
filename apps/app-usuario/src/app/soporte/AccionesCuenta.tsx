@@ -44,7 +44,7 @@ export function AccionesCuenta() {
           Tus viajes, pagos y evidencia no se eliminan. Puedes volver a iniciar sesión cuando quieras.
         </p>
         <div className="mt-4">
-          <Button variant="secundario" onClick={cerrarSesion}>
+          <Button variant="secondary" onClick={cerrarSesion}>
             Cerrar sesión
           </Button>
         </div>
@@ -65,7 +65,7 @@ export function AccionesCuenta() {
           />
         </label>
         <div className="mt-4">
-          <Button variant="peligro" disabled={!puedeEliminar} onClick={solicitarEliminacion}>
+          <Button variant="danger" disabled={!puedeEliminar} onClick={solicitarEliminacion}>
             Solicitar eliminación
           </Button>
         </div>

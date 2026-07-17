@@ -200,7 +200,7 @@ export default function PaginaAlertasSLA() {
   const [alertas, setAlertas] = useState<AlertaSLA[]>([]);
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
-  const [aviso, setAviso] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
+  const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
 
   async function cargar() {
     setCargando(true);
@@ -251,7 +251,7 @@ export default function PaginaAlertasSLA() {
       await cargar();
     } catch (err) {
       setAviso({
-        tono: "peligro",
+        tono: "danger",
         texto: err instanceof Error ? err.message : "No se pudo actualizar el estado."
       });
     }
@@ -310,7 +310,7 @@ export default function PaginaAlertasSLA() {
 
         {aviso && (
           <div className="mb-4" role="status" aria-live="polite" aria-atomic="true">
-            <Aviso tono={aviso.tono === "peligro" ? "peligro" : "info"}>{aviso.texto}</Aviso>
+            <Aviso tono={aviso.tono === "danger" ? "danger" : "info"}>{aviso.texto}</Aviso>
           </div>
         )}
 

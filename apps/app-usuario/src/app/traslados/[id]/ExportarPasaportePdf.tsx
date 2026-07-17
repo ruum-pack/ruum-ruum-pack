@@ -4,7 +4,7 @@ import { Button } from "@ruum/ui";
 
 export function ExportarPasaportePdf() {
   return (
-    <Button variant="secundario" onClick={() => window.print()}>
+    <Button variant="secondary" onClick={() => window.print()}>
       Exportar PDF
     </Button>
   );

@@ -50,7 +50,7 @@ export function obtenerHistorial(traslados: PasaporteRow[]): PasaporteRow[] {
 
 export interface NotificacionInicio {
   id: string;
-  tono: "info" | "atencion" | "peligro";
+  tono: "info" | "atencion" | "danger";
   mensaje: string;
   href?: string;
 }
@@ -64,7 +64,7 @@ function folioCorto(trasladoId: string): string {
  * Todo lo que el usuario necesita saber "ahora" ya está representado en el
  * estado de sus traslados y en su propio registro de usuario — esta función
  * deriva avisos a partir de esos datos reales en vez de inventar una fuente
- * nueva. Los de mayor urgencia (tono "atencion"/"peligro") van primero.
+ * nueva. Los de mayor urgencia (tono "atencion"/"danger") van primero.
  */
 export function construirNotificaciones(usuario: UsuarioRow | null, traslados: PasaporteRow[]): NotificacionInicio[] {
   const notificaciones: NotificacionInicio[] = [];
@@ -72,7 +72,7 @@ export function construirNotificaciones(usuario: UsuarioRow | null, traslados: P
   if (usuario?.estado_verificacion === "rechazado") {
     notificaciones.push({
       id: "verificacion-rechazada",
-      tono: "peligro",
+      tono: "danger",
       mensaje: "No pudimos verificar tu cuenta. Contáctanos para revisar qué falta."
     });
   } else if (usuario?.estado_verificacion === "pendiente" || usuario?.estado_verificacion === "en_revision") {

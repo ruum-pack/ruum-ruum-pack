@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { subirDocumentoSolicitudConductor } from "@ruum/api/services";
+import { createLogger, errorCode } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../lib/supabase-browser";
 import {
   ETIQUETA_DOCUMENTO,
@@ -9,6 +10,8 @@ import {
   type DocumentoKey,
   type EstadoDocumento
 } from "./registration-types";
+
+const logger = createLogger("registration");
 
 export function useRegistrationDocuments({
   setCampoError,
@@ -71,7 +74,19 @@ export function useRegistrationDocuments({
     );
     resultados.forEach((resultado, indice) => {
       if (resultado.status === "rejected") {
-        registrarTelemetria("documento_fallo", paso + 1, TIPOS_DOCUMENTO[pendientes[indice][0]]);
+        const [campo] = pendientes[indice];
+        registrarTelemetria("documento_fallo", paso + 1, TIPOS_DOCUMENTO[campo]);
+        logger.warn(
+          "registration_document_upload_failed",
+          {
+            solicitudId,
+            documentType: TIPOS_DOCUMENTO[campo],
+            step: paso + 1,
+            isOnline: typeof navigator === "undefined" ? null : navigator.onLine,
+            errorCode: errorCode(resultado.reason)
+          },
+          "integration_failure"
+        );
       }
     });
 

@@ -112,7 +112,11 @@ export function listaEvidenciaObligatoria(tipo: TipoEvidencia): EvidenceRequirem
 }
 
 export function fotoSrc(foto?: FotoEvidencia) {
-  return foto?.local_path || foto?.url || null;
+  if (!foto) return null;
+  if (foto.local_path) return foto.local_path;
+  if (foto.url_visual) return foto.url_visual;
+  if (foto.url?.startsWith("data:") || foto.url?.startsWith("blob:")) return foto.url;
+  return null;
 }
 
 // PRD §4.4 - tipo de evidencia según en qué punto del flujo está el viaje.

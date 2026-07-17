@@ -1,7 +1,10 @@
+import { createLogger, errorCode } from "@ruum/shared/utils";
+
 const CLAVE_ACTUAL = "ruumruum.registro-conductor.borrador.v2";
 const CLAVES_ANTERIORES = ["ruumruum.registro-conductor.borrador.v1"];
 const VERSION_ESQUEMA = 2;
 const VIGENCIA_MS = 24 * 60 * 60 * 1000;
+const logger = createLogger("registration");
 
 export interface BorradorRegistroLocal {
   versionEsquema: 2;
@@ -64,7 +67,15 @@ export function leerBorradorRegistroLocal(): BorradorRegistroLocal | null {
       borrador[campo] = contenido;
     }
     return CAMPOS.some((campo)=>borrador[campo].trim()) ? borrador : null;
-  } catch {
+  } catch (error) {
+    logger.warn(
+      "registration_draft_restore_failed",
+      {
+        errorCode: errorCode(error),
+        schemaVersion: VERSION_ESQUEMA
+      },
+      "user_expected"
+    );
     limpiarBorradorRegistroLocal();
     return null;
   }

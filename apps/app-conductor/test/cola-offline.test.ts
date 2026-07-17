@@ -38,14 +38,15 @@ function item(overrides: Partial<ItemColaEvidencia> = {}): ItemColaEvidencia {
     lat: 19.4326,
     lng: -99.1332,
     capturadaEn: "2026-07-17T12:00:00.000Z",
+    retryCount: 0,
     ...overrides
   };
 }
 
 function clienteSupabaseMock({ uploadError = null, upsertError = null }: { uploadError?: Error | null; upsertError?: Error | null } = {}) {
   const upload = vi.fn(async () => ({ error: uploadError }));
-  const getPublicUrl = vi.fn((ruta: string) => ({ data: { publicUrl: `https://cdn.test/${ruta}` } }));
   const upsert = vi.fn(async () => ({ error: upsertError }));
+  const getPublicUrl = vi.fn();
   const fromStorage = vi.fn(() => ({ upload, getPublicUrl }));
   const fromTable = vi.fn(() => ({ upsert }));
 
@@ -74,6 +75,7 @@ describe("cola offline de evidencia", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     configurarStorageColaEvidencia(new InMemoryEvidenceStorage());
   });
@@ -121,10 +123,12 @@ describe("cola offline de evidencia", () => {
         traslado_id: "traslado-1",
         tipo: "inicial",
         angulo: "frontal",
+        url: "auth-user-1/traslado-1/inicial/local-1-frontal.jpg",
         sincronizada: true
       }),
       { onConflict: "id" }
     );
+    expect(supabase.getPublicUrl).not.toHaveBeenCalled();
     expect(onItemSincronizado).toHaveBeenCalledWith(expect.objectContaining({ localId: "local-1" }));
     expect(await leerColaEvidencia()).toEqual([]);
   });
@@ -137,6 +141,13 @@ describe("cola offline de evidencia", () => {
       "sin red"
     );
     expect(await contarColaEvidencia()).toBe(1);
+    expect(await leerColaEvidencia()).toMatchObject([
+      {
+        localId: "local-1",
+        retryCount: 1,
+        lastErrorCode: "Error"
+      }
+    ]);
     expect(logSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         event: "evidence_sync_failed",
@@ -147,14 +158,66 @@ describe("cola offline de evidencia", () => {
           evidenceType: "inicial",
           angle: "frontal",
           stage: "storage_upload",
+          retryCount: 1,
           errorCode: "Error"
         })
       })
     );
     expect(JSON.stringify(logSpy.mock.calls[0]?.[0])).not.toContain("data:image");
 
-    await expect(sincronizarColaEvidencia(clienteSupabaseMock().cliente as never)).resolves.toBe(1);
+    await expect(sincronizarColaEvidencia(clienteSupabaseMock().cliente as never, { ignoreBackoff: true })).resolves.toBe(1);
     expect(await contarColaEvidencia()).toBe(0);
+  });
+
+  it("respeta backoff automatico y permite ignorarlo en reintento manual", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-17T12:00:00.000Z"));
+    await encolarEvidencia(item());
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await expect(sincronizarColaEvidencia(clienteSupabaseMock({ uploadError: new Error("sin red") }).cliente as never)).rejects.toThrow(
+      "sin red"
+    );
+
+    const segundoCliente = clienteSupabaseMock();
+    await expect(sincronizarColaEvidencia(segundoCliente.cliente as never)).resolves.toBe(0);
+    expect(segundoCliente.upload).not.toHaveBeenCalled();
+
+    await expect(sincronizarColaEvidencia(segundoCliente.cliente as never, { ignoreBackoff: true })).resolves.toBe(1);
+    expect(segundoCliente.upload).toHaveBeenCalledTimes(1);
+  });
+
+  it("escala el backoff a 1, 5, 15 y 60 minutos", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-17T12:00:00.000Z"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    await encolarEvidencia(item({ retryCount: 3, lastAttemptAt: "2026-07-17T12:00:00.000Z" }));
+
+    const antesDeQuince = clienteSupabaseMock();
+    vi.setSystemTime(new Date("2026-07-17T12:14:59.000Z"));
+    await expect(sincronizarColaEvidencia(antesDeQuince.cliente as never)).resolves.toBe(0);
+    expect(antesDeQuince.upload).not.toHaveBeenCalled();
+
+    const despuesDeQuince = clienteSupabaseMock({ uploadError: new Error("sigue sin red") });
+    vi.setSystemTime(new Date("2026-07-17T12:15:00.000Z"));
+    await expect(sincronizarColaEvidencia(despuesDeQuince.cliente as never)).rejects.toThrow("sigue sin red");
+    expect(await leerColaEvidencia()).toMatchObject([{ retryCount: 4 }]);
+
+    const antesDeUnaHora = clienteSupabaseMock();
+    vi.setSystemTime(new Date("2026-07-17T13:14:59.000Z"));
+    await expect(sincronizarColaEvidencia(antesDeUnaHora.cliente as never)).resolves.toBe(0);
+    expect(antesDeUnaHora.upload).not.toHaveBeenCalled();
+
+    const despuesDeUnaHora = clienteSupabaseMock();
+    vi.setSystemTime(new Date("2026-07-17T13:15:00.000Z"));
+    await expect(sincronizarColaEvidencia(despuesDeUnaHora.cliente as never)).resolves.toBe(1);
+  });
+
+  it("normaliza elementos antiguos sin contador persistido", async () => {
+    configurarStorageColaEvidencia(new CapacitorPreferencesEvidenceStorage());
+    preferencesStore.set(CLAVE_COLA, JSON.stringify([{ ...item(), retryCount: undefined }]));
+
+    await expect(leerColaEvidencia()).resolves.toMatchObject([{ retryCount: 0 }]);
   });
 
   it("ignora datos corruptos persistidos", async () => {

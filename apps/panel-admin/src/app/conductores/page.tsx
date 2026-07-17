@@ -111,7 +111,7 @@ export default function PaginaConductoresAdmin() {
       </div>
 
       {esDemo && <div className="mt-4"><Aviso tono="info">Configura Supabase para consultar solicitudes reales.</Aviso></div>}
-      {error && <div className="mt-4"><Aviso tono="peligro">{error}</Aviso></div>}
+      {error && <div className="mt-4"><Aviso tono="danger">{error}</Aviso></div>}
 
       <div className="mt-6 flex flex-wrap gap-2" aria-label="Filtros de solicitudes">
         {FILTROS.map(({ valor, etiqueta }) => (

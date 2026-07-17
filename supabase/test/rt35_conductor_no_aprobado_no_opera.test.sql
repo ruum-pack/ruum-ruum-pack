@@ -43,6 +43,8 @@ values (
   1200, 'al_cierre', gen_random_uuid()
 );
 
+alter table public.conductores disable trigger inicializar_estado_expediente_conductor;
+
 insert into public.conductores (
   id, auth_user_id, nombre, estado, estado_expediente, documentos_vigentes,
   nivel_por_experiencia, nivel_por_calificacion, calificacion_promedio
@@ -56,6 +58,8 @@ values
     '93500000-0000-4000-8000-000000000402', '93500000-0000-4000-8000-000000000003',
     'Aprobado RT35', 'activo', 'aprobado', true, 'basico', 'basico', 5.00
   );
+
+alter table public.conductores enable trigger inicializar_estado_expediente_conductor;
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '93500000-0000-4000-8000-000000000002', true);

@@ -965,7 +965,7 @@ export function NuevoTrasladoForm() {
               <div>
                 <Button
                   type="button"
-                  variant="secundario"
+                  variant="secondary"
                   onClick={async () => {
                     const coords = await obtenerUbicacionActual();
                     if (coords) {
@@ -1303,7 +1303,7 @@ export function NuevoTrasladoForm() {
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Button type="button" onClick={restaurarBorrador}>Continuar donde iba</Button>
-              <Button type="button" variant="fantasma" onClick={descartarBorrador}>Empezar de cero</Button>
+              <Button type="button" variant="quiet" onClick={descartarBorrador}>Empezar de cero</Button>
             </div>
           </div>
         )}
@@ -1795,15 +1795,15 @@ export function NuevoTrasladoForm() {
               </Aviso>
             ) : errorAceptacion ? (
               <div className="space-y-3">
-                <Aviso tono="peligro">{errorAceptacion}</Aviso>
-                <Button variant="secundario" onClick={() => setReintentoAceptacion((n) => n + 1)}>
+                <Aviso tono="danger">{errorAceptacion}</Aviso>
+                <Button variant="secondary" onClick={() => setReintentoAceptacion((n) => n + 1)}>
                   Reintentar
                 </Button>
               </div>
             ) : aceptandoCotizacion || !cotizacionAceptada ? (
               <p className="font-body text-sm text-ink/55">Confirmando tarifa para iniciar el pago…</p>
             ) : !tieneSupabaseConfigurado() ? (
-              <Aviso tono="peligro">Supabase no está configurado. No se puede capturar el pago.</Aviso>
+              <Aviso tono="danger">Supabase no está configurado. No se puede capturar el pago.</Aviso>
             ) : !tieneStripePublicoConfigurado() ? (
               <Aviso tono="info">Stripe no está configurado — el cobro real no está disponible en este entorno.</Aviso>
             ) : (
@@ -1824,13 +1824,13 @@ export function NuevoTrasladoForm() {
 
       {errorPaso && (
         <div className="mt-6">
-          <Aviso tono="peligro">{errorPaso}</Aviso>
+          <Aviso tono="danger">{errorPaso}</Aviso>
         </div>
       )}
 
       {paso !== 3 && (
         <div className="mt-8 flex justify-between">
-          <Button variant="secundario" disabled={paso === 0} onClick={() => setPaso((p) => p - 1)}>
+          <Button variant="secondary" disabled={paso === 0} onClick={() => setPaso((p) => p - 1)}>
             ← Atrás
           </Button>
           {paso < 2 ? (

@@ -250,7 +250,7 @@ export default function PaginaMapaOperativo() {
             </div>
           )}
           {errorMapa && (
-            <div className="absolute left-4 right-4 top-4 z-10"><Aviso tono="peligro">{errorMapa}</Aviso></div>
+            <div className="absolute left-4 right-4 top-4 z-10"><Aviso tono="danger">{errorMapa}</Aviso></div>
           )}
           <div ref={mapRef} style={{ height: "100%", minHeight: 480 }} />
 

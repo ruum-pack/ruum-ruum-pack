@@ -45,13 +45,10 @@ export function DriverAvailabilityControl({ value, saving, onChange }: DriverAva
   const estado = ESTADOS[value];
 
   useEffect(() => {
-    if (saving) {
-      wasSaving.current = true;
-      setFeedback("Guardando cambio...");
-      return;
-    }
+    const acabaDeGuardar = wasSaving.current && !saving;
+    wasSaving.current = saving;
 
-    if (wasSaving.current) {
+    if (acabaDeGuardar) {
       wasSaving.current = false;
       setFeedback(`Cambio guardado: ${ESTADOS[value].label}.`);
       const id = window.setTimeout(() => setFeedback(null), 3200);

@@ -15,7 +15,8 @@ export interface FotoEvidencia {
   traslado_id: string;
   tipo: TipoEvidencia;
   angulo: AnguloEvidencia;
-  url?: string; // null/undefined si aún no sincronizada — PRD §4.15
+  url?: string; // path en Storage; null/undefined si aún no sincronizada — PRD §4.15
+  url_visual?: string | null; // URL firmada temporal para renderizar buckets privados
   local_path?: string; // PRD §4.15 — modo offline, almacenamiento local
   timestamp: string;
   lat?: number;

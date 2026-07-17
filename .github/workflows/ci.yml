@@ -10,7 +10,18 @@ jobs:
   workspace:
     name: Workspace checks
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.test
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+      NEXT_PUBLIC_PANEL_ADMIN_DEMO: "true"
+      NEXT_PUBLIC_APP_VERSION: ci
+      NEXT_PUBLIC_RUUM_AMBIENTE: staging
+      NEXT_PUBLIC_RUUM_SOPORTE_TELEFONO: "5500000000"
+      NEXT_PUBLIC_RUUM_SOPORTE_CORREO: soporte-conductores-pruebas@example.test
+      NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO: "911"
 
     steps:
       - name: Checkout
@@ -34,8 +45,17 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Lint
+        run: pnpm lint
+
       - name: Unit tests
         run: pnpm test:unit
+
+      - name: App conductor tests
+        run: pnpm --filter @ruum/app-conductor test
+
+      - name: Build
+        run: pnpm build
 
   edge-functions:
     name: Edge Function checks

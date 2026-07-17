@@ -85,7 +85,7 @@ export function AbrirDisputa({
         </label>
       </div>
       <div className="mt-3 flex items-center gap-3">
-        <Button variant="secundario" onClick={enviar} disabled={pendiente}>
+        <Button variant="secondary" onClick={enviar} disabled={pendiente}>
           {pendiente ? TEXTOS_CARGANDO.enviando : "Enviar disputa"}
         </Button>
         <div role="status" aria-live="polite" aria-atomic="true" className="min-h-[20px]">

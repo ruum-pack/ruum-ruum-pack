@@ -64,7 +64,7 @@ function esActivo(pathname: string, href: string) {
 /** Navegación consistente para la operación del conductor. */
 export function NavegacionConductor() {
   const pathname = usePathname();
-  const { viajeActivo } = useViajeActivo();
+  const { viajeActivo, viajeActivoSinActualizar } = useViajeActivo();
   const esAcceso = pathname === "/login" || pathname === "/registro" || pathname === "/onboarding";
   const presentacionViajeActivo = viajeActivo ? getTripPresentation(viajeActivo.estado) : null;
   const hayAccionPendiente = Boolean(presentacionViajeActivo && presentacionViajeActivo.primaryAction.action !== "none");
@@ -122,6 +122,11 @@ export function NavegacionConductor() {
                   {hayAccionPendiente && (
                     <span className="rounded-full border border-warning bg-warn-soft px-2 py-0.5 font-body text-sm font-bold text-warning">
                       Acción pendiente
+                    </span>
+                  )}
+                  {viajeActivoSinActualizar && (
+                    <span className="rounded-full border border-warning bg-warn-soft px-2 py-0.5 font-body text-sm font-bold text-warning">
+                      Información sin actualizar
                     </span>
                   )}
                 </p>
@@ -183,6 +188,11 @@ export function NavegacionConductor() {
                   {hayAccionPendiente && (
                     <span className="sr-only">
                       Acción pendiente
+                    </span>
+                  )}
+                  {viajeActivoSinActualizar && (
+                    <span className="rounded-full border border-warning bg-warn-soft px-2 py-0.5 font-body text-sm font-bold text-warning">
+                      Información sin actualizar
                     </span>
                   )}
                 </span>

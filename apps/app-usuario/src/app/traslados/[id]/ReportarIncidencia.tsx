@@ -32,14 +32,14 @@ export function ReportarIncidenciaUsuario({ trasladoId }: { trasladoId: string }
   const [momento, setMomento] = useState<MomentoIncidencia>("durante_traslado");
   const [descripcion, setDescripcion] = useState("");
   const [procesando, setProcesando] = useState(false);
-  const [mensaje, setMensaje] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
+  const [mensaje, setMensaje] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
 
   async function enviar() {
     setProcesando(true);
     setMensaje(null);
     try {
       if (!tieneSupabaseConfigurado()) {
-        setMensaje({ tono: "peligro", texto: "Supabase no está configurado. No se puede reportar la incidencia." });
+        setMensaje({ tono: "danger", texto: "Supabase no está configurado. No se puede reportar la incidencia." });
         return;
       }
       const cliente = crearClienteNavegador();
@@ -48,7 +48,7 @@ export function ReportarIncidenciaUsuario({ trasladoId }: { trasladoId: string }
       setDescripcion("");
       router.refresh();
     } catch (err) {
-      setMensaje({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos reportar la incidencia." });
+      setMensaje({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos reportar la incidencia." });
     } finally {
       setProcesando(false);
     }

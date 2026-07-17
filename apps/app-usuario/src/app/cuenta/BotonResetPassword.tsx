@@ -40,7 +40,7 @@ export function BotonResetPassword({ email }: { email: string }) {
       ) : (
         <>
           <Button
-            variant="secundario"
+            variant="secondary"
             onClick={enviarReset}
             disabled={estado === "enviando"}
           >
@@ -48,7 +48,7 @@ export function BotonResetPassword({ email }: { email: string }) {
           </Button>
           {estado === "error" && error && (
             <div role="status" aria-live="polite" aria-atomic="true">
-              <Aviso tono="peligro">{error}</Aviso>
+              <Aviso tono="danger">{error}</Aviso>
             </div>
           )}
         </>

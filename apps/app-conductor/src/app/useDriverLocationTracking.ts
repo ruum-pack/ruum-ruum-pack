@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { registrarUbicacionTraslado } from "@ruum/api/services";
+import { createLogger, errorCode } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
 import {
   distanciaMetrosEntre,
@@ -14,6 +15,12 @@ import { type ViajeActivo, viajePermiteSeguimientoUbicacion } from "./active-tri
 const INTERVALO_RESPALDO_UBICACION_MS = 30_000;
 const INTERVALO_MINIMO_REPORTE_MS = 10_000;
 const DISTANCIA_MINIMA_REPORTE_M = 50;
+const logger = createLogger("driver_location");
+
+function isOnline() {
+  if (typeof navigator === "undefined") return null;
+  return navigator.onLine;
+}
 
 export function useDriverLocationTracking(viajeActivo: ViajeActivo | null) {
   useEffect(() => {
@@ -39,7 +46,17 @@ export function useDriverLocationTracking(viajeActivo: ViajeActivo | null) {
         });
         ultimaReportada = ubicacion;
         ultimoReporteMs = Date.now();
-      } catch {
+      } catch (error) {
+        logger.warn(
+          "driver_location_report_failed",
+          {
+            tripId: viajeActivo.trasladoId,
+            isOnline: isOnline(),
+            errorCode: errorCode(error),
+            precisionM: ubicacion.precisionM ?? null
+          },
+          "connectivity"
+        );
         // El seguimiento no debe bloquear el flujo operativo del conductor.
       }
     }

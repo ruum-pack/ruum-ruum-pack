@@ -112,7 +112,7 @@ if (!correo) {
           </p>
 
           {mensaje && <div className="mt-5" role="status"><Aviso tono="info">{mensaje}</Aviso></div>}
-          {error && <div className="mt-5" role="alert"><Aviso tono="peligro">{error}</Aviso></div>}
+          {error && <div className="mt-5" role="alert"><Aviso tono="danger">{error}</Aviso></div>}
 
           <button type="button" onClick={reenviar} disabled={!correo || reenviando || restante > 0} className={`${botonAzul} mt-6`}>
             {reenviando ? "Enviando…" : restante > 0 ? `Reenviar en ${restante}s` : "Reenviar correo"}

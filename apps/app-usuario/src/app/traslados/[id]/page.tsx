@@ -1,6 +1,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { obtenerPasaporteDigital, obtenerUltimaUbicacionTraslado, type UbicacionTraslado } from "@ruum/api/services";
+import {
+  firmarUrlsEvidencia,
+  obtenerPasaporteDigital,
+  obtenerUltimaUbicacionTraslado,
+  type FotoEvidenciaConUrlVisual,
+  type UbicacionTraslado
+} from "@ruum/api/services";
 import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_INCIDENCIA, ETIQUETA_TIPO_VEHICULO, MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
@@ -46,7 +52,7 @@ type Conductor = Pick<
   "id" | "nombre" | "estado" | "nivel_operativo_vigente" | "calificacion_promedio" | "traslados_completados"
 >;
 type FotoEvidencia = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
-type FotoEvidenciaVisual = FotoEvidencia & { url_visual?: string | null };
+type FotoEvidenciaVisual = FotoEvidenciaConUrlVisual<FotoEvidencia>;
 type Incidencia = Database["public"]["Tables"]["incidencias"]["Row"];
 type Pago = Database["public"]["Tables"]["pagos"]["Row"];
 type Calificacion = Database["public"]["Tables"]["calificaciones_traslado"]["Row"];
@@ -172,35 +178,6 @@ function estadoDePaso(estadoActual: EstadoTraslado, estadoPaso: EstadoTraslado) 
 
 function calcularHorasDesdeCierre(actualizadoEn: string) {
   return (Date.now() - new Date(actualizadoEn).getTime()) / (1000 * 60 * 60);
-}
-
-function rutaEvidenciaDesdeUrl(url: string | null): string | null {
-  if (!url) return null;
-  try {
-    const parsed = new URL(url);
-    const marcador = "/storage/v1/object/public/evidencia/";
-    const indice = parsed.pathname.indexOf(marcador);
-    if (indice >= 0) return decodeURIComponent(parsed.pathname.slice(indice + marcador.length));
-  } catch {
-    // Si ya viene como path relativo del bucket, se usa tal cual.
-  }
-  return url.startsWith("http") ? null : url;
-}
-
-async function firmarUrlsEvidencia(
-  cliente: Awaited<ReturnType<typeof crearClienteServidor>>,
-  fotos: FotoEvidencia[]
-): Promise<FotoEvidenciaVisual[]> {
-  return Promise.all(
-    fotos.map(async (foto) => {
-      const ruta = rutaEvidenciaDesdeUrl(foto.url);
-      if (!ruta) return { ...foto, url_visual: foto.url };
-
-      const { data, error } = await cliente.storage.from("evidencia").createSignedUrl(ruta, 60 * 30);
-      if (error || !data?.signedUrl) return { ...foto, url_visual: foto.url };
-      return { ...foto, url_visual: data.signedUrl };
-    })
-  );
 }
 
 async function obtenerDatos(id: string) {

@@ -126,8 +126,8 @@ export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
   if (error) {
     return (
       <div className="grid gap-3" role="status" aria-live="polite" aria-atomic="true">
-        <Aviso tono="peligro">{error}</Aviso>
-        <Button type="button" variant="secundario" onClick={() => setReintento((valor) => valor + 1)}>
+        <Aviso tono="danger">{error}</Aviso>
+        <Button type="button" variant="secondary" onClick={() => setReintento((valor) => valor + 1)}>
           Reintentar
         </Button>
       </div>
@@ -182,7 +182,7 @@ function FormularioPago({ onPagado, PaymentElement, useStripe, useElements }: { 
   return (
     <form onSubmit={confirmar} className="grid gap-4">
       <PaymentElement />
-      {error && <Aviso tono="peligro">{error}</Aviso>}
+      {error && <Aviso tono="danger">{error}</Aviso>}
       <Button type="submit" disabled={!stripe || enviando}>
         {enviando ? "Procesando…" : "Pagar y confirmar traslado"}
       </Button>

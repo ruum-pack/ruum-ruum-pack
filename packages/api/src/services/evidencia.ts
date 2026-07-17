@@ -11,6 +11,11 @@ type AnguloEvidencia = Database["public"]["Enums"]["angulo_evidencia"];
 type TipoEvidencia = Database["public"]["Enums"]["tipo_evidencia"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
+export const BUCKET_EVIDENCIA = "evidencia";
+export type FotoEvidenciaConUrlVisual<T extends { url?: string | null } = FotoEvidencia> = T & {
+  url_visual: string | null;
+};
+
 async function obtenerConductorIdActual(cliente: Cliente): Promise<string> {
   const { data: sesion } = await cliente.auth.getUser();
   if (!sesion.user) {
@@ -36,6 +41,50 @@ function aFotoEvidencia(fila: EvidenciaRow): FotoEvidencia {
     ...(fila.lng !== null ? { lng: fila.lng } : {}),
     sincronizada: fila.sincronizada
   };
+}
+
+export function rutaEvidenciaDesdeUrl(valor: string | null | undefined): string | null {
+  if (!valor) return null;
+  try {
+    const parsed = new URL(valor);
+    const marcadores = [
+      `/storage/v1/object/public/${BUCKET_EVIDENCIA}/`,
+      `/storage/v1/object/sign/${BUCKET_EVIDENCIA}/`
+    ];
+    const marcador = marcadores.find((candidate) => parsed.pathname.includes(candidate));
+    if (!marcador) return null;
+    const pathConToken = parsed.pathname.slice(parsed.pathname.indexOf(marcador) + marcador.length);
+    return decodeURIComponent(pathConToken);
+  } catch {
+    if (valor.includes("://") || valor.startsWith("/")) return null;
+    return valor;
+  }
+}
+
+export async function resolverUrlEvidencia(
+  cliente: Cliente,
+  storagePathOrUrl: string | null | undefined,
+  expiracionSegundos = 60 * 30
+): Promise<string | null> {
+  const ruta = rutaEvidenciaDesdeUrl(storagePathOrUrl);
+  if (!ruta) return null;
+
+  const { data, error } = await cliente.storage.from(BUCKET_EVIDENCIA).createSignedUrl(ruta, expiracionSegundos);
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
+}
+
+export async function firmarUrlsEvidencia<T extends { url?: string | null }>(
+  cliente: Cliente,
+  fotos: T[],
+  expiracionSegundos = 60 * 30
+): Promise<FotoEvidenciaConUrlVisual<T>[]> {
+  return Promise.all(
+    fotos.map(async (foto) => ({
+      ...foto,
+      url_visual: await resolverUrlEvidencia(cliente, foto.url, expiracionSegundos)
+    }))
+  );
 }
 
 /** PRD §4.4 — fotos ya registradas de un traslado, para mostrar avance del checklist. */

@@ -7,6 +7,7 @@ import { type RegistroViajeActivoInput, type ViajeActivo, viajeEsOperacionActiva
 
 type ViajeActivoContextValue = {
   viajeActivo: ViajeActivo | null;
+  viajeActivoSinActualizar: boolean;
   registrarViajeActivo: (viaje: RegistroViajeActivoInput | null) => void;
 };
 
@@ -16,15 +17,16 @@ export { viajeEsOperacionActiva, viajePermiteEmergencia };
 
 export function ViajeActivoProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { viajeActivo, registrarViajeActivo } = useActiveTripSubscription(pathname);
+  const { viajeActivo, viajeActivoSinActualizar, registrarViajeActivo } = useActiveTripSubscription(pathname);
   useDriverLocationTracking(viajeActivo);
 
   const value = useMemo(
     () => ({
       viajeActivo,
+      viajeActivoSinActualizar,
       registrarViajeActivo
     }),
-    [registrarViajeActivo, viajeActivo]
+    [registrarViajeActivo, viajeActivo, viajeActivoSinActualizar]
   );
 
   return (

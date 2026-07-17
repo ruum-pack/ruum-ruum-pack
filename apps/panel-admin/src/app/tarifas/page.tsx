@@ -127,7 +127,7 @@ function ConfirmacionImpacto({
             Esta acción afectará el cálculo de los viajes en curso. ¿Deseas continuar?
           </p>
           <div className="mt-6 flex flex-wrap justify-end gap-3">
-            <Button variant="fantasma" onClick={onCancelar}>Cancelar</Button>
+            <Button variant="quiet" onClick={onCancelar}>Cancelar</Button>
             <Button onClick={onConfirmar}>Sí, continuar</Button>
           </div>
         </div>

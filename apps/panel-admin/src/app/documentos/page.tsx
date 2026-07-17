@@ -61,8 +61,8 @@ function AccionesConductor({ conductor, onActualizado }: { conductor: Conductor;
 
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2">
-      <Button variant="fantasma" onClick={() => cambiar(true)} disabled={pendiente}>Aprobar</Button>
-      <Button variant="fantasma" onClick={() => cambiar(false)} disabled={pendiente}>Rechazar / solicitar actualización</Button>
+      <Button variant="quiet" onClick={() => cambiar(true)} disabled={pendiente}>Aprobar</Button>
+      <Button variant="quiet" onClick={() => cambiar(false)} disabled={pendiente}>Rechazar / solicitar actualización</Button>
       {mensaje && <span className="font-body text-sm text-ink/60">{mensaje}</span>}
     </div>
   );

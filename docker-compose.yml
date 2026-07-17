@@ -1,61 +1,51 @@
+# Comments are provided throughout this file to help you get started.
+# If you need more help, visit the Docker Compose reference guide at
+# https://docs.docker.com/go/compose-spec-reference/
+
+# Here the instructions define your application as a service called "server".
+# This service is built from the Dockerfile in the current directory.
+# You can add other services your application may depend on here, such as a
+# database or a cache. For examples, see the Awesome Compose repository:
+# https://github.com/docker/awesome-compose
 services:
-  # App Usuario
-  app-usuario:
+  server:
     build:
       context: .
-      dockerfile: ./apps/Dockerfile
-      target: dev
-    ports: ["3000:3000"]
     environment:
-      NODE_ENV: development
-      NEXT_PUBLIC_SUPABASE_URL: http://supabase:54321
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOezdA5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY
-    depends_on: [supabase]
-    restart: unless-stopped
-
-  # App Conductor
-  app-conductor:
-    build:
-      context: .
-      dockerfile: ./apps/Dockerfile
-      target: dev
-    ports: ["3001:3001"]
-    environment:
-      NODE_ENV: development
-      NEXT_PUBLIC_SUPABASE_URL: http://supabase:54321
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOezdA5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY
-    depends_on: [supabase]
-    restart: unless-stopped
-
-  # Panel Admin
-  panel-admin:
-    build:
-      context: .
-      dockerfile: ./apps/Dockerfile
-      target: dev
-    ports: ["3002:3002"]
-    environment:
-      NODE_ENV: development
-      NEXT_PUBLIC_SUPABASE_URL: http://supabase:54321
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOezdA5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY
-    depends_on: [supabase]
-    restart: unless-stopped
-
-  # Supabase Local
-  supabase:
-    image: supabase/supabase-local:latest
+      NODE_ENV: production
     ports:
-      - "54321:54321"  # API
-      - "54322:54322"  # DB
-      - "54323:54323"  # Studio
-    volumes:
-      - ./supabase:/app/supabase
-      - supabase_data:/var/lib/supabase
-    environment:
-      POSTGRES_PASSWORD: ruum_local_2026
-      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOezdA5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY5sY
-      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9zX3Jvb2xlIiwiZXhwIjE5ODM4MTI5OTZ9.b6pKdRb8sZ9xX7cV8bN9mP7Q9rS8tU7vW9xY8zW7vU9tS7rP8qN7oM6lK5jI4hG3fE2dD1cB0aA
-    restart: unless-stopped
+      - 3001:3001
 
-volumes:
-  supabase_data:
+# The commented out section below is an example of how to define a PostgreSQL
+# database that your application can use. `depends_on` tells Docker Compose to
+# start the database before your application. The `db-data` volume persists the
+# database data between container restarts. The `db-password` secret is used
+# to set the database password. You must create `db/password.txt` and add
+# a password of your choosing to it before running `docker-compose up`.
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#   db:
+#     image: postgres
+#     restart: always
+#     user: postgres
+#     secrets:
+#       - db-password
+#     volumes:
+#       - db-data:/var/lib/postgresql/data
+#     environment:
+#       - POSTGRES_DB=example
+#       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
+#     expose:
+#       - 5432
+#     healthcheck:
+#       test: [ "CMD", "pg_isready" ]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+# volumes:
+#   db-data:
+# secrets:
+#   db-password:
+#     file: db/password.txt
+

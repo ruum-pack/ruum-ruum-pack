@@ -49,7 +49,8 @@ export function useEvidenceQueue({ trasladoId, tipo }: { trasladoId: string; tip
         angulo,
         dataUrl,
         ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
-        capturadaEn: new Date().toISOString()
+        capturadaEn: new Date().toISOString(),
+        retryCount: 0
       });
       return cargarPendientesLocales();
     },

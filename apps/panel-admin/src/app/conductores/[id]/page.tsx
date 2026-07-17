@@ -106,14 +106,14 @@ function FilaDocumento({ documento, onRevisado }: {
       {(documento.motivo_rechazo || documento.notas_admin) && (
         <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 font-body text-xs text-warn">{documento.motivo_rechazo ?? documento.notas_admin}</p>
       )}
-      {error && <div className="mt-3"><Aviso tono="peligro">{error}</Aviso></div>}
+      {error && <div className="mt-3"><Aviso tono="danger">{error}</Aviso></div>}
       <div className="mt-3 flex flex-wrap gap-2">
         {url ? <a href={url} target="_blank" rel="noreferrer" className="font-body text-sm text-route-dark hover:underline">Abrir documento</a>
-          : <Button variant="fantasma" onClick={ver} disabled={procesando}>Ver documento</Button>}
+          : <Button variant="quiet" onClick={ver} disabled={procesando}>Ver documento</Button>}
         {documento.estado === "en_revision" && !rechazando && (
           <>
             <Button onClick={() => decidir("aprobado")} disabled={procesando}>Aprobar</Button>
-            <Button variant="peligro" onClick={() => setRechazando(true)} disabled={procesando}>Solicitar corrección</Button>
+            <Button variant="danger" onClick={() => setRechazando(true)} disabled={procesando}>Solicitar corrección</Button>
           </>
         )}
       </div>
@@ -124,8 +124,8 @@ function FilaDocumento({ documento, onRevisado }: {
             className="mt-2 min-h-20 w-full rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm focus:border-route-dark focus:outline-none"
             placeholder="Indica exactamente qué debe corregir." />
           <div className="mt-2 flex gap-2">
-            <Button variant="peligro" onClick={() => decidir("rechazado", motivo)} disabled={procesando || motivo.trim().length < 5}>Confirmar</Button>
-            <Button variant="fantasma" onClick={() => { setRechazando(false); setMotivo(""); }} disabled={procesando}>Cancelar</Button>
+            <Button variant="danger" onClick={() => decidir("rechazado", motivo)} disabled={procesando || motivo.trim().length < 5}>Confirmar</Button>
+            <Button variant="quiet" onClick={() => { setRechazando(false); setMotivo(""); }} disabled={procesando}>Cancelar</Button>
           </div>
         </div>
       )}
@@ -140,14 +140,14 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
   const [procesando, setProcesando] = useState(false);
   const [accion, setAccion] = useState<"aprobar" | "rechazar" | null>(null);
   const [motivo, setMotivo] = useState("");
-  const [aviso, setAviso] = useState<{ tono: "info" | "peligro"; texto: string } | null>(null);
+  const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
 
   const cargar = useCallback(async () => {
     if (!tieneSupabaseConfigurado()) { setCargando(false); return; }
     try {
       setDetalle(await obtenerDetalleSolicitudConductorAdmin(crearClienteNavegador(), id));
     } catch (err) {
-      setAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos cargar el expediente." });
+      setAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos cargar el expediente." });
     } finally { setCargando(false); }
   }, [id]);
 
@@ -185,7 +185,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
       setMotivo("");
       await cargar();
     } catch (err) {
-      setAviso({ tono: "peligro", texto: err instanceof Error ? err.message : "No pudimos registrar la decisión." });
+      setAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos registrar la decisión." });
     } finally { setProcesando(false); }
   }
 
@@ -256,7 +256,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
           <>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button onClick={() => setAccion("aprobar")} disabled={!puedeAprobar || procesando}>Aprobar solicitud</Button>
-              <Button variant="peligro" onClick={() => setAccion("rechazar")} disabled={procesando}>Rechazar solicitud</Button>
+              <Button variant="danger" onClick={() => setAccion("rechazar")} disabled={procesando}>Rechazar solicitud</Button>
             </div>
             {!puedeAprobar && <p className="mt-2 font-body text-xs text-ink/45">Para aprobar se requieren los 3 documentos aprobados y los 4 consentimientos registrados.</p>}
           </>
@@ -268,10 +268,10 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
               placeholder={accion === "aprobar" ? "Opcional: observaciones de la aprobación." : "Explica el motivo del rechazo."}
               className="mt-2 min-h-24 w-full rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm focus:border-route-dark focus:outline-none" />
             <div className="mt-3 flex gap-2">
-              <Button variant={accion === "rechazar" ? "peligro" : "primario"} onClick={decidir} disabled={procesando || (accion === "rechazar" && motivo.trim().length < 5)}>
+              <Button variant={accion === "rechazar" ? "danger" : "primary"} onClick={decidir} disabled={procesando || (accion === "rechazar" && motivo.trim().length < 5)}>
                 {procesando ? "Registrando…" : "Confirmar decisión"}
               </Button>
-              <Button variant="fantasma" onClick={() => { setAccion(null); setMotivo(""); }} disabled={procesando}>Cancelar</Button>
+              <Button variant="quiet" onClick={() => { setAccion(null); setMotivo(""); }} disabled={procesando}>Cancelar</Button>
             </div>
           </div>
         )}

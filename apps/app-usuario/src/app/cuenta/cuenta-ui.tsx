@@ -185,7 +185,7 @@ export function AvisoSinSesion() {
           <Button>Iniciar sesión</Button>
         </Link>
         <Link href="/registro">
-          <Button variant="secundario">Crear cuenta</Button>
+          <Button variant="secondary">Crear cuenta</Button>
         </Link>
       </div>
     </main>
@@ -249,11 +249,11 @@ export function HeroCuenta({ usuario }: { usuario: Usuario }) {
             </p>
             <div className="mt-2 flex justify-center gap-2 sm:justify-start">
               <Link href="/cuenta/perfil">
-                <Button variant="secundario">Editar perfil</Button>
+                <Button variant="secondary">Editar perfil</Button>
               </Link>
               {!usuario.doc_identidad_url && (
                 <Link href="/verificacion">
-                  <Button variant="secundario">Subir identificación</Button>
+                  <Button variant="secondary">Subir identificación</Button>
                 </Link>
               )}
             </div>
@@ -335,7 +335,7 @@ export function SeccionPerfil({ usuario }: { usuario: Usuario }) {
           <p className="mt-1 font-body text-sm text-ink/55">Estado actual: {etiquetaVerificacion(usuario.estado_verificacion)}.</p>
           <div className="mt-4">
             <Link href="/verificacion">
-              <Button variant="secundario">{usuario.doc_identidad_url ? "Actualizar identificación" : "Subir identificación"}</Button>
+              <Button variant="secondary">{usuario.doc_identidad_url ? "Actualizar identificación" : "Subir identificación"}</Button>
             </Link>
           </div>
         </div>
@@ -398,7 +398,7 @@ export function SeccionVehiculos({ vehiculos }: { vehiculos: Vehiculo[] }) {
       </div>
       <div className="mt-5">
         <Link href="/traslados/nuevo">
-          <Button variant="secundario">Agregar desde una solicitud</Button>
+          <Button variant="secondary">Agregar desde una solicitud</Button>
         </Link>
       </div>
     </Seccion>
@@ -547,7 +547,7 @@ export function SeccionHistorialEmpresa({ historialEmpresa }: { historialEmpresa
               <div className="flex items-center justify-between gap-4 md:flex-col md:items-end md:justify-center">
                 <span className="font-body text-sm font-semibold">{dinero(traslado.precio_final ?? traslado.precio_cotizado)}</span>
                 <Link href={`/traslados/${traslado.traslado_id}`}>
-                  <Button variant="secundario">Ver detalle</Button>
+                  <Button variant="secondary">Ver detalle</Button>
                 </Link>
               </div>
             </div>

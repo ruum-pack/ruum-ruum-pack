@@ -85,19 +85,19 @@ export function ChatTraslado({ trasladoId, estado }: { trasladoId: string; estad
       <div className="mb-2 flex items-center justify-between">
         <p className="font-body text-xs uppercase tracking-wide text-ink/45">Chat con el conductor</p>
         {disponible && (
-          <Button variant="secundario" onClick={manejarLlamada} disabled={llamando}>
+          <Button variant="secondary" onClick={manejarLlamada} disabled={llamando}>
             {llamando ? TEXTOS_CARGANDO.conectando : "Llamar"}
           </Button>
         )}
       </div>
       {errorLlamada && (
         <div className="mb-2">
-          <Aviso tono="peligro">{errorLlamada}</Aviso>
+          <Aviso tono="danger">{errorLlamada}</Aviso>
         </div>
       )}
       {errorChat && (
         <div className="mb-2">
-          <Aviso tono="peligro">{errorChat}</Aviso>
+          <Aviso tono="danger">{errorChat}</Aviso>
         </div>
       )}
       {disponible && (

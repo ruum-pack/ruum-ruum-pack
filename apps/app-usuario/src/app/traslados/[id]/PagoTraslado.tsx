@@ -22,7 +22,7 @@ export function PagoTraslado({ trasladoId, monto }: PagoTrasladoProps) {
         <Aviso tono="info">
           Pago confirmado. Puede tardar unos segundos en reflejarse mientras Stripe termina de procesarlo.
         </Aviso>
-        <Button variant="secundario" className="mt-3" onClick={() => router.refresh()}>
+        <Button variant="secondary" className="mt-3" onClick={() => router.refresh()}>
           Actualizar estado
         </Button>
       </div>
@@ -37,7 +37,7 @@ export function PagoTraslado({ trasladoId, monto }: PagoTrasladoProps) {
       </div>
 
       {!tieneSupabaseConfigurado() ? (
-        <Aviso tono="peligro">Supabase no está configurado. No se puede capturar el pago.</Aviso>
+        <Aviso tono="danger">Supabase no está configurado. No se puede capturar el pago.</Aviso>
       ) : !tieneStripePublicoConfigurado() ? (
         <Aviso tono="info">
           Stripe no está configurado — el cobro real no está disponible en este entorno.
