@@ -81,26 +81,20 @@ export function DatosSensiblesTooltip({
   const [abierto, setAbierto] = useState(false);
 
   return (
-    <span
-      className="relative inline-flex"
-      onMouseEnter={() => setAbierto(true)}
-      onMouseLeave={() => setAbierto(false)}
-      onFocus={() => setAbierto(true)}
-      onBlur={(evento) => {
-        if (!evento.currentTarget.contains(evento.relatedTarget as Node | null)) {
-          setAbierto(false);
-        }
-      }}
-      onKeyDown={(evento) => {
-        if (evento.key === "Escape") setAbierto(false);
-      }}
-    >
+    <span className="relative inline-flex">
       <button
         type="button"
         aria-label={`Información sensible: ${texto.titulo}`}
         aria-expanded={abierto}
         aria-describedby={abierto ? popoverId : undefined}
         onClick={() => setAbierto((valor) => !valor)}
+        onMouseEnter={() => setAbierto(true)}
+        onMouseLeave={() => setAbierto(false)}
+        onFocus={() => setAbierto(true)}
+        onBlur={() => setAbierto(false)}
+        onKeyDown={(evento) => {
+          if (evento.key === "Escape") setAbierto(false);
+        }}
         className="inline-flex size-7 items-center justify-center rounded-full border border-[rgba(101,184,255,0.42)] bg-surface-elevated font-body text-sm font-bold text-[#65B8FF] shadow-sm transition hover:border-[#65B8FF] hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
       >
         i

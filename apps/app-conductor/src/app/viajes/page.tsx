@@ -514,6 +514,7 @@ export default function PaginaViajes() {
               coordenadas={ubicacionOportunidades.coordenadas}
               hrefDetalle={hrefDetalle}
               onAccept={(trasladoId) => void aceptar(trasladoId)}
+              onReject={setViajeParaRechazar}
             />
           ) : vista === "mis-viajes" ? (
             <DriverTripsList viajes={lista} detalles={detalles} hrefDetalle={hrefDetalle} />

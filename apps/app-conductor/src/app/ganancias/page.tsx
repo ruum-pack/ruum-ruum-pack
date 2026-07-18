@@ -21,6 +21,23 @@ interface RegistroGanancia {
 
 const FECHA_PAGO_INICIAL = "Pendiente";
 
+function estatusPayout(payout: Payout): EstadoEconomicoExplicito {
+  if (payout.estado === "procesado") return "pagado";
+  if (payout.estado === "pendiente") return "programado";
+  return "rechazado";
+}
+
+function estatusResumenRegistros(registros: RegistroGanancia[]): EstadoEconomicoExplicito {
+  if (registros.length === 0) return "sin_calcular";
+  const estados = new Set(registros.map((registro) => registro.estatus));
+  if (estados.size === 1) return registros[0].estatus;
+  if (estados.has("retenido")) return "retenido";
+  if (estados.has("rechazado")) return "en_validacion";
+  if (estados.has("en_validacion")) return "en_validacion";
+  if (estados.has("programado")) return "programado";
+  return "confirmado";
+}
+
 function fecha(fechaIso: string) {
   if (!fechaIso.includes("-")) return fechaIso;
   return new Intl.DateTimeFormat("es-MX", {
@@ -64,7 +81,7 @@ export default function PaginaGanancias() {
           ruta: `Periodo ${payout.periodo_inicio} -> ${payout.periodo_fin}`,
           monto: Number(payout.monto_bruto ?? 0),
           gastos: Math.max(0, Number(payout.monto_neto ?? 0) - Number(payout.monto_bruto ?? 0)),
-          estatus: payout.estado === "procesado" ? "pagado" : payout.estado === "pendiente" ? "programado" : "rechazado",
+          estatus: estatusPayout(payout),
           liberacion: payout.procesado_en ? payout.procesado_en.slice(0, 10) : "Pendiente"
         })) as RegistroGanancia[];
 
@@ -79,7 +96,7 @@ export default function PaginaGanancias() {
                 deposito_final: Number(actual.monto_neto ?? 0),
                 fecha_pago: actual.procesado_en ? actual.procesado_en.slice(0, 10) : actual.periodo_fin,
                 metodo: actual.referencia_pago ? "Transferencia bancaria" : "Depósito programado",
-                estatus: actual.estado === "procesado" ? "pagado" : actual.estado === "pendiente" ? "programado" : "rechazado"
+                estatus: estatusPayout(actual)
               }
             : {
                 ganancias_generadas: 0,
@@ -108,7 +125,7 @@ export default function PaginaGanancias() {
       0
     );
     const ajustes = 0;
-    const estatusResumen: EstadoEconomicoExplicito = registros.length > 0 ? "confirmado" : "sin_calcular";
+    const estatusResumen = estatusResumenRegistros(registros);
     return {
       ganancias,
       gastos,

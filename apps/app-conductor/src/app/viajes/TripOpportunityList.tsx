@@ -27,7 +27,8 @@ export function TripOpportunityList({
   rechazoPendiente,
   coordenadas,
   hrefDetalle,
-  onAccept
+  onAccept,
+  onReject
 }: {
   viajes: PasaporteRow[];
   detalles: Record<string, DetalleOperativo>;
@@ -37,6 +38,7 @@ export function TripOpportunityList({
   coordenadas: Coordenadas | null;
   hrefDetalle: (viaje: PasaporteRow) => string;
   onAccept: (trasladoId: string) => void;
+  onReject: (viaje: PasaporteRow) => void;
 }) {
   return (
     <>
@@ -110,13 +112,21 @@ export function TripOpportunityList({
                   <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Duración estimada del traslado</p>
                   <p className="font-body text-sm font-semibold">{formatearDuracion(detalle.tiempoEstimadoHoras)}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:min-w-56">
+                <div className="grid grid-cols-3 gap-2 sm:min-w-72">
                   <Link
                     href={hrefDetalle(viaje)}
                     className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-3 py-2 text-center font-body text-sm font-semibold text-text-secondary hover:border-route-action hover:bg-route-soft hover:text-route-action"
                   >
                     Ver detalles
                   </Link>
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => onReject(viaje)}
+                    disabled={aceptando === trasladoId || rechazoPendiente}
+                  >
+                    Rechazar
+                  </Button>
                   <Button
                     variant="primary"
                     className="w-full"
