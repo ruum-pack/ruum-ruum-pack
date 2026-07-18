@@ -27,6 +27,27 @@ function mediaBlock(query: string) {
 }
 
 describe("navegación móvil con viaje activo", () => {
+  it("mantiene la interfaz en una columna y con controles táctiles bajo 768px", () => {
+    const mobile = mediaBlock("@media (max-width: 767px)");
+
+    expect(mobile).toContain('[class*="sm:grid-cols"]');
+    expect(mobile).toContain("grid-template-columns: minmax(0, 1fr) !important");
+    expect(mobile).toContain('[class*="sm:flex-row"]');
+    expect(mobile).toContain("flex-direction: column !important");
+    expect(mobile).toContain("min-height: 44px");
+  });
+
+  it("hace medios responsivos, tablas desplazables y titulares resistentes en móvil", () => {
+    const mobile = mediaBlock("@media (max-width: 767px)");
+
+    expect(mobile).toContain(":where(img, picture, video, canvas)");
+    expect(mobile).toContain("max-width: 100%");
+    expect(mobile).toContain(":where(table)");
+    expect(mobile).toContain("overflow-x: auto");
+    expect(mobile).toContain("font-size: clamp");
+    expect(mobile).toContain("overflow-wrap: anywhere");
+  });
+
   it("reserva espacio suficiente para la tarjeta fija en 320x568 y safe area", () => {
     const mobile = mediaBlock("@media (max-width: 767px)");
     const compact = mediaBlock("@media (max-width: 767px) and (max-height: 600px)");

@@ -66,8 +66,55 @@
     --conductor-mobile-page-reserve: 196px;
   }
 
+  .conductor-content {
+    width: min(100% - 24px, 1120px);
+    padding-block: 24px 112px;
+  }
+
   .conductor-page {
     padding-bottom: max(104px, calc(var(--conductor-mobile-nav-offset) + env(safe-area-inset-bottom))) !important;
+  }
+
+  .conductor-page :where([class*="sm:grid-cols"], [class*="md:grid-cols"], [class*="lg:grid-cols"]) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .conductor-page :where([class*="sm:flex-row"], [class*="md:flex-row"], [class*="lg:flex-row"]) {
+    flex-direction: column !important;
+  }
+
+  .conductor-page :where(button, input, select, textarea, [role="button"], [role="tab"], a[class]) {
+    min-height: 44px;
+  }
+
+  .conductor-page :where(input, select, textarea) {
+    padding-block: max(0.75rem, 10px);
+  }
+
+  .conductor-page :where(img, picture, video, canvas) {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .conductor-page :where(table) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .conductor-page :where(h1, .text-3xl, .text-4xl, .text-5xl) {
+    overflow-wrap: anywhere;
+  }
+
+  .conductor-page :where(h1, .text-4xl, .text-5xl) {
+    font-size: clamp(1.875rem, 9vw, 2.25rem);
+    line-height: 1.12;
+  }
+
+  .conductor-page :where(.text-3xl) {
+    font-size: clamp(1.5rem, 7vw, 1.875rem);
+    line-height: 1.16;
   }
 
   body.conductor-tiene-viaje-activo .conductor-page {
