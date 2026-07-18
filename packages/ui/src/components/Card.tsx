@@ -80,7 +80,7 @@ export function FinancialCard({ children, className = "", padding = "md" }: Vari
   return (
     <section
       className={joinClasses(
-        "rounded-card border border-success bg-control-soft shadow-1",
+        "rounded-2xl border border-[rgba(122,162,214,0.22)] bg-[#101A2C] text-[#E8EDF6] shadow-[0_10px_28px_rgba(0,0,0,0.30)]",
         PADDING[padding],
         className
       )}
