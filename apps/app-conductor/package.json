@@ -14,6 +14,7 @@
     "test:axe": "axe http://localhost:3001 --save results/axe-report.json",
     "audit:a11y": "node scripts/audit-a11y.mjs",
     "audit:a11y:route": "node scripts/audit-a11y.mjs --route",
+    "test:route": "node scripts/test-route-a11y.mjs",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
     "typecheck": "tsc --noEmit"
