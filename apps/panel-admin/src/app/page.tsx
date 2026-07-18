@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Aviso, PassportCard } from "@ruum/ui";
+import { AdminHero, AdminPanel } from "./admin-ui";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../lib/supabase-browser";
 import {
   obtenerMetricasDashboard,
@@ -82,32 +82,20 @@ export default function PaginaDashboard() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8 sm:px-8 sm:py-10">
-      <div className="relative overflow-hidden rounded-card border border-ink/10">
-        <Image
-          src="/imagenes/torre-control-flota.webp"
-          alt=""
-          aria-hidden="true"
-          fill
-          priority
-          sizes="100vw"
-          className="scale-105 object-cover object-[60%_35%]"
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(7,11,20,0.94)_0%,rgba(7,11,20,0.8)_46%,rgba(7,11,20,0.4)_100%)]" />
-        <div className="relative flex items-start justify-between gap-4 px-6 py-6 sm:px-8">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-[#e8edf6]">Dashboard Operativo</h1>
-            <p className="mt-1 font-body text-sm text-[#b7c2d4]">Panel de operaciones · actualizado en tiempo real</p>
-          </div>
+    <main className="admin-page-shell">
+      <AdminHero
+        titulo="Dashboard operativo"
+        subtitulo="Seguimiento de traslados, alertas, evidencia documentada y decisiones críticas de la operación."
+        accion={
           <Link
-            href="/viajes/nuevo"
+            href="/viajes"
             className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-signal px-4 py-2.5 font-body text-sm font-semibold shadow-sm transition-colors hover:bg-signal/90"
             style={{ color: "#14213d" }}
           >
-            + Nuevo viaje
+            Revisar traslados
           </Link>
-        </div>
-      </div>
+        }
+      />
 
       {esDemo && (
         <div className="mt-4">
@@ -174,7 +162,7 @@ export default function PaginaDashboard() {
           )}
 
           <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <div>
+            <AdminPanel className="p-5 sm:p-6">
               <h2 className="font-display text-base font-semibold">Alertas operativas</h2>
               <div className="mt-3 space-y-2">
                 {incidencias.length === 0 && conductoresDocVencido.length === 0 && (
@@ -191,9 +179,9 @@ export default function PaginaDashboard() {
                   </Link>
                 ))}
               </div>
-            </div>
+            </AdminPanel>
 
-            <div>
+            <AdminPanel className="p-5 sm:p-6">
               <h2 className="font-display text-base font-semibold">Accesos rápidos</h2>
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <Link href="/viajes">
@@ -227,7 +215,7 @@ export default function PaginaDashboard() {
                   </PassportCard>
                 </Link>
               </div>
-            </div>
+            </AdminPanel>
           </section>
         </>
       )}

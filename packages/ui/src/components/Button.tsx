@@ -67,6 +67,8 @@ export function Button({ variant = "primary", icon, loading = false, disabled, c
 function ButtonIcono({ name }: { name: Exclude<ButtonIcon, "none"> }) {
   const common = {
     className: "size-4 shrink-0",
+    width: 16,
+    height: 16,
     "aria-hidden": true,
     viewBox: "0 0 24 24",
     fill: "none",

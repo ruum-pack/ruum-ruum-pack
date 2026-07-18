@@ -51,7 +51,17 @@ export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassNam
             type="button"
             onClick={() => setPasswordVisible((visible) => !visible)}
             className={`absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-action disabled:cursor-not-allowed disabled:text-text-disabled ${passwordToggleClassName}`}
-            style={{ right: "0.375rem", width: "2.75rem", height: "2.75rem" }}
+            style={{
+              position: "absolute",
+              top: "50%",
+              right: "0.375rem",
+              width: "2.75rem",
+              height: "2.75rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transform: "translateY(-50%)"
+            }}
             aria-label={passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"}
             disabled={props.disabled}
           >
@@ -84,7 +94,7 @@ export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassNam
 
 function IconoOjo() {
   return (
-    <svg viewBox="0 0 20 20" className="size-4" aria-hidden>
+    <svg viewBox="0 0 20 20" className="size-4" width={16} height={16} aria-hidden>
       <path
         d="M2.5 10s2.7-5 7.5-5 7.5 5 7.5 5-2.7 5-7.5 5-7.5-5-7.5-5Z"
         fill="none"
@@ -100,7 +110,7 @@ function IconoOjo() {
 
 function IconoOjoCerrado() {
   return (
-    <svg viewBox="0 0 20 20" className="size-4" aria-hidden>
+    <svg viewBox="0 0 20 20" className="size-4" width={16} height={16} aria-hidden>
       <path d="M3 3 17 17" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
       <path
         d="M7.4 5.5A7.2 7.2 0 0 1 10 5c4.8 0 7.5 5 7.5 5a11.2 11.2 0 0 1-2.2 2.7M12.2 14.6A7.4 7.4 0 0 1 10 15c-4.8 0-7.5-5-7.5-5a11 11 0 0 1 2.4-2.9"

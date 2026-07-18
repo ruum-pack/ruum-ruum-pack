@@ -17,7 +17,7 @@ const DESTINOS = [
   },
   {
     href: "/viajes",
-    etiqueta: "Viajes",
+    etiqueta: "Traslados",
     Icono: () => (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="1" y="3" width="15" height="13" rx="2"/>
@@ -68,7 +68,7 @@ export function NavegacionAdminMovil() {
           <span className="font-mono-ruum text-[9px] uppercase tracking-[0.12em] text-ink/45">Control</span>
         </Link>
         <Link href="/viajes" className="inline-flex min-h-10 items-center rounded-lg bg-signal px-3 py-2 font-body text-xs font-bold text-ink shadow-sm">
-          Ver viajes
+          Ver traslados
         </Link>
       </div>
       <nav aria-label="Navegación principal móvil" className="ruum-container flex gap-1 overflow-x-auto pb-2.5">

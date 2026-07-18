@@ -56,7 +56,7 @@ export default function PaginaLogin() {
         </div>
 
         <h1 id="titulo-acceso-admin" className="mt-8 font-display text-2xl font-bold text-ink">Acceso operativo</h1>
-        <p className="mt-2 font-body text-sm leading-6 text-ink/65">Consulta viajes, evidencia, incidencias y alertas de la operación.</p>
+        <p className="mt-2 font-body text-sm leading-6 text-ink/65">Consulta traslados, evidencia, incidencias y alertas de la operación.</p>
 
         {!tieneSupabaseConfigurado() ? (
           <div className="mt-6">

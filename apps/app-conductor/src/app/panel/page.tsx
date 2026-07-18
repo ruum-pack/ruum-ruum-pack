@@ -79,17 +79,19 @@ export default function PaginaPanel() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-10 sm:py-14">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-14">
       <RegistroViajeActivo
         viaje={viajeActivoPrincipal ? registroViajeActivoDesdePasaporte(viajeActivoPrincipal) : null}
       />
 
-      <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="font-display text-3xl font-semibold leading-tight">Panel</h1>
-          <p className="mt-1 font-body text-sm text-text-secondary">Hola, {conductor?.nombre ?? "conductor"}</p>
+          <p className="font-body text-sm font-medium text-text-tertiary">Hola,</p>
+          <h1 className="font-display text-2xl font-semibold leading-tight text-text-primary sm:text-3xl">
+            {conductor?.nombre ?? "conductor"}
+          </h1>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="hidden flex-wrap items-center gap-3 md:flex">
           <Link href="/cuenta" aria-label="Ir a configuración de cuenta">
             <Button variant="quiet">Configuración</Button>
           </Link>

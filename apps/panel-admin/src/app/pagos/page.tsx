@@ -131,7 +131,7 @@ export default function PaginaPagosAdmin() {
         <section className="mt-6 grid gap-6">
           <PassportCard>
             <h2 className="font-display text-xl font-semibold">Pagos de usuarios</h2>
-            <Tabla columnas={["Viaje", "Vehículo", "Tarifa", "Método", "Estatus", "Stripe PaymentIntent", "Evento Stripe", "Fecha"]}>
+            <Tabla columnas={["Traslado", "Vehículo", "Tarifa", "Método", "Estatus", "Stripe PaymentIntent", "Evento Stripe", "Fecha"]}>
               {pagos.length === 0 ? (
                 <tr><td colSpan={8} className="px-3 py-6 text-ink/50">No hay pagos registrados.</td></tr>
               ) : (

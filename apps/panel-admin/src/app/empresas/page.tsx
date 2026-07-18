@@ -13,7 +13,7 @@ type Traslado = Database["public"]["Tables"]["traslados"]["Row"];
 type EstadoVerificacion = Database["public"]["Enums"]["estado_verificacion"];
 
 const TIPOS = ["Agencia automotriz", "Lote de autos", "Arrendadora", "Flotilla", "Taller", "Aseguradora", "Grupo automotriz", "Empresa general"];
-const FUTURO = ["Centros de costo", "Usuarios con permisos", "Reportes mensuales", "Tarifas especiales", "Crédito corporativo", "Aprobación interna de viajes"];
+const FUTURO = ["Centros de costo", "Usuarios con permisos", "Reportes mensuales", "Tarifas especiales", "Crédito corporativo", "Aprobación interna de traslados"];
 
 const DATOS_DEMO: DatosEmpresasAdmin = {
   empresas: [],
@@ -209,7 +209,7 @@ export default function PaginaEmpresasAdmin() {
                     <Dato etiqueta="Titular" valor={titular?.nombre ?? titular?.correo_facturacion} />
                     <Dato etiqueta="Usuario autorizado" valor={autorizado?.nombre ?? autorizado?.correo_facturacion} />
                     <Dato etiqueta="Usuarios vinculados" valor={usuarios.length} />
-                    <Dato etiqueta="Historial de viajes" valor={`${viajes.length} viajes`} />
+                    <Dato etiqueta="Historial de traslados" valor={`${viajes.length} traslados`} />
                     <Dato etiqueta="Régimen fiscal" valor={empresa.regimen_fiscal} />
                     <Dato etiqueta="Código postal fiscal" valor={empresa.codigo_postal_fiscal} />
                     <Dato etiqueta="Uso de CFDI" valor={empresa.uso_cfdi} />

@@ -23,7 +23,7 @@ export default function PaginaNoEncontradaAdmin() {
           href="/viajes"
           className="inline-flex min-h-11 items-center justify-center rounded-xl border border-ink/20 bg-mist px-5 py-2.5 font-body text-sm font-medium text-ink transition hover:border-ink/40"
         >
-          Ver viajes
+          Ver traslados
         </Link>
       </div>
     </div>

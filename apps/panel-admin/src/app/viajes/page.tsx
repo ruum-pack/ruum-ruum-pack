@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";
+import { AdminPageHeader, AdminPanel } from "../admin-ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
@@ -24,7 +25,7 @@ const PESTANAS: { id: string; etiqueta: string; filtro: EstadoTraslado | "todos"
 
 export default function PaginaViajesAdmin() {
   const [pestana, setPestana] = useState(PESTANAS[0]!.id);
-  const [viajes, setViajes] = useState<PasaporteRow[]>([]);
+  const [traslados, setTraslados] = useState<PasaporteRow[]>([]);
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -35,7 +36,7 @@ export default function PaginaViajesAdmin() {
     async function cargar() {
       if (!tieneSupabaseConfigurado()) {
         const lista = filtroActual === "todos" ? VIAJES_DEMO : VIAJES_DEMO.filter((v) => v.estado === filtroActual);
-        setViajes(lista);
+        setTraslados(lista);
         setEsDemo(true);
         setCargando(false);
         return;
@@ -44,15 +45,15 @@ export default function PaginaViajesAdmin() {
       setCargando(true);
       try {
         const cliente = crearClienteNavegador();
-        setViajes(await listarViajesAdmin(cliente, filtroActual));
+        setTraslados(await listarViajesAdmin(cliente, filtroActual));
         setEsDemo(false);
       } catch {
         if (puedeUsarDatosDemo()) {
           const lista = filtroActual === "todos" ? VIAJES_DEMO : VIAJES_DEMO.filter((v) => v.estado === filtroActual);
-          setViajes(lista);
+          setTraslados(lista);
           setEsDemo(true);
         } else {
-          setViajes([]);
+          setTraslados([]);
           setEsDemo(false);
         }
       } finally {
@@ -62,8 +63,8 @@ export default function PaginaViajesAdmin() {
     cargar();
   }, [filtroActual]);
 
-  const viajesFiltrados = busqueda.trim()
-    ? viajes.filter((v) => {
+  const trasladosFiltrados = busqueda.trim()
+    ? traslados.filter((v) => {
         const q = busqueda.trim().toLowerCase();
         return (
           (v.traslado_id?.slice(0, 8).toLowerCase().includes(q) ?? false) ||
@@ -71,15 +72,19 @@ export default function PaginaViajesAdmin() {
           (v.conductor_nombre ?? "").toLowerCase().includes(q)
         );
       })
-    : viajes;
+    : traslados;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8 sm:px-8 sm:py-10">
-      <h1 className="font-display text-2xl font-semibold">Viajes</h1>
+    <main className="admin-page-shell">
+      <AdminPageHeader
+        etiqueta="Operación"
+        titulo="Traslados"
+        descripcion="Bandeja operativa para revisar folios, conductor asignado, monto autorizado y estado actual."
+      />
 
       {esDemo && (
         <div className="mt-4">
-          <Aviso tono="info">Estás viendo datos de ejemplo, no viajes reales.</Aviso>
+          <Aviso tono="info">Estás viendo datos de ejemplo, no traslados reales.</Aviso>
         </div>
       )}
 
@@ -99,9 +104,9 @@ export default function PaginaViajesAdmin() {
       </div>
 
       <div className="mt-4 flex items-center gap-3">
-        <label className="sr-only" htmlFor="buscar-viajes">Buscar viajes</label>
+        <label className="sr-only" htmlFor="buscar-traslados">Buscar traslados</label>
         <input
-          id="buscar-viajes"
+          id="buscar-traslados"
           type="search"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
@@ -119,9 +124,9 @@ export default function PaginaViajesAdmin() {
         )}
       </div>
 
-      <div className="mt-3 overflow-hidden rounded-card border border-ink/10 bg-mist">
-        <table className="w-full font-body text-sm">
-          <caption className="sr-only">Lista de viajes operativos</caption>
+      <AdminPanel className="admin-table-card mt-3">
+        <table>
+          <caption className="sr-only">Lista de traslados operativos</caption>
           <thead>
             <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-ink/45">
               <th className="px-4 py-3">Folio</th>
@@ -138,15 +143,15 @@ export default function PaginaViajesAdmin() {
                   Cargando…
                 </td>
               </tr>
-            ) : viajesFiltrados.length === 0 ? (
+            ) : trasladosFiltrados.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-ink/50">
-                  {busqueda.trim() ? "No encontramos viajes con esa búsqueda." : "No hay viajes en esta pestaña."}
+                  {busqueda.trim() ? "No encontramos traslados con esa búsqueda." : "No hay traslados en esta pestaña."}
                 </td>
               </tr>
             ) : (
-              viajesFiltrados.map((v, indice) => (
-                <tr key={v.traslado_id ?? `viaje-sin-folio-${indice}`} className="border-b border-ink/5 last:border-0 hover:bg-ink/[0.02]">
+              trasladosFiltrados.map((v, indice) => (
+                <tr key={v.traslado_id ?? `traslado-sin-folio-${indice}`}>
                   <td className="px-4 py-3">
                     {v.traslado_id ? (
                       <Link href={`/viajes/${v.traslado_id}`} className="font-mono-ruum text-xs text-route-dark hover:underline">
@@ -170,7 +175,7 @@ export default function PaginaViajesAdmin() {
             )}
           </tbody>
         </table>
-      </div>
+      </AdminPanel>
     </main>
   );
 }

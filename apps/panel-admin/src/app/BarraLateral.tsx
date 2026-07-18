@@ -79,7 +79,7 @@ const GRUPOS_NAVEGACION = [
     titulo: "Operación",
     secciones: [
       { href: "/", etiqueta: "Dashboard", icono: "dashboard" as IconoNombre },
-      { href: "/viajes", etiqueta: "Viajes", icono: "viajes" as IconoNombre },
+      { href: "/viajes", etiqueta: "Traslados", icono: "viajes" as IconoNombre },
       { href: "/mapa", etiqueta: "Mapa operativo", icono: "mapa" as IconoNombre },
       { href: "/alertas-sla", etiqueta: "Alertas SLA", icono: "sla" as IconoNombre },
     ],

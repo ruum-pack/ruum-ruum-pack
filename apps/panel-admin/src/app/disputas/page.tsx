@@ -164,7 +164,7 @@ export default function PaginaDisputasAdmin() {
                   <span className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold ${claseSla(sla)}`}>{sla}</span>
                 </div>
                 <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div><dt className="font-body text-xs uppercase tracking-wide text-ink/45">Viaje</dt><dd className="mt-1 font-body text-sm font-medium"><Link href={`/viajes/${disputa.traslado_id}`} className="text-route-dark">{disputa.traslado_id.slice(0, 8).toUpperCase()}</Link></dd></div>
+                  <div><dt className="font-body text-xs uppercase tracking-wide text-ink/45">Traslado</dt><dd className="mt-1 font-body text-sm font-medium"><Link href={`/viajes/${disputa.traslado_id}`} className="text-route-dark">{disputa.traslado_id.slice(0, 8).toUpperCase()}</Link></dd></div>
                   <div><dt className="font-body text-xs uppercase tracking-wide text-ink/45">Abierta por</dt><dd className="mt-1 font-body text-sm font-medium">{disputa.abierta_por}</dd></div>
                   <div><dt className="font-body text-xs uppercase tracking-wide text-ink/45">Estado</dt><dd className="mt-1 font-body text-sm font-medium">{disputa.estado.replaceAll("_", " ")}</dd></div>
                   <div><dt className="font-body text-xs uppercase tracking-wide text-ink/45">Apertura</dt><dd className="mt-1 font-body text-sm font-medium">{new Date(disputa.abierta_en).toLocaleString("es-MX")}</dd></div>

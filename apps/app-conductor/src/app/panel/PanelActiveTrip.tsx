@@ -26,12 +26,12 @@ export function PanelActiveTrip({ viaje }: { viaje: PasaporteRow }) {
   const requiereDecisionOperativa = presentation.requiresControlTowerDecision;
 
   return (
-    <section className="mt-8 grid gap-5" aria-label="Viaje activo">
+    <section className="mt-8 grid gap-5" aria-label="Traslado activo">
       <OperationalCard>
         <div className="grid gap-5 lg:grid-cols-[1fr_0.7fr] lg:items-center">
           <div>
             <p className="font-body text-sm font-semibold text-route-action">
-              Viaje activo · Folio {folioViaje(viaje)}
+              Traslado activo · Folio {folioViaje(viaje)}
             </p>
             <h2 className="mt-2 font-display text-3xl font-semibold leading-tight text-text-primary">{presentation.title}</h2>
             <p className="mt-3 max-w-2xl font-body text-base leading-6 text-text-secondary">{presentation.instruction}</p>
@@ -87,12 +87,12 @@ export function PanelActiveTrip({ viaje }: { viaje: PasaporteRow }) {
               ? "Completa el registro del vehículo antes de continuar."
               : requiereCierre
                 ? "Confirma entrega o cierre operativo para terminar el traslado."
-                : "Continúa con la acción principal del viaje activo."}
+                : "Continúa con la acción principal del traslado activo."}
         </p>
         {(requiereEvidencia || requiereCierre || requiereDecisionOperativa) && (
           <Link href={requiereEvidencia ? `/viajes/${viaje.traslado_id}/evidencia` : `/viajes/${viaje.traslado_id}`}>
             <Button variant="secondary" className="mt-4 w-full sm:w-auto">
-              {requiereEvidencia ? "Abrir registro" : "Abrir viaje"}
+              {requiereEvidencia ? "Abrir registro" : "Abrir traslado"}
             </Button>
           </Link>
         )}

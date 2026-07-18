@@ -124,7 +124,7 @@ function ConfirmacionImpacto({
         </div>
         <div className="px-6 py-5">
           <p className="font-body text-sm leading-6 text-ink/70">
-            Esta acción afectará el cálculo de los viajes en curso. ¿Deseas continuar?
+            Esta acción afectará el cálculo de los traslados en curso. ¿Deseas continuar?
           </p>
           <div className="mt-6 flex flex-wrap justify-end gap-3">
             <Button variant="quiet" onClick={onCancelar}>Cancelar</Button>

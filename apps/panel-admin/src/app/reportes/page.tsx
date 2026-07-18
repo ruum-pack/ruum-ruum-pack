@@ -9,19 +9,19 @@ import { Aviso, PassportCard } from "@ruum/ui";
 const REPORTES = [
   {
     categoria: "Operativos",
-    reportes: ["Viajes por día/semana/zona/tipo de servicio", "Tiempo promedio de asignación", "Tiempo promedio de traslado", "Cancelaciones", "Incidencias"]
+    reportes: ["Traslados por día/semana/zona/tipo de servicio", "Tiempo promedio de asignación", "Tiempo promedio de traslado", "Cancelaciones", "Incidencias"]
   },
   {
     categoria: "Financieros",
-    reportes: ["Ingresos por periodo", "Pagos a conductores", "Gastos autorizados", "Margen estimado", "Viajes pendientes de cobro", "Pagos pendientes"]
+    reportes: ["Ingresos por periodo", "Pagos a conductores", "Gastos autorizados", "Margen estimado", "Traslados pendientes de cobro", "Pagos pendientes"]
   },
   {
     categoria: "De conductores",
-    reportes: ["Viajes realizados", "Calificación", "Incidencias", "Disponibilidad", "Ganancias", "Documentos vencidos"]
+    reportes: ["Traslados realizados", "Calificación", "Incidencias", "Disponibilidad", "Ganancias", "Documentos vencidos"]
   },
   {
     categoria: "De usuarios o empresas",
-    reportes: ["Viajes solicitados", "Frecuencia de uso", "Tipo de servicio", "Facturación", "Incidencias"]
+    reportes: ["Traslados solicitados", "Frecuencia de uso", "Tipo de servicio", "Facturación", "Incidencias"]
   }
 ];
 
@@ -29,7 +29,7 @@ const REPORTES = [
    de reportes esté conectado. Se muestran como "—" para evitar confusión
    con datos operativos reales. */
 const METRICAS: [string, string][] = [
-  ["Viajes esta semana", "—"],
+  ["Traslados esta semana", "—"],
   ["Asignación promedio", "—"],
   ["Traslado promedio", "—"],
   ["Incidencias abiertas", "—"],

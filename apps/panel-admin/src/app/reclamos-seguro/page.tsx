@@ -155,7 +155,7 @@ export default function PaginaReclamosSeguroAdmin() {
                   <span className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold ${claseCobertura(cobertura)}`}>{cobertura}</span>
                 </div>
                 <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div><dt className="font-body text-xs uppercase tracking-wide text-ink/45">Viaje</dt><dd className="mt-1 font-body text-sm font-medium"><Link href={`/viajes/${reclamo.traslado_id}`} className="text-route-dark">{reclamo.traslado_id.slice(0, 8).toUpperCase()}</Link></dd></div>
+                  <div><dt className="font-body text-xs uppercase tracking-wide text-ink/45">Traslado</dt><dd className="mt-1 font-body text-sm font-medium"><Link href={`/viajes/${reclamo.traslado_id}`} className="text-route-dark">{reclamo.traslado_id.slice(0, 8).toUpperCase()}</Link></dd></div>
                   <div><dt className="font-body text-xs uppercase tracking-wide text-ink/45">Estado</dt><dd className="mt-1 font-body text-sm font-medium">{reclamo.estado.replaceAll("_", " ")}</dd></div>
                   <div><dt className="font-body text-xs uppercase tracking-wide text-ink/45">Abierto</dt><dd className="mt-1 font-body text-sm font-medium">{new Date(reclamo.abierto_en).toLocaleString("es-MX")}</dd></div>
                   <div><dt className="font-body text-xs uppercase tracking-wide text-ink/45">Responsable</dt><dd className="mt-1 font-body text-sm font-medium">{reclamo.responsable_pago ?? "Pendiente"}</dd></div>

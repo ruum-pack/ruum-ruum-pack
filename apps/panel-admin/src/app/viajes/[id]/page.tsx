@@ -125,7 +125,7 @@ export default function PaginaDetalleViajeAdmin() {
   async function asignar() {
     if (!pasaporte || !conductorSeleccionado) return;
     if (!pasaporte.traslado_id || !pasaporte.estado) {
-      mostrarAviso({ tono: "danger", texto: "El viaje no tiene folio o estado operativo suficiente para asignar conductor." });
+      mostrarAviso({ tono: "danger", texto: "El traslado no tiene folio o estado operativo suficiente para asignar conductor." });
       return;
     }
     const trasladoId = pasaporte.traslado_id;
@@ -156,7 +156,7 @@ export default function PaginaDetalleViajeAdmin() {
   async function cambiarEstatus() {
     if (!pasaporte || !estadoSeleccionado) return;
     if (!pasaporte.traslado_id || !pasaporte.estado) {
-      mostrarAviso({ tono: "danger", texto: "El viaje no tiene folio o estado operativo suficiente para cambiar estatus." });
+      mostrarAviso({ tono: "danger", texto: "El traslado no tiene folio o estado operativo suficiente para cambiar estatus." });
       return;
     }
     const trasladoId = pasaporte.traslado_id;
@@ -221,7 +221,7 @@ export default function PaginaDetalleViajeAdmin() {
   async function sugerirTarifa() {
     if (!pasaporte) return;
     if (!pasaporte.traslado_id) {
-      mostrarAviso({ tono: "danger", texto: "El viaje no tiene folio suficiente para calcular tarifa." });
+      mostrarAviso({ tono: "danger", texto: "El traslado no tiene folio suficiente para calcular tarifa." });
       return;
     }
     const trasladoId = pasaporte.traslado_id;
@@ -280,7 +280,7 @@ export default function PaginaDetalleViajeAdmin() {
   async function guardarPrecioFinal() {
     if (!pasaporte) return;
     if (!pasaporte.traslado_id) {
-      mostrarAviso({ tono: "danger", texto: "El viaje no tiene folio suficiente para emitir cotización." });
+      mostrarAviso({ tono: "danger", texto: "El traslado no tiene folio suficiente para emitir cotización." });
       return;
     }
     const trasladoId = pasaporte.traslado_id;
@@ -318,7 +318,7 @@ export default function PaginaDetalleViajeAdmin() {
   async function marcarFallido() {
     if (!pasaporte) return;
     if (!pasaporte.traslado_id) {
-      mostrarAviso({ tono: "danger", texto: "El viaje no tiene folio suficiente para marcarlo como fallido." });
+      mostrarAviso({ tono: "danger", texto: "El traslado no tiene folio suficiente para marcarlo como fallido." });
       return;
     }
     const trasladoId = pasaporte.traslado_id;
@@ -349,7 +349,7 @@ export default function PaginaDetalleViajeAdmin() {
   async function agregarNota() {
     if (!pasaporte || !notaNueva.trim()) return;
     if (!pasaporte.traslado_id) {
-      mostrarAviso({ tono: "danger", texto: "El viaje no tiene folio suficiente para agregar notas." });
+      mostrarAviso({ tono: "danger", texto: "El traslado no tiene folio suficiente para agregar notas." });
       return;
     }
     const trasladoId = pasaporte.traslado_id;
@@ -390,9 +390,9 @@ export default function PaginaDetalleViajeAdmin() {
   if (!pasaporte) {
     return (
       <main className="mx-auto max-w-4xl px-8 py-10 text-center">
-        <h1 className="font-display text-xl font-semibold">No encontramos ese viaje</h1>
+        <h1 className="font-display text-xl font-semibold">No encontramos ese traslado</h1>
         <Link href="/viajes" className="mt-3 inline-block font-body text-sm text-route-dark hover:underline">
-          ← Volver a viajes
+          ← Volver a traslados
         </Link>
       </main>
     );
@@ -401,10 +401,10 @@ export default function PaginaDetalleViajeAdmin() {
   if (!pasaporte.traslado_id || !pasaporte.estado) {
     return (
       <main className="mx-auto max-w-4xl px-8 py-10 text-center">
-        <h1 className="font-display text-xl font-semibold">No pudimos cargar el estado del viaje</h1>
+        <h1 className="font-display text-xl font-semibold">No pudimos cargar el estado del traslado</h1>
         <p className="mt-2 font-body text-sm text-ink/60">El registro no incluye folio o estado operativo suficiente para administrarlo.</p>
         <Link href="/viajes" className="mt-3 inline-block font-body text-sm text-route-dark hover:underline">
-          ← Volver a viajes
+          ← Volver a traslados
         </Link>
       </main>
     );
@@ -419,12 +419,12 @@ export default function PaginaDetalleViajeAdmin() {
   return (
     <main className="mx-auto max-w-4xl px-6 py-8 sm:px-8 sm:py-10">
       <Link href="/viajes" className="font-body text-sm text-ink/55 hover:text-ink">
-        ← Viajes
+        ← Traslados
       </Link>
 
       {esDemo && (
         <div className="mt-4">
-          <Aviso tono="info">Estás viendo datos de ejemplo, no un viaje real.</Aviso>
+          <Aviso tono="info">Estás viendo datos de ejemplo, no un traslado real.</Aviso>
         </div>
       )}
       {aviso && (
@@ -677,7 +677,7 @@ export default function PaginaDetalleViajeAdmin() {
         <PassportCard>
           <p className="font-body text-xs uppercase tracking-wide text-ink/45">Traslado fallido</p>
           <p className="mt-1 font-body text-xs text-ink/50">
-            Usa esta acción cuando el viaje no puede continuar. Se calcula cargo, reagendamiento y descuento con la regla PRD §4.11.
+            Usa esta acción cuando el traslado no puede continuar. Se calcula cargo, reagendamiento y descuento con la regla PRD §4.11.
           </p>
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
             <select

@@ -12,7 +12,7 @@ const CONFIG = [
   "Zonas de operación",
   "Tipos de servicio y de vehículo",
   "Reglas de evidencia",
-  "Estados de viaje",
+  "Estados de traslado",
   "Plantillas de notificación",
   "Métodos de pago",
   "Datos fiscales",
@@ -21,8 +21,8 @@ const CONFIG = [
 ];
 
 const ROLES = [
-  ["Super administrador", "Acceso total a la plataforma.", "Gestionar roles, permisos, configuración, viajes, usuarios, conductores, pagos y auditoría."],
-  ["Operador de Torre / Administrador operativo", "Monitorear traslados e incidencias.", "Ver viajes activos, cambiar estados operativos, contactar usuarios/conductores, registrar notas e incidencias."],
+  ["Super administrador", "Acceso total a la plataforma.", "Gestionar roles, permisos, configuración, traslados, usuarios, conductores, pagos y auditoría."],
+  ["Operador de Torre / Administrador operativo", "Monitorear traslados e incidencias.", "Ver traslados activos, cambiar estados operativos, contactar usuarios/conductores, registrar notas e incidencias."],
   ["Supervisor", "Autorizar cambios críticos.", "Cambiar conductor, aprobar cierres con incidencia, autorizar cancelaciones especiales y escalaciones."],
   ["Validador documental", "Revisar documentos.", "Aprobar, rechazar, solicitar actualización y marcar vencimientos."],
   ["Finanzas", "Gestionar pagos y ajustes.", "Ver pagos, gastos, depósitos, ajustes, estatus financiero y reportes básicos."],
@@ -32,11 +32,11 @@ const ROLES = [
 
 const MOVIL = [
   "Ver dashboard básico",
-  "Consultar viajes activos",
+  "Consultar traslados activos",
   "Revisar alertas e incidencias urgentes",
   "Contactar conductor o usuario",
-  "Cambiar estatus de viaje",
-  "Revisar información básica del viaje",
+  "Cambiar estatus de traslado",
+  "Revisar información básica del traslado",
   "Consultar próximos traslados"
 ];
 

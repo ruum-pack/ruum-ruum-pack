@@ -106,7 +106,7 @@ export function DriverAvailabilityControl({ value, saving, onChange }: DriverAva
 
       {value === "en_viaje" && (
         <p className="mt-3 rounded-xl border border-route-action bg-route-soft px-4 py-3 font-body text-sm font-semibold text-route-action">
-          Cambio bloqueado: estás operando un viaje activo.
+          Cambio bloqueado: estás operando un traslado activo.
         </p>
       )}
     </section>

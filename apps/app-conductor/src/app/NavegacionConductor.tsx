@@ -51,7 +51,7 @@ type DestinoIcono = React.ComponentType;
 
 const DESTINOS: { href: string; etiqueta: string; Icono: DestinoIcono }[] = [
   { href: "/panel", etiqueta: "Inicio", Icono: IcoHome },
-  { href: "/viajes", etiqueta: "Viajes", Icono: IcoViajes },
+  { href: "/viajes", etiqueta: "Traslados", Icono: IcoViajes },
   { href: "/ganancias", etiqueta: "Ganancias", Icono: IcoGanancias },
   { href: "/cuenta", etiqueta: "Cuenta", Icono: IcoCuenta },
 ];
@@ -117,10 +117,10 @@ export function NavegacionConductor() {
               <Link
                 href={`/viajes/${viajeActivo.trasladoId}`}
                 className="min-w-0 rounded-xl px-1 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
-                aria-label={`Ver detalles del viaje ${viajeActivo.folio}`}
+                aria-label={`Ver detalles del traslado ${viajeActivo.folio}`}
               >
                 <p className="flex items-center gap-2 font-body text-sm font-semibold text-[#8EC5FF]">
-                  <span>Viaje activo · {viajeActivo.folio}</span>
+                  <span>Traslado activo · {viajeActivo.folio}</span>
                   {hayAccionPendiente && (
                     <span className="rounded-full border border-warning bg-warning px-2 py-0.5 font-body text-sm font-bold text-[#14213D]">
                       Acción pendiente
@@ -176,13 +176,13 @@ export function NavegacionConductor() {
           <div className="conductor-mobile-active-trip px-3 pb-2">
             <Link
               href={`/viajes/${viajeActivo.trasladoId}`}
-              aria-label={`Abrir viaje activo ${viajeActivo.folio}: ${viajeActivo.etapa}`}
+              aria-label={`Abrir traslado activo ${viajeActivo.folio}: ${viajeActivo.etapa}`}
               className="conductor-mobile-active-trip-card mx-auto grid max-w-md grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-border/30 bg-surface-elevated/95 px-4 py-2.5 shadow-[0_16px_48px_rgba(0,0,0,0.48)] backdrop-blur"
             >
               <span className="min-w-0">
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="truncate font-body text-xs font-bold uppercase text-[#8EC5FF]">
-                    Viaje activo · {viajeActivo.folio}
+                    Traslado activo · {viajeActivo.folio}
                   </span>
                   {hayAccionPendiente && (
                     <span className="inline-flex size-3 shrink-0 rounded-full bg-warning ring-2 ring-surface-elevated" aria-hidden />
@@ -221,7 +221,7 @@ export function NavegacionConductor() {
                 key={destino.href}
                 href={destino.href}
                 aria-current={activo ? "page" : undefined}
-                aria-label={notificar ? `${destino.etiqueta}: acción pendiente en viaje activo` : destino.etiqueta}
+                aria-label={notificar ? `${destino.etiqueta}: acción pendiente en traslado activo` : destino.etiqueta}
                 className={[
                   "relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 font-body text-xs font-semibold",
                   activo ? "bg-action-primary text-[#14213D]" : "text-text-secondary"

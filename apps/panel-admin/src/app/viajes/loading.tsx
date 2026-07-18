@@ -1,6 +1,6 @@
 export default function CargandoViajes() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8 sm:px-8 sm:py-10" aria-label="Cargando viajes">
+    <div className="mx-auto max-w-5xl px-6 py-8 sm:px-8 sm:py-10" aria-label="Cargando traslados">
       <div className="h-7 w-24 animate-pulse rounded bg-ink/8" />
       <div className="mt-6 flex gap-1 border-b border-ink/10">
         {[80, 90, 72, 90, 86].map((w, i) => (

@@ -139,7 +139,7 @@ export default function PaginaIncidenciasAdmin() {
 
             <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
-                <dt className="font-body text-xs uppercase tracking-wide text-ink/45">Viaje relacionado</dt>
+                <dt className="font-body text-xs uppercase tracking-wide text-ink/45">Traslado relacionado</dt>
                 <dd className="mt-1 font-body text-sm font-medium">
                   <Link href={`/viajes/${incidencia.trasladoId}`} className="text-route-dark">
                     {incidencia.viaje}

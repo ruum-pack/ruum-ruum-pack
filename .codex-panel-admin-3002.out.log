@@ -1,0 +1,11 @@
+
+> @ruum/panel-admin@0.0.1 dev C:\Users\hmlom\ruum\apps\panel-admin
+> next dev -p 3002
+
+   ▲ Next.js 15.5.19
+   - Local:        http://localhost:3002
+   - Network:      http://192.168.1.7:3002
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 4s
