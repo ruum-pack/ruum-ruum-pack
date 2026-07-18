@@ -1,9 +1,48 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import type { AxeResults, Result as AxeViolation } from 'axe-core';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 
-async function abrirRuta(page: Page, route: string) {
+const AUTH_STATE_PATH = 'tests/.auth/conductor.json';
+const ACTIVE_TRIP_EVIDENCE_ROUTE = '/viajes/00000000-0000-4000-8000-00000000e205/evidencia';
+const AXE_RESULTS_PATH = resolve(process.cwd(), 'results/axe-results.json');
+
+type AxeException = {
+  route: string;
+  ruleId: string;
+  target: string;
+  impact: 'critical' | 'serious' | 'moderate' | 'minor';
+  reason: string;
+  expiresAt: string;
+};
+
+type AxeRouteResult = {
+  route: string;
+  authenticated: boolean;
+  checkedAt: string;
+  violations: Array<{
+    id: string;
+    impact: AxeViolation['impact'];
+    help: string;
+    helpUrl: string;
+    nodes: Array<{ target: string[]; html: string }>;
+  }>;
+};
+
+const AXE_EXCEPTIONS: AxeException[] = [];
+const axeRouteResults: AxeRouteResult[] = [];
+
+async function abrirRuta(page: Page, route: string, options: { requireAuth?: boolean } = {}) {
   await page.goto(route, { waitUntil: 'commit', timeout: 30_000 });
   await page.locator('#contenido-principal, body').first().waitFor({ state: 'visible', timeout: 20_000 });
+  const finalUrl = new URL(page.url());
+
+  if (options.requireAuth) {
+    expect(finalUrl.pathname, `${route} redirigió a /login en una prueba autenticada`).not.toBe('/login');
+    expect(finalUrl.pathname, `La ruta protegida ${route} terminó en una URL inesperada`).toBe(new URL(route, 'http://localhost').pathname);
+  }
+
   await page.addStyleTag({
     content: `
       *, *::before, *::after {
@@ -19,18 +58,116 @@ async function abrirRuta(page: Page, route: string) {
 const SMOKE_ROUTE = '/onboarding';
 
 // Smoke de rutas representativas. La auditoría exhaustiva por ruta vive en scripts/audit-a11y.mjs.
-const AXE_SMOKE_ROUTES = [
+const PUBLIC_AXE_SMOKE_ROUTES = [
   '/onboarding',
   '/login',
   '/registro',
-  '/panel',
-  '/ganancias',
-  '/cuenta/perfil',
   '/legal/privacidad',
 ];
 
+const PROTECTED_AXE_SMOKE_ROUTES = [
+  '/panel',
+  '/ganancias',
+  '/cuenta/perfil',
+  ACTIVE_TRIP_EVIDENCE_ROUTE,
+];
+
+const CRITICAL_ROUTES = new Set([...PROTECTED_AXE_SMOKE_ROUTES]);
+
+function assertNoExpiredAxeExceptions() {
+  const today = new Date().toISOString().slice(0, 10);
+  const expired = AXE_EXCEPTIONS.filter((exception) => exception.expiresAt < today);
+
+  expect(
+    expired,
+    `Hay excepciones Axe vencidas. Actualiza o elimina la excepción documentada: ${expired
+      .map((exception) => `${exception.route} ${exception.ruleId} ${exception.target}`)
+      .join(', ')}`
+  ).toEqual([]);
+}
+
+function isDocumentedException(route: string, violation: AxeViolation, target: string[]) {
+  const targetSelector = target.join(' ');
+
+  return AXE_EXCEPTIONS.some((exception) => {
+    return (
+      exception.route === route &&
+      exception.ruleId === violation.id &&
+      exception.impact === violation.impact &&
+      exception.target === targetSelector
+    );
+  });
+}
+
+function policyViolations(route: string, violations: AxeViolation[]) {
+  return violations.flatMap((violation) => {
+    return violation.nodes
+      .filter((node) => !isDocumentedException(route, violation, node.target))
+      .filter(() => {
+        if (violation.impact === 'critical') return true;
+        return CRITICAL_ROUTES.has(route) && violation.impact === 'serious';
+      })
+      .map((node) => ({
+        id: violation.id,
+        impact: violation.impact,
+        help: violation.help,
+        target: node.target,
+      }));
+  });
+}
+
+function recordAxeResult(route: string, authenticated: boolean, report: AxeResults) {
+  axeRouteResults.push({
+    route,
+    authenticated,
+    checkedAt: new Date().toISOString(),
+    violations: report.violations.map((violation) => ({
+      id: violation.id,
+      impact: violation.impact,
+      help: violation.help,
+      helpUrl: violation.helpUrl,
+      nodes: violation.nodes.map((node) => ({
+        target: node.target,
+        html: node.html,
+      })),
+    })),
+  });
+}
+
+function expectAxePolicy(route: string, report: AxeResults) {
+  assertNoExpiredAxeExceptions();
+  const failures = policyViolations(route, report.violations);
+
+  expect(
+    failures,
+    `${route} tiene violaciones Axe fuera de política: ${JSON.stringify(failures, null, 2)}`
+  ).toEqual([]);
+}
+
+test.afterAll(() => {
+  mkdirSync(dirname(AXE_RESULTS_PATH), { recursive: true });
+  writeFileSync(
+    AXE_RESULTS_PATH,
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        policy: {
+          criticalViolationsAllowed: 0,
+          seriousViolationsAllowedOnCriticalRoutes: 0,
+          criticalRoutes: [...CRITICAL_ROUTES],
+          exceptionRule: 'Toda excepción debe declarar route, ruleId, target, impact, reason y expiresAt.',
+        },
+        exceptions: AXE_EXCEPTIONS,
+        routes: axeRouteResults,
+      },
+      null,
+      2
+    )
+  );
+});
+
 test.describe('Accessibility Audit - Axe Core', () => {
-  for (const route of AXE_SMOKE_ROUTES) {
+  for (const route of PUBLIC_AXE_SMOKE_ROUTES) {
     test(`Axe accessibility audit for ${route}`, async ({ page }) => {
       test.skip(
         test.info().project.name !== 'chromium',
@@ -44,8 +181,32 @@ test.describe('Accessibility Audit - Axe Core', () => {
       await test.step('Run Axe accessibility check', async () => {
         const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
 
-        // Verificar que no haya errores críticos de accesibilidad
-        expect(accessibilityScanResults.violations).toEqual([]);
+        recordAxeResult(route, false, accessibilityScanResults);
+        expectAxePolicy(route, accessibilityScanResults);
+      });
+    });
+  }
+});
+
+test.describe('Accessibility Audit - Axe Core Authenticated', () => {
+  test.use({ storageState: AUTH_STATE_PATH });
+
+  for (const route of PROTECTED_AXE_SMOKE_ROUTES) {
+    test(`Authenticated Axe accessibility audit for ${route}`, async ({ page }) => {
+      test.skip(
+        test.info().project.name !== 'chromium',
+        'Axe completo se ejecuta en Chromium; las comprobaciones específicas cubren el smoke cross-browser.'
+      );
+
+      await test.step('Navigate to authenticated page', async () => {
+        await abrirRuta(page, route, { requireAuth: true });
+      });
+
+      await test.step('Run Axe accessibility check', async () => {
+        const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+
+        recordAxeResult(route, true, accessibilityScanResults);
+        expectAxePolicy(route, accessibilityScanResults);
       });
     });
   }
@@ -66,35 +227,6 @@ test.describe('Accessibility - Specific Checks', () => {
       if (role !== 'presentation' && role !== 'none') {
         expect(alt).not.toBeNull();
         expect(alt?.trim()).not.toBe('');
-      }
-    }
-  });
-
-  test('All form inputs have associated labels', async ({ page }) => {
-    await abrirRuta(page, '/cuenta/perfil');
-    
-    const inputs = await page.locator('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="reset"])');
-    const count = await inputs.count();
-    
-    for (let i = 0; i < count; i++) {
-      const input = inputs.nth(i);
-      const id = await input.getAttribute('id');
-      const name = await input.getAttribute('name');
-      const ariaLabel = await input.getAttribute('aria-label');
-      const ariaLabelledBy = await input.getAttribute('aria-labelledby');
-      
-      // Verificar que tenga algún tipo de etiqueta
-      if (!ariaLabel && !ariaLabelledBy) {
-        // Buscar label asociado por id
-        if (id) {
-          const label = await page.locator(`label[for="${id}"]`);
-          await expect(label).toHaveCount(1);
-        }
-        // Buscar label envuelto
-        else if (name) {
-          const label = await page.locator(`label:has(input[name="${name}"])`);
-          await expect(label).toHaveCount(1);
-        }
       }
     }
   });
@@ -173,6 +305,45 @@ test.describe('Accessibility - Specific Checks', () => {
       if (tabIndex) {
         expect(parseInt(tabIndex)).not.toBe(-1);
       }
+    }
+  });
+});
+
+test.describe('Accessibility - Authenticated Specific Checks', () => {
+  test.use({ storageState: AUTH_STATE_PATH });
+
+  test('All form inputs have associated labels', async ({ page }) => {
+    await abrirRuta(page, '/cuenta/perfil', { requireAuth: true });
+
+    const inputs = await page.locator('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="reset"])');
+    const count = await inputs.count();
+
+    for (let i = 0; i < count; i++) {
+      const input = inputs.nth(i);
+      const id = await input.getAttribute('id');
+      const name = await input.getAttribute('name');
+      const ariaLabel = await input.getAttribute('aria-label');
+      const ariaLabelledBy = await input.getAttribute('aria-labelledby');
+
+      // Verificar que tenga algún tipo de etiqueta
+      if (!ariaLabel && !ariaLabelledBy) {
+        // Buscar label asociado por id
+        if (id) {
+          const label = await page.locator(`label[for="${id}"]`);
+          await expect(label).toHaveCount(1);
+        }
+        // Buscar label envuelto
+        else if (name) {
+          const label = await page.locator(`label:has(input[name="${name}"])`);
+          await expect(label).toHaveCount(1);
+        }
+      }
+    }
+  });
+
+  test('Protected routes do not pass after redirecting to login', async ({ page }) => {
+    for (const route of PROTECTED_AXE_SMOKE_ROUTES) {
+      await abrirRuta(page, route, { requireAuth: true });
     }
   });
 });

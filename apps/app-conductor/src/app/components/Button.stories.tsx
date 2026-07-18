@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Button } from './Button';
+import { Button } from '@ruum/ui';
 
 const meta = {
   title: 'Components/Button',
@@ -20,11 +20,7 @@ const meta = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['primary', 'secondary', 'danger'],
-    },
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
+      options: ['primary', 'secondary', 'quiet', 'danger', 'emergency'],
     },
     onClick: { action: 'clicked' },
     disabled: { control: 'boolean' },
@@ -39,7 +35,6 @@ export const Primary: Story = {
   args: {
     children: 'Primary Button',
     variant: 'primary',
-    size: 'md',
     disabled: false,
   },
   parameters: {
@@ -54,14 +49,13 @@ export const Secondary: Story = {
   args: {
     children: 'Secondary Button',
     variant: 'secondary',
-    size: 'md',
   },
 };
 
-export const Large: Story = {
+export const Quiet: Story = {
   args: {
-    children: 'Large Button',
-    size: 'lg',
+    children: 'Quiet Button',
+    variant: 'quiet',
   },
 };
 

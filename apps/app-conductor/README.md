@@ -61,42 +61,146 @@ La app conductor ya no incluye datos ni acciones de muestra. Sin `NEXT_PUBLIC_SU
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, las pantallas muestran estados vacíos o errores operativos y no simulan viajes,
 mensajes, evidencia, solicitudes ni ganancias.
 
-## Capacitor (Fase 5)
+## Arquitectura actual
 
-**Decisión tomada:** la WebView carga la app real desde Vercel (`https://www.concer.ruumruum-moviliax.online`, fija en
-`capacitor.config.ts` con `RUUM_CAPACITOR_SERVER_URL` como override opcional para otros ambientes) en vez de un
-export estático embebido. Esto preserva Server Components, middleware y RLS exactamente como ya están validados
-en producción — el costo real es que la app **no abre sin conexión al inicio** (solo afecta la carga de la
-página; las llamadas a plugins nativos como cámara/GPS funcionan igual una vez cargada). Si más adelante se
-necesita que abra sin señal en cualquier momento, eso es una migración a export estático aparte, no un ajuste de
-configuración.
+La App Conductor es una aplicacion Next.js dentro del monorepo. Consume servicios compartidos desde
+`@ruum/api`, reglas/contratos desde `@ruum/shared` y componentes desde `@ruum/ui`. El frontend guia la operacion,
+pero los cambios sensibles se validan en Supabase mediante RLS, RPC, triggers y Storage privado.
 
-- `npx cap add android` ya corrido — el proyecto en `android/` es real, no un placeholder.
-- **Cámara real** (`@capacitor/camera`) conectada en `/viajes/[id]/evidencia`: el botón "Tomar foto" abre la
-  cámara nativa cuando corre dentro del shell; en navegador sigue mostrando "Marcar capturado" para registrar
-  metadatos reales durante desarrollo web.
-- **GPS real** (`@capacitor/geolocation`) etiqueta cada foto capturada con lat/lng reales.
-- **Cola local offline** (`lib/cola-offline.ts`, `@capacitor/preferences`): cada foto capturada en el shell
-  nativo se encola localmente con un `localId` (UUID, clave de idempotencia) antes de intentar registrarse en
-  Supabase. La propuesta de arquitectura original planteaba SQLite; aquí se usa Preferences (key-value simple)
-  como simplificación deliberada — alcanza para encolar unas pocas fotos pendientes, que es el caso real
-  mientras Supabase Storage no esté conectado (la subida real de los bytes sigue pendiente, ver abajo).
-- Permisos agregados a mano en `android/app/src/main/AndroidManifest.xml`: `CAMERA`, `ACCESS_FINE_LOCATION`,
-  `ACCESS_COARSE_LOCATION` — Capacitor no los agrega solo.
+En Android, Capacitor usa una WebView que carga la app remota configurada en `capacitor.config.ts`. Esta decision
+mantiene Server Components, middleware, Auth y RLS como en produccion, pero implica una limitacion importante:
+si la app se abre desde cero sin red, no hay shell local completo que reconstruya la operacion.
 
-**Lo que no se pudo hacer en este entorno:** este sandbox no tiene Android SDK ni Gradle completo, así que todo
-lo de arriba está validado por `tsc`/`next build` (compila, tipos correctos), no por una compilación nativa real
-ni una APK instalada en un dispositivo. Para compilar de verdad:
+## Evidencia privada
+
+El bucket `evidencia` es privado. La app ya no debe tratar `evidencia_fotos.url` como una URL publica; ese campo
+guarda el path relativo del objeto en Storage. La lectura de imagenes debe resolverse con signed URLs temporales
+mediante los servicios compartidos de evidencia.
+
+Flujo actual:
+
+1. El conductor captura foto desde `/viajes/[id]/evidencia`.
+2. La foto se guarda primero en cola local con `localId`, tipo, angulo, traslado y metadatos.
+3. Al sincronizar, `cola-offline.ts` sube el blob a Storage privado.
+4. Se guarda el path relativo en `evidencia_fotos.url`.
+5. Las pantallas que necesitan mostrar evidencia generan signed URLs temporales.
+
+Las signed URLs no deben subirse como artifacts, logs, backups ni datos persistentes.
+
+## Cola offline
+
+La cola de evidencia vive en `apps/app-conductor/src/lib/cola-offline.ts` y usa `@capacitor/preferences` por medio
+de la interfaz `EvidenceQueueStorage`. Cada item almacena contador de reintentos, ultimo intento y ultimo codigo
+de error para diagnostico y backoff.
+
+La cola cubre evidencia pendiente durante una sesion ya cargada. No equivale a offline completo de arranque: si
+Android destruye el proceso y no hay red, la app puede no poder reconstruir el viaje activo hasta recuperar
+conexion.
+
+## RPC atomica y geocerca
+
+La llegada al destino usa la RPC atomica `conductor_confirmar_llegada_destino`. La UI no debe encadenar varias
+transiciones de negocio para llegar al estado final.
+
+La geocerca de confirmacion usa un radio operativo de 500 m. Si el conductor confirma fuera de radio, la app
+solicita una segunda accion consciente y envia a la RPC:
+
+- `p_fuera_geocerca`
+- `p_distancia_m`
+
+Esto permite auditoria y revision por Torre de Control.
+
+## Temas y tarjetas
+
+App Conductor usa tema oscuro explicito con `<html data-theme="dark">`. Los tokens compartidos viven en
+`packages/ui/src/styles/tokens.css` y definen `color-scheme` por tema para controles nativos.
+
+La regla visual vigente para App Conductor es no usar fondos pastel completos como tarjetas. Las tarjetas deben
+usar superficies oscuras y reservar colores funcionales para borde, badge, icono, monto o fondo translucido.
+
+Paleta operativa recomendada:
+
+- Fondo app: `#070B14`
+- Tarjeta base: `#101A2C`
+- Tarjeta elevada: `#162238`
+- Texto principal: `#E8EDF6`
+- Texto secundario: `#B7C2D4`
+- Azul: `#4DA3FF`
+- Dorado CTA: `#F5A623`
+- Verde exito: `#3DDC97`
+- Ambar alerta: `#F0B429`
+- Rojo error: `#FF6B6B`
+
+Para importes no relacionados con ganancias se debe usar `FinancialAmount`. `DriverEarning` queda reservado para
+ganancias del conductor.
+
+## Capacitor y limitacion del shell remoto
+
+- Android esta agregado en `apps/app-conductor/android`.
+- La WebView carga `https://www.concer.ruumruum-moviliax.online` salvo override `RUUM_CAPACITOR_SERVER_URL`.
+- Permisos declarados: `CAMERA`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`.
+- Backup Android esta deshabilitado con `android:allowBackup="false"` y reglas defensivas en `res/xml`.
+- iOS no esta agregado; requiere macOS/Xcode.
+
+Mitigacion de piloto para arranque sin red:
+
+1. El conductor debe abrir el viaje antes de iniciar traslado.
+2. La app debe permanecer abierta durante el traslado.
+3. Si se pierde red, se continua solo con las capacidades ya cargadas.
+4. Si la app se cierra sin red, se activa protocolo de soporte/Torre de Control.
+
+La matriz de validacion esta en `tests/android/offline-startup-validation.md`.
+
+## Comandos de test
 
 ```bash
-npx cap sync android
-npx cap open android   # abre Android Studio
-# o, con el SDK ya instalado:
-cd android && ./gradlew assembleDebug
+pnpm --filter @ruum/app-conductor typecheck
+pnpm --filter @ruum/app-conductor lint
+pnpm --filter @ruum/app-conductor test
+pnpm --filter @ruum/app-conductor test:a11y
+pnpm --filter @ruum/app-conductor storybook:build
+pnpm --filter @ruum/app-conductor build
+pnpm --filter @ruum/app-conductor test:lighthouse
 ```
 
-**iOS no se agregó** — `cap add ios` requiere macOS/Xcode, no disponible en ningún entorno de esta conversación.
-Es el mismo comando (`npx cap add ios`) desde una Mac cuando llegue el momento.
+Para Android nativo:
+
+```bash
+pnpm --filter @ruum/app-conductor exec cap sync android
+cd apps/app-conductor/android
+./gradlew assembleDebug
+```
+
+En Windows:
+
+```powershell
+pnpm --filter @ruum/app-conductor exec cap sync android
+cd apps/app-conductor/android
+.\gradlew.bat assembleDebug
+```
+
+## Dispositivos probados
+
+| Dispositivo | Android | Build | Resultado | Evidencia |
+| --- | --- | --- | --- | --- |
+| Telefono Android real no identificado | No documentado | Fase 5 inicial | Se detecto que faltaba ruta visible hacia Evidencia; corregido | Pendiente de acta formal |
+| Pendiente | Pendiente | Pendiente | Matrices Android F5-08/F5-09/F5-10/F5 sin red pendientes de ejecucion formal | `docs/qa/fase-5-validacion.md` |
+
+La validacion formal por dispositivo debe registrarse en `docs/qa/fase-5-validacion.md`.
+
+## Funcionalidades pendientes reales
+
+- Offline de arranque productivo: shell local, cache persistente de viaje activo, pantalla offline local,
+  evidencia/emergencia sin servidor y sincronizacion con conflictos.
+- GPS en segundo plano con Foreground Service nativo y notificacion persistente.
+- Push notifications con FCM.
+- Validacion real de permisos Android en dispositivo: camara, galeria, ubicacion, retorno desde ajustes,
+  segundo plano y cierre forzado.
+- Ejecucion formal de matrices Android con evidencia de dispositivo.
+- Transport real para logging estructurado en piloto/produccion.
+- Consolidar migraciones historicas solo si aun no fueron aplicadas en ambientes compartidos.
+- Decidir/implementar RPC atomica equivalente para llegada a origen si Operacion requiere auditar distancia de
+  recoleccion con el mismo rigor que destino.
 
 ## Fase 6 — datos bancarios para pagos a conductores
 
@@ -138,22 +242,3 @@ tiene a quién relacionar con el número virtual de la sesión.
 La dirección de origen, los contactos y color/placas/VIN no estaban expuestos en la vista `pasaporte_digital`
 (sí existían en `traslados`/`vehiculos`, con RLS que ya cubría al conductor asignado) — se agregaron en la
 migración `20260715000100`.
-
-## Pendiente (siguientes cortes de Fase 4 / Fase 5)
-
-- Subida real de los bytes de cada foto a Supabase Storage — hoy se encolan localmente (cola offline) y se
-  registra el metadato con una URL de marcador de posición; el contrato de datos ya es el definitivo.
-- GPS en **segundo plano** (tracking continuo durante el traslado, no solo al tomar una foto) — necesita un
-  Foreground Service nativo de Android con notificación persistente, que es código nativo adicional más allá de
-  llamar un plugin JS. Documentado en el `AndroidManifest.xml`.
-- Notificaciones push (FCM) — no se agregó `@capacitor/push-notifications` en este corte.
-- Completar la generación operativa de `payouts_conductor` para poblar ganancias con datos productivos.
-- Columna de disponibilidad en tiempo real en `conductores` — el Panel ya intenta persistirla vía API; falta
-  confirmar el contrato definitivo de backend si cambia el modelo.
-- Subida de documentos para la validación CONCER (PRD §16.5.2) — el registro deja al conductor en
-  `pendiente_verificacion`, pero todavía no hay pantalla para subir licencia/identificación/etc.
-- Reporte de incidencia, mapa de seguimiento, configuración (cuenta/preferencias/soporte) — PRD §16.5.
-
-```
-pnpm --filter @ruum/app-conductor dev
-```

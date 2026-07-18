@@ -4,29 +4,28 @@ module.exports = {
       startServerCommand: 'pnpm start',
       startServerReadyPattern: 'ready|local',
       startServerReadyTimeout: 120000,
-      url: [
-        'http://localhost:3001/onboarding',
-        'http://localhost:3001/login',
-        'http://localhost:3001/legal/privacidad',
-      ],
+      puppeteerScript: './scripts/lighthouse-auth.cjs',
+      url: ['http://localhost:3001/panel'],
       numberOfRuns: 1,
       settings: {
-        chromeFlags: '--no-sandbox --disable-dev-shm-usage',
-        onlyCategories: ['accessibility', 'best-practices', 'seo'],
+        onlyCategories: ['accessibility', 'best-practices'],
+      },
+      puppeteerLaunchOptions: {
+        args: ['--no-sandbox', '--disable-dev-shm-usage'],
       },
     },
     assert: {
       assertions: {
         'categories:accessibility': ['error', { minScore: 0.95 }],
         'categories:best-practices': ['error', { minScore: 0.90 }],
-        'categories:seo': ['error', { minScore: 0.90 }],
         'categories:performance': 'off',
+        'categories:seo': 'off',
       },
     },
     upload: {
       target: 'filesystem',
-      outputDir: '.lighthouse-ci',
-      reportFilenamePattern: '%%PATHNAME%%-%%DATETIME%%-report.%%EXTENSION%%',
+      outputDir: '.lighthouse-ci-auth',
+      reportFilenamePattern: 'authenticated-%%PATHNAME%%-%%DATETIME%%-report.%%EXTENSION%%',
     },
   },
 };

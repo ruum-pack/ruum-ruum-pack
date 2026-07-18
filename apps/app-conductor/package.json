@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
+    "start": "next start -p 3001",
     "build": "next build",
     "lint": "eslint .",
     "lint:a11y": "eslint . --ext .ts,.tsx --config eslint.config.mjs",
@@ -11,6 +12,7 @@
     "test:a11y": "node scripts/run-a11y-playwright.mjs",
     "test:a11y:ui": "playwright test tests/a11y --ui",
     "test:lighthouse": "lhci autorun",
+    "test:lighthouse:auth": "lhci autorun --config=lighthouserc.auth.js",
     "test:axe": "axe http://localhost:3001 --save results/axe-report.json",
     "audit:a11y": "node scripts/audit-a11y.mjs",
     "audit:a11y:route": "node scripts/audit-a11y.mjs --route",

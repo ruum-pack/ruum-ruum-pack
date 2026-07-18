@@ -89,6 +89,30 @@ function stopProcessTree(pid) {
 async function main() {
   let serverProcess = null;
   let serverLog = null;
+  const playwrightArgs = process.argv.slice(2);
+  const args = playwrightArgs[0] === 'test'
+    ? playwrightArgs
+    : ['test', 'tests/a11y', ...playwrightArgs];
+  if (process.env.PLAYWRIGHT_A11Y_PROJECT && !args.some((arg) => arg === '--project' || arg.startsWith('--project='))) {
+    args.push(`--project=${process.env.PLAYWRIGHT_A11Y_PROJECT}`);
+  }
+  if (!args.some((arg) => arg === '--workers' || arg.startsWith('--workers='))) {
+    args.push('--workers=1');
+  }
+
+  if (args.includes('--list')) {
+    const listResult = spawnSync(commandForLocalBin('playwright'), args, {
+      cwd: projectRoot,
+      env: process.env,
+      shell: process.platform === 'win32',
+      stdio: 'inherit'
+    });
+    if (listResult.error) {
+      console.error(`[a11y] ${listResult.error.message}`);
+    }
+    process.exit(listResult.status ?? 1);
+  }
+
   const server = await pickServerOrigin();
   const serverUrl = new URL(server.origin);
   const serverPort = serverUrl.port || '3001';
@@ -113,10 +137,6 @@ async function main() {
     }
   }
 
-  const playwrightArgs = process.argv.slice(2);
-  const args = playwrightArgs[0] === 'test'
-    ? playwrightArgs
-    : ['test', 'tests/a11y', ...playwrightArgs];
   const result = spawnSync(commandForLocalBin('playwright'), args, {
     cwd: projectRoot,
     env: {

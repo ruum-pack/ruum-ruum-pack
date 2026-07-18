@@ -43,6 +43,7 @@ next-env.d.ts
 /playwright-report/
 /results/
 /test-results/
+/tests/.auth/
 /lhci-reports/
 /.lighthouse-ci/
 

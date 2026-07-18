@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const disableAuthArtifacts = process.env.PLAYWRIGHT_DISABLE_AUTH_ARTIFACTS === '1';
+
 export default defineConfig({
   testDir: './tests',
   timeout: 90_000,
@@ -15,9 +17,9 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001',
     actionTimeout: 10_000,
     navigationTimeout: 30_000,
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    trace: disableAuthArtifacts ? 'off' : 'on-first-retry',
+    screenshot: disableAuthArtifacts ? 'off' : 'only-on-failure',
+    video: disableAuthArtifacts ? 'off' : 'retain-on-failure',
   },
   projects: [
     {
@@ -41,7 +43,7 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER
     ? undefined
     : {
-        command: 'npm run dev',
+        command: 'pnpm dev',
         port: 3001,
         timeout: 120_000,
         reuseExistingServer: !process.env.CI,

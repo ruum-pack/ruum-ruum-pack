@@ -4,7 +4,7 @@
  * Script para ejecutar auditorías de accesibilidad de forma local
  * 
  * Uso:
- *   npm run audit:a11y -- [ruta1] [ruta2] ...
+ *   pnpm audit:a11y -- [ruta1] [ruta2] ...
  *   node scripts/audit-a11y.mjs --route / --route /login
  */
 
@@ -103,7 +103,7 @@ async function ensureDevServer() {
   }
 
   log('Iniciando servidor de desarrollo...', 'info');
-  const child = spawn('npm run dev', {
+  const child = spawn('pnpm dev', {
     cwd: projectRoot,
     detached: true,
     stdio: 'ignore',
@@ -122,7 +122,7 @@ async function runESLintA11y() {
   log('Iniciando auditoría ESLint con reglas de accesibilidad...', 'info');
   
   try {
-    await runCommand('npm run lint:a11y');
+    await runCommand('pnpm lint:a11y');
     log('✅ Auditoría ESLint completada sin errores', 'success');
     return true;
   } catch (error) {
@@ -210,7 +210,7 @@ async function runPlaywrightA11y() {
   log('Iniciando pruebas de accesibilidad con Playwright...', 'info');
   
   try {
-    await runCommand('npm run test:a11y');
+    await runCommand('pnpm test:a11y');
     log('✅ Pruebas Playwright completadas', 'success');
     return true;
   } catch (error) {
@@ -244,7 +244,7 @@ async function runLighthouseAudit(routes = DEFAULT_ROUTES.slice(0, 3)) {
   writeFileSync(tempConfigPath, `module.exports = ${JSON.stringify(lhciConfig, null, 2)};`);
   
   try {
-    await runCommand('npx lhci autorun --config=lighthouserc-temp.js');
+    await runCommand('pnpm exec lhci autorun --config=lighthouserc-temp.js');
     
     // Leer resultados
     const lhciDir = resolve(projectRoot, '.lighthouse-ci');

@@ -217,7 +217,7 @@ async function main() {
       log('✅ Servidor está funcionando', 'success');
     } catch (error) {
       log(`⚠️  No se pudo verificar el servidor: ${error.message}`, 'warning');
-      log('Asegúrate de que el servidor esté corriendo con: npm run dev', 'warning');
+      log('Asegúrate de que el servidor esté corriendo con: pnpm dev', 'warning');
       
       const confirm = await new Promise((resolve) => {
         process.stdin.once('data', (data) => {

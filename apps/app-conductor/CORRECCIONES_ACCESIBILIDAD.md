@@ -262,23 +262,23 @@ Los siguientes componentes del paquete `@ruum/ui` ya cumplen con estándares de 
 
 ### 1. Axe Core CLI
 ```bash
-npm run test:axe
-npm run test:route /login
+pnpm test:axe
+pnpm test:route /login
 ```
 
 ### 2. Playwright con Axe
 ```bash
-npm run test:a11y
+pnpm test:a11y
 ```
 
 ### 3. Lighthouse
 ```bash
-npm run test:lighthouse
+pnpm test:lighthouse
 ```
 
 ### 4. ESLint
 ```bash
-npm run lint:a11y
+pnpm lint:a11y
 ```
 
 ---
@@ -302,14 +302,14 @@ npm run lint:a11y
 
 1. **Ejecutar pruebas completas:**
    ```bash
-   npm run audit:a11y
+   pnpm audit:a11y
    ```
 
 2. **Verificar cada ruta:**
    ```bash
-   npm run test:route /panel
-   npm run test:route /login
-   npm run test:route /onboarding
+   pnpm test:route /panel
+   pnpm test:route /login
+   pnpm test:route /onboarding
    ```
 
 3. **Corregir problemas restantes:**

@@ -67,36 +67,36 @@ pnpm --filter @ruum/app-conductor add -D @lhci/cli
 
 ```bash
 # Ejecutar auditoría completa (ESLint + Axe + Playwright + Lighthouse)
-npm run audit:a11y
+pnpm audit:a11y
 ```
 
 ### Auditorías Individuales
 
 ```bash
 # ESLint con reglas de accesibilidad
-npm run lint:a11y
+pnpm lint:a11y
 
 # Pruebas de accesibilidad con Playwright
-npm run test:a11y
+pnpm test:a11y
 
 # Pruebas de accesibilidad con interfaz visual
-npm run test:a11y:ui
+pnpm test:a11y:ui
 
 # Auditoría Axe Core (requiere servidor en ejecución)
-npm run test:axe
+pnpm test:axe
 
 # Auditoría Lighthouse
-npm run test:lighthouse
+pnpm test:lighthouse
 
 # Iniciar Storybook con addon de accesibilidad
-npm run storybook
+pnpm storybook
 ```
 
 ### Auditoría por Ruta Específica
 
 ```bash
 # Auditar rutas específicas
-npm run audit:a11y:route -- --route /login --route /cuenta/perfil
+pnpm audit:a11y:route -- --route /login --route /cuenta/perfil
 ```
 
 ## Auditoría por Ruta
@@ -277,10 +277,10 @@ Antes de hacer commit:
 
 ```bash
 # Ejecutar auditoría local
-npm run audit:a11y
+pnpm audit:a11y
 
 # Verificar cambios en el código
-npm run lint:a11y
+pnpm lint:a11y
 ```
 
 ### 3. Monitoreo Continuo
@@ -446,10 +446,10 @@ pnpm --filter @ruum/app-conductor exec playwright install
 
 ```bash
 # Iniciar servidor de desarrollo
-npm run dev
+pnpm dev
 
 # En otra terminal, ejecutar auditorías
-npm run audit:a11y
+pnpm audit:a11y
 ```
 
 ### Error: "Lighthouse score below 95"
@@ -463,7 +463,7 @@ npm run audit:a11y
 
 1. Leer el reporte de violaciones
 2. Corregir cada violación según el tipo
-3. Verificar con `npm run test:axe`
+3. Verificar con `pnpm test:axe`
 
 ## Recursos Adicionales
 
