@@ -14,7 +14,7 @@
     "./catalogos": "./src/catalogos/index.ts"
   },
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

@@ -11,7 +11,7 @@ ARG PNPM_VERSION=10.0.0
 
 ################################################################################
 # Use node image for base image for all stages.
-FROM node:${NODE_VERSION}-alpine as base
+FROM node:24-alpine AS base
 
 # Set working directory for all build stages.
 WORKDIR /usr/src/app
