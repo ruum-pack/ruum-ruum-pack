@@ -147,23 +147,23 @@ export default function PaginaGanancias() {
 
       {cargando && (
         <FinancialCard className="mt-6" padding="lg">
-          <p className="font-body text-sm font-semibold text-[#B7C2D4]">Cargando ganancias...</p>
+          <p className="font-body text-sm font-semibold text-text-secondary">Cargando ganancias...</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="h-20 rounded-xl bg-[#162238]" />
-            <div className="h-20 rounded-xl bg-[#162238]" />
-            <div className="h-20 rounded-xl bg-[#162238]" />
+            <div className="h-20 rounded-xl bg-surface-elevated" />
+            <div className="h-20 rounded-xl bg-surface-elevated" />
+            <div className="h-20 rounded-xl bg-surface-elevated" />
           </div>
         </FinancialCard>
       )}
 
       {sinRegistros && (
-        <FinancialCard className="mt-6 border-[rgba(77,163,255,0.35)] bg-[#162238]" padding="lg">
+        <FinancialCard className="mt-6 border-route-action/35 bg-surface-elevated" padding="lg">
           <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-            <div className="flex size-12 items-center justify-center rounded-full border border-[rgba(77,163,255,0.35)] bg-[#101A2C] text-[#65B8FF]" aria-hidden>
+            <div className="flex size-12 items-center justify-center rounded-full border border-route-action/35 bg-surface text-[#65B8FF]" aria-hidden>
               $
             </div>
-            <h2 className="mt-4 font-display text-2xl font-semibold text-[#E8EDF6]">Aún no hay ganancias registradas</h2>
-            <p className="mt-2 font-body text-base leading-7 text-[#B7C2D4]">
+            <h2 className="mt-4 font-display text-2xl font-semibold text-text-primary">Aún no hay ganancias registradas</h2>
+            <p className="mt-2 font-body text-base leading-7 text-text-secondary">
               Cuando completes viajes y se calcule el pago, aquí verás tu depósito final, gastos autorizados y estatus de liberación.
             </p>
             <Link href="/viajes" className="mt-5">
@@ -181,22 +181,22 @@ export default function PaginaGanancias() {
               <p className="mt-2 font-display text-2xl font-semibold">{resumen.vehiculosTrasladados}</p>
             </Card>
             <FinancialCard className="lg:col-span-2">
-              <p className="font-body text-xs uppercase tracking-wide text-[#B7C2D4]">Ganancias</p>
+              <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Ganancias</p>
               <DriverEarning amount={resumen.ganancias} status={resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
             </FinancialCard>
             <FinancialCard className="lg:col-span-2">
-              <p className="font-body text-xs uppercase tracking-wide text-[#B7C2D4]">Gastos autorizados</p>
+              <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Gastos autorizados</p>
               <FinancialAmount amount={resumen.gastos} status={resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
             </FinancialCard>
             <FinancialCard className="lg:col-span-2">
-              <p className="font-body text-xs uppercase tracking-wide text-[#B7C2D4]">Ajustes</p>
+              <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Ajustes</p>
               <FinancialAmount amount={resumen.ajustes} status={resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
             </FinancialCard>
             <FinancialCard className="lg:col-span-2">
-              <p className="font-body text-xs uppercase tracking-wide text-[#B7C2D4]">Retenciones</p>
+              <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Retenciones</p>
               <FinancialAmount amount={resumen.retenciones} status={resumen.retenciones > 0 ? "retenido" : resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
             </FinancialCard>
-            <FinancialCard className="border-[rgba(77,163,255,0.35)] bg-[#162238] lg:col-span-12 xl:col-span-2" padding="lg">
+            <FinancialCard className="border-route-action/35 bg-surface-elevated lg:col-span-12 xl:col-span-2" padding="lg">
               <p className="font-body text-xs uppercase tracking-wide text-[#8EC5FF]">Depósito final</p>
               <FinancialAmount amount={resumen.deposito} status={resumenSemanal.estatus} currency="MXN" className="mt-3" amountClassName="font-display text-3xl sm:text-4xl" />
             </FinancialCard>
@@ -206,28 +206,28 @@ export default function PaginaGanancias() {
             <FinancialCard>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-body text-xs uppercase tracking-wide text-[#B7C2D4]">Pagos recibidos por semana</p>
-                  <h2 className="mt-1 font-display text-xl font-semibold text-[#E8EDF6]">Resumen semanal</h2>
+                  <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Pagos recibidos por semana</p>
+                  <h2 className="mt-1 font-display text-xl font-semibold text-text-primary">Resumen semanal</h2>
                 </div>
-                <p className="font-body text-sm text-[#B7C2D4]">
+                <p className="font-body text-sm text-text-secondary">
                   {fecha(resumenSemanal.fecha_pago)} · {resumenSemanal.metodo}
                 </p>
               </div>
               <dl className="mt-5 grid gap-3 font-body text-sm sm:grid-cols-2">
-                <div className="flex justify-between gap-4 border-t border-[rgba(122,162,214,0.14)] pt-3">
-                  <dt className="text-[#B7C2D4]">Ganancias generadas</dt>
+                <div className="flex justify-between gap-4 border-t border-border/14 pt-3">
+                  <dt className="text-text-secondary">Ganancias generadas</dt>
                   <dd><DriverEarning amount={resumenSemanal.ganancias_generadas} status={resumenSemanal.estatus} currency="MXN" amountClassName="text-sm" /></dd>
                 </div>
-                <div className="flex justify-between gap-4 border-t border-[rgba(122,162,214,0.14)] pt-3">
-                  <dt className="text-[#B7C2D4]">Gastos registrados y autorizados</dt>
+                <div className="flex justify-between gap-4 border-t border-border/14 pt-3">
+                  <dt className="text-text-secondary">Gastos registrados y autorizados</dt>
                   <dd><FinancialAmount amount={resumenSemanal.gastos_autorizados} status={resumenSemanal.estatus} currency="MXN" amountClassName="text-sm" /></dd>
                 </div>
-                <div className="flex justify-between gap-4 border-t border-[rgba(122,162,214,0.14)] pt-3">
-                  <dt className="text-[#B7C2D4]">Ajustes o retenciones</dt>
+                <div className="flex justify-between gap-4 border-t border-border/14 pt-3">
+                  <dt className="text-text-secondary">Ajustes o retenciones</dt>
                   <dd><FinancialAmount amount={resumenSemanal.ajustes} status={resumenSemanal.ajustes > 0 ? "retenido" : resumenSemanal.estatus} currency="MXN" amountClassName="text-sm" /></dd>
                 </div>
-                <div className="flex justify-between gap-4 border-t border-[rgba(122,162,214,0.14)] pt-3">
-                  <dt className="font-semibold text-[#E8EDF6]">Depósito final</dt>
+                <div className="flex justify-between gap-4 border-t border-border/14 pt-3">
+                  <dt className="font-semibold text-text-primary">Depósito final</dt>
                   <dd><FinancialAmount amount={resumenSemanal.deposito_final} status={resumenSemanal.estatus} currency="MXN" amountClassName="text-sm font-semibold" /></dd>
                 </div>
               </dl>
@@ -244,20 +244,20 @@ export default function PaginaGanancias() {
                 <FinancialCard key={`${registro.fecha}-${registro.ruta}`}>
                   <div className="grid gap-4 lg:grid-cols-[1fr_0.8fr_0.8fr_0.8fr_0.8fr] lg:items-center">
                     <div>
-                      <p className="font-body text-sm font-semibold text-[#E8EDF6]">{registro.ruta}</p>
-                      <p className="mt-1 font-body text-xs text-[#B7C2D4]">Fecha del viaje: {fecha(registro.fecha)}</p>
+                      <p className="font-body text-sm font-semibold text-text-primary">{registro.ruta}</p>
+                      <p className="mt-1 font-body text-xs text-text-secondary">Fecha del viaje: {fecha(registro.fecha)}</p>
                     </div>
                     <div>
-                      <p className="font-body text-xs uppercase tracking-wide text-[#B7C2D4]">Monto generado</p>
+                      <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Monto generado</p>
                       <DriverEarning amount={registro.monto} status={registro.estatus} currency="MXN" className="mt-1" amountClassName="text-sm" />
                     </div>
                     <div>
-                      <p className="font-body text-xs uppercase tracking-wide text-[#B7C2D4]">Gastos autorizados</p>
+                      <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Gastos autorizados</p>
                       <FinancialAmount amount={registro.gastos} status={registro.estatus} currency="MXN" className="mt-1" amountClassName="text-sm" />
                     </div>
                     <div>
-                      <p className="font-body text-xs uppercase tracking-wide text-[#B7C2D4]">Liberación estimada</p>
-                      <p className="mt-1 font-body text-sm text-[#E8EDF6]">{fecha(registro.liberacion)}</p>
+                      <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Liberación estimada</p>
+                      <p className="mt-1 font-body text-sm text-text-primary">{fecha(registro.liberacion)}</p>
                     </div>
                     <FinancialAmount amount={null} status={registro.estatus} currency="MXN" amountClassName="sr-only" auxiliaryText="" />
                   </div>

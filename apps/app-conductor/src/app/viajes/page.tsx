@@ -117,9 +117,9 @@ function EmptyTripsState({
           };
 
   return (
-    <div className="rounded-2xl border border-dashed border-[rgba(122,162,214,0.28)] bg-[#101A2C] px-5 py-8 text-center">
-      <h2 className="font-display text-xl font-semibold text-[#E8EDF6]">{contenido.titulo}</h2>
-      <p className="mx-auto mt-2 max-w-xl font-body text-sm leading-6 text-[#B7C2D4]">{contenido.descripcion}</p>
+    <div className="rounded-2xl border border-dashed border-border/28 bg-surface px-5 py-8 text-center">
+      <h2 className="font-display text-xl font-semibold text-text-primary">{contenido.titulo}</h2>
+      <p className="mx-auto mt-2 max-w-xl font-body text-sm leading-6 text-text-secondary">{contenido.descripcion}</p>
       <button
         type="button"
         onClick={contenido.onAction}

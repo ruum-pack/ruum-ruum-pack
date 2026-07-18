@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - release/**
 
 jobs:
   workspace:
@@ -103,3 +104,123 @@ jobs:
 
       - name: Run panel admin smoke
         run: pnpm --filter @ruum/panel-admin test:smoke
+
+  app-conductor-a11y:
+    name: App conductor accessibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      PLAYWRIGHT_E2E_CONDUCTOR_EMAIL: ${{ secrets.E2E_CONDUCTOR_EMAIL }}
+      PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD: ${{ secrets.E2E_CONDUCTOR_PASSWORD }}
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+      NEXT_PUBLIC_APP_VERSION: ci
+      NEXT_PUBLIC_RUUM_AMBIENTE: staging
+      NEXT_PUBLIC_RUUM_SOPORTE_TELEFONO: "5500000000"
+      NEXT_PUBLIC_RUUM_SOPORTE_CORREO: soporte-conductores-pruebas@example.test
+      NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO: "911"
+      PLAYWRIGHT_DISABLE_AUTH_ARTIFACTS: "1"
+      PLAYWRIGHT_A11Y_PROJECT: chromium
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium
+
+      - name: Run accessibility tests
+        run: pnpm --filter @ruum/app-conductor test:a11y
+
+      - name: Build Storybook
+        run: pnpm --filter @ruum/app-conductor storybook:build
+
+      - name: Upload accessibility artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-conductor-accessibility
+          retention-days: ${{ github.event_name == 'pull_request' && 14 || 90 }}
+          if-no-files-found: warn
+          path: |
+            apps/app-conductor/playwright-report/
+            apps/app-conductor/results/axe-results.json
+            apps/app-conductor/artifacts/a11y/
+            apps/app-conductor/test-results/
+            apps/app-conductor/storybook-static/
+            !apps/app-conductor/tests/.auth/
+            !apps/app-conductor/test-results/**/tests/.auth/
+            !apps/app-conductor/test-results/**/*.json
+            !apps/app-conductor/test-results/**/*.zip
+
+  app-conductor-lighthouse:
+    name: App conductor Lighthouse
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+      NEXT_PUBLIC_APP_VERSION: ci
+      NEXT_PUBLIC_RUUM_AMBIENTE: staging
+      NEXT_PUBLIC_RUUM_SOPORTE_TELEFONO: "5500000000"
+      NEXT_PUBLIC_RUUM_SOPORTE_CORREO: soporte-conductores-pruebas@example.test
+      NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO: "911"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Lighthouse Chromium
+        run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium
+
+      - name: Build production app
+        run: pnpm --filter @ruum/app-conductor build
+
+      - name: Run Lighthouse public routes
+        run: pnpm --filter @ruum/app-conductor test:lighthouse
+
+      - name: Upload Lighthouse artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-conductor-lighthouse
+          retention-days: ${{ github.event_name == 'pull_request' && 14 || 90 }}
+          if-no-files-found: error
+          path: |
+            apps/app-conductor/.lighthouse-ci/*.html
+            apps/app-conductor/.lighthouse-ci/*.json

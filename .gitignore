@@ -12,6 +12,7 @@ packages/packages/
 coverage
 test-results
 playwright-report
+apps/app-conductor/tests/.auth/
 backups/
 *.tsbuildinfo
 

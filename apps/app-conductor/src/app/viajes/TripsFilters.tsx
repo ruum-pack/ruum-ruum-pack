@@ -18,15 +18,15 @@ export function TripsFilters({
   ].filter(Boolean);
 
   return (
-    <details className="mt-4 rounded-xl border border-[rgba(122,162,214,0.18)] bg-[#101A2C]">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-body text-sm font-semibold text-[#E8EDF6] hover:text-[#8EC5FF] [&::-webkit-details-marker]:hidden">
+    <details className="mt-4 rounded-xl border border-border/18 bg-surface">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-body text-sm font-semibold text-text-primary hover:text-[#8EC5FF] [&::-webkit-details-marker]:hidden">
         <span>Filtros</span>
-        <span className="flex items-center gap-2 text-xs font-semibold text-[#8B98AD]">
+        <span className="flex items-center gap-2 text-xs font-semibold text-text-tertiary">
           {filtrosActivos.length > 0 ? filtrosActivos.join(" · ") : "Todos"}
           <span className="font-display text-lg leading-none" aria-hidden>+</span>
         </span>
       </summary>
-      <div className="grid gap-3 border-t border-[rgba(122,162,214,0.14)] px-4 py-4 sm:grid-cols-2">
+      <div className="grid gap-3 border-t border-border/14 px-4 py-4 sm:grid-cols-2">
         <label className="grid gap-1">
           <span className="font-body text-sm font-semibold text-text-tertiary">Fecha</span>
           <select

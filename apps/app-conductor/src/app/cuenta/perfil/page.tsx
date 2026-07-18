@@ -193,9 +193,9 @@ export default function PaginaPerfilCuenta() {
   }
 
   function claseToast(tipo: NonNullable<NotificacionPerfil>["tipo"]) {
-    if (tipo === "success") return "border-[rgba(61,220,151,0.35)] bg-[rgba(61,220,151,0.12)] text-[#E8EDF6]";
-    if (tipo === "error") return "border-[rgba(255,107,107,0.38)] bg-[rgba(255,107,107,0.12)] text-[#E8EDF6]";
-    return "border-[rgba(77,163,255,0.35)] bg-[#162238] text-[#E8EDF6]";
+    if (tipo === "success") return "border-success/35 bg-success/12 text-text-primary";
+    if (tipo === "error") return "border-danger-action/38 bg-danger-action/12 text-text-primary";
+    return "border-route-action/35 bg-surface-elevated text-text-primary";
   }
 
   return (
@@ -223,7 +223,7 @@ export default function PaginaPerfilCuenta() {
               </label>
             </div>
             {SECCIONES_PERFIL.map((seccion) => (
-              <section key={seccion.titulo} className="grid gap-4 border-t border-[rgba(122,162,214,0.16)] pt-5 first:border-t-0 first:pt-0">
+              <section key={seccion.titulo} className="grid gap-4 border-t border-border/16 pt-5 first:border-t-0 first:pt-0">
                 <h2 className="font-display text-base font-semibold text-text-primary">{seccion.titulo}</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {seccion.campos.map((clave, indice) => {
@@ -240,7 +240,7 @@ export default function PaginaPerfilCuenta() {
                           <label htmlFor={inputId}>{campo.etiqueta}</label>
                           {tipoDatoSensible && <DatosSensiblesTooltip tipo={tipoDatoSensible} align={tooltipAlign} />}
                           {esSoloLectura && (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(139,152,173,0.28)] bg-[#0B1220] px-2 py-0.5 text-xs font-semibold normal-case tracking-normal text-[#8B98AD]">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-text-tertiary/28 bg-[#0B1220] px-2 py-0.5 text-xs font-semibold normal-case tracking-normal text-text-tertiary">
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <rect x="4" y="11" width="16" height="9" rx="2" />
                                 <path d="M8 11V7a4 4 0 0 1 8 0v4" />
@@ -264,9 +264,9 @@ export default function PaginaPerfilCuenta() {
                             setPerfil((actual) => ({ ...actual, [clave]: event.target.value }));
                           }}
                           className={[
-                            "rounded-lg border px-3 py-2 font-body text-base normal-case tracking-normal text-text-primary placeholder:text-[#8B98AD]",
+                            "rounded-lg border px-3 py-2 font-body text-base normal-case tracking-normal text-text-primary placeholder:text-text-tertiary",
                             esSoloLectura
-                              ? "border-[rgba(122,162,214,0.12)] bg-[#0B1220] text-[#8B98AD] outline-none"
+                              ? "border-border/12 bg-[#0B1220] text-text-tertiary outline-none"
                               : "border-border bg-surface"
                           ].join(" ")}
                         />

@@ -23,8 +23,8 @@ export function EvidenceChecklist({
             onClick={() => onSelect(index)}
             className={[
               "min-h-14 rounded-xl border px-2 py-2 text-left transition",
-              active ? "border-[#4DA3FF] bg-[#162238] shadow-[inset_0_0_0_1px_rgba(77,163,255,0.32)]" : "border-[rgba(122,162,214,0.22)] bg-[#101A2C]",
-              status === "listo" ? "text-success" : status === "omitido" ? "text-[#8A97AA]" : "text-[#E8EDF6]"
+              active ? "border-route-action bg-surface-elevated shadow-[inset_0_0_0_1px_rgba(77,163,255,0.32)]" : "border-border/22 bg-surface",
+              status === "listo" ? "text-success" : status === "omitido" ? "text-[#8A97AA]" : "text-text-primary"
             ].join(" ")}
           >
             <span className="block font-body text-xs font-semibold">{index + 1}</span>

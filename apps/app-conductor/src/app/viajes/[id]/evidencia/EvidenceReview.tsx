@@ -38,9 +38,9 @@ export function EvidenceReview({
   const inspeccionCompletada = totalCamposInspeccionCompletados(inspeccion);
 
   return (
-    <section className="mt-5 rounded-2xl border border-[rgba(122,162,214,0.28)] bg-[#101A2C] p-6 text-[#E8EDF6] shadow-[0_18px_48px_rgba(0,0,0,0.45)]">
+    <section className="mt-5 rounded-2xl border border-border/28 bg-surface p-6 text-text-primary shadow-[0_18px_48px_rgba(0,0,0,0.45)]">
       <p className="font-body text-sm font-semibold text-[#8EC5FF]">Revisión final</p>
-      <h2 className="mt-2 font-display text-2xl font-semibold text-[#E8EDF6]">Confirma el registro completo</h2>
+      <h2 className="mt-2 font-display text-2xl font-semibold text-text-primary">Confirma el registro completo</h2>
       <div className="mt-4">
         <EvidenceSyncStatus pendientesSubida={pendientesSubida} sincronizando={sincronizando} missing={etiquetasFaltantes} complete={registroCompleto} />
       </div>
@@ -49,30 +49,30 @@ export function EvidenceReview({
           const foto = fotos.find((candidate) => candidate.angulo === item.angulo);
           const omitted = noAplica.has(item.angulo);
           return (
-            <div key={item.angulo} className="flex items-center justify-between gap-3 rounded-xl border border-[rgba(122,162,214,0.24)] bg-[#0D1626] px-3 py-3">
+            <div key={item.angulo} className="flex items-center justify-between gap-3 rounded-xl border border-border/24 bg-[var(--ruum-surface-subtle)] px-3 py-3">
               <div>
-                <p className="font-body text-sm font-semibold text-[#E8EDF6]">{item.titulo}</p>
-                <p className="font-body text-xs text-[#B7C2D4]">{item.obligatorio ? "Obligatoria" : "Opcional"}</p>
+                <p className="font-body text-sm font-semibold text-text-primary">{item.titulo}</p>
+                <p className="font-body text-xs text-text-secondary">{item.obligatorio ? "Obligatoria" : "Opcional"}</p>
               </div>
-              {foto ? <BadgeSincronizacion sincronizada={Boolean(foto.sincronizada)} /> : <span className="font-body text-xs text-[#B7C2D4]">{omitted ? "No aplica" : "Falta"}</span>}
+              {foto ? <BadgeSincronizacion sincronizada={Boolean(foto.sincronizada)} /> : <span className="font-body text-xs text-text-secondary">{omitted ? "No aplica" : "Falta"}</span>}
             </div>
           );
         })}
       </div>
-      <section className="mt-5 rounded-xl border border-[rgba(122,162,214,0.24)] bg-[#0D1626] p-4" aria-labelledby="revision-inspeccion-titulo">
+      <section className="mt-5 rounded-xl border border-border/24 bg-[var(--ruum-surface-subtle)] p-4" aria-labelledby="revision-inspeccion-titulo">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 id="revision-inspeccion-titulo" className="font-body text-sm font-semibold text-[#E8EDF6]">Datos de inspección</h3>
-            <p className="mt-1 font-body text-xs text-[#B7C2D4]">
+            <h3 id="revision-inspeccion-titulo" className="font-body text-sm font-semibold text-text-primary">Datos de inspección</h3>
+            <p className="mt-1 font-body text-xs text-text-secondary">
               {inspeccionCompletada} de {CAMPOS_INSPECCION_OBLIGATORIOS.length} obligatorios
             </p>
           </div>
         </div>
-        <dl className="mt-3 grid gap-2 border-t border-[rgba(122,162,214,0.18)] pt-3 font-body text-sm sm:grid-cols-2">
+        <dl className="mt-3 grid gap-2 border-t border-border/18 pt-3 font-body text-sm sm:grid-cols-2">
           {CAMPOS_INSPECCION.map(({ campo, etiqueta, obligatorio }) => (
             <div key={campo}>
-              <dt className="text-[#B7C2D4]">{etiqueta} {obligatorio ? "*" : "(opcional)"}</dt>
-              <dd className="text-[#E8EDF6]">{inspeccion[campo] || (obligatorio ? "Sin capturar" : "Sin notas")}</dd>
+              <dt className="text-text-secondary">{etiqueta} {obligatorio ? "*" : "(opcional)"}</dt>
+              <dd className="text-text-primary">{inspeccion[campo] || (obligatorio ? "Sin capturar" : "Sin notas")}</dd>
             </div>
           ))}
         </dl>

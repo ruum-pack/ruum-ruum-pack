@@ -50,14 +50,14 @@ export function DriverAvailabilityControl({ value, saving, onChange }: DriverAva
       aria-labelledby="driver-availability-title"
       className={[
         "relative rounded-2xl border px-4 py-3 transition-colors",
-        disponible ? "border-[rgba(61,220,151,0.38)] bg-[rgba(61,220,151,0.10)]" : "border-[rgba(122,162,214,0.22)] bg-[#101A2C]"
+        disponible ? "border-success/38 bg-success/10" : "border-border/22 bg-surface"
       ].join(" ")}
     >
       {feedback && (
         <div
           role="status"
           aria-live="polite"
-          className="conductor-toast-bottom fixed right-4 z-50 max-w-[calc(100vw-2rem)] rounded-xl border border-[rgba(61,220,151,0.35)] bg-[rgba(61,220,151,0.14)] px-4 py-3 font-body text-sm font-semibold text-[#E8EDF6] shadow-[0_18px_48px_rgba(0,0,0,0.42)] sm:right-6 sm:max-w-sm"
+          className="conductor-toast-bottom fixed right-4 z-50 max-w-[calc(100vw-2rem)] rounded-xl border border-success/35 bg-success/14 px-4 py-3 font-body text-sm font-semibold text-text-primary shadow-[0_18px_48px_rgba(0,0,0,0.42)] sm:right-6 sm:max-w-sm"
         >
           {feedback}
         </div>
@@ -68,7 +68,7 @@ export function DriverAvailabilityControl({ value, saving, onChange }: DriverAva
           <span
             className={[
               "size-3 rounded-full ring-4",
-              disponible ? "bg-[#3DDC97] ring-[rgba(61,220,151,0.18)]" : "bg-[#8B98AD] ring-[rgba(139,152,173,0.14)]"
+              disponible ? "bg-success ring-success/18" : "bg-text-tertiary ring-text-tertiary/14"
             ].join(" ")}
             aria-hidden
           />
