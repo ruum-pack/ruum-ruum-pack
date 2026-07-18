@@ -111,55 +111,55 @@ export function NavegacionConductor() {
         </div>
 
         {viajeActivo && (
-          <div className="hidden border-t border-route-action bg-route-soft px-3 py-2 backdrop-blur md:block">
+          <div className="hidden border-t border-[rgba(122,162,214,0.20)] bg-[#162238]/95 px-3 py-2 backdrop-blur md:block">
             <div className="ruum-container flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <Link
                 href={`/viajes/${viajeActivo.trasladoId}`}
                 className="min-w-0 rounded-xl px-1 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
               >
-                <p className="flex items-center gap-2 font-body text-sm font-semibold text-route-action">
+                <p className="flex items-center gap-2 font-body text-sm font-semibold text-[#8EC5FF]">
                   <span>Viaje activo · {viajeActivo.folio}</span>
                   {hayAccionPendiente && (
-                    <span className="rounded-full border border-warning bg-warn-soft px-2 py-0.5 font-body text-sm font-bold text-warning">
+                    <span className="rounded-full border border-warning bg-warning px-2 py-0.5 font-body text-sm font-bold text-[#14213D]">
                       Acción pendiente
                     </span>
                   )}
                   {viajeActivoSinActualizar && (
-                    <span className="rounded-full border border-warning bg-warn-soft px-2 py-0.5 font-body text-sm font-bold text-warning">
+                    <span className="rounded-full border border-warning bg-[#2A2232] px-2 py-0.5 font-body text-sm font-bold text-warning">
                       Información sin actualizar
                     </span>
                   )}
                 </p>
                 <div className="mt-0.5 flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
-                  <span className="truncate font-body text-sm font-semibold text-text-primary">{viajeActivo.etapa}</span>
-                  <span className="hidden text-text-tertiary sm:inline" aria-hidden>
+                  <span className="truncate font-body text-sm font-semibold text-[#E8EDF6]">{viajeActivo.etapa}</span>
+                  <span className="hidden text-[#B7C2D4] sm:inline" aria-hidden>
                     ·
                   </span>
-                  <span className="truncate font-body text-base text-text-secondary">{viajeActivo.destinoActual}</span>
+                  <span className="truncate font-body text-base text-[#B7C2D4]">{viajeActivo.destinoActual}</span>
                 </div>
               </Link>
               <div className="grid grid-cols-4 gap-1 sm:flex sm:shrink-0 sm:items-center">
                 <Link
                   href={`/viajes/${viajeActivo.trasladoId}`}
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-route-action px-3 py-2 text-center font-body text-sm font-bold text-surface"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-route-action px-3 py-2 text-center font-body text-sm font-bold text-white"
                 >
                   Abrir
                 </Link>
                 <Link
                   href={`/viajes/${viajeActivo.trasladoId}#contacto`}
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-route-action bg-surface px-2 py-2 text-center font-body text-sm font-semibold text-route-action"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[rgba(142,197,255,0.42)] bg-[#101A2C] px-2 py-2 text-center font-body text-sm font-semibold text-[#E8EDF6]"
                 >
                   Contacto
                 </Link>
                 <Link
                   href={`/viajes/${viajeActivo.trasladoId}#reportar-problema`}
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-route-action bg-surface px-2 py-2 text-center font-body text-sm font-semibold text-route-action"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[rgba(142,197,255,0.42)] bg-[#101A2C] px-2 py-2 text-center font-body text-sm font-semibold text-[#E8EDF6]"
                 >
                   Problema
                 </Link>
                 <Link
                   href={`/viajes/${viajeActivo.trasladoId}#emergencia`}
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-danger-action bg-danger-soft px-2 py-2 text-center font-body text-sm font-semibold text-danger-action"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-danger-action bg-[#2A1320] px-2 py-2 text-center font-body text-sm font-semibold text-danger-action"
                 >
                   Emergencia
                 </Link>
@@ -175,15 +175,15 @@ export function NavegacionConductor() {
             <Link
               href={`/viajes/${viajeActivo.trasladoId}`}
               aria-label={`Abrir viaje activo ${viajeActivo.folio}: ${viajeActivo.etapa}`}
-              className="conductor-mobile-active-trip-card mx-auto grid max-w-md grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-route-action bg-route-soft px-4 py-2.5 shadow-[0_16px_48px_rgba(0,0,0,0.38)] backdrop-blur"
+              className="conductor-mobile-active-trip-card mx-auto grid max-w-md grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-[rgba(122,162,214,0.30)] bg-[#162238]/95 px-4 py-2.5 shadow-[0_16px_48px_rgba(0,0,0,0.48)] backdrop-blur"
             >
               <span className="min-w-0">
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate font-body text-xs font-bold uppercase text-route-action">
+                  <span className="truncate font-body text-xs font-bold uppercase text-[#8EC5FF]">
                     Viaje activo · {viajeActivo.folio}
                   </span>
                   {hayAccionPendiente && (
-                    <span className="inline-flex size-3 shrink-0 rounded-full bg-warning ring-2 ring-surface" aria-hidden />
+                    <span className="inline-flex size-3 shrink-0 rounded-full bg-warning ring-2 ring-[#162238]" aria-hidden />
                   )}
                   {hayAccionPendiente && (
                     <span className="sr-only">
@@ -191,15 +191,15 @@ export function NavegacionConductor() {
                     </span>
                   )}
                   {viajeActivoSinActualizar && (
-                    <span className="rounded-full border border-warning bg-warn-soft px-2 py-0.5 font-body text-sm font-bold text-warning">
+                    <span className="rounded-full border border-warning bg-[#2A2232] px-2 py-0.5 font-body text-sm font-bold text-warning">
                       Información sin actualizar
                     </span>
                   )}
                 </span>
-                <span className="mt-1 block truncate font-body text-sm font-bold text-text-primary">{viajeActivo.etapa}</span>
-                <span className="conductor-mobile-active-trip-destination mt-0.5 block truncate font-body text-sm text-text-secondary">{viajeActivo.destinoActual}</span>
+                <span className="mt-1 block truncate font-body text-sm font-bold text-[#E8EDF6]">{viajeActivo.etapa}</span>
+                <span className="conductor-mobile-active-trip-destination mt-0.5 block truncate font-body text-sm text-[#B7C2D4]">{viajeActivo.destinoActual}</span>
               </span>
-              <span className="inline-flex min-h-11 items-center justify-center rounded-xl bg-route-action px-3 font-body text-sm font-bold text-surface">
+              <span className="inline-flex min-h-11 items-center justify-center rounded-xl bg-route-action px-3 font-body text-sm font-bold text-white">
                 Abrir
               </span>
             </Link>

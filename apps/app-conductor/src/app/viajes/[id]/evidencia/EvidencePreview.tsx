@@ -48,7 +48,7 @@ export function EvidencePreview({
   if (!foto || !src) return null;
 
   return (
-    <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface">
+    <div className="mt-4 overflow-hidden rounded-2xl border border-[rgba(122,162,214,0.24)] bg-[#0D1626]">
       {/* eslint-disable-next-line @next/next/no-img-element -- la foto puede estar en dataUrl local offline. */}
       <img src={src} alt="Vista previa de la evidencia capturada" className="h-52 w-full object-cover" />
       <div className="flex items-center justify-between gap-3 px-3 py-3">
