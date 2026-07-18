@@ -1,47 +1,48 @@
-import { test, expect } from '@playwright/test';
-import { injectAxe, checkA11y } from '@axe-core/playwright';
+import { test, expect, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
-// Rutas principales a auditar (basadas en la estructura real de la app)
-const MAIN_ROUTES = [
-  '/', // Redirige a /onboarding
+async function abrirRuta(page: Page, route: string) {
+  await page.goto(route, { waitUntil: 'commit', timeout: 30_000 });
+  await page.locator('#contenido-principal, body').first().waitFor({ state: 'visible', timeout: 20_000 });
+  await page.addStyleTag({
+    content: `
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    `
+  });
+}
+
+const SMOKE_ROUTE = '/onboarding';
+
+// Smoke de rutas representativas. La auditoría exhaustiva por ruta vive en scripts/audit-a11y.mjs.
+const AXE_SMOKE_ROUTES = [
   '/onboarding',
   '/login',
-  '/nueva-password',
-  '/recuperar-password',
   '/registro',
   '/panel',
   '/ganancias',
-  '/configuracion',
-  '/cuenta',
   '/cuenta/perfil',
-  '/cuenta/datos-bancarios',
-  '/cuenta/documentos',
-  '/cuenta/legal',
-  '/cuenta/seguridad',
-  '/cuenta/soporte',
-  '/cuenta/preferencias',
   '/legal/privacidad',
-  '/legal/terminos',
 ];
 
 test.describe('Accessibility Audit - Axe Core', () => {
-  test.beforeEach(async ({ page }) => {
-    await injectAxe(page);
-  });
-
-  for (const route of MAIN_ROUTES) {
+  for (const route of AXE_SMOKE_ROUTES) {
     test(`Axe accessibility audit for ${route}`, async ({ page }) => {
+      test.skip(
+        test.info().project.name !== 'chromium',
+        'Axe completo se ejecuta en Chromium; las comprobaciones específicas cubren el smoke cross-browser.'
+      );
+
       await test.step('Navigate to page', async () => {
-        await page.goto(route, { waitUntil: 'networkidle' });
+        await abrirRuta(page, route);
       });
 
       await test.step('Run Axe accessibility check', async () => {
-        const accessibilityScanResults = await checkA11y(page, route, {
-          detailedReport: true,
-          detailedReportOptions: {
-            html: true,
-          },
-        });
+        const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
 
         // Verificar que no haya errores críticos de accesibilidad
         expect(accessibilityScanResults.violations).toEqual([]);
@@ -52,7 +53,7 @@ test.describe('Accessibility Audit - Axe Core', () => {
 
 test.describe('Accessibility - Specific Checks', () => {
   test('All images have alt text', async ({ page }) => {
-    await page.goto('/');
+    await abrirRuta(page, SMOKE_ROUTE);
     
     const images = await page.locator('img');
     const count = await images.count();
@@ -70,7 +71,7 @@ test.describe('Accessibility - Specific Checks', () => {
   });
 
   test('All form inputs have associated labels', async ({ page }) => {
-    await page.goto('/cuenta/perfil');
+    await abrirRuta(page, '/cuenta/perfil');
     
     const inputs = await page.locator('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="reset"])');
     const count = await inputs.count();
@@ -99,7 +100,7 @@ test.describe('Accessibility - Specific Checks', () => {
   });
 
   test('All links have meaningful text', async ({ page }) => {
-    await page.goto('/');
+    await abrirRuta(page, SMOKE_ROUTE);
     
     const links = await page.locator('a[href]');
     const count = await links.count();
@@ -119,7 +120,7 @@ test.describe('Accessibility - Specific Checks', () => {
   });
 
   test('Page has proper language attribute', async ({ page }) => {
-    await page.goto('/');
+    await abrirRuta(page, SMOKE_ROUTE);
     
     const html = await page.locator('html');
     const lang = await html.getAttribute('lang');
@@ -129,7 +130,7 @@ test.describe('Accessibility - Specific Checks', () => {
   });
 
   test('Heading hierarchy is correct', async ({ page }) => {
-    await page.goto('/');
+    await abrirRuta(page, SMOKE_ROUTE);
     
     const h1 = await page.locator('h1');
     const h2 = await page.locator('h2');
@@ -139,7 +140,7 @@ test.describe('Accessibility - Specific Checks', () => {
     const h6 = await page.locator('h6');
     
     // Debe haber al menos un h1
-    await expect(h1).toHaveCountGreaterThan(0);
+    expect(await h1.count()).toBeGreaterThan(0);
     
     // No debe haber saltos en la jerarquía (h1 -> h3 sin h2)
     if (await h2.count() > 0 || await h3.count() > 0) {
@@ -150,15 +151,15 @@ test.describe('Accessibility - Specific Checks', () => {
     }
   });
 
-  test('No skip links are present', async ({ page }) => {
-    await page.goto('/');
+  test('Skip link is present', async ({ page }) => {
+    await abrirRuta(page, SMOKE_ROUTE);
     
-    const skipLinks = await page.locator('a[href="#main"], a[href="#content"]');
-    await expect(skipLinks).toHaveCountGreaterThan(0);
+    const skipLinks = await page.locator('a[href="#contenido-principal"], a[href="#main"], a[href="#content"]');
+    expect(await skipLinks.count()).toBeGreaterThan(0);
   });
 
   test('Focus management is correct', async ({ page }) => {
-    await page.goto('/');
+    await abrirRuta(page, SMOKE_ROUTE);
     
     // Verificar que elementos interactivos sean focuseables
     const buttons = await page.locator('button:not([disabled]), [role="button"]:not([aria-disabled="true"])');

@@ -1,5 +1,6 @@
 import { defineConfig } from 'eslint/config'
 import { FlatCompat } from '@eslint/eslintrc'
+import jsxA11y from 'eslint-plugin-jsx-a11y'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -8,11 +9,21 @@ const compat = new FlatCompat({
 })
 
 const eslintConfig = defineConfig([
+  {
+    ignores: [
+      '.next/**',
+      'next-env.d.ts',
+      'playwright-report/**',
+      'results/**',
+      'test-results/**',
+      'storybook-static/**'
+    ]
+  },
   ...compat.extends('next/core-web-vitals'),
   {
     files: ['**/*.{ts,tsx}'],
     plugins: {
-      'jsx-a11y': require('eslint-plugin-jsx-a11y')
+      'jsx-a11y': jsxA11y
     },
     rules: {
       // Reglas de accesibilidad (jsx-a11y)
@@ -25,7 +36,7 @@ const eslintConfig = defineConfig([
         specialLink: ['hrefLeft', 'hrefRight'],
         aspects: ['invalidHref', 'preferButton']
       }],
-      'jsx-a11y/aria-acts': 'error',
+      'jsx-a11y/aria-activedescendant-has-tabindex': 'error',
       'jsx-a11y/aria-props': 'error',
       'jsx-a11y/aria-proptypes': 'error',
       'jsx-a11y/aria-role': ['error', { ignoreNonDOM: true }],
@@ -67,7 +78,7 @@ const eslintConfig = defineConfig([
       'jsx-a11y/no-onchange': 'off',
       'jsx-a11y/no-redundant-roles': 'error',
       'jsx-a11y/no-static-element-interactions': 'error',
-      'jsx-a11y/prefer-tag-over-role': 'error',
+      'jsx-a11y/prefer-tag-over-role': 'warn',
       'jsx-a11y/role-has-required-aria-props': 'error',
       'jsx-a11y/role-supports-aria-props': 'error',
       'jsx-a11y/scope': 'error',

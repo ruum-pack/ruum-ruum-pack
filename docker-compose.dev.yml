@@ -1,0 +1,101 @@
+# Docker Compose para DESARROLLO - con hot-reload
+# Uso: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Este archivo configura los servicios para desarrollo local con:
+# - Hot reload de Next.js
+# - Volúmenes montados para código fuente
+# - Puertos expuestos para acceso local
+
+services:
+  # App Conductor - Puerto 3001
+  app-conductor:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: ruum-app-conductor-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_APP_URL=http://localhost:3001
+      - NEXT_TELEMETRY_DISABLED=1
+    volumes:
+      # Montar código fuente (EXCLUYENDO node_modules)
+      - ./apps/app-conductor:/app/apps/app-conductor
+      - ./packages:/app/packages
+      # Archivos de configuración del monorepo
+      - ./package.json:/app/package.json
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./turbo.json:/app/turbo.json
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./deno.json:/app/deno.json
+      - ./deno.lock:/app/deno.lock
+    working_dir: /app
+    command: pnpm --filter @ruum/app-conductor run dev
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    networks:
+      - ruum-network
+
+  # App Usuario - Puerto 3000
+  app-usuario:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: ruum-app-usuario-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - NEXT_TELEMETRY_DISABLED=1
+    volumes:
+      - ./apps/app-usuario:/app/apps/app-usuario
+      - ./packages:/app/packages
+      - ./package.json:/app/package.json
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./turbo.json:/app/turbo.json
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./deno.json:/app/deno.json
+      - ./deno.lock:/app/deno.lock
+    working_dir: /app
+    command: pnpm --filter @ruum/app-usuario run dev
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    networks:
+      - ruum-network
+
+  # Panel Admin - Puerto 3002
+  panel-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: ruum-panel-admin-dev
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_APP_URL=http://localhost:3002
+      - NEXT_TELEMETRY_DISABLED=1
+    volumes:
+      - ./apps/panel-admin:/app/apps/panel-admin
+      - ./packages:/app/packages
+      - ./package.json:/app/package.json
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./turbo.json:/app/turbo.json
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./deno.json:/app/deno.json
+      - ./deno.lock:/app/deno.lock
+    working_dir: /app
+    command: pnpm --filter @ruum/panel-admin run dev
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    networks:
+      - ruum-network
+
+networks:
+  ruum-network:
+    driver: bridge

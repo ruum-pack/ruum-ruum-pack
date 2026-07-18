@@ -174,6 +174,7 @@ export default function PaginaOnboarding() {
               aria-label={`Paso ${i + 1} de ${PASOS.length}: ${PASOS[i].tag}`}
               aria-controls={`panel-paso-${i}`}
               onClick={() => setPaso(i)}
+              id={`tab-paso-${i}`}
               className={
                 i === paso
                   ? "h-1.5 w-6 rounded-full bg-signal transition-all"
@@ -183,9 +184,19 @@ export default function PaginaOnboarding() {
           ))}
         </div>
 
-        <p className="font-body text-sm font-semibold text-text-tertiary">{actual.tag}</p>
-        <h1 className="mt-2 max-w-[320px] font-display text-[23px] font-bold leading-tight">{actual.titulo}</h1>
-        <p className="mt-3 max-w-[300px] font-body text-[13px] leading-6 text-text-secondary">{actual.descripcion}</p>
+        {PASOS.map((pasoInfo, i) => (
+          <div
+            key={pasoInfo.tag}
+            id={`panel-paso-${i}`}
+            role="tabpanel"
+            aria-labelledby={`tab-paso-${i}`}
+            hidden={i !== paso}
+          >
+            <p className="font-body text-sm font-semibold text-text-tertiary">{pasoInfo.tag}</p>
+            <h1 className="mt-2 max-w-[320px] font-display text-[23px] font-bold leading-tight">{pasoInfo.titulo}</h1>
+            <p className="mt-3 max-w-[300px] font-body text-[13px] leading-6 text-text-secondary">{pasoInfo.descripcion}</p>
+          </div>
+        ))}
 
         <div className="mt-7 flex w-full flex-col gap-2.5">
           <Button variant="primary" className="w-full" onClick={avanzar}>

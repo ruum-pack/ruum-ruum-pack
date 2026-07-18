@@ -99,7 +99,7 @@ export function NavegacionConductor() {
                   aria-label={activo ? `Página actual: ${destino.etiqueta}` : destino.etiqueta}
                   className={[
                     "inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 font-body text-sm font-semibold",
-                    activo ? "bg-action-primary text-text-primary shadow-sm" : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
+                    activo ? "bg-action-primary text-[#14213D] shadow-sm" : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
                   ].join(" ")}
                 >
                   <destino.Icono />
@@ -224,7 +224,7 @@ export function NavegacionConductor() {
                 aria-label={notificar ? `${destino.etiqueta}: acción pendiente en viaje activo` : destino.etiqueta}
                 className={[
                   "relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 font-body text-xs font-semibold",
-                  activo ? "bg-signal-soft text-text-primary" : "text-text-secondary"
+                  activo ? "bg-action-primary text-[#14213D]" : "text-text-secondary"
                 ].join(" ")}
               >
                 {notificar && (

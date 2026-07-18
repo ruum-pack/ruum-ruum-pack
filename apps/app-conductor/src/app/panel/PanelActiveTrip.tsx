@@ -26,7 +26,7 @@ export function PanelActiveTrip({ viaje }: { viaje: PasaporteRow }) {
   const requiereDecisionOperativa = presentation.requiresControlTowerDecision;
 
   return (
-    <main className="mt-8 grid gap-5" aria-label="Viaje activo">
+    <section className="mt-8 grid gap-5" aria-label="Viaje activo">
       <OperationalCard>
         <div className="grid gap-5 lg:grid-cols-[1fr_0.7fr] lg:items-center">
           <div>
@@ -112,6 +112,6 @@ export function PanelActiveTrip({ viaje }: { viaje: PasaporteRow }) {
           </Link>
         </div>
       </AlertCard>
-    </main>
+    </section>
   );
 }

@@ -31,7 +31,7 @@ export function PanelHome({
   onSeleccionarDisponibilidad: (disponibilidad: Disponibilidad) => void;
 }) {
   return (
-    <main className="mt-8 grid gap-5" aria-label="Inicio operativo">
+    <section className="mt-8 grid gap-5" aria-label="Inicio operativo">
       <OperationalCard>
         <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <DriverAvailabilityControl
@@ -108,6 +108,6 @@ export function PanelHome({
           </Aviso>
         </div>
       </AlertCard>
-    </main>
+    </section>
   );
 }

@@ -8,13 +8,17 @@
  *   node scripts/audit-a11y.mjs --route / --route /login
  */
 
-import { spawn, execSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { chromium } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
+const AUDIT_ORIGIN = process.env.A11Y_BASE_URL || 'http://localhost:3001';
+const DEV_SERVER_TIMEOUT_MS = 45000;
 
 // Rutas principales por defecto (basadas en la estructura real)
 const DEFAULT_ROUTES = [
@@ -74,6 +78,46 @@ function runCommand(command, cwd = projectRoot) {
   });
 }
 
+async function isServerRunning(origin = AUDIT_ORIGIN) {
+  try {
+    const response = await fetch(origin, { redirect: 'manual' });
+    return response.status < 500;
+  } catch {
+    return false;
+  }
+}
+
+async function waitForServer(origin = AUDIT_ORIGIN, timeoutMs = DEV_SERVER_TIMEOUT_MS) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (await isServerRunning(origin)) return true;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  return false;
+}
+
+async function ensureDevServer() {
+  if (await isServerRunning()) {
+    log(`Servidor detectado en ${AUDIT_ORIGIN}`, 'success');
+    return true;
+  }
+
+  log('Iniciando servidor de desarrollo...', 'info');
+  const child = spawn('npm run dev', {
+    cwd: projectRoot,
+    detached: true,
+    stdio: 'ignore',
+    shell: true
+  });
+  child.unref();
+
+  const ready = await waitForServer();
+  if (!ready) {
+    log(`No se pudo iniciar el servidor en ${AUDIT_ORIGIN} dentro de ${DEV_SERVER_TIMEOUT_MS / 1000}s.`, 'error');
+  }
+  return ready;
+}
+
 async function runESLintA11y() {
   log('Iniciando auditoría ESLint con reglas de accesibilidad...', 'info');
   
@@ -96,72 +140,58 @@ async function runAxeAudit(routes = DEFAULT_ROUTES) {
     mkdirSync(resultsDir, { recursive: true });
   }
   
-  const reportPath = resolve(resultsDir, `axe-report-${new Date().toISOString().slice(0, 10)}.json`);
+  const consolidatedReportPath = resolve(resultsDir, 'axe-consolidated-report.json');
+  writeFileSync(consolidatedReportPath, JSON.stringify([], null, 2));
   
-  // Iniciar servidor en segundo plano si no está corriendo
-  try {
-    const serverCheck = spawn('lsof', ['-i', ':3001']);
-    let serverRunning = false;
-    
-    serverCheck.on('close', (code) => {
-      if (code === 0) serverRunning = true;
-    });
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (!serverRunning) {
-      log('Iniciando servidor de desarrollo...', 'info');
-      spawn('npm', ['run', 'dev'], { 
-        cwd: projectRoot,
-        detached: true,
-        stdio: 'ignore'
-      });
-      
-      // Esperar a que el servidor inicie
-      await new Promise(resolve => setTimeout(resolve, 30000));
-    }
-  } catch (error) {
-    // Si falla la verificación, intentar iniciar el servidor
-    log('No se pudo verificar el servidor, iniciando uno nuevo...', 'warning');
+  if (!(await ensureDevServer())) {
+    return false;
   }
   
   try {
-    // Ejecutar Axe CLI para cada ruta
     const axeResults = [];
+    let routeErrors = 0;
+    const browser = await chromium.launch();
     
-    for (const route of routes) {
-      log(`Auditando ruta: ${route}`);
-      const routeReportPath = resolve(resultsDir, `axe-${route.replace(/\//g, '-')}.json`);
-      
-      try {
-        await runCommand(`npx axe http://localhost:3001${route} --save ${routeReportPath}`);
-        
-        // Leer y analizar el reporte
-        if (existsSync(routeReportPath)) {
-          const report = JSON.parse(readFileSync(routeReportPath, 'utf-8'));
+    try {
+      for (const route of routes) {
+        log(`Auditando ruta: ${route}`);
+        const routeSlug = route === '/' ? 'home' : route.replace(/\//g, '-').replace(/^-+/, '');
+        const routeReportPath = resolve(resultsDir, `axe-${routeSlug}.json`);
+        const context = await browser.newContext();
+        const page = await context.newPage();
+
+        try {
+          await page.goto(`${AUDIT_ORIGIN}${route}`, { waitUntil: 'networkidle', timeout: 30000 });
+          const report = await new AxeBuilder({ page }).analyze();
           axeResults.push({
             route,
             violations: report.violations || [],
             passes: report.passes || [],
             timestamp: new Date().toISOString()
           });
+          writeFileSync(routeReportPath, JSON.stringify(report, null, 2));
           
           if (report.violations && report.violations.length > 0) {
             log(`⚠️  ${report.violations.length} violaciones encontradas en ${route}`, 'warning');
           } else {
             log(`✅ Sin violaciones en ${route}`, 'success');
           }
+        } catch (error) {
+          routeErrors += 1;
+          log(`❌ Error auditando ${route}: ${error.message}`, 'error');
+        } finally {
+          await context.close();
         }
-      } catch (error) {
-        log(`❌ Error auditando ${route}: ${error.message}`, 'error');
       }
+    } finally {
+      await browser.close();
     }
     
     // Guardar reporte consolidado
-    writeFileSync(resolve(resultsDir, 'axe-consolidated-report.json'), JSON.stringify(axeResults, null, 2));
+    writeFileSync(consolidatedReportPath, JSON.stringify(axeResults, null, 2));
     
     // Verificar si hay errores críticos
-    const hasCriticalErrors = axeResults.some(r => r.violations.length > 0);
+    const hasCriticalErrors = routeErrors > 0 || axeResults.length === 0 || axeResults.some(r => r.violations.length > 0);
     
     if (hasCriticalErrors) {
       log('❌ Se encontraron errores críticos de accesibilidad', 'error');
@@ -191,11 +221,14 @@ async function runPlaywrightA11y() {
 
 async function runLighthouseAudit(routes = DEFAULT_ROUTES.slice(0, 3)) {
   log('Iniciando auditoría Lighthouse...', 'info');
+  if (!(await ensureDevServer())) {
+    return false;
+  }
   
   const lhciConfig = {
     ci: {
       collect: {
-        url: routes.map(r => `http://localhost:3001${r}`),
+        url: routes.map(r => `${AUDIT_ORIGIN}${r}`),
         numberOfRuns: 1,
       },
       assert: {
@@ -233,23 +266,23 @@ async function runLighthouseAudit(routes = DEFAULT_ROUTES.slice(0, 3)) {
   }
 }
 
-async function generateReport() {
+async function generateReport(results, options) {
   log('Generando reporte consolidado...', 'info');
   
   const resultsDir = resolve(projectRoot, 'results');
   const report = {
     timestamp: new Date().toISOString(),
-    esLint: { status: 'pending', errors: [] },
-    axe: { status: 'pending', violations: [] },
-    playwright: { status: 'pending', errors: [] },
-    lighthouse: { status: 'pending', scores: {} },
+    esLint: { status: options.eslint ? (results.esLint ? 'passed' : 'failed') : 'skipped', errors: [] },
+    axe: { status: options.axe ? (results.axe ? 'passed' : 'failed') : 'skipped', violations: [] },
+    playwright: { status: options.playwright ? (results.playwright ? 'passed' : 'failed') : 'skipped', errors: [] },
+    lighthouse: { status: options.lighthouse ? (results.lighthouse ? 'passed' : 'failed') : 'skipped', scores: {} },
   };
   
   // Leer reportes existentes
   if (existsSync(resolve(resultsDir, 'axe-consolidated-report.json'))) {
     const axeReport = JSON.parse(readFileSync(resolve(resultsDir, 'axe-consolidated-report.json'), 'utf-8'));
     report.axe = {
-      status: axeReport.every(r => r.violations.length === 0) ? 'passed' : 'failed',
+      status: options.axe ? (axeReport.length > 0 && axeReport.every(r => r.violations.length === 0) ? 'passed' : 'failed') : 'skipped',
       violations: axeReport.flatMap(r => r.violations),
     };
   }
@@ -286,12 +319,31 @@ async function generateReport() {
 async function main() {
   const args = process.argv.slice(2);
   const routes = [];
+  const options = {
+    eslint: true,
+    axe: true,
+    playwright: true,
+    lighthouse: true
+  };
   
   // Parsear argumentos
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--route' && args[i + 1]) {
       routes.push(args[i + 1]);
       i++;
+    } else if (args[i] === '--skip-eslint') {
+      options.eslint = false;
+    } else if (args[i] === '--skip-axe') {
+      options.axe = false;
+    } else if (args[i] === '--skip-playwright') {
+      options.playwright = false;
+    } else if (args[i] === '--skip-lighthouse') {
+      options.lighthouse = false;
+    } else if (args[i] === '--axe-only') {
+      options.eslint = false;
+      options.axe = true;
+      options.playwright = false;
+      options.lighthouse = false;
     }
   }
   
@@ -312,13 +364,13 @@ async function main() {
   };
   
   // Ejecutar auditorías
-  results.esLint = await runESLintA11y();
-  results.axe = await runAxeAudit(routesToAudit);
-  results.playwright = await runPlaywrightA11y();
-  results.lighthouse = await runLighthouseAudit(routesToAudit.slice(0, 3));
+  results.esLint = options.eslint ? await runESLintA11y() : true;
+  results.axe = options.axe ? await runAxeAudit(routesToAudit) : true;
+  results.playwright = options.playwright ? await runPlaywrightA11y() : true;
+  results.lighthouse = options.lighthouse ? await runLighthouseAudit(routesToAudit.slice(0, 3)) : true;
   
   // Generar reporte
-  await generateReport();
+  await generateReport(results, options);
   
   // Verificar criterios de aceptación
   console.log('\n' + '='.repeat(60));
@@ -326,14 +378,14 @@ async function main() {
   console.log('='.repeat(60));
   
   const criteriaMet = {
-    axe: results.axe ? '✅ Cero errores críticos de Axe' : '❌ Errores críticos de Axe encontrados',
-    lighthouse: results.lighthouse ? '✅ Lighthouse Accessibility ≥ 95' : '❌ Lighthouse Accessibility < 95',
+    axe: options.axe ? (results.axe ? '✅ Cero errores críticos de Axe' : '❌ Errores críticos de Axe encontrados') : '⏭️  Axe omitido',
+    lighthouse: options.lighthouse ? (results.lighthouse ? '✅ Lighthouse Accessibility ≥ 95' : '❌ Lighthouse Accessibility < 95') : '⏭️  Lighthouse omitido',
   };
   
   console.log(criteriaMet.axe);
   console.log(criteriaMet.lighthouse);
   
-  if (results.axe && results.lighthouse) {
+  if ((!options.axe || results.axe) && (!options.lighthouse || results.lighthouse) && (!options.eslint || results.esLint) && (!options.playwright || results.playwright)) {
     console.log('\n🎉 Todos los criterios de aceptación cumplidos!');
     process.exit(0);
   } else {

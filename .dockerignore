@@ -5,7 +5,7 @@
 **/.git
 **/.gitignore
 
-# Node.js
+# Node.js - Ignorar node_modules en todas partes
 **/node_modules
 **/npm-debug.log*
 
@@ -45,3 +45,8 @@ Thumbs.db
 # Temporary files
 tmp
 *~
+
+# Docker development files
+Dockerfile.dev
+docker-compose.dev.yml
+.docker

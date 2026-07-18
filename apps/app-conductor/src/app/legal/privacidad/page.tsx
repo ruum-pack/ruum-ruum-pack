@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function PaginaPrivacidadConductor() {
   return (
-    <main className="conductor-page">
+    <div className="conductor-page">
       <div className="conductor-content max-w-3xl">
         <div className="mb-6">
           <Link href="/registro" className="font-body text-sm text-text-secondary underline-offset-4 hover:underline">
@@ -14,7 +14,7 @@ export default function PaginaPrivacidadConductor() {
           </Link>
         </div>
 
-        <article className="rounded-2xl border border-border bg-white px-6 py-8 shadow-[0_1px_2px_rgba(26,31,46,0.08)] sm:px-10">
+        <article className="rounded-2xl border border-border bg-surface px-6 py-8 text-text-primary shadow-1 sm:px-10">
           <header className="mb-8 border-b border-border pb-6">
             <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Documento legal</p>
             <h1 className="mt-2 font-display text-2xl font-semibold text-text-primary">Aviso de privacidad</h1>
@@ -86,6 +86,6 @@ export default function PaginaPrivacidadConductor() {
           </div>
         </article>
       </div>
-    </main>
+    </div>
   );
 }
