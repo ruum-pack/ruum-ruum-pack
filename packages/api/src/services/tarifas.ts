@@ -288,7 +288,7 @@ export async function previsualizarTarifaUsuario(
     p_modelo: datos.modelo,
     p_distancia_km: datos.distanciaKm,
     p_tiempo_estimado_horas: datos.tiempoEstimadoHoras,
-    p_fecha_hora: datos.fechaHora ? datos.fechaHora.toISOString() : null,
+    ...(datos.fechaHora ? { p_fecha_hora: datos.fechaHora.toISOString() } : {}),
     p_condicion: datos.condicion ?? "seminueva"
   });
   if (error) throw error;

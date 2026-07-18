@@ -68,10 +68,16 @@ textarea {
   font: inherit;
 }
 
-input,
-select,
-textarea {
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
   color-scheme: light;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  color-scheme: dark;
 }
 
 input::placeholder,

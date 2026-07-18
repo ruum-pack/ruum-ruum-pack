@@ -16,12 +16,30 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@ruum/api/services": [
+        "../../packages/api/src/services/index.ts"
+      ],
+      "@ruum/api/supabase": [
+        "../../packages/api/src/supabase/index.ts"
+      ],
+      "@ruum/shared": [
+        "../../packages/shared/src/index.ts"
+      ],
+      "@ruum/shared/*": [
+        "../../packages/shared/src/*/index.ts"
+      ],
+      "@ruum/ui": [
+        "../../packages/ui/src/components/index.ts"
       ]
     },
     "allowJs": true,
     "noEmit": true,
     "incremental": true,
-    "isolatedModules": true
+    "rootDir": "../..",
+    "isolatedModules": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true
   },
   "include": [
     "next-env.d.ts",

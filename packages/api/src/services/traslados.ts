@@ -104,7 +104,7 @@ export type DatosVehiculoParaTraslado = { vehiculoId: string } | { vehiculo: Dat
  */
 export async function crearTraslado(cliente: Cliente, vehiculo: DatosVehiculoParaTraslado, traslado: DatosNuevoTraslado, claveIdempotencia: string) {
   const { data, error } = await cliente.rpc("usuario_crea_traslado", {
-    p_vehiculo_id: "vehiculoId" in vehiculo ? vehiculo.vehiculoId : null,
+    p_vehiculo_id: ("vehiculoId" in vehiculo ? vehiculo.vehiculoId : null) as never,
     p_vehiculo: ("vehiculo" in vehiculo ? vehiculo.vehiculo : null) as never,
     p_traslado: traslado as never,
     p_clave_idempotencia: claveIdempotencia
@@ -447,7 +447,7 @@ export async function confirmarLlegadaDestino(
   const { data, error } = await cliente.rpc("conductor_confirmar_llegada_destino", {
     p_traslado_id: trasladoId,
     p_fuera_geocerca: Boolean(geocerca?.fueraGeocerca),
-    p_distancia_m: geocerca?.distanciaM ?? null
+    ...(geocerca?.distanciaM !== null && geocerca?.distanciaM !== undefined ? { p_distancia_m: geocerca.distanciaM } : {})
   });
 
   if (error) throw error;

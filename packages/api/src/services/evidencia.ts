@@ -7,7 +7,6 @@ import { crearIncidenciaSistemaDanoNoReportado } from "./incidencias";
 
 type Cliente = SupabaseClient<Database>;
 type EvidenciaRow = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
-type AnguloEvidencia = Database["public"]["Enums"]["angulo_evidencia"];
 type TipoEvidencia = Database["public"]["Enums"]["tipo_evidencia"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
@@ -101,32 +100,6 @@ export async function obtenerEvidenciaDeTraslado(
 
   if (error) throw error;
   return (data ?? []).map(aFotoEvidencia);
-}
-
-/**
- * Registra un ángulo como capturado. PRD §4.15 — el flujo real de campo es
- * capturar localmente y sincronizar después; sin Storage configurado en este
- * corte (ver app-conductor/README.md, sección "Pendiente"), esta función
- * inserta directamente la fila como sincronizada con una URL de marcador de
- * posición. El upload real de bytes a Supabase Storage queda para cuando se
- * conecte esa pieza — el contrato de datos (un row por ángulo) ya es el
- * definitivo.
- */
-export async function registrarAnguloCapturado(
-  cliente: Cliente,
-  trasladoId: string,
-  tipo: TipoEvidencia,
-  angulo: AnguloEvidencia
-) {
-  const { error } = await cliente.from("evidencia_fotos").insert({
-    traslado_id: trasladoId,
-    tipo,
-    angulo,
-    url: `pendiente-storage://${trasladoId}/${tipo}/${angulo}`,
-    sincronizada: true
-  });
-
-  if (error) throw error;
 }
 
 /** PRD §4.4 — completitud del checklist (5 ángulos obligatorios), en vivo. */

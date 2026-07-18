@@ -1,18 +1,53 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "ES2022"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ES2022"
+    ],
     "module": "ESNext",
     "jsx": "preserve",
-    "plugins": [{ "name": "next" }],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@ruum/api/services": [
+        "../../packages/api/src/services/index.ts"
+      ],
+      "@ruum/api/supabase": [
+        "../../packages/api/src/supabase/index.ts"
+      ],
+      "@ruum/shared": [
+        "../../packages/shared/src/index.ts"
+      ],
+      "@ruum/shared/*": [
+        "../../packages/shared/src/*/index.ts"
+      ],
+      "@ruum/ui": [
+        "../../packages/ui/src/components/index.ts"
+      ]
     },
     "allowJs": true,
     "noEmit": true,
     "incremental": true,
-    "isolatedModules": true
+    "rootDir": "../..",
+    "isolatedModules": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true
   },
-  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

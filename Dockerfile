@@ -6,12 +6,12 @@
 
 # Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
 
-ARG NODE_VERSION=yes
+ARG NODE_VERSION=24.18.0
 ARG PNPM_VERSION=10.0.0
 
 ################################################################################
 # Use node image for base image for all stages.
-FROM node:24-alpine AS base
+FROM node:${NODE_VERSION}-alpine as base
 
 # Set working directory for all build stages.
 WORKDIR /usr/src/app
@@ -74,4 +74,4 @@ COPY --from=build /usr/src/app/packages/*/build ./packages/*/build
 EXPOSE 3001
 
 # Run the application.
-CMD pnpm --filter @ruum/app-conductor start
+CMD pnpm --filter ./apps/backend start

@@ -520,7 +520,7 @@ export async function revisarDocumentoConductorAdmin(
   const { error } = await cliente.rpc("revisar_documento_conductor_admin", {
     p_documento_id: documentoId,
     p_estado: estado,
-    p_notas: motivo || null
+    ...(motivo ? { p_notas: motivo } : {})
   });
 
   if (error) throw error;
@@ -538,7 +538,7 @@ export async function revisarDocumentoConductorAdmin(
 export async function aprobarSolicitudConductorAdmin(cliente: Cliente, solicitudId: string, motivo?: string) {
   const { data, error } = await cliente.rpc("aprobar_solicitud_conductor_admin", {
     p_solicitud_id: solicitudId,
-    p_motivo: motivo?.trim() || null
+    ...(motivo?.trim() ? { p_motivo: motivo.trim() } : {})
   });
   if (error) throw error;
   return data;
@@ -641,7 +641,7 @@ export async function resolverDisputaAdmin(
   const { error } = await cliente.rpc("admin_resuelve_disputa", {
     p_disputa_id: disputaId,
     p_estado: estado,
-    p_resolucion: esEstadoResuelto ? resolucion : null,
+    p_resolucion: (esEstadoResuelto ? resolucion : null) as never,
     p_detalle: detalle
   });
 
@@ -668,7 +668,7 @@ export async function actualizarReclamoSeguroAdmin(
   const { error } = await cliente.rpc("admin_actualiza_reclamo_seguro", {
     p_reclamo_id: reclamoId,
     p_estado: estado,
-    p_responsable_pago: responsablePago,
+    p_responsable_pago: responsablePago as never,
     p_notas_admin: notasAdmin
   });
 
@@ -902,7 +902,7 @@ export async function marcarTrasladoFallido(cliente: Cliente, trasladoId: string
     p_causa: causa,
     p_cargo_aplica_cliente: resultado.cargo_aplica_cliente,
     p_requiere_reagendamiento: resultado.requiere_reagendamiento,
-    p_porcentaje_descuento_segundo_intento: resultado.porcentaje_descuento_segundo_intento ?? null,
+    p_porcentaje_descuento_segundo_intento: (resultado.porcentaje_descuento_segundo_intento ?? null) as never,
     p_mensaje: resultado.mensaje
   });
 

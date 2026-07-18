@@ -212,9 +212,9 @@ export async function registrarEventoRegistroConductor(
   const { data, error } = await cliente.rpc("registrar_evento_registro_conductor", {
     p_sesion_id: datos.sesionId,
     p_evento: datos.evento,
-    p_paso: datos.paso ?? null,
-    p_codigo: datos.codigo ?? null,
-    p_duracion_ms: datos.duracionMs ?? null
+    ...(datos.paso !== undefined ? { p_paso: datos.paso } : {}),
+    ...(datos.codigo !== undefined ? { p_codigo: datos.codigo } : {}),
+    ...(datos.duracionMs !== undefined ? { p_duracion_ms: datos.duracionMs } : {})
   });
   if (error) throw error;
   return data;
