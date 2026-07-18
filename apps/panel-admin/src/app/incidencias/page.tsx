@@ -20,13 +20,13 @@ const TIPOS = [
 ];
 
 const ESTILO: Record<EstatusIncidencia, string> = {
-  Nueva: "border-danger/25 bg-danger-soft text-danger",
-  "En revisión": "border-route/30 bg-route-soft text-route-dark",
-  "Requiere información": "border-warn/40 bg-warn-soft text-warn",
+  Nueva: "border-status-error/25 bg-status-error-soft text-status-error",
+  "En revisión": "border-status-info/30 bg-status-info-soft text-status-info",
+  "Requiere información": "border-status-warning/40 bg-status-warning-soft text-status-warning",
   "En seguimiento": "border-signal/30 bg-signal-soft text-ink",
-  Resuelta: "border-control/30 bg-control-soft text-control",
-  Cerrada: "border-ink/15 bg-ink/[0.04] text-ink/55",
-  Escalada: "border-danger/25 bg-danger-soft text-danger"
+  Resuelta: "border-status-success/30 bg-status-success-soft text-status-success",
+  Cerrada: "border-ink/15 bg-ink/[0.04] text-text-secondary",
+  Escalada: "border-status-error/25 bg-status-error-soft text-status-error"
 };
 
 const INCIDENCIAS = [
@@ -97,7 +97,7 @@ export default function PaginaIncidenciasAdmin() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
       <h1 className="font-display text-2xl font-semibold">Incidencias</h1>
-      <p className="mt-1 font-body text-sm text-ink/55">
+      <p className="mt-1 font-body text-sm text-text-secondary">
         Seguimiento operativo de reportes, evidencia, responsables internos y resolución.
       </p>
 
@@ -107,7 +107,7 @@ export default function PaginaIncidenciasAdmin() {
 
       <section className="mt-6">
         <PassportCard>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Tipos de incidencia</p>
+          <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Tipos de incidencia</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {["Todos", ...TIPOS].map((item) => (
               <button
@@ -115,7 +115,7 @@ export default function PaginaIncidenciasAdmin() {
                 onClick={() => setTipo(item)}
                 className={[
                   "rounded-full border px-3 py-1.5 font-body text-xs font-semibold",
-                  tipo === item ? "border-signal bg-signal-soft text-ink" : "border-ink/10 text-ink/60 hover:border-ink/25"
+                  tipo === item ? "border-signal bg-signal-soft text-ink" : "border-ink/10 text-text-secondary hover:border-ink/25"
                 ].join(" ")}
               >
                 {item}
@@ -130,44 +130,44 @@ export default function PaginaIncidenciasAdmin() {
           <PassportCard key={incidencia.id}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <p className="font-mono-ruum text-xs uppercase tracking-wide text-ink/45">ID interno {incidencia.id}</p>
+                <p className="font-mono-ruum text-xs uppercase tracking-wide text-text-tertiary">ID interno {incidencia.id}</p>
                 <h2 className="mt-1 font-display text-xl font-semibold">{incidencia.tipo}</h2>
-                <p className="mt-2 font-body text-sm text-ink/65">{incidencia.descripcion}</p>
+                <p className="mt-2 font-body text-sm text-text-secondary">{incidencia.descripcion}</p>
               </div>
               <Badge estatus={incidencia.estatus} />
             </div>
 
             <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
-                <dt className="font-body text-xs uppercase tracking-wide text-ink/45">Traslado relacionado</dt>
+                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Traslado relacionado</dt>
                 <dd className="mt-1 font-body text-sm font-medium">
-                  <Link href={`/viajes/${incidencia.trasladoId}`} className="text-route-dark">
+                  <Link href={`/viajes/${incidencia.trasladoId}`} className="text-status-info">
                     {incidencia.viaje}
                   </Link>
                 </dd>
               </div>
               <div>
-                <dt className="font-body text-xs uppercase tracking-wide text-ink/45">Usuario</dt>
+                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Usuario</dt>
                 <dd className="mt-1 font-body text-sm font-medium">{incidencia.usuario}</dd>
               </div>
               <div>
-                <dt className="font-body text-xs uppercase tracking-wide text-ink/45">Conductor</dt>
+                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Conductor</dt>
                 <dd className="mt-1 font-body text-sm font-medium">{incidencia.conductor}</dd>
               </div>
               <div>
-                <dt className="font-body text-xs uppercase tracking-wide text-ink/45">Fecha y hora</dt>
+                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Fecha y hora</dt>
                 <dd className="mt-1 font-body text-sm font-medium">{incidencia.fechaHora}</dd>
               </div>
               <div>
-                <dt className="font-body text-xs uppercase tracking-wide text-ink/45">Evidencia asociada</dt>
+                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Evidencia asociada</dt>
                 <dd className="mt-1 font-body text-sm font-medium">{incidencia.evidencia}</dd>
               </div>
               <div>
-                <dt className="font-body text-xs uppercase tracking-wide text-ink/45">Responsable interno</dt>
+                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Responsable interno</dt>
                 <dd className="mt-1 font-body text-sm font-medium">{incidencia.responsable}</dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="font-body text-xs uppercase tracking-wide text-ink/45">Resolución</dt>
+                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Resolución</dt>
                 <dd className="mt-1 font-body text-sm font-medium">{incidencia.resolucion}</dd>
               </div>
             </dl>

@@ -77,8 +77,8 @@ function vehiculosDemo(): DatosVehiculosAdmin {
 
 function estadoDocumental(vehiculo: Vehiculo) {
   const completo = vehiculo.tiene_placas && vehiculo.tiene_tarjeta_circulacion && vehiculo.tiene_verificacion && vehiculo.puede_circular_rodando;
-  if (completo) return { texto: "Listo", clase: "border-control/30 bg-control-soft text-control" };
-  return { texto: "Revisión", clase: "border-warn/30 bg-warn-soft text-warn" };
+  if (completo) return { texto: "Listo", clase: "border-status-success/30 bg-status-success-soft text-status-success" };
+  return { texto: "Revisión", clase: "border-status-warning/30 bg-status-warning-soft text-status-warning" };
 }
 
 function fecha(fechaIso: string | null | undefined) {
@@ -158,10 +158,10 @@ export default function PaginaVehiculosAdmin() {
           value={busqueda}
           onChange={(event) => setBusqueda(event.target.value)}
           placeholder="Buscar por marca, modelo, placas, VIN o usuario..."
-          className="flex-1 rounded-lg border border-ink/20 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/40 focus:border-route-dark focus:outline-none focus:ring-2 focus:ring-route-dark/20"
+          className="flex-1 rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-text-tertiary focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
         />
         {busqueda && (
-          <button onClick={() => setBusqueda("")} className="font-body text-sm text-ink/50 hover:text-ink" aria-label="Limpiar búsqueda">
+          <button onClick={() => setBusqueda("")} className="font-body text-sm text-text-tertiary hover:text-ink" aria-label="Limpiar búsqueda">
             Limpiar
           </button>
         )}
@@ -183,11 +183,11 @@ export default function PaginaVehiculosAdmin() {
           <tbody>
             {cargando ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink/50">Cargando...</td>
+                <td colSpan={6} className="px-4 py-6 text-center text-text-tertiary">Cargando...</td>
               </tr>
             ) : vehiculosFiltrados.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink/50">
+                <td colSpan={6} className="px-4 py-6 text-center text-text-tertiary">
                   {busqueda.trim() ? "No encontramos vehículos con esa búsqueda." : "No hay vehículos registrados."}
                 </td>
               </tr>
@@ -199,26 +199,26 @@ export default function PaginaVehiculosAdmin() {
                   <tr key={vehiculo.id}>
                     <td>
                       <p className="font-body font-semibold text-ink">{vehiculo.marca} {vehiculo.modelo} {vehiculo.anio}</p>
-                      <p className="mt-1 text-xs text-ink/45">{ETIQUETA_TIPO_VEHICULO[vehiculo.tipo]}{vehiculo.color ? ` · ${vehiculo.color}` : ""}</p>
+                      <p className="mt-1 text-xs text-text-tertiary">{ETIQUETA_TIPO_VEHICULO[vehiculo.tipo]}{vehiculo.color ? ` · ${vehiculo.color}` : ""}</p>
                     </td>
                     <td>
                       <p className="font-body text-sm text-ink">{usuario?.nombre ?? usuario?.razon_social ?? "Usuario sin nombre"}</p>
-                      <p className="mt-1 font-mono-ruum text-[11px] text-ink/40">{usuario?.correo_facturacion ?? vehiculo.usuario_id.slice(0, 8).toUpperCase()}</p>
+                      <p className="mt-1 font-mono-ruum text-[11px] text-text-tertiary">{usuario?.correo_facturacion ?? vehiculo.usuario_id.slice(0, 8).toUpperCase()}</p>
                     </td>
                     <td>
                       <p className="font-mono-ruum text-xs text-ink">{vehiculo.placas ?? "Sin placas"}</p>
-                      <p className="mt-1 font-mono-ruum text-[11px] text-ink/40">{vehiculo.vin ?? "VIN pendiente"}</p>
+                      <p className="mt-1 font-mono-ruum text-[11px] text-text-tertiary">{vehiculo.vin ?? "VIN pendiente"}</p>
                     </td>
                     <td>
                       <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-semibold ${documental.clase}`}>{documental.texto}</span>
                     </td>
                     <td>
                       <p className="font-body text-sm text-ink">{vehiculo.categoria_tarifa ? ETIQUETA_CATEGORIA[vehiculo.categoria_tarifa] : "Sin categoría"}</p>
-                      <p className="mt-1 text-xs text-ink/45">
+                      <p className="mt-1 text-xs text-text-tertiary">
                         {[vehiculo.gama ? ETIQUETA_GAMA[vehiculo.gama] : null, vehiculo.condicion ? ETIQUETA_CONDICION[vehiculo.condicion] : null].filter(Boolean).join(" · ") || "Pendiente"}
                       </p>
                     </td>
-                    <td className="font-body text-sm text-ink/60">{fecha(vehiculo.creado_en)}</td>
+                    <td className="font-body text-sm text-text-secondary">{fecha(vehiculo.creado_en)}</td>
                   </tr>
                 );
               })

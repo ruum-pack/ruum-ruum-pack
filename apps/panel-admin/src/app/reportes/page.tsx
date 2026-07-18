@@ -41,7 +41,7 @@ export default function PaginaReportesAdmin() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
       <h1 className="font-display text-2xl font-semibold">Reportes</h1>
-      <p className="mt-1 font-body text-sm text-ink/55">Indicadores básicos para operación, finanzas, conductores y cuentas empresariales.</p>
+      <p className="mt-1 font-body text-sm text-text-secondary">Indicadores básicos para operación, finanzas, conductores y cuentas empresariales.</p>
 
       <div className="mt-4 grid gap-2">
         <Aviso tono="info">En MVP los reportes se mantienen básicos. Reportes corporativos avanzados y exportación quedan fuera de alcance.</Aviso>
@@ -51,7 +51,7 @@ export default function PaginaReportesAdmin() {
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         {METRICAS.map(([label, value]) => (
           <PassportCard key={label}>
-            <p className="font-body text-xs uppercase tracking-wide text-ink/45">{label}</p>
+            <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">{label}</p>
             <p className="mt-2 font-display text-2xl font-semibold">{value}</p>
           </PassportCard>
         ))}
@@ -63,7 +63,7 @@ export default function PaginaReportesAdmin() {
             <h2 className="font-display text-xl font-semibold">{grupo.categoria}</h2>
             <ul className="mt-4 grid gap-2">
               {grupo.reportes.map((reporte) => (
-                <li key={reporte} className="rounded-lg border border-ink/10 px-4 py-3 font-body text-sm text-ink/70">
+                <li key={reporte} className="rounded-lg border border-ink/10 px-4 py-3 font-body text-sm text-text-secondary">
                   {reporte}
                 </li>
               ))}

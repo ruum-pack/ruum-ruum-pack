@@ -90,7 +90,6 @@ export default function PaginaDashboard() {
           <Link
             href="/viajes"
             className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-signal px-4 py-2.5 font-body text-sm font-semibold shadow-sm transition-colors hover:bg-signal/90"
-            style={{ color: "#14213d" }}
           >
             Revisar traslados
           </Link>
@@ -137,7 +136,7 @@ export default function PaginaDashboard() {
             {metricas &&
               (Object.keys(ETIQUETA_METRICA) as (keyof MetricasDashboard)[]).map((clave) => (
                 <PassportCard key={clave} acento>
-                  <p className="font-body text-xs font-medium uppercase tracking-wide text-ink/45">{ETIQUETA_METRICA[clave]}</p>
+                  <p className="font-body text-xs font-medium uppercase tracking-wide text-text-tertiary">{ETIQUETA_METRICA[clave]}</p>
                   <p className="mt-2 font-display text-3xl font-bold text-ink">{metricas[clave]}</p>
                 </PassportCard>
               ))}
@@ -145,13 +144,13 @@ export default function PaginaDashboard() {
 
           {emergencias.length > 0 && (
             <section className="mt-8">
-              <h2 className="font-display text-base font-semibold text-danger">Emergencias prioritarias</h2>
+              <h2 className="font-display text-base font-semibold text-status-error">Emergencias prioritarias</h2>
               <div className="mt-3 space-y-2">
                 {emergencias.map((evento) => (
                   <Link key={evento.id} href={evento.traslado_id ? `/viajes/${evento.traslado_id}` : "/viajes"} className="block">
-                    <div className="rounded-lg border border-danger/25 bg-danger-soft px-4 py-3">
-                      <p className="font-body text-sm font-semibold text-danger">Emergencia / 911 activada por conductor</p>
-                      <p className="mt-1 font-body text-xs text-ink/65">
+                    <div className="rounded-lg border border-status-error/25 bg-status-error-soft px-4 py-3">
+                      <p className="font-body text-sm font-semibold text-status-error">Emergencia / 911 activada por conductor</p>
+                      <p className="mt-1 font-body text-xs text-text-secondary">
                         Traslado {evento.traslado_id?.slice(0, 8).toUpperCase() ?? "sin folio"} · {new Date(evento.timestamp).toLocaleString("es-MX")}
                       </p>
                     </div>
@@ -166,7 +165,7 @@ export default function PaginaDashboard() {
               <h2 className="font-display text-base font-semibold">Alertas operativas</h2>
               <div className="mt-3 space-y-2">
                 {incidencias.length === 0 && conductoresDocVencido.length === 0 && (
-                  <p className="font-body text-sm text-ink/45">Sin alertas por ahora.</p>
+                  <p className="font-body text-sm text-text-tertiary">Sin alertas por ahora.</p>
                 )}
                 {incidencias.map((i) => (
                   <Link key={i.id} href={`/viajes/${i.traslado_id}`} className="block">

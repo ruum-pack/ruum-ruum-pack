@@ -83,25 +83,25 @@ export default function PaginaMetricasRegistro() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-semibold">Métricas de registro</h1>
-          <p className="mt-1 font-body text-sm text-ink/55">Abandono, errores, tiempos y rechazo documental del alta de conductores.</p>
+          <p className="mt-1 font-body text-sm text-text-secondary">Abandono, errores, tiempos y rechazo documental del alta de conductores.</p>
         </div>
         <div className="flex gap-3 font-body text-sm">
-          <label className="grid gap-1 text-ink/60">Desde
+          <label className="grid gap-1 text-text-secondary">Desde
             <input type="date" value={desde} max={hasta||undefined} onChange={(e)=>cambiarDesde(e.target.value)} className="rounded-lg border border-ink/15 bg-white px-3 py-2 text-ink" />
           </label>
-          <label className="grid gap-1 text-ink/60">Hasta
+          <label className="grid gap-1 text-text-secondary">Hasta
             <input type="date" value={hasta} min={desde||undefined} onChange={(e)=>cambiarHasta(e.target.value)} className="rounded-lg border border-ink/15 bg-white px-3 py-2 text-ink" />
           </label>
         </div>
       </div>
 
       {error&&<div className="mt-5"><Aviso tono="danger">{error}</Aviso></div>}
-      {cargando&&<p className="mt-5 font-body text-sm text-ink/50">Actualizando indicadores…</p>}
+      {cargando&&<p className="mt-5 font-body text-sm text-text-tertiary">Actualizando indicadores…</p>}
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-6" aria-label="Resumen del periodo">
         {tarjetas.map(([etiqueta,valor])=>(
           <PassportCard key={etiqueta}>
-            <p className="font-body text-xs uppercase tracking-wide text-ink/45">{etiqueta}</p>
+            <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">{etiqueta}</p>
             <p className="mt-2 font-display text-2xl font-semibold">{valor}</p>
           </PassportCard>
         ))}
@@ -111,9 +111,9 @@ export default function PaginaMetricasRegistro() {
         <section className="mt-6 grid gap-4 lg:grid-cols-2">
           <PassportCard>
             <h2 className="font-display text-xl font-semibold">Abandono por paso</h2>
-            <p className="mt-1 font-body text-xs text-ink/50">Expedientes sin actividad durante al menos 24 horas.</p>
+            <p className="mt-1 font-body text-xs text-text-tertiary">Expedientes sin actividad durante al menos 24 horas.</p>
             <div className="mt-4 grid gap-2">
-              {metricas.abandonoPorPaso.length===0&&<p className="font-body text-sm text-ink/50">Sin abandonos en el periodo.</p>}
+              {metricas.abandonoPorPaso.length===0&&<p className="font-body text-sm text-text-tertiary">Sin abandonos en el periodo.</p>}
               {metricas.abandonoPorPaso.map((fila)=>(
                 <div key={fila.paso} className="flex items-center justify-between rounded-lg border border-ink/10 px-4 py-3 font-body text-sm">
                   <span>Paso {fila.paso}: {NOMBRES_PASO[fila.paso-1]??"Sin identificar"}</span>
@@ -125,9 +125,9 @@ export default function PaginaMetricasRegistro() {
 
           <PassportCard>
             <h2 className="font-display text-xl font-semibold">Documentos rechazados</h2>
-            <p className="mt-1 font-body text-xs text-ink/50">Decisiones de rechazo, agrupadas por tipo documental.</p>
+            <p className="mt-1 font-body text-xs text-text-tertiary">Decisiones de rechazo, agrupadas por tipo documental.</p>
             <div className="mt-4 grid gap-2">
-              {metricas.documentosRechazadosPorTipo.length===0&&<p className="font-body text-sm text-ink/50">Sin rechazos en el periodo.</p>}
+              {metricas.documentosRechazadosPorTipo.length===0&&<p className="font-body text-sm text-text-tertiary">Sin rechazos en el periodo.</p>}
               {metricas.documentosRechazadosPorTipo.map((fila)=>(
                 <div key={fila.tipo} className="flex items-center justify-between rounded-lg border border-ink/10 px-4 py-3 font-body text-sm">
                   <span>{NOMBRES_DOCUMENTO[fila.tipo]??fila.tipo}</span>

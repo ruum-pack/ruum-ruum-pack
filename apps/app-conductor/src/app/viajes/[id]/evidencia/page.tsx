@@ -17,6 +17,8 @@ import {
 } from "@ruum/api/services";
 import { EvidenceWizard } from "./EvidenceWizard";
 import { useEvidenceQueue } from "./useEvidenceQueue";
+import { EvidenceReference } from "./EvidenceReference";
+import { useEvidenceComparison } from "./useEvidenceComparison";
 import type { EstadoTraslado, EvidenceRequirement, InspeccionEvidencia, PasaporteRow } from "./evidence-requirements";
 import {
   CAMPOS_INSPECCION_OBLIGATORIOS,
@@ -54,6 +56,13 @@ export default function PaginaEvidencia() {
   const [aviso, setAviso] = useState<string | null>(null);
   const [pasoActivo, setPasoActivo] = useState(0);
   const [noAplica, setNoAplica] = useState<Set<AnguloEvidencia>>(new Set());
+  
+  // Estado para evidencia inicial (solo para referencia cuando se captura final)
+  const [evidenciaInicial, setEvidenciaInicial] = useState<InspeccionEvidencia | null>(null);
+  const [cargandoEvidenciaInicial, setCargandoEvidenciaInicial] = useState(false);
+  
+  // Hook de comparación
+  const { inicial: evidenciaInicialComparada, estaCargando: estaCargandoComparacion } = useEvidenceComparison(id);
   const {
     pendientesSubida,
     sincronizando,
@@ -166,6 +175,47 @@ export default function PaginaEvidencia() {
     }
   }
 
+  // Cargar evidencia inicial cuando estamos capturando evidencia final
+  const cargarEvidenciaInicial = useCallback(async () => {
+    if (tipo !== "final") return;
+    
+    setCargandoEvidenciaInicial(true);
+    try {
+      const cliente = crearClienteNavegador();
+      const { data, error } = await cliente
+        .from("evidencia_inspecciones")
+        .select("*")
+        .eq("traslado_id", id)
+        .eq("tipo", "inicial")
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        setEvidenciaInicial({
+          combustible: data.combustible ?? "",
+          kilometraje: data.kilometraje !== null && data.kilometraje !== undefined ? String(data.kilometraje) : "",
+          llavesRecibidas: data.llaves_recibidas ?? "",
+          hologramaVerificacion:
+            data.holograma_verificacion === null || data.holograma_verificacion === undefined
+              ? ""
+              : data.holograma_verificacion
+                ? "si"
+                : "no",
+          talonVerificacion: data.talon_verificacion ?? "",
+          tarjetaCirculacion: data.tarjeta_circulacion ?? "",
+          placaDelantera: data.placa_delantera ?? "",
+          placaTrasera: data.placa_trasera ?? "",
+          notas: data.notas ?? ""
+        });
+      }
+    } catch (err) {
+      console.error("Error al cargar evidencia inicial:", err);
+    } finally {
+      setCargandoEvidenciaInicial(false);
+    }
+  }, [id, tipo]);
+
   useEffect(() => {
     async function cargar() {
       if (!tieneSupabaseConfigurado()) {
@@ -203,6 +253,11 @@ export default function PaginaEvidencia() {
               (local) => local.tipo === tipoDetectado && !remotasFirmadas.some((remota) => remota.id === local.id)
             )
           ]);
+          
+          // Cargar evidencia inicial si estamos en modo final
+          if (tipoDetectado === "final") {
+            await cargarEvidenciaInicial();
+          }
         }
       } catch (err) {
         setAviso(traducirErrorOperativo(err, "No pudimos cargar el registro del vehículo."));
@@ -211,7 +266,7 @@ export default function PaginaEvidencia() {
       }
     }
     cargar();
-  }, [cargarInspeccion, cargarPendientesLocales, id]);
+  }, [cargarInspeccion, cargarPendientesLocales, id, cargarEvidenciaInicial]);
 
   useEffect(() => {
     if (!tipo) return;
@@ -423,43 +478,56 @@ export default function PaginaEvidencia() {
     }
   }
 
+  // Usar evidenciaInicial local para referencia, o la del hook si está disponible
+  const evidenciaInicialParaMostrar = evidenciaInicial || evidenciaInicialComparada;
+
   return (
-    <EvidenceWizard
-      trasladoId={id}
-      estadoActual={estadoActual}
-      pasaporteActual={pasaporteActual}
-      tipo={tipo}
-      requisitos={requisitos}
-      requisitosCompletados={requisitosCompletados}
-      progresoTotal={progresoTotal}
-      requisitosTotales={requisitosTotales}
-      pasoActivo={pasoActivo}
-      pasoEsRevision={pasoEsRevision}
-      requisitoActivo={requisitoActivo}
-      aviso={aviso}
-      resultado={resultado}
-      registroCompleto={registroCompleto}
-      etiquetasFaltantes={etiquetasFaltantes}
-      pendientesSubida={pendientesSubida}
-      sincronizando={sincronizando}
-      inputArchivoRef={inputArchivoRef}
-      fotos={fotos}
-      noAplica={noAplica}
-      inspeccion={inspeccion}
-      camposInspeccionPendientes={camposInspeccionPendientes}
-      inspeccionCompletada={inspeccionCompletada}
-      enviando={enviando}
-      statusFor={statusRequisito}
-      fotoPorAngulo={fotoPorAngulo}
-      setPasoActivo={setPasoActivo}
-      setNoAplica={setNoAplica}
-      setInspeccion={setInspeccion}
-      onArchivoSeleccionado={(archivo) => void procesarArchivoSeleccionado(archivo)}
-      onBackToMissing={irASiguientePendiente}
-      onConfirm={() => void confirmar()}
-      onCapture={(angulo) => void capturar(angulo)}
-      onGallery={(angulo) => void seleccionarGaleria(angulo)}
-      onSaveInspection={() => void guardarInspeccion()}
-    />
+    <div className="flex flex-col gap-4">
+      {/* Mostrar referencia de evidencia inicial solo cuando capturamos evidencia final */}
+      {tipo === "final" && (
+        <EvidenceReference 
+          evidenciaInicial={evidenciaInicialParaMostrar} 
+          estaCargando={cargandoEvidenciaInicial || estaCargandoComparacion}
+        />
+      )}
+      
+      <EvidenceWizard
+        trasladoId={id}
+        estadoActual={estadoActual}
+        pasaporteActual={pasaporteActual}
+        tipo={tipo}
+        requisitos={requisitos}
+        requisitosCompletados={requisitosCompletados}
+        progresoTotal={progresoTotal}
+        requisitosTotales={requisitosTotales}
+        pasoActivo={pasoActivo}
+        pasoEsRevision={pasoEsRevision}
+        requisitoActivo={requisitoActivo}
+        aviso={aviso}
+        resultado={resultado}
+        registroCompleto={registroCompleto}
+        etiquetasFaltantes={etiquetasFaltantes}
+        pendientesSubida={pendientesSubida}
+        sincronizando={sincronizando}
+        inputArchivoRef={inputArchivoRef}
+        fotos={fotos}
+        noAplica={noAplica}
+        inspeccion={inspeccion}
+        camposInspeccionPendientes={camposInspeccionPendientes}
+        inspeccionCompletada={inspeccionCompletada}
+        enviando={enviando}
+        statusFor={statusRequisito}
+        fotoPorAngulo={fotoPorAngulo}
+        setPasoActivo={setPasoActivo}
+        setNoAplica={setNoAplica}
+        setInspeccion={setInspeccion}
+        onArchivoSeleccionado={(archivo) => void procesarArchivoSeleccionado(archivo)}
+        onBackToMissing={irASiguientePendiente}
+        onConfirm={() => void confirmar()}
+        onCapture={(angulo) => void capturar(angulo)}
+        onGallery={(angulo) => void seleccionarGaleria(angulo)}
+        onSaveInspection={() => void guardarInspeccion()}
+      />
+    </div>
   );
 }

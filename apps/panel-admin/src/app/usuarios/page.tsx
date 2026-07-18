@@ -82,20 +82,20 @@ export default function PaginaUsuariosAdmin() {
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre o correo…"
-          className="flex-1 rounded-lg border border-ink/20 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/40 focus:border-route-dark focus:outline-none focus:ring-2 focus:ring-route-dark/20"
+          className="flex-1 rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-text-tertiary focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
         />
         {busqueda && (
-          <button onClick={() => setBusqueda("")} className="font-body text-sm text-ink/50 hover:text-ink" aria-label="Limpiar búsqueda">
+          <button onClick={() => setBusqueda("")} className="font-body text-sm text-text-tertiary hover:text-ink" aria-label="Limpiar búsqueda">
             Limpiar
           </button>
         )}
       </div>
 
-      <div className="mt-3 overflow-hidden rounded-card border border-ink/10 bg-mist">
+      <div className="mt-3 overflow-hidden rounded-card border border-ink/10 bg-surface-primary">
         <table className="w-full font-body text-sm">
           <caption className="sr-only">Lista de usuarios registrados</caption>
           <thead>
-            <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-ink/45">
+            <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-text-tertiary">
               <th className="px-4 py-3">Nombre</th>
               <th className="px-4 py-3">Tipo de cuenta</th>
               <th className="px-4 py-3">Rol</th>
@@ -109,13 +109,13 @@ export default function PaginaUsuariosAdmin() {
           <tbody>
             {cargando ? (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-ink/50">
+                <td colSpan={8} className="px-4 py-6 text-center text-text-tertiary">
                   Cargando…
                 </td>
               </tr>
             ) : usuariosFiltrados.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-ink/50">
+                <td colSpan={8} className="px-4 py-6 text-center text-text-tertiary">
               Sin resultados para &quot;{busqueda}&quot;.
                 </td>
               </tr>
@@ -123,7 +123,7 @@ export default function PaginaUsuariosAdmin() {
               usuariosFiltrados.map((u) => (
                 <tr key={u.id} className="border-b border-ink/5 last:border-0">
                   <td className="px-4 py-3 font-medium">
-                    {u.nombre ?? <span className="text-ink/40">Sin nombre</span>}
+                    {u.nombre ?? <span className="text-text-tertiary">Sin nombre</span>}
                   </td>
                   <td className="px-4 py-3 capitalize">{u.tipo_cuenta}</td>
                   <td className="px-4 py-3 capitalize">{u.rol.replaceAll("_", " ")}</td>
@@ -131,12 +131,12 @@ export default function PaginaUsuariosAdmin() {
                   <td className="px-4 py-3 font-mono-ruum">{u.traslados_completados_sin_incidencia}</td>
                   <td className="px-4 py-3">
                     {u.metodo_pago_registrado ? (
-                      <span className="text-control">Registrado</span>
+                      <span className="text-status-success">Registrado</span>
                     ) : (
-                      <span className="text-ink/40">Sin registrar</span>
+                      <span className="text-text-tertiary">Sin registrar</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-ink/55">{new Date(u.creado_en).toLocaleDateString("es-MX")}</td>
+                  <td className="px-4 py-3 text-text-secondary">{new Date(u.creado_en).toLocaleDateString("es-MX")}</td>
                   <td className="px-4 py-3">
                     {(u.estado_verificacion === "pendiente" || u.estado_verificacion === "en_revision") && (
                       <AccionesVerificacion usuario={u} onActualizado={cargar} />

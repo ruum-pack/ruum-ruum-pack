@@ -52,6 +52,90 @@ export interface DatosEmpresasAdmin {
   traslados: TrasladoRow[];
 }
 
+export interface FilaTrasladoMasivoNormalizada {
+  referencia_externa?: string;
+  vehiculo_placas?: string;
+  vehiculo_vin?: string;
+  vehiculo_marca: string;
+  vehiculo_modelo: string;
+  vehiculo_anio: string;
+  vehiculo_tipo: string;
+  vehiculo_color?: string;
+  vehiculo_alias?: string;
+  vehiculo_transmision?: string;
+  estado_general_declarado?: string;
+  tiene_tarjeta_circulacion?: string;
+  tiene_verificacion?: string;
+  puede_circular_rodando?: string;
+  categoria_tarifa: string;
+  gama: string;
+  condicion: string;
+  contacto_entrega_nombre?: string;
+  contacto_entrega_telefono?: string;
+  contacto_recepcion_nombre?: string;
+  contacto_recepcion_telefono?: string;
+  origen_direccion?: string;
+  origen_ciudad?: string;
+  origen_lat: string;
+  origen_lng: string;
+  origen_referencias?: string;
+  destino_direccion?: string;
+  destino_ciudad?: string;
+  destino_lat: string;
+  destino_lng: string;
+  destino_referencias?: string;
+  instrucciones_especiales?: string;
+  modalidad_programacion?: string;
+  fecha_hora_programada?: string;
+  tipo_ruta?: string;
+  ventana_recoleccion?: string;
+  ventana_entrega?: string;
+  tipo_servicio?: string;
+  motivo_servicio?: string;
+  distancia_km?: string;
+  tiempo_estimado_horas?: string;
+  tipo_pago?: string;
+}
+
+export interface ResultadoCargaTrasladosMasivos {
+  carga_id: string;
+  total_filas: number;
+  filas_creadas: number;
+  filas_error: number;
+  estado: "procesada" | "procesada_con_errores" | "rechazada";
+}
+
+export interface CargaTrasladosMasivosAdmin {
+  id: string;
+  empresa_id: string;
+  usuario_id: string;
+  creado_por_admin_id: string | null;
+  nombre_archivo: string;
+  total_filas: number;
+  filas_creadas: number;
+  filas_error: number;
+  estado: "procesada" | "procesada_con_errores" | "rechazada";
+  creado_en: string;
+}
+
+export interface FilaCargaTrasladosMasivosAdmin {
+  id: string;
+  carga_id: string;
+  numero_fila: number;
+  estado: "creada" | "error";
+  referencia_externa: string | null;
+  datos: unknown;
+  errores: string[];
+  vehiculo_id: string | null;
+  traslado_id: string | null;
+  creado_en: string;
+}
+
+export interface DatosTrasladosMasivosAdmin {
+  cargas: CargaTrasladosMasivosAdmin[];
+  filas: FilaCargaTrasladosMasivosAdmin[];
+}
+
 export interface SolicitudConductorBandejaAdmin {
   solicitud: SolicitudConductorRow;
   nombre: string;
@@ -399,6 +483,63 @@ export async function listarEmpresasAdmin(cliente: Cliente): Promise<DatosEmpres
     usuarios: usuarios.data ?? [],
     traslados: traslados.data ?? []
   };
+}
+
+export async function listarCargasTrasladosMasivosAdmin(cliente: Cliente): Promise<DatosTrasladosMasivosAdmin> {
+  type ConsultaLibre<T> = {
+    select: (columnas: string) => {
+      order: (columna: string, opciones?: { ascending?: boolean }) => Promise<{ data: T[] | null; error: Error | null }>;
+    };
+  };
+  const clienteLibre = cliente as unknown as { from: <T>(tabla: string) => ConsultaLibre<T> };
+  const [cargas, filas] = await Promise.all([
+    clienteLibre.from<CargaTrasladosMasivosAdmin>("cargas_traslados_masivos").select("*").order("creado_en", { ascending: false }),
+    clienteLibre.from<FilaCargaTrasladosMasivosAdmin>("filas_carga_traslados_masivos").select("*").order("creado_en", { ascending: false })
+  ]);
+
+  if (cargas.error) throw cargas.error;
+  if (filas.error) throw filas.error;
+
+  return {
+    cargas: cargas.data ?? [],
+    filas: filas.data ?? []
+  };
+}
+
+export async function crearTrasladosMasivosAdmin(
+  cliente: Cliente,
+  parametros: {
+    empresaId: string;
+    usuarioId: string;
+    nombreArchivo: string;
+    filas: FilaTrasladoMasivoNormalizada[];
+  }
+): Promise<ResultadoCargaTrasladosMasivos> {
+  if (!parametros.empresaId) throw new Error("Selecciona la empresa corporativa.");
+  if (!parametros.usuarioId) throw new Error("Selecciona el usuario solicitante.");
+  if (!parametros.nombreArchivo.trim()) throw new Error("El archivo debe tener nombre.");
+  if (parametros.filas.length === 0) throw new Error("El archivo no contiene filas válidas para enviar.");
+  if (parametros.filas.length > 500) throw new Error("El lote excede el máximo de 500 filas por carga.");
+
+  const rpc = cliente.rpc as unknown as (
+    fn: "admin_crea_traslados_masivos",
+    args: {
+      p_empresa_id: string;
+      p_usuario_id: string;
+      p_nombre_archivo: string;
+      p_filas: FilaTrasladoMasivoNormalizada[];
+    }
+  ) => Promise<{ data: ResultadoCargaTrasladosMasivos | null; error: Error | null }>;
+
+  const { data, error } = await rpc("admin_crea_traslados_masivos", {
+    p_empresa_id: parametros.empresaId,
+    p_usuario_id: parametros.usuarioId,
+    p_nombre_archivo: parametros.nombreArchivo,
+    p_filas: parametros.filas
+  });
+  if (error) throw error;
+  if (!data) throw new Error("No se pudo confirmar la carga masiva.");
+  return data;
 }
 
 export async function validarDocumentoUsuario(

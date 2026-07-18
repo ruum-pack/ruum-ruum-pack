@@ -42,7 +42,7 @@ export function AdminHero({ titulo, subtitulo, imagen = "/imagenes/torre-control
         <div className="min-w-0">
           <p className="font-mono-ruum text-xs font-medium uppercase tracking-[0.18em] text-signal">Torre de Control</p>
           <h1 className="mt-2 font-display text-2xl font-bold text-ink sm:text-3xl">{titulo}</h1>
-          <p className="mt-2 max-w-2xl font-body text-sm leading-6 text-ink/70">{subtitulo}</p>
+          <p className="mt-2 max-w-2xl font-body text-sm leading-6 text-text-secondary">{subtitulo}</p>
         </div>
         {accion && <div className="shrink-0">{accion}</div>}
       </div>
@@ -57,7 +57,7 @@ export function AdminPageHeader({ etiqueta, titulo, descripcion, accion }: Admin
       <div className="min-w-0">
         {etiqueta && <p className="font-mono-ruum text-xs font-medium uppercase tracking-[0.16em] text-signal">{etiqueta}</p>}
         <h1 className="mt-1 font-display text-2xl font-semibold text-ink">{titulo}</h1>
-        {descripcion && <p className="mt-1 max-w-2xl font-body text-sm leading-6 text-ink/60">{descripcion}</p>}
+        {descripcion && <p className="mt-1 max-w-2xl font-body text-sm leading-6 text-text-secondary">{descripcion}</p>}
       </div>
       {accion && <div className="shrink-0">{accion}</div>}
     </header>

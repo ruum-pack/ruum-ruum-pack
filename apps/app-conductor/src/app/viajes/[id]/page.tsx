@@ -18,6 +18,7 @@ import { MapaRutaOrigen } from "./MapaRutaOrigen";
 import { ReportarIncidencia } from "./ReportarIncidencia";
 import { EmergencyPanel } from "./EmergencyPanel";
 import { AbrirDisputaConductor } from "./AbrirDisputa";
+import { TripEvidenceComparison } from "./TripEvidenceComparison";
 import { RegistroViajeActivo } from "../../ViajeActivoContext";
 import { EstadoError } from "../../EstadoError";
 import { registroViajeActivoDesdePasaporte } from "../../active-trip-state";
@@ -304,6 +305,13 @@ export default async function PaginaDetalleViaje({
             </div>
           </div>
         </details>
+
+        {/* Comparación de evidencia inicial vs final */}
+        {(pasaporte.evidencia_inicial_fotos_sincronizadas ?? 0) > 0 || (pasaporte.evidencia_final_fotos_sincronizadas ?? 0) > 0 ? (
+          <section className="mt-6">
+            <TripEvidenceComparison trasladoId={pasaporte.traslado_id} />
+          </section>
+        ) : null}
 
         <section className="mt-6 border-t border-border pt-6">
           <p className="mb-3 font-body text-sm font-semibold text-text-tertiary">Soporte</p>

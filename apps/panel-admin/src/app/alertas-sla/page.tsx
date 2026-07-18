@@ -93,13 +93,13 @@ const RUTA_DESTINO: Record<AlertaSLA["tipo"], string> = {
 function BarraSLA({ porcentaje, vencido }: { porcentaje: number; vencido: boolean }) {
   const ancho = Math.min(porcentaje, 100);
   const color = vencido
-    ? "bg-danger"
+    ? "bg-status-error"
     : porcentaje >= 80
-    ? "bg-warn"
-    : "bg-control";
+    ? "bg-status-warning"
+    : "bg-status-success";
 
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-mist-dim">
+    <div className="h-2 w-full overflow-hidden rounded-full bg-surface-secondary">
       <div
         className={`h-full rounded-full transition-all ${color}`}
         style={{ width: `${ancho}%` }}
@@ -121,55 +121,55 @@ function TarjetaSLA({
     <div
       className={`rounded-2xl border p-4 transition-colors ${
         alerta.vencido
-          ? "border-danger/30 bg-danger-soft"
+          ? "border-status-error/30 bg-status-error-soft"
           : alerta.requiere_alerta
-          ? "border-warn/40 bg-warn-soft"
-          : "border-mist-dim bg-mist"
+          ? "border-status-warning/40 bg-status-warning-soft"
+          : "border-border-default bg-surface-primary"
       }`}
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             {alerta.vencido && (
-              <span className="rounded-full bg-danger px-2 py-0.5 font-mono-ruum text-[10px] text-white">
+              <span className="rounded-full bg-status-error px-2 py-0.5 font-mono-ruum text-[10px] text-background-main">
                 VENCIDO
               </span>
             )}
             {!alerta.vencido && alerta.requiere_alerta && (
-              <span className="rounded-full bg-warn px-2 py-0.5 font-mono-ruum text-[10px] text-white">
+              <span className="rounded-full bg-status-warning px-2 py-0.5 font-mono-ruum text-[10px] text-background-main">
                 URGENTE
               </span>
             )}
-            <span className="font-mono-ruum text-[10px] uppercase tracking-wide text-ink/40">
+            <span className="font-mono-ruum text-[10px] uppercase tracking-wide text-text-tertiary">
               {ETIQUETA_TIPO[alerta.tipo]}
             </span>
           </div>
           <p className="font-display text-sm font-semibold leading-tight">{alerta.nombre}</p>
-          <p className="font-mono-ruum text-[10px] text-ink/40">
+          <p className="font-mono-ruum text-[10px] text-text-tertiary">
             {alerta.id.startsWith("demo-") ? "ID demo" : alerta.id.slice(0, 8).toUpperCase()}
           </p>
         </div>
         <div className="flex-shrink-0 text-right">
           <p
             className={`font-display text-xl font-semibold ${
-              alerta.vencido ? "text-danger" : alerta.requiere_alerta ? "text-warn" : "text-ink"
+              alerta.vencido ? "text-status-error" : alerta.requiere_alerta ? "text-status-warning" : "text-ink"
             }`}
           >
             {alerta.porcentaje_consumido}%
           </p>
-          <p className="font-mono-ruum text-[10px] text-ink/40">del SLA</p>
+          <p className="font-mono-ruum text-[10px] text-text-tertiary">del SLA</p>
         </div>
       </div>
 
       <BarraSLA porcentaje={alerta.porcentaje_consumido} vencido={alerta.vencido} />
 
       <div className="mt-2 flex items-center justify-between">
-        <p className="font-mono-ruum text-[10px] text-ink/45">
+        <p className="font-mono-ruum text-[10px] text-text-tertiary">
           {alerta.horas_transcurridas.toFixed(1)} h transcurridas · límite {LIMITE_ETIQUETA[alerta.tipo]}
         </p>
         <p
           className={`font-mono-ruum text-[10px] ${
-            alerta.vencido ? "text-danger" : "text-ink/35"
+            alerta.vencido ? "text-status-error" : "text-text-tertiary"
           }`}
         >
           {alerta.vencido
@@ -181,13 +181,13 @@ function TarjetaSLA({
       <div className="mt-3 flex items-center gap-2">
         <Link
           href={RUTA_DESTINO[alerta.tipo]}
-          className="flex-1 rounded-lg border border-ink/50 bg-mist py-2 text-center font-body text-xs text-ink/65 hover:bg-mist-dim transition-colors"
+          className="flex-1 rounded-lg border border-ink/50 bg-surface-primary py-2 text-center font-body text-xs text-text-secondary hover:bg-surface-secondary transition-colors"
         >
           {esUsuario ? "Ver usuario" : "Ver conductor"} →
         </Link>
         <button
           onClick={() => onResolver(alerta.id, alerta.tipo)}
-          className="flex-1 rounded-lg border border-control/30 bg-control-soft py-2 font-body text-xs text-control hover:bg-control hover:text-white transition-colors"
+          className="flex-1 rounded-lg border border-status-success/30 bg-status-success-soft py-2 font-body text-xs text-status-success hover:bg-status-success hover:text-background-main transition-colors"
         >
           Marcar en revisión
         </button>
@@ -265,22 +265,22 @@ export default function PaginaAlertasSLA() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-mist-dim px-6 py-4">
+      <div className="flex items-center justify-between border-b border-border-default px-6 py-4">
         <div>
           <h1 className="font-display text-xl font-semibold">Alertas de SLA</h1>
-          <p className="font-mono-ruum text-xs text-ink/45">
+          <p className="font-mono-ruum text-xs text-text-tertiary">
             Verificaciones pendientes · {total} en espera
           </p>
         </div>
         <div className="flex items-center gap-3">
           {esDemo && (
-            <span className="rounded-lg bg-warn-soft px-3 py-1 font-mono-ruum text-xs text-warn">
+            <span className="rounded-lg bg-status-warning-soft px-3 py-1 font-mono-ruum text-xs text-status-warning">
               Modo demo
             </span>
           )}
           <button
             onClick={() => void cargar()}
-            className="rounded-lg border border-mist-dim bg-mist px-3 py-1.5 font-body text-sm text-ink/65 hover:bg-mist-dim transition-colors"
+            className="rounded-lg border border-border-default bg-surface-primary px-3 py-1.5 font-body text-sm text-text-secondary hover:bg-surface-secondary transition-colors"
           >
             Actualizar
           </button>
@@ -290,21 +290,21 @@ export default function PaginaAlertasSLA() {
       <div className="px-6 py-6">
         {/* Resumen */}
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div className="rounded-xl bg-mist-dim px-4 py-3">
-            <p className="font-mono-ruum text-xs text-ink/45">Total pendientes</p>
+          <div className="rounded-xl bg-surface-secondary px-4 py-3">
+            <p className="font-mono-ruum text-xs text-text-tertiary">Total pendientes</p>
             <p className="font-display text-2xl font-semibold">{total}</p>
           </div>
-          <div className="rounded-xl bg-danger-soft px-4 py-3">
-            <p className="font-mono-ruum text-xs text-danger/70">Vencidos</p>
-            <p className="font-display text-2xl font-semibold text-danger">{vencidos.length}</p>
+          <div className="rounded-xl bg-status-error-soft px-4 py-3">
+            <p className="font-mono-ruum text-xs text-status-error/70">Vencidos</p>
+            <p className="font-display text-2xl font-semibold text-status-error">{vencidos.length}</p>
           </div>
-          <div className="rounded-xl bg-warn-soft px-4 py-3">
-            <p className="font-mono-ruum text-xs text-warn/70">Urgentes (≥80%)</p>
-            <p className="font-display text-2xl font-semibold text-warn">{urgentes.length}</p>
+          <div className="rounded-xl bg-status-warning-soft px-4 py-3">
+            <p className="font-mono-ruum text-xs text-status-warning/70">Urgentes (≥80%)</p>
+            <p className="font-display text-2xl font-semibold text-status-warning">{urgentes.length}</p>
           </div>
-          <div className="rounded-xl bg-control-soft px-4 py-3">
-            <p className="font-mono-ruum text-xs text-control/70">En plazo</p>
-            <p className="font-display text-2xl font-semibold text-control">{normales.length}</p>
+          <div className="rounded-xl bg-status-success-soft px-4 py-3">
+            <p className="font-mono-ruum text-xs text-status-success/70">En plazo</p>
+            <p className="font-display text-2xl font-semibold text-status-success">{normales.length}</p>
           </div>
         </div>
 
@@ -316,15 +316,15 @@ export default function PaginaAlertasSLA() {
 
         {cargando ? (
           <div className="flex items-center justify-center py-20">
-            <p className="font-mono-ruum text-sm text-ink/35">Cargando alertas…</p>
+            <p className="font-mono-ruum text-sm text-text-tertiary">Cargando alertas…</p>
           </div>
         ) : total === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-control-soft">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-status-success-soft">
               <span className="text-2xl">✓</span>
             </div>
-            <p className="font-display text-lg text-ink/50">Sin verificaciones pendientes</p>
-            <p className="font-body text-sm text-ink/35">
+            <p className="font-display text-lg text-text-tertiary">Sin verificaciones pendientes</p>
+            <p className="font-body text-sm text-text-tertiary">
               Todos los usuarios y conductores están al día.
             </p>
           </div>
@@ -332,7 +332,7 @@ export default function PaginaAlertasSLA() {
           <div className="flex flex-col gap-6">
             {vencidos.length > 0 && (
               <section>
-                <p className="mb-3 font-mono-ruum text-xs uppercase tracking-widest text-danger/70">
+                <p className="mb-3 font-mono-ruum text-xs uppercase tracking-widest text-status-error/70">
                   ⚠ Vencidos — {vencidos.length}
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -345,7 +345,7 @@ export default function PaginaAlertasSLA() {
 
             {urgentes.length > 0 && (
               <section>
-                <p className="mb-3 font-mono-ruum text-xs uppercase tracking-widest text-warn/70">
+                <p className="mb-3 font-mono-ruum text-xs uppercase tracking-widest text-status-warning/70">
                   Urgentes ≥ 80% · {urgentes.length}
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -358,7 +358,7 @@ export default function PaginaAlertasSLA() {
 
             {normales.length > 0 && (
               <section>
-                <p className="mb-3 font-mono-ruum text-xs uppercase tracking-widest text-ink/35">
+                <p className="mb-3 font-mono-ruum text-xs uppercase tracking-widest text-text-tertiary">
                   En plazo · {normales.length}
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -372,8 +372,8 @@ export default function PaginaAlertasSLA() {
         )}
 
         {/* Referencia de SLAs */}
-        <div className="mt-8 rounded-2xl border border-mist-dim bg-mist p-4">
-          <p className="mb-3 font-mono-ruum text-xs uppercase tracking-widest text-ink/40">
+        <div className="mt-8 rounded-2xl border border-border-default bg-surface-primary p-4">
+          <p className="mb-3 font-mono-ruum text-xs uppercase tracking-widest text-text-tertiary">
             Referencia — SLAs del PRD §4.1 (horas hábiles L-V 09:00–18:00)
           </p>
           <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
@@ -384,12 +384,12 @@ export default function PaginaAlertasSLA() {
               ["Revisión de documentos · conductor", "24 h"]
             ].map(([etiqueta, limite]) => (
               <div key={etiqueta} className="flex items-center justify-between">
-                <p className="font-body text-xs text-ink/55">{etiqueta}</p>
-                <p className="font-mono-ruum text-xs text-ink/70">{limite}</p>
+                <p className="font-body text-xs text-text-secondary">{etiqueta}</p>
+                <p className="font-mono-ruum text-xs text-text-secondary">{limite}</p>
               </div>
             ))}
           </div>
-          <p className="mt-3 font-body text-xs text-ink/35">
+          <p className="mt-3 font-body text-xs text-text-tertiary">
             Alerta visual activada al alcanzar el 80% del tiempo límite sin resolución.
           </p>
         </div>

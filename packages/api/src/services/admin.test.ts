@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   aplicarTarifaNormativaAdmin,
   ajustarPrecioFinalAdmin,
+  crearTrasladosMasivosAdmin,
   listarViajesAdmin,
   obtenerMetricasRegistroConductor
 } from "./admin";
@@ -101,5 +102,59 @@ describe("servicios admin", () => {
     await expect(aplicarTarifaNormativaAdmin(cliente as never, "traslado-1")).resolves.toBe(3450.75);
 
     expect(cliente.rpc).toHaveBeenCalledWith("admin_aplica_tarifa_normativa", { p_traslado_id: "traslado-1" });
+  });
+
+  it("crea traslados masivos corporativos por RPC y bloquea lotes vacíos", async () => {
+    const cliente = crearClienteFake({
+      rpcs: {
+        admin_crea_traslados_masivos: {
+          data: {
+            carga_id: "carga-1",
+            total_filas: 1,
+            filas_creadas: 1,
+            filas_error: 0,
+            estado: "procesada"
+          }
+        }
+      }
+    });
+
+    await expect(
+      crearTrasladosMasivosAdmin(cliente as never, {
+        empresaId: "empresa-1",
+        usuarioId: "usuario-1",
+        nombreArchivo: "traslados.csv",
+        filas: []
+      })
+    ).rejects.toThrow("El archivo no contiene filas válidas para enviar.");
+
+    await expect(
+      crearTrasladosMasivosAdmin(cliente as never, {
+        empresaId: "empresa-1",
+        usuarioId: "usuario-1",
+        nombreArchivo: "traslados.csv",
+        filas: [{
+          vehiculo_marca: "Nissan",
+          vehiculo_modelo: "Versa",
+          vehiculo_anio: "2024",
+          vehiculo_tipo: "sedan",
+          vehiculo_placas: "ABC123",
+          categoria_tarifa: "ligero_a",
+          gama: "entrada",
+          condicion: "seminueva",
+          origen_lat: "19.43",
+          origen_lng: "-99.13",
+          destino_lat: "19.50",
+          destino_lng: "-99.20"
+        }]
+      })
+    ).resolves.toMatchObject({ carga_id: "carga-1", filas_creadas: 1 });
+
+    expect(cliente.rpc).toHaveBeenCalledWith("admin_crea_traslados_masivos", {
+      p_empresa_id: "empresa-1",
+      p_usuario_id: "usuario-1",
+      p_nombre_archivo: "traslados.csv",
+      p_filas: [expect.objectContaining({ vehiculo_placas: "ABC123" })]
+    });
   });
 });

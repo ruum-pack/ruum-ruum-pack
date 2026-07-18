@@ -15,24 +15,24 @@ export default function ErrorGlobalAdmin({
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 py-20 text-center">
-      <div className="mb-6 flex size-16 items-center justify-center rounded-full bg-red-50">
+      <div className="mb-6 flex size-16 items-center justify-center rounded-full bg-status-error-soft text-status-error">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-          stroke="#dc2626" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+          stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
           aria-hidden="true">
           <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
         </svg>
       </div>
       <h1 className="font-display text-2xl font-semibold">Algo salió mal</h1>
-      <p className="mt-3 max-w-sm font-body text-sm leading-6 text-ink/60">
+      <p className="mt-3 max-w-sm font-body text-sm leading-6 text-text-secondary">
         Ocurrió un error inesperado en el panel. Puedes reintentar o volver al dashboard.
       </p>
       {process.env.NODE_ENV === "development" && error.message && (
-        <p className="mt-4 max-w-lg font-mono text-[11px] text-red-600 opacity-70">{error.message}</p>
+        <p className="mt-4 max-w-lg font-mono text-[11px] text-status-error opacity-70">{error.message}</p>
       )}
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <button
           onClick={reset}
-          className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-mist px-4 py-2 font-body text-sm font-medium text-ink transition hover:border-ink/40"
+          className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2 font-body text-sm font-medium text-ink transition hover:border-ink/40"
         >
           Reintentar
         </button>

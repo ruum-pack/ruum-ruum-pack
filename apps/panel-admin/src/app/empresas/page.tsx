@@ -36,17 +36,17 @@ function fecha(fechaIso: string | null | undefined) {
 function Badge({ estado }: { estado: EstadoVerificacion }) {
   const clase =
     estado === "verificado"
-      ? "border-control/30 bg-control-soft text-control"
+      ? "border-status-success/30 bg-status-success-soft text-status-success"
       : estado === "rechazado"
-        ? "border-danger/25 bg-danger-soft text-danger"
-        : "border-warn/40 bg-warn-soft text-warn";
+        ? "border-status-error/25 bg-status-error-soft text-status-error"
+        : "border-status-warning/40 bg-status-warning-soft text-status-warning";
   return <span className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold ${clase}`}>{ETIQUETA_ESTADO[estado]}</span>;
 }
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | number | null | undefined }) {
   return (
     <div>
-      <dt className="font-body text-xs uppercase tracking-wide text-ink/45">{etiqueta}</dt>
+      <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">{etiqueta}</dt>
       <dd className="mt-1 font-body text-sm font-medium">{valor || "Pendiente"}</dd>
     </div>
   );
@@ -74,11 +74,11 @@ function AccionesEmpresa({ empresa, onActualizado }: { empresa: Empresa; onActua
   return (
     <div className="mt-5 grid gap-3 rounded-lg border border-ink/10 px-4 py-4">
       <label className="grid gap-1.5">
-        <span className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Condiciones de pago</span>
+        <span className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Condiciones de pago</span>
         <textarea
           value={condicionesPago}
           onChange={(e) => setCondicionesPago(e.target.value)}
-          className="min-h-20 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+          className="min-h-20 rounded-lg border border-ink/50 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-route-dark"
           placeholder="Ej. Pago por transferencia semanal, 7 días contra factura"
         />
       </label>
@@ -86,7 +86,7 @@ function AccionesEmpresa({ empresa, onActualizado }: { empresa: Empresa; onActua
         <Button variant="quiet" onClick={() => cambiar("verificado")} disabled={pendiente}>Aprobar RFC / CFDI</Button>
         <Button variant="quiet" onClick={() => cambiar("rechazado")} disabled={pendiente}>Rechazar</Button>
         <Button variant="quiet" onClick={() => cambiar("en_revision")} disabled={pendiente}>Solicitar actualización</Button>
-        {mensaje && <span className="font-body text-sm text-ink/60">{mensaje}</span>}
+        {mensaje && <span className="font-body text-sm text-text-secondary">{mensaje}</span>}
       </div>
     </div>
   );
@@ -154,17 +154,17 @@ export default function PaginaEmpresasAdmin() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-semibold">Empresas</h1>
-          <p className="mt-1 font-body text-sm text-ink/55">Cuentas empresariales reales, usuarios vinculados, condiciones comerciales y facturación.</p>
+          <p className="mt-1 font-body text-sm text-text-secondary">Cuentas empresariales reales, usuarios vinculados, condiciones comerciales y facturación.</p>
         </div>
         <Button>Crear empresa</Button>
       </div>
 
       <section className="mt-6">
         <PassportCard>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Tipos de empresa</p>
+          <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Tipos de empresa</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {TIPOS.map((tipo) => (
-              <span key={tipo} className="rounded-full border border-ink/10 px-3 py-1.5 font-body text-xs font-semibold text-ink/65">
+              <span key={tipo} className="rounded-full border border-ink/10 px-3 py-1.5 font-body text-xs font-semibold text-text-secondary">
                 {tipo}
               </span>
             ))}
@@ -179,12 +179,12 @@ export default function PaginaEmpresasAdmin() {
       )}
 
       {cargando ? (
-        <p className="mt-8 font-body text-sm text-ink/50">Cargando empresas...</p>
+        <p className="mt-8 font-body text-sm text-text-tertiary">Cargando empresas...</p>
       ) : (
         <section className="mt-6 grid gap-4">
           {datos.empresas.length === 0 ? (
             <PassportCard>
-              <p className="font-body text-sm text-ink/55">No hay empresas registradas.</p>
+              <p className="font-body text-sm text-text-secondary">No hay empresas registradas.</p>
             </PassportCard>
           ) : (
             datos.empresas.map((empresa) => {
@@ -196,9 +196,9 @@ export default function PaginaEmpresasAdmin() {
                 <PassportCard key={empresa.id}>
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                      <p className="font-body text-xs uppercase tracking-wide text-ink/45">Cuenta empresarial</p>
+                      <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Cuenta empresarial</p>
                       <h2 className="mt-1 font-display text-xl font-semibold">{empresa.nombre}</h2>
-                      <p className="mt-1 font-body text-sm text-ink/60">
+                      <p className="mt-1 font-body text-sm text-text-secondary">
                         {empresa.razon_social ?? empresa.nombre} · RFC {empresa.rfc ?? "pendiente"}
                       </p>
                     </div>
@@ -220,12 +220,12 @@ export default function PaginaEmpresasAdmin() {
 
                   {usuarios.length > 0 && (
                     <div className="mt-5 rounded-lg border border-ink/10 px-4 py-4">
-                      <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Usuarios asociados</p>
+                      <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Usuarios asociados</p>
                       <div className="mt-3 grid gap-2">
                         {usuarios.map((usuario) => (
                           <div key={usuario.id} className="flex flex-col justify-between gap-1 font-body text-sm sm:flex-row">
                             <span className="font-medium">{usuario.nombre ?? usuario.id.slice(0, 8).toUpperCase()}</span>
-                            <span className="text-ink/55">
+                            <span className="text-text-secondary">
                               {usuario.rol.replaceAll("_", " ")} · {usuario.telefono ?? usuario.correo_facturacion ?? "Sin contacto"}
                             </span>
                           </div>

@@ -23,7 +23,7 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
 
   if (usuario.estado_verificacion === "verificado" || usuario.estado_verificacion === "rechazado") {
     return (
-      <p className="mt-2 font-body text-xs text-ink/40">
+      <p className="mt-2 font-body text-xs text-text-tertiary">
         Estado final: {usuario.estado_verificacion === "verificado" ? "Verificado" : "Rechazado"}. Sin acciones pendientes.
       </p>
     );
@@ -78,7 +78,7 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
             href={urlDocumento}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 font-body text-sm text-route-dark underline-offset-2 hover:underline"
+            className="inline-flex items-center gap-2 font-body text-sm text-status-info underline-offset-2 hover:underline"
           >
             Abrir identificación (enlace válido 30 min)
           </a>
@@ -88,14 +88,14 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
           </Button>
         )
       ) : (
-        <p className="font-body text-xs text-warn/80">El usuario aún no ha subido su documento de identidad.</p>
+        <p className="font-body text-xs text-status-warning/80">El usuario aún no ha subido su documento de identidad.</p>
       )}
 
       {/* Confirmación inline de Aprobar */}
       {confirmando === "aprobar" ? (
-        <div className="rounded-lg border border-ink/15 bg-mist p-3">
+        <div className="rounded-lg border border-ink/15 bg-surface-primary p-3">
           <p className="font-body text-sm font-semibold text-ink">¿Aprobar esta cuenta?</p>
-          <p className="mt-1 font-body text-xs text-ink/60">
+          <p className="mt-1 font-body text-xs text-text-secondary">
             El usuario quedará habilitado para solicitar traslados inmediatamente.
           </p>
           <div className="mt-3 flex gap-2">
@@ -109,24 +109,24 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
         </div>
       ) : confirmando === "rechazar" ? (
         /* Confirmación inline de Rechazar con motivo */
-        <div className="rounded-lg border border-danger/25 bg-danger-soft/40 p-3">
-          <p className="font-body text-sm font-semibold text-danger">Rechazar documentación</p>
-          <p className="mt-1 font-body text-xs text-ink/60">
+        <div className="rounded-lg border border-status-error/25 bg-status-error-soft/40 p-3">
+          <p className="font-body text-sm font-semibold text-status-error">Rechazar documentación</p>
+          <p className="mt-1 font-body text-xs text-text-secondary">
             El usuario recibirá una notificación con el motivo. Puede subir documentación nueva.
           </p>
           <label className="mt-3 flex flex-col gap-1.5">
-            <span className="font-body text-xs font-medium text-ink/70">
-              Motivo del rechazo <span className="text-danger">*</span>
+            <span className="font-body text-xs font-medium text-text-secondary">
+              Motivo del rechazo <span className="text-status-error">*</span>
             </span>
             <textarea
               value={motivoRechazo}
               onChange={(e) => setMotivoRechazo(e.target.value)}
               placeholder="Ej. La foto está borrosa o el documento no coincide con los datos del perfil."
-              className="min-h-[72px] resize-none rounded-lg border border-danger/30 bg-mist px-3 py-2 font-body text-sm text-ink focus:border-danger focus:outline-none focus:ring-2 focus:ring-danger/20"
+              className="min-h-[72px] resize-none rounded-lg border border-status-error/30 bg-surface-primary px-3 py-2 font-body text-sm text-ink focus:border-status-error focus:outline-none focus:ring-2 focus:ring-status-error/20"
               maxLength={500}
               aria-label="Motivo del rechazo"
             />
-            <span className="text-right font-body text-[11px] text-ink/40">{motivoRechazo.length}/500</span>
+            <span className="text-right font-body text-[11px] text-text-tertiary">{motivoRechazo.length}/500</span>
           </label>
           <div className="mt-3 flex gap-2">
             <Button
@@ -166,7 +166,7 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
       )}
 
       {!usuario.doc_identidad_url && (
-        <p className="font-body text-xs text-ink/40">
+        <p className="font-body text-xs text-text-tertiary">
           El botón &quot;Aprobar cuenta&quot; permanece deshabilitado hasta que el usuario suba su identificación.
         </p>
       )}

@@ -51,12 +51,12 @@ export default function PaginaLogin() {
             <p className="font-display text-lg font-extrabold tracking-tight text-ink">
               ruum<span className="text-signal">ruum</span>
             </p>
-            <p className="font-mono-ruum text-[10px] uppercase tracking-[0.14em] text-ink/50">Torre de Control</p>
+            <p className="font-mono-ruum text-[10px] uppercase tracking-[0.14em] text-text-tertiary">Torre de Control</p>
           </div>
         </div>
 
         <h1 id="titulo-acceso-admin" className="mt-8 font-display text-2xl font-bold text-ink">Acceso operativo</h1>
-        <p className="mt-2 font-body text-sm leading-6 text-ink/65">Consulta traslados, evidencia, incidencias y alertas de la operación.</p>
+        <p className="mt-2 font-body text-sm leading-6 text-text-secondary">Consulta traslados, evidencia, incidencias y alertas de la operación.</p>
 
         {!tieneSupabaseConfigurado() ? (
           <div className="mt-6">

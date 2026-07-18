@@ -17,6 +17,15 @@ const DESTINOS = [
     ),
   },
   {
+    href: "/masivos",
+    etiqueta: "Masivos",
+    Icono: () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 4h16v5H4z"/><path d="M4 15h16v5H4z"/><path d="M8 9v6M16 9v6"/><path d="M8 6h.01M8 17h.01"/>
+      </svg>
+    ),
+  },
+  {
     href: "/conductores",
     etiqueta: "Conductores",
     Icono: () => (
@@ -55,14 +64,14 @@ export function NavegacionAdminMovil() {
   if (pathname === "/login") return null;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-ink/10 bg-mist/95 backdrop-blur supports-[backdrop-filter]:bg-mist/85 lg:hidden">
+    <header className="sticky top-0 z-40 border-b border-ink/10 bg-surface-primary/95 backdrop-blur supports-[backdrop-filter]:bg-surface-primary/85 lg:hidden">
       <div className="ruum-container flex min-h-16 items-center justify-between gap-3 py-2.5">
         <Link href="/" className="flex items-center gap-2.5 rounded-lg" aria-label="Ir al dashboard de Ruum Ruum">
           <LogoMarca tamano={28} color="signal" />
           <span className="font-display text-sm font-extrabold tracking-tight text-ink">
             ruum<span className="text-signal">ruum</span>
           </span>
-          <span className="font-mono-ruum text-[9px] uppercase tracking-[0.12em] text-ink/45">Control</span>
+          <span className="font-mono-ruum text-[9px] uppercase tracking-[0.12em] text-text-tertiary">Control</span>
         </Link>
         <Link href="/viajes" className="inline-flex min-h-10 items-center rounded-lg bg-signal px-3 py-2 font-body text-xs font-bold text-ink shadow-sm">
           Ver traslados
@@ -78,7 +87,7 @@ export function NavegacionAdminMovil() {
               aria-current={activo ? "page" : undefined}
               className={[
                 "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 font-body text-xs font-semibold",
-                activo ? "bg-signal text-ink" : "border border-ink/10 bg-mist text-ink/60",
+                activo ? "bg-signal text-ink" : "border border-ink/10 bg-surface-primary text-text-secondary",
               ].join(" ")}
             >
               <destino.Icono />

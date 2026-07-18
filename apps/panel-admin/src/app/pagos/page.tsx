@@ -48,7 +48,7 @@ function Tabla({ columnas, children }: { columnas: string[]; children: React.Rea
         <thead>
           <tr>
             {columnas.map((columna) => (
-              <th key={columna} className="border-b border-ink/10 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ink/45">
+              <th key={columna} className="border-b border-ink/10 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-text-tertiary">
                 {columna}
               </th>
             ))}
@@ -61,7 +61,7 @@ function Tabla({ columnas, children }: { columnas: string[]; children: React.Rea
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-full border border-route/30 bg-route-soft px-2.5 py-1 font-body text-xs font-semibold text-route-dark">{children}</span>;
+  return <span className="rounded-full border border-status-info/30 bg-status-info-soft px-2.5 py-1 font-body text-xs font-semibold text-status-info">{children}</span>;
 }
 
 function ultimos4(valor: string | null | undefined) {
@@ -117,7 +117,7 @@ export default function PaginaPagosAdmin() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
       <h1 className="font-display text-2xl font-semibold">Pagos</h1>
-      <p className="mt-1 font-body text-sm text-ink/55">Cobros de usuarios, pagos a conductores y datos bancarios operativos.</p>
+      <p className="mt-1 font-body text-sm text-text-secondary">Cobros de usuarios, pagos a conductores y datos bancarios operativos.</p>
 
       {esDemo && (
         <div className="mt-4">
@@ -126,14 +126,14 @@ export default function PaginaPagosAdmin() {
       )}
 
       {cargando ? (
-        <p className="mt-8 font-body text-sm text-ink/50">Cargando pagos...</p>
+        <p className="mt-8 font-body text-sm text-text-tertiary">Cargando pagos...</p>
       ) : (
         <section className="mt-6 grid gap-6">
           <PassportCard>
             <h2 className="font-display text-xl font-semibold">Pagos de usuarios</h2>
             <Tabla columnas={["Traslado", "Vehículo", "Tarifa", "Método", "Estatus", "Stripe PaymentIntent", "Evento Stripe", "Fecha"]}>
               {pagos.length === 0 ? (
-                <tr><td colSpan={8} className="px-3 py-6 text-ink/50">No hay pagos registrados.</td></tr>
+                <tr><td colSpan={8} className="px-3 py-6 text-text-tertiary">No hay pagos registrados.</td></tr>
               ) : (
                 pagos.map((pago: Pago) => {
                   const pasaporte = pago.traslado_id ? pasaportePorId.get(pago.traslado_id) : null;
@@ -142,20 +142,20 @@ export default function PaginaPagosAdmin() {
                     <tr key={pago.id} className="align-top">
                       <td className="border-b border-ink/10 px-3 py-3">
                         {pago.traslado_id ? (
-                          <Link href={`/viajes/${pago.traslado_id}`} className="text-route-dark">
+                          <Link href={`/viajes/${pago.traslado_id}`} className="text-status-info">
                             {pago.traslado_id.slice(0, 8).toUpperCase()}
                           </Link>
                         ) : (
-                          <span className="text-ink/50">Sin traslado</span>
+                          <span className="text-text-tertiary">Sin traslado</span>
                         )}
                       </td>
-                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{vehiculo}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{vehiculo}</td>
                       <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(pago.monto)}</td>
-                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{pago.metodo} · {pago.momento.replaceAll("_", " ")}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{pago.metodo} · {pago.momento.replaceAll("_", " ")}</td>
                       <td className="border-b border-ink/10 px-3 py-3"><Badge>{pago.estado}</Badge></td>
-                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{pago.stripe_payment_intent_id ?? "Pendiente"}</td>
-                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{pago.stripe_event_id ?? "Sin evento"}</td>
-                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{fecha(pago.registrado_en)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-text-secondary">{pago.stripe_payment_intent_id ?? "Pendiente"}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-text-secondary">{pago.stripe_event_id ?? "Sin evento"}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{fecha(pago.registrado_en)}</td>
                     </tr>
                   );
                 })
@@ -167,20 +167,20 @@ export default function PaginaPagosAdmin() {
             <h2 className="font-display text-xl font-semibold">Pagos a conductores</h2>
             <Tabla columnas={["Conductor", "Periodo", "Bruto", "Ajustes", "Deposito neto", "Estatus", "Referencia", "Procesado"]}>
               {payouts.length === 0 ? (
-                <tr><td colSpan={8} className="px-3 py-6 text-ink/50">No hay payouts registrados.</td></tr>
+                <tr><td colSpan={8} className="px-3 py-6 text-text-tertiary">No hay payouts registrados.</td></tr>
               ) : (
                 payouts.map((payout: Payout) => {
                   const conductor = conductorPorId.get(payout.conductor_id);
                   return (
                     <tr key={payout.id} className="align-top">
-                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{conductor?.nombre ?? payout.conductor_id.slice(0, 8)}</td>
-                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{payout.periodo_inicio} → {payout.periodo_fin}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{conductor?.nombre ?? payout.conductor_id.slice(0, 8)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{payout.periodo_inicio} → {payout.periodo_fin}</td>
                       <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(payout.monto_bruto)}</td>
                       <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(payout.ajustes)}</td>
                       <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(payout.monto_neto)}</td>
                       <td className="border-b border-ink/10 px-3 py-3"><Badge>{payout.estado}</Badge></td>
-                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{payout.referencia_pago ?? "Pendiente"}</td>
-                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{fecha(payout.procesado_en)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-text-secondary">{payout.referencia_pago ?? "Pendiente"}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{fecha(payout.procesado_en)}</td>
                     </tr>
                   );
                 })
@@ -192,18 +192,18 @@ export default function PaginaPagosAdmin() {
             <h2 className="font-display text-xl font-semibold">Datos bancarios de conductores</h2>
             <Tabla columnas={["Conductor", "Banco", "CLABE", "Tarjeta", "Estado", "Actualizado"]}>
               {datos.datosBancariosConductores.length === 0 ? (
-                <tr><td colSpan={6} className="px-3 py-6 text-ink/50">No hay datos bancarios registrados.</td></tr>
+                <tr><td colSpan={6} className="px-3 py-6 text-text-tertiary">No hay datos bancarios registrados.</td></tr>
               ) : (
                 datos.datosBancariosConductores.map((cuenta) => {
                   const conductor = conductorPorId.get(cuenta.conductor_id);
                   return (
                     <tr key={cuenta.id} className="align-top">
-                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{conductor?.nombre ?? cuenta.conductor_id.slice(0, 8)}</td>
-                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{cuenta.banco}</td>
-                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{ultimos4(cuenta.clabe)}</td>
-                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-ink/60">{ultimos4(cuenta.numero_tarjeta)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{conductor?.nombre ?? cuenta.conductor_id.slice(0, 8)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{cuenta.banco}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-text-secondary">{ultimos4(cuenta.clabe)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-text-secondary">{ultimos4(cuenta.numero_tarjeta)}</td>
                       <td className="border-b border-ink/10 px-3 py-3"><Badge>{cuenta.estado.replaceAll("_", " ")}</Badge></td>
-                      <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{fecha(cuenta.actualizado_en)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{fecha(cuenta.actualizado_en)}</td>
                     </tr>
                   );
                 })

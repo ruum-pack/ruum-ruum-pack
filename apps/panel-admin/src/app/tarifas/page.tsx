@@ -69,9 +69,9 @@ function fechaInputAIso(valor: string) {
 }
 
 function claseEstado(estado: string) {
-  if (estado === "vigente") return "border-control/30 bg-control-soft text-control";
-  if (estado === "borrador") return "border-route-dark/30 bg-route-dark/10 text-route-dark";
-  return "border-ink/15 bg-ink/5 text-ink/55";
+  if (estado === "vigente") return "border-status-success/30 bg-status-success-soft text-status-success";
+  if (estado === "borrador") return "border-focus-default/30 bg-status-info-soft text-status-info";
+  return "border-ink/15 bg-ink/5 text-text-secondary";
 }
 
 function CampoBorrador({
@@ -86,17 +86,17 @@ function CampoBorrador({
   onCambiar: (valor: string) => void;
 }) {
   return (
-    <label className="block min-w-0 font-body text-sm font-medium text-ink/75">
+    <label className="block min-w-0 font-body text-sm font-medium text-text-main">
       <span className="block">{etiqueta}</span>
       <span className="relative mt-1.5 block">
         <input
           value={valor}
           onChange={(e) => onCambiar(e.target.value)}
           inputMode="decimal"
-          className="block w-full rounded-lg border border-ink/20 bg-mist px-3 py-2 pr-16 font-body text-sm text-ink shadow-sm transition-colors hover:border-ink/35 focus:border-route-dark focus:outline-none focus:ring-2 focus:ring-route-dark/20"
+          className="block w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 pr-16 font-body text-sm text-ink shadow-sm transition-colors hover:border-ink/35 focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
         />
         {sufijo && (
-          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center border-l border-ink/10 pl-3 font-mono-ruum text-xs font-medium text-ink/45">
+          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center border-l border-ink/10 pl-3 font-mono-ruum text-xs font-medium text-text-tertiary">
             {sufijo}
           </span>
         )}
@@ -116,14 +116,14 @@ function ConfirmacionImpacto({
 }) {
   if (!abierto) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#02050b]/80 px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="confirmacion-impacto-titulo">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-ink/20 bg-mist shadow-[var(--ruum-shadow-4)]">
-        <div className="border-b border-warn/20 bg-warn-soft px-6 py-5">
-          <p className="font-mono-ruum text-xs font-medium uppercase tracking-wide text-warn">Cambio de alto impacto</p>
+    <div className="admin-modal-backdrop fixed inset-0 z-50 flex items-center justify-center px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="confirmacion-impacto-titulo">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-ink/20 bg-surface-primary shadow-[var(--ruum-shadow-4)]">
+        <div className="border-b border-status-warning/20 bg-status-warning-soft px-6 py-5">
+          <p className="font-mono-ruum text-xs font-medium uppercase tracking-wide text-status-warning">Cambio de alto impacto</p>
           <h2 id="confirmacion-impacto-titulo" className="mt-1 font-display text-xl font-semibold text-ink">Confirmar cambio vigente</h2>
         </div>
         <div className="px-6 py-5">
-          <p className="font-body text-sm leading-6 text-ink/70">
+          <p className="font-body text-sm leading-6 text-text-secondary">
             Esta acción modifica una política tarifaria normativa. Afectará únicamente cálculos futuros y quedará registrada para auditoría.
           </p>
           <div className="mt-6 flex flex-wrap justify-end gap-3">
@@ -183,12 +183,12 @@ export default function PaginaTarifasAdmin() {
           sizes="(max-width: 1024px) 100vw, 1152px"
           className="scale-105 object-cover object-[60%_38%]"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(7,11,20,0.97)_0%,rgba(7,11,20,0.84)_52%,rgba(7,11,20,0.42)_100%)]" />
+        <div className="admin-hero-token-overlay absolute inset-0" />
         <div className="relative flex min-h-32 items-end px-6 py-6 sm:px-8">
           <div>
-            <p className="font-mono-ruum text-xs font-medium uppercase tracking-wide text-[#65b5ff]">Apartado normativo rector</p>
-            <h1 className="mt-1 font-display text-2xl font-bold text-[#e8edf6]">Tarifas</h1>
-            <p className="mt-1 font-body text-sm text-[#b7c2d4]">Políticas aprobadas, fórmula auditable y simulación del precio aplicable a cada traslado.</p>
+            <p className="font-mono-ruum text-xs font-medium uppercase tracking-wide text-status-info">Apartado normativo rector</p>
+            <h1 className="mt-1 font-display text-2xl font-bold text-text-main">Tarifas</h1>
+            <p className="mt-1 font-body text-sm text-text-secondary">Políticas aprobadas, fórmula auditable y simulación del precio aplicable a cada traslado.</p>
           </div>
         </div>
       </div>
@@ -202,7 +202,7 @@ export default function PaginaTarifasAdmin() {
       {cargando ? (
         <div className="mt-6 grid gap-6" aria-label="Cargando política tarifaria" aria-busy="true">
           {[1, 2, 3].map((item) => (
-            <div key={item} className="rounded-card border border-ink/10 bg-mist p-6">
+            <div key={item} className="rounded-card border border-ink/10 bg-surface-primary p-6">
               <div className="h-5 w-48 animate-pulse rounded bg-ink/10" />
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 {[1, 2, 3].map((campo) => <div key={campo} className="h-12 animate-pulse rounded-lg bg-ink/5" />)}
@@ -228,9 +228,9 @@ function PrincipiosTarifarios() {
     <PassportCard acento>
       <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr] lg:items-start">
         <div>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Principio rector</p>
+          <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Principio rector</p>
           <h2 className="mt-1 font-display text-xl font-semibold">La operación aplica tarifas; no las negocia.</h2>
-          <p className="mt-2 font-body text-sm leading-6 text-ink/60">
+          <p className="mt-2 font-body text-sm leading-6 text-text-secondary">
             Todo precio debe salir de una política tarifaria vigente, aprobada y trazable. Si existe un acuerdo extraordinario, se convierte en regla, convenio o política con vigencia.
           </p>
         </div>
@@ -241,7 +241,7 @@ function PrincipiosTarifarios() {
             "Sin precios libres en operación",
             "Historial visible para dirección"
           ].map((texto) => (
-            <div key={texto} className="rounded-lg border border-ink/10 bg-ink/[0.03] px-4 py-3 font-body text-sm text-ink/70">
+            <div key={texto} className="rounded-lg border border-ink/10 bg-ink/[0.03] px-4 py-3 font-body text-sm text-text-secondary">
               {texto}
             </div>
           ))}
@@ -315,10 +315,10 @@ function PoliticaVigente({
             <span className={`rounded-full border px-3 py-1 font-semibold ${claseEstado(config.estado)}`}>
               {ETIQUETA_ESTADO[config.estado]}
             </span>
-            <span className="rounded-full border border-ink/10 bg-mist px-3 py-1 text-ink/65">
+            <span className="rounded-full border border-ink/10 bg-surface-primary px-3 py-1 text-text-secondary">
               Vigente desde {formatoFecha(config.vigente_desde)}
             </span>
-            <span className="rounded-full border border-ink/10 bg-mist px-3 py-1 text-ink/65">
+            <span className="rounded-full border border-ink/10 bg-surface-primary px-3 py-1 text-text-secondary">
               Última modificación: {datos.adminActualizacion?.nombre ?? "Admin no identificado"} · {formatoFecha(config.actualizado_en)}
             </span>
           </div>
@@ -326,26 +326,26 @@ function PoliticaVigente({
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_180px_220px]">
-        <label className="font-body text-sm font-medium text-ink/75">
+        <label className="font-body text-sm font-medium text-text-main">
           Nombre de versión
-          <input value={nombre} onChange={(e) => setNombre(e.target.value)} className="mt-1 w-full rounded-lg border border-ink/25 bg-mist px-3 py-2 text-sm" />
+          <input value={nombre} onChange={(e) => setNombre(e.target.value)} className="mt-1 w-full rounded-lg border border-ink/25 bg-surface-primary px-3 py-2 text-sm" />
         </label>
-        <label className="font-body text-sm font-medium text-ink/75">
+        <label className="font-body text-sm font-medium text-text-main">
           Estado
-          <select value={estado} onChange={(e) => setEstado(e.target.value as typeof estado)} className="mt-1 w-full rounded-lg border border-ink/25 bg-mist px-3 py-2 text-sm">
+          <select value={estado} onChange={(e) => setEstado(e.target.value as typeof estado)} className="mt-1 w-full rounded-lg border border-ink/25 bg-surface-primary px-3 py-2 text-sm">
             <option value="borrador">Borrador</option>
             <option value="vigente">Vigente</option>
             <option value="archivada">Archivada</option>
           </select>
         </label>
-        <label className="font-body text-sm font-medium text-ink/75">
+        <label className="font-body text-sm font-medium text-text-main">
           Fecha de vigencia
-          <input type="datetime-local" value={vigenteDesde} onChange={(e) => setVigenteDesde(e.target.value)} className="mt-1 w-full rounded-lg border border-ink/25 bg-mist px-3 py-2 text-sm" />
+          <input type="datetime-local" value={vigenteDesde} onChange={(e) => setVigenteDesde(e.target.value)} className="mt-1 w-full rounded-lg border border-ink/25 bg-surface-primary px-3 py-2 text-sm" />
         </label>
       </div>
       <div className="mt-4 flex items-center gap-3">
         <Button onClick={guardar} disabled={pendiente}>Guardar política</Button>
-        {mensaje && <span className="font-body text-xs text-ink/55">{mensaje}</span>}
+        {mensaje && <span className="font-body text-xs text-text-secondary">{mensaje}</span>}
       </div>
       <ConfirmacionImpacto
         abierto={confirmando}
@@ -371,10 +371,10 @@ function PasoFormula({
   return (
     <div className="flex flex-col gap-2 border-b border-ink/10 px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:gap-4">
       <div className="flex shrink-0 items-center gap-2 sm:w-40">
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-route-dark font-body text-xs font-semibold text-white">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-status-info font-body text-xs font-semibold text-background-main">
           {numero}
         </span>
-        <span className="font-body text-xs font-semibold uppercase tracking-wide text-ink/55">{etiqueta}</span>
+        <span className="font-body text-xs font-semibold uppercase tracking-wide text-text-secondary">{etiqueta}</span>
       </div>
       <code className="font-mono-ruum text-sm leading-7 text-ink sm:text-[0.95rem]">{children}</code>
     </div>
@@ -382,19 +382,19 @@ function PasoFormula({
 }
 
 function Var({ children }: { children: ReactNode }) {
-  return <span className="font-semibold text-route-dark">{children}</span>;
+  return <span className="font-semibold text-status-info">{children}</span>;
 }
 
 function Op({ children }: { children: ReactNode }) {
-  return <span className="text-ink/40">{children}</span>;
+  return <span className="text-text-tertiary">{children}</span>;
 }
 
 function FormulaVigente({ datos }: { datos: ConfiguracionTarifas }) {
   return (
     <PassportCard>
       <h2 className="font-display text-xl font-semibold">Fórmula vigente</h2>
-      <p className="mt-1 font-body text-sm text-ink/55">Así se calcula la tarifa final que ve el usuario, paso por paso.</p>
-      <div className="mt-4 overflow-hidden rounded-lg border border-ink/10 bg-mist-dim">
+      <p className="mt-1 font-body text-sm text-text-secondary">Así se calcula la tarifa final que ve el usuario, paso por paso.</p>
+      <div className="mt-4 overflow-hidden rounded-lg border border-ink/10 bg-surface-secondary">
         <PasoFormula numero="1" etiqueta="Base por categoría">
           <Var>Base_categoría</Var> <Op>=</Op> BaseVehículo(rango) <Op>×</Op> <Var>F_gama</Var>
         </PasoFormula>
@@ -564,11 +564,11 @@ function ParametrosNormativos({
 
   return (
     <div className="grid gap-6">
-      <div className="sticky top-3 z-20 -mx-2 rounded-lg border border-route-dark/20 bg-mist/95 px-4 py-3 shadow-[var(--ruum-shadow-2)] backdrop-blur">
+      <div className="sticky top-3 z-20 -mx-2 rounded-lg border border-focus-default/20 bg-surface-primary/95 px-4 py-3 shadow-[var(--ruum-shadow-2)] backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="font-body text-sm font-semibold text-ink">Edición de parámetros normativos</p>
-            {mensaje && <p className="mt-1 font-body text-xs text-ink/55">{mensaje}</p>}
+            {mensaje && <p className="mt-1 font-body text-xs text-text-secondary">{mensaje}</p>}
           </div>
           <Button onClick={guardar} disabled={!hayCambios || guardando}>Guardar cambios</Button>
         </div>
@@ -670,7 +670,7 @@ function TarifasBaseFijas({
   return (
     <PassportCard acento>
       <h2 className="font-display text-xl font-semibold">Tarifas base fijas</h2>
-      <p className="mt-1 font-body text-sm text-ink/55">Importes de partida y costo por kilómetro según categoría y rango.</p>
+      <p className="mt-1 font-body text-sm text-text-secondary">Importes de partida y costo por kilómetro según categoría y rango.</p>
       <div className="mt-5 grid gap-x-6 gap-y-8 xl:grid-cols-2">
         {Array.from(porCategoria.entries()).map(([categoria, filas]) => (
           <section key={categoria}>
@@ -681,7 +681,7 @@ function TarifasBaseFijas({
             <div className="divide-y divide-ink/10">
               {filas.map((fila) => (
                 <div key={fila.id} className="grid gap-3 py-4 lg:grid-cols-[minmax(150px,1fr)_minmax(120px,150px)_minmax(120px,150px)]">
-                  <p className="self-center font-body text-sm font-medium leading-5 text-ink/70">{ETIQUETA_RANGO[fila.rango] ?? fila.rango}</p>
+                  <p className="self-center font-body text-sm font-medium leading-5 text-text-secondary">{ETIQUETA_RANGO[fila.rango] ?? fila.rango}</p>
                   <CampoBorrador
                     etiqueta="Base"
                     valor={borrador.vehiculo[fila.id]?.base ?? ""}
@@ -741,24 +741,24 @@ function SimuladorNormativo({ datos }: { datos: ConfiguracionTarifas }) {
         <SelectSim<CondicionTarifa> etiqueta="Condición" valor={condicion} onChange={setCondicion} opciones={datos.condicion.map((v) => v.condicion)} />
         <SelectSim<HorarioTarifa> etiqueta="Horario" valor={horario} onChange={setHorario} opciones={datos.horario.map((v) => v.horario)} />
         <SelectSim<DiaTarifa> etiqueta="Día" valor={dia} onChange={setDia} opciones={datos.dia.map((v) => v.dia)} />
-        <label className="font-body text-sm font-medium text-ink/75">
+        <label className="font-body text-sm font-medium text-text-main">
           Distancia km
-          <input value={distanciaKm} onChange={(e) => setDistanciaKm(e.target.value)} inputMode="decimal" className="mt-1 w-full rounded-lg border border-ink/25 bg-mist px-3 py-2 text-sm" />
+          <input value={distanciaKm} onChange={(e) => setDistanciaKm(e.target.value)} inputMode="decimal" className="mt-1 w-full rounded-lg border border-ink/25 bg-surface-primary px-3 py-2 text-sm" />
         </label>
-        <label className="font-body text-sm font-medium text-ink/75">
+        <label className="font-body text-sm font-medium text-text-main">
           Tiempo horas
-          <input value={tiempoHoras} onChange={(e) => setTiempoHoras(e.target.value)} inputMode="decimal" className="mt-1 w-full rounded-lg border border-ink/25 bg-mist px-3 py-2 text-sm" />
+          <input value={tiempoHoras} onChange={(e) => setTiempoHoras(e.target.value)} inputMode="decimal" className="mt-1 w-full rounded-lg border border-ink/25 bg-surface-primary px-3 py-2 text-sm" />
         </label>
       </div>
-      <div className="mt-5 overflow-hidden rounded-lg border border-route-dark/20 bg-route-soft/40 px-4 py-4">
+      <div className="mt-5 overflow-hidden rounded-lg border border-focus-default/20 bg-status-info-soft/40 px-4 py-4">
         {resultado.ok ? (
-          <div className="grid gap-2 font-body text-sm text-ink/70 sm:grid-cols-4">
+          <div className="grid gap-2 font-body text-sm text-text-secondary sm:grid-cols-4">
             <DatoSim etiqueta="Rango" valor={ETIQUETA_RANGO[resultado.valor.rango] ?? resultado.valor.rango} />
             <DatoSim etiqueta="Base categoría" valor={`$${resultado.valor.baseCategoria.toLocaleString("es-MX")}`} />
             <DatoSim etiqueta="Subtotal" valor={`$${resultado.valor.subtotal.toLocaleString("es-MX")}`} />
             <DatoSim etiqueta="Factor variable" valor={`${resultado.valor.factorVariable.toFixed(2)}x`} />
             <div className="sm:col-span-4">
-              <p className="font-body text-xs uppercase tracking-wide text-ink/45">Tarifa final normativa</p>
+              <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Tarifa final normativa</p>
               <p className="mt-1 font-display text-3xl font-semibold text-ink">${resultado.valor.tarifa.toLocaleString("es-MX")}</p>
             </div>
           </div>
@@ -785,9 +785,9 @@ function SelectSim<T extends string>({
 }) {
   const unicas = [...new Set(opciones)];
   return (
-    <label className="font-body text-sm font-medium text-ink/75">
+    <label className="font-body text-sm font-medium text-text-main">
       {etiqueta}
-      <select value={valor} onChange={(e) => onChange(e.target.value as T)} className="mt-1 w-full rounded-lg border border-ink/25 bg-mist px-3 py-2 text-sm">
+      <select value={valor} onChange={(e) => onChange(e.target.value as T)} className="mt-1 w-full rounded-lg border border-ink/25 bg-surface-primary px-3 py-2 text-sm">
         {unicas.map((opcion) => <option key={opcion} value={opcion}>{etiquetas?.[opcion] ?? opcion.replaceAll("_", " ")}</option>)}
       </select>
     </label>
@@ -797,7 +797,7 @@ function SelectSim<T extends string>({
 function DatoSim({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
     <div>
-      <p className="font-body text-xs uppercase tracking-wide text-ink/45">{etiqueta}</p>
+      <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">{etiqueta}</p>
       <p className="mt-1 font-semibold text-ink">{valor}</p>
     </div>
   );

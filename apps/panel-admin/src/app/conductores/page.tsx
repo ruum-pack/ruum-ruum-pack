@@ -103,9 +103,9 @@ export default function PaginaConductoresAdmin() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
       <div>
-        <p className="font-body text-xs uppercase tracking-wide text-ink/45">Torre de Control</p>
+        <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Torre de Control</p>
         <h1 className="mt-1 font-display text-2xl font-semibold">Solicitudes de conductor</h1>
-        <p className="mt-2 max-w-2xl font-body text-sm text-ink/55">
+        <p className="mt-2 max-w-2xl font-body text-sm text-text-secondary">
           Bandeja basada en expedientes, documentos vigentes, consentimientos y decisiones registradas.
         </p>
       </div>
@@ -121,7 +121,7 @@ export default function PaginaConductoresAdmin() {
             onClick={() => setFiltro(valor)}
             aria-pressed={filtro === valor}
             className={`rounded-full border px-3 py-1.5 font-body text-xs font-medium transition ${
-              filtro === valor ? "border-route-dark bg-route-dark text-white" : "border-ink/15 bg-mist text-ink/65 hover:border-route/40"
+              filtro === valor ? "border-status-info bg-status-info text-background-main" : "border-ink/15 bg-surface-primary text-text-secondary hover:border-status-info/40"
             }`}
           >
             {etiqueta} · {conteos[valor] ?? 0}
@@ -137,15 +137,15 @@ export default function PaginaConductoresAdmin() {
           value={busqueda}
           onChange={(event) => setBusqueda(event.target.value)}
           placeholder="Buscar por nombre, CURP, teléfono o folio…"
-          className="flex-1 rounded-lg border border-ink/20 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/40 focus:border-route-dark focus:outline-none focus:ring-2 focus:ring-route-dark/20"
+          className="flex-1 rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-text-tertiary focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
         />
       </div>
 
-      <div className="mt-3 overflow-x-auto rounded-card border border-ink/10 bg-mist">
+      <div className="mt-3 overflow-x-auto rounded-card border border-ink/10 bg-surface-primary">
         <table className="w-full min-w-[920px] font-body text-sm">
           <caption className="sr-only">Bandeja de solicitudes de conductor</caption>
           <thead>
-            <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-ink/45">
+            <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-text-tertiary">
               <th className="px-4 py-3">Solicitante</th>
               <th className="px-4 py-3">Estado</th>
               <th className="px-4 py-3">Documentos</th>
@@ -157,38 +157,38 @@ export default function PaginaConductoresAdmin() {
           </thead>
           <tbody>
             {cargando ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-ink/50">Cargando…</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-text-tertiary">Cargando…</td></tr>
             ) : filas.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-ink/50">No hay solicitudes para este filtro.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-text-tertiary">No hay solicitudes para este filtro.</td></tr>
             ) : filas.map((fila) => (
               <tr key={fila.solicitud.id} className="border-b border-ink/5 last:border-0">
                 <td className="px-4 py-3">
                   <p className="font-medium">{fila.nombre}</p>
-                  <p className="mt-0.5 text-xs text-ink/45">{fila.curp ?? fila.telefono ?? fila.solicitud.id}</p>
+                  <p className="mt-0.5 text-xs text-text-tertiary">{fila.curp ?? fila.telefono ?? fila.solicitud.id}</p>
                 </td>
                 <td className="px-4 py-3">
                   <span className="rounded-full border border-ink/15 bg-ink/[0.04] px-2.5 py-1 text-xs font-medium">
                     {ETIQUETA_ESTADO[fila.solicitud.estado]}
                   </span>
-                  {esNueva(fila) && <span className="ml-2 text-xs font-semibold text-route-dark">Nueva</span>}
+                  {esNueva(fila) && <span className="ml-2 text-xs font-semibold text-status-info">Nueva</span>}
                 </td>
                 <td className="px-4 py-3">
-                  <span className={fila.documentosRechazados ? "font-semibold text-danger" : "text-ink/65"}>
+                  <span className={fila.documentosRechazados ? "font-semibold text-status-error" : "text-text-secondary"}>
                     {fila.documentosVigentes} vigentes
                     {fila.documentosRechazados ? ` · ${fila.documentosRechazados} rechazado(s)` : ""}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className={fila.consentimientosRegistrados === 4 ? "text-control" : "text-warn"}>
+                  <span className={fila.consentimientosRegistrados === 4 ? "text-status-success" : "text-status-warning"}>
                     {fila.consentimientosRegistrados}/4
                   </span>
                 </td>
-                <td className="px-4 py-3 text-ink/60">{fecha(fila.solicitud.enviado_en)}</td>
-                <td className="max-w-[220px] px-4 py-3 text-xs text-ink/55">
+                <td className="px-4 py-3 text-text-secondary">{fecha(fila.solicitud.enviado_en)}</td>
+                <td className="max-w-[220px] px-4 py-3 text-xs text-text-secondary">
                   {fila.ultimaDecision?.motivo ?? "Sin decisiones administrativas"}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Link href={`/conductores/${fila.solicitud.id}`} className="font-medium text-route-dark hover:underline">
+                  <Link href={`/conductores/${fila.solicitud.id}`} className="font-medium text-status-info hover:underline">
                     Revisar
                   </Link>
                 </td>

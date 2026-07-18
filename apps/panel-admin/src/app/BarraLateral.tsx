@@ -14,6 +14,9 @@ function IcDashboard() {
 function IcViajes() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>;
 }
+function IcMasivos() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h16v5H4z"/><path d="M4 15h16v5H4z"/><path d="M8 9v6M16 9v6"/><path d="M8 6h.01M8 17h.01"/></svg>;
+}
 function IcMapa() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 21s6-5.1 6-10a6 6 0 0 0-12 0c0 4.9 6 10 6 10Z"/><circle cx="12" cy="11" r="2.4"/></svg>;
 }
@@ -63,11 +66,11 @@ function IcAuditoria() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>;
 }
 
-type IconoNombre = "dashboard"|"viajes"|"mapa"|"sla"|"conductor"|"usuario"|"vehiculo"|"empresa"|"incidencia"|"disputa"|"reclamo"|"pagos"|"tarifas"|"documentos"|"reportes"|"configuracion"|"evidencia"|"auditoria";
+type IconoNombre = "dashboard"|"viajes"|"masivos"|"mapa"|"sla"|"conductor"|"usuario"|"vehiculo"|"empresa"|"incidencia"|"disputa"|"reclamo"|"pagos"|"tarifas"|"documentos"|"reportes"|"configuracion"|"evidencia"|"auditoria";
 
 function Icono({ nombre }: { nombre: IconoNombre }) {
   const map: Record<IconoNombre, React.ReactNode> = {
-    dashboard: <IcDashboard />, viajes: <IcViajes />, mapa: <IcMapa />, sla: <IcSLA />,
+    dashboard: <IcDashboard />, viajes: <IcViajes />, masivos: <IcMasivos />, mapa: <IcMapa />, sla: <IcSLA />,
     conductor: <IcConductor />, usuario: <IcUsuario />, vehiculo: <IcVehiculo />, empresa: <IcEmpresa />,
     incidencia: <IcIncidencia />, disputa: <IcDisputa />, reclamo: <IcReclamo />,
     pagos: <IcPagos />, tarifas: <IcTarifas />, documentos: <IcDocumentos />,
@@ -83,6 +86,7 @@ const GRUPOS_NAVEGACION = [
     secciones: [
       { href: "/", etiqueta: "Dashboard", icono: "dashboard" as IconoNombre },
       { href: "/viajes", etiqueta: "Traslados", icono: "viajes" as IconoNombre },
+      { href: "/masivos", etiqueta: "Masivos", icono: "masivos" as IconoNombre },
       { href: "/mapa", etiqueta: "Mapa operativo", icono: "mapa" as IconoNombre },
       { href: "/alertas-sla", etiqueta: "Alertas SLA", icono: "sla" as IconoNombre },
     ],
@@ -167,7 +171,7 @@ export function BarraLateral() {
 
   return (
     <aside
-      className={`hidden h-screen shrink-0 flex-col bg-ink shadow-[4px_0_20px_rgba(26,31,46,0.10)] lg:flex transition-[width] ${colapsada ? "w-16" : "w-60"}`}
+      className={`hidden h-screen shrink-0 flex-col bg-ink shadow-[var(--ruum-shadow-2)] lg:flex transition-[width] ${colapsada ? "w-16" : "w-60"}`}
       aria-label="Navegación principal"
     >
       {/* Logo */}
@@ -178,13 +182,13 @@ export function BarraLateral() {
             <span className="text-signal">ruum</span>ruum
           </span>
         </span>
-        <p className={`mt-0.5 font-mono-ruum text-[10px] uppercase tracking-widest text-mist/35 ${colapsada ? "hidden" : "hidden lg:block"}`}>
+        <p className={`mt-0.5 font-mono-ruum text-[10px] uppercase tracking-widest text-text-tertiary ${colapsada ? "hidden" : "hidden lg:block"}`}>
           Torre de Control
         </p>
         <button
           type="button"
           onClick={alternarColapso}
-          className="mt-4 hidden rounded-md border border-mist/15 px-2.5 py-1.5 font-mono-ruum text-[10px] uppercase tracking-wide text-mist/45 transition-colors hover:bg-mist/5 hover:text-mist/70 lg:block"
+          className="mt-4 hidden rounded-md border border-mist/15 px-2.5 py-1.5 font-mono-ruum text-[10px] uppercase tracking-wide text-text-tertiary transition-colors hover:bg-surface-primary/5 hover:text-text-secondary lg:block"
           aria-label={colapsada ? "Expandir navegación" : "Colapsar navegación"}
         >
           {colapsada ? ">>" : "<<"}
@@ -194,7 +198,7 @@ export function BarraLateral() {
       <nav className="flex-1 space-y-5 overflow-y-auto px-2 pb-3 lg:px-3" aria-label="Secciones del panel">
         {GRUPOS_NAVEGACION.map((grupo) => (
           <div key={grupo.titulo}>
-            <p className={`mb-1.5 px-2 font-mono-ruum text-[10px] uppercase tracking-widest text-mist/30 ${colapsada ? "hidden" : "hidden lg:block"}`}>
+            <p className={`mb-1.5 px-2 font-mono-ruum text-[10px] uppercase tracking-widest text-text-tertiary ${colapsada ? "hidden" : "hidden lg:block"}`}>
               {grupo.titulo}
             </p>
             <div className="space-y-0.5">
@@ -208,7 +212,7 @@ export function BarraLateral() {
                     aria-current={activo ? "page" : undefined}
                     className={[
                       "flex items-center gap-2.5 rounded-lg px-2 py-2 font-body text-sm font-medium transition-colors",
-                      activo ? "bg-signal text-ink" : "text-mist/60 hover:bg-white/8 hover:text-mist",
+                      activo ? "bg-signal text-ink" : "text-text-secondary hover:bg-white/8 hover:text-mist",
                     ].join(" ")}
                   >
                     <span className={[
@@ -227,7 +231,7 @@ export function BarraLateral() {
 
         <div className="border-t border-mist/10 pt-4">
           {SECCIONES_PENDIENTES.map((s) => (
-            <div key={s.etiqueta} title={s.etiqueta} className="flex items-center gap-2.5 rounded-lg px-2 py-2 font-body text-sm text-mist/25">
+            <div key={s.etiqueta} title={s.etiqueta} className="flex items-center gap-2.5 rounded-lg px-2 py-2 font-body text-sm text-text-disabled">
               <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white/5">
                 <Icono nombre={s.icono} />
               </span>
@@ -245,7 +249,7 @@ export function BarraLateral() {
         {sesionReal ? (
           <button
             onClick={cerrarSesion}
-            className="w-full rounded-lg border border-mist/15 px-3 py-2 font-body text-sm font-medium text-mist/60 transition-colors hover:bg-white/5 hover:text-mist"
+            className="w-full rounded-lg border border-mist/15 px-3 py-2 font-body text-sm font-medium text-text-secondary transition-colors hover:bg-white/5 hover:text-mist"
             title="Cerrar sesión"
           >
             <span className={colapsada ? "hidden" : "hidden lg:inline"}>Cerrar sesión</span>
@@ -257,7 +261,7 @@ export function BarraLateral() {
           tieneSupabaseConfigurado() && (
             <Link
               href="/login"
-              className="block rounded-lg border border-mist/15 px-3 py-2 text-center font-body text-sm font-medium text-mist/60 transition-colors hover:bg-white/5 hover:text-mist"
+              className="block rounded-lg border border-mist/15 px-3 py-2 text-center font-body text-sm font-medium text-text-secondary transition-colors hover:bg-white/5 hover:text-mist"
               title="Iniciar sesión"
             >
               <span className={colapsada ? "hidden" : "hidden lg:inline"}>Iniciar sesión</span>

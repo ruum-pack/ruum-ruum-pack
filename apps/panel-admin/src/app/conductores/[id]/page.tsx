@@ -42,10 +42,10 @@ const ETIQUETA_DECISION: Record<string, string> = {
   solicitar_correccion: "Corrección solicitada", aprobar_solicitud: "Solicitud aprobada", rechazar_solicitud: "Solicitud rechazada"
 };
 const ESTADO_DOCUMENTO: Record<string, { texto: string; clase: string }> = {
-  en_revision: { texto: "En revisión", clase: "border-route/30 bg-route-soft text-route-dark" },
-  aprobado: { texto: "Aprobado", clase: "border-control/30 bg-control-soft text-control" },
-  rechazado: { texto: "Rechazado", clase: "border-danger/25 bg-danger-soft text-danger" },
-  vencido: { texto: "Vencido", clase: "border-danger/25 bg-danger-soft text-danger" }
+  en_revision: { texto: "En revisión", clase: "border-status-info/30 bg-status-info-soft text-status-info" },
+  aprobado: { texto: "Aprobado", clase: "border-status-success/30 bg-status-success-soft text-status-success" },
+  rechazado: { texto: "Rechazado", clase: "border-status-error/25 bg-status-error-soft text-status-error" },
+  vencido: { texto: "Vencido", clase: "border-status-error/25 bg-status-error-soft text-status-error" }
 };
 
 function textoJson(valor: Json, llave: string) {
@@ -99,16 +99,16 @@ function FilaDocumento({ documento, onRevisado }: {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-body text-sm font-semibold">{ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}</p>
-          <p className="mt-0.5 font-body text-xs text-ink/45">Versión {documento.version} · {documento.nombre_archivo}</p>
+          <p className="mt-0.5 font-body text-xs text-text-tertiary">Versión {documento.version} · {documento.nombre_archivo}</p>
         </div>
         <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-medium ${estado.clase}`}>{estado.texto}</span>
       </div>
       {(documento.motivo_rechazo || documento.notas_admin) && (
-        <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 font-body text-xs text-warn">{documento.motivo_rechazo ?? documento.notas_admin}</p>
+        <p className="mt-3 rounded-lg bg-status-warning-soft px-3 py-2 font-body text-xs text-status-warning">{documento.motivo_rechazo ?? documento.notas_admin}</p>
       )}
       {error && <div className="mt-3"><Aviso tono="danger">{error}</Aviso></div>}
       <div className="mt-3 flex flex-wrap gap-2">
-        {url ? <a href={url} target="_blank" rel="noreferrer" className="font-body text-sm text-route-dark hover:underline">Abrir documento</a>
+        {url ? <a href={url} target="_blank" rel="noreferrer" className="font-body text-sm text-status-info hover:underline">Abrir documento</a>
           : <Button variant="quiet" onClick={ver} disabled={procesando}>Ver documento</Button>}
         {documento.estado === "en_revision" && !rechazando && (
           <>
@@ -118,10 +118,10 @@ function FilaDocumento({ documento, onRevisado }: {
         )}
       </div>
       {rechazando && (
-        <div className="mt-3 rounded-lg border border-warn/30 bg-warn-soft/40 p-3">
+        <div className="mt-3 rounded-lg border border-status-warning/30 bg-status-warning-soft/40 p-3">
           <label className="font-body text-xs font-medium">Motivo para el conductor</label>
           <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={500}
-            className="mt-2 min-h-20 w-full rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm focus:border-route-dark focus:outline-none"
+            className="mt-2 min-h-20 w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none"
             placeholder="Indica exactamente qué debe corregir." />
           <div className="mt-2 flex gap-2">
             <Button variant="danger" onClick={() => decidir("rechazado", motivo)} disabled={procesando || motivo.trim().length < 5}>Confirmar</Button>
@@ -189,12 +189,12 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
     } finally { setProcesando(false); }
   }
 
-  if (cargando) return <main className="mx-auto max-w-4xl px-8 py-10"><p className="font-body text-sm text-ink/50">Cargando…</p></main>;
+  if (cargando) return <main className="mx-auto max-w-4xl px-8 py-10"><p className="font-body text-sm text-text-tertiary">Cargando…</p></main>;
   if (!detalle) return (
     <main className="mx-auto max-w-4xl px-8 py-10 text-center">
       <h1 className="font-display text-xl font-semibold">No encontramos esa solicitud</h1>
       {aviso && <div className="mt-4"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
-      <Link href="/conductores" className="mt-4 inline-block font-body text-sm text-route-dark hover:underline">← Volver a la bandeja</Link>
+      <Link href="/conductores" className="mt-4 inline-block font-body text-sm text-status-info hover:underline">← Volver a la bandeja</Link>
     </main>
   );
 
@@ -205,14 +205,14 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8 sm:px-8 sm:py-10">
-      <Link href="/conductores" className="font-body text-sm text-ink/55 hover:text-ink">← Solicitudes</Link>
+      <Link href="/conductores" className="font-body text-sm text-text-secondary hover:text-ink">← Solicitudes</Link>
       {aviso && <div className="mt-4"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
 
       <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Expediente {solicitud.id.slice(0, 8)}</p>
+          <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Expediente {solicitud.id.slice(0, 8)}</p>
           <h1 className="mt-1 font-display text-2xl font-semibold">{nombre}</h1>
-          <p className="mt-1 font-body text-sm text-ink/50">{solicitud.curp_normalizada ?? "CURP no registrada"} · {solicitud.telefono_normalizado ?? "Sin teléfono"}</p>
+          <p className="mt-1 font-body text-sm text-text-tertiary">{solicitud.curp_normalizada ?? "CURP no registrada"} · {solicitud.telefono_normalizado ?? "Sin teléfono"}</p>
         </div>
         <span className="rounded-full border border-ink/15 bg-ink/[0.04] px-3 py-1 font-body text-xs font-medium">{ETIQUETA_ESTADO[solicitud.estado]}</span>
       </div>
@@ -221,21 +221,21 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
         <PassportCard>
           <h2 className="font-display text-lg font-semibold">Datos del expediente</h2>
           <dl className="mt-3 space-y-2 font-body text-sm">
-            <div className="flex justify-between gap-4"><dt className="text-ink/45">Paso actual</dt><dd>{solicitud.paso_actual}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-ink/45">Enviado</dt><dd>{fecha(solicitud.enviado_en)}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-ink/45">Licencia</dt><dd>{solicitud.licencia_normalizada ?? "—"}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-ink/45">Vigencia</dt><dd>{textoJson(solicitud.licencia, "vigencia") ?? "—"}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-ink/45">Domicilio</dt><dd className="text-right">{[textoJson(solicitud.domicilio, "colonia"), textoJson(solicitud.domicilio, "ciudad_municipio"), textoJson(solicitud.domicilio, "estado")].filter(Boolean).join(", ") || "—"}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-text-tertiary">Paso actual</dt><dd>{solicitud.paso_actual}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-text-tertiary">Enviado</dt><dd>{fecha(solicitud.enviado_en)}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-text-tertiary">Licencia</dt><dd>{solicitud.licencia_normalizada ?? "—"}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-text-tertiary">Vigencia</dt><dd>{textoJson(solicitud.licencia, "vigencia") ?? "—"}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-text-tertiary">Domicilio</dt><dd className="text-right">{[textoJson(solicitud.domicilio, "colonia"), textoJson(solicitud.domicilio, "ciudad_municipio"), textoJson(solicitud.domicilio, "estado")].filter(Boolean).join(", ") || "—"}</dd></div>
           </dl>
         </PassportCard>
         <PassportCard>
           <h2 className="font-display text-lg font-semibold">Consentimientos</h2>
           <div className="mt-3 space-y-2">
-            {consentimientosActuales.length === 0 ? <p className="font-body text-sm text-ink/45">Sin consentimientos registrados.</p> : consentimientosActuales.map((c) => (
+            {consentimientosActuales.length === 0 ? <p className="font-body text-sm text-text-tertiary">Sin consentimientos registrados.</p> : consentimientosActuales.map((c) => (
               <div key={c.id} className="rounded-lg border border-ink/10 px-3 py-2 font-body text-sm">
                 <p className="font-medium">{ETIQUETA_CONSENTIMIENTO[c.tipo_documento]}</p>
-                <p className="mt-0.5 text-xs text-ink/45">Versión {c.version} · {fecha(c.aceptado_en)} · {c.canal}</p>
-                <p className="mt-1 truncate font-mono-ruum text-[10px] text-ink/35" title={c.hash_documento}>Hash {c.hash_documento}</p>
+                <p className="mt-0.5 text-xs text-text-tertiary">Versión {c.version} · {fecha(c.aceptado_en)} · {c.canal}</p>
+                <p className="mt-1 truncate font-mono-ruum text-[10px] text-text-tertiary" title={c.hash_documento}>Hash {c.hash_documento}</p>
               </div>
             ))}
           </div>
@@ -245,7 +245,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
       <div className="mt-6"><PassportCard>
         <h2 className="font-display text-lg font-semibold">Documentos vigentes</h2>
         <div className="mt-4 space-y-3">
-          {documentos.length === 0 ? <p className="font-body text-sm text-ink/45">No hay documentos vigentes.</p>
+          {documentos.length === 0 ? <p className="font-body text-sm text-text-tertiary">No hay documentos vigentes.</p>
             : documentos.map((documento) => <FilaDocumento key={documento.id} documento={documento} onRevisado={revisarDocumento} />)}
         </div>
       </PassportCard></div>
@@ -258,15 +258,15 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
               <Button onClick={() => setAccion("aprobar")} disabled={!puedeAprobar || procesando}>Aprobar solicitud</Button>
               <Button variant="danger" onClick={() => setAccion("rechazar")} disabled={procesando}>Rechazar solicitud</Button>
             </div>
-            {!puedeAprobar && <p className="mt-2 font-body text-xs text-ink/45">Para aprobar se requieren los 3 documentos aprobados y los 4 consentimientos registrados.</p>}
+            {!puedeAprobar && <p className="mt-2 font-body text-xs text-text-tertiary">Para aprobar se requieren los 3 documentos aprobados y los 4 consentimientos registrados.</p>}
           </>
-        ) : <p className="mt-3 font-body text-sm text-ink/50">La solicitud no admite una decisión final en su estado actual.</p>}
+        ) : <p className="mt-3 font-body text-sm text-text-tertiary">La solicitud no admite una decisión final en su estado actual.</p>}
         {accion && (
           <div className="mt-4 rounded-lg border border-ink/10 bg-ink/[0.02] p-4">
-            <label className="font-body text-sm font-medium">Motivo de la decisión {accion === "rechazar" && <span className="text-danger">*</span>}</label>
+            <label className="font-body text-sm font-medium">Motivo de la decisión {accion === "rechazar" && <span className="text-status-error">*</span>}</label>
             <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={800}
               placeholder={accion === "aprobar" ? "Opcional: observaciones de la aprobación." : "Explica el motivo del rechazo."}
-              className="mt-2 min-h-24 w-full rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm focus:border-route-dark focus:outline-none" />
+              className="mt-2 min-h-24 w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none" />
             <div className="mt-3 flex gap-2">
               <Button variant={accion === "rechazar" ? "danger" : "primary"} onClick={decidir} disabled={procesando || (accion === "rechazar" && motivo.trim().length < 5)}>
                 {procesando ? "Registrando…" : "Confirmar decisión"}
@@ -281,13 +281,13 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
         <h2 className="font-display text-lg font-semibold">Historial de estados y decisiones</h2>
         <ol className="mt-4 space-y-4">
           {historial.map((evento) => (
-            <li key={evento.id} className="border-l-2 border-route/25 pl-4 font-body text-sm">
+            <li key={evento.id} className="border-l-2 border-status-info/25 pl-4 font-body text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-semibold">{ETIQUETA_DECISION[evento.decision] ?? evento.decision}</p>
-                <time className="text-xs text-ink/40">{fecha(evento.revisado_en)}</time>
+                <time className="text-xs text-text-tertiary">{fecha(evento.revisado_en)}</time>
               </div>
-              <p className="mt-1 text-xs text-ink/50">{ETIQUETA_ESTADO[evento.estado_anterior]} → {ETIQUETA_ESTADO[evento.estado_nuevo]} · {evento.revisor_nombre ?? "Sistema/conductor"}</p>
-              {evento.motivo && <p className="mt-1 text-ink/65">{evento.motivo}</p>}
+              <p className="mt-1 text-xs text-text-tertiary">{ETIQUETA_ESTADO[evento.estado_anterior]} → {ETIQUETA_ESTADO[evento.estado_nuevo]} · {evento.revisor_nombre ?? "Sistema/conductor"}</p>
+              {evento.motivo && <p className="mt-1 text-text-secondary">{evento.motivo}</p>}
             </li>
           ))}
         </ol>
