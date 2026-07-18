@@ -8,7 +8,7 @@
     "lint": "eslint .",
     "lint:a11y": "eslint . --ext .ts,.tsx --config eslint.config.mjs",
     "test": "vitest run",
-    "test:a11y": "playwright test tests/a11y",
+    "test:a11y": "node scripts/run-a11y-playwright.mjs",
     "test:a11y:ui": "playwright test tests/a11y --ui",
     "test:lighthouse": "lhci autorun",
     "test:axe": "axe http://localhost:3001 --save results/axe-report.json",

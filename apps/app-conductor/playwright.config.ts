@@ -12,7 +12,7 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: 'http://localhost:3001',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001',
     actionTimeout: 10_000,
     navigationTimeout: 30_000,
     trace: 'on-first-retry',
@@ -38,10 +38,12 @@ export default defineConfig({
     },
   ],
   globalSetup: './tests/global-setup.ts',
-  webServer: {
-    command: 'npm run dev',
-    port: 3001,
-    timeout: 120_000,
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER
+    ? undefined
+    : {
+        command: 'npm run dev',
+        port: 3001,
+        timeout: 120_000,
+        reuseExistingServer: !process.env.CI,
+      },
 });

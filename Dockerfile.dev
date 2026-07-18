@@ -38,6 +38,12 @@ COPY turbo.json tsconfig.json deno.json deno.lock ./
 # Crear directorios para las apps (necesario para los volúmenes)
 RUN mkdir -p apps/app-conductor apps/app-usuario apps/panel-admin
 
+# Crear symlinks para node_modules de cada app apuntando a node_modules raiz
+# Esto permite que Next.js encuentre las dependencias
+RUN ln -sf /app/node_modules /app/apps/app-conductor/node_modules && \
+    ln -sf /app/node_modules /app/apps/app-usuario/node_modules && \
+    ln -sf /app/node_modules /app/apps/panel-admin/node_modules
+
 # Exponer puertos
 EXPOSE 3000 3001 3002
 

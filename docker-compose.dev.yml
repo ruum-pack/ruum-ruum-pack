@@ -20,16 +20,18 @@ services:
       - NEXT_PUBLIC_APP_URL=http://localhost:3001
       - NEXT_TELEMETRY_DISABLED=1
     volumes:
-      # Montar código fuente (EXCLUYENDO node_modules)
+      # Montar toda la app, pero con volumen anónimo para node_modules
+      # que contendrá el symlink a /app/node_modules
       - ./apps/app-conductor:/app/apps/app-conductor
       - ./packages:/app/packages
-      # Archivos de configuración del monorepo
       - ./package.json:/app/package.json
       - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
       - ./turbo.json:/app/turbo.json
       - ./tsconfig.json:/app/tsconfig.json
       - ./deno.json:/app/deno.json
       - ./deno.lock:/app/deno.lock
+      # Volumen anónimo que preservará el symlink node_modules -> /app/node_modules
+      - /app/apps/app-conductor/node_modules
     working_dir: /app
     command: pnpm --filter @ruum/app-conductor run dev
     stdin_open: true
@@ -59,6 +61,8 @@ services:
       - ./tsconfig.json:/app/tsconfig.json
       - ./deno.json:/app/deno.json
       - ./deno.lock:/app/deno.lock
+      # Volumen anónimo que preservará el symlink node_modules -> /app/node_modules
+      - /app/apps/app-usuario/node_modules
     working_dir: /app
     command: pnpm --filter @ruum/app-usuario run dev
     stdin_open: true
@@ -88,6 +92,8 @@ services:
       - ./tsconfig.json:/app/tsconfig.json
       - ./deno.json:/app/deno.json
       - ./deno.lock:/app/deno.lock
+      # Volumen anónimo que preservará el symlink node_modules -> /app/node_modules
+      - /app/apps/panel-admin/node_modules
     working_dir: /app
     command: pnpm --filter @ruum/panel-admin run dev
     stdin_open: true

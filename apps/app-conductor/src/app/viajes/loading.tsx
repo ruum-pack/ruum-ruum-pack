@@ -1,6 +1,6 @@
 export default function CargandoViajes() {
   return (
-    <div className="conductor-content" aria-label="Cargando viajes">
+    <div className="conductor-content" role="status" aria-label="Cargando viajes" aria-busy="true">
       {/* Skeleton pestañas */}
       <div className="flex gap-2 border-b border-border pb-0">
         {[100, 110].map((w, i) => (

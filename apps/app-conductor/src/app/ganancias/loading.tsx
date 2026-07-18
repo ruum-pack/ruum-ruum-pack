@@ -1,6 +1,6 @@
 export default function CargandoGanancias() {
   return (
-    <div className="conductor-content" aria-label="Cargando ganancias">
+    <div className="conductor-content" role="status" aria-label="Cargando ganancias" aria-busy="true">
       {/* Skeleton resumen */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (

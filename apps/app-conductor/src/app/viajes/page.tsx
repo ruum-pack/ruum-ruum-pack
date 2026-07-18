@@ -51,7 +51,7 @@ type RechazoPendiente = {
 
 function TripsLoadingList() {
   return (
-    <div aria-label="Cargando viajes" aria-busy="true" className="grid gap-4">
+    <div role="status" aria-label="Cargando viajes" aria-busy="true" className="grid gap-4">
       {[1, 2, 3].map((i) => (
         <div key={i} className="space-y-3 rounded-card border border-border p-5">
           <div className="flex items-start justify-between gap-4">
