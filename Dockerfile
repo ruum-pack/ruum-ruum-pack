@@ -1,77 +1,61 @@
+# Dockerfile for development - optimized for hot-reload with Next.js
 # syntax=docker/dockerfile:1
 
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Dockerfile reference guide at
-# https://docs.docker.com/go/dockerfile-reference/
-
-# Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
-
-ARG NODE_VERSION=24.18.0
-ARG PNPM_VERSION=10.0.0
+ARG NODE_VERSION=24
+ARG PNPM_VERSION=10
 
 ################################################################################
-# Use node image for base image for all stages.
+# Stage 1: Base
+################################################################################
 FROM node:${NODE_VERSION}-alpine as base
 
-# Set working directory for all build stages.
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Install pnpm.
 RUN --mount=type=cache,target=/root/.npm \
     npm install -g pnpm@${PNPM_VERSION}
 
 ################################################################################
-# Create a stage for installing production dependecies.
+# Stage 2: Dependencies (instalación COMPLETA)
+################################################################################
 FROM base as deps
 
-# Download dependencies as a separate step to take advantage of Docker's caching.
-# Leverage a cache mount to /root/.local/share/pnpm/store to speed up subsequent builds.
-# Leverage bind mounts to package.json and pnpm-lock.yaml to avoid having to copy them
-# into this layer.
-RUN --mount=type=bind,source=package.json,target=package.json \
-    --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
-    --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --prod --frozen-lockfile
+# Copiar archivos de configuración del monorepo
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/ ./apps/
+COPY packages/ ./packages/
 
-################################################################################
-# Create a stage for building the application.
-FROM deps as build
-
-# Download additional development dependencies before building, as some projects require
-# "devDependencies" to be installed to build. If you don't need this, remove this step.
-RUN --mount=type=bind,source=package.json,target=package.json \
-    --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
-    --mount=type=cache,target=/root/.local/share/pnpm/store \
+# Instalar TODAS las dependencias
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
-# Copy the rest of the source files into the image.
+################################################################################
+# Stage 3: Build
+################################################################################
+FROM deps as build
+
+# Copiar el resto del código
 COPY . .
-# Run the build script.
+
+# Hacer build de todos los workspaces
 RUN pnpm run build
 
 ################################################################################
-# Create a new stage to run the application with minimal runtime dependencies
-# where the necessary files are copied from the build stage.
+# Stage 4: Final (producción)
+################################################################################
 FROM base as final
 
-# Use production node environment by default.
-ENV NODE_ENV production
+# Copiar TODO node_modules (monorepo completo)
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps ./apps
+COPY --from=deps /app/packages ./packages
 
-# Run the application as a non-root user.
-USER node
+# Copiar el código fuente y artefactos del build
+COPY --from=build /app/apps ./apps
+COPY --from=build /app/packages ./packages
+COPY --from=build /app/package.json ./package.json
 
-# Copy package.json so that package manager commands can be used.
-COPY package.json .
-
-# Copy the production dependencies from the deps stage and also
-# the built application from the build stage into the image.
-COPY --from=deps /usr/src/app/node_modules ./node_modules
-COPY --from=build /usr/src/app/apps/*/build ./apps/*/build
-COPY --from=build /usr/src/app/packages/*/build ./packages/*/build
-
-
-# Expose the port that the application listens on.
+# Exponer el puerto
 EXPOSE 3001
 
-# Run the application.
-CMD pnpm --filter ./apps/backend start
+# Comando para iniciar la app (USAR start, no dev)
+CMD ["pnpm", "--filter", "@ruum/app-conductor", "start"]

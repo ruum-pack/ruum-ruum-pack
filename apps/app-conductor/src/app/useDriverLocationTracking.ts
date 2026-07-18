@@ -29,6 +29,7 @@ export function useDriverLocationTracking(viajeActivo: ViajeActivo | null) {
     }
 
     let cancelado = false;
+    const viaje = viajeActivo;
     const cliente = crearClienteNavegador();
     let ultimaReportada: Coordenadas | null = null;
     let ultimoReporteMs = 0;
@@ -38,7 +39,7 @@ export function useDriverLocationTracking(viajeActivo: ViajeActivo | null) {
 
       try {
         await registrarUbicacionTraslado(cliente, {
-          trasladoId: viajeActivo.trasladoId,
+          trasladoId: viaje.trasladoId,
           lat: ubicacion.lat,
           lng: ubicacion.lng,
           precisionM: ubicacion.precisionM,
@@ -50,7 +51,7 @@ export function useDriverLocationTracking(viajeActivo: ViajeActivo | null) {
         logger.warn(
           "driver_location_report_failed",
           {
-            tripId: viajeActivo.trasladoId,
+            tripId: viaje.trasladoId,
             isOnline: isOnline(),
             errorCode: errorCode(error),
             precisionM: ubicacion.precisionM ?? null

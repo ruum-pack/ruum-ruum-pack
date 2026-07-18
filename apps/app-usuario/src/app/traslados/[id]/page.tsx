@@ -176,7 +176,8 @@ function estadoDePaso(estadoActual: EstadoTraslado, estadoPaso: EstadoTraslado) 
   return "pendiente";
 }
 
-function calcularHorasDesdeCierre(actualizadoEn: string) {
+function calcularHorasDesdeCierre(actualizadoEn: string | null) {
+  if (!actualizadoEn) return Number.POSITIVE_INFINITY;
   return (Date.now() - new Date(actualizadoEn).getTime()) / (1000 * 60 * 60);
 }
 
@@ -236,13 +237,15 @@ async function obtenerDatos(id: string) {
       )
       .eq("id", id)
       .maybeSingle(),
-    cliente
-      .from("vehiculos")
-      .select(
-        "tipo, marca, modelo, anio, tiene_tarjeta_circulacion, tiene_verificacion, tiene_placas, puede_circular_rodando"
-      )
-      .eq("id", pasaporte.vehiculo_id)
-      .maybeSingle(),
+    pasaporte.vehiculo_id
+      ? cliente
+          .from("vehiculos")
+          .select(
+            "tipo, marca, modelo, anio, tiene_tarjeta_circulacion, tiene_verificacion, tiene_placas, puede_circular_rodando"
+          )
+          .eq("id", pasaporte.vehiculo_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
     pasaporte.conductor_id
       ? cliente
           .from("conductores")
@@ -465,7 +468,9 @@ function EvidenciaDurante({
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-ink/10 px-3 py-3">
           <p className="font-body text-xs uppercase tracking-wide text-ink/45">Estatus</p>
-          <p className="mt-1 font-body text-sm font-medium">{ETIQUETA_ESTADO_TRASLADO[pasaporte.estado]}</p>
+          <p className="mt-1 font-body text-sm font-medium">
+            {pasaporte.estado ? ETIQUETA_ESTADO_TRASLADO[pasaporte.estado] : "Estado por confirmar"}
+          </p>
         </div>
         <div className="rounded-lg border border-ink/10 px-3 py-3">
           <p className="font-body text-xs uppercase tracking-wide text-ink/45">Último hito</p>
@@ -520,6 +525,31 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
               className="inline-flex min-h-10 items-center justify-center rounded-xl border border-ink/20 bg-mist px-4 py-2 font-body text-sm font-medium text-ink transition hover:border-ink/40"
             >
               Inicio
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!pasaporte.traslado_id || !pasaporte.estado) {
+    return (
+      <main className="app-page">
+        <NavegacionUsuario />
+        <div className="app-container py-20 text-center">
+          <p className="font-mono-ruum text-xs font-medium uppercase tracking-widest text-ink/35">
+            Traslado incompleto
+          </p>
+          <h1 className="mt-4 font-display text-2xl font-semibold">No pudimos cargar el estado del traslado</h1>
+          <p className="mt-3 max-w-sm mx-auto font-body text-sm leading-6 text-ink/60">
+            Vuelve a intentarlo. Si el problema continúa, contacta a soporte.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/mis-viajes"
+              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-signal px-4 py-2 font-display text-sm font-bold text-ink transition hover:bg-signal/90"
+            >
+              Ver mis viajes
             </Link>
           </div>
         </div>
@@ -789,7 +819,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
             <AcordeonPasaporte titulo="Pago y soporte" descripcion="Tarifa, pagos registrados y contacto de ayuda.">
               <p className="font-body text-sm text-ink/55">{MENSAJES_CLAVE_UX.pago}</p>
               <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-                <Dato etiqueta="Tipo de pago" valor={pasaporte.tipo_pago.replaceAll("_", " ")} />
+                <Dato etiqueta="Tipo de pago" valor={(pasaporte.tipo_pago ?? "por_definir").replaceAll("_", " ")} />
                 <Dato etiqueta="Precio cotizado" valor={formatoMoneda(pasaporte.precio_cotizado)} />
                 <Dato etiqueta="Precio final" valor={formatoMoneda(pasaporte.precio_final ?? precioBase)} />
                 <Dato etiqueta="Monto pagado" valor={formatoMoneda(pasaporte.monto_pagado)} />

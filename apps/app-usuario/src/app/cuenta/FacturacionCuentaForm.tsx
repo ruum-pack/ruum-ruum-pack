@@ -8,6 +8,7 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supab
 
 type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 type Empresa = Database["public"]["Tables"]["empresas"]["Row"];
+type CampoFiscal = "rfc" | "razon_social" | "regimen_fiscal" | "codigo_postal_fiscal" | "uso_cfdi";
 
 function limpiar(valor: string) {
   return valor.trim() || null;
@@ -21,7 +22,7 @@ function soloDigitos(valor: string, maximo: number) {
   return valor.replace(/\D/g, "").slice(0, maximo);
 }
 
-function datoFiscal(usuario: Usuario, empresa: Empresa | null, campo: string) {
+function datoFiscal(usuario: Usuario, empresa: Empresa | null, campo: CampoFiscal) {
   return empresa?.[campo] ?? usuario?.[campo] ?? "";
 }
 

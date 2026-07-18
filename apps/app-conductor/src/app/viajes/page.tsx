@@ -254,7 +254,11 @@ export default function PaginaViajes() {
 
         const todos = [...listaDisponibles, ...listaAceptados];
         if (todos.length > 0) {
-          const ids = todos.map((viaje) => viaje.traslado_id);
+          const ids = todos.map((viaje) => viaje.traslado_id).filter((id): id is string => Boolean(id));
+          if (ids.length === 0) {
+            setDetalles({});
+            return;
+          }
           const { data } = await cliente
             .from("traslados")
             .select("id, origen_ciudad, origen_direccion, destino_ciudad, destino_direccion, fecha_hora_programada, tipo_servicio, motivo_servicio, instrucciones_especiales")
@@ -317,6 +321,7 @@ export default function PaginaViajes() {
 
   async function persistirRechazo(pendiente: RechazoPendiente) {
     if (!conductor) throw new Error("Inicia sesión como conductor para rechazar viajes.");
+    if (!pendiente.viaje.traslado_id) throw new Error("No se pudo identificar el viaje para registrar el rechazo.");
     const cliente = crearClienteNavegador();
     await registrarEvento(cliente, "modificacion_traslado_activo", "conductor", conductor.id, {
       traslado_id: pendiente.viaje.traslado_id,
@@ -329,11 +334,17 @@ export default function PaginaViajes() {
 
   function confirmarRechazo(motivo: MotivoRechazo) {
     if (!viajeParaRechazar || rechazoPendiente) return;
+    if (!viajeParaRechazar.traslado_id) {
+      setAviso("No se pudo identificar el viaje para rechazarlo.");
+      setViajeParaRechazar(null);
+      return;
+    }
 
+    const trasladoId = viajeParaRechazar.traslado_id;
     const pendiente = { viaje: viajeParaRechazar, motivo };
     setViajeParaRechazar(null);
-    setRechazados((prev) => [...prev, viajeParaRechazar.traslado_id]);
-    setDisponibles((prev) => prev.filter((viaje) => viaje.traslado_id !== viajeParaRechazar.traslado_id));
+    setRechazados((prev) => [...prev, trasladoId]);
+    setDisponibles((prev) => prev.filter((viaje) => viaje.traslado_id !== trasladoId));
     setRechazoPendiente(pendiente);
     setAviso(null);
 
@@ -358,7 +369,7 @@ export default function PaginaViajes() {
     setAviso("Rechazo deshecho. El viaje volvió a estar disponible.");
   }
 
-  const disponiblesVisibles = disponibles.filter((viaje) => !rechazados.includes(viaje.traslado_id));
+  const disponiblesVisibles = disponibles.filter((viaje) => viaje.traslado_id && !rechazados.includes(viaje.traslado_id));
   const misViajesPorGrupo: Record<GrupoMisViajes, PasaporteRow[]> = {
     "en-curso": aceptados.filter((viaje) => clasificarMisViajes(viaje) === "en-curso"),
     proximos: aceptados.filter((viaje) => clasificarMisViajes(viaje) === "proximos"),

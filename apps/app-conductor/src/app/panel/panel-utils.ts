@@ -18,10 +18,12 @@ export function nombreVehiculo(viaje: PasaporteRow) {
 }
 
 export function folioViaje(viaje: PasaporteRow) {
-  return viaje.traslado_id.slice(0, 8).toUpperCase();
+  return viaje.traslado_id ? viaje.traslado_id.slice(0, 8).toUpperCase() : "Sin folio";
 }
 
 export function destinoOperativo(viaje: PasaporteRow) {
+  if (!viaje.estado) return "Seguimiento operativo";
+
   const presentation = getTripPresentation(viaje.estado);
   if (presentation.requiresControlTowerDecision || presentation.primaryAction.action === "contact_support") {
     return "Torre de Control dará indicaciones";
@@ -89,5 +91,8 @@ export function fechaViaje(viaje: PasaporteRow) {
 }
 
 export function esViajePorCerrar(viaje: PasaporteRow) {
-  return ["llegada_a_destino", "evidencia_final_en_proceso", "evidencia_final_completada", "entrega_confirmada"].includes(viaje.estado);
+  return Boolean(
+    viaje.estado &&
+      ["llegada_a_destino", "evidencia_final_en_proceso", "evidencia_final_completada", "entrega_confirmada"].includes(viaje.estado)
+  );
 }

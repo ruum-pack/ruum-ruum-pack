@@ -30,6 +30,10 @@ export function esTrasladoActivo(estado: EstadoTraslado): boolean {
   return !ESTADOS_TRASLADO_FINALIZADOS.includes(estado);
 }
 
+function fechaOrdenable(fecha: string | null): number {
+  return fecha ? new Date(fecha).getTime() : 0;
+}
+
 /**
  * El traslado activo más reciente para mostrar como protagonista del
  * Inicio, o null si no hay ninguno. No asume que `traslados` venga
@@ -37,15 +41,15 @@ export function esTrasladoActivo(estado: EstadoTraslado): boolean {
  */
 export function obtenerViajeActivo(traslados: PasaporteRow[]): PasaporteRow | null {
   const activos = [...traslados]
-    .filter((t) => esTrasladoActivo(t.estado))
-    .sort((a, b) => new Date(b.creado_en).getTime() - new Date(a.creado_en).getTime());
+    .filter((t) => t.estado && esTrasladoActivo(t.estado))
+    .sort((a, b) => fechaOrdenable(b.creado_en) - fechaOrdenable(a.creado_en));
 
   return activos[0] ?? null;
 }
 
 /** Traslados ya finalizados, más recientes primero — para "Últimos viajes". */
 export function obtenerHistorial(traslados: PasaporteRow[]): PasaporteRow[] {
-  return [...traslados].sort((a, b) => new Date(b.creado_en).getTime() - new Date(a.creado_en).getTime());
+  return [...traslados].sort((a, b) => fechaOrdenable(b.creado_en) - fechaOrdenable(a.creado_en));
 }
 
 export interface NotificacionInicio {
@@ -84,6 +88,8 @@ export function construirNotificaciones(usuario: UsuarioRow | null, traslados: P
   }
 
   for (const traslado of traslados) {
+    if (!traslado.traslado_id) continue;
+
     const folio = folioCorto(traslado.traslado_id);
     const href = `/traslados/${traslado.traslado_id}`;
 

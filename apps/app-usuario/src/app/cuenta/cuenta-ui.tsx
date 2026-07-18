@@ -99,7 +99,8 @@ export function dato(valor: string | number | null | undefined) {
   return valor ? String(valor) : "Pendiente";
 }
 
-function fechaCorta(fechaIso: string) {
+function fechaCorta(fechaIso: string | null | undefined) {
+  if (!fechaIso) return "Fecha por confirmar";
   return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(fechaIso));
 }
 
@@ -530,28 +531,33 @@ export function SeccionHistorialEmpresa({ historialEmpresa }: { historialEmpresa
     <Seccion titulo="Historial de empresa" descripcion="Traslados creados por la cuenta titular y por usuarios autorizados de la misma empresa.">
       <div className="grid gap-3">
         {historialEmpresa.length > 0 ? (
-          historialEmpresa.slice(0, 6).map((traslado) => (
-            <div key={traslado.traslado_id} className="grid gap-4 rounded-lg border border-ink/10 bg-mist px-4 py-4 md:grid-cols-[1.2fr_1fr_auto]">
-              <div>
-                <p className="font-body text-xs uppercase tracking-wide text-ink/45">{traslado.estado.replaceAll("_", " ")}</p>
-                <h3 className="mt-1 font-display text-lg font-semibold">
-                  {dato(traslado.vehiculo_marca)} {dato(traslado.vehiculo_modelo)}
-                </h3>
-                <p className="mt-1 font-body text-sm text-ink/55">{fechaCorta(traslado.creado_en)}</p>
+          historialEmpresa.slice(0, 6).map((traslado, index) => {
+            const trasladoId = traslado.traslado_id;
+            return (
+              <div key={trasladoId ?? `historial-${index}`} className="grid gap-4 rounded-lg border border-ink/10 bg-mist px-4 py-4 md:grid-cols-[1.2fr_1fr_auto]">
+                <div>
+                  <p className="font-body text-xs uppercase tracking-wide text-ink/45">{(traslado.estado ?? "estado_pendiente").replaceAll("_", " ")}</p>
+                  <h3 className="mt-1 font-display text-lg font-semibold">
+                    {dato(traslado.vehiculo_marca)} {dato(traslado.vehiculo_modelo)}
+                  </h3>
+                  <p className="mt-1 font-body text-sm text-ink/55">{fechaCorta(traslado.creado_en)}</p>
+                </div>
+                <div className="grid gap-1 font-body text-sm text-ink/65">
+                  <span>Conductor: {dato(traslado.conductor_nombre)}</span>
+                  <span>Pago: {(traslado.tipo_pago ?? "por_definir").replaceAll("_", " ")}</span>
+                  <span>Evidencia inicial: {traslado.evidencia_inicial_fotos_sincronizadas ?? 0}/5</span>
+                </div>
+                <div className="flex items-center justify-between gap-4 md:flex-col md:items-end md:justify-center">
+                  <span className="font-body text-sm font-semibold">{dinero(traslado.precio_final ?? traslado.precio_cotizado)}</span>
+                  {trasladoId ? (
+                    <Link href={`/traslados/${trasladoId}`}>
+                      <Button variant="secondary">Ver detalle</Button>
+                    </Link>
+                  ) : null}
+                </div>
               </div>
-              <div className="grid gap-1 font-body text-sm text-ink/65">
-                <span>Conductor: {dato(traslado.conductor_nombre)}</span>
-                <span>Pago: {traslado.tipo_pago.replaceAll("_", " ")}</span>
-                <span>Evidencia inicial: {traslado.evidencia_inicial_fotos_sincronizadas}/5</span>
-              </div>
-              <div className="flex items-center justify-between gap-4 md:flex-col md:items-end md:justify-center">
-                <span className="font-body text-sm font-semibold">{dinero(traslado.precio_final ?? traslado.precio_cotizado)}</span>
-                <Link href={`/traslados/${traslado.traslado_id}`}>
-                  <Button variant="secondary">Ver detalle</Button>
-                </Link>
-              </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="rounded-lg border border-dashed border-ink/15 px-4 py-6 font-body text-sm text-ink/55">
             Aún no hay traslados empresariales para mostrar.

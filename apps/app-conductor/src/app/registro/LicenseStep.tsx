@@ -1,5 +1,6 @@
 import { Aviso, Field } from "@ruum/ui";
 import { DIAS_ADVERTENCIA_VIGENCIA_LICENCIA, diasParaVencerLicencia } from "@ruum/shared/validacion";
+import type { CampoRegistroConductor } from "@ruum/shared/validacion";
 import { DatosSensiblesInfo } from "../cuenta/datos-sensibles";
 import { formatoFechaIsoParcial } from "./registration-validation";
 import { TIPOS_LICENCIA } from "./registration-types";
@@ -33,7 +34,7 @@ export function LicenseStep({
   setDeclaraSinSuspensiones: (valor: boolean) => void;
   erroresCampos: Record<string, string>;
   limpiarErrorCampo: (campo: string) => void;
-  validarCampo: (campo: string, valor: string) => boolean;
+  validarCampo: (campo: CampoRegistroConductor, valor: string) => boolean;
   validarVigenciaLicencia: () => boolean;
 }) {
   const diasVigencia = vigenciaLicencia && !erroresCampos.vigenciaLicencia ? diasParaVencerLicencia(vigenciaLicencia) : null;

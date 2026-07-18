@@ -149,7 +149,8 @@ function LinkSoporte({
 export default async function PaginaSoporte({ searchParams }: { searchParams: Promise<{ viaje?: string }> }) {
   const { viaje } = await searchParams;
   const { usuario, traslados } = await obtenerContexto();
-  const viajeActivo = traslados.find((t) => t.traslado_id === viaje) ?? traslados.find((t) => esTrasladoActivo(t.estado));
+  const viajeActivo = traslados.find((t) => t.traslado_id === viaje) ?? traslados.find((t) => t.estado && esTrasladoActivo(t.estado));
+  const viajeActivoVisible = viajeActivo?.traslado_id ? { ...viajeActivo, traslado_id: viajeActivo.traslado_id } : null;
 
   return (
     <main className="app-page">
@@ -175,18 +176,18 @@ export default async function PaginaSoporte({ searchParams }: { searchParams: Pr
         </div>
       </header>
 
-      {viajeActivo && (
+      {viajeActivoVisible && (
         <section className="mb-6">
-          <PassportCard folio={viajeActivo.traslado_id.slice(0, 8).toUpperCase()}>
+          <PassportCard folio={viajeActivoVisible.traslado_id.slice(0, 8).toUpperCase()}>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-body text-xs uppercase tracking-wide text-ink/45">Soporte durante viaje activo</p>
-                <h2 className="mt-1 font-display text-xl font-semibold">{tarjetaVehiculo(viajeActivo)}</h2>
+                <h2 className="mt-1 font-display text-xl font-semibold">{tarjetaVehiculo(viajeActivoVisible)}</h2>
                 <p className="mt-1 font-body text-sm text-ink/55">
                   Usa este acceso si necesitas ayuda con evidencia, pagos, conductor, daño o incidente.
                 </p>
               </div>
-              <Link href={`/traslados/${viajeActivo.traslado_id}`}>
+              <Link href={`/traslados/${viajeActivoVisible.traslado_id}`}>
                 <Button>Ver viaje activo</Button>
               </Link>
             </div>
@@ -210,11 +211,14 @@ export default async function PaginaSoporte({ searchParams }: { searchParams: Pr
             <CampoReporte etiqueta="Viaje relacionado">
               <SelectBase>
                 <option value="">Selecciona un viaje</option>
-                {traslados.map((t) => (
-                  <option key={t.traslado_id} value={t.traslado_id}>
-                    {t.traslado_id.slice(0, 8).toUpperCase()} · {tarjetaVehiculo(t)}
-                  </option>
-                ))}
+                {traslados.filter((t) => t.traslado_id).map((t) => {
+                  const trasladoId = t.traslado_id as string;
+                  return (
+                    <option key={trasladoId} value={trasladoId}>
+                      {trasladoId.slice(0, 8).toUpperCase()} · {tarjetaVehiculo(t)}
+                    </option>
+                  );
+                })}
               </SelectBase>
             </CampoReporte>
             <div className="sm:col-span-2">

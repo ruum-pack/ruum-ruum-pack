@@ -46,7 +46,7 @@ export function useActiveTripSubscription(pathname: string) {
         }
 
         const viajes = await listarViajesAceptados(cliente, conductor.id);
-        const activo = viajes.find((viaje) => viajeEsOperacionActiva(viaje.estado));
+        const activo = viajes.find((viaje) => viaje.estado && viajeEsOperacionActiva(viaje.estado));
         if (!cancelado) {
           setViajeActivo(activo ? viajeActivoDesdePasaporte(activo) : null);
           setViajeActivoSinActualizar(false);

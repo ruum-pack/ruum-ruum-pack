@@ -1,4 +1,5 @@
 import { Field } from "@ruum/ui";
+import type { CampoRegistroConductor } from "@ruum/shared/validacion";
 import { DatosSensiblesInfo } from "../cuenta/datos-sensibles";
 import { formatoTelefonoNacional, soloDigitos } from "./registration-validation";
 import { SelectField } from "./SelectField";
@@ -71,7 +72,7 @@ export function IdentityStep({
   consultandoCp: boolean;
   erroresCampos: Record<string, string>;
   limpiarErrorCampo: (campo: string) => void;
-  validarCampo: (campo: string, valor: string) => boolean;
+  validarCampo: (campo: CampoRegistroConductor, valor: string) => boolean;
   validarCurp: () => boolean;
   validarTelefono: (campo: "telefono" | "contactoEmergenciaTelefono", valor: string, setter: (valor: string) => void) => boolean;
   buscarCodigoPostal: (cp: string) => void;

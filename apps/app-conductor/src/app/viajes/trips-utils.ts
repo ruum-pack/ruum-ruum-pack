@@ -78,7 +78,7 @@ export function detalleFallback(viaje: PasaporteRow): DetalleOperativo {
   return {
     origen: "Origen por confirmar",
     destino: "Destino por confirmar",
-    fechaHora: viaje.creado_en,
+    fechaHora: viaje.creado_en ?? viaje.actualizado_en ?? new Date().toISOString(),
     tipoServicio: "Traslado estándar",
     requisitos: viaje.vehiculo_tipo ? `Nivel compatible con ${ETIQUETA_TIPO_VEHICULO[viaje.vehiculo_tipo]}.` : "Sin requisitos especiales.",
     distanciaKm: viaje.distancia_km,
@@ -236,6 +236,7 @@ export function normalizarFecha(valor: string | null): FiltroFecha {
 }
 
 export function clasificarMisViajes(viaje: PasaporteRow): GrupoMisViajes | null {
+  if (!viaje.estado) return null;
   const estado = viaje.estado as EstadoTraslado;
   if (ESTADOS_FINALIZADOS.has(estado)) return null;
   if (ESTADOS_PROXIMOS.has(estado)) return "proximos";
@@ -246,7 +247,7 @@ export function clasificarMisViajes(viaje: PasaporteRow): GrupoMisViajes | null 
 export function filtrarPorFecha(viajes: PasaporteRow[], detalles: Record<string, DetalleOperativo>, filtro: FiltroFecha) {
   if (filtro === "todos") return viajes;
   return viajes.filter((viaje) => {
-    const fecha = (detalles[viaje.traslado_id] ?? detalleFallback(viaje)).fechaHora;
+    const fecha = (viaje.traslado_id ? detalles[viaje.traslado_id] : null)?.fechaHora ?? detalleFallback(viaje).fechaHora;
     if (filtro === "hoy") return esHoy(fecha);
     return estaSemanaActual(fecha);
   });
@@ -269,6 +270,9 @@ export function crearCalendario(
   ];
   return diasSemanaActual(referencia).map((dia) => ({
     dia,
-    viajes: todos.filter(({ viaje }) => mismoDia((detalles[viaje.traslado_id] ?? detalleFallback(viaje)).fechaHora, dia))
+    viajes: todos.filter(({ viaje }) => {
+      const fecha = (viaje.traslado_id ? detalles[viaje.traslado_id] : null)?.fechaHora ?? detalleFallback(viaje).fechaHora;
+      return mismoDia(fecha, dia);
+    })
   }));
 }

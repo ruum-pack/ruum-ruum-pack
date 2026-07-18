@@ -20,8 +20,10 @@ import { EmergencyPanel } from "./EmergencyPanel";
 import { AbrirDisputaConductor } from "./AbrirDisputa";
 import { RegistroViajeActivo } from "../../ViajeActivoContext";
 import { EstadoError } from "../../EstadoError";
+import { registroViajeActivoDesdePasaporte } from "../../active-trip-state";
 
-function calcularHorasDesdeCierre(actualizadoEn: string) {
+function calcularHorasDesdeCierre(actualizadoEn: string | null) {
+  if (!actualizadoEn) return Number.POSITIVE_INFINITY;
   return (Date.now() - new Date(actualizadoEn).getTime()) / (1000 * 60 * 60);
 }
 
@@ -128,6 +130,19 @@ export default async function PaginaDetalleViaje({
     );
   }
 
+  if (!pasaporte.estado || !pasaporte.traslado_id) {
+    return (
+      <EstadoError
+        titulo="No pudimos cargar el viaje completo"
+        descripcion="Vuelve a intentarlo o contacta a soporte si el problema continúa."
+        acciones={[
+          { etiqueta: "Ver mis viajes", href: "/viajes", variant: "primary" },
+          { etiqueta: "Volver al panel", href: "/", variant: "quiet" }
+        ]}
+      />
+    );
+  }
+
   const horasDesdeCierre = calcularHorasDesdeCierre(pasaporte.actualizado_en);
   const puedeAbrirDisputa =
     ["servicio_cerrado", "reclamo_resuelto", "cierre_operativo_con_incidencia_abierta"].includes(pasaporte.estado) &&
@@ -136,6 +151,7 @@ export default async function PaginaDetalleViaje({
     pasaporte.estado === "evidencia_final_en_proceso"
       ? pasaporte.evidencia_final_fotos_sincronizadas
       : pasaporte.evidencia_inicial_fotos_sincronizadas;
+  const fotosCompletadasOperacion = fotosCompletadas ?? undefined;
   const clasificacionCatalogo = resumenClasificacionVehiculo(
     pasaporte.vehiculo_marca ?? "",
     pasaporte.vehiculo_modelo ?? "",
@@ -151,14 +167,7 @@ export default async function PaginaDetalleViaje({
         Volver a viajes
       </Link>
       <RegistroViajeActivo
-        viaje={{
-          trasladoId: pasaporte.traslado_id,
-          estado: pasaporte.estado,
-          origenDireccion: pasaporte.origen_direccion,
-          origenCiudad: pasaporte.origen_ciudad,
-          destinoDireccion: pasaporte.destino_direccion,
-          destinoCiudad: pasaporte.destino_ciudad
-        }}
+        viaje={registroViajeActivoDesdePasaporte(pasaporte)}
       />
       <TripCard folio={pasaporte.traslado_id.slice(0, 8).toUpperCase()} className="overflow-visible">
         <div className="flex items-center justify-between gap-3">
@@ -181,7 +190,7 @@ export default async function PaginaDetalleViaje({
             trasladoId={pasaporte.traslado_id}
             estado={pasaporte.estado}
             presentation={presentation}
-            fotosCompletadas={fotosCompletadas}
+            fotosCompletadas={fotosCompletadasOperacion}
             origenDireccion={pasaporte.origen_direccion}
             origenCiudad={pasaporte.origen_ciudad}
             origenReferencias={pasaporte.origen_referencias}

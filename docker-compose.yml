@@ -1,51 +1,83 @@
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Docker Compose reference guide at
-# https://docs.docker.com/go/compose-spec-reference/
+# Docker Compose configuration for Ruum monorepo
+# This configuration runs all three Next.js applications in development mode
+# 
+# Usage:
+#   Development: docker-compose up
+#   With dev config: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
-# Here the instructions define your application as a service called "server".
-# This service is built from the Dockerfile in the current directory.
-# You can add other services your application may depend on here, such as a
-# database or a cache. For examples, see the Awesome Compose repository:
-# https://github.com/docker/awesome-compose
 services:
-  server:
+  # App Conductor - Port 3001
+  app-conductor:
     build:
       context: .
-    environment:
-      NODE_ENV: production
+      dockerfile: Dockerfile
+    container_name: ruum-app-conductor
     ports:
-      - 3001:3001
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_APP_URL=http://localhost:3001
+    volumes:
+      - ./apps/app-conductor:/app/apps/app-conductor
+      - ./packages:/app/packages
+      - ./turbo.json:/app/turbo.json
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./deno.json:/app/deno.json
+      - ./deno.lock:/app/deno.lock
+      - ./tsconfig.json:/app/tsconfig.json
+    working_dir: /app
+    command: pnpm --filter @ruum/app-conductor run dev
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
 
-# The commented out section below is an example of how to define a PostgreSQL
-# database that your application can use. `depends_on` tells Docker Compose to
-# start the database before your application. The `db-data` volume persists the
-# database data between container restarts. The `db-password` secret is used
-# to set the database password. You must create `db/password.txt` and add
-# a password of your choosing to it before running `docker-compose up`.
-#     depends_on:
-#       db:
-#         condition: service_healthy
-#   db:
-#     image: postgres
-#     restart: always
-#     user: postgres
-#     secrets:
-#       - db-password
-#     volumes:
-#       - db-data:/var/lib/postgresql/data
-#     environment:
-#       - POSTGRES_DB=example
-#       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
-#     expose:
-#       - 5432
-#     healthcheck:
-#       test: [ "CMD", "pg_isready" ]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 5
-# volumes:
-#   db-data:
-# secrets:
-#   db-password:
-#     file: db/password.txt
+  # App Usuario - Port 3000
+  app-usuario:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ruum-app-usuario
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    volumes:
+      - ./apps/app-usuario:/app/apps/app-usuario
+      - ./packages:/app/packages
+      - ./turbo.json:/app/turbo.json
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./deno.json:/app/deno.json
+      - ./deno.lock:/app/deno.lock
+      - ./tsconfig.json:/app/tsconfig.json
+    working_dir: /app
+    command: pnpm --filter @ruum/app-usuario run dev
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  # Panel Admin - Port 3002
+  panel-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ruum-panel-admin
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_APP_URL=http://localhost:3002
+    volumes:
+      - ./apps/panel-admin:/app/apps/panel-admin
+      - ./packages:/app/packages
+      - ./turbo.json:/app/turbo.json
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./deno.json:/app/deno.json
+      - ./deno.lock:/app/deno.lock
+      - ./tsconfig.json:/app/tsconfig.json
+    working_dir: /app
+    command: pnpm --filter @ruum/panel-admin run dev
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
 

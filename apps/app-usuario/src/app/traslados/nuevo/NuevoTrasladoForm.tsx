@@ -643,6 +643,8 @@ export function NuevoTrasladoForm() {
       return () => clearTimeout(timer);
     }
 
+    const distanciaKm = rutaEstimacion.distanciaKm;
+    const tiempoEstimadoHoras = rutaEstimacion.tiempoEstimadoHoras;
     const condicionSeleccionada = datos.condicion;
     let cancelado = false;
     const timer = setTimeout(async () => {
@@ -652,8 +654,8 @@ export function NuevoTrasladoForm() {
         const resultado = await previsualizarTarifaUsuario(cliente, {
           marca: datos.marca,
           modelo: datos.modelo,
-          distanciaKm: rutaEstimacion.distanciaKm,
-          tiempoEstimadoHoras: rutaEstimacion.tiempoEstimadoHoras,
+          distanciaKm,
+          tiempoEstimadoHoras,
           fechaHora: datos.modalidadProgramacion === "programado" && datos.fechaHoraProgramada ? new Date(datos.fechaHoraProgramada) : null,
           condicion: condicionSeleccionada
         });

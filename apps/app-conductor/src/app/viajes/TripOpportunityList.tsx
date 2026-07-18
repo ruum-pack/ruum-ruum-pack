@@ -41,7 +41,10 @@ export function TripOpportunityList({
   return (
     <>
       {viajes.map((viaje) => {
-        const detalle = detalles[viaje.traslado_id] ?? detalleFallback(viaje);
+        if (!viaje.traslado_id) return null;
+
+        const trasladoId = viaje.traslado_id;
+        const detalle = detalles[trasladoId] ?? detalleFallback(viaje);
         const elegibilidad = viaje.vehiculo_tipo
           ? conductor
             ? esElegibleParaViaje(conductor, viaje.vehiculo_tipo, "intraurbana")
@@ -57,7 +60,7 @@ export function TripOpportunityList({
           : null;
 
         return (
-          <TripCard key={viaje.traslado_id} folio={viaje.traslado_id.slice(0, 8).toUpperCase()}>
+          <TripCard key={trasladoId} folio={trasladoId.slice(0, 8).toUpperCase()}>
             <article className="grid gap-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
@@ -115,10 +118,10 @@ export function TripOpportunityList({
                   <Button
                     variant="primary"
                     className="w-full"
-                    onClick={() => onAccept(viaje.traslado_id)}
-                    disabled={!elegibilidad.elegible || aceptando === viaje.traslado_id || rechazoPendiente}
+                    onClick={() => onAccept(trasladoId)}
+                    disabled={!elegibilidad.elegible || aceptando === trasladoId || rechazoPendiente}
                   >
-                    {aceptando === viaje.traslado_id ? "Aceptando..." : "Aceptar"}
+                    {aceptando === trasladoId ? "Aceptando..." : "Aceptar"}
                   </Button>
                 </div>
               </div>

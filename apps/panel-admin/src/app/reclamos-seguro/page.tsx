@@ -1,6 +1,4 @@
 "use client";
-
-"use client";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
@@ -28,6 +26,7 @@ const RECLAMOS_DEMO: Reclamo[] = [
 
 function etiquetaCobertura(pasaporte: Pasaporte | undefined) {
   if (!pasaporte) return "Sin pasaporte";
+  if (!pasaporte.estado) return "Sin estado operativo";
   return estaDentroDeCobertura(pasaporte.estado, false) ? "Dentro de cobertura" : "Fuera de ventana";
 }
 
@@ -87,6 +86,10 @@ function AccionReclamo({ reclamo, onActualizado }: { reclamo: Reclamo; onActuali
   );
 }
 
+function pasaporteConTrasladoId(pasaporte: Pasaporte): pasaporte is Pasaporte & { traslado_id: string } {
+  return Boolean(pasaporte.traslado_id);
+}
+
 export default function PaginaReclamosSeguroAdmin() {
   const [reclamos, setReclamos] = useState<Reclamo[]>([]);
   const [pasaportes, setPasaportes] = useState<Pasaporte[]>([]);
@@ -129,7 +132,7 @@ export default function PaginaReclamosSeguroAdmin() {
   return () => clearTimeout(timer);
 }, []);
 
-  const pasaportePorId = useMemo(() => new Map(pasaportes.map((p) => [p.traslado_id, p])), [pasaportes]);
+  const pasaportePorId = useMemo(() => new Map(pasaportes.filter(pasaporteConTrasladoId).map((p) => [p.traslado_id, p])), [pasaportes]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">

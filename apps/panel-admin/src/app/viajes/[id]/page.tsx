@@ -1,6 +1,4 @@
 "use client";
-
-"use client";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -42,6 +40,10 @@ const CAUSAS_FALLIDO: { valor: CausaFallido; etiqueta: string }[] = [
   { valor: "documentacion", etiqueta: "Documentación" },
   { valor: "vehiculo_no_circulable", etiqueta: "Vehículo no circulable" }
 ];
+
+function fechaAdministrativa(fechaIso: string | null | undefined) {
+  return fechaIso ? new Date(fechaIso).toLocaleString("es-MX") : "Pendiente";
+}
 
 export default function PaginaDetalleViajeAdmin() {
   const { id } = useParams<{ id: string }>();
@@ -122,6 +124,12 @@ export default function PaginaDetalleViajeAdmin() {
 
   async function asignar() {
     if (!pasaporte || !conductorSeleccionado) return;
+    if (!pasaporte.traslado_id || !pasaporte.estado) {
+      mostrarAviso({ tono: "danger", texto: "El viaje no tiene folio o estado operativo suficiente para asignar conductor." });
+      return;
+    }
+    const trasladoId = pasaporte.traslado_id;
+    const estadoActual = pasaporte.estado;
     setProcesando("conductor");
     setAviso(null);
 
@@ -134,10 +142,10 @@ export default function PaginaDetalleViajeAdmin() {
 
     try {
       const cliente = crearClienteNavegador();
-      await asignarConductorAdmin(cliente, pasaporte.traslado_id, conductorSeleccionado, pasaporte.estado);
+      await asignarConductorAdmin(cliente, trasladoId, conductorSeleccionado, estadoActual);
       mostrarAviso({ tono: "info", texto: "Conductor asignado." });
-      setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
-      setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
+      setPasaporte(await obtenerPasaporteDigital(cliente, trasladoId));
+      setAuditoria(await obtenerAuditoriaTraslado(cliente, trasladoId));
     } catch (err) {
       mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos asignar el conductor." });
     } finally {
@@ -147,6 +155,12 @@ export default function PaginaDetalleViajeAdmin() {
 
   async function cambiarEstatus() {
     if (!pasaporte || !estadoSeleccionado) return;
+    if (!pasaporte.traslado_id || !pasaporte.estado) {
+      mostrarAviso({ tono: "danger", texto: "El viaje no tiene folio o estado operativo suficiente para cambiar estatus." });
+      return;
+    }
+    const trasladoId = pasaporte.traslado_id;
+    const estadoActual = pasaporte.estado;
     setProcesando("estado");
     setAviso(null);
 
@@ -159,10 +173,10 @@ export default function PaginaDetalleViajeAdmin() {
 
     try {
       const cliente = crearClienteNavegador();
-      await cambiarEstatusAdmin(cliente, pasaporte.traslado_id, pasaporte.estado, estadoSeleccionado);
+      await cambiarEstatusAdmin(cliente, trasladoId, estadoActual, estadoSeleccionado);
       mostrarAviso({ tono: "info", texto: "Estatus actualizado." });
-      setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
-      setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
+      setPasaporte(await obtenerPasaporteDigital(cliente, trasladoId));
+      setAuditoria(await obtenerAuditoriaTraslado(cliente, trasladoId));
       setEstadoSeleccionado("");
     } catch (err) {
       mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos cambiar el estatus." });
@@ -176,7 +190,8 @@ export default function PaginaDetalleViajeAdmin() {
   const [condicionInput, setCondicionInput] = useState<Database["public"]["Enums"]["condicion_vehiculo"] | "">("");
 
   async function guardarClasificacionVehiculo() {
-    if (!pasaporte || !pasaporte.vehiculo_id) return;
+    if (!pasaporte || !pasaporte.vehiculo_id || !pasaporte.traslado_id) return;
+    const trasladoId = pasaporte.traslado_id;
     if (!categoriaTarifaInput || !gamaInput || !condicionInput) {
       mostrarAviso({ tono: "danger", texto: "Selecciona categoría, gama y condición." });
       return;
@@ -194,7 +209,7 @@ export default function PaginaDetalleViajeAdmin() {
         gama: gamaInput,
         condicion: condicionInput
       });
-      setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
+      setPasaporte(await obtenerPasaporteDigital(cliente, trasladoId));
       mostrarAviso({ tono: "info", texto: "Clasificación del vehículo guardada." });
     } catch (err) {
       mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No se pudo guardar la clasificación." });
@@ -205,6 +220,11 @@ export default function PaginaDetalleViajeAdmin() {
 
   async function sugerirTarifa() {
     if (!pasaporte) return;
+    if (!pasaporte.traslado_id) {
+      mostrarAviso({ tono: "danger", texto: "El viaje no tiene folio suficiente para calcular tarifa." });
+      return;
+    }
+    const trasladoId = pasaporte.traslado_id;
     if (esDemo) {
       mostrarAviso({ tono: "info", texto: "El cálculo de ruta y tarifa no está disponible en modo demo." });
       return;
@@ -235,14 +255,14 @@ export default function PaginaDetalleViajeAdmin() {
         return;
       }
 
-      await guardarDistanciaYTiempoTraslado(cliente, pasaporte.traslado_id, {
+      await guardarDistanciaYTiempoTraslado(cliente, trasladoId, {
         distancia_km: distanciaKm,
         tiempo_estimado_horas: tiempoHoras
       });
 
-      const sugerido = await sugerirTarifaTraslado(cliente, pasaporte.traslado_id);
+      const sugerido = await sugerirTarifaTraslado(cliente, trasladoId);
       setPrecioFinalInput(String(sugerido));
-      setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
+      setPasaporte(await obtenerPasaporteDigital(cliente, trasladoId));
       mostrarAviso({
         tono: "info",
         texto: `Ruta: ${distanciaKm} km, ${tiempoHoras} h. Tarifa sugerida: $${sugerido.toLocaleString("es-MX")} — revísala y ajústala antes de emitir.`
@@ -259,6 +279,11 @@ export default function PaginaDetalleViajeAdmin() {
 
   async function guardarPrecioFinal() {
     if (!pasaporte) return;
+    if (!pasaporte.traslado_id) {
+      mostrarAviso({ tono: "danger", texto: "El viaje no tiene folio suficiente para emitir cotización." });
+      return;
+    }
+    const trasladoId = pasaporte.traslado_id;
 
     const valor = Number(precioFinalInput);
     if (!precioFinalInput.trim() || Number.isNaN(valor) || valor <= 0) {
@@ -279,10 +304,10 @@ export default function PaginaDetalleViajeAdmin() {
 
     try {
       const cliente = crearClienteNavegador();
-      await emitirCotizacionAdmin(cliente, pasaporte.traslado_id, valor);
+      await emitirCotizacionAdmin(cliente, trasladoId, valor);
       mostrarAviso({ tono: "info", texto: "Cotización emitida para aceptación del usuario." });
-      setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
-      setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
+      setPasaporte(await obtenerPasaporteDigital(cliente, trasladoId));
+      setAuditoria(await obtenerAuditoriaTraslado(cliente, trasladoId));
     } catch (err) {
       mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos emitir la cotización." });
     } finally {
@@ -292,6 +317,11 @@ export default function PaginaDetalleViajeAdmin() {
 
   async function marcarFallido() {
     if (!pasaporte) return;
+    if (!pasaporte.traslado_id) {
+      mostrarAviso({ tono: "danger", texto: "El viaje no tiene folio suficiente para marcarlo como fallido." });
+      return;
+    }
+    const trasladoId = pasaporte.traslado_id;
     setProcesando("fallido");
     setAviso(null);
 
@@ -305,10 +335,10 @@ export default function PaginaDetalleViajeAdmin() {
 
     try {
       const cliente = crearClienteNavegador();
-      const resultado = await marcarTrasladoFallido(cliente, pasaporte.traslado_id, causaFallido);
+      const resultado = await marcarTrasladoFallido(cliente, trasladoId, causaFallido);
       mostrarAviso({ tono: "info", texto: resultado.mensaje });
-      setPasaporte(await obtenerPasaporteDigital(cliente, pasaporte.traslado_id));
-      setAuditoria(await obtenerAuditoriaTraslado(cliente, pasaporte.traslado_id));
+      setPasaporte(await obtenerPasaporteDigital(cliente, trasladoId));
+      setAuditoria(await obtenerAuditoriaTraslado(cliente, trasladoId));
     } catch (err) {
       mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos marcar el traslado como fallido." });
     } finally {
@@ -318,13 +348,18 @@ export default function PaginaDetalleViajeAdmin() {
 
   async function agregarNota() {
     if (!pasaporte || !notaNueva.trim()) return;
+    if (!pasaporte.traslado_id) {
+      mostrarAviso({ tono: "danger", texto: "El viaje no tiene folio suficiente para agregar notas." });
+      return;
+    }
+    const trasladoId = pasaporte.traslado_id;
     setProcesando("nota");
     setAviso(null);
 
     if (esDemo) {
       await new Promise((r) => setTimeout(r, 300));
       setNotas((prev) => [
-        { id: `demo-${Date.now()}`, traslado_id: pasaporte.traslado_id, admin_id: "demo", contenido: notaNueva, creada_en: new Date().toISOString() },
+        { id: `demo-${Date.now()}`, traslado_id: trasladoId, admin_id: "demo", contenido: notaNueva, creada_en: new Date().toISOString() },
         ...prev
       ]);
       setNotaNueva("");
@@ -334,8 +369,8 @@ export default function PaginaDetalleViajeAdmin() {
 
     try {
       const cliente = crearClienteNavegador();
-      await agregarNotaInterna(cliente, pasaporte.traslado_id, adminId, notaNueva);
-      setNotas(await obtenerNotasInternas(cliente, pasaporte.traslado_id));
+      await agregarNotaInterna(cliente, trasladoId, adminId, notaNueva);
+      setNotas(await obtenerNotasInternas(cliente, trasladoId));
       setNotaNueva("");
     } catch (err) {
       mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos guardar la nota." });
@@ -356,6 +391,18 @@ export default function PaginaDetalleViajeAdmin() {
     return (
       <main className="mx-auto max-w-4xl px-8 py-10 text-center">
         <h1 className="font-display text-xl font-semibold">No encontramos ese viaje</h1>
+        <Link href="/viajes" className="mt-3 inline-block font-body text-sm text-route-dark hover:underline">
+          ← Volver a viajes
+        </Link>
+      </main>
+    );
+  }
+
+  if (!pasaporte.traslado_id || !pasaporte.estado) {
+    return (
+      <main className="mx-auto max-w-4xl px-8 py-10 text-center">
+        <h1 className="font-display text-xl font-semibold">No pudimos cargar el estado del viaje</h1>
+        <p className="mt-2 font-body text-sm text-ink/60">El registro no incluye folio o estado operativo suficiente para administrarlo.</p>
         <Link href="/viajes" className="mt-3 inline-block font-body text-sm text-route-dark hover:underline">
           ← Volver a viajes
         </Link>
@@ -418,7 +465,7 @@ export default function PaginaDetalleViajeAdmin() {
             </div>
             <div className="flex justify-between">
               <dt className="text-ink/45">Creado</dt>
-              <dd>{new Date(pasaporte.creado_en).toLocaleString("es-MX")}</dd>
+              <dd>{fechaAdministrativa(pasaporte.creado_en)}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-ink/45">Conductor</dt>
@@ -507,7 +554,7 @@ export default function PaginaDetalleViajeAdmin() {
               <option value="">Selecciona un conductor</option>
               {conductores.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.nombre} · {ETIQUETA_NIVEL_CONCER[c.nivel_operativo_vigente]}
+                  {c.nombre} · {c.nivel_operativo_vigente ? ETIQUETA_NIVEL_CONCER[c.nivel_operativo_vigente] : "Nivel pendiente"}
                 </option>
               ))}
             </select>
@@ -676,7 +723,7 @@ export default function PaginaDetalleViajeAdmin() {
                 <div key={n.id} className="font-body text-sm">
                   <p>{n.contenido}</p>
                   <p className="mt-0.5 font-mono-ruum text-[10px] uppercase tracking-wide text-ink/40">
-                    {new Date(n.creada_en).toLocaleString("es-MX")}
+                    {fechaAdministrativa(n.creada_en)}
                   </p>
                 </div>
               ))
@@ -706,7 +753,7 @@ export default function PaginaDetalleViajeAdmin() {
                       </p>
                     </div>
                     <p className="font-mono-ruum text-[10px] uppercase tracking-wide text-ink/40">
-                      {new Date(evento.timestamp).toLocaleString("es-MX")}
+                      {fechaAdministrativa(evento.timestamp)}
                     </p>
                   </div>
                   <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-ink/[0.04] p-3 font-mono-ruum text-[11px] text-ink/60">

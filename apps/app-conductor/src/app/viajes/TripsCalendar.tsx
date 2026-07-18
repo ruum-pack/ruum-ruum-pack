@@ -65,10 +65,22 @@ export function TripsCalendar({
                   </p>
                 ) : (
                   diaCalendarioSeleccionado.viajes.map(({ viaje, tipo }) => {
-                    const detalle = detalles[viaje.traslado_id] ?? detalleFallback(viaje);
+                    const trasladoId = viaje.traslado_id;
+                    const detalle = (trasladoId ? detalles[trasladoId] : null) ?? detalleFallback(viaje);
+                    if (!trasladoId) {
+                      return (
+                        <div
+                          key={`${tipo}-sin-id-${detalle.fechaHora}`}
+                          className="rounded-lg border border-border bg-surface px-3 py-3 font-body text-sm"
+                        >
+                          <span className="block font-semibold">{tipo}: {nombreVehiculo(viaje)}</span>
+                          <span className="mt-1 block text-text-secondary">{formatearHora(detalle.fechaHora)} · {detalle.origen}</span>
+                        </div>
+                      );
+                    }
                     return (
                       <Link
-                        key={`${tipo}-${viaje.traslado_id}`}
+                        key={`${tipo}-${trasladoId}`}
                         href={hrefDetalle(viaje)}
                         className="rounded-lg border border-border bg-surface px-3 py-3 font-body text-sm hover:border-route-action hover:bg-route-soft"
                       >
@@ -115,11 +127,14 @@ export function TripsCalendar({
               </p>
               <p className="mt-1 text-center font-body text-xs text-text-tertiary sm:text-left">{viajes.length} viaje(s)</p>
               <div className="mt-3 hidden gap-1 sm:grid">
-                {viajes.slice(0, 2).map(({ viaje, tipo }) => (
-                  <span key={`${tipo}-${viaje.traslado_id}`} className="truncate rounded bg-surface px-2 py-1 font-body text-xs text-text-secondary">
-                    {tipo}: {nombreVehiculo(viaje)}
-                  </span>
-                ))}
+                {viajes.slice(0, 2).map(({ viaje, tipo }, index) => {
+                  const trasladoId = viaje.traslado_id ?? `${claveDia(dia)}-${index}`;
+                  return (
+                    <span key={`${tipo}-${trasladoId}`} className="truncate rounded bg-surface px-2 py-1 font-body text-xs text-text-secondary">
+                      {tipo}: {nombreVehiculo(viaje)}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           ))}

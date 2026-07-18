@@ -104,13 +104,20 @@ export function normalizarViajeActivo(viaje: RegistroViajeActivoInput, previo?: 
   };
 }
 
-export function viajeActivoDesdePasaporte(viaje: PasaporteRow): ViajeActivo | null {
-  return normalizarViajeActivo({
+export function registroViajeActivoDesdePasaporte(viaje: PasaporteRow): RegistroViajeActivoInput | null {
+  if (!viaje.traslado_id || !viaje.estado) return null;
+
+  return {
     trasladoId: viaje.traslado_id,
     estado: viaje.estado,
     origenDireccion: viaje.origen_direccion,
     origenCiudad: viaje.origen_ciudad,
     destinoDireccion: viaje.destino_direccion,
     destinoCiudad: viaje.destino_ciudad
-  });
+  };
+}
+
+export function viajeActivoDesdePasaporte(viaje: PasaporteRow): ViajeActivo | null {
+  const registro = registroViajeActivoDesdePasaporte(viaje);
+  return registro ? normalizarViajeActivo(registro) : null;
 }

@@ -173,6 +173,11 @@ export default function PaginaEvidencia() {
           setCargando(false);
           return;
         }
+        if (!pasaporte.estado) {
+          setAviso("No pudimos determinar el estado del viaje para abrir el registro del vehículo.");
+          setCargando(false);
+          return;
+        }
         const tipoDetectado = tipoEvidenciaPorEstado(pasaporte.estado);
         setEstadoActual(pasaporte.estado);
         setPasaporteActual(pasaporte);

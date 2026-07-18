@@ -69,6 +69,10 @@ function ultimos4(valor: string | null | undefined) {
   return `•••• ${valor.slice(-4)}`;
 }
 
+function pasaporteConTrasladoId(pasaporte: Pasaporte): pasaporte is Pasaporte & { traslado_id: string } {
+  return Boolean(pasaporte.traslado_id);
+}
+
 export default function PaginaPagosAdmin() {
   const [datos, setDatos] = useState<DatosPagosAdmin>(DATOS_DEMO);
   const [esDemo, setEsDemo] = useState(true);
@@ -102,7 +106,10 @@ export default function PaginaPagosAdmin() {
     cargar();
   }, []);
 
-  const pasaportePorId = useMemo(() => new Map<string, Pasaporte>(datos.pasaportes.map((p) => [p.traslado_id, p])), [datos.pasaportes]);
+  const pasaportePorId = useMemo(
+    () => new Map<string, Pasaporte>(datos.pasaportes.filter(pasaporteConTrasladoId).map((p) => [p.traslado_id, p])),
+    [datos.pasaportes]
+  );
   const conductorPorId = useMemo(() => new Map<string, Conductor>(datos.conductores.map((c) => [c.id, c])), [datos.conductores]);
   const pagos = datos.pagosUsuarios;
   const payouts = datos.payoutsConductores;
@@ -129,14 +136,18 @@ export default function PaginaPagosAdmin() {
                 <tr><td colSpan={8} className="px-3 py-6 text-ink/50">No hay pagos registrados.</td></tr>
               ) : (
                 pagos.map((pago: Pago) => {
-                  const pasaporte = pasaportePorId.get(pago.traslado_id);
+                  const pasaporte = pago.traslado_id ? pasaportePorId.get(pago.traslado_id) : null;
                   const vehiculo = pasaporte ? [pasaporte.vehiculo_marca, pasaporte.vehiculo_modelo].filter(Boolean).join(" ") : "Sin pasaporte";
                   return (
                     <tr key={pago.id} className="align-top">
                       <td className="border-b border-ink/10 px-3 py-3">
-                        <Link href={`/viajes/${pago.traslado_id}`} className="text-route-dark">
-                          {pago.traslado_id.slice(0, 8).toUpperCase()}
-                        </Link>
+                        {pago.traslado_id ? (
+                          <Link href={`/viajes/${pago.traslado_id}`} className="text-route-dark">
+                            {pago.traslado_id.slice(0, 8).toUpperCase()}
+                          </Link>
+                        ) : (
+                          <span className="text-ink/50">Sin traslado</span>
+                        )}
                       </td>
                       <td className="border-b border-ink/10 px-3 py-3 text-ink/70">{vehiculo}</td>
                       <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(pago.monto)}</td>

@@ -85,7 +85,8 @@ const ESTATUS_VISIBLES = [
   "Traslado fallido"
 ];
 
-function fechaHora(fecha: string) {
+function fechaHora(fecha: string | null | undefined) {
+  if (!fecha) return "Fecha por confirmar";
   return new Intl.DateTimeFormat("es-MX", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -103,6 +104,7 @@ function vehiculo(pasaporte: Pasaporte) {
 }
 
 function pestañaDeViaje(pasaporte: Pasaporte): PestañaViajes {
+  if (!pasaporte.estado) return "activos";
   if (pasaporte.estado === "servicio_cancelado" || pasaporte.estado === "traslado_fallido") return "cancelados";
   if (["servicio_cerrado", "reclamo_resuelto", "disputa_resuelta"].includes(pasaporte.estado)) return "finalizados";
   if (["solicitud_creada", "documentacion_pendiente", "documentacion_en_revision", "documentacion_validada", "cotizacion_generada", "servicio_confirmado", "pendiente_de_conductor"].includes(pasaporte.estado)) {
@@ -126,7 +128,7 @@ async function obtenerViajes(): Promise<ViajeLista[]> {
     if (!usuario) return [];
 
     const pasaportes = await listarTrasladosDeUsuario(cliente, usuario.id);
-    const ids = pasaportes.map((pasaporte) => pasaporte.traslado_id);
+    const ids = pasaportes.map((pasaporte) => pasaporte.traslado_id).filter((id): id is string => Boolean(id));
     const trasladosRes =
       ids.length > 0
         ? await cliente
@@ -140,7 +142,7 @@ async function obtenerViajes(): Promise<ViajeLista[]> {
     const trasladosPorId = new Map((trasladosRes.data ?? []).map((traslado) => [traslado.id, traslado]));
     return pasaportes.map((pasaporte) => ({
       pasaporte,
-      traslado: trasladosPorId.get(pasaporte.traslado_id) ?? null
+      traslado: pasaporte.traslado_id ? trasladosPorId.get(pasaporte.traslado_id) ?? null : null
     }));
   } catch {
     return [];
@@ -149,8 +151,11 @@ async function obtenerViajes(): Promise<ViajeLista[]> {
 
 function ViajeCard({ viaje }: { viaje: ViajeLista }) {
   const { pasaporte, traslado } = viaje;
+  if (!pasaporte.traslado_id) return null;
+
+  const estadoVisible = pasaporte.estado ? ESTATUS_USUARIO[pasaporte.estado] : "Estado por confirmar";
   const evidenciaDisponible =
-    pasaporte.evidencia_inicial_fotos_sincronizadas > 0 || pasaporte.evidencia_final_fotos_sincronizadas > 0;
+    (pasaporte.evidencia_inicial_fotos_sincronizadas ?? 0) > 0 || (pasaporte.evidencia_final_fotos_sincronizadas ?? 0) > 0;
 
   return (
     <Link
@@ -162,7 +167,7 @@ function ViajeCard({ viaje }: { viaje: ViajeLista }) {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-route/20 bg-route-soft px-2.5 py-1 font-body text-xs font-medium text-route-dark">
-              {ESTATUS_USUARIO[pasaporte.estado]}
+              {estadoVisible}
             </span>
             {pasaporte.tiene_incidencia_abierta && (
               <span className="rounded-full border border-warn/40 bg-warn-soft px-2.5 py-1 font-body text-xs font-medium text-warn">
@@ -219,10 +224,10 @@ function ViajeCard({ viaje }: { viaje: ViajeLista }) {
           <span className="rounded-full bg-signal px-3 py-1 font-semibold text-ink">Continuar con el pago</span>
         )}
         <span className="rounded-full bg-ink/[0.04] px-2.5 py-1">
-          Evidencia inicial: {pasaporte.evidencia_inicial_fotos_sincronizadas} fotos
+          Evidencia inicial: {pasaporte.evidencia_inicial_fotos_sincronizadas ?? 0} fotos
         </span>
         <span className="rounded-full bg-ink/[0.04] px-2.5 py-1">
-          Evidencia final: {pasaporte.evidencia_final_fotos_sincronizadas} fotos
+          Evidencia final: {pasaporte.evidencia_final_fotos_sincronizadas ?? 0} fotos
         </span>
         <span className="rounded-full bg-ink/[0.04] px-2.5 py-1">
           Evidencia {evidenciaDisponible ? "disponible" : "pendiente"}
@@ -326,7 +331,7 @@ export default async function PaginaMisViajes({
 
         <div className="mt-6 grid gap-4">
           {viajesPorPestaña.length > 0 ? (
-            viajesPorPestaña.map((viaje) => <ViajeCard key={viaje.pasaporte.traslado_id} viaje={viaje} />)
+            viajesPorPestaña.map((viaje, index) => <ViajeCard key={viaje.pasaporte.traslado_id ?? `viaje-${index}`} viaje={viaje} />)
           ) : (
             <EmptyStatePestana pestana={pestañaActiva} />
           )}

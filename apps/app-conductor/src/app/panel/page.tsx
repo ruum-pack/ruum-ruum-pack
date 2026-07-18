@@ -11,6 +11,7 @@ import { EstadoRevisionConductor } from "./EstadoRevisionConductor";
 import { PanelActiveTrip } from "./PanelActiveTrip";
 import { PanelHome } from "./PanelHome";
 import { usePanelData } from "./usePanelData";
+import { registroViajeActivoDesdePasaporte } from "../active-trip-state";
 
 export default function PaginaPanel() {
   const router = useRouter();
@@ -55,18 +56,7 @@ export default function PaginaPanel() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
       <RegistroViajeActivo
-        viaje={
-          viajeActivoPrincipal
-            ? {
-                trasladoId: viajeActivoPrincipal.traslado_id,
-                estado: viajeActivoPrincipal.estado,
-                origenDireccion: viajeActivoPrincipal.origen_direccion,
-                origenCiudad: viajeActivoPrincipal.origen_ciudad,
-                destinoDireccion: viajeActivoPrincipal.destino_direccion,
-                destinoCiudad: viajeActivoPrincipal.destino_ciudad
-              }
-            : null
-        }
+        viaje={viajeActivoPrincipal ? registroViajeActivoDesdePasaporte(viajeActivoPrincipal) : null}
       />
 
       <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">

@@ -120,11 +120,11 @@ export function usePanelData() {
   }, [router]);
 
   const viajeActivoPrincipal = useMemo(
-    () => viajesAceptados.find((viaje) => viajeEsOperacionActiva(viaje.estado)) ?? null,
+    () => viajesAceptados.find((viaje) => viaje.estado && viajeEsOperacionActiva(viaje.estado)) ?? null,
     [viajesAceptados]
   );
   const proximoViaje = useMemo(
-    () => viajesAceptados.find((viaje) => !viajeEsOperacionActiva(viaje.estado)) ?? null,
+    () => viajesAceptados.find((viaje) => !viaje.estado || !viajeEsOperacionActiva(viaje.estado)) ?? null,
     [viajesAceptados]
   );
   const documentoBloqueante = Boolean(conductor && !conductor.documentos_vigentes);

@@ -28,6 +28,8 @@ function OperationalTripCard({
   mode: "active" | "history";
 }) {
   const router = useRouter();
+  if (!viaje.traslado_id || !viaje.estado) return null;
+
   const detalle = detalles[viaje.traslado_id] ?? detalleFallback(viaje);
   const estadoActual = viaje.estado as EstadoTraslado;
   const requiereEvidencia = ESTADOS_QUE_REQUIEREN_EVIDENCIA.includes(estadoActual);
@@ -161,8 +163,8 @@ export function DriverTripsList({
 }) {
   return (
     <>
-      {viajes.map((viaje) => (
-        <OperationalTripCard key={viaje.traslado_id} viaje={viaje} detalles={detalles} hrefDetalle={hrefDetalle} mode="active" />
+      {viajes.map((viaje, index) => (
+        <OperationalTripCard key={viaje.traslado_id ?? `activo-${index}`} viaje={viaje} detalles={detalles} hrefDetalle={hrefDetalle} mode="active" />
       ))}
     </>
   );
@@ -179,8 +181,8 @@ export function TripHistoryList({
 }) {
   return (
     <>
-      {viajes.map((viaje) => (
-        <OperationalTripCard key={viaje.traslado_id} viaje={viaje} detalles={detalles} hrefDetalle={hrefDetalle} mode="history" />
+      {viajes.map((viaje, index) => (
+        <OperationalTripCard key={viaje.traslado_id ?? `historial-${index}`} viaje={viaje} detalles={detalles} hrefDetalle={hrefDetalle} mode="history" />
       ))}
     </>
   );

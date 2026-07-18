@@ -91,8 +91,11 @@ function SeccionTitulo({ children }: { children: ReactNode }) {
 
 export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
   const viajeActivo = obtenerViajeActivo(traslados);
+  const viajeActivoVisible = viajeActivo?.traslado_id && viajeActivo.estado
+    ? { ...viajeActivo, traslado_id: viajeActivo.traslado_id, estado: viajeActivo.estado }
+    : null;
   const historial = obtenerHistorial(traslados).filter(
-    (t) => t.traslado_id !== viajeActivo?.traslado_id
+    (t) => t.traslado_id !== viajeActivoVisible?.traslado_id
   );
   const notificaciones = construirNotificaciones(usuario, traslados);
   const primerNombre = usuario?.nombre?.trim().split(" ")[0];
@@ -122,33 +125,33 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
       <section className="mt-10">
         <SeccionTitulo>Traslado activo</SeccionTitulo>
 
-        {viajeActivo ? (
-          <Link href={`/traslados/${viajeActivo.traslado_id}`} className="mt-3 block">
+        {viajeActivoVisible ? (
+          <Link href={`/traslados/${viajeActivoVisible.traslado_id}`} className="mt-3 block">
             <PassportCard
               className="app-card-interactive"
-              folio={viajeActivo.traslado_id.slice(0, 8).toUpperCase()}
+              folio={viajeActivoVisible.traslado_id.slice(0, 8).toUpperCase()}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="font-display text-base font-semibold">
-                    {tarjetaVehiculo(viajeActivo)}
+                    {tarjetaVehiculo(viajeActivoVisible)}
                   </p>
                   <p className="mt-0.5 font-body text-xs text-ink/50">
-                    {ETIQUETA_CATEGORIA[CATEGORIA_POR_ESTADO[viajeActivo.estado]]} ·{" "}
-                    {formatearFechaRelativa(viajeActivo.creado_en)}
+                    {ETIQUETA_CATEGORIA[CATEGORIA_POR_ESTADO[viajeActivoVisible.estado]]} ·{" "}
+                    {formatearFechaRelativa(viajeActivoVisible.creado_en ?? viajeActivoVisible.actualizado_en ?? new Date().toISOString())}
                   </p>
                 </div>
-                <EstadoBadge estado={viajeActivo.estado} />
+                <EstadoBadge estado={viajeActivoVisible.estado} />
               </div>
 
-              {viajeActivo.tiene_incidencia_abierta && (
+              {viajeActivoVisible.tiene_incidencia_abierta && (
                 <div className="mt-4">
                   <Aviso tono="atencion">Este traslado tiene una incidencia abierta.</Aviso>
                 </div>
               )}
 
               <div className="mt-6">
-                <EstadoStepper estado={viajeActivo.estado} />
+                <EstadoStepper estado={viajeActivoVisible.estado} />
               </div>
             </PassportCard>
           </Link>
@@ -193,11 +196,11 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
           <AccesoRapido
             titulo="Pasaporte Digital"
             descripcion={
-              viajeActivo
+              viajeActivoVisible
                 ? "Consulta tu Pasaporte Digital"
                 : "Disponible con un traslado activo"
             }
-            href={viajeActivo ? `/traslados/${viajeActivo.traslado_id}` : undefined}
+            href={viajeActivoVisible ? `/traslados/${viajeActivoVisible.traslado_id}` : undefined}
             ctaVacio="Ver mis traslados"
             ctaHref="/mis-viajes"
           />
@@ -209,12 +212,12 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
           <AccesoRapido
             titulo="Centro de ayuda"
             descripcion={
-              viajeActivo
+              viajeActivoVisible
                 ? "Reporta pagos, evidencia o incidentes"
                 : "Contacta con el equipo de soporte"
             }
             href={
-              viajeActivo ? `/soporte?viaje=${viajeActivo.traslado_id}` : "/soporte"
+              viajeActivoVisible ? `/soporte?viaje=${viajeActivoVisible.traslado_id}` : "/soporte"
             }
           />
         </div>
@@ -229,12 +232,10 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
           </p>
         ) : (
           <div className="mt-3 divide-y divide-ink/10 rounded-card border border-ink/10">
-            {historial.slice(0, 6).map((t) => (
-              <Link
-                key={t.traslado_id}
-                href={`/traslados/${t.traslado_id}`}
-                className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-ink/[0.03]"
-              >
+            {historial.slice(0, 6).map((t, index) => {
+              const trasladoId = t.traslado_id;
+              const contenido = (
+                <>
                 <div>
                   <p className="font-body text-sm font-medium">
                     {tarjetaVehiculo(t)}
@@ -245,13 +246,28 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
                     )}
                   </p>
                   <p className="mt-0.5 font-mono-ruum text-xs text-ink/45">
-                    {formatearFechaRelativa(t.creado_en)} ·{" "}
+                    {formatearFechaRelativa(t.creado_en ?? t.actualizado_en ?? new Date().toISOString())} ·{" "}
                     {formatearPrecio(t.precio_final ?? t.precio_cotizado ?? 0)}
                   </p>
                 </div>
-                <EstadoBadge estado={t.estado} conTexto={false} />
-              </Link>
-            ))}
+                {t.estado ? <EstadoBadge estado={t.estado} conTexto={false} /> : null}
+                </>
+              );
+
+              return trasladoId ? (
+                <Link
+                  key={trasladoId}
+                  href={`/traslados/${trasladoId}`}
+                  className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-ink/[0.03]"
+                >
+                  {contenido}
+                </Link>
+              ) : (
+                <div key={`historial-${index}`} className="flex items-center justify-between gap-4 p-4">
+                  {contenido}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

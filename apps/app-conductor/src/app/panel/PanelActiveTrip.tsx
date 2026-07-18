@@ -16,6 +16,8 @@ import {
 } from "./panel-utils";
 
 export function PanelActiveTrip({ viaje }: { viaje: PasaporteRow }) {
+  if (!viaje.estado || !viaje.traslado_id) return null;
+
   const presentation = getTripPresentation(viaje.estado);
   const punto = puntoActual(viaje, presentation.primaryAction.action);
   const contacto = contactoRelevante(viaje, presentation.primaryAction.action);

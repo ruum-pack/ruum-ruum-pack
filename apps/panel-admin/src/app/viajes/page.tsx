@@ -1,6 +1,4 @@
 "use client";
-
-"use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";
@@ -68,7 +66,7 @@ export default function PaginaViajesAdmin() {
     ? viajes.filter((v) => {
         const q = busqueda.trim().toLowerCase();
         return (
-          v.traslado_id.slice(0, 8).toLowerCase().includes(q) ||
+          (v.traslado_id?.slice(0, 8).toLowerCase().includes(q) ?? false) ||
           `${v.vehiculo_marca ?? ""} ${v.vehiculo_modelo ?? ""}`.toLowerCase().includes(q) ||
           (v.conductor_nombre ?? "").toLowerCase().includes(q)
         );
@@ -140,19 +138,23 @@ export default function PaginaViajesAdmin() {
                   Cargando…
                 </td>
               </tr>
-            ) : viajes.length === 0 ? (
+            ) : viajesFiltrados.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-ink/50">
-                  No hay viajes en esta pestaña.
+                  {busqueda.trim() ? "No encontramos viajes con esa búsqueda." : "No hay viajes en esta pestaña."}
                 </td>
               </tr>
             ) : (
-              viajes.map((v) => (
-                <tr key={v.traslado_id} className="border-b border-ink/5 last:border-0 hover:bg-ink/[0.02]">
+              viajesFiltrados.map((v, indice) => (
+                <tr key={v.traslado_id ?? `viaje-sin-folio-${indice}`} className="border-b border-ink/5 last:border-0 hover:bg-ink/[0.02]">
                   <td className="px-4 py-3">
-                    <Link href={`/viajes/${v.traslado_id}`} className="font-mono-ruum text-xs text-route-dark hover:underline">
-                      {v.traslado_id.slice(0, 8).toUpperCase()}
-                    </Link>
+                    {v.traslado_id ? (
+                      <Link href={`/viajes/${v.traslado_id}`} className="font-mono-ruum text-xs text-route-dark hover:underline">
+                        {v.traslado_id.slice(0, 8).toUpperCase()}
+                      </Link>
+                    ) : (
+                      <span className="text-ink/40">Sin folio</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {v.vehiculo_marca} {v.vehiculo_modelo}
@@ -161,7 +163,7 @@ export default function PaginaViajesAdmin() {
                   <td className="px-4 py-3">{v.conductor_nombre ?? <span className="text-ink/40">Sin asignar</span>}</td>
                   <td className="px-4 py-3 font-mono-ruum">${v.precio_cotizado?.toLocaleString("es-MX") ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <EstadoBadge estado={v.estado} />
+                    {v.estado ? <EstadoBadge estado={v.estado} /> : <span className="text-ink/40">Sin estado</span>}
                   </td>
                 </tr>
               ))
