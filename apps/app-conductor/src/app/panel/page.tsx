@@ -13,9 +13,34 @@ import { PanelHome } from "./PanelHome";
 import { usePanelData } from "./usePanelData";
 import { registroViajeActivoDesdePasaporte } from "../active-trip-state";
 
+function PanelLoadingSkeleton() {
+  return (
+    <section className="mt-8 grid gap-5" role="status" aria-label="Cargando panel operativo" aria-busy="true">
+      <div className="rounded-2xl border border-[rgba(77,163,255,0.35)] bg-[#162238] p-5">
+        <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+          <div className="grid gap-3">
+            <div className="h-3 w-40 animate-pulse rounded bg-[rgba(183,194,212,0.18)]" />
+            <div className="h-7 w-48 animate-pulse rounded bg-[rgba(232,237,246,0.20)]" />
+            <div className="h-11 w-full animate-pulse rounded-lg bg-[rgba(183,194,212,0.14)]" />
+          </div>
+          <div className="h-14 w-full animate-pulse rounded-lg bg-[rgba(245,166,35,0.22)]" />
+        </div>
+      </div>
+      {[1, 2, 3].map((item) => (
+        <div key={item} className="rounded-2xl border border-[rgba(122,162,214,0.22)] bg-[#101A2C] p-5">
+          <div className="h-3 w-32 animate-pulse rounded bg-[rgba(183,194,212,0.18)]" />
+          <div className="mt-3 h-6 w-56 animate-pulse rounded bg-[rgba(232,237,246,0.18)]" />
+          <div className="mt-3 h-4 w-full max-w-md animate-pulse rounded bg-[rgba(183,194,212,0.14)]" />
+        </div>
+      ))}
+    </section>
+  );
+}
+
 export default function PaginaPanel() {
   const router = useRouter();
   const {
+    cargando,
     conductor,
     disponibilidad,
     disponibilidadPendiente,
@@ -25,7 +50,7 @@ export default function PaginaPanel() {
     viajeActivoPrincipal,
     proximoViaje,
     documentoBloqueante,
-    avisoPrioritario,
+    errorDisponibilidad,
     seleccionarDisponibilidad,
     persistirDisponibilidad,
     setDisponibilidadPendiente
@@ -84,7 +109,9 @@ export default function PaginaPanel() {
         </div>
       </header>
 
-      {viajeActivoPrincipal ? (
+      {cargando ? (
+        <PanelLoadingSkeleton />
+      ) : viajeActivoPrincipal ? (
         <PanelActiveTrip viaje={viajeActivoPrincipal} />
       ) : (
         <PanelHome
@@ -94,7 +121,7 @@ export default function PaginaPanel() {
           viajesDisponibles={viajesDisponibles}
           proximoViaje={proximoViaje}
           documentoBloqueante={documentoBloqueante}
-          avisoPrioritario={avisoPrioritario}
+          errorDisponibilidad={errorDisponibilidad}
           onSeleccionarDisponibilidad={seleccionarDisponibilidad}
         />
       )}

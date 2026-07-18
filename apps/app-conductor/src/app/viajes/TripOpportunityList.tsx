@@ -62,30 +62,32 @@ export function TripOpportunityList({
         return (
           <TripCard key={trasladoId} folio={trasladoId.slice(0, 8).toUpperCase()}>
             <article className="grid gap-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Oportunidad disponible</p>
-                  <h2 className="mt-1 truncate font-display text-xl font-semibold">
-                    {formatearFecha(detalle.fechaHora)} · {formatearHora(detalle.fechaHora)}
-                  </h2>
-                  <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                    <div className="min-w-0">
-                      <p className="font-body text-sm font-semibold text-text-tertiary">Origen</p>
-                      <p className="truncate font-body text-base font-semibold text-text-primary">{detalle.origen}</p>
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
+                <div className="min-w-0 rounded-xl border border-[rgba(77,163,255,0.24)] bg-[#101A2C] px-4 py-4">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="font-body text-xs uppercase tracking-wide text-[#8EC5FF]">Oportunidad disponible</p>
+                    <p className="font-body text-sm font-semibold text-[#B7C2D4]">
+                      {formatearFecha(detalle.fechaHora)} · {formatearHora(detalle.fechaHora)}
+                    </p>
+                  </div>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="min-w-0 border-l-2 border-[#4DA3FF] pl-3">
+                      <p className="font-body text-xs uppercase tracking-wide text-[#B7C2D4]">Origen</p>
+                      <p className="mt-1 line-clamp-2 font-display text-xl font-semibold leading-6 text-[#E8EDF6]">{detalle.origen}</p>
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-body text-sm font-semibold text-text-tertiary">Destino</p>
-                      <p className="truncate font-body text-base font-semibold text-text-primary">{detalle.destino}</p>
+                    <div className="min-w-0 border-l-2 border-[#F5A623] pl-3">
+                      <p className="font-body text-xs uppercase tracking-wide text-[#B7C2D4]">Destino</p>
+                      <p className="mt-1 line-clamp-2 font-display text-xl font-semibold leading-6 text-[#E8EDF6]">{detalle.destino}</p>
                     </div>
                   </div>
                 </div>
-                <div className="rounded-xl border border-success bg-control-soft px-4 py-3 shadow-1 sm:min-w-56">
-                  <p className="font-body text-xs uppercase tracking-wide text-success">{etiquetaGanancia}</p>
+                <div className="rounded-xl border border-[rgba(61,220,151,0.36)] bg-[rgba(61,220,151,0.10)] px-4 py-4 shadow-1 lg:min-w-60">
+                  <p className="font-body text-xs uppercase tracking-wide text-[#65E3AD]">{etiquetaGanancia}</p>
                   <DriverEarning
                     amount={detalle.gananciaConductorOficial}
                     status={detalle.estadoEconomico === "confirmado" ? "confirmado" : detalle.estadoEconomico === "estimado" ? "estimado" : "sin_calcular"}
                     currency="MXN"
-                    amountClassName="font-display text-xl font-bold text-success"
+                    amountClassName="font-display text-2xl font-bold text-[#E8EDF6]"
                   />
                 </div>
               </div>

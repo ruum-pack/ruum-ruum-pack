@@ -71,13 +71,63 @@ function TripsLoadingList() {
   );
 }
 
-function EmptyTripsState({ vista }: { vista: VistaViajes }) {
+function EmptyTripsState({
+  vista,
+  grupo,
+  filtrosActivos,
+  onChange,
+  onUpdateLocation
+}: {
+  vista: VistaViajes;
+  grupo: GrupoMisViajes;
+  filtrosActivos: boolean;
+  onChange: (cambios: Partial<Record<"vista" | "grupo" | "fecha" | "estado", string>>) => void;
+  onUpdateLocation: () => void;
+}) {
+  const contenido =
+    vista === "disponibles"
+      ? {
+          titulo: filtrosActivos ? "No hay oportunidades con estos filtros" : "No hay oportunidades nuevas por ahora",
+          descripcion: filtrosActivos
+            ? "Prueba ver todos los días o todos los estados para ampliar la búsqueda."
+            : "Mantén tu disponibilidad activa y actualiza tu ubicación para ver oportunidades cercanas cuando entren.",
+          accion: filtrosActivos ? "Limpiar filtros" : "Actualizar ubicación",
+          onAction: filtrosActivos ? () => onChange({ fecha: "todos", estado: "todos" }) : onUpdateLocation
+        }
+      : vista === "mis-viajes"
+        ? {
+            titulo: filtrosActivos ? "No encontramos viajes con estos filtros" : grupo === "en-curso" ? "No tienes viajes en curso" : grupo === "proximos" ? "No tienes próximos viajes" : "No tienes viajes por cerrar",
+            descripcion: filtrosActivos
+              ? "Quita filtros para revisar toda tu operación asignada."
+              : grupo === "en-curso"
+                ? "Cuando aceptes y comiences un traslado, aparecerá aquí con su siguiente acción."
+                : grupo === "proximos"
+                  ? "Revisa oportunidades disponibles para sumar traslados a tu agenda."
+                  : "Los viajes pendientes de evidencia final o cierre aparecerán en esta sección.",
+            accion: filtrosActivos ? "Limpiar filtros" : "Ver disponibles",
+            onAction: filtrosActivos ? () => onChange({ fecha: "todos", estado: "todos" }) : () => onChange({ vista: "disponibles" })
+          }
+        : {
+            titulo: filtrosActivos ? "No hay historial con estos filtros" : "Tu historial todavía está vacío",
+            descripcion: filtrosActivos
+              ? "Amplía el rango de fecha o revisa todos los estados para encontrar viajes anteriores."
+              : "Cuando cierres tus primeros viajes, podrás consultar aquí folios, fechas y estado económico.",
+            accion: filtrosActivos ? "Limpiar filtros" : "Ver disponibles",
+            onAction: filtrosActivos ? () => onChange({ fecha: "todos", estado: "todos" }) : () => onChange({ vista: "disponibles" })
+          };
+
   return (
-    <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center font-body text-sm text-text-tertiary">
-      {vista === "disponibles" && "No hay viajes disponibles por ahora."}
-      {vista === "mis-viajes" && "No hay viajes en esta categoría con los filtros actuales."}
-      {vista === "historial" && "No hay viajes finalizados con los filtros actuales."}
-    </p>
+    <div className="rounded-2xl border border-dashed border-[rgba(122,162,214,0.28)] bg-[#101A2C] px-5 py-8 text-center">
+      <h2 className="font-display text-xl font-semibold text-[#E8EDF6]">{contenido.titulo}</h2>
+      <p className="mx-auto mt-2 max-w-xl font-body text-sm leading-6 text-[#B7C2D4]">{contenido.descripcion}</p>
+      <button
+        type="button"
+        onClick={contenido.onAction}
+        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-action-primary px-5 py-3 font-display text-sm font-bold text-[#14213D] shadow-sm hover:bg-[#FFB940]"
+      >
+        {contenido.accion}
+      </button>
+    </div>
   );
 }
 
@@ -90,33 +140,27 @@ function OpportunityLocationPanel({
   actualizadaEn: Date | null;
   onUpdate: () => void;
 }) {
+  const textoEstado =
+    estado === "lista"
+      ? `Distancia aproximada activa · ${formatearActualizacion(actualizadaEn)}`
+      : estado === "denegada"
+        ? "Ubicación sin permiso"
+        : estado === "no_disponible"
+          ? "Ubicación no disponible"
+          : "Distancia aproximada al origen";
+
   return (
-    <div className="mt-3 rounded-xl border border-route-action bg-route-soft px-4 py-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="font-body text-sm font-semibold text-text-primary">Distancia aproximada al origen</p>
-          <p className="mt-1 font-body text-sm leading-6 text-text-secondary">
-            Usamos tu ubicación una vez para mostrar distancia en línea recta hacia la recolección. No es ETA vial y no se actualiza en continuo.
-          </p>
-          {estado === "lista" && (
-            <p className="mt-1 font-body text-sm text-text-secondary">
-              Actualización aproximada: {formatearActualizacion(actualizadaEn)}
-            </p>
-          )}
-          {estado === "denegada" && (
-            <p className="mt-1 font-body text-sm leading-6 text-danger-action">
-              Activa la ubicación en permisos del navegador o del sistema para ver la distancia aproximada al origen.
-            </p>
-          )}
-          {estado === "no_disponible" && (
-            <p className="mt-1 font-body text-sm leading-6 text-text-secondary">
-              No pudimos obtener tu ubicación. Revisa señal, permisos o intenta de nuevo.
-            </p>
-          )}
-        </div>
+    <div className="mt-3 rounded-xl border border-route-action/40 bg-route-soft/60 px-3 py-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className={[
+          "font-body text-sm font-semibold",
+          estado === "denegada" ? "text-danger-action" : "text-text-secondary"
+        ].join(" ")}>
+          {textoEstado}
+        </p>
         <Button
           variant="secondary"
-          className="w-full sm:w-auto"
+          className="min-h-10 w-full px-3 py-2 text-sm sm:w-auto"
           onClick={onUpdate}
           disabled={estado === "solicitando"}
         >
@@ -378,6 +422,7 @@ export default function PaginaViajes() {
   const listaBase = vista === "disponibles" ? disponiblesVisibles : vista === "historial" ? historial : misViajesPorGrupo[grupo];
   const lista = filtrarPorEstado(filtrarPorFecha(listaBase, detalles, filtroFecha), filtroEstado);
   const estadosFiltro = Array.from(new Set(listaBase.map((viaje) => viaje.estado as EstadoTraslado))).sort();
+  const filtrosActivos = filtroFecha !== "todos" || filtroEstado !== "todos";
   const estadisticasCompletas = {
     enCurso: misViajesPorGrupo["en-curso"].length,
     proximos: misViajesPorGrupo.proximos.length,
@@ -390,15 +435,34 @@ export default function PaginaViajes() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
       <TripsHeader />
-      <TripsCalendar
-        calendario={calendario}
-        diaSeleccionado={diaSeleccionado}
-        diaHoy={diaHoy}
-        estadisticas={estadisticasCompletas}
-        detalles={detalles}
-        hrefDetalle={hrefDetalle}
-        onSelectDay={setDiaSeleccionado}
-      />
+      {vista === "disponibles" ? (
+        <details className="mt-4 rounded-xl border border-border bg-surface">
+          <summary className="cursor-pointer px-4 py-3 font-body text-sm font-semibold text-text-secondary">
+            Ver calendario semanal
+          </summary>
+          <div className="border-t border-border px-4 pb-4">
+            <TripsCalendar
+              calendario={calendario}
+              diaSeleccionado={diaSeleccionado}
+              diaHoy={diaHoy}
+              estadisticas={estadisticasCompletas}
+              detalles={detalles}
+              hrefDetalle={hrefDetalle}
+              onSelectDay={setDiaSeleccionado}
+            />
+          </div>
+        </details>
+      ) : (
+        <TripsCalendar
+          calendario={calendario}
+          diaSeleccionado={diaSeleccionado}
+          diaHoy={diaHoy}
+          estadisticas={estadisticasCompletas}
+          detalles={detalles}
+          hrefDetalle={hrefDetalle}
+          onSelectDay={setDiaSeleccionado}
+        />
+      )}
 
       <section className="mt-6">
         <TripsTabs
@@ -433,7 +497,13 @@ export default function PaginaViajes() {
           {cargando ? (
             <TripsLoadingList />
           ) : lista.length === 0 ? (
-            <EmptyTripsState vista={vista} />
+            <EmptyTripsState
+              vista={vista}
+              grupo={grupo}
+              filtrosActivos={filtrosActivos}
+              onChange={actualizarUrl}
+              onUpdateLocation={() => void actualizarUbicacionOportunidades()}
+            />
           ) : vista === "disponibles" ? (
             <TripOpportunityList
               viajes={lista}

@@ -9,7 +9,7 @@ import { EvidenceChecklist } from "./EvidenceChecklist";
 import { EvidenceReview } from "./EvidenceReview";
 import { EvidenceSyncStatus } from "./EvidenceSyncStatus";
 import type { EstadoTraslado, EvidenceRequirement, InspeccionEvidencia, PasaporteRow } from "./evidence-requirements";
-import { OPCIONES_COMBUSTIBLE, OPCIONES_LLAVES, OPCIONES_SI_NO } from "./evidence-requirements";
+import { CAMPOS_INSPECCION_OBLIGATORIOS, OPCIONES_COMBUSTIBLE, OPCIONES_LLAVES, OPCIONES_SI_NO } from "./evidence-requirements";
 
 function CampoTexto({
   etiqueta,
@@ -101,11 +101,14 @@ export function EvidenceWizard({
   tipo,
   requisitos,
   requisitosCompletados,
+  progresoTotal,
+  requisitosTotales,
   pasoActivo,
   pasoEsRevision,
   requisitoActivo,
   aviso,
   resultado,
+  registroCompleto,
   etiquetasFaltantes,
   pendientesSubida,
   sincronizando,
@@ -113,6 +116,8 @@ export function EvidenceWizard({
   fotos,
   noAplica,
   inspeccion,
+  camposInspeccionPendientes,
+  inspeccionCompletada,
   enviando,
   statusFor,
   fotoPorAngulo,
@@ -132,11 +137,14 @@ export function EvidenceWizard({
   tipo: TipoEvidencia;
   requisitos: EvidenceRequirement[];
   requisitosCompletados: number;
+  progresoTotal: number;
+  requisitosTotales: number;
   pasoActivo: number;
   pasoEsRevision: boolean;
   requisitoActivo: EvidenceRequirement;
   aviso: string | null;
   resultado: ReturnType<typeof evidenciaCompleta>;
+  registroCompleto: boolean;
   etiquetasFaltantes: string[];
   pendientesSubida: number;
   sincronizando: boolean;
@@ -144,6 +152,8 @@ export function EvidenceWizard({
   fotos: FotoEvidencia[];
   noAplica: Set<AnguloEvidencia>;
   inspeccion: InspeccionEvidencia;
+  camposInspeccionPendientes: Array<{ etiqueta: string }>;
+  inspeccionCompletada: number;
   enviando: AnguloEvidencia | "confirmar" | "inspeccion" | null;
   statusFor: (item: EvidenceRequirement) => "listo" | "pendiente" | "omitido";
   fotoPorAngulo: (angulo: AnguloEvidencia) => FotoEvidencia | undefined;
@@ -176,7 +186,7 @@ export function EvidenceWizard({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-body text-sm font-semibold text-route-action">
-            {requisitosCompletados} de {requisitos.length}
+            {progresoTotal} de {requisitosTotales}
           </p>
           <h1 className="mt-1 font-display text-2xl font-semibold">
             Registro {tipo === "inicial" ? "inicial" : "final"} del vehículo
@@ -201,7 +211,7 @@ export function EvidenceWizard({
       )}
 
       <div className="mt-4">
-        <EvidenceSyncStatus pendientesSubida={pendientesSubida} sincronizando={sincronizando} missing={etiquetasFaltantes} complete={resultado.completa} />
+        <EvidenceSyncStatus pendientesSubida={pendientesSubida} sincronizando={sincronizando} missing={etiquetasFaltantes} complete={registroCompleto} />
       </div>
 
       <input
@@ -218,6 +228,8 @@ export function EvidenceWizard({
           fotos={fotos}
           noAplica={noAplica}
           resultado={resultado}
+          registroCompleto={registroCompleto}
+          etiquetasFaltantes={etiquetasFaltantes}
           pendientesSubida={pendientesSubida}
           sincronizando={sincronizando}
           inspeccion={inspeccion}
@@ -247,38 +259,55 @@ export function EvidenceWizard({
         />
       )}
 
-      <details className="mt-6 rounded-xl border border-border bg-surface">
-        <summary className="cursor-pointer px-4 py-3 font-body text-sm font-semibold">Datos de inspección</summary>
-        <div className="grid gap-3 border-t border-border px-4 py-4 sm:grid-cols-2">
+      <section className="mt-6 rounded-xl border border-border bg-surface p-4" aria-labelledby="datos-inspeccion-titulo">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 id="datos-inspeccion-titulo" className="font-body text-sm font-semibold text-text-primary">Datos de inspección</h2>
+            <p className="mt-1 font-body text-xs text-text-secondary">
+              {inspeccionCompletada} de {CAMPOS_INSPECCION_OBLIGATORIOS.length} obligatorios
+              {camposInspeccionPendientes.length > 0 ? ` · faltan ${camposInspeccionPendientes.length}` : " · completos"}
+            </p>
+          </div>
+          <span className={[
+            "rounded-full border px-2.5 py-1 font-body text-xs font-semibold",
+            camposInspeccionPendientes.length > 0
+              ? "border-warning bg-warn-soft text-warning"
+              : "border-success bg-control-soft text-success"
+          ].join(" ")}>
+            {camposInspeccionPendientes.length > 0 ? "Pendiente" : "Listo"}
+          </span>
+        </div>
+
+        <div className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
           <CampoSelect
-            etiqueta="Combustible"
+            etiqueta="Combustible *"
             valor={inspeccion.combustible}
             opciones={OPCIONES_COMBUSTIBLE}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, combustible: valor }))}
           />
           <CampoTexto
-            etiqueta="Kilometraje"
+            etiqueta="Kilometraje *"
             tipo="number"
             valor={inspeccion.kilometraje}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, kilometraje: valor }))}
           />
           <CampoSelect
-            etiqueta="Llaves recibidas"
+            etiqueta="Llaves recibidas *"
             valor={inspeccion.llavesRecibidas}
             opciones={OPCIONES_LLAVES}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, llavesRecibidas: valor }))}
           />
           <CampoSiNo
-            etiqueta="Holograma de verificación"
+            etiqueta="Holograma de verificación *"
             valor={inspeccion.hologramaVerificacion}
             onChange={(valor) => setInspeccion((actual) => ({ ...actual, hologramaVerificacion: valor }))}
           />
-          <CampoSelect etiqueta="Talón de verificación" valor={inspeccion.talonVerificacion} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, talonVerificacion: valor }))} />
-          <CampoSelect etiqueta="Tarjeta de circulación" valor={inspeccion.tarjetaCirculacion} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, tarjetaCirculacion: valor }))} />
-          <CampoSelect etiqueta="Placa delantera" valor={inspeccion.placaDelantera} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaDelantera: valor }))} />
-          <CampoSelect etiqueta="Placa trasera" valor={inspeccion.placaTrasera} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaTrasera: valor }))} />
+          <CampoSelect etiqueta="Talón de verificación *" valor={inspeccion.talonVerificacion} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, talonVerificacion: valor }))} />
+          <CampoSelect etiqueta="Tarjeta de circulación *" valor={inspeccion.tarjetaCirculacion} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, tarjetaCirculacion: valor }))} />
+          <CampoSelect etiqueta="Placa delantera *" valor={inspeccion.placaDelantera} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaDelantera: valor }))} />
+          <CampoSelect etiqueta="Placa trasera *" valor={inspeccion.placaTrasera} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaTrasera: valor }))} />
           <label className="grid gap-1 sm:col-span-2">
-            <span className="font-body text-sm font-semibold text-text-tertiary">Notas o comentarios</span>
+            <span className="font-body text-sm font-semibold text-text-tertiary">Notas o comentarios <span className="font-normal">(opcional)</span></span>
             <textarea
               value={inspeccion.notas}
               onChange={(event) => setInspeccion((actual) => ({ ...actual, notas: event.target.value }))}
@@ -290,7 +319,7 @@ export function EvidenceWizard({
             Guardar inspección
           </Button>
         </div>
-      </details>
+      </section>
     </div>
   );
 }

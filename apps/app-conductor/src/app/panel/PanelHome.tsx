@@ -5,12 +5,6 @@ import { DriverAvailabilityControl } from "./DriverAvailabilityControl";
 import type { Disponibilidad } from "./usePanelData";
 import { fechaViaje, folioViaje, nombreVehiculo, type PasaporteRow } from "./panel-utils";
 
-type AvisoPrioritario = {
-  tono: "info" | "atencion" | "danger";
-  titulo: string;
-  cuerpo: string;
-};
-
 export function PanelHome({
   conductor,
   disponibilidad,
@@ -18,7 +12,7 @@ export function PanelHome({
   viajesDisponibles,
   proximoViaje,
   documentoBloqueante,
-  avisoPrioritario,
+  errorDisponibilidad,
   onSeleccionarDisponibilidad
 }: {
   conductor: Conductor | null;
@@ -27,25 +21,71 @@ export function PanelHome({
   viajesDisponibles: PasaporteRow[];
   proximoViaje: PasaporteRow | null;
   documentoBloqueante: boolean;
-  avisoPrioritario: AvisoPrioritario;
+  errorDisponibilidad: string | null;
   onSeleccionarDisponibilidad: (disponibilidad: Disponibilidad) => void;
 }) {
+  const disponibilidadApagada = disponibilidad === "no_disponible";
+
   return (
     <section className="mt-8 grid gap-5" aria-label="Inicio operativo">
-      <OperationalCard>
-        <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+      {documentoBloqueante && (
+        <AlertCard>
+          <p className="font-body text-sm font-semibold text-text-tertiary">Documento bloqueante</p>
+          <div className="mt-2">
+            <h2 className="font-display text-xl font-semibold">Revisa tus documentos</h2>
+            <p className="mt-2 font-body text-sm text-text-secondary">
+              Este pendiente puede bloquear oportunidades. Atiéndelo antes de aceptar nuevos viajes.
+            </p>
+            <Link href="/cuenta/documentos">
+              <Button variant="primary" className="mt-4 w-full sm:w-auto">Abrir documentos</Button>
+            </Link>
+          </div>
+        </AlertCard>
+      )}
+
+      <OperationalCard padding="sm">
+        <div className="grid gap-3">
           <DriverAvailabilityControl
             value={disponibilidad}
             saving={persistiendoDisponibilidad}
             onChange={onSeleccionarDisponibilidad}
           />
-          <Link href="/viajes?vista=disponibles">
-            <Button variant="primary" className="min-h-14 w-full text-base">
-              Ver oportunidades ({viajesDisponibles.length})
-            </Button>
-          </Link>
+          {!disponibilidadApagada && (
+            <Link href="/viajes?vista=disponibles">
+              <Button variant="primary" className="min-h-12 w-full text-base">
+                Ver oportunidades ({viajesDisponibles.length})
+              </Button>
+            </Link>
+          )}
         </div>
+        {errorDisponibilidad && (
+          <div className="mt-4">
+            <Aviso tono="danger">{errorDisponibilidad}</Aviso>
+          </div>
+        )}
       </OperationalCard>
+
+      {disponibilidadApagada && !documentoBloqueante && (
+        <OperationalCard className="border-[rgba(245,166,35,0.42)] bg-[#162238]" padding="lg">
+          <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="font-body text-sm font-semibold text-[#F6C453]">Listo para tomar viajes</p>
+              <h2 className="mt-2 font-display text-2xl font-semibold text-[#E8EDF6]">Activa tu disponibilidad para recibir oportunidades</h2>
+              <p className="mt-2 max-w-2xl font-body text-base leading-7 text-[#B7C2D4]">
+                Cuando estés disponible, te mostraremos traslados cercanos y próximos pasos para empezar a operar.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              loading={persistiendoDisponibilidad}
+              onClick={() => onSeleccionarDisponibilidad("disponible")}
+              className="min-h-14 w-full text-base lg:w-auto"
+            >
+              Activar disponibilidad
+            </Button>
+          </div>
+        </OperationalCard>
+      )}
 
       <TripCard>
         <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Próximo viaje</p>
@@ -64,20 +104,7 @@ export function PanelHome({
         )}
       </TripCard>
 
-      {documentoBloqueante ? (
-        <AlertCard>
-          <p className="font-body text-sm font-semibold text-text-tertiary">Documento bloqueante</p>
-          <div className="mt-2">
-            <h2 className="font-display text-xl font-semibold">Revisa tus documentos</h2>
-            <p className="mt-2 font-body text-sm text-text-secondary">
-              Este pendiente puede bloquear oportunidades. Atiéndelo antes de aceptar nuevos viajes.
-            </p>
-            <Link href="/cuenta/documentos">
-              <Button variant="primary" className="mt-4 w-full sm:w-auto">Abrir documentos</Button>
-            </Link>
-          </div>
-        </AlertCard>
-      ) : (
+      {!documentoBloqueante && (
         <TripCard>
           <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Oportunidades cercanas</p>
           <div className="mt-3 grid gap-3">
@@ -99,15 +126,6 @@ export function PanelHome({
           Abrir módulo de ganancias
         </Link>
       </FinancialCard>
-
-      <AlertCard>
-        <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Aviso prioritario</p>
-        <div className="mt-2">
-          <Aviso tono={avisoPrioritario.tono}>
-            <strong>{avisoPrioritario.titulo}.</strong> {avisoPrioritario.cuerpo}
-          </Aviso>
-        </div>
-      </AlertCard>
     </section>
   );
 }

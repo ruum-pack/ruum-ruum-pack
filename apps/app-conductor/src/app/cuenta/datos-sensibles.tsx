@@ -1,5 +1,6 @@
 "use client";
 
+import { useId, useState } from "react";
 import Link from "next/link";
 
 export type TipoDatoSensible = "curp" | "licencia" | "cuenta_bancaria" | "contacto_emergencia" | "documentos";
@@ -65,5 +66,78 @@ export function DatosSensiblesInfo({ tipo, compacto = false }: { tipo: TipoDatoS
         Ver aviso de privacidad
       </Link>
     </div>
+  );
+}
+
+export function DatosSensiblesTooltip({
+  tipo,
+  align = "start"
+}: {
+  tipo: TipoDatoSensible;
+  align?: "start" | "end";
+}) {
+  const texto = TEXTOS[tipo];
+  const popoverId = useId();
+  const [abierto, setAbierto] = useState(false);
+
+  return (
+    <span
+      className="relative inline-flex"
+      onMouseEnter={() => setAbierto(true)}
+      onMouseLeave={() => setAbierto(false)}
+      onFocus={() => setAbierto(true)}
+      onBlur={(evento) => {
+        if (!evento.currentTarget.contains(evento.relatedTarget as Node | null)) {
+          setAbierto(false);
+        }
+      }}
+      onKeyDown={(evento) => {
+        if (evento.key === "Escape") setAbierto(false);
+      }}
+    >
+      <button
+        type="button"
+        aria-label={`Información sensible: ${texto.titulo}`}
+        aria-expanded={abierto}
+        aria-describedby={abierto ? popoverId : undefined}
+        onClick={() => setAbierto((valor) => !valor)}
+        className="inline-flex size-7 items-center justify-center rounded-full border border-[rgba(101,184,255,0.42)] bg-[#162238] font-body text-sm font-bold text-[#65B8FF] shadow-sm transition hover:border-[#65B8FF] hover:bg-[#101A2C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
+      >
+        i
+      </button>
+
+      {abierto && (
+        <span
+          id={popoverId}
+          role="tooltip"
+          className={[
+            "fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-50 max-h-[70vh] overflow-auto rounded-xl border border-[rgba(122,162,214,0.28)] bg-[#101A2C] p-4 text-left font-body text-sm leading-6 text-[#B7C2D4] shadow-[0_18px_48px_rgba(0,0,0,0.48)]",
+            "sm:absolute sm:bottom-auto sm:inset-x-auto sm:top-full sm:mt-2 sm:w-80",
+            align === "end" ? "sm:right-0" : "sm:left-0"
+          ].join(" ")}
+        >
+          <span className="block font-semibold text-[#E8EDF6]">{texto.titulo}</span>
+          <span className="mt-2 block">
+            <span className="font-semibold text-[#E8EDF6]">¿Por qué lo pedimos?</span>
+            <span className="block">{texto.finalidad}</span>
+          </span>
+          <span className="mt-2 block">
+            <span className="font-semibold text-[#E8EDF6]">¿Quién puede verlo?</span>
+            <span className="block">{texto.acceso}</span>
+          </span>
+          <span className="mt-2 block">
+            <span className="font-semibold text-[#E8EDF6]">¿Cómo se protege?</span>
+            <span className="block">{texto.proteccion}</span>
+          </span>
+          <Link
+            href="/legal/privacidad"
+            target="_blank"
+            className="mt-3 inline-flex font-body text-sm font-semibold text-[#65B8FF] underline-offset-4 hover:underline"
+          >
+            Ver aviso de privacidad
+          </Link>
+        </span>
+      )}
+    </span>
   );
 }

@@ -36,16 +36,6 @@ const ETIQUETA_EXPEDIENTE:Record<Database["public"]["Enums"]["estado_expediente_
   requiere_correccion:"Requiere corrección",aprobado:"Aprobado",rechazado:"Rechazado",suspendido:"Suspendido"
 };
 
-type EstadoSeccionRevision = "aprobado" | "en_revision" | "requiere_actualizacion" | "pendiente" | "no_solicitado";
-
-const ESTADO_SECCION: Record<EstadoSeccionRevision, { texto: string; clase: string }> = {
-  aprobado: { texto: "Aprobada", clase: "border-success bg-control-soft text-success" },
-  en_revision: { texto: "En revisión", clase: "border-route-action bg-route-soft text-route-action" },
-  requiere_actualizacion: { texto: "Requiere actualización", clase: "border-danger-action bg-danger-soft text-danger-action" },
-  pendiente: { texto: "Pendiente", clase: "border-border bg-surface-elevated text-text-secondary" },
-  no_solicitado: { texto: "Sin enviar", clase: "border-border bg-surface-elevated text-text-secondary" }
-};
-
 interface Props {
   conductorId?: string;
   solicitudId?: string;
@@ -123,23 +113,33 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
 
   const todosAprobados = TIPOS_DOCUMENTO.every((t) => documentoDe(t.valor)?.estado === "aprobado");
   const documentoFiscal = documentoDe(DOCUMENTO_FISCAL.valor);
-  const tiposDetalle = documentoFiscal ? [...TIPOS_DOCUMENTO, DOCUMENTO_FISCAL] : TIPOS_DOCUMENTO;
+  const documentosRequeridos = documentoFiscal ? [...TIPOS_DOCUMENTO, DOCUMENTO_FISCAL] : TIPOS_DOCUMENTO;
   const actuales=TIPOS_DOCUMENTO.map((tipo)=>documentoDe(tipo.valor)).filter(Boolean);
   const documentosActuales=[...actuales, documentoFiscal].filter(Boolean);
   const rechazados=documentosActuales.filter((documento)=>documento?.estado==="rechazado"||documento?.estado==="vencido").length;
   const pendientes=TIPOS_DOCUMENTO.filter((tipo)=>!documentoDe(tipo.valor)).length;
   const cuentaAprobada = !["borrador", "correo_pendiente"].includes(estadoActual);
-  const estadoIdentidad = estadoSeccionDocumentos([documentoDe("identificacion_oficial")]);
-  const estadoLicencia = estadoSeccionDocumentos([documentoDe("licencia_frente"), documentoDe("licencia_reverso")]);
-  const estadoFiscal = documentoFiscal ? estadoSeccionDocumentos([documentoFiscal]) : "no_solicitado";
-  const secciones = [
-    { titulo: "Cuenta", estado: cuentaAprobada ? "aprobado" as const : "pendiente" as const, detalle: cuentaAprobada ? "Correo confirmado y solicitud recibida." : "Confirma tu correo para continuar." },
-    { titulo: "Identidad", estado: estadoIdentidad, detalle: detalleSeccion(estadoIdentidad) },
-    { titulo: "Licencia", estado: estadoLicencia, detalle: detalleSeccion(estadoLicencia) },
-    { titulo: "Documento fiscal", estado: estadoFiscal, detalle: estadoFiscal === "no_solicitado" ? "Operación todavía no lo requiere para tu expediente." : detalleSeccion(estadoFiscal) }
+  const documentosAprobados = documentosRequeridos.filter((tipo)=>documentoDe(tipo.valor)?.estado==="aprobado").length;
+  const totalRequisitos = documentosRequeridos.length + 1;
+  const requisitosListos = documentosAprobados + (cuentaAprobada ? 1 : 0);
+  const gruposDocumentales = [
+    {
+      titulo: "Licencia",
+      descripcion: "Frente y reverso de tu licencia de conducir.",
+      documentos: TIPOS_DOCUMENTO.filter((tipo)=>tipo.valor==="licencia_frente"||tipo.valor==="licencia_reverso")
+    },
+    {
+      titulo: "Identidad",
+      descripcion: "Documento oficial para validar tu identidad.",
+      documentos: TIPOS_DOCUMENTO.filter((tipo)=>tipo.valor==="identificacion_oficial")
+    },
+    ...(documentoFiscal ? [{
+      titulo: "Documento fiscal",
+      descripcion: "Documento requerido para completar tu expediente operativo.",
+      documentos: [DOCUMENTO_FISCAL]
+    }] : [])
   ];
-  const aprobadas = secciones.filter((seccion)=>seccion.estado==="aprobado"||seccion.estado==="no_solicitado").length;
-  const porcentaje = Math.round((aprobadas / secciones.length) * 100);
+  const porcentaje = Math.round((requisitosListos / totalRequisitos) * 100);
   const motivoBloqueo = rechazados > 0
     ? `Hay ${rechazados} documento${rechazados === 1 ? "" : "s"} que requieren actualización.`
     : pendientes > 0
@@ -172,7 +172,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="font-body text-xs text-text-tertiary">Progreso de revisión</p>
-              <p className="mt-1 font-body text-sm font-semibold text-text-primary">{aprobadas} de {secciones.length} secciones listas</p>
+              <p className="mt-1 font-body text-sm font-semibold text-text-primary">{requisitosListos} de {totalRequisitos} requisitos listos</p>
             </div>
             <div className="text-left sm:text-right">
               <p className="font-body text-xs text-text-tertiary">Tiempo estimado</p>
@@ -200,71 +200,76 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
           </div>
         )}
 
-        <div className="mt-6 space-y-3" aria-label="Estado de solicitud">
-          {secciones.map((seccion)=> {
-            const visual = ESTADO_SECCION[seccion.estado];
-            return (
-              <div key={seccion.titulo} className="rounded-xl border border-border p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-body text-sm font-semibold text-text-primary">{seccion.titulo}</p>
-                  <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-medium ${visual.clase}`}>
-                    {visual.texto}
-                  </span>
-                </div>
-                <p className="mt-1 font-body text-xs leading-5 text-text-secondary">{seccion.detalle}</p>
+        <div className="mt-6 space-y-3" aria-label="Estado documental">
+          <div className="rounded-xl border border-border p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-body text-sm font-semibold text-text-primary">Cuenta</p>
+              <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-medium ${cuentaAprobada ? ESTADO_DOCUMENTO.aprobado.clase : ESTADO_DOCUMENTO.pendiente.clase}`}>
+                {cuentaAprobada ? "Correo confirmado" : "Pendiente"}
+              </span>
+            </div>
+            <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
+              {cuentaAprobada ? "Correo confirmado y solicitud recibida." : "Confirma tu correo para continuar."}
+            </p>
+          </div>
+
+          {gruposDocumentales.map((grupo) => (
+            <div key={grupo.titulo} className="rounded-xl border border-border p-4">
+              <div>
+                <p className="font-body text-sm font-semibold text-text-primary">{grupo.titulo}</p>
+                <p className="mt-1 font-body text-xs leading-5 text-text-secondary">{grupo.descripcion}</p>
               </div>
-            );
-          })}
-        </div>
+              <div className="mt-3 grid gap-3">
+                {grupo.documentos.map((t) => {
+                  const doc = documentoDe(t.valor);
+                  const estadoInfo = ESTADO_DOCUMENTO[doc?.estado ?? "pendiente"];
+                  const requiereAccion = doc?.estado === "rechazado" || doc?.estado === "vencido";
 
-        <div className="mt-6 space-y-3">
-          {tiposDetalle.map((t) => {
-            const doc = documentoDe(t.valor);
-            const estadoInfo = ESTADO_DOCUMENTO[doc?.estado ?? "pendiente"];
-            const requiereAccion = doc?.estado === "rechazado" || doc?.estado === "vencido";
+                  return (
+                    <div key={t.valor} className="rounded-lg border border-border bg-surface-elevated p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-body text-sm font-semibold text-text-primary">{t.etiqueta}</p>
+                        <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-medium ${estadoInfo.clase}`}>
+                          {estadoInfo.texto}
+                        </span>
+                      </div>
+                      {doc?.nombre_archivo && <p className="mt-1 font-body text-xs text-text-tertiary">{enmascararNombreArchivo(doc.nombre_archivo)}</p>}
 
-            return (
-              <div key={t.valor} className="rounded-xl border border-border p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-body text-sm font-semibold text-text-primary">{t.etiqueta}</p>
-                  <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-medium ${estadoInfo.clase}`}>
-                    {estadoInfo.texto}
-                  </span>
-                </div>
-                {doc?.nombre_archivo && <p className="mt-1 font-body text-xs text-text-tertiary">{enmascararNombreArchivo(doc.nombre_archivo)}</p>}
+                      {(doc?.motivo_rechazo||doc?.notas_admin) && (
+                        <p className="mt-2 rounded-lg bg-warn-soft px-3 py-2 font-body text-sm text-warning">
+                          Motivo: {doc.motivo_rechazo??doc.notas_admin}
+                        </p>
+                      )}
 
-                {(doc?.motivo_rechazo||doc?.notas_admin) && (
-                  <p className="mt-2 rounded-lg bg-warn-soft px-3 py-2 font-body text-sm text-warning">
-                    Motivo: {doc.motivo_rechazo??doc.notas_admin}
-                  </p>
-                )}
-
-                {requiereAccion && (
-                  <div className="mt-3">
-                    <input
-                      ref={(el) => { inputsRef.current[t.valor] = el; }}
-                      type="file"
-                      accept="image/*,.pdf"
-                      capture="environment"
-                      className="hidden"
-                      onChange={(e) => {
-                        const archivo = e.target.files?.[0];
-                        if (archivo) void reemplazar(t.valor, archivo);
-                        e.target.value = "";
-                      }}
-                    />
-                    <Button
-                      variant="secondary"
-                      onClick={() => inputsRef.current[t.valor]?.click()}
-                      disabled={subiendo === t.valor}
-                    >
-                      {subiendo === t.valor ? "Subiendo…" : "Actualizar documento"}
-                    </Button>
-                  </div>
-                )}
+                      {requiereAccion && (
+                        <div className="mt-3">
+                          <input
+                            ref={(el) => { inputsRef.current[t.valor] = el; }}
+                            type="file"
+                            accept="image/*,.pdf"
+                            capture="environment"
+                            className="hidden"
+                            onChange={(e) => {
+                              const archivo = e.target.files?.[0];
+                              if (archivo) void reemplazar(t.valor, archivo);
+                              e.target.value = "";
+                            }}
+                          />
+                          <Button
+                            variant="secondary"
+                            onClick={() => inputsRef.current[t.valor]?.click()}
+                            disabled={subiendo === t.valor}
+                          >
+                            {subiendo === t.valor ? "Subiendo…" : "Actualizar documento"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
         <div className="mt-6 rounded-xl border border-route-action bg-route-soft p-4">
@@ -280,19 +285,4 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
       </section>
     </div>
   );
-}
-
-function estadoSeccionDocumentos(documentos: Array<DocumentoConductorRow | undefined>): EstadoSeccionRevision {
-  if (documentos.some((documento)=>documento?.estado==="rechazado"||documento?.estado==="vencido")) return "requiere_actualizacion";
-  if (documentos.length === 0 || documentos.some((documento)=>!documento)) return "pendiente";
-  if (documentos.every((documento)=>documento?.estado==="aprobado")) return "aprobado";
-  return "en_revision";
-}
-
-function detalleSeccion(estado: EstadoSeccionRevision) {
-  if (estado === "aprobado") return "Esta sección ya fue validada por operación.";
-  if (estado === "requiere_actualizacion") return "Revisa el motivo y actualiza únicamente el documento rechazado.";
-  if (estado === "pendiente") return "Falta información obligatoria para completar la revisión.";
-  if (estado === "no_solicitado") return "No se requiere por ahora.";
-  return "Operación está revisando los datos enviados.";
 }

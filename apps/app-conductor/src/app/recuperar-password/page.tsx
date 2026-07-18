@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
-import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 export default function PaginaRecuperarPasswordConductor() {
@@ -86,8 +85,8 @@ export default function PaginaRecuperarPasswordConductor() {
                 <Aviso tono="danger">{error}</Aviso>
               </div>
             )}
-            <Button type="submit" disabled={enviando} className="mt-2 w-full">
-              {enviando ? TEXTOS_CARGANDO.enviando : "Enviar enlace"}
+            <Button type="submit" loading={enviando} className="mt-2 w-full">
+              Enviar enlace
             </Button>
           </form>
         )}

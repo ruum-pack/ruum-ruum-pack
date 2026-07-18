@@ -18,7 +18,15 @@ import {
 import { EvidenceWizard } from "./EvidenceWizard";
 import { useEvidenceQueue } from "./useEvidenceQueue";
 import type { EstadoTraslado, EvidenceRequirement, InspeccionEvidencia, PasaporteRow } from "./evidence-requirements";
-import { INSPECCION_INICIAL, ETIQUETA_ANGULO, listaEvidenciaObligatoria, tipoEvidenciaPorEstado } from "./evidence-requirements";
+import {
+  CAMPOS_INSPECCION_OBLIGATORIOS,
+  INSPECCION_INICIAL,
+  ETIQUETA_ANGULO,
+  camposInspeccionFaltantes,
+  listaEvidenciaObligatoria,
+  tipoEvidenciaPorEstado,
+  totalCamposInspeccionCompletados
+} from "./evidence-requirements";
 
 function archivoADataUrl(archivo: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -267,7 +275,15 @@ export default function PaginaEvidencia() {
     if (item.obligatorio) return Boolean(foto);
     return Boolean(foto) || noAplica.has(item.angulo);
   }).length;
-  const etiquetasFaltantes = resultado.angulosFaltantes.map((angulo) => ETIQUETA_ANGULO[angulo as AnguloEvidencia] ?? angulo);
+  const camposInspeccionPendientes = camposInspeccionFaltantes(inspeccion);
+  const inspeccionCompletada = totalCamposInspeccionCompletados(inspeccion);
+  const requisitosTotales = requisitos.length + CAMPOS_INSPECCION_OBLIGATORIOS.length;
+  const progresoTotal = requisitosCompletados + inspeccionCompletada;
+  const etiquetasFaltantes = [
+    ...resultado.angulosFaltantes.map((angulo) => ETIQUETA_ANGULO[angulo as AnguloEvidencia] ?? angulo),
+    ...camposInspeccionPendientes.map((campo) => campo.etiqueta)
+  ];
+  const registroCompleto = resultado.completa && camposInspeccionPendientes.length === 0;
 
   function statusRequisito(item: EvidenceRequirement) {
     const foto = fotoPorAngulo(item.angulo);
@@ -389,6 +405,11 @@ export default function PaginaEvidencia() {
     }
 
     try {
+      if (camposInspeccionPendientes.length > 0) {
+        setAviso(`Faltan datos de inspección: ${camposInspeccionPendientes.map((campo) => campo.etiqueta).join(", ")}.`);
+        setPasoActivo(requisitos.length);
+        return;
+      }
       const inspeccionGuardada = await guardarInspeccion(false);
       if (!inspeccionGuardada) return;
       setEnviando("confirmar");
@@ -410,11 +431,14 @@ export default function PaginaEvidencia() {
       tipo={tipo}
       requisitos={requisitos}
       requisitosCompletados={requisitosCompletados}
+      progresoTotal={progresoTotal}
+      requisitosTotales={requisitosTotales}
       pasoActivo={pasoActivo}
       pasoEsRevision={pasoEsRevision}
       requisitoActivo={requisitoActivo}
       aviso={aviso}
       resultado={resultado}
+      registroCompleto={registroCompleto}
       etiquetasFaltantes={etiquetasFaltantes}
       pendientesSubida={pendientesSubida}
       sincronizando={sincronizando}
@@ -422,6 +446,8 @@ export default function PaginaEvidencia() {
       fotos={fotos}
       noAplica={noAplica}
       inspeccion={inspeccion}
+      camposInspeccionPendientes={camposInspeccionPendientes}
+      inspeccionCompletada={inspeccionCompletada}
       enviando={enviando}
       statusFor={statusRequisito}
       fotoPorAngulo={fotoPorAngulo}

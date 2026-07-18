@@ -25,6 +25,34 @@ export interface InspeccionEvidencia {
   notas: string;
 }
 
+type CampoInspeccion = keyof InspeccionEvidencia;
+
+export const CAMPOS_INSPECCION: Array<{ campo: CampoInspeccion; etiqueta: string; obligatorio: boolean }> = [
+  { campo: "combustible", etiqueta: "Combustible", obligatorio: true },
+  { campo: "kilometraje", etiqueta: "Kilometraje", obligatorio: true },
+  { campo: "llavesRecibidas", etiqueta: "Llaves recibidas", obligatorio: true },
+  { campo: "hologramaVerificacion", etiqueta: "Holograma de verificación", obligatorio: true },
+  { campo: "talonVerificacion", etiqueta: "Talón de verificación", obligatorio: true },
+  { campo: "tarjetaCirculacion", etiqueta: "Tarjeta de circulación", obligatorio: true },
+  { campo: "placaDelantera", etiqueta: "Placa delantera", obligatorio: true },
+  { campo: "placaTrasera", etiqueta: "Placa trasera", obligatorio: true },
+  { campo: "notas", etiqueta: "Notas o comentarios", obligatorio: false }
+];
+
+export const CAMPOS_INSPECCION_OBLIGATORIOS = CAMPOS_INSPECCION.filter((campo) => campo.obligatorio);
+
+export function campoInspeccionCompleto(inspeccion: InspeccionEvidencia, campo: CampoInspeccion) {
+  return inspeccion[campo].trim().length > 0;
+}
+
+export function camposInspeccionFaltantes(inspeccion: InspeccionEvidencia) {
+  return CAMPOS_INSPECCION_OBLIGATORIOS.filter(({ campo }) => !campoInspeccionCompleto(inspeccion, campo));
+}
+
+export function totalCamposInspeccionCompletados(inspeccion: InspeccionEvidencia) {
+  return CAMPOS_INSPECCION_OBLIGATORIOS.filter(({ campo }) => campoInspeccionCompleto(inspeccion, campo)).length;
+}
+
 export const INSPECCION_INICIAL: InspeccionEvidencia = {
   combustible: "",
   kilometraje: "",

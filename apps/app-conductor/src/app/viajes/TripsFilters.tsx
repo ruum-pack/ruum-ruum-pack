@@ -12,33 +12,47 @@ export function TripsFilters({
   estadosFiltro: EstadoTraslado[];
   onChange: (cambios: Partial<Record<"vista" | "grupo" | "fecha" | "estado", string>>) => void;
 }) {
+  const filtrosActivos = [
+    filtroFecha !== "todos" ? FILTROS_FECHA.find((item) => item.id === filtroFecha)?.etiqueta : null,
+    estadosFiltro.includes(filtroEstado as EstadoTraslado) ? ETIQUETA_ESTADO_TRASLADO[filtroEstado as EstadoTraslado] : null
+  ].filter(Boolean);
+
   return (
-    <div className="mt-4 grid gap-3 rounded-xl border border-border bg-surface px-4 py-4 sm:grid-cols-2">
-      <label className="grid gap-1">
-        <span className="font-body text-sm font-semibold text-text-tertiary">Fecha</span>
-        <select
-          value={filtroFecha}
-          onChange={(event) => onChange({ fecha: event.target.value })}
-          className="min-h-11 rounded-lg border border-border bg-surface px-3 font-body text-base"
-        >
-          {FILTROS_FECHA.map((item) => (
-            <option key={item.id} value={item.id}>{item.etiqueta}</option>
-          ))}
-        </select>
-      </label>
-      <label className="grid gap-1">
-        <span className="font-body text-sm font-semibold text-text-tertiary">Estado</span>
-        <select
-          value={estadosFiltro.includes(filtroEstado as EstadoTraslado) ? filtroEstado : "todos"}
-          onChange={(event) => onChange({ estado: event.target.value })}
-          className="min-h-11 rounded-lg border border-border bg-surface px-3 font-body text-base"
-        >
-          <option value="todos">Todos los estados</option>
-          {estadosFiltro.map((estado) => (
-            <option key={estado} value={estado}>{ETIQUETA_ESTADO_TRASLADO[estado]}</option>
-          ))}
-        </select>
-      </label>
-    </div>
+    <details className="mt-4 rounded-xl border border-[rgba(122,162,214,0.18)] bg-[#101A2C]">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-body text-sm font-semibold text-[#E8EDF6] hover:text-[#8EC5FF] [&::-webkit-details-marker]:hidden">
+        <span>Filtros</span>
+        <span className="flex items-center gap-2 text-xs font-semibold text-[#8B98AD]">
+          {filtrosActivos.length > 0 ? filtrosActivos.join(" · ") : "Todos"}
+          <span className="font-display text-lg leading-none" aria-hidden>+</span>
+        </span>
+      </summary>
+      <div className="grid gap-3 border-t border-[rgba(122,162,214,0.14)] px-4 py-4 sm:grid-cols-2">
+        <label className="grid gap-1">
+          <span className="font-body text-sm font-semibold text-text-tertiary">Fecha</span>
+          <select
+            value={filtroFecha}
+            onChange={(event) => onChange({ fecha: event.target.value })}
+            className="min-h-11 rounded-lg border border-border bg-surface px-3 font-body text-base"
+          >
+            {FILTROS_FECHA.map((item) => (
+              <option key={item.id} value={item.id}>{item.etiqueta}</option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1">
+          <span className="font-body text-sm font-semibold text-text-tertiary">Estado</span>
+          <select
+            value={estadosFiltro.includes(filtroEstado as EstadoTraslado) ? filtroEstado : "todos"}
+            onChange={(event) => onChange({ estado: event.target.value })}
+            className="min-h-11 rounded-lg border border-border bg-surface px-3 font-body text-base"
+          >
+            <option value="todos">Todos los estados</option>
+            {estadosFiltro.map((estado) => (
+              <option key={estado} value={estado}>{ETIQUETA_ESTADO_TRASLADO[estado]}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+    </details>
   );
 }

@@ -48,11 +48,16 @@ export function usePanelData() {
   const [viajesAceptados, setViajesAceptados] = useState<PasaporteRow[]>([]);
   const [viajesDisponibles, setViajesDisponibles] = useState<PasaporteRow[]>([]);
   const [enRevision, setEnRevision] = useState<PanelReviewState | null>(null);
+  const [cargando, setCargando] = useState(true);
   const ultimoTriggerDisponibilidadRef = useRef(0);
 
   useEffect(() => {
     async function cargar() {
-      if (!tieneSupabaseConfigurado()) return;
+      if (!tieneSupabaseConfigurado()) {
+        setErrorDisponibilidad("Supabase no está configurado. No se puede cargar tu información operativa.");
+        setCargando(false);
+        return;
+      }
       try {
         const cliente = crearClienteNavegador();
         const { data: sesion } = await cliente.auth.getUser();
@@ -113,6 +118,8 @@ export function usePanelData() {
         setDisponibilidad(aceptados.some((viaje) => viaje.estado === "traslado_en_curso") ? "en_viaje" : disponibilidadOperativa);
       } catch (err) {
         setErrorDisponibilidad(traducirErrorOperativo(err, "No pudimos cargar tu información operativa."));
+      } finally {
+        setCargando(false);
       }
     }
 
@@ -128,32 +135,6 @@ export function usePanelData() {
     [viajesAceptados]
   );
   const documentoBloqueante = Boolean(conductor && !conductor.documentos_vigentes);
-  const avisoPrioritario = useMemo(() => {
-    if (documentoBloqueante) {
-      return {
-        tono: "atencion" as const,
-        titulo: "Documento pendiente",
-        cuerpo: "Actualiza tus documentos para evitar bloqueos al recibir oportunidades."
-      };
-    }
-    if (errorDisponibilidad) {
-      return { tono: "danger" as const, titulo: "No pudimos actualizar el panel", cuerpo: errorDisponibilidad };
-    }
-    if (disponibilidad === "no_disponible") {
-      return {
-        tono: "info" as const,
-        titulo: "No estás disponible",
-        cuerpo: "Activa tu disponibilidad cuando puedas recibir nuevos viajes."
-      };
-    }
-    return {
-      tono: "info" as const,
-      titulo: viajesDisponibles.length > 0 ? "Oportunidades listas" : "Sin oportunidades nuevas",
-      cuerpo: viajesDisponibles.length > 0
-        ? `Hay ${viajesDisponibles.length} oportunidad(es) disponible(s).`
-        : "Te avisaremos cuando haya viajes compatibles con tu perfil."
-    };
-  }, [disponibilidad, documentoBloqueante, errorDisponibilidad, viajesDisponibles.length]);
 
   const persistirDisponibilidad = useCallback(
     async (nuevaDisponibilidad: Exclude<Disponibilidad, "en_viaje">) => {
@@ -197,6 +178,7 @@ export function usePanelData() {
   );
 
   return {
+    cargando,
     conductor,
     disponibilidad,
     disponibilidadPendiente,
@@ -206,7 +188,7 @@ export function usePanelData() {
     viajeActivoPrincipal,
     proximoViaje,
     documentoBloqueante,
-    avisoPrioritario,
+    errorDisponibilidad,
     seleccionarDisponibilidad,
     persistirDisponibilidad,
     setDisponibilidadPendiente

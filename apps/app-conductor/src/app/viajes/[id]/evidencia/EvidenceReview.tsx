@@ -5,13 +5,15 @@ import type { AnguloEvidencia, FotoEvidencia } from "@ruum/shared/types";
 import { BadgeSincronizacion } from "./EvidencePreview";
 import { EvidenceSyncStatus } from "./EvidenceSyncStatus";
 import type { EvidenceRequirement, InspeccionEvidencia } from "./evidence-requirements";
-import { ETIQUETA_ANGULO } from "./evidence-requirements";
+import { CAMPOS_INSPECCION, CAMPOS_INSPECCION_OBLIGATORIOS, totalCamposInspeccionCompletados } from "./evidence-requirements";
 
 export function EvidenceReview({
   items,
   fotos,
   noAplica,
   resultado,
+  registroCompleto,
+  etiquetasFaltantes,
   pendientesSubida,
   sincronizando,
   inspeccion,
@@ -23,6 +25,8 @@ export function EvidenceReview({
   fotos: FotoEvidencia[];
   noAplica: Set<AnguloEvidencia>;
   resultado: ReturnType<typeof evidenciaCompleta>;
+  registroCompleto: boolean;
+  etiquetasFaltantes: string[];
   pendientesSubida: number;
   sincronizando: boolean;
   inspeccion: InspeccionEvidencia;
@@ -30,15 +34,15 @@ export function EvidenceReview({
   onBackToMissing: () => void;
   onConfirm: () => void;
 }) {
-  const missingLabels = resultado.angulosFaltantes.map((angulo) => ETIQUETA_ANGULO[angulo as AnguloEvidencia] ?? angulo);
-  const blocked = !resultado.completa || pendientesSubida > 0;
+  const blocked = !registroCompleto || pendientesSubida > 0;
+  const inspeccionCompletada = totalCamposInspeccionCompletados(inspeccion);
 
   return (
     <section className="mt-5 rounded-2xl border border-[rgba(122,162,214,0.28)] bg-[#101A2C] p-6 text-[#E8EDF6] shadow-[0_18px_48px_rgba(0,0,0,0.45)]">
       <p className="font-body text-sm font-semibold text-[#8EC5FF]">Revisión final</p>
       <h2 className="mt-2 font-display text-2xl font-semibold text-[#E8EDF6]">Confirma el registro completo</h2>
       <div className="mt-4">
-        <EvidenceSyncStatus pendientesSubida={pendientesSubida} sincronizando={sincronizando} missing={missingLabels} complete={resultado.completa} />
+        <EvidenceSyncStatus pendientesSubida={pendientesSubida} sincronizando={sincronizando} missing={etiquetasFaltantes} complete={registroCompleto} />
       </div>
       <div className="mt-5 grid gap-3">
         {items.map((item) => {
@@ -55,15 +59,24 @@ export function EvidenceReview({
           );
         })}
       </div>
-      <details className="mt-5 rounded-xl border border-[rgba(122,162,214,0.24)] bg-[#0D1626]">
-        <summary className="cursor-pointer px-4 py-3 font-body text-sm font-semibold text-[#E8EDF6]">Datos de inspección</summary>
-        <dl className="grid gap-2 border-t border-[rgba(122,162,214,0.18)] px-4 py-3 font-body text-sm sm:grid-cols-2">
-          <div><dt className="text-[#B7C2D4]">Combustible</dt><dd className="text-[#E8EDF6]">{inspeccion.combustible || "Sin capturar"}</dd></div>
-          <div><dt className="text-[#B7C2D4]">Kilometraje</dt><dd className="text-[#E8EDF6]">{inspeccion.kilometraje || "Sin capturar"}</dd></div>
-          <div><dt className="text-[#B7C2D4]">Llaves</dt><dd className="text-[#E8EDF6]">{inspeccion.llavesRecibidas || "Sin capturar"}</dd></div>
-          <div><dt className="text-[#B7C2D4]">Notas</dt><dd className="text-[#E8EDF6]">{inspeccion.notas || "Sin notas"}</dd></div>
+      <section className="mt-5 rounded-xl border border-[rgba(122,162,214,0.24)] bg-[#0D1626] p-4" aria-labelledby="revision-inspeccion-titulo">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 id="revision-inspeccion-titulo" className="font-body text-sm font-semibold text-[#E8EDF6]">Datos de inspección</h3>
+            <p className="mt-1 font-body text-xs text-[#B7C2D4]">
+              {inspeccionCompletada} de {CAMPOS_INSPECCION_OBLIGATORIOS.length} obligatorios
+            </p>
+          </div>
+        </div>
+        <dl className="mt-3 grid gap-2 border-t border-[rgba(122,162,214,0.18)] pt-3 font-body text-sm sm:grid-cols-2">
+          {CAMPOS_INSPECCION.map(({ campo, etiqueta, obligatorio }) => (
+            <div key={campo}>
+              <dt className="text-[#B7C2D4]">{etiqueta} {obligatorio ? "*" : "(opcional)"}</dt>
+              <dd className="text-[#E8EDF6]">{inspeccion[campo] || (obligatorio ? "Sin capturar" : "Sin notas")}</dd>
+            </div>
+          ))}
         </dl>
-      </details>
+      </section>
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
         <Button variant="secondary" onClick={onBackToMissing}>
           Revisar faltantes

@@ -185,7 +185,7 @@ export default async function PaginaDetalleViaje({
           <EstadoStepper estado={pasaporte.estado} currentLabel={presentation.title} />
         </div>
 
-        <div className="sticky top-24 z-20 mt-5 rounded-2xl bg-surface/95 pb-1 backdrop-blur">
+        <div className="sticky top-[var(--conductor-sticky-action-top)] z-20 mt-5 rounded-2xl bg-surface/95 pb-1 backdrop-blur">
           <AccionesViaje
             trasladoId={pasaporte.traslado_id}
             estado={pasaporte.estado}
@@ -240,6 +240,10 @@ export default async function PaginaDetalleViaje({
           <p className="mt-1 font-display text-lg font-semibold">{vehiculo}</p>
           <p className="mt-1 font-body text-sm text-text-secondary">
             {[pasaporte.vehiculo_color, pasaporte.vehiculo_placas].filter(Boolean).join(" · ") || "Datos por confirmar"}
+          </p>
+          <p className="mt-2 font-body text-sm text-text-secondary">
+            {pasaporte.vehiculo_tipo ? ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo] : "Tipo por confirmar"}
+            {clasificacionCatalogo ? ` · ${clasificacionCatalogo}` : ""}
           </p>
         </section>
 
@@ -297,13 +301,6 @@ export default async function PaginaDetalleViaje({
                 <p className="text-xs uppercase tracking-wide text-text-tertiary">Registro final del vehículo</p>
                 <p className="mt-1 font-body font-semibold">{pasaporte.evidencia_final_fotos_sincronizadas} / 5 fotos</p>
               </div>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-text-tertiary">Clasificación</p>
-              <p className="mt-1">
-                {pasaporte.vehiculo_tipo ? ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo] : "Tipo por confirmar"}
-                {clasificacionCatalogo ? ` · ${clasificacionCatalogo}` : ""}
-              </p>
             </div>
           </div>
         </details>

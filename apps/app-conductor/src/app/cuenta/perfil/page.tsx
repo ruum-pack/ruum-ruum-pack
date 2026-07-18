@@ -1,13 +1,13 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState, useTransition } from "react";
-import { Aviso, Button, Card } from "@ruum/ui";
+import { ChangeEvent, useEffect, useState } from "react";
+import { Button, Card } from "@ruum/ui";
 import { actualizarPerfilConductor, subirFotoPerfilConductor } from "@ruum/api/services";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { CuentaHeader } from "../CuentaHeader";
 import { cargarConductorCuenta, telefonoE164, type ConductorCuenta } from "../cuenta-utils";
-import { DatosSensiblesInfo, enmascararUltimos } from "../datos-sensibles";
+import { DatosSensiblesTooltip, enmascararUltimos, type TipoDatoSensible } from "../datos-sensibles";
 
 const PERFIL_DEFAULT = {
   nombre: "",
@@ -30,25 +30,54 @@ const PERFIL_DEFAULT = {
 type CampoPerfil = keyof typeof PERFIL_DEFAULT;
 type CampoSensiblePerfil = "curp" | "licencia_numero" | "contacto_emergencia_nombre" | "contacto_emergencia_telefono";
 
-const CAMPOS: { clave: CampoPerfil; etiqueta: string; tipo?: string; colSpan?: string }[] = [
-  { clave: "nombre", etiqueta: "Nombre completo" },
-  { clave: "telefono", etiqueta: "Teléfono" },
-  { clave: "curp", etiqueta: "CURP" },
-  { clave: "licencia_numero", etiqueta: "Número de licencia" },
-  { clave: "licencia_tipo", etiqueta: "Tipo de licencia" },
-  { clave: "licencia_vigencia", etiqueta: "Vigencia de licencia", tipo: "date" },
-  { clave: "codigo_postal", etiqueta: "Código postal" },
-  { clave: "estado_residencia", etiqueta: "Estado" },
-  { clave: "ciudad_municipio", etiqueta: "Ciudad o municipio" },
-  { clave: "colonia", etiqueta: "Colonia" },
-  { clave: "calle", etiqueta: "Calle" },
-  { clave: "numero", etiqueta: "Número" },
-  { clave: "referencias", etiqueta: "Referencias", colSpan: "sm:col-span-2" },
-  { clave: "contacto_emergencia_nombre", etiqueta: "Contacto de emergencia" },
-  { clave: "contacto_emergencia_telefono", etiqueta: "Teléfono de emergencia" }
+type NotificacionPerfil = { tipo: "success" | "error" | "info"; mensaje: string } | null;
+
+const CAMPO_CONFIG: Record<CampoPerfil, { etiqueta: string; tipo?: string; colSpan?: string }> = {
+  nombre: { etiqueta: "Nombre completo" },
+  telefono: { etiqueta: "Teléfono" },
+  curp: { etiqueta: "CURP" },
+  licencia_numero: { etiqueta: "Número de licencia" },
+  licencia_tipo: { etiqueta: "Tipo de licencia" },
+  licencia_vigencia: { etiqueta: "Vigencia de licencia", tipo: "date" },
+  codigo_postal: { etiqueta: "Código postal" },
+  estado_residencia: { etiqueta: "Estado" },
+  ciudad_municipio: { etiqueta: "Ciudad o municipio" },
+  colonia: { etiqueta: "Colonia" },
+  calle: { etiqueta: "Calle" },
+  numero: { etiqueta: "Número" },
+  referencias: { etiqueta: "Referencias", colSpan: "sm:col-span-2" },
+  contacto_emergencia_nombre: { etiqueta: "Contacto de emergencia" },
+  contacto_emergencia_telefono: { etiqueta: "Teléfono de emergencia" }
+};
+
+const SECCIONES_PERFIL: { titulo: string; campos: CampoPerfil[] }[] = [
+  { titulo: "Identidad", campos: ["nombre", "telefono", "curp"] },
+  { titulo: "Documentación operativa", campos: ["licencia_numero", "licencia_tipo", "licencia_vigencia"] },
+  {
+    titulo: "Ubicación y emergencia",
+    campos: [
+      "codigo_postal",
+      "estado_residencia",
+      "ciudad_municipio",
+      "colonia",
+      "calle",
+      "numero",
+      "referencias",
+      "contacto_emergencia_nombre",
+      "contacto_emergencia_telefono"
+    ]
+  }
 ];
 
 const CAMPOS_SENSIBLES = new Set<CampoPerfil>(["curp", "licencia_numero", "contacto_emergencia_nombre", "contacto_emergencia_telefono"]);
+const CAMPOS_SOLO_LECTURA = new Set<CampoPerfil>(["licencia_tipo"]);
+
+function tipoDatoSensibleCampo(campo: CampoPerfil): TipoDatoSensible | null {
+  if (campo === "curp") return "curp";
+  if (campo === "licencia_numero" || campo === "licencia_tipo" || campo === "licencia_vigencia") return "licencia";
+  if (campo === "contacto_emergencia_nombre" || campo === "contacto_emergencia_telefono") return "contacto_emergencia";
+  return null;
+}
 
 function perfilDesdeConductor(conductor: ConductorCuenta | null) {
   return {
@@ -74,10 +103,10 @@ export default function PaginaPerfilCuenta() {
   const [conductor, setConductor] = useState<ConductorCuenta | null>(null);
   const [perfil, setPerfil] = useState(PERFIL_DEFAULT);
   const [sensiblesEditados, setSensiblesEditados] = useState<Set<CampoSensiblePerfil>>(new Set());
-  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [notificacion, setNotificacion] = useState<NotificacionPerfil>(null);
   const [cargando, setCargando] = useState(true);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
-  const [pendiente, startTransition] = useTransition();
+  const [guardando, setGuardando] = useState(false);
 
   async function cargar() {
     const actual = await cargarConductorCuenta();
@@ -99,48 +128,55 @@ export default function PaginaPerfilCuenta() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  function guardarPerfil() {
-    if (!conductor) return;
+  useEffect(() => {
+    if (!notificacion) return;
+    const timer = window.setTimeout(() => setNotificacion(null), 4200);
+    return () => window.clearTimeout(timer);
+  }, [notificacion]);
+
+  async function guardarPerfil() {
+    if (!conductor || guardando) return;
     if (sensiblesEditados.size > 0) {
       const confirmado = window.confirm("Vas a cambiar datos sensibles de tu expediente. Operación podría revisarlos nuevamente. ¿Quieres guardar?");
       if (!confirmado) return;
     }
-    setMensaje(null);
-    startTransition(async () => {
-      try {
-        const cliente = crearClienteNavegador();
-        const perfilParaGuardar = {
-          ...perfil,
-          curp: sensiblesEditados.has("curp") ? perfil.curp : conductor.curp ?? "",
-          licencia_numero: sensiblesEditados.has("licencia_numero") ? perfil.licencia_numero : conductor.licencia_numero ?? "",
-          contacto_emergencia_nombre: sensiblesEditados.has("contacto_emergencia_nombre") ? perfil.contacto_emergencia_nombre : conductor.contacto_emergencia_nombre ?? "",
-          contacto_emergencia_telefono: sensiblesEditados.has("contacto_emergencia_telefono") ? perfil.contacto_emergencia_telefono : conductor.contacto_emergencia_telefono ?? ""
-        };
-        await actualizarPerfilConductor(cliente, conductor.id, {
-          ...perfilParaGuardar,
-          telefono: telefonoE164(perfilParaGuardar.telefono),
-          contacto_emergencia_telefono: telefonoE164(perfilParaGuardar.contacto_emergencia_telefono)
-        });
-        setMensaje("Perfil actualizado.");
-        await cargar();
-      } catch (error) {
-        setMensaje(traducirErrorOperativo(error, "No se pudo actualizar el perfil."));
-      }
-    });
+    setNotificacion(null);
+    setGuardando(true);
+    try {
+      const cliente = crearClienteNavegador();
+      const perfilParaGuardar = {
+        ...perfil,
+        curp: sensiblesEditados.has("curp") ? perfil.curp : conductor.curp ?? "",
+        licencia_numero: sensiblesEditados.has("licencia_numero") ? perfil.licencia_numero : conductor.licencia_numero ?? "",
+        contacto_emergencia_nombre: sensiblesEditados.has("contacto_emergencia_nombre") ? perfil.contacto_emergencia_nombre : conductor.contacto_emergencia_nombre ?? "",
+        contacto_emergencia_telefono: sensiblesEditados.has("contacto_emergencia_telefono") ? perfil.contacto_emergencia_telefono : conductor.contacto_emergencia_telefono ?? ""
+      };
+      await actualizarPerfilConductor(cliente, conductor.id, {
+        ...perfilParaGuardar,
+        telefono: telefonoE164(perfilParaGuardar.telefono),
+        contacto_emergencia_telefono: telefonoE164(perfilParaGuardar.contacto_emergencia_telefono)
+      });
+      await cargar();
+      setNotificacion({ tipo: "success", mensaje: "Perfil actualizado correctamente" });
+    } catch (error) {
+      setNotificacion({ tipo: "error", mensaje: traducirErrorOperativo(error, "No se pudo actualizar el perfil.") });
+    } finally {
+      setGuardando(false);
+    }
   }
 
   async function subirFotoPerfil(evento: ChangeEvent<HTMLInputElement>) {
     const archivo = evento.target.files?.[0];
     if (!archivo || !conductor) return;
-    setMensaje(null);
+    setNotificacion(null);
     setSubiendoFoto(true);
     try {
       const cliente = crearClienteNavegador();
       const fotoUrl = await subirFotoPerfilConductor(cliente, conductor.id, archivo);
       setConductor({ ...conductor, foto_perfil_url: fotoUrl });
-      setMensaje("Fotografía de perfil actualizada.");
+      setNotificacion({ tipo: "success", mensaje: "Fotografía de perfil actualizada." });
     } catch (error) {
-      setMensaje(traducirErrorOperativo(error, "No pudimos actualizar la fotografía de perfil."));
+      setNotificacion({ tipo: "error", mensaje: traducirErrorOperativo(error, "No pudimos actualizar la fotografía de perfil.") });
     } finally {
       setSubiendoFoto(false);
       evento.target.value = "";
@@ -149,17 +185,31 @@ export default function PaginaPerfilCuenta() {
 
   function placeholderSensible(campo: CampoPerfil) {
     if (!conductor) return "";
-    if (campo === "curp") return conductor.curp ? `Registrado: ${enmascararUltimos(conductor.curp)}` : "";
-    if (campo === "licencia_numero") return conductor.licencia_numero ? `Registrado: ${enmascararUltimos(conductor.licencia_numero)}` : "";
-    if (campo === "contacto_emergencia_nombre") return conductor.contacto_emergencia_nombre ? "Contacto registrado" : "";
-    if (campo === "contacto_emergencia_telefono") return conductor.contacto_emergencia_telefono ? `Registrado: ${enmascararUltimos(conductor.contacto_emergencia_telefono)}` : "";
+    if (campo === "curp") return conductor.curp ? enmascararUltimos(conductor.curp) : "";
+    if (campo === "licencia_numero") return conductor.licencia_numero ? enmascararUltimos(conductor.licencia_numero) : "";
+    if (campo === "contacto_emergencia_nombre") return conductor.contacto_emergencia_nombre ? enmascararUltimos(conductor.contacto_emergencia_nombre, 2) : "";
+    if (campo === "contacto_emergencia_telefono") return conductor.contacto_emergencia_telefono ? enmascararUltimos(conductor.contacto_emergencia_telefono) : "";
     return "";
+  }
+
+  function claseToast(tipo: NonNullable<NotificacionPerfil>["tipo"]) {
+    if (tipo === "success") return "border-[rgba(61,220,151,0.35)] bg-[rgba(61,220,151,0.12)] text-[#E8EDF6]";
+    if (tipo === "error") return "border-[rgba(255,107,107,0.38)] bg-[rgba(255,107,107,0.12)] text-[#E8EDF6]";
+    return "border-[rgba(77,163,255,0.35)] bg-[#162238] text-[#E8EDF6]";
   }
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:py-14">
       <CuentaHeader titulo="Perfil" descripcion="Actualiza tus datos personales y de contacto operativo." />
-      {mensaje && <div className="mt-5"><Aviso tono="info">{mensaje}</Aviso></div>}
+      {notificacion && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`conductor-toast-bottom fixed right-4 z-50 max-w-[calc(100vw-2rem)] rounded-xl border px-4 py-3 font-body text-sm font-semibold shadow-[0_18px_48px_rgba(0,0,0,0.42)] sm:right-6 sm:max-w-sm ${claseToast(notificacion.tipo)}`}
+        >
+          {notificacion.mensaje}
+        </div>
+      )}
       <Card className="mt-6">
         {cargando ? <p className="font-body text-sm text-text-secondary">Cargando perfil...</p> : (
           <div className="grid gap-5">
@@ -172,35 +222,65 @@ export default function PaginaPerfilCuenta() {
                 <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={subirFotoPerfil} disabled={!conductor || subiendoFoto} />
               </label>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {CAMPOS.map((campo) => (
-                <label key={campo.clave} className={`grid gap-1 font-body text-sm font-semibold text-text-tertiary ${campo.colSpan ?? ""}`}>
-                  {campo.etiqueta}
-                  <input
-                    type={campo.tipo ?? "text"}
-                    value={perfil[campo.clave]}
-                    placeholder={CAMPOS_SENSIBLES.has(campo.clave) ? placeholderSensible(campo.clave) : undefined}
-                    onChange={(event) => {
-                      if (CAMPOS_SENSIBLES.has(campo.clave)) {
-                        setSensiblesEditados((actual) => new Set(actual).add(campo.clave as CampoSensiblePerfil));
-                      }
-                      setPerfil({ ...perfil, [campo.clave]: event.target.value });
-                    }}
-                    className="rounded-lg border border-border bg-surface px-3 py-2 font-body text-base normal-case tracking-normal text-text-primary"
-                  />
-                  {CAMPOS_SENSIBLES.has(campo.clave) && (
-                    <span className="font-body text-sm normal-case tracking-normal text-text-secondary">Se muestra enmascarado. Escribe un valor nuevo solo si necesitas cambiarlo.</span>
-                  )}
-                </label>
-              ))}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <DatosSensiblesInfo tipo="curp" compacto />
-              <DatosSensiblesInfo tipo="licencia" compacto />
-              <DatosSensiblesInfo tipo="contacto_emergencia" compacto />
-            </div>
-            <Button variant="secondary" onClick={guardarPerfil} disabled={!conductor || pendiente}>
-              {pendiente ? "Guardando..." : "Guardar perfil"}
+            {SECCIONES_PERFIL.map((seccion) => (
+              <section key={seccion.titulo} className="grid gap-4 border-t border-[rgba(122,162,214,0.16)] pt-5 first:border-t-0 first:pt-0">
+                <h2 className="font-display text-base font-semibold text-text-primary">{seccion.titulo}</h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {seccion.campos.map((clave, indice) => {
+                    const campo = CAMPO_CONFIG[clave];
+                    const inputId = `perfil-${clave}`;
+                    const tipoDatoSensible = tipoDatoSensibleCampo(clave);
+                    const tooltipAlign = indice % 2 === 0 ? "start" : "end";
+                    const esSensible = CAMPOS_SENSIBLES.has(clave);
+                    const esSoloLectura = CAMPOS_SOLO_LECTURA.has(clave);
+
+                    return (
+                      <div key={clave} className={`grid gap-1 font-body text-sm font-semibold text-text-tertiary ${campo.colSpan ?? ""}`}>
+                        <div className="flex items-center gap-2">
+                          <label htmlFor={inputId}>{campo.etiqueta}</label>
+                          {tipoDatoSensible && <DatosSensiblesTooltip tipo={tipoDatoSensible} align={tooltipAlign} />}
+                          {esSoloLectura && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(139,152,173,0.28)] bg-[#0B1220] px-2 py-0.5 text-xs font-semibold normal-case tracking-normal text-[#8B98AD]">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <rect x="4" y="11" width="16" height="9" rx="2" />
+                                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                              </svg>
+                              Solo lectura
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          id={inputId}
+                          type={campo.tipo ?? "text"}
+                          value={perfil[clave]}
+                          placeholder={esSensible ? placeholderSensible(clave) : undefined}
+                          readOnly={esSoloLectura}
+                          aria-readonly={esSoloLectura || undefined}
+                          onChange={(event) => {
+                            if (esSoloLectura) return;
+                            if (esSensible) {
+                              setSensiblesEditados((actual) => new Set(actual).add(clave as CampoSensiblePerfil));
+                            }
+                            setPerfil((actual) => ({ ...actual, [clave]: event.target.value }));
+                          }}
+                          className={[
+                            "rounded-lg border px-3 py-2 font-body text-base normal-case tracking-normal text-text-primary placeholder:text-[#8B98AD]",
+                            esSoloLectura
+                              ? "border-[rgba(122,162,214,0.12)] bg-[#0B1220] text-[#8B98AD] outline-none"
+                              : "border-border bg-surface"
+                          ].join(" ")}
+                        />
+                        {esSensible && (
+                          <span className="font-body text-xs normal-case tracking-normal text-text-tertiary">Escribe para actualizar.</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+            <Button variant="secondary" onClick={guardarPerfil} loading={guardando} disabled={!conductor}>
+              Guardar perfil
             </Button>
           </div>
         )}

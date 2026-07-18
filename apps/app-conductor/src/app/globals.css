@@ -4,6 +4,7 @@
 /* App conductor: la operación de campo usa la misma base visual, con
    prioridad para evidencia, estados de viaje y controles táctiles. */
 .conductor-page {
+  --conductor-sticky-action-top: calc(6rem + env(safe-area-inset-top));
   min-height: 100vh;
   background: var(--ruum-canvas);
 }
@@ -48,6 +49,12 @@
   .conductor-content {
     width: min(100% - 48px, 1120px);
     padding-block: 40px 64px;
+  }
+}
+
+@media (min-width: 768px) {
+  body.conductor-tiene-viaje-activo .conductor-page {
+    --conductor-sticky-action-top: calc(9.5rem + env(safe-area-inset-top));
   }
 }
 
