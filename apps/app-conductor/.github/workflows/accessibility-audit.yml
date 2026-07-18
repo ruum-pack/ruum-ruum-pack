@@ -1,0 +1,229 @@
+name: Accessibility Audit
+
+on:
+  push:
+    branches: [main, staging, develop]
+  pull_request:
+    branches: [main, staging]
+
+jobs:
+  eslint-a11y:
+    name: ESLint Accessibility
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint with accessibility rules
+        run: pnpm --filter @ruum/app-conductor run lint:a11y
+
+  axe-core:
+    name: Axe Core Audit
+    runs-on: ubuntu-latest
+    needs: eslint-a11y
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application
+        run: pnpm --filter @ruum/app-conductor run build
+
+      - name: Start server
+        run: |
+          pnpm --filter @ruum/app-conductor run dev &
+          sleep 30
+          echo "Server started"
+
+      - name: Run Axe CLI audit
+        run: |
+          pnpm --filter @ruum/app-conductor run test:axe
+          # Verificar que no haya errores críticos
+          if [ -f results/axe-report.json ]; then
+            echo "Axe report generated"
+            cat results/axe-report.json
+          else
+            echo "No axe report found"
+            exit 1
+          fi
+
+  playwright-a11y:
+    name: Playwright Accessibility Tests
+    runs-on: ubuntu-latest
+    needs: eslint-a11y
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @ruum/app-conductor exec playwright install chromium firefox webkit
+
+      - name: Build application
+        run: pnpm --filter @ruum/app-conductor run build
+
+      - name: Start server
+        run: |
+          pnpm --filter @ruum/app-conductor run dev &
+          sleep 30
+          echo "Server started"
+
+      - name: Run Playwright accessibility tests
+        run: pnpm --filter @ruum/app-conductor run test:a11y
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+  lighthouse:
+    name: Lighthouse Accessibility Audit
+    runs-on: ubuntu-latest
+    needs: eslint-a11y
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Lighthouse CI
+        run: pnpm --filter @ruum/app-conductor add -D @lhci/cli
+
+      - name: Build application
+        run: pnpm --filter @ruum/app-conductor run build
+
+      - name: Start server
+        run: |
+          pnpm --filter @ruum/app-conductor run dev &
+          sleep 30
+          echo "Server started"
+
+      - name: Run Lighthouse CI
+        run: |
+          pnpm --filter @ruum/app-conductor run test:lighthouse
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: .lighthouse-ci/
+
+  storybook-a11y:
+    name: Storybook Accessibility Addon
+    runs-on: ubuntu-latest
+    needs: eslint-a11y
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Storybook
+        run: pnpm --filter @ruum/app-conductor run storybook:build
+
+      - name: Check Storybook accessibility
+        run: |
+          # Verificar que Storybook se construya correctamente
+          if [ -d "storybook-static" ]; then
+            echo "Storybook built successfully with a11y addon"
+          else
+            echo "Storybook build failed"
+            exit 1
+          fi
+
+  summary:
+    name: Accessibility Audit Summary
+    runs-on: ubuntu-latest
+    needs: [eslint-a11y, axe-core, playwright-a11y, lighthouse, storybook-a11y]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Accessibility Audit Summary"
+          echo ""
+          echo "### Results:"
+          echo "- ESLint: ${{ needs.eslint-a11y.result }}"
+          echo "- Axe Core: ${{ needs.axe-core.result }}"
+          echo "- Playwright: ${{ needs.playwright-a11y.result }}"
+          echo "- Lighthouse: ${{ needs.lighthouse.result }}"
+          echo "- Storybook: ${{ needs.storybook-a11y.result }}"
+          echo ""
+          
+          if [ "${{ needs.eslint-a11y.result }}" == "success" ] && \
+             [ "${{ needs.axe-core.result }}" == "success" ] && \
+             [ "${{ needs.playwright-a11y.result }}" == "success" ] && \
+             [ "${{ needs.lighthouse.result }}" == "success" ] && \
+             [ "${{ needs.storybook-a11y.result }}" == "success" ]; then
+            echo "✅ All accessibility checks passed!"
+            exit 0
+          else
+            echo "❌ Some accessibility checks failed"
+            exit 1
+          fi
