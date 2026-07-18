@@ -15,13 +15,13 @@ import {
   agregarNotaInterna,
   asignarConductorAdmin,
   cambiarEstatusAdmin,
-  emitirCotizacionAdmin,
   obtenerAdminActual,
   obtenerAuditoriaTraslado,
   marcarTrasladoFallido,
   guardarDistanciaYTiempoTraslado,
   sugerirTarifaTraslado,
-  clasificarVehiculoParaTarifa
+  clasificarVehiculoParaTarifa,
+  aplicarTarifaNormativaAdmin
 } from "@ruum/api/services";
 import { obtenerRutaMapbox, tieneMapboxConfigurado } from "../../../lib/mapbox-rutas";
 import { VIAJES_DEMO, CONDUCTORES_DEMO, ADMIN_DEMO } from "../../../lib/datos-demo";
@@ -314,7 +314,8 @@ export default function PaginaDetalleViajeAdmin() {
       }
       setProcesando("precio");
       const cliente = crearClienteNavegador();
-      await emitirCotizacionAdmin(cliente, trasladoId, tarifa);
+      const aplicada = await aplicarTarifaNormativaAdmin(cliente, trasladoId);
+      setPrecioFinalInput(String(aplicada));
       mostrarAviso({ tono: "info", texto: "Tarifa normativa aplicada y cotización emitida para aceptación del usuario." });
       setPasaporte(await obtenerPasaporteDigital(cliente, trasladoId));
       setAuditoria(await obtenerAuditoriaTraslado(cliente, trasladoId));

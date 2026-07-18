@@ -829,6 +829,17 @@ export async function emitirCotizacionAdmin(cliente: Cliente, trasladoId: string
   if (error) throw error;
 }
 
+export async function aplicarTarifaNormativaAdmin(cliente: Cliente, trasladoId: string): Promise<number> {
+  const rpc = cliente.rpc as unknown as (
+    fn: "admin_aplica_tarifa_normativa",
+    args: { p_traslado_id: string }
+  ) => Promise<{ data: number | null; error: Error | null }>;
+  const { data, error } = await rpc("admin_aplica_tarifa_normativa", { p_traslado_id: trasladoId });
+  if (error) throw error;
+  if (data == null) throw new Error("No se pudo confirmar la tarifa normativa aplicada.");
+  return data;
+}
+
 /** PRD §17.6 — "suspender/reactivar" conductor. */
 export async function cambiarEstadoConductorAdmin(cliente: Cliente, conductorId: string, nuevoEstado: EstadoConductor) {
   const adminId = await obtenerAdminIdParaAuditoria(cliente);

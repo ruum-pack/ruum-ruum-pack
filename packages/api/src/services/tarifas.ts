@@ -303,7 +303,7 @@ export async function previsualizarTarifaUsuario(
 /**
  * Tarifa normativa (RT-12) para un traslado ya existente, calculada en el
  * servidor con la fórmula vigente. No escribe precio_cotizado; el admin solo
- * confirma la aplicación del cálculo vigente vía emitirCotizacionAdmin.
+ * confirma la aplicación del cálculo vigente vía aplicarTarifaNormativaAdmin.
  */
 export async function sugerirTarifaTraslado(cliente: Cliente, trasladoId: string): Promise<number> {
   const { data, error } = await cliente.rpc("admin_sugerir_tarifa_traslado", { p_traslado_id: trasladoId });

@@ -25,3 +25,10 @@
  ○ Compiling /_error ...
  ✓ Compiled /_error in 5.8s (1201 modules)
  GET /login?error=no_autorizado 500 in 12961ms
+ ✓ Compiled in 1663ms (888 modules)
+ ✓ Compiled in 731ms (514 modules)
+ ✓ Compiled in 347ms (514 modules)
+ ✓ Compiled in 1601ms (514 modules)
+ ✓ Compiled in 572ms (514 modules)
+ ✓ Compiled in 566ms (514 modules)
+ ✓ Compiled in 435ms (514 modules)

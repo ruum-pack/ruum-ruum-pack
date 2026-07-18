@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  aplicarTarifaNormativaAdmin,
   ajustarPrecioFinalAdmin,
   listarViajesAdmin,
   obtenerMetricasRegistroConductor
@@ -90,5 +91,15 @@ describe("servicios admin", () => {
         datos: { traslado_id: "traslado-1", precio_final: 2500 }
       }]
     });
+  });
+
+  it("aplica tarifa normativa sin enviar precio libre desde el cliente", async () => {
+    const cliente = crearClienteFake({
+      rpcs: { admin_aplica_tarifa_normativa: { data: 3450.75 } }
+    });
+
+    await expect(aplicarTarifaNormativaAdmin(cliente as never, "traslado-1")).resolves.toBe(3450.75);
+
+    expect(cliente.rpc).toHaveBeenCalledWith("admin_aplica_tarifa_normativa", { p_traslado_id: "traslado-1" });
   });
 });
