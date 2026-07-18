@@ -218,66 +218,75 @@ export default function PaginaDetalleViajeAdmin() {
     }
   }
 
-  async function sugerirTarifa() {
+  async function calcularTarifaNormativa() {
     if (!pasaporte) return;
     if (!pasaporte.traslado_id) {
       mostrarAviso({ tono: "danger", texto: "El traslado no tiene folio suficiente para calcular tarifa." });
-      return;
+      return null;
     }
     const trasladoId = pasaporte.traslado_id;
     if (esDemo) {
-      mostrarAviso({ tono: "info", texto: "El cálculo de ruta y tarifa no está disponible en modo demo." });
-      return;
+      mostrarAviso({ tono: "info", texto: "El cálculo normativo de tarifa no está disponible en modo demo." });
+      return null;
     }
-    if (
-      pasaporte.origen_lat == null || pasaporte.origen_lng == null ||
-      pasaporte.destino_lat == null || pasaporte.destino_lng == null
-    ) {
+    const coordenadasCompletas =
+      pasaporte.origen_lat != null && pasaporte.origen_lng != null &&
+      pasaporte.destino_lat != null && pasaporte.destino_lng != null;
+    if (!coordenadasCompletas) {
       mostrarAviso({ tono: "danger", texto: "El traslado no tiene coordenadas de origen/destino completas." });
-      return;
+      return null;
     }
-    if (!tieneMapboxConfigurado()) {
+    const requiereRuta = pasaporte.distancia_km == null || pasaporte.tiempo_estimado_horas == null;
+    if (requiereRuta && !tieneMapboxConfigurado()) {
       mostrarAviso({ tono: "danger", texto: "NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN no está configurado en este entorno." });
-      return;
+      return null;
     }
 
     setProcesando("sugerencia");
     setAviso(null);
     try {
       const cliente = crearClienteNavegador();
+      let distanciaKm = pasaporte.distancia_km;
+      let tiempoHoras = pasaporte.tiempo_estimado_horas;
 
-      const { distanciaKm, tiempoHoras } = await obtenerRutaMapbox(
-        [pasaporte.origen_lng, pasaporte.origen_lat],
-        [pasaporte.destino_lng, pasaporte.destino_lat]
-      );
-      if (distanciaKm == null || tiempoHoras == null) {
-        mostrarAviso({ tono: "danger", texto: "Mapbox Directions no devolvió una ruta calculable para este origen/destino." });
-        return;
+      if (requiereRuta) {
+        const ruta = await obtenerRutaMapbox(
+          [pasaporte.origen_lng!, pasaporte.origen_lat!],
+          [pasaporte.destino_lng!, pasaporte.destino_lat!]
+        );
+        distanciaKm = ruta.distanciaKm;
+        tiempoHoras = ruta.tiempoHoras;
+        if (distanciaKm == null || tiempoHoras == null) {
+          mostrarAviso({ tono: "danger", texto: "Mapbox Directions no devolvió una ruta calculable para este origen/destino." });
+          return null;
+        }
+
+        await guardarDistanciaYTiempoTraslado(cliente, trasladoId, {
+          distancia_km: distanciaKm,
+          tiempo_estimado_horas: tiempoHoras
+        });
       }
 
-      await guardarDistanciaYTiempoTraslado(cliente, trasladoId, {
-        distancia_km: distanciaKm,
-        tiempo_estimado_horas: tiempoHoras
-      });
-
-      const sugerido = await sugerirTarifaTraslado(cliente, trasladoId);
-      setPrecioFinalInput(String(sugerido));
+      const tarifa = await sugerirTarifaTraslado(cliente, trasladoId);
+      setPrecioFinalInput(String(tarifa));
       setPasaporte(await obtenerPasaporteDigital(cliente, trasladoId));
       mostrarAviso({
         tono: "info",
-        texto: `Ruta: ${distanciaKm} km, ${tiempoHoras} h. Tarifa sugerida: $${sugerido.toLocaleString("es-MX")} — revísala y ajústala antes de emitir.`
+        texto: `Tarifa normativa calculada: $${tarifa.toLocaleString("es-MX")} · Ruta: ${distanciaKm} km, ${tiempoHoras} h.`
       });
+      return tarifa;
     } catch (err) {
       mostrarAviso({
         tono: "danger",
-        texto: err instanceof Error ? err.message : "No se pudo calcular la sugerencia de tarifa."
+        texto: err instanceof Error ? err.message : "No se pudo calcular la tarifa normativa."
       });
+      return null;
     } finally {
       setProcesando(null);
     }
   }
 
-  async function guardarPrecioFinal() {
+  async function aplicarTarifaNormativa() {
     if (!pasaporte) return;
     if (!pasaporte.traslado_id) {
       mostrarAviso({ tono: "danger", texto: "El traslado no tiene folio suficiente para emitir cotización." });
@@ -285,31 +294,32 @@ export default function PaginaDetalleViajeAdmin() {
     }
     const trasladoId = pasaporte.traslado_id;
 
-    const valor = Number(precioFinalInput);
-    if (!precioFinalInput.trim() || Number.isNaN(valor) || valor <= 0) {
-      mostrarAviso({ tono: "danger", texto: "Ingresa una cotización mayor a cero." });
-      return;
-    }
-
-    setProcesando("precio");
     setAviso(null);
 
     if (esDemo) {
+      setProcesando("precio");
       await new Promise((r) => setTimeout(r, 400));
-      setPasaporte((prev) => (prev ? { ...prev, precio_cotizado: valor, estado: "cotizacion_generada" } : prev));
-      mostrarAviso({ tono: "info", texto: "Cotización emitida en modo demo." });
+      setPasaporte((prev) => (prev ? { ...prev, precio_cotizado: 1800, estado: "cotizacion_generada" } : prev));
+      setPrecioFinalInput("1800");
+      mostrarAviso({ tono: "info", texto: "Tarifa normativa aplicada en modo demo." });
       setProcesando(null);
       return;
     }
 
     try {
+      const tarifa = await calcularTarifaNormativa();
+      if (tarifa == null || Number.isNaN(tarifa) || tarifa <= 0) {
+        mostrarAviso({ tono: "danger", texto: "No se pudo obtener una tarifa normativa válida para aplicar." });
+        return;
+      }
+      setProcesando("precio");
       const cliente = crearClienteNavegador();
-      await emitirCotizacionAdmin(cliente, trasladoId, valor);
-      mostrarAviso({ tono: "info", texto: "Cotización emitida para aceptación del usuario." });
+      await emitirCotizacionAdmin(cliente, trasladoId, tarifa);
+      mostrarAviso({ tono: "info", texto: "Tarifa normativa aplicada y cotización emitida para aceptación del usuario." });
       setPasaporte(await obtenerPasaporteDigital(cliente, trasladoId));
       setAuditoria(await obtenerAuditoriaTraslado(cliente, trasladoId));
     } catch (err) {
-      mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos emitir la cotización." });
+      mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos aplicar la tarifa normativa." });
     } finally {
       setProcesando(null);
     }
@@ -637,16 +647,16 @@ export default function PaginaDetalleViajeAdmin() {
         </PassportCard>
       </div>
 
-      {/* Emisión de cotización autorizada */}
+      {/* Aplicación de política tarifaria autorizada */}
       <div className="mt-6">
         <PassportCard>
-          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Emitir cotización</p>
+          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Tarifa normativa</p>
           <p className="mt-1 font-body text-xs text-ink/50">
-            Define el precio autorizado que verá y deberá aceptar el usuario. Esto no realiza ningún cobro automáticamente.
+            El precio sale de la política vigente en Tarifas. Operación no captura montos libres; sólo aplica el cálculo autorizado y auditable.
           </p>
           <div className="mt-3">
-            <Button variant="quiet" onClick={sugerirTarifa} disabled={procesando === "sugerencia"}>
-              {procesando === "sugerencia" ? "Calculando ruta…" : "Calcular distancia (Mapbox) y sugerir tarifa"}
+            <Button variant="quiet" onClick={calcularTarifaNormativa} disabled={procesando === "sugerencia"}>
+              {procesando === "sugerencia" ? "Calculando tarifa…" : "Calcular tarifa normativa"}
             </Button>
             {pasaporte.distancia_km != null && pasaporte.tiempo_estimado_horas != null && (
               <span className="ml-3 font-body text-xs text-ink/50">
@@ -654,20 +664,15 @@ export default function PaginaDetalleViajeAdmin() {
               </span>
             )}
           </div>
-          <div className="mt-3 flex items-end gap-2">
-            <div className="w-48">
-              <Field
-                etiqueta="Monto (MXN)"
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder={pasaporte.precio_cotizado != null ? String(pasaporte.precio_cotizado) : "0"}
-                value={precioFinalInput}
-                onChange={(e) => setPrecioFinalInput(e.target.value)}
-              />
+          <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-ink/10 bg-ink/[0.03] px-4 py-3">
+            <div>
+              <p className="font-body text-xs text-ink/45">Tarifa calculada</p>
+              <p className="font-mono-ruum text-lg font-semibold text-ink">
+                {precioFinalInput ? `$${Number(precioFinalInput).toLocaleString("es-MX")}` : "Pendiente"}
+              </p>
             </div>
-            <Button onClick={guardarPrecioFinal} disabled={procesando === "precio"}>
-              {procesando === "precio" ? "…" : "Emitir cotización"}
+            <Button onClick={aplicarTarifaNormativa} disabled={procesando === "precio"}>
+              {procesando === "precio" ? "…" : "Aplicar tarifa normativa"}
             </Button>
           </div>
         </PassportCard>

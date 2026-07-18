@@ -1170,8 +1170,8 @@ export function NuevoTrasladoForm() {
     // (usuario_previsualizar_tarifa / usuario_crea_traslado) a partir de
     // vehículo + ruta + fecha/hora. No se bloquea el envío si el vehículo no
     // está en el catálogo de autoclasificación -- esa solicitud se crea igual
-    // y queda pendiente de cotización manual por Torre de Control, como
-    // pasaba con cualquier traslado antes de RT-13.
+    // y queda pendiente de una política tarifaria aplicable por Torre de
+    // Control, no de una negociación manual.
 
     try {
       registrarEventoUx("traslado_nuevo_enviado", {
@@ -1652,7 +1652,7 @@ export function NuevoTrasladoForm() {
                   )}
                   {!previsualizando && previsualizacion && !previsualizacion.disponible && (
                     <p className="mt-1 max-w-sm font-body text-sm leading-6 text-ink/65">
-                      {previsualizacion.motivo ?? "Torre de Control te enviará la cotización manualmente."}
+                      {previsualizacion.motivo ?? "Torre de Control aplicará la política tarifaria correspondiente antes de enviarte la cotización."}
                     </p>
                   )}
                   {!previsualizando && !previsualizacion && (
@@ -1777,7 +1777,7 @@ export function NuevoTrasladoForm() {
                   </p>
                 ) : (
                   <p className="font-body text-sm leading-6 text-ink/65">
-                    Torre de Control te enviará la cotización manualmente. Podrás verla y aceptarla desde tu Pasaporte Digital.
+                    Torre de Control aplicará la política tarifaria correspondiente. Podrás ver y aceptar la cotización desde tu Pasaporte Digital.
                   </p>
                 )}
               </div>

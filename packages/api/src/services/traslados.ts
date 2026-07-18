@@ -68,8 +68,8 @@ export interface TrasladoCreado {
   tipo_pago: TipoPago;
   /** RT-13 -- presente cuando el vehículo estaba en el catálogo de
    * autoclasificación y el sistema pudo calcular la tarifa de una vez.
-   * Ausente (undefined/null) cuando la solicitud queda pendiente de
-   * cotización manual por Torre de Control. */
+   * Ausente (undefined/null) cuando la solicitud requiere una política
+   * tarifaria aplicable antes de cotizar. */
   precio_cotizado?: number | null;
 }
 

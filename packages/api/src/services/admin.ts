@@ -13,6 +13,7 @@ type SolicitudConductorRow = Database["public"]["Tables"]["solicitudes_conductor
 type ConsentimientoUsuarioRow = Database["public"]["Tables"]["consentimientos_usuario"]["Row"];
 type HistorialSolicitudRow = Database["public"]["Tables"]["historial_estados_solicitud_conductor"]["Row"];
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
+type VehiculoRow = Database["public"]["Tables"]["vehiculos"]["Row"];
 type EmpresaRow = Database["public"]["Tables"]["empresas"]["Row"];
 type IncidenciaRow = Database["public"]["Tables"]["incidencias"]["Row"];
 type DisputaRow = Database["public"]["Tables"]["disputas"]["Row"];
@@ -38,6 +39,11 @@ export interface DatosPagosAdmin {
   payoutsConductores: PayoutRow[];
   datosBancariosConductores: DatosBancariosConductorRow[];
   conductores: ConductorRow[];
+}
+
+export interface DatosVehiculosAdmin {
+  vehiculos: VehiculoRow[];
+  usuarios: UsuarioRow[];
 }
 
 export interface DatosEmpresasAdmin {
@@ -331,6 +337,23 @@ export async function listarUsuariosAdmin(cliente: Cliente): Promise<UsuarioRow[
   const { data, error } = await cliente.from("usuarios").select("*").order("creado_en", { ascending: false });
   if (error) throw error;
   return data ?? [];
+}
+
+/** Torre de Control — inventario operativo de vehículos registrados por usuarios. */
+export async function listarVehiculosAdmin(cliente: Cliente): Promise<DatosVehiculosAdmin> {
+  const [vehiculos, usuarios] = await Promise.all([
+    cliente.from("vehiculos").select("*").order("creado_en", { ascending: false }),
+    cliente.from("usuarios").select("*").order("creado_en", { ascending: false })
+  ]);
+
+  for (const resultado of [vehiculos, usuarios]) {
+    if (resultado.error) throw resultado.error;
+  }
+
+  return {
+    vehiculos: vehiculos.data ?? [],
+    usuarios: usuarios.data ?? []
+  };
 }
 
 export async function listarPagosAdmin(cliente: Cliente): Promise<DatosPagosAdmin> {
@@ -801,7 +824,7 @@ export async function ajustarPrecioFinalAdmin(cliente: Cliente, trasladoId: stri
 }
 
 export async function emitirCotizacionAdmin(cliente: Cliente, trasladoId: string, precio: number) {
-  if (!Number.isFinite(precio) || precio <= 0) throw new Error("La cotización debe ser mayor a cero.");
+  if (!Number.isFinite(precio) || precio <= 0) throw new Error("La tarifa normativa debe ser mayor a cero.");
   const { error } = await cliente.rpc("admin_emite_cotizacion", { p_traslado_id: trasladoId, p_precio: precio });
   if (error) throw error;
 }

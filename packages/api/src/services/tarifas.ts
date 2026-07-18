@@ -269,8 +269,8 @@ export interface PrevisualizacionTarifa {
  *
  * `disponible: false` significa que el vehículo no está en el catálogo de
  * autoclasificación (marca/modelo desconocidos o ambiguos); en ese caso no
- * hay número que mostrar todavía y la solicitud, al crearse, quedará
- * pendiente de cotización manual por Torre de Control.
+ * hay número que mostrar todavía y la solicitud queda pendiente de resolver
+ * en Tarifas o mediante una política/convenio vigente.
  */
 export async function previsualizarTarifaUsuario(
   cliente: Cliente,
@@ -301,15 +301,14 @@ export async function previsualizarTarifaUsuario(
 }
 
 /**
- * Sugerencia de tarifa (RT-12) para un traslado ya existente, calculada en
- * el servidor con la fórmula vigente. No escribe precio_cotizado -- el admin
- * sigue confirmando explícitamente vía emitirCotizacionAdmin, pudiendo usar
- * este número tal cual o ajustarlo.
+ * Tarifa normativa (RT-12) para un traslado ya existente, calculada en el
+ * servidor con la fórmula vigente. No escribe precio_cotizado; el admin solo
+ * confirma la aplicación del cálculo vigente vía emitirCotizacionAdmin.
  */
 export async function sugerirTarifaTraslado(cliente: Cliente, trasladoId: string): Promise<number> {
   const { data, error } = await cliente.rpc("admin_sugerir_tarifa_traslado", { p_traslado_id: trasladoId });
   if (error) throw error;
-  if (data === null) throw new Error("No se pudo calcular una sugerencia de tarifa para este traslado.");
+  if (data === null) throw new Error("No se pudo calcular una tarifa normativa para este traslado.");
   return data;
 }
 

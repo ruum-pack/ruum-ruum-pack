@@ -124,7 +124,7 @@ function ConfirmacionImpacto({
         </div>
         <div className="px-6 py-5">
           <p className="font-body text-sm leading-6 text-ink/70">
-            Esta acción afectará el cálculo de los traslados en curso. ¿Deseas continuar?
+            Esta acción modifica una política tarifaria normativa. Afectará únicamente cálculos futuros y quedará registrada para auditoría.
           </p>
           <div className="mt-6 flex flex-wrap justify-end gap-3">
             <Button variant="quiet" onClick={onCancelar}>Cancelar</Button>
@@ -188,7 +188,7 @@ export default function PaginaTarifasAdmin() {
           <div>
             <p className="font-mono-ruum text-xs font-medium uppercase tracking-wide text-[#65b5ff]">Apartado normativo rector</p>
             <h1 className="mt-1 font-display text-2xl font-bold text-[#e8edf6]">Tarifas</h1>
-            <p className="mt-1 font-body text-sm text-[#b7c2d4]">Política, fórmula y simulación del precio final de cada traslado.</p>
+            <p className="mt-1 font-body text-sm text-[#b7c2d4]">Políticas aprobadas, fórmula auditable y simulación del precio aplicable a cada traslado.</p>
           </div>
         </div>
       </div>
@@ -212,6 +212,7 @@ export default function PaginaTarifasAdmin() {
         </div>
       ) : (
         <div className="mt-6 grid gap-6">
+          <PrincipiosTarifarios />
           <PoliticaVigente key={datos.config?.actualizado_en ?? "sin-config"} datos={datos} cliente={cliente} onGuardado={cargar} />
           <FormulaVigente datos={datosFormula} />
           <ParametrosNormativos datos={datos} cliente={cliente} onGuardado={cargar} onConfigVista={setConfigVista} />
@@ -219,6 +220,34 @@ export default function PaginaTarifasAdmin() {
         </div>
       )}
     </main>
+  );
+}
+
+function PrincipiosTarifarios() {
+  return (
+    <PassportCard acento>
+      <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr] lg:items-start">
+        <div>
+          <p className="font-body text-xs uppercase tracking-wide text-ink/45">Principio rector</p>
+          <h2 className="mt-1 font-display text-xl font-semibold">La operación aplica tarifas; no las negocia.</h2>
+          <p className="mt-2 font-body text-sm leading-6 text-ink/60">
+            Todo precio debe salir de una política tarifaria vigente, aprobada y trazable. Si existe un acuerdo extraordinario, se convierte en regla, convenio o política con vigencia.
+          </p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {[
+            "Fórmula configurable y auditable",
+            "Convenios corporativos como reglas",
+            "Sin precios libres en operación",
+            "Historial visible para dirección"
+          ].map((texto) => (
+            <div key={texto} className="rounded-lg border border-ink/10 bg-ink/[0.03] px-4 py-3 font-body text-sm text-ink/70">
+              {texto}
+            </div>
+          ))}
+        </div>
+      </div>
+    </PassportCard>
   );
 }
 

@@ -126,11 +126,11 @@ describe("servicios de tarifas admin", () => {
     expect(cliente.rpc).toHaveBeenCalledWith("admin_sugerir_tarifa_traslado", { p_traslado_id: "traslado-1" });
   });
 
-  it("rechaza sugerencia nula del RPC", async () => {
+  it("rechaza tarifa normativa nula del RPC", async () => {
     const cliente = crearClienteFake({ rpcs: { admin_sugerir_tarifa_traslado: { data: null } } });
 
     await expect(sugerirTarifaTraslado(cliente as never, "traslado-1")).rejects.toThrow(
-      "No se pudo calcular una sugerencia de tarifa para este traslado."
+      "No se pudo calcular una tarifa normativa para este traslado."
     );
   });
 

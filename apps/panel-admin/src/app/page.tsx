@@ -199,6 +199,11 @@ export default function PaginaDashboard() {
                     <p className="font-body text-sm font-medium">Ver usuarios</p>
                   </PassportCard>
                 </Link>
+                <Link href="/vehiculos">
+                  <PassportCard className="transition-shadow hover:shadow-md hover:border-signal/40">
+                    <p className="font-body text-sm font-medium">Ver vehículos</p>
+                  </PassportCard>
+                </Link>
                 <Link href="/incidencias">
                   <PassportCard className="transition-shadow hover:shadow-md hover:border-signal/40">
                     <p className="font-body text-sm font-medium">Ver incidencias</p>

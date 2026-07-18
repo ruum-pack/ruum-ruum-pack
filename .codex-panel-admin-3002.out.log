@@ -9,3 +9,19 @@
 
  ✓ Starting...
  ✓ Ready in 4s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1425ms (171 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 5.4s (869 modules)
+ GET /login 200 in 7913ms
+ GET /login 200 in 250ms
+ ✓ Compiled in 3.4s (869 modules)
+ GET /login 200 in 1542ms
+ GET /login 200 in 296ms
+ ✓ Compiled in 913ms (855 modules)
+ GET /login 200 in 1049ms
+ ✓ Compiled in 791ms (855 modules)
+ GET /login 200 in 1464ms
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 5.8s (1201 modules)
+ GET /login?error=no_autorizado 500 in 12961ms
