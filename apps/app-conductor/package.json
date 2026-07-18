@@ -42,7 +42,6 @@
     "@lhci/cli": "^0.14.0",
     "@playwright/test": "^1.51.1",
     "@storybook/addon-a11y": "^10.5.2",
-    "@storybook/addon-essentials": "^10.5.2",
     "@storybook/nextjs": "^10.5.2",
     "@storybook/react": "^10.5.2",
     "@tailwindcss/postcss": "^4.0.0",

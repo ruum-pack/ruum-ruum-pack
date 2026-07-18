@@ -12,6 +12,7 @@ const requestedOrigin = process.env.A11Y_BASE_URL || 'http://localhost:3001';
 const serverTimeoutMs = 90_000;
 const resultsDir = resolve(projectRoot, 'results');
 const serverLogPath = resolve(resultsDir, 'a11y-dev-server.log');
+const readinessRoutes = ['/login', '/onboarding', '/panel'];
 
 function commandForLocalBin(name) {
   return process.platform === 'win32'
@@ -21,8 +22,11 @@ function commandForLocalBin(name) {
 
 async function isServerReady(origin) {
   try {
-    const response = await fetch(`${origin}/login`, { redirect: 'manual' });
-    return response.status < 500;
+    for (const route of readinessRoutes) {
+      const response = await fetch(`${origin}${route}`, { redirect: 'manual' });
+      if (response.status >= 500) return false;
+    }
+    return true;
   } catch {
     return false;
   }
