@@ -54,14 +54,14 @@ export function enmascararNombreArchivo(nombre: string | null | undefined) {
 export function DatosSensiblesInfo({ tipo, compacto = false }: { tipo: TipoDatoSensible; compacto?: boolean }) {
   const texto = TEXTOS[tipo];
   return (
-    <div className={`rounded-lg border border-route-action/15 bg-route-soft ${compacto ? "px-3 py-3" : "px-4 py-4"}`}>
-      <p className="font-body text-sm font-semibold text-text-primary">{texto.titulo}</p>
-      <dl className="mt-2 grid gap-2 font-body text-sm leading-6 text-text-secondary">
-        <div><dt className="font-semibold text-text-secondary">¿Por qué lo pedimos?</dt><dd>{texto.finalidad}</dd></div>
-        <div><dt className="font-semibold text-text-secondary">¿Quién puede verlo?</dt><dd>{texto.acceso}</dd></div>
-        <div><dt className="font-semibold text-text-secondary">¿Cómo se protege?</dt><dd>{texto.proteccion}</dd></div>
+    <div className={`rounded-xl border border-[rgba(122,162,214,0.22)] bg-[#101A2C] ${compacto ? "px-3 py-3" : "px-4 py-4"}`}>
+      <p className="font-body text-sm font-semibold text-[#E8EDF6]">{texto.titulo}</p>
+      <dl className="mt-2 grid gap-2 font-body text-sm leading-6 text-[#B7C2D4]">
+        <div><dt className="font-semibold text-[#E8EDF6]">¿Por qué lo pedimos?</dt><dd>{texto.finalidad}</dd></div>
+        <div><dt className="font-semibold text-[#E8EDF6]">¿Quién puede verlo?</dt><dd>{texto.acceso}</dd></div>
+        <div><dt className="font-semibold text-[#E8EDF6]">¿Cómo se protege?</dt><dd>{texto.proteccion}</dd></div>
       </dl>
-      <Link href="/legal/privacidad" target="_blank" className="mt-2 inline-block font-body text-sm font-semibold text-route-action underline-offset-4 hover:underline">
+      <Link href="/legal/privacidad" target="_blank" className="mt-3 inline-flex font-body text-sm font-semibold text-[#65B8FF] underline-offset-4 hover:underline">
         Ver aviso de privacidad
       </Link>
     </div>

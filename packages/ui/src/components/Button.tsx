@@ -21,15 +21,15 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  */
 const ESTILOS: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "border border-action-primary bg-action-primary text-text-primary shadow-sm hover:-translate-y-0.5 hover:bg-action-primary-hover hover:shadow-md active:translate-y-0 active:bg-action-primary-active focus-visible:outline-route-action",
+    "border border-action-primary bg-action-primary text-[#14213D] shadow-sm hover:-translate-y-0.5 hover:bg-[#FFB940] hover:shadow-md active:translate-y-0 active:bg-action-primary-active focus-visible:outline-route-action",
   secondary:
     "border border-border-strong bg-surface text-text-primary shadow-sm hover:-translate-y-0.5 hover:border-route-action hover:bg-surface-elevated hover:shadow-md active:translate-y-0 active:bg-surface-elevated focus-visible:outline-route-action",
   quiet:
     "border border-transparent bg-transparent text-route-action hover:bg-route-soft hover:text-route-action active:bg-route-soft focus-visible:outline-route-action",
   danger:
-    "border border-danger-action bg-danger-action text-surface shadow-sm hover:-translate-y-0.5 hover:bg-danger-action-hover hover:shadow-md active:translate-y-0 active:bg-danger-action-active focus-visible:outline-danger-action",
+    "border border-danger-action bg-danger-action text-white shadow-sm hover:-translate-y-0.5 hover:bg-danger-action-hover hover:shadow-md active:translate-y-0 active:bg-danger-action-active focus-visible:outline-danger-action",
   emergency:
-    "border-2 border-danger-action bg-danger-action text-surface shadow-md hover:-translate-y-0.5 hover:bg-danger-action-hover hover:shadow-lg active:translate-y-0 active:bg-danger-action-active focus-visible:outline-danger-action"
+    "border-2 border-danger-action bg-danger-action text-white shadow-md hover:-translate-y-0.5 hover:bg-danger-action-hover hover:shadow-lg active:translate-y-0 active:bg-danger-action-active focus-visible:outline-danger-action"
 };
 
 const ICONO_DEFAULT: Record<ButtonVariant, ButtonIcon> = {

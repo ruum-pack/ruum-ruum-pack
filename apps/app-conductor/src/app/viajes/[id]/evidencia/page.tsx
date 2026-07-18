@@ -218,7 +218,7 @@ export default function PaginaEvidencia() {
 
   if (cargando || mostrarSkeleton) {
     return (
-      <div aria-label="Cargando registro del vehículo" aria-busy="true" className="mx-auto max-w-xl px-6 py-12">
+      <div aria-label="Cargando registro del vehículo" aria-busy="true" className="mx-auto w-full max-w-2xl px-6 py-12">
         <h1 className="font-display text-2xl font-semibold">{GLOSARIO_OPERATIVO.evidencia}</h1>
         <p className="mt-2 font-body text-sm text-text-secondary">Preparando checklist de ángulos obligatorios.</p>
 
@@ -242,7 +242,7 @@ export default function PaginaEvidencia() {
 
   if (!tipo) {
     return (
-      <div className="mx-auto max-w-xl px-6 py-20 text-center">
+      <div className="mx-auto w-full max-w-2xl px-6 py-20 text-center">
         <h1 className="font-display text-xl font-semibold">Este viaje no está en fase de registro del vehículo</h1>
         <p className="mt-3 font-body text-sm text-text-secondary">Vuelve al detalle del viaje para ver el paso actual.</p>
         {aviso && (

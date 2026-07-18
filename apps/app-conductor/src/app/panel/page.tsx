@@ -54,7 +54,7 @@ export default function PaginaPanel() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
+    <div className="mx-auto w-full max-w-6xl px-6 py-10 sm:py-14">
       <RegistroViajeActivo
         viaje={viajeActivoPrincipal ? registroViajeActivoDesdePasaporte(viajeActivoPrincipal) : null}
       />

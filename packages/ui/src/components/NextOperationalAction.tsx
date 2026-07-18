@@ -33,9 +33,9 @@ function CtaLink({ cta, primary = false }: { cta: OperationalActionCta; primary?
     "font-display text-sm font-bold leading-5 transition-[background-color,border-color,box-shadow,transform] duration-150",
     "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2",
     variant === "primary"
-      ? "border border-route-action bg-route-action text-surface shadow-sm hover:-translate-y-0.5 hover:bg-route-action-hover hover:shadow-md active:translate-y-0 active:bg-route-action-active focus-visible:outline-route-action"
+      ? "border border-action-primary bg-action-primary text-[#14213D] shadow-sm hover:-translate-y-0.5 hover:bg-[#FFB940] hover:shadow-md active:translate-y-0 active:bg-action-primary-active focus-visible:outline-route-action"
       : variant === "danger" || variant === "emergency"
-        ? "border border-danger-action bg-danger-action text-surface shadow-sm hover:-translate-y-0.5 hover:bg-danger-action-hover hover:shadow-md active:translate-y-0 active:bg-danger-action-active focus-visible:outline-danger-action"
+        ? "border border-danger-action bg-danger-action text-white shadow-sm hover:-translate-y-0.5 hover:bg-danger-action-hover hover:shadow-md active:translate-y-0 active:bg-danger-action-active focus-visible:outline-danger-action"
       : "border border-border-strong bg-surface text-text-primary shadow-sm hover:-translate-y-0.5 hover:border-route-action hover:bg-surface-elevated hover:shadow-md active:translate-y-0 active:bg-surface-elevated focus-visible:outline-route-action"
   ].join(" ");
 
@@ -92,7 +92,7 @@ export function NextOperationalAction({
   return (
     <section
       className={[
-        "rounded-2xl border border-border bg-route-soft p-4 shadow-1 sm:p-5",
+        "rounded-2xl border border-border-strong bg-surface-elevated p-4 text-text-primary shadow-2 sm:p-5",
         "mx-auto w-full max-w-full overflow-hidden",
         className
       ].join(" ")}
@@ -129,7 +129,7 @@ export function NextOperationalAction({
       </div>
 
       {nextStep && (
-        <p className="mt-3 break-words rounded-xl border border-border bg-surface px-3 py-2 font-body text-sm text-text-secondary">
+        <p className="mt-3 break-words rounded-xl border border-warning bg-warn-soft px-3 py-2 font-body text-sm text-text-primary">
           Después: {nextStep}
         </p>
       )}

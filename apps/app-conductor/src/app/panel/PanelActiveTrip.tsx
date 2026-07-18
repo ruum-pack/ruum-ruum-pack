@@ -33,11 +33,11 @@ export function PanelActiveTrip({ viaje }: { viaje: PasaporteRow }) {
             <p className="font-body text-sm font-semibold text-route-action">
               Viaje activo · Folio {folioViaje(viaje)}
             </p>
-            <h2 className="mt-2 font-display text-3xl font-semibold leading-tight">{presentation.title}</h2>
-            <p className="mt-3 max-w-2xl font-body text-sm leading-6 text-text-secondary">{presentation.instruction}</p>
-            <div className="mt-4 rounded-xl border border-route-action bg-route-soft px-4 py-3">
-              <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Destino actual</p>
-              <p className="mt-1 break-words font-body text-base font-semibold text-text-primary">{destinoOperativo(viaje)}</p>
+            <h2 className="mt-2 font-display text-3xl font-semibold leading-tight text-[#E8EDF6]">{presentation.title}</h2>
+            <p className="mt-3 max-w-2xl font-body text-base leading-6 text-[#B7C2D4]">{presentation.instruction}</p>
+            <div className="mt-4 rounded-xl border border-[rgba(77,163,255,0.35)] bg-[#101A2C] px-4 py-3">
+              <p className="font-body text-xs uppercase tracking-wide text-[#8B98AD]">Destino actual</p>
+              <p className="mt-1 break-words font-body text-base font-semibold text-[#E8EDF6]">{destinoOperativo(viaje)}</p>
             </div>
           </div>
           <div className="grid gap-3">
@@ -69,9 +69,9 @@ export function PanelActiveTrip({ viaje }: { viaje: PasaporteRow }) {
         <ContactActionBar trasladoId={viaje.traslado_id} role={contacto.role} name={contacto.name} phone={contacto.phone} />
       </Card>
 
-      <OperationalCard>
-        <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Evidencia o requisito pendiente</p>
-        <h2 className="mt-1 font-display text-xl font-semibold">
+      <section className="rounded-xl border border-[rgba(240,180,41,0.30)] bg-[rgba(240,180,41,0.10)] p-4 text-[#E8EDF6] shadow-1">
+        <p className="font-body text-sm font-semibold text-[#F6C453]">Próximo requisito pendiente</p>
+        <h2 className="mt-1 font-display text-xl font-semibold text-[#E8EDF6]">
           {requiereDecisionOperativa
             ? "Esperando Torre de Control"
             : requiereEvidencia
@@ -80,7 +80,7 @@ export function PanelActiveTrip({ viaje }: { viaje: PasaporteRow }) {
                 ? "Cierre pendiente"
                 : "Sin requisito bloqueante"}
         </h2>
-        <p className="mt-2 font-body text-sm text-text-secondary">
+        <p className="mt-2 font-body text-sm text-[#E8EDF6]">
           {requiereDecisionOperativa
             ? "Espera indicaciones antes de mover el vehículo o avanzar el traslado."
             : requiereEvidencia
@@ -96,7 +96,7 @@ export function PanelActiveTrip({ viaje }: { viaje: PasaporteRow }) {
             </Button>
           </Link>
         )}
-      </OperationalCard>
+      </section>
 
       <AlertCard>
         <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Soporte</p>

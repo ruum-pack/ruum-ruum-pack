@@ -72,7 +72,7 @@ export default function PaginaPreferenciasCuenta() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10 sm:py-14">
+    <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:py-14">
       <CuentaHeader titulo="Preferencias" descripcion="Configura notificaciones y tipos de viaje que quieres recibir." />
       {mensaje && <div className="mt-5"><Aviso tono="info">{mensaje}</Aviso></div>}
       {cargando ? <p className="mt-6 font-body text-sm text-text-secondary">Cargando preferencias...</p> : (

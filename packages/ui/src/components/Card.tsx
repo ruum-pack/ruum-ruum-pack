@@ -45,7 +45,7 @@ export function OperationalCard({ children, className = "", padding = "md" }: Va
   return (
     <section
       className={joinClasses(
-        "rounded-card border border-route-action bg-route-soft shadow-2",
+        "rounded-2xl border border-border-strong bg-surface-elevated text-text-primary shadow-2",
         "ring-1 ring-route-action/10",
         PADDING[padding],
         className
@@ -80,7 +80,7 @@ export function FinancialCard({ children, className = "", padding = "md" }: Vari
   return (
     <section
       className={joinClasses(
-        "rounded-2xl border border-[rgba(122,162,214,0.22)] bg-[#101A2C] text-[#E8EDF6] shadow-[0_10px_28px_rgba(0,0,0,0.30)]",
+        "rounded-2xl border border-border bg-surface text-text-primary shadow-[0_10px_28px_rgba(0,0,0,0.30)]",
         PADDING[padding],
         className
       )}
@@ -94,7 +94,7 @@ export function AlertCard({ children, className = "", padding = "md" }: VariantC
   return (
     <section
       className={joinClasses(
-        "rounded-card border border-warning bg-warn-soft shadow-1",
+        "rounded-xl border border-warning bg-warn-soft text-text-primary shadow-1",
         PADDING[padding],
         className
       )}

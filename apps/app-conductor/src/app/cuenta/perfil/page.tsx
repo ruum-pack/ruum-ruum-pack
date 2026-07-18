@@ -157,7 +157,7 @@ export default function PaginaPerfilCuenta() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10 sm:py-14">
+    <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:py-14">
       <CuentaHeader titulo="Perfil" descripcion="Actualiza tus datos personales y de contacto operativo." />
       {mensaje && <div className="mt-5"><Aviso tono="info">{mensaje}</Aviso></div>}
       <Card className="mt-6">

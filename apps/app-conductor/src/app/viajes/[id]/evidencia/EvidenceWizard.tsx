@@ -158,7 +158,7 @@ export function EvidenceWizard({
   onSaveInspection: () => void;
 }) {
   return (
-    <div className="mx-auto max-w-xl px-6 py-12">
+    <div className="mx-auto w-full max-w-2xl px-6 py-12">
       <RegistroViajeActivo
         viaje={
           estadoActual

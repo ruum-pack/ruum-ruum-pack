@@ -123,7 +123,7 @@
   --ruum-surface-subtle: #0d1626;
   --ruum-surface-strong: #05080f;
   --ruum-border: rgba(122, 162, 214, 0.2);
-  --ruum-border-strong: rgba(122, 162, 214, 0.38);
+  --ruum-border-strong: rgba(77, 163, 255, 0.35);
   --ruum-text-primary: #e8edf6;
   --ruum-text: #e8edf6;
   --ruum-text-secondary: #b7c2d4;
@@ -146,6 +146,11 @@
   --ruum-danger-active: #c94d4d;
   --ruum-action: #f5a623;
   --ruum-action-hover: #d88f16;
+  --color-signal-soft: rgba(245, 166, 35, 0.1);
+  --color-route-soft: rgba(77, 163, 255, 0.1);
+  --color-control-soft: rgba(61, 220, 151, 0.1);
+  --color-warn-soft: rgba(240, 180, 41, 0.1);
+  --color-danger-soft: rgba(255, 107, 107, 0.1);
   --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
   --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.4);
   --ruum-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.55);
