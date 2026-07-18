@@ -1,20 +1,25 @@
 import { test, expect } from '@playwright/test';
 import { injectAxe, checkA11y } from '@axe-core/playwright';
 
-// Rutas principales a auditar
+// Rutas principales a auditar (basadas en la estructura real de la app)
 const MAIN_ROUTES = [
-  '/',
+  '/', // Redirige a /onboarding
+  '/onboarding',
   '/login',
+  '/nueva-password',
+  '/recuperar-password',
+  '/registro',
+  '/panel',
+  '/ganancias',
   '/configuracion',
   '/cuenta',
   '/cuenta/perfil',
   '/cuenta/datos-bancarios',
   '/cuenta/documentos',
+  '/cuenta/legal',
   '/cuenta/seguridad',
   '/cuenta/soporte',
   '/cuenta/preferencias',
-  '/ganancias',
-  '/panel',
   '/legal/privacidad',
   '/legal/terminos',
 ];

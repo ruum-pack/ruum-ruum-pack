@@ -34,11 +34,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="es" data-theme="dark">
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
-        <a href="#contenido-principal" className="ruum-skip-link">Saltar al contenido</a>
+        <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">Saltar al contenido principal</a>
         <ViajeActivoProvider>
           <SincronizadorEvidenciaOffline />
           <NavegacionConductor />
-          <main id="contenido-principal" className="conductor-page">
+          <main id="contenido-principal" className="conductor-page" role="main">
             {children}
           </main>
         </ViajeActivoProvider>

@@ -96,6 +96,7 @@ export function NavegacionConductor() {
                   key={destino.href}
                   href={destino.href}
                   aria-current={activo ? "page" : undefined}
+                  aria-label={activo ? `Página actual: ${destino.etiqueta}` : destino.etiqueta}
                   className={[
                     "inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 font-body text-sm font-semibold",
                     activo ? "bg-action-primary text-text-primary shadow-sm" : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
@@ -116,6 +117,7 @@ export function NavegacionConductor() {
               <Link
                 href={`/viajes/${viajeActivo.trasladoId}`}
                 className="min-w-0 rounded-xl px-1 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                aria-label={`Ver detalles del viaje ${viajeActivo.folio}`}
               >
                 <p className="flex items-center gap-2 font-body text-sm font-semibold text-[#8EC5FF]">
                   <span>Viaje activo · {viajeActivo.folio}</span>

@@ -96,6 +96,7 @@ export default function PaginaLogin() {
               <Link
                 href="/recuperar-password"
                 className="font-body text-xs text-route-action underline-offset-2 hover:underline"
+                aria-label="Recuperar contraseña"
               >
                 ¿Olvidaste tu contraseña?
               </Link>
@@ -108,7 +109,7 @@ export default function PaginaLogin() {
 
         <p className="mt-6 text-center font-body text-sm text-text-secondary">
           ¿Todavía no eres conductor certificado?{" "}
-          <Link href="/registro" className="font-semibold text-route-action hover:underline">
+          <Link href="/registro" className="font-semibold text-route-action hover:underline" aria-label="Solicitar certificación como conductor">
             Solicitar certificación
           </Link>
         </p>

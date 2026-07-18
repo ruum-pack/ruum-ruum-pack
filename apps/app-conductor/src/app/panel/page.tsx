@@ -65,15 +65,19 @@ export default function PaginaPanel() {
           <p className="mt-1 font-body text-sm text-text-secondary">Hola, {conductor?.nombre ?? "conductor"}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/cuenta">
+          <Link href="/cuenta" aria-label="Ir a configuración de cuenta">
             <Button variant="quiet">Configuración</Button>
           </Link>
           {conductor ? (
-            <button onClick={cerrarSesion} className="inline-flex min-h-11 items-center font-body text-sm text-text-secondary hover:text-text-primary">
+            <button 
+              onClick={cerrarSesion} 
+              className="inline-flex min-h-11 items-center font-body text-sm text-text-secondary hover:text-text-primary"
+              aria-label="Cerrar sesión actual"
+            >
               Cerrar sesión
             </button>
           ) : (
-            <Link href="/login" className="font-body text-sm font-medium text-text-secondary hover:text-text-primary">
+            <Link href="/login" className="font-body text-sm font-medium text-text-secondary hover:text-text-primary" aria-label="Iniciar sesión">
               Iniciar sesión
             </Link>
           )}

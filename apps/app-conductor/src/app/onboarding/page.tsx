@@ -143,6 +143,7 @@ export default function PaginaOnboarding() {
           type="button"
           onClick={() => void finalizar("/login")}
           className="inline-flex min-h-11 items-center rounded-lg px-3 py-2 font-display text-xs font-semibold text-text-secondary transition hover:text-text-primary"
+          aria-label="Omitir recorrido de bienvenida e ir a iniciar sesión"
         >
           Omitir
         </button>
@@ -170,7 +171,8 @@ export default function PaginaOnboarding() {
               type="button"
               role="tab"
               aria-selected={i === paso}
-              aria-label={`Ir al paso ${i + 1}`}
+              aria-label={`Paso ${i + 1} de ${PASOS.length}: ${PASOS[i].tag}`}
+              aria-controls={`panel-paso-${i}`}
               onClick={() => setPaso(i)}
               className={
                 i === paso

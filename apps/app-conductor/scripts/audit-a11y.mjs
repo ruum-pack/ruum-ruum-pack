@@ -16,20 +16,25 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
 
-// Rutas principales por defecto
+// Rutas principales por defecto (basadas en la estructura real)
 const DEFAULT_ROUTES = [
-  '/',
+  '/', // Redirige a /onboarding
+  '/onboarding',
   '/login',
+  '/nueva-password',
+  '/recuperar-password',
+  '/registro',
+  '/panel',
+  '/ganancias',
   '/configuracion',
   '/cuenta',
   '/cuenta/perfil',
   '/cuenta/datos-bancarios',
   '/cuenta/documentos',
+  '/cuenta/legal',
   '/cuenta/seguridad',
   '/cuenta/soporte',
   '/cuenta/preferencias',
-  '/ganancias',
-  '/panel',
   '/legal/privacidad',
   '/legal/terminos',
 ];

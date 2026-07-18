@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx supabase *)",
+      "Bash(curl -s https://rgvzrzjfyzdedowgokjl.supabase.co/storage/v1/bucket -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJndnpyempmeXpkZWRvd2dva2psIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjU1MjA0OCwiZXhwIjoyMDk4MTI4MDQ4fQ.Cuw7hJtgyqnYuCzcs9ket6CH9xB4pCws9XMoFhjX3eQ' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJndnpyempmeXpkZWRvd2dva2psIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjU1MjA0OCwiZXhwIjoyMDk4MTI4MDQ4fQ.Cuw7hJtgyqnYuCzcs9ket6CH9xB4pCws9XMoFhjX3eQ')",
+      "Bash(curl -s 'https://rgvzrzjfyzdedowgokjl.supabase.co/rest/v1/documentos_conductor?select=id&limit=1' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJndnpyempmeXpkZWRvd2dva2psIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjU1MjA0OCwiZXhwIjoyMDk4MTI4MDQ4fQ.Cuw7hJtgyqnYuCzcs9ket6CH9xB4pCws9XMoFhjX3eQ' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJndnpyempmeXpkZWRvd2dva2psIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjU1MjA0OCwiZXhwIjoyMDk4MTI4MDQ4fQ.Cuw7hJtgyqnYuCzcs9ket6CH9xB4pCws9XMoFhjX3eQ')",
+      "Bash(curl -s 'https://rgvzrzjfyzdedowgokjl.supabase.co/rest/v1/preferencias_conductor?select=conductor_id&limit=1' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJndnpyempmeXpkZWRvd2dva2psIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjU1MjA0OCwiZXhwIjoyMDk4MTI4MDQ4fQ.Cuw7hJtgyqnYuCzcs9ket6CH9xB4pCws9XMoFhjX3eQ' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJndnpyempmeXpkZWRvd2dva2psIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjU1MjA0OCwiZXhwIjoyMDk4MTI4MDQ4fQ.Cuw7hJtgyqnYuCzcs9ket6CH9xB4pCws9XMoFhjX3eQ')",
+      "Bash(curl *)",
+      "Bash(pnpm *)",
+      "Bash(supabase test *)",
+      "Bash(docker exec *)",
+      "Bash(supabase projects *)",
+      "Bash(supabase functions *)",
+      "Bash(supabase migration *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f['slug'], f['status'], 'v'+str\\(f['version']\\)\\) for f in d['functions']]\")",
+      "Bash(supabase --version)",
+      "Bash(supabase --help)",
+      "Bash(supabase db *)",
+      "Bash(npx tsc *)",
+      "Bash(npx vitest *)"
+    ]
+  }
+}
