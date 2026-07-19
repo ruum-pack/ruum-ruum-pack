@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Aviso } from "@ruum/ui";
 import {
   listarAlertasSLA,
@@ -198,8 +197,7 @@ function TarjetaSLA({
 }
 
 export default function PaginaAlertasSLA() {
-  const searchParams = useSearchParams();
-  const soloVencidas = searchParams.get("filtro") === "vencidas";
+  const [soloVencidas, setSoloVencidas] = useState(false);
   const [alertas, setAlertas] = useState<AlertaSLA[]>([]);
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
@@ -236,6 +234,10 @@ export default function PaginaAlertasSLA() {
   }, 0);
   return () => clearTimeout(timer);
 }, []);
+
+  useEffect(() => {
+    setSoloVencidas(new URLSearchParams(window.location.search).get("filtro") === "vencidas");
+  }, []);
 
   async function handleResolver(id: string, tipo: AlertaSLA["tipo"]) {
     if (esDemo) {

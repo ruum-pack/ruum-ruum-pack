@@ -74,12 +74,12 @@ function IcAuditoria() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>;
 }
 
-type IconoNombre = "dashboard"|"viajes"|"masivos"|"mapa"|"sla"|"conductor"|"usuario"|"vehiculo"|"empresa"|"incidencia"|"disputa"|"reclamo"|"pagos"|"tarifas"|"documentos"|"reportes"|"configuracion"|"evidencia"|"auditoria";
-type ClaveContadorMenu = "alertasCriticas" | "conductoresRevision" | "incidenciasAbiertas" | "disputasPendientes" | "pagosPendientes" | "documentosPorVencer";
-type ContadorMenu = { valor: number; critico?: boolean; etiqueta: string };
-type ContadoresMenu = Partial<Record<ClaveContadorMenu, ContadorMenu>>;
+export type IconoNombre = "dashboard"|"viajes"|"masivos"|"mapa"|"sla"|"conductor"|"usuario"|"vehiculo"|"empresa"|"incidencia"|"disputa"|"reclamo"|"pagos"|"tarifas"|"documentos"|"reportes"|"configuracion"|"evidencia"|"auditoria";
+export type ClaveContadorMenu = "alertasCriticas" | "conductoresRevision" | "incidenciasAbiertas" | "disputasPendientes" | "pagosPendientes" | "documentosPorVencer";
+export type ContadorMenu = { valor: number; critico?: boolean; etiqueta: string };
+export type ContadoresMenu = Partial<Record<ClaveContadorMenu, ContadorMenu>>;
 
-function Icono({ nombre }: { nombre: IconoNombre }) {
+export function Icono({ nombre }: { nombre: IconoNombre }) {
   const map: Record<IconoNombre, React.ReactNode> = {
     dashboard: <IcDashboard />, viajes: <IcViajes />, masivos: <IcMasivos />, mapa: <IcMapa />, sla: <IcSLA />,
     conductor: <IcConductor />, usuario: <IcUsuario />, vehiculo: <IcVehiculo />, empresa: <IcEmpresa />,
@@ -91,7 +91,7 @@ function Icono({ nombre }: { nombre: IconoNombre }) {
   return <>{map[nombre]}</>;
 }
 
-const GRUPOS_NAVEGACION = [
+export const GRUPOS_NAVEGACION = [
   {
     titulo: "OPERACIÓN",
     secciones: [
@@ -132,11 +132,11 @@ const GRUPOS_NAVEGACION = [
   },
 ] as const;
 
-function rutaBase(href: string) {
+export function rutaBase(href: string) {
   return href.split("?")[0] ?? href;
 }
 
-function BadgeContador({ contador, colapsada }: { contador: ContadorMenu; colapsada: boolean }) {
+export function BadgeContador({ contador, colapsada }: { contador: ContadorMenu; colapsada: boolean }) {
   if (contador.valor <= 0) return null;
   const texto = contador.critico ? `Crítico: ${contador.valor}` : String(contador.valor);
   return (
@@ -155,40 +155,8 @@ function BadgeContador({ contador, colapsada }: { contador: ContadorMenu; colaps
   );
 }
 
-export function BarraLateral() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [sesionReal, setSesionReal] = useState(false);
-  const [colapsada, setColapsada] = useState(false);
+export function useContadoresMenu(pathname: string) {
   const [contadores, setContadores] = useState<ContadoresMenu>({});
-
-  useEffect(() => {
-  const isColapsada = window.localStorage.getItem("ruum-admin-sidebar") === "colapsada";
-  const timer = setTimeout(() => {
-    setColapsada(isColapsada);
-  }, 0);
-  return () => clearTimeout(timer);
-}, []);
-
-  function alternarColapso() {
-    setColapsada((actual) => {
-      const siguiente = !actual;
-      window.localStorage.setItem("ruum-admin-sidebar", siguiente ? "colapsada" : "expandida");
-      return siguiente;
-    });
-  }
-
-  useEffect(() => {
-    async function revisar() {
-      if (!tieneSupabaseConfigurado()) return;
-      try {
-        const cliente = crearClienteNavegador();
-        const { data } = await cliente.auth.getUser();
-        setSesionReal(Boolean(data.user));
-      } catch { /* Sin sesión real */ }
-    }
-    revisar();
-  }, [pathname]);
 
   useEffect(() => {
     async function cargarContadores() {
@@ -244,6 +212,44 @@ export function BarraLateral() {
       }
     }
     void cargarContadores();
+  }, [pathname]);
+
+  return contadores;
+}
+
+export function BarraLateral() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [sesionReal, setSesionReal] = useState(false);
+  const [colapsada, setColapsada] = useState(false);
+  const contadores = useContadoresMenu(pathname);
+
+  useEffect(() => {
+  const isColapsada = window.localStorage.getItem("ruum-admin-sidebar") === "colapsada";
+  const timer = setTimeout(() => {
+    setColapsada(isColapsada);
+  }, 0);
+  return () => clearTimeout(timer);
+}, []);
+
+  function alternarColapso() {
+    setColapsada((actual) => {
+      const siguiente = !actual;
+      window.localStorage.setItem("ruum-admin-sidebar", siguiente ? "colapsada" : "expandida");
+      return siguiente;
+    });
+  }
+
+  useEffect(() => {
+    async function revisar() {
+      if (!tieneSupabaseConfigurado()) return;
+      try {
+        const cliente = crearClienteNavegador();
+        const { data } = await cliente.auth.getUser();
+        setSesionReal(Boolean(data.user));
+      } catch { /* Sin sesión real */ }
+    }
+    revisar();
   }, [pathname]);
 
   async function cerrarSesion() {

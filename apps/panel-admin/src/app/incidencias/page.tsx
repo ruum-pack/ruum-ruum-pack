@@ -3,20 +3,18 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
+import { listarIncidenciasAdmin } from "@ruum/api/services";
+import type { Database } from "@ruum/shared/types";
+import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 type EstatusIncidencia = "Nueva" | "En revisión" | "Requiere información" | "En seguimiento" | "Resuelta" | "Cerrada" | "Escalada";
+type Incidencia = Database["public"]["Tables"]["incidencias"]["Row"];
 
 const TIPOS = [
-  "Daño reportado",
-  "Retraso",
-  "Falta de evidencia",
-  "Contacto no disponible",
-  "Problema con documentación",
-  "Problema con pago",
-  "Cancelación",
-  "Diferencia en kilometraje o combustible",
-  "Problema con conductor o usuario",
-  "Otro"
+  "vehiculo_no_enciende",
+  "contacto_no_localizado",
+  "documentacion_incompleta",
+  "dano_previo_relevante"
 ];
 
 const ESTILO: Record<EstatusIncidencia, string> = {
@@ -29,48 +27,39 @@ const ESTILO: Record<EstatusIncidencia, string> = {
   Escalada: "border-status-error/25 bg-status-error-soft text-status-error"
 };
 
-const INCIDENCIAS = [
+const INCIDENCIAS_DEMO: Incidencia[] = [
   {
     id: "INC-2026-0048",
-    viaje: "RR-TR-10291",
-    trasladoId: "demo-admin-002",
-    usuario: "Daniela Fuentes",
-    conductor: "Conductor Demo",
-    tipo: "Diferencia en kilometraje o combustible",
-    fechaHora: "2026-06-29 14:42",
+    traslado_id: "demo-admin-002",
+    tipo: "dano_previo_relevante",
+    momento: "entrega",
+    reportada_por: "conductor",
+    creada_en: "2026-06-29T14:42:00.000Z",
     descripcion: "El kilometraje final no coincide con el registro inicial y falta foto clara del tablero.",
-    evidencia: "3 fotos, bitácora GPS, comentario del conductor",
-    responsable: "Mariana Ops",
-    estatus: "En revisión" as EstatusIncidencia,
-    resolucion: "Pendiente de validar evidencia final."
+    resuelta: false,
+    resuelta_en: null
   },
   {
     id: "INC-2026-0049",
-    viaje: "RR-TR-10302",
-    trasladoId: "demo-admin-001",
-    usuario: "Agencia Norte",
-    conductor: "Pendiente de asignar",
-    tipo: "Contacto no disponible",
-    fechaHora: "2026-06-29 16:15",
+    traslado_id: "demo-admin-001",
+    tipo: "contacto_no_localizado",
+    momento: "recoleccion",
+    reportada_por: "admin",
+    creada_en: "2026-06-29T16:15:00.000Z",
     descripcion: "La persona de entrega no responde teléfono ni WhatsApp autorizado.",
-    evidencia: "Registro de llamadas y nota operativa",
-    responsable: "Torre 2",
-    estatus: "Requiere información" as EstatusIncidencia,
-    resolucion: "Solicitar contacto alterno al usuario."
+    resuelta: false,
+    resuelta_en: null
   },
   {
     id: "INC-2026-0050",
-    viaje: "RR-TR-10309",
-    trasladoId: "demo-admin-003",
-    usuario: "Ricardo Cervantes",
-    conductor: "Conductora Demo 2",
-    tipo: "Problema con pago",
-    fechaHora: "2026-06-30 09:10",
+    traslado_id: "demo-admin-003",
+    tipo: "documentacion_incompleta",
+    momento: "post_cierre",
+    reportada_por: "admin",
+    creada_en: "2026-06-30T09:10:00.000Z",
     descripcion: "Pago retenido por diferencia entre tarifa final y gasto autorizado.",
-    evidencia: "Comprobante de peaje y ajuste financiero",
-    responsable: "Finanzas",
-    estatus: "Escalada" as EstatusIncidencia,
-    resolucion: "Finanzas revisa aprobación del gasto."
+    resuelta: false,
+    resuelta_en: null
   }
 ];
 
@@ -91,16 +80,45 @@ function Badge({ estatus }: { estatus: EstatusIncidencia }) {
 
 export default function PaginaIncidenciasAdmin() {
   const [tipo, setTipo] = useState("Todos");
+  const [incidencias, setIncidencias] = useState<Incidencia[]>(INCIDENCIAS_DEMO);
+  const [esDemo, setEsDemo] = useState(true);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("filtro") === "abiertas") setTipo("Abiertas accionables");
   }, []);
 
+  useEffect(() => {
+    async function cargar() {
+      if (!tieneSupabaseConfigurado()) {
+        setIncidencias(INCIDENCIAS_DEMO);
+        setEsDemo(true);
+        setCargando(false);
+        return;
+      }
+      try {
+        setIncidencias(await listarIncidenciasAdmin(crearClienteNavegador()));
+        setEsDemo(false);
+      } catch {
+        if (puedeUsarDatosDemo()) {
+          setIncidencias(INCIDENCIAS_DEMO);
+          setEsDemo(true);
+        } else {
+          setIncidencias([]);
+          setEsDemo(false);
+        }
+      } finally {
+        setCargando(false);
+      }
+    }
+    void cargar();
+  }, []);
+
   const visibles = tipo === "Todos"
-    ? INCIDENCIAS
+    ? incidencias
     : tipo === "Abiertas accionables"
-      ? INCIDENCIAS.filter((incidencia) => !["Resuelta", "Cerrada"].includes(incidencia.estatus))
-      : INCIDENCIAS.filter((incidencia) => incidencia.tipo === tipo);
+      ? incidencias.filter((incidencia) => !incidencia.resuelta)
+      : incidencias.filter((incidencia) => incidencia.tipo === tipo);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
@@ -110,14 +128,14 @@ export default function PaginaIncidenciasAdmin() {
       </p>
 
       <div className="mt-4">
-        <Aviso tono="info">Vista MVP con datos de ejemplo para operación administrativa.</Aviso>
+        <Aviso tono={esDemo ? "info" : "atencion"}>{esDemo ? "Vista con datos de ejemplo para operación administrativa." : "Incidencias reales de la operación."}</Aviso>
       </div>
 
       <section className="mt-6">
         <PassportCard>
           <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Tipos de incidencia</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {["Todos", "Abiertas accionables", ...TIPOS].map((item) => (
+            {["Todos", "Abiertas accionables", ...TIPOS, ...Array.from(new Set(incidencias.map((incidencia) => incidencia.tipo)))].map((item) => (
               <button
                 key={item}
                 onClick={() => setTipo(item)}
@@ -126,7 +144,7 @@ export default function PaginaIncidenciasAdmin() {
                   tipo === item ? "border-signal bg-signal-soft text-ink" : "border-ink/10 text-text-secondary hover:border-ink/25"
                 ].join(" ")}
               >
-                {item}
+                {item.replaceAll("_", " ")}
               </button>
             ))}
           </div>
@@ -134,49 +152,47 @@ export default function PaginaIncidenciasAdmin() {
       </section>
 
       <section className="mt-6 grid gap-4">
-        {visibles.map((incidencia) => (
+        {cargando && <p className="font-body text-sm text-text-tertiary">Cargando incidencias...</p>}
+        {!cargando && visibles.length === 0 && <p className="font-body text-sm text-text-tertiary">No hay incidencias para este filtro.</p>}
+        {!cargando && visibles.map((incidencia) => (
           <PassportCard key={incidencia.id}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <p className="font-mono-ruum text-xs uppercase tracking-wide text-text-tertiary">ID interno {incidencia.id}</p>
-                <h2 className="mt-1 font-display text-xl font-semibold">{incidencia.tipo}</h2>
+                <p className="font-mono-ruum text-xs uppercase tracking-wide text-text-tertiary">ID interno {incidencia.id.slice(0, 12).toUpperCase()}</p>
+                <h2 className="mt-1 font-display text-xl font-semibold">{incidencia.tipo.replaceAll("_", " ")}</h2>
                 <p className="mt-2 font-body text-sm text-text-secondary">{incidencia.descripcion}</p>
               </div>
-              <Badge estatus={incidencia.estatus} />
+              <Badge estatus={incidencia.resuelta ? "Resuelta" : "En revisión"} />
             </div>
 
             <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Traslado relacionado</dt>
                 <dd className="mt-1 font-body text-sm font-medium">
-                  <Link href={`/viajes/${incidencia.trasladoId}`} className="text-status-info">
-                    {incidencia.viaje}
+                  <Link href={`/viajes/${incidencia.traslado_id}`} className="text-status-info">
+                    {incidencia.traslado_id.slice(0, 8).toUpperCase()}
                   </Link>
                 </dd>
               </div>
               <div>
-                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Usuario</dt>
-                <dd className="mt-1 font-body text-sm font-medium">{incidencia.usuario}</dd>
+                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Reportada por</dt>
+                <dd className="mt-1 font-body text-sm font-medium">{incidencia.reportada_por}</dd>
               </div>
               <div>
-                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Conductor</dt>
-                <dd className="mt-1 font-body text-sm font-medium">{incidencia.conductor}</dd>
+                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Momento</dt>
+                <dd className="mt-1 font-body text-sm font-medium">{incidencia.momento.replaceAll("_", " ")}</dd>
               </div>
               <div>
                 <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Fecha y hora</dt>
-                <dd className="mt-1 font-body text-sm font-medium">{incidencia.fechaHora}</dd>
+                <dd className="mt-1 font-body text-sm font-medium">{new Date(incidencia.creada_en).toLocaleString("es-MX")}</dd>
               </div>
               <div>
-                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Evidencia asociada</dt>
-                <dd className="mt-1 font-body text-sm font-medium">{incidencia.evidencia}</dd>
+                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Estado</dt>
+                <dd className="mt-1 font-body text-sm font-medium">{incidencia.resuelta ? "Resuelta" : "Abierta"}</dd>
               </div>
               <div>
-                <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Responsable interno</dt>
-                <dd className="mt-1 font-body text-sm font-medium">{incidencia.responsable}</dd>
-              </div>
-              <div className="sm:col-span-2">
                 <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Resolución</dt>
-                <dd className="mt-1 font-body text-sm font-medium">{incidencia.resolucion}</dd>
+                <dd className="mt-1 font-body text-sm font-medium">{incidencia.resuelta_en ? new Date(incidencia.resuelta_en).toLocaleString("es-MX") : "Pendiente"}</dd>
               </div>
             </dl>
 

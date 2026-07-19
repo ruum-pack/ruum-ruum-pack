@@ -14,6 +14,11 @@ type AdminPageHeaderProps = {
   titulo: string;
   descripcion?: string;
   accion?: ReactNode;
+  breadcrumb?: Array<{ label: string; href?: string }>;
+  estadoConexion?: "conectado" | "demo" | "sin_conexion" | "actualizando";
+  ultimaActualizacion?: string | Date | null;
+  accionesSecundarias?: ReactNode;
+  contadorResultados?: number;
 };
 
 type AdminPanelProps = {
@@ -51,15 +56,76 @@ export function AdminHero({ titulo, subtitulo, imagen = "/imagenes/torre-control
   );
 }
 
-export function AdminPageHeader({ etiqueta, titulo, descripcion, accion }: AdminPageHeaderProps) {
+function textoConexion(estado: NonNullable<AdminPageHeaderProps["estadoConexion"]>) {
+  if (estado === "conectado") return "Conectado";
+  if (estado === "actualizando") return "Actualizando";
+  if (estado === "demo") return "Modo demo";
+  return "Sin conexión";
+}
+
+function claseConexion(estado: NonNullable<AdminPageHeaderProps["estadoConexion"]>) {
+  if (estado === "conectado") return "border-status-success/30 bg-status-success-soft text-status-success";
+  if (estado === "actualizando") return "border-status-info/30 bg-status-info-soft text-status-info";
+  if (estado === "demo") return "border-status-warning/35 bg-status-warning-soft text-status-warning";
+  return "border-status-error/30 bg-status-error-soft text-status-error";
+}
+
+function formatoActualizacion(valor: string | Date) {
+  const fecha = valor instanceof Date ? valor : new Date(valor);
+  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(fecha);
+}
+
+export function AdminPageHeader({
+  etiqueta,
+  titulo,
+  descripcion,
+  accion,
+  breadcrumb,
+  estadoConexion,
+  ultimaActualizacion,
+  accionesSecundarias,
+  contadorResultados
+}: AdminPageHeaderProps) {
   return (
     <header className="admin-page-header">
       <div className="min-w-0">
+        {breadcrumb && breadcrumb.length > 0 && (
+          <nav className="mb-2 font-body text-admin-secundario text-text-tertiary" aria-label="Breadcrumb">
+            <ol className="flex flex-wrap items-center gap-1.5">
+              {breadcrumb.map((item, indice) => (
+                <li key={`${item.label}-${indice}`} className="flex items-center gap-1.5">
+                  {indice > 0 && <span aria-hidden="true">/</span>}
+                  {item.href ? <a href={item.href} className="hover:text-ink">{item.label}</a> : <span aria-current={indice === breadcrumb.length - 1 ? "page" : undefined}>{item.label}</span>}
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )}
         {etiqueta && <p className="font-mono-ruum text-xs font-medium uppercase tracking-[0.16em] text-signal">{etiqueta}</p>}
         <h1 className="mt-1 font-display text-2xl font-semibold text-ink">{titulo}</h1>
         {descripcion && <p className="mt-1 max-w-2xl font-body text-sm leading-6 text-text-secondary">{descripcion}</p>}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {estadoConexion && (
+            <span className={`rounded-full border px-3 py-1 font-body text-admin-secundario font-semibold ${claseConexion(estadoConexion)}`}>
+              {textoConexion(estadoConexion)}
+            </span>
+          )}
+          {ultimaActualizacion && (
+            <time dateTime={(ultimaActualizacion instanceof Date ? ultimaActualizacion : new Date(ultimaActualizacion)).toISOString()} className="font-body text-admin-secundario text-text-tertiary">
+              Última actualización: {formatoActualizacion(ultimaActualizacion)}
+            </time>
+          )}
+          {typeof contadorResultados === "number" && (
+            <span className="font-body text-admin-secundario text-text-tertiary">{contadorResultados.toLocaleString("es-MX")} resultados</span>
+          )}
+        </div>
       </div>
-      {accion && <div className="shrink-0">{accion}</div>}
+      {(accion || accionesSecundarias) && (
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {accionesSecundarias}
+          {accion}
+        </div>
+      )}
     </header>
   );
 }
