@@ -1,4 +1,4 @@
-package com.getcapacitor.myapp;
+package com.moviliax.ruumruum.usuario;
 
 import static org.junit.Assert.*;
 
