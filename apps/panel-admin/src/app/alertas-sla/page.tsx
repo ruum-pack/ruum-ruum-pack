@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Aviso } from "@ruum/ui";
 import {
   listarAlertasSLA,
@@ -197,6 +198,8 @@ function TarjetaSLA({
 }
 
 export default function PaginaAlertasSLA() {
+  const searchParams = useSearchParams();
+  const soloVencidas = searchParams.get("filtro") === "vencidas";
   const [alertas, setAlertas] = useState<AlertaSLA[]>([]);
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
@@ -257,10 +260,11 @@ export default function PaginaAlertasSLA() {
     }
   }
 
-  const vencidos = alertas.filter((a) => a.vencido);
-  const urgentes = alertas.filter((a) => !a.vencido && a.requiere_alerta);
-  const normales = alertas.filter((a) => !a.vencido && !a.requiere_alerta);
-  const total = alertas.length;
+  const alertasVisibles = soloVencidas ? alertas.filter((a) => a.vencido) : alertas;
+  const vencidos = alertasVisibles.filter((a) => a.vencido);
+  const urgentes = alertasVisibles.filter((a) => !a.vencido && a.requiere_alerta);
+  const normales = alertasVisibles.filter((a) => !a.vencido && !a.requiere_alerta);
+  const total = alertasVisibles.length;
 
   return (
     <div className="min-h-screen">

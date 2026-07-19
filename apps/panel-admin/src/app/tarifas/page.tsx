@@ -43,6 +43,7 @@ const SECCIONES_TARIFAS = [
 ] as const;
 
 type SeccionTarifas = (typeof SECCIONES_TARIFAS)[number]["id"];
+type SeccionParametrosTarifa = Extract<SeccionTarifas, "base" | "factores">;
 
 const VACIO: ConfiguracionTarifas = {
   vehiculo: [],
@@ -119,11 +120,13 @@ function CampoBorrador({
 function ConfirmacionImpacto({
   abierto,
   onCancelar,
-  onConfirmar
+  onConfirmar,
+  accionLabel = "Publicar versión"
 }: {
   abierto: boolean;
   onCancelar: () => void;
   onConfirmar: () => void;
+  accionLabel?: string;
 }) {
   const dialogoRef = useRef<HTMLDivElement | null>(null);
   const focoPrevioRef = useRef<HTMLElement | null>(null);
@@ -151,16 +154,16 @@ function ConfirmacionImpacto({
     <div className="admin-modal-backdrop fixed inset-0 z-50 flex items-center justify-center px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="confirmacion-impacto-titulo">
       <div ref={dialogoRef} className="w-full max-w-md overflow-hidden rounded-2xl border border-ink/20 bg-surface-primary shadow-[var(--ruum-shadow-4)]">
         <div className="border-b border-status-warning/20 bg-status-warning-soft px-6 py-5">
-          <p className="font-mono-ruum text-xs font-medium uppercase tracking-wide text-status-warning">Cambio de alto impacto</p>
-          <h2 id="confirmacion-impacto-titulo" className="mt-1 font-display text-xl font-semibold text-ink">Confirmar cambio vigente</h2>
+          <p className="font-mono-ruum text-xs font-medium uppercase tracking-wide text-status-warning">Publicación financiera</p>
+          <h2 id="confirmacion-impacto-titulo" className="mt-1 font-display text-xl font-semibold text-ink">{accionLabel}</h2>
         </div>
         <div className="px-6 py-5">
           <p className="font-body text-sm leading-6 text-text-secondary">
-            Esta acción modifica una política tarifaria normativa. Afectará únicamente cálculos futuros y quedará registrada para auditoría.
+            Esta acción reemplaza la versión vigente para cálculos futuros. Los traslados con precio ya cotizado conservarán su tarifa original y la publicación debe quedar registrada en auditoría con responsable, fecha y posibilidad de reversión según reglas.
           </p>
           <div className="mt-6 flex flex-wrap justify-end gap-3">
             <Button variant="quiet" onClick={onCancelar}>Cancelar</Button>
-            <Button onClick={onConfirmar}>Sí, continuar</Button>
+            <Button onClick={onConfirmar}>{accionLabel}</Button>
           </div>
         </div>
       </div>
@@ -502,6 +505,7 @@ function PoliticaVigente({
           setConfirmando(false);
           guardarConfirmado();
         }}
+        accionLabel={`Publicar versión ${datos.config?.nombre_version ?? "tarifaria"}`}
       />
     </PassportCard>
   );
@@ -592,20 +596,25 @@ function numeroBorrador(valor: string, etiqueta: string) {
 }
 
 function ParametrosNormativos({
+  seccion,
   datos,
   cliente,
   onGuardado,
-  onConfigVista
+  onConfigVista,
+  onDirtyChange
 }: {
+  seccion: SeccionParametrosTarifa;
   datos: ConfiguracionTarifas;
   cliente: ReturnType<typeof crearClienteNavegador> | null;
   onGuardado: () => Promise<void>;
   onConfigVista: (config: TarifaConfigRow | null) => void;
+  onDirtyChange: (hayCambios: boolean) => void;
 }) {
   const requiereConfirmacion = datos.config?.estado === "vigente";
   const [borrador, setBorrador] = useState<BorradorTarifas>(() => crearBorradorTarifas(datos));
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
+  const [borradorCreadoEn] = useState(() => new Date().toISOString());
   const [guardando, startGuardado] = useTransition();
 
   function cambiarVehiculo(id: string, campo: "base" | "porKm", valor: string) {
@@ -641,6 +650,11 @@ function ParametrosNormativos({
     return JSON.stringify(original) !== JSON.stringify(borrador);
   }, [borrador, datos]);
 
+  useEffect(() => {
+    onDirtyChange(hayCambios);
+    return () => onDirtyChange(false);
+  }, [hayCambios, onDirtyChange]);
+
   function guardar() {
     if (!hayCambios) return;
     if (requiereConfirmacion) {
@@ -648,6 +662,11 @@ function ParametrosNormativos({
       return;
     }
     guardarConfirmado();
+  }
+
+  function crearBorradorDesdeVigente() {
+    setBorrador(crearBorradorTarifas(datos));
+    setMensaje("Borrador creado desde la versión vigente. Edita valores, simula, compara y publica cuando esté revisado.");
   }
 
   function guardarConfirmado() {
@@ -703,9 +722,10 @@ function ParametrosNormativos({
 
         const actualizadas = await actualizarPoliticaTarifariaNormativa(cliente, payload);
         await onGuardado();
-        setMensaje(`Cambios guardados: ${actualizadas}.`);
+        onDirtyChange(false);
+        setMensaje(`Versión publicada. Cambios aplicados: ${actualizadas}.`);
       } catch (error) {
-        setMensaje(error instanceof Error ? error.message : "No se pudieron guardar los cambios.");
+        setMensaje(error instanceof Error ? error.message : "No se pudo publicar la versión.");
       }
     });
   }
@@ -715,75 +735,52 @@ function ParametrosNormativos({
       <div className="sticky top-3 z-20 -mx-2 rounded-lg border border-focus-default/20 bg-surface-primary/95 px-4 py-3 shadow-[var(--ruum-shadow-2)] backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-body text-sm font-semibold text-ink">Edición de parámetros normativos</p>
+            <p className="font-body text-sm font-semibold text-ink">Borrador tarifario</p>
+            <p className="mt-1 font-body text-xs text-text-secondary">
+              Autor: admin actual · Creado: {formatoFecha(borradorCreadoEn)} · Estado: {hayCambios ? "En edición" : "Sin cambios"}
+            </p>
             {mensaje && <p className="mt-1 font-body text-xs text-text-secondary">{mensaje}</p>}
           </div>
-          <Button onClick={guardar} disabled={!hayCambios || guardando}>Guardar cambios</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="quiet" onClick={crearBorradorDesdeVigente}>Crear borrador</Button>
+            <Button onClick={guardar} disabled={!hayCambios || guardando}>
+              {datos.config?.nombre_version ? `Publicar versión ${datos.config.nombre_version}` : "Publicar versión"}
+            </Button>
+          </div>
         </div>
       </div>
 
-      <TarifasBaseFijas datos={datos} borrador={borrador} onCambiar={cambiarVehiculo} />
+      {seccion === "base" && <TarifasBaseFijas datos={datos} borrador={borrador} onCambiar={cambiarVehiculo} />}
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Factor de gama</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {datos.gama.map((f) => (
-              <CampoBorrador key={f.gama} etiqueta={f.gama} valor={borrador.gama[f.gama] ?? ""} onCambiar={(valor) => cambiarGrupo("gama", f.gama, valor)} />
-            ))}
+      {seccion === "factores" && (
+        <>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <GrupoFactor titulo="Factor de gama" filas={datos.gama.map((f) => ({ clave: f.gama, etiqueta: f.gama, valor: borrador.gama[f.gama] ?? "" }))} onCambiar={(clave, valor) => cambiarGrupo("gama", clave, valor)} />
+            <GrupoFactor titulo="Factor de condición" filas={datos.condicion.map((f) => ({ clave: f.condicion, etiqueta: f.condicion.replaceAll("_", " "), valor: borrador.condicion[f.condicion] ?? "" }))} onCambiar={(clave, valor) => cambiarGrupo("condicion", clave, valor)} />
+            <GrupoFactor titulo="Factor horario" filas={datos.horario.map((f) => ({ clave: f.horario, etiqueta: f.horario, valor: borrador.horario[f.horario] ?? "" }))} onCambiar={(clave, valor) => cambiarGrupo("horario", clave, valor)} />
+            <GrupoFactor titulo="Factor día" filas={datos.dia.map((f) => ({ clave: f.dia, etiqueta: f.dia.replaceAll("_", " "), valor: borrador.dia[f.dia] ?? "" }))} onCambiar={(clave, valor) => cambiarGrupo("dia", clave, valor)} />
           </div>
-        </PassportCard>
-
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Factor de condición</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {datos.condicion.map((f) => (
-              <CampoBorrador key={f.condicion} etiqueta={f.condicion.replaceAll("_", " ")} valor={borrador.condicion[f.condicion] ?? ""} onCambiar={(valor) => cambiarGrupo("condicion", f.condicion, valor)} />
-            ))}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PassportCard>
+              <h2 className="font-display text-xl font-semibold">Configuración general</h2>
+              {datos.config && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <CampoBorrador etiqueta="Tarifa por hora" valor={borrador.config.tarifaHora} sufijo="$/hora" onCambiar={(valor) => cambiarConfig("tarifaHora", valor)} />
+                  <CampoBorrador etiqueta="Tope del factor variable" valor={borrador.config.topeFactorVariable} sufijo="x" onCambiar={(valor) => cambiarConfig("topeFactorVariable", valor)} />
+                </div>
+              )}
+            </PassportCard>
+            <GrupoFactor
+              titulo="Pago al conductor por certificación"
+              filas={datos.certificacionPago.map((f) => ({ clave: f.certificacion, etiqueta: f.certificacion.replaceAll("_", " "), valor: borrador.certificacion[f.certificacion] ?? "", sufijo: "%" }))}
+              onCambiar={(clave, valor) => cambiarGrupo("certificacion", clave, valor)}
+            />
           </div>
-        </PassportCard>
+        </>
+      )}
 
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Factor horario</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {datos.horario.map((f) => (
-              <CampoBorrador key={f.horario} etiqueta={f.horario} valor={borrador.horario[f.horario] ?? ""} onCambiar={(valor) => cambiarGrupo("horario", f.horario, valor)} />
-            ))}
-          </div>
-        </PassportCard>
-
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Factor día</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {datos.dia.map((f) => (
-              <CampoBorrador key={f.dia} etiqueta={f.dia.replaceAll("_", " ")} valor={borrador.dia[f.dia] ?? ""} onCambiar={(valor) => cambiarGrupo("dia", f.dia, valor)} />
-            ))}
-          </div>
-        </PassportCard>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Configuración general</h2>
-          {datos.config && (
-            <>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <CampoBorrador etiqueta="Tarifa por hora" valor={borrador.config.tarifaHora} sufijo="$/hora" onCambiar={(valor) => cambiarConfig("tarifaHora", valor)} />
-                <CampoBorrador etiqueta="Tope del factor variable" valor={borrador.config.topeFactorVariable} sufijo="x" onCambiar={(valor) => cambiarConfig("topeFactorVariable", valor)} />
-              </div>
-            </>
-          )}
-        </PassportCard>
-
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Pago al conductor por certificación</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {datos.certificacionPago.map((f) => (
-              <CampoBorrador key={f.certificacion} etiqueta={f.certificacion.replaceAll("_", " ")} valor={borrador.certificacion[f.certificacion] ?? ""} sufijo="%" onCambiar={(valor) => cambiarGrupo("certificacion", f.certificacion, valor)} />
-            ))}
-          </div>
-        </PassportCard>
-      </div>
+      <ComparadorVersiones datos={datos} borrador={borrador} />
+      <ImpactoTarifario datos={datos} borrador={borrador} />
       <ConfirmacionImpacto
         abierto={confirmando}
         onCancelar={() => setConfirmando(false)}
@@ -791,8 +788,238 @@ function ParametrosNormativos({
           setConfirmando(false);
           guardarConfirmado();
         }}
+        accionLabel={`Publicar versión ${datos.config?.nombre_version ?? "tarifaria"}`}
       />
     </div>
+  );
+}
+
+function GrupoFactor({
+  titulo,
+  filas,
+  onCambiar
+}: {
+  titulo: string;
+  filas: Array<{ clave: string; etiqueta: string; valor: string; sufijo?: string }>;
+  onCambiar: (clave: string, valor: string) => void;
+}) {
+  return (
+    <PassportCard>
+      <h2 className="font-display text-xl font-semibold">{titulo}</h2>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {filas.map((fila) => (
+          <CampoBorrador
+            key={fila.clave}
+            etiqueta={fila.etiqueta}
+            valor={fila.valor}
+            sufijo={fila.sufijo}
+            onCambiar={(valor) => onCambiar(fila.clave, valor)}
+          />
+        ))}
+      </div>
+    </PassportCard>
+  );
+}
+
+function configuracionDesdeBorrador(datos: ConfiguracionTarifas, borrador: BorradorTarifas): ConfiguracionTarifas {
+  return {
+    ...datos,
+    vehiculo: datos.vehiculo.map((fila) => ({
+      ...fila,
+      base: Number(borrador.vehiculo[fila.id]?.base ?? fila.base),
+      por_km: Number(borrador.vehiculo[fila.id]?.porKm ?? fila.por_km)
+    })),
+    gama: datos.gama.map((fila) => ({ ...fila, factor: Number(borrador.gama[fila.gama] ?? fila.factor) })),
+    condicion: datos.condicion.map((fila) => ({ ...fila, factor: Number(borrador.condicion[fila.condicion] ?? fila.factor) })),
+    horario: datos.horario.map((fila) => ({ ...fila, factor: Number(borrador.horario[fila.horario] ?? fila.factor) })),
+    dia: datos.dia.map((fila) => ({ ...fila, factor: Number(borrador.dia[fila.dia] ?? fila.factor) })),
+    certificacionPago: datos.certificacionPago.map((fila) => ({ ...fila, porcentaje: Number(borrador.certificacion[fila.certificacion] ?? fila.porcentaje) })),
+    config: datos.config ? {
+      ...datos.config,
+      tarifa_hora: Number(borrador.config.tarifaHora),
+      tope_factor_variable: Number(borrador.config.topeFactorVariable)
+    } : datos.config
+  };
+}
+
+function cambiosVersion(datos: ConfiguracionTarifas, borrador: BorradorTarifas) {
+  const cambios: Array<{ entidad: string; campo: string; vigente: number; propuesto: number; delta: number; porcentaje: number }> = [];
+  const agregar = (entidad: string, campo: string, vigente: number, propuesto: number) => {
+    if (!Number.isFinite(propuesto) || vigente === propuesto) return;
+    cambios.push({
+      entidad,
+      campo,
+      vigente,
+      propuesto,
+      delta: propuesto - vigente,
+      porcentaje: vigente === 0 ? 0 : ((propuesto - vigente) / vigente) * 100
+    });
+  };
+
+  for (const fila of datos.vehiculo) {
+    agregar(`${ETIQUETA_CATEGORIA[fila.categoria] ?? fila.categoria} / ${ETIQUETA_RANGO[fila.rango] ?? fila.rango}`, "Base", fila.base, Number(borrador.vehiculo[fila.id]?.base));
+    agregar(`${ETIQUETA_CATEGORIA[fila.categoria] ?? fila.categoria} / ${ETIQUETA_RANGO[fila.rango] ?? fila.rango}`, "$/km", fila.por_km, Number(borrador.vehiculo[fila.id]?.porKm));
+  }
+  for (const fila of datos.gama) agregar(`Gama ${fila.gama}`, "Factor", fila.factor, Number(borrador.gama[fila.gama]));
+  for (const fila of datos.condicion) agregar(`Condición ${fila.condicion.replaceAll("_", " ")}`, "Factor", fila.factor, Number(borrador.condicion[fila.condicion]));
+  for (const fila of datos.horario) agregar(`Horario ${fila.horario}`, "Factor", fila.factor, Number(borrador.horario[fila.horario]));
+  for (const fila of datos.dia) agregar(`Día ${fila.dia.replaceAll("_", " ")}`, "Factor", fila.factor, Number(borrador.dia[fila.dia]));
+  for (const fila of datos.certificacionPago) agregar(`Certificación ${fila.certificacion.replaceAll("_", " ")}`, "Pago conductor", fila.porcentaje, Number(borrador.certificacion[fila.certificacion]));
+  if (datos.config) {
+    agregar("Configuración general", "Tarifa por hora", datos.config.tarifa_hora, Number(borrador.config.tarifaHora));
+    agregar("Configuración general", "Tope factor variable", datos.config.tope_factor_variable, Number(borrador.config.topeFactorVariable));
+  }
+  return cambios;
+}
+
+function ComparadorVersiones({ datos, borrador }: { datos: ConfiguracionTarifas; borrador: BorradorTarifas }) {
+  const cambios = cambiosVersion(datos, borrador);
+  function descargarResumen() {
+    const resumen = {
+      version_vigente: datos.config?.nombre_version ?? null,
+      fecha_entrada_en_vigor: datos.config?.vigente_desde ?? null,
+      entidades_afectadas: cambios.length,
+      cambios
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(resumen, null, 2)], { type: "application/json" }));
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = `comparacion-tarifas-${datos.config?.nombre_version ?? "borrador"}.json`;
+    enlace.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <PassportCard>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-semibold">Comparador de versiones</h2>
+          <p className="mt-1 font-body text-sm text-text-secondary">Revisión previa: vigente contra propuesto, variación absoluta y variación porcentual.</p>
+        </div>
+        <Button variant="quiet" onClick={descargarResumen} disabled={cambios.length === 0}>Descargar resumen</Button>
+      </div>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full text-left font-body text-sm">
+          <thead className="border-b border-ink/10 text-xs uppercase tracking-wide text-text-tertiary">
+            <tr>
+              <th className="px-3 py-2">Entidad afectada</th>
+              <th className="px-3 py-2">Vigente</th>
+              <th className="px-3 py-2">Propuesto</th>
+              <th className="px-3 py-2">Variación</th>
+              <th className="px-3 py-2">Entrada en vigor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cambios.length === 0 ? (
+              <tr><td colSpan={5} className="px-3 py-6 text-center text-text-tertiary">Crea un borrador o modifica valores para comparar versiones.</td></tr>
+            ) : cambios.map((cambio) => (
+              <tr key={`${cambio.entidad}-${cambio.campo}`} className="border-b border-ink/10">
+                <td className="px-3 py-3"><span className="font-semibold text-ink">{cambio.entidad}</span><span className="block text-xs text-text-tertiary">{cambio.campo}</span></td>
+                <td className="px-3 py-3 font-mono-ruum">{cambio.vigente.toLocaleString("es-MX")}</td>
+                <td className="px-3 py-3 font-mono-ruum">{cambio.propuesto.toLocaleString("es-MX")}</td>
+                <td className={`px-3 py-3 font-mono-ruum font-semibold ${cambio.delta >= 0 ? "text-status-warning" : "text-status-success"}`}>
+                  {cambio.delta >= 0 ? "+" : ""}{cambio.delta.toLocaleString("es-MX")} · {cambio.porcentaje.toFixed(1)}%
+                </td>
+                <td className="px-3 py-3 text-text-secondary">{formatoFecha(datos.config?.vigente_desde)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </PassportCard>
+  );
+}
+
+function ImpactoTarifario({ datos, borrador }: { datos: ConfiguracionTarifas; borrador: BorradorTarifas }) {
+  const propuesta = configuracionDesdeBorrador(datos, borrador);
+  const escenarios = [
+    { nombre: "Traslado individual", categoria: "ligero_a", gama: "entrada", condicion: "seminueva", horario: "diurno", dia: "entre_semana", distanciaKm: 18, tiempoHoras: 0.8 },
+    { nombre: "Ruta específica", categoria: "mediano", gama: "media", condicion: "rescate_mecanico", horario: "nocturno", dia: "fin_semana", distanciaKm: 76, tiempoHoras: 2.2 },
+    { nombre: "Empresa", categoria: "ligero_b", gama: "alta", condicion: "seminueva", horario: "diurno", dia: "entre_semana", distanciaKm: 42, tiempoHoras: 1.4 },
+    { nombre: "Muestra histórica", categoria: "camion", gama: "media", condicion: "rescate_mecanico", horario: "diurno", dia: "entre_semana", distanciaKm: 120, tiempoHoras: 3.5 },
+    { nombre: "Solicitudes pendientes", categoria: "ligero_a", gama: "entrada", condicion: "seminueva", horario: "nocturno", dia: "fin_semana", distanciaKm: 12, tiempoHoras: 0.6 }
+  ] as const;
+  const filas = escenarios.map((escenario) => {
+    try {
+      const vigente = simularTarifaNormativa(datos, escenario).tarifa;
+      const propuesto = simularTarifaNormativa(propuesta, escenario).tarifa;
+      return { ...escenario, vigente, propuesto, delta: propuesto - vigente };
+    } catch {
+      return { ...escenario, vigente: null, propuesto: null, delta: null };
+    }
+  });
+  return (
+    <PassportCard>
+      <h2 className="font-display text-xl font-semibold">Simulación de impacto</h2>
+      <p className="mt-1 font-body text-sm text-text-secondary">Estimación sin modificar datos reales. Los traslados ya cotizados conservan su tarifa original.</p>
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        {filas.map((fila) => (
+          <div key={fila.nombre} className="rounded-lg border border-ink/10 bg-surface-secondary px-4 py-3">
+            <p className="font-body text-sm font-semibold text-ink">{fila.nombre}</p>
+            <p className="mt-1 font-body text-xs text-text-tertiary">{ETIQUETA_CATEGORIA[fila.categoria] ?? fila.categoria} · {fila.distanciaKm} km · {fila.tiempoHoras} h</p>
+            {fila.vigente == null ? (
+              <p className="mt-3 text-sm text-status-warning">No hay datos suficientes para estimar este escenario.</p>
+            ) : (
+              <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                <DatoSim etiqueta="Vigente" valor={`$${fila.vigente.toLocaleString("es-MX")}`} />
+                <DatoSim etiqueta="Estimado" valor={`$${fila.propuesto!.toLocaleString("es-MX")}`} />
+                <DatoSim etiqueta="Diferencia" valor={`${fila.delta! >= 0 ? "+" : ""}$${fila.delta!.toLocaleString("es-MX")}`} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </PassportCard>
+  );
+}
+
+function AuditoriaTarifaria({ datos }: { datos: ConfiguracionTarifas }) {
+  const config = datos.config;
+  const eventos = [
+    {
+      titulo: "Versión vigente",
+      detalle: config?.nombre_version ?? "Sin versión configurada",
+      fecha: config?.vigente_desde,
+      responsable: datos.adminActualizacion?.nombre ?? "Admin no identificado",
+      estado: config?.estado ?? "borrador"
+    },
+    {
+      titulo: "Última modificación registrada",
+      detalle: "Actualización de política tarifaria normativa",
+      fecha: config?.actualizado_en,
+      responsable: datos.adminActualizacion?.nombre ?? "Admin no identificado",
+      estado: "registro"
+    }
+  ];
+
+  return (
+    <PassportCard>
+      <h2 className="font-display text-xl font-semibold">Auditoría</h2>
+      <p className="mt-1 font-body text-sm text-text-secondary">
+        Historial operativo disponible desde la configuración actual. El registro inmutable completo requiere persistencia de versiones en backend antes de considerar cerrado ADM-UX-32.
+      </p>
+      <div className="mt-4 divide-y divide-ink/10 rounded-lg border border-ink/10">
+        {eventos.map((evento) => (
+          <div key={`${evento.titulo}-${evento.fecha ?? "sin-fecha"}`} className="grid gap-2 px-4 py-3 md:grid-cols-[1fr_180px_180px_120px] md:items-center">
+            <div>
+              <p className="font-body text-sm font-semibold text-ink">{evento.titulo}</p>
+              <p className="font-body text-xs text-text-tertiary">{evento.detalle}</p>
+            </div>
+            <p className="font-body text-sm text-text-secondary">{formatoFecha(evento.fecha)}</p>
+            <p className="font-body text-sm text-text-secondary">{evento.responsable}</p>
+            <span className={`w-fit rounded-full border px-3 py-1 font-body text-xs font-semibold ${claseEstado(evento.estado)}`}>
+              {ETIQUETA_ESTADO[evento.estado] ?? evento.estado}
+            </span>
+          </div>
+        ))}
+      </div>
+      <Aviso tono="atencion">
+        La publicación usa permisos de administrador vía RLS/RPC. Para historial inmutable, rollback real y programación persistente falta agregar tablas/RPC de versiones tarifarias.
+      </Aviso>
+      <div className="mt-4">
+        <Button variant="quiet" disabled>Revertir versión no disponible con el modelo actual</Button>
+      </div>
+    </PassportCard>
   );
 }
 

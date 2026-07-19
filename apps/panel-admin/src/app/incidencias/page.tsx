@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 
@@ -92,7 +92,15 @@ function Badge({ estatus }: { estatus: EstatusIncidencia }) {
 export default function PaginaIncidenciasAdmin() {
   const [tipo, setTipo] = useState("Todos");
 
-  const visibles = tipo === "Todos" ? INCIDENCIAS : INCIDENCIAS.filter((incidencia) => incidencia.tipo === tipo);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("filtro") === "abiertas") setTipo("Abiertas accionables");
+  }, []);
+
+  const visibles = tipo === "Todos"
+    ? INCIDENCIAS
+    : tipo === "Abiertas accionables"
+      ? INCIDENCIAS.filter((incidencia) => !["Resuelta", "Cerrada"].includes(incidencia.estatus))
+      : INCIDENCIAS.filter((incidencia) => incidencia.tipo === tipo);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
@@ -109,7 +117,7 @@ export default function PaginaIncidenciasAdmin() {
         <PassportCard>
           <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Tipos de incidencia</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {["Todos", ...TIPOS].map((item) => (
+            {["Todos", "Abiertas accionables", ...TIPOS].map((item) => (
               <button
                 key={item}
                 onClick={() => setTipo(item)}

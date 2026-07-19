@@ -74,6 +74,7 @@ function pasaporteConTrasladoId(pasaporte: Pasaporte): pasaporte is Pasaporte & 
 }
 
 export default function PaginaPagosAdmin() {
+  const [filtroPendientes, setFiltroPendientes] = useState(false);
   const [datos, setDatos] = useState<DatosPagosAdmin>(DATOS_DEMO);
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
@@ -106,13 +107,17 @@ export default function PaginaPagosAdmin() {
     cargar();
   }, []);
 
+  useEffect(() => {
+    setFiltroPendientes(new URLSearchParams(window.location.search).get("filtro") === "pendientes");
+  }, []);
+
   const pasaportePorId = useMemo(
     () => new Map<string, Pasaporte>(datos.pasaportes.filter(pasaporteConTrasladoId).map((p) => [p.traslado_id, p])),
     [datos.pasaportes]
   );
   const conductorPorId = useMemo(() => new Map<string, Conductor>(datos.conductores.map((c) => [c.id, c])), [datos.conductores]);
-  const pagos = datos.pagosUsuarios;
-  const payouts = datos.payoutsConductores;
+  const pagos = filtroPendientes ? datos.pagosUsuarios.filter((pago) => pago.estado === "pendiente") : datos.pagosUsuarios;
+  const payouts = filtroPendientes ? datos.payoutsConductores.filter((payout) => payout.estado === "pendiente") : datos.payoutsConductores;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">

@@ -1,6 +1,5 @@
 "use client";
 
-"use client";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
@@ -100,6 +99,7 @@ function AccionDisputa({ disputa, onActualizada }: { disputa: Disputa; onActuali
 }
 
 export default function PaginaDisputasAdmin() {
+  const [filtroPendientes, setFiltroPendientes] = useState(false);
   const [disputas, setDisputas] = useState<Disputa[]>([]);
   const [pasaportes, setPasaportes] = useState<Pasaporte[]>([]);
   const [esDemo, setEsDemo] = useState(true);
@@ -141,7 +141,15 @@ export default function PaginaDisputasAdmin() {
   return () => clearTimeout(timer);
 }, []);
 
+  useEffect(() => {
+    setFiltroPendientes(new URLSearchParams(window.location.search).get("filtro") === "pendientes");
+  }, []);
+
   const pasaportePorId = useMemo(() => new Map(pasaportes.map((p) => [p.traslado_id, p])), [pasaportes]);
+  const disputasVisibles = useMemo(
+    () => filtroPendientes ? disputas.filter((disputa) => disputa.estado !== "resuelta" && disputa.estado !== "resuelta_senior") : disputas,
+    [disputas, filtroPendientes]
+  );
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
@@ -150,7 +158,7 @@ export default function PaginaDisputasAdmin() {
       {esDemo && <div className="mt-4"><Aviso tono="info">Vista con datos de ejemplo.</Aviso></div>}
       {cargando ? <p className="mt-8 font-body text-sm text-text-tertiary">Cargando...</p> : (
         <section className="mt-6 grid gap-4">
-          {disputas.map((disputa) => {
+          {disputasVisibles.map((disputa) => {
             const pasaporte = pasaportePorId.get(disputa.traslado_id);
             const sla = badgeSla(disputa);
             return (

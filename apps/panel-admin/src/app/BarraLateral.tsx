@@ -1,11 +1,19 @@
 "use client";
 
-"use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoMarca } from "@ruum/ui";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
+import {
+  listarAlertasSLA,
+  listarConductoresAdmin,
+  listarDisputasAdmin,
+  listarIncidenciasAdmin,
+  listarPagosAdmin,
+  listarSolicitudesConductorAdmin,
+  listarUsuariosAdmin
+} from "@ruum/api/services";
 
 /* ── Íconos SVG inline — reemplazan las letras sueltas D/V/I/R ── */
 function IcDashboard() {
@@ -67,6 +75,9 @@ function IcAuditoria() {
 }
 
 type IconoNombre = "dashboard"|"viajes"|"masivos"|"mapa"|"sla"|"conductor"|"usuario"|"vehiculo"|"empresa"|"incidencia"|"disputa"|"reclamo"|"pagos"|"tarifas"|"documentos"|"reportes"|"configuracion"|"evidencia"|"auditoria";
+type ClaveContadorMenu = "alertasCriticas" | "conductoresRevision" | "incidenciasAbiertas" | "disputasPendientes" | "pagosPendientes" | "documentosPorVencer";
+type ContadorMenu = { valor: number; critico?: boolean; etiqueta: string };
+type ContadoresMenu = Partial<Record<ClaveContadorMenu, ContadorMenu>>;
 
 function Icono({ nombre }: { nombre: IconoNombre }) {
   const map: Record<IconoNombre, React.ReactNode> = {
@@ -82,55 +93,74 @@ function Icono({ nombre }: { nombre: IconoNombre }) {
 
 const GRUPOS_NAVEGACION = [
   {
-    titulo: "Operación",
+    titulo: "OPERACIÓN",
     secciones: [
-      { href: "/", etiqueta: "Dashboard", icono: "dashboard" as IconoNombre },
+      { href: "/", etiqueta: "Centro de control", icono: "dashboard" as IconoNombre },
       { href: "/viajes", etiqueta: "Traslados", icono: "viajes" as IconoNombre },
-      { href: "/masivos", etiqueta: "Masivos", icono: "masivos" as IconoNombre },
-      { href: "/mapa", etiqueta: "Mapa operativo", icono: "mapa" as IconoNombre },
-      { href: "/alertas-sla", etiqueta: "Alertas SLA", icono: "sla" as IconoNombre },
+      { href: "/masivos", etiqueta: "Cargas masivas", icono: "masivos" as IconoNombre },
+      { href: "/mapa", etiqueta: "Mapa", icono: "mapa" as IconoNombre },
+      { href: "/alertas-sla?filtro=vencidas", etiqueta: "Alertas y SLA", icono: "sla" as IconoNombre, contador: "alertasCriticas" as ClaveContadorMenu },
     ],
   },
   {
-    titulo: "Personas",
+    titulo: "GESTIÓN",
     secciones: [
-      { href: "/conductores", etiqueta: "Conductores", icono: "conductor" as IconoNombre },
+      { href: "/conductores?filtro=en_revision", etiqueta: "Conductores", icono: "conductor" as IconoNombre, contador: "conductoresRevision" as ClaveContadorMenu },
+      { href: "/metricas-registro", etiqueta: "Métricas de conductores", icono: "reportes" as IconoNombre },
       { href: "/usuarios", etiqueta: "Usuarios", icono: "usuario" as IconoNombre },
       { href: "/vehiculos", etiqueta: "Vehículos", icono: "vehiculo" as IconoNombre },
-      { href: "/metricas-registro", etiqueta: "Métricas de registro", icono: "reportes" as IconoNombre },
       { href: "/empresas", etiqueta: "Empresas", icono: "empresa" as IconoNombre },
     ],
   },
   {
-    titulo: "Incidentes",
+    titulo: "CASOS Y RIESGOS",
     secciones: [
-      { href: "/incidencias", etiqueta: "Incidencias", icono: "incidencia" as IconoNombre },
-      { href: "/disputas", etiqueta: "Disputas", icono: "disputa" as IconoNombre },
-      { href: "/reclamos-seguro", etiqueta: "Reclamos seguro", icono: "reclamo" as IconoNombre },
+      { href: "/incidencias?filtro=abiertas", etiqueta: "Incidencias", icono: "incidencia" as IconoNombre, contador: "incidenciasAbiertas" as ClaveContadorMenu },
+      { href: "/disputas?filtro=pendientes", etiqueta: "Disputas", icono: "disputa" as IconoNombre, contador: "disputasPendientes" as ClaveContadorMenu },
+      { href: "/reclamos-seguro", etiqueta: "Seguros", icono: "reclamo" as IconoNombre },
+      { href: "/documentos?filtro=por_vencer", etiqueta: "Validación documental", icono: "documentos" as IconoNombre, contador: "documentosPorVencer" as ClaveContadorMenu },
     ],
   },
   {
-    titulo: "Finanzas y config",
+    titulo: "ADMINISTRACIÓN",
     secciones: [
-      { href: "/pagos", etiqueta: "Pagos", icono: "pagos" as IconoNombre },
+      { href: "/pagos?filtro=pendientes", etiqueta: "Pagos", icono: "pagos" as IconoNombre, contador: "pagosPendientes" as ClaveContadorMenu },
       { href: "/tarifas", etiqueta: "Tarifas", icono: "tarifas" as IconoNombre },
-      { href: "/documentos", etiqueta: "Documentos", icono: "documentos" as IconoNombre },
-      { href: "/reportes", etiqueta: "Reportes", icono: "reportes" as IconoNombre },
+      { href: "/reportes", etiqueta: "Reportes operativos", icono: "reportes" as IconoNombre },
       { href: "/configuracion", etiqueta: "Configuración", icono: "configuracion" as IconoNombre },
     ],
   },
 ] as const;
 
-const SECCIONES_PENDIENTES = [
-  { etiqueta: "Evidencia", icono: "evidencia" as IconoNombre },
-  { etiqueta: "Auditoría", icono: "auditoria" as IconoNombre },
-] as const;
+function rutaBase(href: string) {
+  return href.split("?")[0] ?? href;
+}
+
+function BadgeContador({ contador, colapsada }: { contador: ContadorMenu; colapsada: boolean }) {
+  if (contador.valor <= 0) return null;
+  const texto = contador.critico ? `Crítico: ${contador.valor}` : String(contador.valor);
+  return (
+    <span
+      className={[
+        "ml-auto inline-flex min-w-7 items-center justify-center rounded-full border px-2 py-0.5 font-mono-ruum text-admin-secundario font-semibold",
+        contador.critico ? "border-status-error/45 bg-status-error-soft text-status-error" : "border-status-info/35 bg-status-info-soft text-status-info",
+        colapsada ? "absolute right-0 top-0 translate-x-1 -translate-y-1" : ""
+      ].join(" ")}
+      aria-label={`${contador.etiqueta}: ${texto}`}
+      title={`${contador.etiqueta}: ${texto}`}
+    >
+      {contador.critico && <span className="mr-1" aria-hidden="true">!</span>}
+      {contador.valor}
+    </span>
+  );
+}
 
 export function BarraLateral() {
   const pathname = usePathname();
   const router = useRouter();
   const [sesionReal, setSesionReal] = useState(false);
   const [colapsada, setColapsada] = useState(false);
+  const [contadores, setContadores] = useState<ContadoresMenu>({});
 
   useEffect(() => {
   const isColapsada = window.localStorage.getItem("ruum-admin-sidebar") === "colapsada";
@@ -158,6 +188,62 @@ export function BarraLateral() {
       } catch { /* Sin sesión real */ }
     }
     revisar();
+  }, [pathname]);
+
+  useEffect(() => {
+    async function cargarContadores() {
+      if (!tieneSupabaseConfigurado()) {
+        setContadores({});
+        return;
+      }
+      try {
+        const cliente = crearClienteNavegador();
+        const [alertas, solicitudes, incidencias, disputas, pagos, conductores, usuarios] = await Promise.all([
+          listarAlertasSLA(cliente),
+          listarSolicitudesConductorAdmin(cliente),
+          listarIncidenciasAdmin(cliente),
+          listarDisputasAdmin(cliente),
+          listarPagosAdmin(cliente),
+          listarConductoresAdmin(cliente),
+          listarUsuariosAdmin(cliente)
+        ]);
+        const documentosPendientes = conductores.filter((conductor) => !conductor.documentos_vigentes).length
+          + usuarios.filter((usuario) => usuario.estado_verificacion === "pendiente" || usuario.estado_verificacion === "en_revision").length;
+
+        setContadores({
+          alertasCriticas: {
+            valor: alertas.filter((alerta) => alerta.vencido).length,
+            critico: true,
+            etiqueta: "Alertas críticas vencidas"
+          },
+          conductoresRevision: {
+            valor: solicitudes.filter((fila) => fila.solicitud.estado === "en_revision").length,
+            etiqueta: "Conductores por revisar"
+          },
+          incidenciasAbiertas: {
+            valor: incidencias.filter((incidencia) => !incidencia.resuelta).length,
+            critico: incidencias.some((incidencia) => !incidencia.resuelta),
+            etiqueta: "Incidencias abiertas"
+          },
+          disputasPendientes: {
+            valor: disputas.filter((disputa) => disputa.estado !== "resuelta" && disputa.estado !== "resuelta_senior").length,
+            etiqueta: "Disputas pendientes"
+          },
+          pagosPendientes: {
+            valor: pagos.pagosUsuarios.filter((pago) => pago.estado === "pendiente").length
+              + pagos.payoutsConductores.filter((payout) => payout.estado === "pendiente").length,
+            etiqueta: "Pagos pendientes"
+          },
+          documentosPorVencer: {
+            valor: documentosPendientes,
+            etiqueta: "Documentos por vencer o actualizar"
+          }
+        });
+      } catch {
+        setContadores({});
+      }
+    }
+    void cargarContadores();
   }, [pathname]);
 
   async function cerrarSesion() {
@@ -197,21 +283,24 @@ export function BarraLateral() {
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-2 pb-3 lg:px-3" aria-label="Secciones del panel">
         {GRUPOS_NAVEGACION.map((grupo) => (
-          <div key={grupo.titulo}>
-            <p className={`mb-1.5 px-2 font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary ${colapsada ? "hidden" : "hidden lg:block"}`}>
+          <section key={grupo.titulo} aria-label={grupo.titulo}>
+            <p className={`mb-1.5 px-2 font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary ${colapsada ? "sr-only" : "hidden lg:block"}`}>
               {grupo.titulo}
             </p>
             <div className="space-y-0.5">
               {grupo.secciones.map((s) => {
-                const activo = pathname === s.href || (s.href !== "/" && pathname.startsWith(s.href));
+                const base = rutaBase(s.href);
+                const contador = "contador" in s ? contadores[s.contador] : undefined;
+                const activo = pathname === base || (base !== "/" && pathname.startsWith(base));
                 return (
                   <Link
                     key={s.href}
                     href={s.href}
                     title={s.etiqueta}
+                    aria-label={s.etiqueta}
                     aria-current={activo ? "page" : undefined}
                     className={[
-                      "flex items-center gap-2.5 rounded-lg px-2 py-2 font-body text-sm font-medium transition-colors",
+                      "relative flex items-center gap-2.5 rounded-lg px-2 py-2 font-body text-sm font-medium transition-colors",
                       activo ? "bg-signal text-ink" : "text-text-secondary hover:bg-white/8 hover:text-mist",
                     ].join(" ")}
                   >
@@ -222,26 +311,13 @@ export function BarraLateral() {
                       <Icono nombre={s.icono} />
                     </span>
                     <span className={colapsada ? "hidden" : "hidden lg:inline"}>{s.etiqueta}</span>
+                    {contador && <BadgeContador contador={contador} colapsada={colapsada} />}
                   </Link>
                 );
               })}
             </div>
-          </div>
+          </section>
         ))}
-
-        <div className="border-t border-mist/10 pt-4">
-          {SECCIONES_PENDIENTES.map((s) => (
-            <div key={s.etiqueta} title={s.etiqueta} className="flex items-center gap-2.5 rounded-lg px-2 py-2 font-body text-sm text-text-disabled">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white/5">
-                <Icono nombre={s.icono} />
-              </span>
-              <span className={colapsada ? "hidden" : "hidden lg:inline"}>{s.etiqueta}</span>
-              <span className={`ml-auto font-mono-ruum text-admin-secundario uppercase tracking-wide ${colapsada ? "hidden" : "hidden lg:inline"}`}>
-                Próximamente
-              </span>
-            </div>
-          ))}
-        </div>
       </nav>
 
       {/* Footer sesión */}

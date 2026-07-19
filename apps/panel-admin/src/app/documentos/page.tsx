@@ -1,6 +1,5 @@
 "use client";
 
-"use client";
 import { useEffect, useState, useTransition } from "react";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
@@ -69,6 +68,7 @@ function AccionesConductor({ conductor, onActualizado }: { conductor: Conductor;
 }
 
 export default function PaginaDocumentosAdmin() {
+  const [filtroPorVencer, setFiltroPorVencer] = useState(false);
   const [usuarios, setUsuarios] = useState<Usuario[]>(USUARIOS_DEMO);
   const [conductores, setConductores] = useState<Conductor[]>(CONDUCTORES_DEMO);
   const [esDemo, setEsDemo] = useState(true);
@@ -107,11 +107,20 @@ export default function PaginaDocumentosAdmin() {
     }
   }
 
-  useEffect(() => {
+useEffect(() => {
   const timer = setTimeout(() => { void cargar(); }, 0);
   return () => clearTimeout(timer);
 }, []);
 
+  useEffect(() => {
+    setFiltroPorVencer(new URLSearchParams(window.location.search).get("filtro") === "por_vencer");
+  }, []);
+
+
+  const conductoresVisibles = filtroPorVencer ? conductores.filter((conductor) => !conductor.documentos_vigentes) : conductores;
+  const usuariosVisibles = filtroPorVencer
+    ? usuarios.filter((usuario) => usuario.estado_verificacion === "pendiente" || usuario.estado_verificacion === "en_revision")
+    : usuarios;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
@@ -130,10 +139,10 @@ export default function PaginaDocumentosAdmin() {
           <PassportCard>
             <h2 className="font-display text-xl font-semibold">Documentos de conductores</h2>
             <div className="mt-4 grid gap-3">
-              {conductores.length === 0 ? (
+              {conductoresVisibles.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-ink/15 px-4 py-6 font-body text-sm text-text-tertiary">No hay conductores para validar.</p>
               ) : (
-                conductores.map((conductor) => (
+                conductoresVisibles.map((conductor) => (
                   <div key={conductor.id} className="rounded-lg border border-ink/10 px-4 py-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>
@@ -153,10 +162,10 @@ export default function PaginaDocumentosAdmin() {
           <PassportCard>
             <h2 className="font-display text-xl font-semibold">Documentos de usuarios o empresas</h2>
             <div className="mt-4 grid gap-3">
-              {usuarios.length === 0 ? (
+              {usuariosVisibles.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-ink/15 px-4 py-6 font-body text-sm text-text-tertiary">No hay usuarios para validar.</p>
               ) : (
-                usuarios.map((usuario) => (
+                usuariosVisibles.map((usuario) => (
                   <div key={usuario.id} className="rounded-lg border border-ink/10 px-4 py-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>

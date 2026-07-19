@@ -61,6 +61,11 @@ export default function PaginaConductoresAdmin() {
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<FiltroBandeja>("todas");
 
+  useEffect(() => {
+    const filtroUrl = new URLSearchParams(window.location.search).get("filtro");
+    if (FILTROS.some(({ valor }) => valor === filtroUrl)) setFiltro(filtroUrl as FiltroBandeja);
+  }, []);
+
   const cargar = useCallback(async () => {
     if (!tieneSupabaseConfigurado()) {
       setSolicitudes([]);
