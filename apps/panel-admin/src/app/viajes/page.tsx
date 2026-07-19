@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";
-import { AdminPageHeader, AdminPanel } from "../admin-ui";
+import { AdminPageHeader } from "../admin-ui";
+import { AdminDataTable, type AdminDataTableColumn } from "../AdminDataTable";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
@@ -54,6 +55,7 @@ export default function PaginaViajesAdmin() {
   const [ultimaRespuestaExitosa, setUltimaRespuestaExitosa] = useState<Date | null>(null);
   const [seccionesDesactualizadas, setSeccionesDesactualizadas] = useState<string[]>([]);
   const [actualizandoManual, setActualizandoManual] = useState(false);
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
 
   const filtroActual = PESTANAS.find((p) => p.id === pestana)!.filtro;
 
@@ -172,6 +174,64 @@ export default function PaginaViajesAdmin() {
       })
     : trasladosPorKpi;
 
+  const columnasTraslados = useMemo<AdminDataTableColumn<PasaporteRow>[]>(() => [
+    {
+      id: "folio",
+      header: "Folio",
+      sortValue: (v) => v.traslado_id ?? "",
+      cell: (v) => v.traslado_id ? (
+        <Link href={`/viajes/${v.traslado_id}`} className="font-mono-ruum text-admin-tabla text-status-info hover:underline">
+          {v.traslado_id.slice(0, 8).toUpperCase()}
+        </Link>
+      ) : <span className="text-text-tertiary">Sin folio</span>
+    },
+    {
+      id: "vehiculo",
+      header: "Vehículo",
+      sortValue: (v) => `${v.vehiculo_marca ?? ""} ${v.vehiculo_modelo ?? ""}`,
+      cell: (v) => (
+        <>
+          {v.vehiculo_marca} {v.vehiculo_modelo}
+          {v.vehiculo_tipo && <span className="text-text-tertiary"> · {ETIQUETA_TIPO_VEHICULO[v.vehiculo_tipo]}</span>}
+        </>
+      )
+    },
+    {
+      id: "origen",
+      header: "Origen",
+      sortValue: (v) => v.traslado_id ? trazabilidadPorTraslado.get(v.traslado_id)?.fila.referencia_externa ?? "individual" : "individual",
+      cell: (v) => {
+        const trazabilidad = v.traslado_id ? trazabilidadPorTraslado.get(v.traslado_id) : null;
+        return trazabilidad ? (
+          <div className="grid gap-1">
+            <span className="w-fit rounded-full border border-route-dark/25 bg-route-soft px-2.5 py-1 font-body text-xs font-semibold text-route-dark">Masivo</span>
+            <span className="font-mono-ruum text-admin-secundario text-text-tertiary">
+              {trazabilidad.fila.referencia_externa ?? trazabilidad.carga.nombre_archivo}
+            </span>
+          </div>
+        ) : <span className="text-text-tertiary">Individual</span>;
+      }
+    },
+    {
+      id: "conductor",
+      header: "Conductor",
+      sortValue: (v) => v.conductor_nombre ?? "",
+      cell: (v) => v.conductor_nombre ?? <span className="text-text-tertiary">Sin asignar</span>
+    },
+    {
+      id: "monto",
+      header: "Monto",
+      sortValue: (v) => v.precio_cotizado ?? 0,
+      cell: (v) => <span className="font-mono-ruum">${v.precio_cotizado?.toLocaleString("es-MX") ?? "—"}</span>
+    },
+    {
+      id: "estatus",
+      header: "Estatus",
+      sortValue: (v) => v.estado ?? "",
+      cell: (v) => v.estado ? <EstadoBadge estado={v.estado} /> : <span className="text-text-tertiary">Sin estado</span>
+    }
+  ], [trazabilidadPorTraslado]);
+
   return (
     <main className="admin-page-shell">
       <AdminPageHeader
@@ -265,76 +325,25 @@ export default function PaginaViajesAdmin() {
         )}
       </div>
 
-      <AdminPanel className="admin-table-card mt-3">
-        <table>
-          <caption className="sr-only">Lista de traslados operativos</caption>
-          <thead>
-            <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-text-tertiary">
-              <th className="px-4 py-3">Folio</th>
-              <th className="px-4 py-3">Vehículo</th>
-              <th className="px-4 py-3">Origen</th>
-              <th className="px-4 py-3">Conductor</th>
-              <th className="px-4 py-3">Monto</th>
-              <th className="px-4 py-3">Estatus</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cargando ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-text-tertiary">
-                  Cargando…
-                </td>
-              </tr>
-            ) : trasladosFiltrados.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-text-tertiary">
-                  {busqueda.trim() ? "No encontramos traslados con esa búsqueda." : "No hay traslados en esta pestaña."}
-                </td>
-              </tr>
-            ) : (
-              trasladosFiltrados.map((v, indice) => {
-                const trazabilidad = v.traslado_id ? trazabilidadPorTraslado.get(v.traslado_id) : null;
-                return (
-                <tr key={v.traslado_id ?? `traslado-sin-folio-${indice}`}>
-                  <td className="px-4 py-3" data-label="Folio">
-                    {v.traslado_id ? (
-                      <Link href={`/viajes/${v.traslado_id}`} className="font-mono-ruum text-admin-tabla text-status-info hover:underline">
-                        {v.traslado_id.slice(0, 8).toUpperCase()}
-                      </Link>
-                    ) : (
-                      <span className="text-text-tertiary">Sin folio</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3" data-label="Vehículo">
-                    {v.vehiculo_marca} {v.vehiculo_modelo}
-                    {v.vehiculo_tipo && <span className="text-text-tertiary"> · {ETIQUETA_TIPO_VEHICULO[v.vehiculo_tipo]}</span>}
-                  </td>
-                  <td className="px-4 py-3" data-label="Origen">
-                    {trazabilidad ? (
-                      <div className="grid gap-1">
-                        <span className="w-fit rounded-full border border-route-dark/25 bg-route-soft px-2.5 py-1 font-body text-xs font-semibold text-route-dark">
-                          Masivo
-                        </span>
-                        <span className="font-mono-ruum text-admin-secundario text-text-tertiary">
-                          {trazabilidad.fila.referencia_externa ?? trazabilidad.carga.nombre_archivo}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-text-tertiary">Individual</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3" data-label="Conductor">{v.conductor_nombre ?? <span className="text-text-tertiary">Sin asignar</span>}</td>
-                  <td className="px-4 py-3 font-mono-ruum" data-label="Monto">${v.precio_cotizado?.toLocaleString("es-MX") ?? "—"}</td>
-                  <td className="px-4 py-3" data-label="Estatus">
-                    {v.estado ? <EstadoBadge estado={v.estado} /> : <span className="text-text-tertiary">Sin estado</span>}
-                  </td>
-                </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </AdminPanel>
+      <AdminDataTable
+        caption="Lista de traslados operativos"
+        rows={trasladosFiltrados}
+        columns={columnasTraslados}
+        getRowId={(v) => v.traslado_id ?? `sin-folio-${v.creado_en ?? ""}-${v.vehiculo_modelo ?? ""}`}
+        loading={cargando}
+        emptyMessage={busqueda.trim() ? "No encontramos traslados con esa búsqueda." : "No hay traslados en esta vista."}
+        partialError={seccionesDesactualizadas.length > 0 ? `Error parcial: ${seccionesDesactualizadas.join(", ")}.` : null}
+        selectedIds={seleccionados}
+        onSelectionChange={setSeleccionados}
+        rowActions={[
+          { label: "Abrir", href: (v) => v.traslado_id ? `/viajes/${v.traslado_id}` : "/viajes" },
+          { label: "Asignar", href: (v) => v.traslado_id ? `/viajes/${v.traslado_id}#asignar-conductor` : "/viajes?filtro=sin_asignacion" }
+        ]}
+        bulkActions={[
+          { label: "Abrir mapa", onClick: () => { window.location.href = "/mapa"; } },
+          { label: "Exportar selección", onClick: () => { window.alert("Exportación operativa pendiente de backend."); } }
+        ]}
+      />
     </main>
   );
 }

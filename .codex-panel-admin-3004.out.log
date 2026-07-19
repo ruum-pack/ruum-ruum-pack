@@ -4,3 +4,42 @@
    - Environments: .env.local
 
  ✓ Starting...
+ ✓ Ready in 10.1s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1912ms (171 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 12.9s (915 modules)
+ GET /login 200 in 15924ms
+ ✓ Compiled in 1818ms (378 modules)
+ ✓ Compiled in 2.8s (392 modules)
+ ✓ Compiled in 426ms (392 modules)
+ ✓ Compiled in 679ms (392 modules)
+ ✓ Compiled in 898ms (392 modules)
+ ✓ Compiled in 1039ms (392 modules)
+ ✓ Compiled in 817ms (392 modules)
+ ✓ Compiled in 1219ms (392 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 2.2s (537 modules)
+ GET /login 500 in 14580ms
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 13.5s (1261 modules)
+ ✓ Compiled in 1754ms (543 modules)
+ ✓ Compiled in 1133ms (543 modules)
+ ✓ Compiled in 1186ms (543 modules)
+ ✓ Compiled in 881ms (543 modules)
+ ✓ Compiled in 847ms (543 modules)
+ ✓ Compiled in 745ms (543 modules)
+ ✓ Compiled in 939ms (543 modules)
+ ✓ Compiled in 824ms (543 modules)
+ ✓ Compiled in 1332ms (543 modules)
+ ✓ Compiled in 1037ms (543 modules)
+ ✓ Compiled in 1399ms (543 modules)
+ ✓ Compiled in 1204ms (543 modules)
+ ✓ Compiled in 547ms (543 modules)
+ ✓ Compiled in 1887ms (543 modules)
+ ✓ Compiled in 3.1s (543 modules)
+ ✓ Compiled in 3.9s (543 modules)
+ ✓ Compiled in 2.4s (543 modules)
+ ✓ Compiled in 2.2s (543 modules)
+ ✓ Compiled in 2.8s (543 modules)
+ ✓ Compiled in 8.2s (652 modules)

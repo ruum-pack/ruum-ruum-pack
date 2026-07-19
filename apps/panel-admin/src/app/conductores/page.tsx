@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
+import { AdminDataTable, type AdminDataTableColumn } from "../AdminDataTable";
 import {
   listarSolicitudesConductorAdmin,
   type SolicitudConductorBandejaAdmin
@@ -60,6 +61,7 @@ export default function PaginaConductoresAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<FiltroBandeja>("todas");
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const filtroUrl = new URLSearchParams(window.location.search).get("filtro");
@@ -105,6 +107,66 @@ export default function PaginaConductoresAdmin() {
     ].some((valor) => valor?.toLowerCase().includes(termino)));
   }, [solicitudes, filtro, busqueda]);
 
+  const columnas = useMemo<AdminDataTableColumn<SolicitudConductorBandejaAdmin>[]>(() => [
+    {
+      id: "solicitante",
+      header: "Solicitante",
+      sortValue: (fila) => fila.nombre,
+      cell: (fila) => (
+        <>
+          <p className="font-medium">{fila.nombre}</p>
+          <p className="mt-0.5 text-admin-secundario text-text-tertiary">{fila.curp ?? fila.telefono ?? fila.solicitud.id}</p>
+        </>
+      )
+    },
+    {
+      id: "estado",
+      header: "Estado",
+      sortValue: (fila) => fila.solicitud.estado,
+      cell: (fila) => (
+        <>
+          <span className="rounded-full border border-ink/15 bg-ink/[0.04] px-2.5 py-1 text-admin-secundario font-medium">
+            {ETIQUETA_ESTADO[fila.solicitud.estado]}
+          </span>
+          {esNueva(fila) && <span className="ml-2 text-admin-secundario font-semibold text-status-info">Nueva</span>}
+        </>
+      )
+    },
+    {
+      id: "documentos",
+      header: "Documentos",
+      sortValue: (fila) => fila.documentosRechazados * -100 + fila.documentosVigentes,
+      cell: (fila) => (
+        <span className={fila.documentosRechazados ? "font-semibold text-status-error" : "text-text-secondary"}>
+          {fila.documentosVigentes} vigentes
+          {fila.documentosRechazados ? ` · ${fila.documentosRechazados} rechazado(s)` : ""}
+        </span>
+      )
+    },
+    {
+      id: "consentimientos",
+      header: "Consentimientos",
+      sortValue: (fila) => fila.consentimientosRegistrados,
+      cell: (fila) => (
+        <span className={fila.consentimientosRegistrados === 4 ? "text-status-success" : "text-status-warning"}>
+          {fila.consentimientosRegistrados}/4
+        </span>
+      )
+    },
+    {
+      id: "enviada",
+      header: "Enviada",
+      sortValue: (fila) => fila.solicitud.enviado_en ?? "",
+      cell: (fila) => <span className="text-text-secondary">{fecha(fila.solicitud.enviado_en)}</span>
+    },
+    {
+      id: "decision",
+      header: "Última decisión",
+      sortValue: (fila) => fila.ultimaDecision?.motivo ?? "",
+      cell: (fila) => <span className="text-admin-secundario text-text-secondary">{fila.ultimaDecision?.motivo ?? "Sin decisiones administrativas"}</span>
+    }
+  ], []);
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
       <div>
@@ -146,62 +208,22 @@ export default function PaginaConductoresAdmin() {
         />
       </div>
 
-      <div className="admin-responsive-table mt-3 rounded-card border border-ink/10 bg-surface-primary">
-        <table className="w-full min-w-[920px] font-body text-sm">
-          <caption className="sr-only">Bandeja de solicitudes de conductor</caption>
-          <thead>
-            <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-text-tertiary">
-              <th className="px-4 py-3">Solicitante</th>
-              <th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3">Documentos</th>
-              <th className="px-4 py-3">Consentimientos</th>
-              <th className="px-4 py-3">Enviada</th>
-              <th className="px-4 py-3">Última decisión</th>
-              <th className="px-4 py-3"><span className="sr-only">Acción</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            {cargando ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-text-tertiary">Cargando…</td></tr>
-            ) : filas.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-text-tertiary">No hay solicitudes para este filtro.</td></tr>
-            ) : filas.map((fila) => (
-              <tr key={fila.solicitud.id} className="border-b border-ink/5 last:border-0">
-                <td className="px-4 py-3" data-label="Solicitante">
-                  <p className="font-medium">{fila.nombre}</p>
-                  <p className="mt-0.5 text-admin-secundario text-text-tertiary">{fila.curp ?? fila.telefono ?? fila.solicitud.id}</p>
-                </td>
-                <td className="px-4 py-3" data-label="Estado">
-                  <span className="rounded-full border border-ink/15 bg-ink/[0.04] px-2.5 py-1 text-admin-secundario font-medium">
-                    {ETIQUETA_ESTADO[fila.solicitud.estado]}
-                  </span>
-                  {esNueva(fila) && <span className="ml-2 text-admin-secundario font-semibold text-status-info">Nueva</span>}
-                </td>
-                <td className="px-4 py-3" data-label="Documentos">
-                  <span className={fila.documentosRechazados ? "font-semibold text-status-error" : "text-text-secondary"}>
-                    {fila.documentosVigentes} vigentes
-                    {fila.documentosRechazados ? ` · ${fila.documentosRechazados} rechazado(s)` : ""}
-                  </span>
-                </td>
-                <td className="px-4 py-3" data-label="Consentimientos">
-                  <span className={fila.consentimientosRegistrados === 4 ? "text-status-success" : "text-status-warning"}>
-                    {fila.consentimientosRegistrados}/4
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-text-secondary" data-label="Enviada">{fecha(fila.solicitud.enviado_en)}</td>
-                <td className="max-w-[220px] px-4 py-3 text-admin-secundario text-text-secondary" data-label="Última decisión">
-                  {fila.ultimaDecision?.motivo ?? "Sin decisiones administrativas"}
-                </td>
-                <td className="px-4 py-3 text-right" data-label="Acción">
-                  <Link href={`/conductores/${fila.solicitud.id}`} className="font-medium text-status-info hover:underline">
-                    Revisar
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <AdminDataTable
+        caption="Bandeja de solicitudes de conductor"
+        rows={filas}
+        columns={columnas}
+        getRowId={(fila) => fila.solicitud.id}
+        loading={cargando}
+        emptyMessage="No hay solicitudes para este filtro."
+        partialError={error}
+        selectedIds={seleccionados}
+        onSelectionChange={setSeleccionados}
+        rowActions={[{ label: "Revisar", href: (fila) => `/conductores/${fila.solicitud.id}` }]}
+        bulkActions={[
+          { label: "Revisar selección", onClick: () => { window.alert("Revisión masiva pendiente de reglas backend."); } },
+          { label: "Exportar selección", onClick: () => { window.alert("Exportación operativa pendiente de backend."); } }
+        ]}
+      />
     </main>
   );
 }
