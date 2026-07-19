@@ -21,9 +21,11 @@ export type AdminDataTableRowAction<T> = {
 export type AdminDataTableBulkAction<T> = {
   label: string;
   onClick: (rows: T[]) => void;
+  destructive?: boolean;
+  requiresConfirmation?: boolean;
 };
 
-type SortState = { columnId: string; direction: "asc" | "desc" } | null;
+export type AdminDataTableSortState = { columnId: string; direction: "asc" | "desc" } | null;
 
 export function AdminDataTable<T>({
   caption,
@@ -37,6 +39,10 @@ export function AdminDataTable<T>({
   bulkActions = [],
   selectedIds,
   onSelectionChange,
+  sortState,
+  onSortChange,
+  visibleColumnIds,
+  onVisibleColumnIdsChange,
   pageSizeOptions = [10, 25, 50]
 }: {
   caption: string;
@@ -50,14 +56,30 @@ export function AdminDataTable<T>({
   bulkActions?: AdminDataTableBulkAction<T>[];
   selectedIds: Set<string>;
   onSelectionChange: (ids: Set<string>) => void;
+  sortState?: AdminDataTableSortState;
+  onSortChange?: (sort: AdminDataTableSortState) => void;
+  visibleColumnIds?: Set<string>;
+  onVisibleColumnIdsChange?: (ids: Set<string>) => void;
   pageSizeOptions?: number[];
 }) {
-  const [sort, setSort] = useState<SortState>(null);
+  const [internalSort, setInternalSort] = useState<AdminDataTableSortState>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(pageSizeOptions[0] ?? 10);
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+  const [internalVisibleColumns, setInternalVisibleColumns] = useState<Set<string>>(
     () => new Set(columns.filter((column) => column.defaultVisible !== false).map((column) => column.id))
   );
+  const sort = sortState ?? internalSort;
+  const visibleColumns = visibleColumnIds ?? internalVisibleColumns;
+
+  function actualizarSort(siguiente: AdminDataTableSortState) {
+    if (onSortChange) onSortChange(siguiente);
+    else setInternalSort(siguiente);
+  }
+
+  function actualizarColumnasVisibles(siguiente: Set<string>) {
+    if (onVisibleColumnIdsChange) onVisibleColumnIdsChange(siguiente);
+    else setInternalVisibleColumns(siguiente);
+  }
 
   useEffect(() => {
     setPage(1);
@@ -85,11 +107,9 @@ export function AdminDataTable<T>({
 
   function toggleSort(column: AdminDataTableColumn<T>) {
     if (!column.sortValue) return;
-    setSort((current) => {
-      if (current?.columnId !== column.id) return { columnId: column.id, direction: "asc" };
-      if (current.direction === "asc") return { columnId: column.id, direction: "desc" };
-      return null;
-    });
+    if (sort?.columnId !== column.id) actualizarSort({ columnId: column.id, direction: "asc" });
+    else if (sort.direction === "asc") actualizarSort({ columnId: column.id, direction: "desc" });
+    else actualizarSort(null);
   }
 
   function toggleRow(id: string) {
@@ -110,7 +130,7 @@ export function AdminDataTable<T>({
     const siguiente = new Set(visibleColumns);
     if (siguiente.has(columnId) && siguiente.size > 1) siguiente.delete(columnId);
     else siguiente.add(columnId);
-    setVisibleColumns(siguiente);
+    actualizarColumnasVisibles(siguiente);
   }
 
   function moverFoco(evento: React.KeyboardEvent<HTMLTableRowElement>) {
@@ -142,7 +162,13 @@ export function AdminDataTable<T>({
               type="button"
               disabled={selectedRows.length === 0}
               onClick={() => action.onClick(selectedRows)}
-              className="rounded-lg border border-ink/20 px-3 py-2 font-body text-admin-boton font-semibold text-text-secondary disabled:opacity-50"
+              className={[
+                "rounded-lg border px-3 py-2 font-body text-admin-boton font-semibold disabled:opacity-50",
+                action.destructive || action.requiresConfirmation
+                  ? "border-status-warning/35 text-status-warning hover:bg-status-warning-soft"
+                  : "border-ink/20 text-text-secondary hover:border-signal/40"
+              ].join(" ")}
+              title={`${action.label}: afectará ${selectedRows.length.toLocaleString("es-MX")} registro${selectedRows.length === 1 ? "" : "s"}.`}
             >
               {action.label}
             </button>
