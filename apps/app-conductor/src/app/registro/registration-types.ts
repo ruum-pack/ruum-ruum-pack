@@ -6,18 +6,17 @@ export const PASOS_REGISTRO = [
   },
   {
     titulo: "Licencia y experiencia",
-    objetivo: "Registra la licencia con la que conducirás y tus autorizaciones.",
+    objetivo: "Registra tu licencia vigente",
     tiempo: "3 min"
   },
   {
     titulo: "Documentos",
-    objetivo: "Carga tus archivos solo cuando tu cuenta ya esté verificada.",
+    objetivo: "Carga tus archivos cuando tu cuenta esté verificada.",
     tiempo: "3 min"
   },
   {
     titulo: "Revisión y envío",
-    objetivo: "Revisa todo tu expediente antes de enviarlo a operación.",
-    tiempo: "2 min"
+    objetivo: "Revisa tus datos antes de enviarlo",  tiempo: "2 min"
   }
 ];
 

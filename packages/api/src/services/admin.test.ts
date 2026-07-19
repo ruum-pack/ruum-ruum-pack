@@ -4,6 +4,7 @@ import {
   ajustarPrecioFinalAdmin,
   crearEmpresaCorporativaAdmin,
   crearTrasladosMasivosAdmin,
+  listarExcepcionesCriticasAdmin,
   listarViajesAdmin,
   obtenerTrazabilidadMasivaTraslado,
   obtenerMetricasRegistroConductor
@@ -235,5 +236,38 @@ describe("servicios admin", () => {
       p_empresa: expect.objectContaining({ nombre: "Flotilla Norte", rfc: "ABC010101AB1" }),
       p_titular: expect.objectContaining({ nombre: "Ana Operaciones", correo_facturacion: "ana@empresa.test" })
     });
+  });
+
+  it("lista excepciones críticas con acciones obligatorias", async () => {
+    const cliente = crearClienteFake({
+      tablas: {
+        registro_auditoria: {
+          data: [{
+            id: "evento-1",
+            traslado_id: "traslado-1",
+            evento: "activacion_soporte_emergencia",
+            actor: "conductor",
+            actor_id: "conductor-1",
+            datos: { traslado_id: "traslado-1" },
+            ip: null,
+            dispositivo: null,
+            timestamp: "2026-07-18T10:00:00.000Z"
+          }]
+        },
+        usuarios: { data: [] },
+        conductores: { data: [] },
+        traslados: { data: [] },
+        incidencias: { data: [] }
+      }
+    });
+
+    await expect(listarExcepcionesCriticasAdmin(cliente as never)).resolves.toEqual([
+      expect.objectContaining({
+        categoria: "emergencia",
+        severidad: "critica",
+        accionPrincipal: expect.objectContaining({ etiqueta: "Abrir traslado" }),
+        accionEscalamiento: expect.objectContaining({ etiqueta: "Escalar a supervisor" })
+      })
+    ]);
   });
 });

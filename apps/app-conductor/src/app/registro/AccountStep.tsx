@@ -42,9 +42,6 @@ export function AccountStep({
   return (
     <fieldset className="grid gap-4">
       <legend className="font-display text-xl font-bold text-text-primary">Cuenta</legend>
-      <p className="font-body text-sm leading-6 text-text-secondary">
-        Usaremos este acceso para guardar tu avance y permitirte continuar después. Los documentos se pedirán cuando la cuenta esté verificada.
-      </p>
       <Field etiqueta="Teléfono" ayuda="10 dígitos, sin lada internacional." type="tel" inputMode="numeric" value={formatoTelefonoNacional(telefono)} onChange={(e) => { setTelefono(soloDigitos(e.target.value)); limpiarErrorCampo("telefono"); }} onBlur={() => validarTelefono("telefono", telefono, setTelefono)} error={erroresCampos.telefono || undefined} required autoComplete="tel-national" />
       <Field etiqueta="Correo electrónico" type="email" value={email} onChange={(e) => { setEmail(e.target.value); limpiarErrorCampo("email"); }} onBlur={() => validarCampo("email", email)} error={erroresCampos.email || undefined} required autoComplete="email" readOnly={sesionAutenticada} />
       {!sesionAutenticada && <div className="grid gap-4 sm:grid-cols-2">

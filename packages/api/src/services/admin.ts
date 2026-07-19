@@ -24,6 +24,7 @@ type DatosBancariosConductorRow = Database["public"]["Tables"]["datos_bancarios_
 type NotaRow = Database["public"]["Tables"]["notas_internas_traslado"]["Row"];
 type EvidenciaRow = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
 type TrasladoRow = Database["public"]["Tables"]["traslados"]["Row"];
+type AuditoriaRow = Database["public"]["Tables"]["registro_auditoria"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 type EstadoConductor = Database["public"]["Enums"]["estado_conductor"];
 type TipoEvidencia = Database["public"]["Enums"]["tipo_evidencia"];
@@ -32,6 +33,7 @@ type EstadoDisputa = Database["public"]["Enums"]["estado_disputa"];
 type ResolucionDisputa = Database["public"]["Enums"]["resolucion_disputa"];
 type EstadoReclamoSeguro = Database["public"]["Enums"]["estado_reclamo_seguro"];
 type EstadoVerificacion = Database["public"]["Enums"]["estado_verificacion"];
+type TipoIncidencia = Database["public"]["Enums"]["tipo_incidencia"];
 
 export interface DatosPagosAdmin {
   pagosUsuarios: PagoRow[];
@@ -274,6 +276,27 @@ export interface MetricasDashboard {
   incidenciasAbiertas: number;
 }
 
+export type ClaveIndicadorDashboard =
+  | "traslados_activos"
+  | "inician_60_min"
+  | "sin_asignacion"
+  | "riesgo_sla"
+  | "con_incidencia"
+  | "finalizados_hoy";
+
+export interface IndicadorAccionableDashboard {
+  clave: ClaveIndicadorDashboard;
+  titulo: string;
+  valor: number;
+  ventanaTemporal: string;
+  variacion: number;
+  umbral: string;
+  subgrupoCritico: string;
+  href: string;
+  severidad: "normal" | "atencion" | "critico";
+  actualizadoEn: string;
+}
+
 export interface MetricasRegistroConductor {
   periodo: { desde: string; hasta: string };
   abandonoPorPaso: Array<{ paso: number; total: number }>;
@@ -369,6 +392,160 @@ export async function obtenerMetricasDashboard(cliente: Cliente): Promise<Metric
     conductoresActivos: conductoresActivos.count ?? 0,
     incidenciasAbiertas: incidencias.count ?? 0
   };
+}
+
+function inicioDeHoy() {
+  const fecha = new Date();
+  fecha.setHours(0, 0, 0, 0);
+  return fecha;
+}
+
+function porcentajeVariacion(actual: number, previo: number) {
+  if (previo === 0) return actual === 0 ? 0 : 100;
+  return Math.round(((actual - previo) / previo) * 100);
+}
+
+function severidadIndicador(valor: number, umbralCritico: number, umbralAtencion = Math.ceil(umbralCritico * 0.7)): IndicadorAccionableDashboard["severidad"] {
+  if (valor >= umbralCritico) return "critico";
+  if (valor >= umbralAtencion) return "atencion";
+  return "normal";
+}
+
+export async function obtenerIndicadoresAccionablesDashboard(cliente: Cliente): Promise<IndicadorAccionableDashboard[]> {
+  const ahora = new Date();
+  const hoy = inicioDeHoy();
+  const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
+  const hace48h = new Date(ahora.getTime() - 48 * 60 * 60 * 1000);
+  const en60Min = new Date(ahora.getTime() + 60 * 60 * 1000);
+  const ayerInicio = new Date(hoy.getTime() - 24 * 60 * 60 * 1000);
+
+  const [
+    activos,
+    activosPrevios,
+    inician60,
+    sinAsignacion,
+    sinAsignacionPrevio,
+    cerradosHoy,
+    cerradosAyer,
+    conIncidencia,
+    incidenciasPrevias,
+    excepciones
+  ] = await Promise.all([
+    cliente.from("traslados").select("id", { count: "exact", head: true }).not("estado", "in", `(${ESTADOS_TERMINALES.join(",")})`),
+    cliente.from("traslados").select("id", { count: "exact", head: true }).not("estado", "in", `(${ESTADOS_TERMINALES.join(",")})`).lt("actualizado_en", hace24h.toISOString()),
+    cliente
+      .from("traslados")
+      .select("id", { count: "exact", head: true })
+      .eq("modalidad_programacion", "programado")
+      .gte("fecha_hora_programada", ahora.toISOString())
+      .lte("fecha_hora_programada", en60Min.toISOString())
+      .not("estado", "in", `(${ESTADOS_TERMINALES.join(",")})`),
+    cliente.from("traslados").select("id", { count: "exact", head: true }).eq("estado", "pendiente_de_conductor"),
+    cliente
+      .from("traslados")
+      .select("id", { count: "exact", head: true })
+      .eq("estado", "pendiente_de_conductor")
+      .lt("actualizado_en", hace24h.toISOString()),
+    cliente.from("traslados").select("id", { count: "exact", head: true }).eq("estado", "servicio_cerrado").gte("actualizado_en", hoy.toISOString()),
+    cliente
+      .from("traslados")
+      .select("id", { count: "exact", head: true })
+      .eq("estado", "servicio_cerrado")
+      .gte("actualizado_en", ayerInicio.toISOString())
+      .lt("actualizado_en", hoy.toISOString()),
+    cliente.from("traslados").select("id", { count: "exact", head: true }).eq("tiene_incidencia_abierta", true).not("estado", "in", `(${ESTADOS_TERMINALES.join(",")})`),
+    cliente
+      .from("incidencias")
+      .select("id", { count: "exact", head: true })
+      .eq("resuelta", false)
+      .gte("creada_en", hace48h.toISOString())
+      .lt("creada_en", hace24h.toISOString()),
+    listarExcepcionesCriticasAdmin(cliente)
+  ]);
+
+  for (const resultado of [activos, activosPrevios, inician60, sinAsignacion, sinAsignacionPrevio, cerradosHoy, cerradosAyer, conIncidencia, incidenciasPrevias]) {
+    if (resultado.error) throw resultado.error;
+  }
+
+  const riesgoSla = excepciones.filter((item) => item.categoria === "sla_en_riesgo" || item.categoria === "sla_vencido").length;
+  const riesgoSlaCritico = excepciones.filter((item) => item.categoria === "sla_vencido").length;
+  const documentacionBloqueante = excepciones.filter((item) => item.categoria === "documentacion_bloqueante").length;
+  const actualizadoEn = ahora.toISOString();
+
+  return [
+    {
+      clave: "traslados_activos",
+      titulo: "Traslados activos",
+      valor: activos.count ?? 0,
+      ventanaTemporal: "Ahora · operación abierta",
+      variacion: porcentajeVariacion(activos.count ?? 0, activosPrevios.count ?? 0),
+      umbral: "Atención > 12 · crítico > 18",
+      subgrupoCritico: `${conIncidencia.count ?? 0} con incidencia`,
+      href: "/viajes?filtro=activos",
+      severidad: severidadIndicador(activos.count ?? 0, 18, 12),
+      actualizadoEn
+    },
+    {
+      clave: "inician_60_min",
+      titulo: "Inician en 60 minutos",
+      valor: inician60.count ?? 0,
+      ventanaTemporal: "Próximos 60 min",
+      variacion: 0,
+      umbral: "Atención > 3 · crítico > 6",
+      subgrupoCritico: `${sinAsignacion.count ?? 0} sin conductor`,
+      href: "/viajes?filtro=inician_60",
+      severidad: severidadIndicador(inician60.count ?? 0, 6, 3),
+      actualizadoEn
+    },
+    {
+      clave: "sin_asignacion",
+      titulo: "Sin asignación",
+      valor: sinAsignacion.count ?? 0,
+      ventanaTemporal: "Ahora · pendientes de conductor",
+      variacion: porcentajeVariacion(sinAsignacion.count ?? 0, sinAsignacionPrevio.count ?? 0),
+      umbral: "Atención > 1 · crítico > 3",
+      subgrupoCritico: `${Math.max(0, sinAsignacionPrevio.count ?? 0)} con más de 24 h`,
+      href: "/viajes?filtro=sin_asignacion",
+      severidad: severidadIndicador(sinAsignacion.count ?? 0, 3, 1),
+      actualizadoEn
+    },
+    {
+      clave: "riesgo_sla",
+      titulo: "En riesgo de SLA",
+      valor: riesgoSla,
+      ventanaTemporal: "Ahora · excepciones SLA",
+      variacion: 0,
+      umbral: "Atención > 0 · crítico si vencido",
+      subgrupoCritico: `${riesgoSlaCritico} vencidos`,
+      href: "/alertas-sla?categoria=sla_en_riesgo",
+      severidad: riesgoSlaCritico > 0 ? "critico" : riesgoSla > 0 ? "atencion" : "normal",
+      actualizadoEn
+    },
+    {
+      clave: "con_incidencia",
+      titulo: "Con incidencia",
+      valor: conIncidencia.count ?? 0,
+      ventanaTemporal: "Ahora · traslados activos",
+      variacion: porcentajeVariacion(conIncidencia.count ?? 0, incidenciasPrevias.count ?? 0),
+      umbral: "Atención > 0 · crítico > 2",
+      subgrupoCritico: `${documentacionBloqueante} documentación bloqueante`,
+      href: "/viajes?filtro=incidencia",
+      severidad: severidadIndicador(conIncidencia.count ?? 0, 2, 1),
+      actualizadoEn
+    },
+    {
+      clave: "finalizados_hoy",
+      titulo: "Finalizados hoy",
+      valor: cerradosHoy.count ?? 0,
+      ventanaTemporal: "Hoy · 00:00 a ahora",
+      variacion: porcentajeVariacion(cerradosHoy.count ?? 0, cerradosAyer.count ?? 0),
+      umbral: "Meta >= cierre del día anterior",
+      subgrupoCritico: `${cerradosAyer.count ?? 0} ayer`,
+      href: "/viajes?filtro=finalizados_hoy",
+      severidad: "normal",
+      actualizadoEn
+    }
+  ];
 }
 
 /** PRD §17.4 — lista de viajes con filtro por estatus ("todos" = sin filtro). */
@@ -1200,6 +1377,38 @@ export interface TrasladoMapa {
   actualizado_en: string;
 }
 
+export type CategoriaExcepcionCritica =
+  | "emergencia"
+  | "sla_vencido"
+  | "sla_en_riesgo"
+  | "traslado_sin_conductor"
+  | "conductor_sin_senal"
+  | "desviacion_ruta"
+  | "incidencia_sin_responsable"
+  | "documentacion_bloqueante";
+
+export type SeveridadExcepcionCritica = "critica" | "alta" | "media";
+
+export interface ExcepcionCriticaAdmin {
+  id: string;
+  categoria: CategoriaExcepcionCritica;
+  severidad: SeveridadExcepcionCritica;
+  folioOEntidad: string;
+  descripcion: string;
+  creadoEn: string;
+  actualizadoEn: string;
+  responsable: string | null;
+  slaRestanteHoras: number | null;
+  accionPrincipal: {
+    etiqueta: string;
+    href: string;
+  };
+  accionEscalamiento: {
+    etiqueta: string;
+    href: string;
+  };
+}
+
 type TrasladoActivoMapaRow = {
   id: string;
   estado: EstadoTraslado;
@@ -1272,6 +1481,151 @@ export async function listarTrasladosActivosMapa(cliente: Cliente): Promise<Tras
     destino_ciudad: t.destino_ciudad,
     actualizado_en: t.actualizado_en
   }));
+}
+
+function horasDesde(fechaIso: string) {
+  return Math.max(0, (Date.now() - new Date(fechaIso).getTime()) / 36e5);
+}
+
+function folioCorto(id: string) {
+  return id.slice(0, 8).toUpperCase();
+}
+
+function severidadPeso(severidad: SeveridadExcepcionCritica) {
+  if (severidad === "critica") return 3;
+  if (severidad === "alta") return 2;
+  return 1;
+}
+
+function esIncidenciaDesviacion(tipo: TipoIncidencia) {
+  return tipo === "perdida_conectividad" || tipo === "descompostura_en_ruta" || tipo === "infraccion_autoridad_vial";
+}
+
+function trasladoIdDesdeDatosAuditoria(datos: AuditoriaRow["datos"]) {
+  if (!datos || typeof datos !== "object" || Array.isArray(datos)) return null;
+  const valor = datos.traslado_id;
+  return typeof valor === "string" ? valor : null;
+}
+
+export async function listarExcepcionesCriticasAdmin(cliente: Cliente): Promise<ExcepcionCriticaAdmin[]> {
+  const [emergencias, alertasSla, traslados, incidencias] = await Promise.all([
+    cliente
+      .from("registro_auditoria")
+      .select("*")
+      .eq("evento", "activacion_soporte_emergencia")
+      .order("timestamp", { ascending: false })
+      .limit(20),
+    listarAlertasSLA(cliente),
+    listarTrasladosActivosMapa(cliente),
+    listarIncidenciasAdmin(cliente)
+  ]);
+
+  if (emergencias.error) throw emergencias.error;
+
+  const excepciones: ExcepcionCriticaAdmin[] = [];
+
+  for (const evento of (emergencias.data ?? []) as AuditoriaRow[]) {
+    const trasladoId = evento.traslado_id ?? trasladoIdDesdeDatosAuditoria(evento.datos);
+    excepciones.push({
+      id: `emergencia-${evento.id}`,
+      categoria: "emergencia",
+      severidad: "critica",
+      folioOEntidad: trasladoId ? `Traslado ${folioCorto(trasladoId)}` : `Evento ${folioCorto(evento.id)}`,
+      descripcion: "Emergencia activada desde canal operativo. Requiere atención inmediata y registro de seguimiento.",
+      creadoEn: evento.timestamp,
+      actualizadoEn: evento.timestamp,
+      responsable: "Torre de Control",
+      slaRestanteHoras: 0,
+      accionPrincipal: {
+        etiqueta: trasladoId ? "Abrir traslado" : "Revisar emergencia",
+        href: trasladoId ? `/viajes/${trasladoId}` : "/"
+      },
+      accionEscalamiento: { etiqueta: "Escalar a supervisor", href: "/configuracion" }
+    });
+  }
+
+  for (const alerta of alertasSla) {
+    if (!alerta.vencido && !alerta.requiere_alerta) continue;
+    const esUsuario = alerta.tipo === "cuenta_nueva_usuario" || alerta.tipo === "documentos_usuario";
+    const documentacion = alerta.tipo === "documentos_usuario" || alerta.tipo === "documentos_conductor";
+    const categoria: CategoriaExcepcionCritica = documentacion
+      ? "documentacion_bloqueante"
+      : alerta.vencido
+        ? "sla_vencido"
+        : "sla_en_riesgo";
+    const restante = alerta.horas_limite - alerta.horas_transcurridas;
+    excepciones.push({
+      id: `sla-${alerta.tipo}-${alerta.id}`,
+      categoria,
+      severidad: alerta.vencido ? "alta" : "media",
+      folioOEntidad: `${esUsuario ? "Usuario" : "Conductor"} ${folioCorto(alerta.id)}`,
+      descripcion: `${alerta.nombre} tiene ${alerta.vencido ? "SLA vencido" : "SLA en riesgo"} para ${alerta.tipo.replace(/_/g, " ")}.`,
+      creadoEn: alerta.creado_en,
+      actualizadoEn: alerta.creado_en,
+      responsable: null,
+      slaRestanteHoras: Number(restante.toFixed(1)),
+      accionPrincipal: { etiqueta: esUsuario ? "Revisar usuario" : "Revisar conductor", href: esUsuario ? "/usuarios" : "/conductores" },
+      accionEscalamiento: { etiqueta: "Escalar revisión", href: documentacion ? "/documentos" : "/configuracion" }
+    });
+  }
+
+  for (const traslado of traslados) {
+    const horasSinActualizacion = horasDesde(traslado.actualizado_en);
+    if (traslado.estado === "pendiente_de_conductor") {
+      excepciones.push({
+        id: `sin-conductor-${traslado.traslado_id}`,
+        categoria: "traslado_sin_conductor",
+        severidad: horasSinActualizacion >= 2 ? "alta" : "media",
+        folioOEntidad: `Traslado ${folioCorto(traslado.traslado_id)}`,
+        descripcion: `${traslado.vehiculo_marca ?? "Vehículo"} ${traslado.vehiculo_modelo ?? ""} está pendiente de conductor.`,
+        creadoEn: traslado.actualizado_en,
+        actualizadoEn: traslado.actualizado_en,
+        responsable: "Asignación",
+        slaRestanteHoras: Number((2 - horasSinActualizacion).toFixed(1)),
+        accionPrincipal: { etiqueta: "Asignar conductor", href: `/viajes/${traslado.traslado_id}` },
+        accionEscalamiento: { etiqueta: "Escalar asignación", href: "/conductores" }
+      });
+    }
+
+    if (traslado.conductor_nombre && horasSinActualizacion >= 1.5) {
+      excepciones.push({
+        id: `sin-senal-${traslado.traslado_id}`,
+        categoria: "conductor_sin_senal",
+        severidad: horasSinActualizacion >= 3 ? "critica" : "alta",
+        folioOEntidad: `Traslado ${folioCorto(traslado.traslado_id)}`,
+        descripcion: `${traslado.conductor_nombre} no registra actualización operativa reciente.`,
+        creadoEn: traslado.actualizado_en,
+        actualizadoEn: traslado.actualizado_en,
+        responsable: "Monitoreo",
+        slaRestanteHoras: Number((1.5 - horasSinActualizacion).toFixed(1)),
+        accionPrincipal: { etiqueta: "Abrir mapa", href: "/mapa" },
+        accionEscalamiento: { etiqueta: "Escalar a soporte", href: `/viajes/${traslado.traslado_id}` }
+      });
+    }
+  }
+
+  for (const incidencia of incidencias.filter((item) => !item.resuelta)) {
+    const desviacion = esIncidenciaDesviacion(incidencia.tipo);
+    excepciones.push({
+      id: `${desviacion ? "desviacion" : "incidencia"}-${incidencia.id}`,
+      categoria: desviacion ? "desviacion_ruta" : "incidencia_sin_responsable",
+      severidad: desviacion ? "alta" : "media",
+      folioOEntidad: `Traslado ${folioCorto(incidencia.traslado_id)}`,
+      descripcion: incidencia.descripcion || incidencia.tipo.replace(/_/g, " "),
+      creadoEn: incidencia.creada_en,
+      actualizadoEn: incidencia.creada_en,
+      responsable: null,
+      slaRestanteHoras: Number((1 - horasDesde(incidencia.creada_en)).toFixed(1)),
+      accionPrincipal: { etiqueta: "Atender incidencia", href: `/viajes/${incidencia.traslado_id}` },
+      accionEscalamiento: { etiqueta: "Escalar incidencia", href: "/incidencias?filtro=abiertas" }
+    });
+  }
+
+  return excepciones.sort((a, b) => {
+    const severidad = severidadPeso(b.severidad) - severidadPeso(a.severidad);
+    if (severidad !== 0) return severidad;
+    return new Date(a.creadoEn).getTime() - new Date(b.creadoEn).getTime();
+  });
 }
 
 // ─── Alertas SLA ─────────────────────────────────────────────────────────────

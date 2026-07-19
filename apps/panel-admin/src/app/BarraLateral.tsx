@@ -10,10 +10,12 @@ import {
   listarConductoresAdmin,
   listarDisputasAdmin,
   listarIncidenciasAdmin,
+  obtenerAdminActual,
   listarPagosAdmin,
   listarSolicitudesConductorAdmin,
   listarUsuariosAdmin
 } from "@ruum/api/services";
+import { normalizarRolAdmin, puedeVerRuta, type RolAdminOperativo } from "../lib/roles-admin";
 
 /* ── Íconos SVG inline — reemplazan las letras sueltas D/V/I/R ── */
 function IcDashboard() {
@@ -223,6 +225,7 @@ export function BarraLateral() {
   const pathname = usePathname();
   const router = useRouter();
   const [sesionReal, setSesionReal] = useState(false);
+  const [rolAdmin, setRolAdmin] = useState<RolAdminOperativo>("operador");
   const [colapsada, setColapsada] = useState(false);
   const contadores = useContadoresMenu(pathname);
 
@@ -247,8 +250,13 @@ export function BarraLateral() {
       if (!tieneSupabaseConfigurado()) return;
       try {
         const cliente = crearClienteNavegador();
-        const { data } = await cliente.auth.getUser();
+        const [usuario, admin] = await Promise.all([
+          cliente.auth.getUser(),
+          obtenerAdminActual(cliente)
+        ]);
+        const { data } = usuario;
         setSesionReal(Boolean(data.user));
+        setRolAdmin(normalizarRolAdmin(admin?.rol_operativo));
       } catch { /* Sin sesión real */ }
     }
     revisar();
@@ -262,6 +270,13 @@ export function BarraLateral() {
   }
 
   if (pathname === "/login") return null;
+
+  const gruposVisibles = GRUPOS_NAVEGACION
+    .map((grupo) => ({
+      ...grupo,
+      secciones: grupo.secciones.filter((seccion) => puedeVerRuta(rolAdmin, seccion.href))
+    }))
+    .filter((grupo) => grupo.secciones.length > 0);
 
   return (
     <aside
@@ -290,7 +305,7 @@ export function BarraLateral() {
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-2 pb-3 lg:px-3" aria-label="Secciones del panel">
-        {GRUPOS_NAVEGACION.map((grupo) => (
+        {gruposVisibles.map((grupo) => (
           <section key={grupo.titulo} aria-label={grupo.titulo}>
             <p className={`mb-1.5 px-2 font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary ${colapsada ? "sr-only" : "hidden lg:block"}`}>
               {grupo.titulo}

@@ -40,18 +40,21 @@ export type Database = {
           creado_en: string
           id: string
           nombre: string
+          rol_operativo: Database["public"]["Enums"]["rol_admin_operativo"]
         }
         Insert: {
           auth_user_id?: string | null
           creado_en?: string
           id?: string
           nombre: string
+          rol_operativo?: Database["public"]["Enums"]["rol_admin_operativo"]
         }
         Update: {
           auth_user_id?: string | null
           creado_en?: string
           id?: string
           nombre?: string
+          rol_operativo?: Database["public"]["Enums"]["rol_admin_operativo"]
         }
         Relationships: []
       }
@@ -2900,6 +2903,12 @@ export type Database = {
       rango_distancia: "rango_1" | "rango_2" | "rango_3" | "rango_4"
       remitente_chat: "usuario" | "conductor"
       resolucion_disputa: "favor_reclamante" | "en_contra" | "solucion_parcial"
+      rol_admin_operativo:
+        | "operador"
+        | "supervisor"
+        | "finanzas"
+        | "compliance"
+        | "direccion"
       rol_usuario: "personal" | "titular_empresa" | "usuario_autorizado"
       tipo_disputa:
         | "cobro_incorrecto"

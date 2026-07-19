@@ -83,6 +83,8 @@ const ETIQUETA_ESTADO: Partial<Record<string, string>> = {
   pago_completado: "Pago completado"
 };
 
+type EstadoConexionMapa = "datos_en_vivo" | "actualizando" | "reconectando" | "sin_conexion" | "desactualizado" | "demo";
+
 function tiempoRelativo(iso: string): string {
   const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (min < 1) return "Ahora";
@@ -148,6 +150,11 @@ export default function PaginaMapaOperativo() {
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
+  const [estadoConexionGps, setEstadoConexionGps] = useState<EstadoConexionMapa>("actualizando");
+  const [ultimaRespuestaExitosa, setUltimaRespuestaExitosa] = useState<Date | null>(null);
+  const [seccionesDesactualizadas, setSeccionesDesactualizadas] = useState<string[]>([]);
+  const [actualizandoManual, setActualizandoManual] = useState(false);
+  const [ahora, setAhora] = useState<Date | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<MapboxMap | null>(null);
   const marcadoresRef = useRef<MapboxMarker[]>([]);
@@ -173,31 +180,56 @@ export default function PaginaMapaOperativo() {
     return () => document.removeEventListener("keydown", cerrarConEscape);
   }, [seleccionado, cerrarPanelSeleccionado]);
 
-  useEffect(() => {
-    async function cargar() {
+  async function cargar(esRefresco = false) {
+      if (!esRefresco) setCargando(true);
+      if (esRefresco) {
+        setActualizandoManual(true);
+        setEstadoConexionGps(ultimaRespuestaExitosa ? "reconectando" : "actualizando");
+      }
       if (!tieneSupabaseConfigurado()) {
         setTraslados(TRASLADOS_MAPA_DEMO);
         setEsDemo(true);
+        setEstadoConexionGps("demo");
+        setUltimaRespuestaExitosa(new Date());
+        setSeccionesDesactualizadas([]);
         setCargando(false);
+        setActualizandoManual(false);
         return;
       }
       try {
         const cliente = crearClienteNavegador();
         setTraslados(await listarTrasladosActivosMapa(cliente));
         setEsDemo(false);
+        setEstadoConexionGps("datos_en_vivo");
+        setUltimaRespuestaExitosa(new Date());
+        setSeccionesDesactualizadas([]);
       } catch {
+        const teniaRespuesta = Boolean(ultimaRespuestaExitosa);
         if (puedeUsarDatosDemo()) {
           setTraslados(TRASLADOS_MAPA_DEMO);
           setEsDemo(true);
+          setEstadoConexionGps(teniaRespuesta ? "desactualizado" : "sin_conexion");
+          setSeccionesDesactualizadas(["datos GPS del mapa", "traslados activos"]);
         } else {
           setTraslados([]);
           setEsDemo(false);
+          setEstadoConexionGps(teniaRespuesta ? "desactualizado" : "sin_conexion");
+          setSeccionesDesactualizadas(["datos GPS del mapa", "traslados activos"]);
         }
       } finally {
         setCargando(false);
+        setActualizandoManual(false);
       }
-    }
+  }
+
+  useEffect(() => {
     void cargar();
+  }, []);
+
+  useEffect(() => {
+    setAhora(new Date());
+    const intervalo = window.setInterval(() => setAhora(new Date()), 30000);
+    return () => window.clearInterval(intervalo);
   }, []);
 
   useEffect(() => {
@@ -272,13 +304,33 @@ export default function PaginaMapaOperativo() {
       <div className="flex items-center justify-between border-b border-border-default px-6 py-4">
         <div>
           <h1 className="font-display text-xl font-semibold">Mapa operativo</h1>
-          <p className="font-mono-ruum text-xs text-text-tertiary">Torre de control · traslados activos</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <p className="font-mono-ruum text-xs text-text-tertiary">Torre de control · datos GPS y traslados activos</p>
+            <span className={`rounded-full border px-2.5 py-1 font-body text-admin-secundario font-semibold ${claseEstadoConexion(estadoConexionGps)}`}>
+              {textoEstadoConexionMapa(estadoConexionGps)}
+            </span>
+            <span className="font-body text-admin-secundario text-text-tertiary">Datos GPS</span>
+            {esDemo && <span className="font-body text-admin-secundario text-status-warning">Origen demo</span>}
+            {ultimaRespuestaExitosa && (
+              <time dateTime={ultimaRespuestaExitosa.toISOString()} className="font-body text-admin-secundario text-text-tertiary">
+                {textoActualizadoHace(ultimaRespuestaExitosa, ahora)}
+              </time>
+            )}
+          </div>
+          {seccionesDesactualizadas.length > 0 && (
+            <p className="mt-2 font-body text-admin-secundario text-status-warning">
+              Pueden estar desactualizadas: {seccionesDesactualizadas.join(", ")}.
+            </p>
+          )}
         </div>
-        {esDemo && (
-          <span className="rounded-lg bg-status-warning-soft px-3 py-1 font-mono-ruum text-xs text-status-warning">
-            Modo demo
-          </span>
-        )}
+        <button
+          type="button"
+          onClick={() => void cargar(true)}
+          disabled={actualizandoManual}
+          className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2 font-body text-admin-boton font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink disabled:cursor-wait disabled:opacity-70"
+        >
+          {actualizandoManual ? "Reconectando" : "Actualizar"}
+        </button>
       </div>
 
       <div className="grid grid-cols-4 gap-3 border-b border-border-default px-6 py-3">
@@ -412,4 +464,30 @@ export default function PaginaMapaOperativo() {
       </div>
     </div>
   );
+}
+
+function textoEstadoConexionMapa(estado: EstadoConexionMapa) {
+  if (estado === "datos_en_vivo") return "Datos en vivo";
+  if (estado === "actualizando") return "Actualizando";
+  if (estado === "reconectando") return "Reconectando";
+  if (estado === "desactualizado") return "Datos posiblemente desactualizados";
+  if (estado === "demo") return "Modo demo";
+  return "Sin conexión";
+}
+
+function claseEstadoConexion(estado: EstadoConexionMapa) {
+  if (estado === "datos_en_vivo") return "border-status-success/30 bg-status-success-soft text-status-success";
+  if (estado === "actualizando" || estado === "reconectando") return "border-status-info/30 bg-status-info-soft text-status-info";
+  if (estado === "demo" || estado === "desactualizado") return "border-status-warning/35 bg-status-warning-soft text-status-warning";
+  return "border-status-error/30 bg-status-error-soft text-status-error";
+}
+
+function textoActualizadoHace(fecha: Date, ahora: Date | null) {
+  const referencia = ahora ?? new Date();
+  const segundos = Math.max(0, Math.floor((referencia.getTime() - fecha.getTime()) / 1000));
+  if (segundos < 60) return `Actualizado hace ${segundos} segundos`;
+  const minutos = Math.floor(segundos / 60);
+  if (minutos < 60) return `Actualizado hace ${minutos} minutos`;
+  const horas = Math.floor(minutos / 60);
+  return `Actualizado hace ${horas} horas`;
 }

@@ -15,8 +15,10 @@ type AdminPageHeaderProps = {
   descripcion?: string;
   accion?: ReactNode;
   breadcrumb?: Array<{ label: string; href?: string }>;
-  estadoConexion?: "conectado" | "demo" | "sin_conexion" | "actualizando";
+  estadoConexion?: "conectado" | "datos_en_vivo" | "demo" | "sin_conexion" | "actualizando" | "reconectando" | "desactualizado";
   ultimaActualizacion?: string | Date | null;
+  tipoDatos?: "administrativos" | "gps" | "mixto";
+  seccionesDesactualizadas?: string[];
   accionesSecundarias?: ReactNode;
   contadorResultados?: number;
 };
@@ -57,22 +59,41 @@ export function AdminHero({ titulo, subtitulo, imagen = "/imagenes/torre-control
 }
 
 function textoConexion(estado: NonNullable<AdminPageHeaderProps["estadoConexion"]>) {
-  if (estado === "conectado") return "Conectado";
+  if (estado === "conectado" || estado === "datos_en_vivo") return "Datos en vivo";
   if (estado === "actualizando") return "Actualizando";
+  if (estado === "reconectando") return "Reconectando";
+  if (estado === "desactualizado") return "Datos posiblemente desactualizados";
   if (estado === "demo") return "Modo demo";
   return "Sin conexión";
 }
 
 function claseConexion(estado: NonNullable<AdminPageHeaderProps["estadoConexion"]>) {
-  if (estado === "conectado") return "border-status-success/30 bg-status-success-soft text-status-success";
-  if (estado === "actualizando") return "border-status-info/30 bg-status-info-soft text-status-info";
+  if (estado === "conectado" || estado === "datos_en_vivo") return "border-status-success/30 bg-status-success-soft text-status-success";
+  if (estado === "actualizando" || estado === "reconectando") return "border-status-info/30 bg-status-info-soft text-status-info";
   if (estado === "demo") return "border-status-warning/35 bg-status-warning-soft text-status-warning";
+  if (estado === "desactualizado") return "border-status-warning/35 bg-status-warning-soft text-status-warning";
   return "border-status-error/30 bg-status-error-soft text-status-error";
+}
+
+function textoTipoDatos(tipo: NonNullable<AdminPageHeaderProps["tipoDatos"]>) {
+  if (tipo === "gps") return "Datos GPS";
+  if (tipo === "mixto") return "Datos administrativos y GPS";
+  return "Datos administrativos";
 }
 
 function formatoActualizacion(valor: string | Date) {
   const fecha = valor instanceof Date ? valor : new Date(valor);
   return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(fecha);
+}
+
+function formatoActualizacionRelativa(valor: string | Date) {
+  const fecha = valor instanceof Date ? valor : new Date(valor);
+  const segundos = Math.max(0, Math.floor((Date.now() - fecha.getTime()) / 1000));
+  if (segundos < 60) return `Actualizado hace ${segundos} segundos`;
+  const minutos = Math.floor(segundos / 60);
+  if (minutos < 60) return `Actualizado hace ${minutos} minutos`;
+  const horas = Math.floor(minutos / 60);
+  return `Actualizado hace ${horas} horas`;
 }
 
 export function AdminPageHeader({
@@ -83,6 +104,8 @@ export function AdminPageHeader({
   breadcrumb,
   estadoConexion,
   ultimaActualizacion,
+  tipoDatos,
+  seccionesDesactualizadas = [],
   accionesSecundarias,
   contadorResultados
 }: AdminPageHeaderProps) {
@@ -112,13 +135,21 @@ export function AdminPageHeader({
           )}
           {ultimaActualizacion && (
             <time dateTime={(ultimaActualizacion instanceof Date ? ultimaActualizacion : new Date(ultimaActualizacion)).toISOString()} className="font-body text-admin-secundario text-text-tertiary">
-              Última actualización: {formatoActualizacion(ultimaActualizacion)}
+              {formatoActualizacionRelativa(ultimaActualizacion)} · {formatoActualizacion(ultimaActualizacion)}
             </time>
+          )}
+          {tipoDatos && (
+            <span className="font-body text-admin-secundario text-text-tertiary">{textoTipoDatos(tipoDatos)}</span>
           )}
           {typeof contadorResultados === "number" && (
             <span className="font-body text-admin-secundario text-text-tertiary">{contadorResultados.toLocaleString("es-MX")} resultados</span>
           )}
         </div>
+        {seccionesDesactualizadas.length > 0 && (
+          <p className="mt-2 font-body text-admin-secundario text-status-warning">
+            Pueden estar desactualizadas: {seccionesDesactualizadas.join(", ")}.
+          </p>
+        )}
       </div>
       {(accion || accionesSecundarias) && (
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";
 import { AdminPageHeader, AdminPanel } from "../admin-ui";
@@ -11,6 +11,9 @@ import { VIAJES_DEMO } from "../../lib/datos-demo";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
+type FiltroKpi = "activos" | "inician_60" | "sin_asignacion" | "incidencia" | "finalizados_hoy";
+type AccionOperativa = "asignar_conductor" | "registrar_incidencia";
+type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "reconectando" | "sin_conexion" | "desactualizado" | "demo";
 
 // PRD §17.4 — pestañas. "Todos" + un subconjunto representativo del camino
 // feliz y sus ramas — no los 33 estados técnicos, que es justo la traducción
@@ -23,6 +26,21 @@ const PESTANAS: { id: string; etiqueta: string; filtro: EstadoTraslado | "todos"
   { id: "cancelados", etiqueta: "Cancelados", filtro: "servicio_cancelado" }
 ];
 
+const ESTADOS_TERMINALES: EstadoTraslado[] = ["servicio_cerrado", "servicio_cancelado", "traslado_fallido"];
+
+const ETIQUETA_FILTRO_KPI: Record<FiltroKpi, string> = {
+  activos: "Traslados activos",
+  inician_60: "Inician en 60 minutos",
+  sin_asignacion: "Sin asignación",
+  incidencia: "Con incidencia",
+  finalizados_hoy: "Finalizados hoy"
+};
+
+const ETIQUETA_ACCION_OPERATIVA: Record<AccionOperativa, string> = {
+  asignar_conductor: "Asignar conductor",
+  registrar_incidencia: "Registrar incidencia"
+};
+
 export default function PaginaViajesAdmin() {
   const [pestana, setPestana] = useState(PESTANAS[0]!.id);
   const [traslados, setTraslados] = useState<PasaporteRow[]>([]);
@@ -30,20 +48,43 @@ export default function PaginaViajesAdmin() {
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
+  const [filtroKpi, setFiltroKpi] = useState<FiltroKpi | null>(null);
+  const [accionOperativa, setAccionOperativa] = useState<AccionOperativa | null>(null);
+  const [estadoConexion, setEstadoConexion] = useState<EstadoConexionVista>("actualizando");
+  const [ultimaRespuestaExitosa, setUltimaRespuestaExitosa] = useState<Date | null>(null);
+  const [seccionesDesactualizadas, setSeccionesDesactualizadas] = useState<string[]>([]);
+  const [actualizandoManual, setActualizandoManual] = useState(false);
 
   const filtroActual = PESTANAS.find((p) => p.id === pestana)!.filtro;
 
   useEffect(() => {
-    async function cargar() {
+    const parametro = new URLSearchParams(window.location.search).get("filtro");
+    if (esFiltroKpi(parametro)) {
+      setFiltroKpi(parametro);
+      setPestana("todos");
+    }
+    const accion = new URLSearchParams(window.location.search).get("accion");
+    if (esAccionOperativa(accion)) setAccionOperativa(accion);
+  }, []);
+
+  async function cargar(esRefresco = false) {
+      if (!esRefresco) setCargando(true);
+      if (esRefresco) {
+        setActualizandoManual(true);
+        setEstadoConexion(ultimaRespuestaExitosa ? "reconectando" : "actualizando");
+      }
       if (!tieneSupabaseConfigurado()) {
         const lista = filtroActual === "todos" ? VIAJES_DEMO : VIAJES_DEMO.filter((v) => v.estado === filtroActual);
         setTraslados(lista);
         setEsDemo(true);
+        setEstadoConexion("demo");
+        setUltimaRespuestaExitosa(new Date());
+        setSeccionesDesactualizadas([]);
         setCargando(false);
+        setActualizandoManual(false);
         return;
       }
 
-      setCargando(true);
       try {
         const cliente = crearClienteNavegador();
         const [lista, masivos] = await Promise.all([
@@ -61,26 +102,67 @@ export default function PaginaViajesAdmin() {
         ));
         setTraslados(lista);
         setEsDemo(false);
+        setEstadoConexion("datos_en_vivo");
+        setUltimaRespuestaExitosa(new Date());
+        setSeccionesDesactualizadas([]);
       } catch {
+        const teniaRespuesta = Boolean(ultimaRespuestaExitosa);
         if (puedeUsarDatosDemo()) {
           const lista = filtroActual === "todos" ? VIAJES_DEMO : VIAJES_DEMO.filter((v) => v.estado === filtroActual);
           setTraslados(lista);
           setTrazabilidadPorTraslado(new Map());
           setEsDemo(true);
+          setEstadoConexion(teniaRespuesta ? "desactualizado" : "sin_conexion");
+          setSeccionesDesactualizadas(["traslados administrativos", "trazabilidad de cargas masivas"]);
         } else {
           setTraslados([]);
           setTrazabilidadPorTraslado(new Map());
           setEsDemo(false);
+          setEstadoConexion(teniaRespuesta ? "desactualizado" : "sin_conexion");
+          setSeccionesDesactualizadas(["traslados administrativos", "trazabilidad de cargas masivas"]);
         }
       } finally {
         setCargando(false);
+        setActualizandoManual(false);
       }
-    }
-    cargar();
+  }
+
+  useEffect(() => {
+    void cargar();
   }, [filtroActual]);
 
+  const trasladosPorKpi = useMemo(() => {
+    if (!filtroKpi) return traslados;
+    const ahora = Date.now();
+    const en60Min = ahora + 60 * 60 * 1000;
+    const inicioHoy = new Date();
+    inicioHoy.setHours(0, 0, 0, 0);
+
+    return traslados.filter((v) => {
+      const extendido = v as PasaporteRow & {
+        modalidad_programacion?: string | null;
+        fecha_hora_programada?: string | null;
+        tiene_incidencia_abierta?: boolean | null;
+        incidencias_abiertas?: number | null;
+        actualizado_en?: string | null;
+      };
+      if (filtroKpi === "activos") return v.estado ? !ESTADOS_TERMINALES.includes(v.estado) : false;
+      if (filtroKpi === "sin_asignacion") return v.estado === "pendiente_de_conductor";
+      if (filtroKpi === "incidencia") return Boolean(extendido.tiene_incidencia_abierta) || Number(extendido.incidencias_abiertas ?? 0) > 0;
+      if (filtroKpi === "finalizados_hoy") {
+        const fechaCierre = extendido.actualizado_en ? new Date(extendido.actualizado_en).getTime() : 0;
+        return v.estado === "servicio_cerrado" && fechaCierre >= inicioHoy.getTime();
+      }
+      if (filtroKpi === "inician_60") {
+        const fechaProgramada = extendido.fecha_hora_programada ? new Date(extendido.fecha_hora_programada).getTime() : 0;
+        return extendido.modalidad_programacion === "programado" && fechaProgramada >= ahora && fechaProgramada <= en60Min;
+      }
+      return true;
+    });
+  }, [filtroKpi, traslados]);
+
   const trasladosFiltrados = busqueda.trim()
-    ? traslados.filter((v) => {
+    ? trasladosPorKpi.filter((v) => {
         const q = busqueda.trim().toLowerCase();
         return (
           (v.traslado_id?.slice(0, 8).toLowerCase().includes(q) ?? false) ||
@@ -88,14 +170,29 @@ export default function PaginaViajesAdmin() {
           (v.conductor_nombre ?? "").toLowerCase().includes(q)
         );
       })
-    : traslados;
+    : trasladosPorKpi;
 
   return (
     <main className="admin-page-shell">
       <AdminPageHeader
         etiqueta="Operación"
-        titulo="Traslados"
-        descripcion="Bandeja operativa para revisar folios, conductor asignado, monto autorizado y estado actual."
+        titulo={accionOperativa ? ETIQUETA_ACCION_OPERATIVA[accionOperativa] : filtroKpi ? ETIQUETA_FILTRO_KPI[filtroKpi] : "Traslados"}
+        descripcion={accionOperativa ? "Selecciona el traslado operativo correspondiente." : filtroKpi ? "Vista filtrada desde indicadores accionables del dashboard." : "Bandeja operativa para revisar folios, conductor asignado, monto autorizado y estado actual."}
+        estadoConexion={estadoConexion}
+        ultimaActualizacion={ultimaRespuestaExitosa}
+        tipoDatos="administrativos"
+        seccionesDesactualizadas={seccionesDesactualizadas}
+        contadorResultados={trasladosFiltrados.length}
+        accion={(
+          <button
+            type="button"
+            onClick={() => void cargar(true)}
+            disabled={actualizandoManual}
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2 font-body text-admin-boton font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink disabled:cursor-wait disabled:opacity-70"
+          >
+            {actualizandoManual ? "Reconectando" : "Actualizar"}
+          </button>
+        )}
       />
 
       {esDemo && (
@@ -118,6 +215,34 @@ export default function PaginaViajesAdmin() {
           </button>
         ))}
       </div>
+
+      {filtroKpi && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-info/25 bg-status-info-soft px-4 py-3">
+          <p className="font-body text-sm font-semibold text-status-info">
+            Filtro activo: {ETIQUETA_FILTRO_KPI[filtroKpi]}
+          </p>
+          <button
+            onClick={() => {
+              setFiltroKpi(null);
+              setAccionOperativa(null);
+            }}
+            className="font-body text-sm font-semibold text-status-info hover:underline"
+          >
+            Ver todos
+          </button>
+        </div>
+      )}
+
+      {accionOperativa && (
+        <div className="mt-4 rounded-lg border border-signal/35 bg-signal-soft px-4 py-3">
+          <p className="font-body text-sm font-semibold text-ink">{ETIQUETA_ACCION_OPERATIVA[accionOperativa]}</p>
+          <p className="mt-1 font-body text-xs text-text-secondary">
+            {accionOperativa === "asignar_conductor"
+              ? "Abre el folio sin conductor y usa el bloque de asignación del pasaporte."
+              : "Abre el folio activo y registra la incidencia desde su seguimiento operativo."}
+          </p>
+        </div>
+      )}
 
       <div className="mt-4 flex items-center gap-3">
         <label className="sr-only" htmlFor="buscar-traslados">Buscar traslados</label>
@@ -212,4 +337,16 @@ export default function PaginaViajesAdmin() {
       </AdminPanel>
     </main>
   );
+}
+
+function esFiltroKpi(valor: string | null): valor is FiltroKpi {
+  return valor === "activos" ||
+    valor === "inician_60" ||
+    valor === "sin_asignacion" ||
+    valor === "incidencia" ||
+    valor === "finalizados_hoy";
+}
+
+function esAccionOperativa(valor: string | null): valor is AccionOperativa {
+  return valor === "asignar_conductor" || valor === "registrar_incidencia";
 }
