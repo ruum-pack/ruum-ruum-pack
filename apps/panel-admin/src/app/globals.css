@@ -257,6 +257,122 @@ body :where(button, a[href], [role="button"]) svg {
   background: rgba(232, 237, 246, 0.035);
 }
 
+.admin-mobile-card-list {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .admin-content {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .admin-page-shell {
+    width: min(100% - 24px, 1120px);
+    padding-block: 20px 32px;
+  }
+
+  .admin-page-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-page-header > div:last-child {
+    justify-content: stretch;
+  }
+
+  .admin-page-header > div:last-child :where(a, button) {
+    flex: 1 1 100%;
+  }
+
+  .admin-hero {
+    min-height: auto;
+  }
+
+  .admin-hero__content {
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .admin-table-card table,
+  .admin-responsive-table table {
+    display: block;
+    min-width: 0 !important;
+  }
+
+  .admin-table-card thead,
+  .admin-responsive-table thead {
+    display: none;
+  }
+
+  .admin-table-card tbody,
+  .admin-table-card tr,
+  .admin-table-card td,
+  .admin-responsive-table tbody,
+  .admin-responsive-table tr,
+  .admin-responsive-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table-card tr,
+  .admin-responsive-table tr {
+    margin: 12px;
+    overflow: hidden;
+    border: 1px solid var(--ruum-border);
+    border-radius: var(--ruum-radius-card);
+    background: var(--ruum-surface-primary);
+  }
+
+  .admin-table-card td,
+  .admin-responsive-table td {
+    display: grid;
+    grid-template-columns: minmax(96px, 0.45fr) minmax(0, 1fr);
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(232, 237, 246, 0.08);
+    word-break: break-word;
+  }
+
+  .admin-table-card td::before,
+  .admin-responsive-table td::before {
+    content: attr(data-label);
+    font-size: var(--ruum-admin-text-secundario);
+    font-weight: 700;
+    color: var(--ruum-text-tertiary);
+    text-transform: uppercase;
+  }
+
+  .admin-table-card td:last-child,
+  .admin-responsive-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .admin-mobile-card-list {
+    display: grid;
+  }
+
+  .admin-desktop-table {
+    display: none;
+  }
+
+  .admin-modal-backdrop {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .admin-modal-backdrop :where(section[role="dialog"], aside[role="dialog"]) {
+    width: 100%;
+    max-width: none;
+    min-height: 100dvh;
+    border-radius: 0;
+  }
+}
+
 .admin-auth-shell {
   min-height: 100vh;
   background:

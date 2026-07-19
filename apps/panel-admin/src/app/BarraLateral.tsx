@@ -78,6 +78,8 @@ export type IconoNombre = "dashboard"|"viajes"|"masivos"|"mapa"|"sla"|"conductor
 export type ClaveContadorMenu = "alertasCriticas" | "conductoresRevision" | "incidenciasAbiertas" | "disputasPendientes" | "pagosPendientes" | "documentosPorVencer";
 export type ContadorMenu = { valor: number; critico?: boolean; etiqueta: string };
 export type ContadoresMenu = Partial<Record<ClaveContadorMenu, ContadorMenu>>;
+export type SeccionNavegacionAdmin = { href: string; etiqueta: string; icono: IconoNombre; contador?: ClaveContadorMenu };
+export type GrupoNavegacionAdmin = { titulo: string; secciones: SeccionNavegacionAdmin[] };
 
 export function Icono({ nombre }: { nombre: IconoNombre }) {
   const map: Record<IconoNombre, React.ReactNode> = {
@@ -91,46 +93,46 @@ export function Icono({ nombre }: { nombre: IconoNombre }) {
   return <>{map[nombre]}</>;
 }
 
-export const GRUPOS_NAVEGACION = [
+export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
   {
     titulo: "OPERACIÓN",
     secciones: [
-      { href: "/", etiqueta: "Centro de control", icono: "dashboard" as IconoNombre },
-      { href: "/viajes", etiqueta: "Traslados", icono: "viajes" as IconoNombre },
-      { href: "/masivos", etiqueta: "Cargas masivas", icono: "masivos" as IconoNombre },
-      { href: "/mapa", etiqueta: "Mapa", icono: "mapa" as IconoNombre },
-      { href: "/alertas-sla?filtro=vencidas", etiqueta: "Alertas y SLA", icono: "sla" as IconoNombre, contador: "alertasCriticas" as ClaveContadorMenu },
+      { href: "/", etiqueta: "Centro de control", icono: "dashboard" },
+      { href: "/viajes", etiqueta: "Traslados", icono: "viajes" },
+      { href: "/masivos", etiqueta: "Cargas masivas", icono: "masivos" },
+      { href: "/mapa", etiqueta: "Mapa", icono: "mapa" },
+      { href: "/alertas-sla?filtro=vencidas", etiqueta: "Alertas y SLA", icono: "sla", contador: "alertasCriticas" },
     ],
   },
   {
     titulo: "GESTIÓN",
     secciones: [
-      { href: "/conductores?filtro=en_revision", etiqueta: "Conductores", icono: "conductor" as IconoNombre, contador: "conductoresRevision" as ClaveContadorMenu },
-      { href: "/metricas-registro", etiqueta: "Métricas de conductores", icono: "reportes" as IconoNombre },
-      { href: "/usuarios", etiqueta: "Usuarios", icono: "usuario" as IconoNombre },
-      { href: "/vehiculos", etiqueta: "Vehículos", icono: "vehiculo" as IconoNombre },
-      { href: "/empresas", etiqueta: "Empresas", icono: "empresa" as IconoNombre },
+      { href: "/conductores?filtro=en_revision", etiqueta: "Conductores", icono: "conductor", contador: "conductoresRevision" },
+      { href: "/metricas-registro", etiqueta: "Métricas de conductores", icono: "reportes" },
+      { href: "/usuarios", etiqueta: "Usuarios", icono: "usuario" },
+      { href: "/vehiculos", etiqueta: "Vehículos", icono: "vehiculo" },
+      { href: "/empresas", etiqueta: "Empresas", icono: "empresa" },
     ],
   },
   {
     titulo: "CASOS Y RIESGOS",
     secciones: [
-      { href: "/incidencias?filtro=abiertas", etiqueta: "Incidencias", icono: "incidencia" as IconoNombre, contador: "incidenciasAbiertas" as ClaveContadorMenu },
-      { href: "/disputas?filtro=pendientes", etiqueta: "Disputas", icono: "disputa" as IconoNombre, contador: "disputasPendientes" as ClaveContadorMenu },
-      { href: "/reclamos-seguro", etiqueta: "Seguros", icono: "reclamo" as IconoNombre },
-      { href: "/documentos?filtro=por_vencer", etiqueta: "Validación documental", icono: "documentos" as IconoNombre, contador: "documentosPorVencer" as ClaveContadorMenu },
+      { href: "/incidencias?filtro=abiertas", etiqueta: "Incidencias", icono: "incidencia", contador: "incidenciasAbiertas" },
+      { href: "/disputas?filtro=pendientes", etiqueta: "Disputas", icono: "disputa", contador: "disputasPendientes" },
+      { href: "/reclamos-seguro", etiqueta: "Seguros", icono: "reclamo" },
+      { href: "/documentos?filtro=por_vencer", etiqueta: "Validación documental", icono: "documentos", contador: "documentosPorVencer" },
     ],
   },
   {
     titulo: "ADMINISTRACIÓN",
     secciones: [
-      { href: "/pagos?filtro=pendientes", etiqueta: "Pagos", icono: "pagos" as IconoNombre, contador: "pagosPendientes" as ClaveContadorMenu },
-      { href: "/tarifas", etiqueta: "Tarifas", icono: "tarifas" as IconoNombre },
-      { href: "/reportes", etiqueta: "Reportes operativos", icono: "reportes" as IconoNombre },
-      { href: "/configuracion", etiqueta: "Configuración", icono: "configuracion" as IconoNombre },
+      { href: "/pagos?filtro=pendientes", etiqueta: "Pagos", icono: "pagos", contador: "pagosPendientes" },
+      { href: "/tarifas", etiqueta: "Tarifas", icono: "tarifas" },
+      { href: "/reportes", etiqueta: "Reportes operativos", icono: "reportes" },
+      { href: "/configuracion", etiqueta: "Configuración", icono: "configuracion" },
     ],
   },
-] as const;
+];
 
 export function rutaBase(href: string) {
   return href.split("?")[0] ?? href;
@@ -296,7 +298,7 @@ export function BarraLateral() {
             <div className="space-y-0.5">
               {grupo.secciones.map((s) => {
                 const base = rutaBase(s.href);
-                const contador = "contador" in s ? contadores[s.contador] : undefined;
+                const contador = s.contador ? contadores[s.contador] : undefined;
                 const activo = pathname === base || (base !== "/" && pathname.startsWith(base));
                 return (
                   <Link

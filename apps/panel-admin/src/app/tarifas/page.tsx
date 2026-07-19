@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
-import Image from "next/image";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
+import { AdminPageHeader } from "../admin-ui";
 import {
   actualizarConfigTarifas,
   actualizarPoliticaTarifariaNormativa,
@@ -178,6 +178,7 @@ export default function PaginaTarifasAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [seccionActiva, setSeccionActiva] = useState<SeccionTarifas>("resumen");
   const [hayCambiosSinGuardar, setHayCambiosSinGuardar] = useState(false);
+  const [ultimaSincronizacion, setUltimaSincronizacion] = useState<Date | null>(null);
 
   async function cargar() {
     if (!tieneSupabaseConfigurado()) {
@@ -190,6 +191,7 @@ export default function PaginaTarifasAdmin() {
       const configuracion = await obtenerConfiguracionTarifas(cliente);
       setDatos(configuracion);
       setConfigVista(configuracion.config);
+      setUltimaSincronizacion(new Date());
       setError(configuracion.vehiculo.length === 0
         ? "No se encontró configuración de tarifas. Si no eres admin, este módulo no te mostrará datos (RLS admin-only)."
         : null);
@@ -230,25 +232,15 @@ export default function PaginaTarifasAdmin() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
-      <div className="relative min-h-32 overflow-hidden rounded-card border border-ink/10">
-        <Image
-          src="/imagenes/torre-control-flota.webp"
-          alt=""
-          aria-hidden="true"
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 1152px"
-          className="scale-105 object-cover object-[60%_38%]"
-        />
-        <div className="admin-hero-token-overlay absolute inset-0" />
-        <div className="relative flex min-h-32 items-end px-6 py-6 sm:px-8">
-          <div>
-            <p className="font-mono-ruum text-xs font-medium uppercase tracking-wide text-status-info">Apartado normativo rector</p>
-            <h1 className="mt-1 font-display text-2xl font-bold text-text-main">Tarifas</h1>
-            <p className="mt-1 font-body text-sm text-text-secondary">Políticas aprobadas, fórmula auditable y simulación del precio aplicable a cada traslado.</p>
-          </div>
-        </div>
-      </div>
+      <AdminPageHeader
+        etiqueta="Administración"
+        titulo="Tarifas"
+        descripcion="Políticas aprobadas, fórmula auditable y simulación del precio aplicable a cada traslado."
+        breadcrumb={[{ label: "Administración" }, { label: "Tarifas" }]}
+        estadoConexion={error ? "sin_conexion" : cargando ? "actualizando" : "conectado"}
+        ultimaActualizacion={ultimaSincronizacion}
+        contadorResultados={datos.vehiculo.length + datos.gama.length + datos.condicion.length + datos.horario.length + datos.dia.length}
+      />
 
       {error && (
         <div className="mt-4">

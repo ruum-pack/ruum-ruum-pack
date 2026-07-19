@@ -171,7 +171,7 @@ export default function PaginaViajesAdmin() {
                 const trazabilidad = v.traslado_id ? trazabilidadPorTraslado.get(v.traslado_id) : null;
                 return (
                 <tr key={v.traslado_id ?? `traslado-sin-folio-${indice}`}>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" data-label="Folio">
                     {v.traslado_id ? (
                       <Link href={`/viajes/${v.traslado_id}`} className="font-mono-ruum text-admin-tabla text-status-info hover:underline">
                         {v.traslado_id.slice(0, 8).toUpperCase()}
@@ -180,11 +180,11 @@ export default function PaginaViajesAdmin() {
                       <span className="text-text-tertiary">Sin folio</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" data-label="Vehículo">
                     {v.vehiculo_marca} {v.vehiculo_modelo}
                     {v.vehiculo_tipo && <span className="text-text-tertiary"> · {ETIQUETA_TIPO_VEHICULO[v.vehiculo_tipo]}</span>}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" data-label="Origen">
                     {trazabilidad ? (
                       <div className="grid gap-1">
                         <span className="w-fit rounded-full border border-route-dark/25 bg-route-soft px-2.5 py-1 font-body text-xs font-semibold text-route-dark">
@@ -198,9 +198,9 @@ export default function PaginaViajesAdmin() {
                       <span className="text-text-tertiary">Individual</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">{v.conductor_nombre ?? <span className="text-text-tertiary">Sin asignar</span>}</td>
-                  <td className="px-4 py-3 font-mono-ruum">${v.precio_cotizado?.toLocaleString("es-MX") ?? "—"}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" data-label="Conductor">{v.conductor_nombre ?? <span className="text-text-tertiary">Sin asignar</span>}</td>
+                  <td className="px-4 py-3 font-mono-ruum" data-label="Monto">${v.precio_cotizado?.toLocaleString("es-MX") ?? "—"}</td>
+                  <td className="px-4 py-3" data-label="Estatus">
                     {v.estado ? <EstadoBadge estado={v.estado} /> : <span className="text-text-tertiary">Sin estado</span>}
                   </td>
                 </tr>

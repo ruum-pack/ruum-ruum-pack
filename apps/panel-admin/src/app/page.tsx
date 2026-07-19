@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Aviso, PassportCard } from "@ruum/ui";
-import { AdminHero, AdminPanel } from "./admin-ui";
+import { AdminPanel } from "./admin-ui";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../lib/supabase-browser";
 import {
   obtenerMetricasDashboard,
@@ -34,6 +34,8 @@ export default function PaginaDashboard() {
   const [conductoresDocVencido, setConductoresDocVencido] = useState<ConductorRow[]>([]);
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
+  const [ultimaSincronizacion, setUltimaSincronizacion] = useState<Date | null>(null);
+  const [ahora, setAhora] = useState<Date | null>(null);
 
   useEffect(() => {
     async function cargar() {
@@ -43,6 +45,7 @@ export default function PaginaDashboard() {
         setEmergencias([]);
         setConductoresDocVencido(CONDUCTORES_DEMO.filter((c) => !c.documentos_vigentes));
         setEsDemo(true);
+        setUltimaSincronizacion(new Date());
         setCargando(false);
         return;
       }
@@ -60,6 +63,7 @@ export default function PaginaDashboard() {
         setEmergencias(emergenciasPrioritarias);
         setConductoresDocVencido(conds.filter((c) => !c.documentos_vigentes));
         setEsDemo(false);
+        setUltimaSincronizacion(new Date());
       } catch {
         if (puedeUsarDatosDemo()) {
           setMetricas(METRICAS_DEMO);
@@ -67,6 +71,7 @@ export default function PaginaDashboard() {
           setEmergencias([]);
           setConductoresDocVencido(CONDUCTORES_DEMO.filter((c) => !c.documentos_vigentes));
           setEsDemo(true);
+          setUltimaSincronizacion(new Date());
         } else {
           setMetricas(null);
           setIncidencias([]);
@@ -81,20 +86,51 @@ export default function PaginaDashboard() {
     cargar();
   }, []);
 
+  useEffect(() => {
+    setAhora(new Date());
+    const intervalo = window.setInterval(() => setAhora(new Date()), 30000);
+    return () => window.clearInterval(intervalo);
+  }, []);
+
+  const estadoOperacion = useMemo(() => {
+    if (cargando) return "Sincronizando";
+    if (emergencias.length > 0) return "Emergencia activa";
+    if (incidencias.length > 0 || conductoresDocVencido.length > 0) return "Atención requerida";
+    return "Operación estable";
+  }, [cargando, conductoresDocVencido.length, emergencias.length, incidencias.length]);
+
+  const turno = useMemo(() => {
+    const hora = ahora?.getHours() ?? new Date().getHours();
+    if (hora >= 6 && hora < 14) return "Matutino";
+    if (hora >= 14 && hora < 22) return "Vespertino";
+    return "Nocturno";
+  }, [ahora]);
+
   return (
     <main className="admin-page-shell">
-      <AdminHero
-        titulo="Dashboard operativo"
-        subtitulo="Seguimiento de traslados, alertas, evidencia documentada y decisiones críticas de la operación."
-        accion={
+      <section className="rounded-card border border-border-default bg-surface-primary/90 px-4 py-4 shadow-[var(--ruum-shadow-1)] sm:px-5" aria-label="Cabecera operativa">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="font-mono-ruum text-admin-secundario uppercase tracking-[0.16em] text-signal">Centro de control</p>
+            <h1 className="mt-1 font-display text-xl font-semibold text-ink">Dashboard operativo</h1>
+            <p className="mt-1 font-body text-sm text-text-secondary">Seguimiento de traslados, alertas y decisiones críticas.</p>
+          </div>
           <Link
             href="/viajes"
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-signal px-4 py-2.5 font-body text-sm font-semibold shadow-sm transition-colors hover:bg-signal/90"
+            className="inline-flex shrink-0 items-center justify-center rounded-lg bg-signal px-4 py-2.5 font-body text-admin-boton font-semibold text-ink shadow-sm transition-colors hover:bg-signal/90"
           >
             Revisar traslados
           </Link>
-        }
-      />
+        </div>
+        <dl className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+          <DatoCabecera etiqueta="Estado" valor={estadoOperacion} destacado={estadoOperacion !== "Operación estable"} />
+          <DatoCabecera etiqueta="Fecha y hora" valor={ahora ? new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(ahora) : "Calculando"} />
+          <DatoCabecera etiqueta="Última sincronización" valor={ultimaSincronizacion ? new Intl.DateTimeFormat("es-MX", { timeStyle: "short" }).format(ultimaSincronizacion) : "Pendiente"} />
+          <DatoCabecera etiqueta="Conexión" valor={esDemo ? "Modo demo" : "Datos reales"} destacado={esDemo} />
+          <DatoCabecera etiqueta="Turno" valor={turno} />
+          <DatoCabecera etiqueta="Operadores activos" valor={esDemo ? "Demo" : "1 sesión"} />
+        </dl>
+      </section>
 
       {esDemo && (
         <div className="mt-4">
@@ -224,5 +260,14 @@ export default function PaginaDashboard() {
         </>
       )}
     </main>
+  );
+}
+
+function DatoCabecera({ etiqueta, valor, destacado = false }: { etiqueta: string; valor: string; destacado?: boolean }) {
+  return (
+    <div className={`rounded-lg border px-3 py-2 ${destacado ? "border-status-warning/35 bg-status-warning-soft" : "border-ink/10 bg-surface-secondary"}`}>
+      <dt className="font-body text-admin-secundario text-text-tertiary">{etiqueta}</dt>
+      <dd className={`mt-1 font-body text-sm font-semibold ${destacado ? "text-status-warning" : "text-ink"}`}>{valor}</dd>
+    </div>
   );
 }

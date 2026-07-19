@@ -9,6 +9,7 @@ import {
   GRUPOS_NAVEGACION,
   Icono,
   rutaBase,
+  type SeccionNavegacionAdmin,
   useContadoresMenu
 } from "./BarraLateral";
 
@@ -59,7 +60,7 @@ export function NavegacionAdminMovil() {
 
   if (pathname === "/login") return null;
 
-  const prioritarios = PRIORITARIOS.map(buscarDestino).filter(Boolean);
+  const prioritarios = PRIORITARIOS.map(buscarDestino).filter((destino): destino is SeccionNavegacionAdmin => Boolean(destino));
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-surface-primary/95 backdrop-blur supports-[backdrop-filter]:bg-surface-primary/85 lg:hidden">
@@ -85,7 +86,7 @@ export function NavegacionAdminMovil() {
       <nav aria-label="Accesos móviles prioritarios" className="ruum-container grid grid-cols-4 gap-1 pb-2.5">
         {prioritarios.map((destino) => {
           const activo = esActivo(pathname, destino.href);
-          const contador = "contador" in destino ? contadores[destino.contador] : undefined;
+          const contador = destino.contador ? contadores[destino.contador] : undefined;
           return (
             <Link
               key={destino.href}
@@ -162,7 +163,7 @@ export function NavegacionAdminMovil() {
                     <div className="grid gap-2">
                       {grupo.secciones.map((seccion) => {
                         const activo = esActivo(pathname, seccion.href);
-                        const contador = "contador" in seccion ? contadores[seccion.contador] : undefined;
+                        const contador = seccion.contador ? contadores[seccion.contador] : undefined;
                         return (
                           <Link
                             key={seccion.href}

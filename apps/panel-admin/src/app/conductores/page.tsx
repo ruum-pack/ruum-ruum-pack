@@ -146,7 +146,7 @@ export default function PaginaConductoresAdmin() {
         />
       </div>
 
-      <div className="mt-3 overflow-x-auto rounded-card border border-ink/10 bg-surface-primary">
+      <div className="admin-responsive-table mt-3 rounded-card border border-ink/10 bg-surface-primary">
         <table className="w-full min-w-[920px] font-body text-sm">
           <caption className="sr-only">Bandeja de solicitudes de conductor</caption>
           <thead>
@@ -167,32 +167,32 @@ export default function PaginaConductoresAdmin() {
               <tr><td colSpan={7} className="px-4 py-8 text-center text-text-tertiary">No hay solicitudes para este filtro.</td></tr>
             ) : filas.map((fila) => (
               <tr key={fila.solicitud.id} className="border-b border-ink/5 last:border-0">
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" data-label="Solicitante">
                   <p className="font-medium">{fila.nombre}</p>
                   <p className="mt-0.5 text-admin-secundario text-text-tertiary">{fila.curp ?? fila.telefono ?? fila.solicitud.id}</p>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" data-label="Estado">
                   <span className="rounded-full border border-ink/15 bg-ink/[0.04] px-2.5 py-1 text-admin-secundario font-medium">
                     {ETIQUETA_ESTADO[fila.solicitud.estado]}
                   </span>
                   {esNueva(fila) && <span className="ml-2 text-admin-secundario font-semibold text-status-info">Nueva</span>}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" data-label="Documentos">
                   <span className={fila.documentosRechazados ? "font-semibold text-status-error" : "text-text-secondary"}>
                     {fila.documentosVigentes} vigentes
                     {fila.documentosRechazados ? ` · ${fila.documentosRechazados} rechazado(s)` : ""}
                   </span>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" data-label="Consentimientos">
                   <span className={fila.consentimientosRegistrados === 4 ? "text-status-success" : "text-status-warning"}>
                     {fila.consentimientosRegistrados}/4
                   </span>
                 </td>
-                <td className="px-4 py-3 text-text-secondary">{fecha(fila.solicitud.enviado_en)}</td>
-                <td className="max-w-[220px] px-4 py-3 text-admin-secundario text-text-secondary">
+                <td className="px-4 py-3 text-text-secondary" data-label="Enviada">{fecha(fila.solicitud.enviado_en)}</td>
+                <td className="max-w-[220px] px-4 py-3 text-admin-secundario text-text-secondary" data-label="Última decisión">
                   {fila.ultimaDecision?.motivo ?? "Sin decisiones administrativas"}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-right" data-label="Acción">
                   <Link href={`/conductores/${fila.solicitud.id}`} className="font-medium text-status-info hover:underline">
                     Revisar
                   </Link>
