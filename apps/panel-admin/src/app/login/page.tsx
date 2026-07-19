@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
 import { traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 function errorInicialDesdeUrl(): string | null {
-  if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
   // Auditoría H-2 — si el middleware rechazó una sesión no-admin, muestra el
   // motivo en vez de un formulario en blanco.
@@ -22,7 +21,11 @@ export default function PaginaLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [error, setError] = useState<string | null>(errorInicialDesdeUrl);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setError(errorInicialDesdeUrl());
+  }, []);
 
   async function iniciarSesion(e: React.FormEvent) {
     e.preventDefault();
@@ -51,7 +54,7 @@ export default function PaginaLogin() {
             <p className="font-display text-lg font-extrabold tracking-tight text-ink">
               ruum<span className="text-signal">ruum</span>
             </p>
-            <p className="font-mono-ruum text-[10px] uppercase tracking-[0.14em] text-text-tertiary">Torre de Control</p>
+            <p className="font-mono-ruum text-admin-secundario uppercase tracking-[0.14em] text-text-tertiary">Torre de Control</p>
           </div>
         </div>
 

@@ -114,7 +114,7 @@ export default function PaginaIncidenciasAdmin() {
                 key={item}
                 onClick={() => setTipo(item)}
                 className={[
-                  "rounded-full border px-3 py-1.5 font-body text-xs font-semibold",
+                  "rounded-full border px-3 py-1.5 font-body text-admin-boton font-semibold",
                   tipo === item ? "border-signal bg-signal-soft text-ink" : "border-ink/10 text-text-secondary hover:border-ink/25"
                 ].join(" ")}
               >

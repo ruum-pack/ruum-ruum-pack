@@ -131,21 +131,21 @@ function TarjetaSLA({
         <div className="min-w-0">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             {alerta.vencido && (
-              <span className="rounded-full bg-status-error px-2 py-0.5 font-mono-ruum text-[10px] text-background-main">
+              <span className="rounded-full bg-status-error px-2 py-0.5 font-mono-ruum text-admin-secundario text-background-main">
                 VENCIDO
               </span>
             )}
             {!alerta.vencido && alerta.requiere_alerta && (
-              <span className="rounded-full bg-status-warning px-2 py-0.5 font-mono-ruum text-[10px] text-background-main">
+              <span className="rounded-full bg-status-warning px-2 py-0.5 font-mono-ruum text-admin-secundario text-background-main">
                 URGENTE
               </span>
             )}
-            <span className="font-mono-ruum text-[10px] uppercase tracking-wide text-text-tertiary">
+            <span className="font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary">
               {ETIQUETA_TIPO[alerta.tipo]}
             </span>
           </div>
           <p className="font-display text-sm font-semibold leading-tight">{alerta.nombre}</p>
-          <p className="font-mono-ruum text-[10px] text-text-tertiary">
+          <p className="font-mono-ruum text-admin-secundario text-text-tertiary">
             {alerta.id.startsWith("demo-") ? "ID demo" : alerta.id.slice(0, 8).toUpperCase()}
           </p>
         </div>
@@ -157,18 +157,18 @@ function TarjetaSLA({
           >
             {alerta.porcentaje_consumido}%
           </p>
-          <p className="font-mono-ruum text-[10px] text-text-tertiary">del SLA</p>
+          <p className="font-mono-ruum text-admin-secundario text-text-tertiary">del SLA</p>
         </div>
       </div>
 
       <BarraSLA porcentaje={alerta.porcentaje_consumido} vencido={alerta.vencido} />
 
       <div className="mt-2 flex items-center justify-between">
-        <p className="font-mono-ruum text-[10px] text-text-tertiary">
+        <p className="font-mono-ruum text-admin-secundario text-text-tertiary">
           {alerta.horas_transcurridas.toFixed(1)} h transcurridas · límite {LIMITE_ETIQUETA[alerta.tipo]}
         </p>
         <p
-          className={`font-mono-ruum text-[10px] ${
+          className={`font-mono-ruum text-admin-secundario ${
             alerta.vencido ? "text-status-error" : "text-text-tertiary"
           }`}
         >
@@ -181,13 +181,13 @@ function TarjetaSLA({
       <div className="mt-3 flex items-center gap-2">
         <Link
           href={RUTA_DESTINO[alerta.tipo]}
-          className="flex-1 rounded-lg border border-ink/50 bg-surface-primary py-2 text-center font-body text-xs text-text-secondary hover:bg-surface-secondary transition-colors"
+          className="flex-1 rounded-lg border border-ink/50 bg-surface-primary py-2 text-center font-body text-admin-boton text-text-secondary hover:bg-surface-secondary transition-colors"
         >
           {esUsuario ? "Ver usuario" : "Ver conductor"} →
         </Link>
         <button
           onClick={() => onResolver(alerta.id, alerta.tipo)}
-          className="flex-1 rounded-lg border border-status-success/30 bg-status-success-soft py-2 font-body text-xs text-status-success hover:bg-status-success hover:text-background-main transition-colors"
+          className="flex-1 rounded-lg border border-status-success/30 bg-status-success-soft py-2 font-body text-admin-boton text-status-success hover:bg-status-success hover:text-background-main transition-colors"
         >
           Marcar en revisión
         </button>

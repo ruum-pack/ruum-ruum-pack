@@ -126,7 +126,7 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
               maxLength={500}
               aria-label="Motivo del rechazo"
             />
-            <span className="text-right font-body text-[11px] text-text-tertiary">{motivoRechazo.length}/500</span>
+            <span className="text-right font-body text-admin-secundario text-text-tertiary">{motivoRechazo.length}/500</span>
           </label>
           <div className="mt-3 flex gap-2">
             <Button

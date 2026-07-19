@@ -19,6 +19,11 @@
   --color-status-info: var(--ruum-status-info);
   --color-status-info-soft: var(--ruum-status-info-soft);
   --color-focus-default: var(--ruum-focus-default);
+  --text-admin-operativo: var(--ruum-admin-text-operativo);
+  --text-admin-secundario: var(--ruum-admin-text-secundario);
+  --text-admin-compacto: var(--ruum-admin-text-compacto);
+  --text-admin-boton: var(--ruum-admin-text-boton);
+  --text-admin-tabla: var(--ruum-admin-text-tabla);
 }
 
 /* =========================================================================
@@ -89,6 +94,12 @@
   --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.4);
   --ruum-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.55);
   --ruum-shadow-4: 0 24px 64px rgba(0, 0, 0, 0.65);
+  --ruum-admin-text-operativo: 14px;
+  --ruum-admin-text-secundario: 12px;
+  --ruum-admin-text-compacto: 11px;
+  --ruum-admin-text-boton: 13px;
+  --ruum-admin-text-tabla: 14px;
+  --ruum-admin-touch-target: 40px;
 }
 
 /* Lienzo con los mismos resplandores radiales del onboarding. */
@@ -103,6 +114,49 @@ body {
 ::selection {
   background: var(--color-signal);
   color: var(--ruum-surface-strong);
+}
+
+html {
+  scroll-padding-top: 96px;
+}
+
+:where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"]), [role="button"]):focus-visible {
+  outline: 3px solid var(--ruum-focus-default);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--ruum-focus-ring);
+}
+
+:where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"]), [role="button"]) {
+  scroll-margin-top: 96px;
+}
+
+body :where(button, [role="button"], input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea) {
+  min-width: var(--ruum-admin-touch-target);
+  min-height: var(--ruum-admin-touch-target);
+}
+
+body :where(a.inline-flex, a.inline-block, a.block, a.flex, a[class*="rounded"]) {
+  min-height: var(--ruum-admin-touch-target);
+}
+
+body :where(button, a[href], [role="button"]) svg {
+  flex-shrink: 0;
+}
+
+.admin-table-card tbody tr:focus-within {
+  background: color-mix(in srgb, var(--ruum-focus-default) 12%, transparent);
+  outline: 2px solid var(--ruum-focus-default);
+  outline-offset: -2px;
+}
+
+.mapboxgl-ctrl button,
+.mapboxgl-marker button {
+  min-width: var(--ruum-admin-touch-target);
+  min-height: var(--ruum-admin-touch-target);
+}
+
+.mapboxgl-marker button:focus-visible {
+  transform: scale(1.28);
 }
 
 .admin-content {

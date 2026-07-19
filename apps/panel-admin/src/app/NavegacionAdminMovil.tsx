@@ -71,9 +71,9 @@ export function NavegacionAdminMovil() {
           <span className="font-display text-sm font-extrabold tracking-tight text-ink">
             ruum<span className="text-signal">ruum</span>
           </span>
-          <span className="font-mono-ruum text-[9px] uppercase tracking-[0.12em] text-text-tertiary">Control</span>
+          <span className="font-mono-ruum text-admin-secundario uppercase tracking-[0.12em] text-text-tertiary">Control</span>
         </Link>
-        <Link href="/viajes" className="inline-flex min-h-10 items-center rounded-lg bg-signal px-3 py-2 font-body text-xs font-bold text-ink shadow-sm">
+        <Link href="/viajes" className="inline-flex min-h-10 items-center rounded-lg bg-signal px-3 py-2 font-body text-admin-boton font-bold text-ink shadow-sm">
           Ver traslados
         </Link>
       </div>
@@ -86,7 +86,7 @@ export function NavegacionAdminMovil() {
               href={destino.href}
               aria-current={activo ? "page" : undefined}
               className={[
-                "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 font-body text-xs font-semibold",
+                "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 font-body text-admin-boton font-semibold",
                 activo ? "bg-signal text-ink" : "border border-ink/10 bg-surface-primary text-text-secondary",
               ].join(" ")}
             >

@@ -182,13 +182,13 @@ export function BarraLateral() {
             <span className="text-signal">ruum</span>ruum
           </span>
         </span>
-        <p className={`mt-0.5 font-mono-ruum text-[10px] uppercase tracking-widest text-text-tertiary ${colapsada ? "hidden" : "hidden lg:block"}`}>
+        <p className={`mt-0.5 font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary ${colapsada ? "hidden" : "hidden lg:block"}`}>
           Torre de Control
         </p>
         <button
           type="button"
           onClick={alternarColapso}
-          className="mt-4 hidden rounded-md border border-mist/15 px-2.5 py-1.5 font-mono-ruum text-[10px] uppercase tracking-wide text-text-tertiary transition-colors hover:bg-surface-primary/5 hover:text-text-secondary lg:block"
+          className="mt-4 hidden rounded-md border border-mist/15 px-2.5 py-1.5 font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary transition-colors hover:bg-surface-primary/5 hover:text-text-secondary lg:block"
           aria-label={colapsada ? "Expandir navegación" : "Colapsar navegación"}
         >
           {colapsada ? ">>" : "<<"}
@@ -198,7 +198,7 @@ export function BarraLateral() {
       <nav className="flex-1 space-y-5 overflow-y-auto px-2 pb-3 lg:px-3" aria-label="Secciones del panel">
         {GRUPOS_NAVEGACION.map((grupo) => (
           <div key={grupo.titulo}>
-            <p className={`mb-1.5 px-2 font-mono-ruum text-[10px] uppercase tracking-widest text-text-tertiary ${colapsada ? "hidden" : "hidden lg:block"}`}>
+            <p className={`mb-1.5 px-2 font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary ${colapsada ? "hidden" : "hidden lg:block"}`}>
               {grupo.titulo}
             </p>
             <div className="space-y-0.5">
@@ -236,7 +236,7 @@ export function BarraLateral() {
                 <Icono nombre={s.icono} />
               </span>
               <span className={colapsada ? "hidden" : "hidden lg:inline"}>{s.etiqueta}</span>
-              <span className={`ml-auto font-mono-ruum text-[9px] uppercase tracking-wide ${colapsada ? "hidden" : "hidden lg:inline"}`}>
+              <span className={`ml-auto font-mono-ruum text-admin-secundario uppercase tracking-wide ${colapsada ? "hidden" : "hidden lg:inline"}`}>
                 Próximamente
               </span>
             </div>

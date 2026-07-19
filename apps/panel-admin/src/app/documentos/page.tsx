@@ -139,7 +139,7 @@ export default function PaginaDocumentosAdmin() {
                       <div>
                         <p className="font-body text-sm font-semibold">{conductor.nombre}</p>
                         <p className="mt-1 font-body text-sm text-text-secondary">Licencia, identificación, comprobante de domicilio y constancia fiscal</p>
-                        <p className="mt-1 font-body text-xs text-text-tertiary">ID {conductor.id.slice(0, 8).toUpperCase()} · Actualizado {new Date(conductor.actualizado_en).toLocaleString("es-MX")}</p>
+                        <p className="mt-1 font-body text-admin-secundario text-text-tertiary">ID {conductor.id.slice(0, 8).toUpperCase()} · Actualizado {new Date(conductor.actualizado_en).toLocaleString("es-MX")}</p>
                       </div>
                       <Badge estado={estadoConductor(conductor)} />
                     </div>
@@ -164,7 +164,7 @@ export default function PaginaDocumentosAdmin() {
                         <p className="mt-1 font-body text-sm text-text-secondary">
                           {usuario.tipo_cuenta === "empresa" ? "Constancia fiscal y datos de facturación" : "Identificación y datos de contacto"}
                         </p>
-                        <p className="mt-1 font-body text-xs text-text-tertiary">
+                        <p className="mt-1 font-body text-admin-secundario text-text-tertiary">
                           {usuario.rol.replaceAll("_", " ")} · {usuario.correo_facturacion ?? usuario.telefono ?? "Sin correo/teléfono registrado"}
                         </p>
                       </div>

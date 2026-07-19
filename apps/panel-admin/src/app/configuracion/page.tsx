@@ -57,7 +57,7 @@ export default function PaginaConfiguracionAdmin() {
           <PassportCard key={item}>
             <div className="flex items-center justify-between gap-4">
               <p className="font-body text-sm font-semibold">{item}</p>
-              <span className="rounded-full border border-ink/15 px-2.5 py-1 font-mono-ruum text-[10px] uppercase tracking-wide text-text-tertiary">
+              <span className="rounded-full border border-ink/15 px-2.5 py-1 font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary">
                 Próximamente
               </span>
             </div>

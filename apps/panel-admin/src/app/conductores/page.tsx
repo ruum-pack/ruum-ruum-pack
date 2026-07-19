@@ -120,7 +120,7 @@ export default function PaginaConductoresAdmin() {
             type="button"
             onClick={() => setFiltro(valor)}
             aria-pressed={filtro === valor}
-            className={`rounded-full border px-3 py-1.5 font-body text-xs font-medium transition ${
+            className={`rounded-full border px-3 py-1.5 font-body text-admin-boton font-medium transition ${
               filtro === valor ? "border-status-info bg-status-info text-background-main" : "border-ink/15 bg-surface-primary text-text-secondary hover:border-status-info/40"
             }`}
           >
@@ -164,13 +164,13 @@ export default function PaginaConductoresAdmin() {
               <tr key={fila.solicitud.id} className="border-b border-ink/5 last:border-0">
                 <td className="px-4 py-3">
                   <p className="font-medium">{fila.nombre}</p>
-                  <p className="mt-0.5 text-xs text-text-tertiary">{fila.curp ?? fila.telefono ?? fila.solicitud.id}</p>
+                  <p className="mt-0.5 text-admin-secundario text-text-tertiary">{fila.curp ?? fila.telefono ?? fila.solicitud.id}</p>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="rounded-full border border-ink/15 bg-ink/[0.04] px-2.5 py-1 text-xs font-medium">
+                  <span className="rounded-full border border-ink/15 bg-ink/[0.04] px-2.5 py-1 text-admin-secundario font-medium">
                     {ETIQUETA_ESTADO[fila.solicitud.estado]}
                   </span>
-                  {esNueva(fila) && <span className="ml-2 text-xs font-semibold text-status-info">Nueva</span>}
+                  {esNueva(fila) && <span className="ml-2 text-admin-secundario font-semibold text-status-info">Nueva</span>}
                 </td>
                 <td className="px-4 py-3">
                   <span className={fila.documentosRechazados ? "font-semibold text-status-error" : "text-text-secondary"}>
@@ -184,7 +184,7 @@ export default function PaginaConductoresAdmin() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{fecha(fila.solicitud.enviado_en)}</td>
-                <td className="max-w-[220px] px-4 py-3 text-xs text-text-secondary">
+                <td className="max-w-[220px] px-4 py-3 text-admin-secundario text-text-secondary">
                   {fila.ultimaDecision?.motivo ?? "Sin decisiones administrativas"}
                 </td>
                 <td className="px-4 py-3 text-right">

@@ -417,7 +417,7 @@ export default function PaginaTrasladosMasivosAdmin() {
                 <tbody>
                   {filasCsv.slice(0, 80).map((fila) => (
                     <tr key={fila.numero}>
-                      <td className="font-mono-ruum text-xs">{fila.numero}</td>
+                      <td className="font-mono-ruum text-admin-tabla">{fila.numero}</td>
                       <td>{fila.datos.referencia_externa || "Sin referencia"}</td>
                       <td>{fila.datos.vehiculo_marca} {fila.datos.vehiculo_modelo}</td>
                       <td>{fila.datos.origen_ciudad || "Origen"} → {fila.datos.destino_ciudad || "Destino"}</td>
@@ -425,7 +425,7 @@ export default function PaginaTrasladosMasivosAdmin() {
                         {fila.errores.length === 0 ? (
                           <span className="rounded-full border border-status-success/30 bg-status-success-soft px-2.5 py-1 font-body text-xs font-semibold text-status-success">Lista</span>
                         ) : (
-                          <span className="font-body text-xs text-status-error">{fila.errores.join(", ")}</span>
+                          <span className="font-body text-admin-secundario text-status-error">{fila.errores.join(", ")}</span>
                         )}
                       </td>
                     </tr>
@@ -495,14 +495,14 @@ export default function PaginaTrasladosMasivosAdmin() {
                 const errores = (filasPorCarga.get(carga.id) ?? []).filter((fila) => fila.estado === "error");
                 return (
                   <tr key={carga.id}>
-                    <td className="font-mono-ruum text-xs text-status-info">{carga.id.slice(0, 8).toUpperCase()}</td>
+                    <td className="font-mono-ruum text-admin-tabla text-status-info">{carga.id.slice(0, 8).toUpperCase()}</td>
                     <td>{carga.nombre_archivo}</td>
                     <td>{carga.filas_creadas} creadas · {carga.filas_error} error</td>
                     <td>
                       <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-semibold ${estadoCarga(carga.estado)}`}>
                         {carga.estado.replaceAll("_", " ")}
                       </span>
-                      {errores[0]?.errores[0] && <p className="mt-1 text-xs text-status-error">{errores[0].errores[0]}</p>}
+                      {errores[0]?.errores[0] && <p className="mt-1 text-admin-secundario text-status-error">{errores[0].errores[0]}</p>}
                     </td>
                     <td className="font-body text-sm text-text-secondary">{fecha(carga.creado_en)}</td>
                   </tr>

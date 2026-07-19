@@ -203,11 +203,11 @@ export default function PaginaVehiculosAdmin() {
                     </td>
                     <td>
                       <p className="font-body text-sm text-ink">{usuario?.nombre ?? usuario?.razon_social ?? "Usuario sin nombre"}</p>
-                      <p className="mt-1 font-mono-ruum text-[11px] text-text-tertiary">{usuario?.correo_facturacion ?? vehiculo.usuario_id.slice(0, 8).toUpperCase()}</p>
+                      <p className="mt-1 font-mono-ruum text-admin-tabla text-text-tertiary">{usuario?.correo_facturacion ?? vehiculo.usuario_id.slice(0, 8).toUpperCase()}</p>
                     </td>
                     <td>
                       <p className="font-mono-ruum text-xs text-ink">{vehiculo.placas ?? "Sin placas"}</p>
-                      <p className="mt-1 font-mono-ruum text-[11px] text-text-tertiary">{vehiculo.vin ?? "VIN pendiente"}</p>
+                      <p className="mt-1 font-mono-ruum text-admin-tabla text-text-tertiary">{vehiculo.vin ?? "VIN pendiente"}</p>
                     </td>
                     <td>
                       <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-semibold ${documental.clase}`}>{documental.texto}</span>

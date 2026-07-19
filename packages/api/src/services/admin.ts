@@ -52,6 +52,32 @@ export interface DatosEmpresasAdmin {
   traslados: TrasladoRow[];
 }
 
+export interface AltaEmpresaCorporativa {
+  empresa: {
+    nombre: string;
+    rfc: string;
+    razon_social?: string;
+    regimen_fiscal?: string;
+    codigo_postal_fiscal?: string;
+    uso_cfdi?: string;
+    correo_facturacion?: string;
+    condiciones_pago?: string;
+    estado_verificacion?: EstadoVerificacion;
+  };
+  titular: {
+    nombre: string;
+    telefono?: string;
+    correo_facturacion: string;
+    estado_verificacion?: EstadoVerificacion;
+    metodo_pago_registrado?: boolean;
+  };
+}
+
+export interface ResultadoAltaEmpresaCorporativa {
+  empresa_id: string;
+  usuario_id: string;
+}
+
 export interface FilaTrasladoMasivoNormalizada {
   referencia_externa?: string;
   vehiculo_placas?: string;
@@ -134,6 +160,11 @@ export interface FilaCargaTrasladosMasivosAdmin {
 export interface DatosTrasladosMasivosAdmin {
   cargas: CargaTrasladosMasivosAdmin[];
   filas: FilaCargaTrasladosMasivosAdmin[];
+}
+
+export interface TrazabilidadMasivaTraslado {
+  carga: CargaTrasladosMasivosAdmin;
+  fila: FilaCargaTrasladosMasivosAdmin;
 }
 
 export interface SolicitudConductorBandejaAdmin {
@@ -485,6 +516,37 @@ export async function listarEmpresasAdmin(cliente: Cliente): Promise<DatosEmpres
   };
 }
 
+export async function crearEmpresaCorporativaAdmin(
+  cliente: Cliente,
+  datos: AltaEmpresaCorporativa
+): Promise<ResultadoAltaEmpresaCorporativa> {
+  if (!datos.empresa.nombre.trim()) throw new Error("Captura el nombre comercial de la empresa.");
+  if (!datos.empresa.rfc.trim()) throw new Error("Captura el RFC de la empresa.");
+  if (!datos.titular.nombre.trim()) throw new Error("Captura el nombre del titular.");
+  if (!datos.titular.correo_facturacion.trim()) throw new Error("Captura el correo del titular.");
+
+  const rpc = cliente.rpc as unknown as (
+    fn: "admin_crea_empresa_corporativa",
+    args: { p_empresa: AltaEmpresaCorporativa["empresa"]; p_titular: AltaEmpresaCorporativa["titular"] }
+  ) => Promise<{ data: ResultadoAltaEmpresaCorporativa | null; error: Error | null }>;
+
+  const { data, error } = await rpc("admin_crea_empresa_corporativa", {
+    p_empresa: {
+      ...datos.empresa,
+      nombre: datos.empresa.nombre.trim(),
+      rfc: datos.empresa.rfc.trim().toUpperCase()
+    },
+    p_titular: {
+      ...datos.titular,
+      nombre: datos.titular.nombre.trim(),
+      correo_facturacion: datos.titular.correo_facturacion.trim().toLowerCase()
+    }
+  });
+  if (error) throw error;
+  if (!data) throw new Error("No se pudo confirmar el alta corporativa.");
+  return data;
+}
+
 export async function listarCargasTrasladosMasivosAdmin(cliente: Cliente): Promise<DatosTrasladosMasivosAdmin> {
   type ConsultaLibre<T> = {
     select: (columnas: string) => {
@@ -504,6 +566,40 @@ export async function listarCargasTrasladosMasivosAdmin(cliente: Cliente): Promi
     cargas: cargas.data ?? [],
     filas: filas.data ?? []
   };
+}
+
+export async function obtenerTrazabilidadMasivaTraslado(
+  cliente: Cliente,
+  trasladoId: string
+): Promise<TrazabilidadMasivaTraslado | null> {
+  type ConsultaDetalle<T> = {
+    select: (columnas: string) => {
+      eq: (columna: string, valor: string) => {
+        maybeSingle: () => Promise<{ data: T | null; error: Error | null }>;
+      };
+    };
+  };
+
+  const clienteLibre = cliente as unknown as { from: <T>(tabla: string) => ConsultaDetalle<T> };
+  const { data: fila, error: errorFila } = await clienteLibre
+    .from<FilaCargaTrasladosMasivosAdmin>("filas_carga_traslados_masivos")
+    .select("*")
+    .eq("traslado_id", trasladoId)
+    .maybeSingle();
+
+  if (errorFila) throw errorFila;
+  if (!fila) return null;
+
+  const { data: carga, error: errorCarga } = await clienteLibre
+    .from<CargaTrasladosMasivosAdmin>("cargas_traslados_masivos")
+    .select("*")
+    .eq("id", fila.carga_id)
+    .maybeSingle();
+
+  if (errorCarga) throw errorCarga;
+  if (!carga) return null;
+
+  return { carga, fila };
 }
 
 export async function crearTrasladosMasivosAdmin(

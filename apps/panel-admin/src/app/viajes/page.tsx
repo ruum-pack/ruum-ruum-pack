@@ -6,7 +6,7 @@ import { AdminPageHeader, AdminPanel } from "../admin-ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
-import { listarViajesAdmin } from "@ruum/api/services";
+import { listarCargasTrasladosMasivosAdmin, listarViajesAdmin, type TrazabilidadMasivaTraslado } from "@ruum/api/services";
 import { VIAJES_DEMO } from "../../lib/datos-demo";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -26,6 +26,7 @@ const PESTANAS: { id: string; etiqueta: string; filtro: EstadoTraslado | "todos"
 export default function PaginaViajesAdmin() {
   const [pestana, setPestana] = useState(PESTANAS[0]!.id);
   const [traslados, setTraslados] = useState<PasaporteRow[]>([]);
+  const [trazabilidadPorTraslado, setTrazabilidadPorTraslado] = useState<Map<string, TrazabilidadMasivaTraslado>>(new Map());
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -45,15 +46,30 @@ export default function PaginaViajesAdmin() {
       setCargando(true);
       try {
         const cliente = crearClienteNavegador();
-        setTraslados(await listarViajesAdmin(cliente, filtroActual));
+        const [lista, masivos] = await Promise.all([
+          listarViajesAdmin(cliente, filtroActual),
+          listarCargasTrasladosMasivosAdmin(cliente)
+        ]);
+        const cargasPorId = new Map(masivos.cargas.map((carga) => [carga.id, carga]));
+        setTrazabilidadPorTraslado(new Map(
+          masivos.filas
+            .filter((fila) => fila.traslado_id)
+            .flatMap((fila) => {
+              const carga = cargasPorId.get(fila.carga_id);
+              return carga && fila.traslado_id ? [[fila.traslado_id, { carga, fila } as TrazabilidadMasivaTraslado]] : [];
+            })
+        ));
+        setTraslados(lista);
         setEsDemo(false);
       } catch {
         if (puedeUsarDatosDemo()) {
           const lista = filtroActual === "todos" ? VIAJES_DEMO : VIAJES_DEMO.filter((v) => v.estado === filtroActual);
           setTraslados(lista);
+          setTrazabilidadPorTraslado(new Map());
           setEsDemo(true);
         } else {
           setTraslados([]);
+          setTrazabilidadPorTraslado(new Map());
           setEsDemo(false);
         }
       } finally {
@@ -131,6 +147,7 @@ export default function PaginaViajesAdmin() {
             <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-text-tertiary">
               <th className="px-4 py-3">Folio</th>
               <th className="px-4 py-3">Vehículo</th>
+              <th className="px-4 py-3">Origen</th>
               <th className="px-4 py-3">Conductor</th>
               <th className="px-4 py-3">Monto</th>
               <th className="px-4 py-3">Estatus</th>
@@ -139,22 +156,24 @@ export default function PaginaViajesAdmin() {
           <tbody>
             {cargando ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">
+                <td colSpan={6} className="px-4 py-6 text-center text-text-tertiary">
                   Cargando…
                 </td>
               </tr>
             ) : trasladosFiltrados.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">
+                <td colSpan={6} className="px-4 py-6 text-center text-text-tertiary">
                   {busqueda.trim() ? "No encontramos traslados con esa búsqueda." : "No hay traslados en esta pestaña."}
                 </td>
               </tr>
             ) : (
-              trasladosFiltrados.map((v, indice) => (
+              trasladosFiltrados.map((v, indice) => {
+                const trazabilidad = v.traslado_id ? trazabilidadPorTraslado.get(v.traslado_id) : null;
+                return (
                 <tr key={v.traslado_id ?? `traslado-sin-folio-${indice}`}>
                   <td className="px-4 py-3">
                     {v.traslado_id ? (
-                      <Link href={`/viajes/${v.traslado_id}`} className="font-mono-ruum text-xs text-status-info hover:underline">
+                      <Link href={`/viajes/${v.traslado_id}`} className="font-mono-ruum text-admin-tabla text-status-info hover:underline">
                         {v.traslado_id.slice(0, 8).toUpperCase()}
                       </Link>
                     ) : (
@@ -165,13 +184,28 @@ export default function PaginaViajesAdmin() {
                     {v.vehiculo_marca} {v.vehiculo_modelo}
                     {v.vehiculo_tipo && <span className="text-text-tertiary"> · {ETIQUETA_TIPO_VEHICULO[v.vehiculo_tipo]}</span>}
                   </td>
+                  <td className="px-4 py-3">
+                    {trazabilidad ? (
+                      <div className="grid gap-1">
+                        <span className="w-fit rounded-full border border-route-dark/25 bg-route-soft px-2.5 py-1 font-body text-xs font-semibold text-route-dark">
+                          Masivo
+                        </span>
+                        <span className="font-mono-ruum text-admin-secundario text-text-tertiary">
+                          {trazabilidad.fila.referencia_externa ?? trazabilidad.carga.nombre_archivo}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-text-tertiary">Individual</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">{v.conductor_nombre ?? <span className="text-text-tertiary">Sin asignar</span>}</td>
                   <td className="px-4 py-3 font-mono-ruum">${v.precio_cotizado?.toLocaleString("es-MX") ?? "—"}</td>
                   <td className="px-4 py-3">
                     {v.estado ? <EstadoBadge estado={v.estado} /> : <span className="text-text-tertiary">Sin estado</span>}
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>

@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   aplicarTarifaNormativaAdmin,
   ajustarPrecioFinalAdmin,
+  crearEmpresaCorporativaAdmin,
   crearTrasladosMasivosAdmin,
   listarViajesAdmin,
+  obtenerTrazabilidadMasivaTraslado,
   obtenerMetricasRegistroConductor
 } from "./admin";
 import { crearClienteFake } from "./__tests__/supabase-fake";
@@ -155,6 +157,83 @@ describe("servicios admin", () => {
       p_usuario_id: "usuario-1",
       p_nombre_archivo: "traslados.csv",
       p_filas: [expect.objectContaining({ vehiculo_placas: "ABC123" })]
+    });
+  });
+
+  it("obtiene trazabilidad masiva por traslado", async () => {
+    const cliente = crearClienteFake({
+      tablas: {
+        filas_carga_traslados_masivos: {
+          data: {
+            id: "fila-1",
+            carga_id: "carga-1",
+            numero_fila: 4,
+            estado: "creada",
+            referencia_externa: "CORP-44",
+            datos: {},
+            errores: [],
+            vehiculo_id: "vehiculo-1",
+            traslado_id: "traslado-1",
+            creado_en: "2026-07-18T00:00:00.000Z"
+          }
+        },
+        cargas_traslados_masivos: {
+          data: {
+            id: "carga-1",
+            empresa_id: "empresa-1",
+            usuario_id: "usuario-1",
+            creado_por_admin_id: "admin-1",
+            nombre_archivo: "masivos.csv",
+            total_filas: 4,
+            filas_creadas: 4,
+            filas_error: 0,
+            estado: "procesada",
+            creado_en: "2026-07-18T00:00:00.000Z"
+          }
+        }
+      }
+    });
+
+    await expect(obtenerTrazabilidadMasivaTraslado(cliente as never, "traslado-1")).resolves.toMatchObject({
+      fila: { referencia_externa: "CORP-44" },
+      carga: { nombre_archivo: "masivos.csv" }
+    });
+  });
+
+  it("crea empresa corporativa con titular por RPC y valida datos mínimos", async () => {
+    const cliente = crearClienteFake({
+      rpcs: {
+        admin_crea_empresa_corporativa: {
+          data: { empresa_id: "empresa-1", usuario_id: "usuario-1" }
+        }
+      }
+    });
+
+    await expect(
+      crearEmpresaCorporativaAdmin(cliente as never, {
+        empresa: { nombre: "Flotilla Norte", rfc: "" },
+        titular: { nombre: "Ana Operaciones", correo_facturacion: "ana@empresa.test" }
+      })
+    ).rejects.toThrow("Captura el RFC de la empresa.");
+
+    await expect(
+      crearEmpresaCorporativaAdmin(cliente as never, {
+        empresa: {
+          nombre: "Flotilla Norte",
+          rfc: "abc010101ab1",
+          condiciones_pago: "Pago semanal"
+        },
+        titular: {
+          nombre: "Ana Operaciones",
+          telefono: "+525500000000",
+          correo_facturacion: "ANA@EMPRESA.TEST"
+        }
+      })
+    ).resolves.toEqual({ empresa_id: "empresa-1", usuario_id: "usuario-1" });
+
+    expect(cliente.rpc).toHaveBeenCalledWith("admin_crea_empresa_corporativa", {
+      p_empresa: expect.objectContaining({ nombre: "Flotilla Norte", rfc: "ABC010101AB1" }),
+      p_titular: expect.objectContaining({ nombre: "Ana Operaciones", correo_facturacion: "ana@empresa.test" })
     });
   });
 });

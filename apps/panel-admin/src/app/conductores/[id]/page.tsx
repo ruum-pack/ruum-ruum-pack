@@ -235,7 +235,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
               <div key={c.id} className="rounded-lg border border-ink/10 px-3 py-2 font-body text-sm">
                 <p className="font-medium">{ETIQUETA_CONSENTIMIENTO[c.tipo_documento]}</p>
                 <p className="mt-0.5 text-xs text-text-tertiary">Versión {c.version} · {fecha(c.aceptado_en)} · {c.canal}</p>
-                <p className="mt-1 truncate font-mono-ruum text-[10px] text-text-tertiary" title={c.hash_documento}>Hash {c.hash_documento}</p>
+                <p className="mt-1 break-all font-mono-ruum text-admin-secundario text-text-tertiary">Hash {c.hash_documento}</p>
               </div>
             ))}
           </div>

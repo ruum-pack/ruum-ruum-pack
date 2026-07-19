@@ -60,6 +60,14 @@ PRD §17.4, bloque 7 ("Notas internas") no tenía ninguna tabla en el esquema. S
 Igual criterio que las otras dos apps: sin `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`, todo el
 panel es navegable con datos de ejemplo, siempre marcados como tales.
 
+## Componentes administrativos
+
+Los controles nuevos del panel deben usar `src/app/admin-components.tsx`: `AdminButton`, `AdminIconButton`,
+`AdminInput`, `AdminSelect`, `AdminTextarea`, `AdminDialog`, `AdminDrawer`, `AdminTabs`, `AdminBadge`,
+`AdminTooltip`, `AdminEmptyState`, `AdminErrorState`, `AdminLoadingState` y `AdminLastUpdated`.
+
+La guía mínima de variantes, estados y requisitos ARIA está en `ADMIN_COMPONENTS.md`.
+
 ## Pendiente (siguientes cortes)
 
 - Roles internos (PRD §17.15: Super admin, Operador de Torre, Supervisor, Validador documental, Finanzas,

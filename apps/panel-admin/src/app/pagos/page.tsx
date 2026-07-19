@@ -153,8 +153,8 @@ export default function PaginaPagosAdmin() {
                       <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(pago.monto)}</td>
                       <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{pago.metodo} · {pago.momento.replaceAll("_", " ")}</td>
                       <td className="border-b border-ink/10 px-3 py-3"><Badge>{pago.estado}</Badge></td>
-                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-text-secondary">{pago.stripe_payment_intent_id ?? "Pendiente"}</td>
-                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-text-secondary">{pago.stripe_event_id ?? "Sin evento"}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-admin-tabla text-text-secondary">{pago.stripe_payment_intent_id ?? "Pendiente"}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-admin-tabla text-text-secondary">{pago.stripe_event_id ?? "Sin evento"}</td>
                       <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{fecha(pago.registrado_en)}</td>
                     </tr>
                   );
@@ -179,7 +179,7 @@ export default function PaginaPagosAdmin() {
                       <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(payout.ajustes)}</td>
                       <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum">{moneda(payout.monto_neto)}</td>
                       <td className="border-b border-ink/10 px-3 py-3"><Badge>{payout.estado}</Badge></td>
-                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-text-secondary">{payout.referencia_pago ?? "Pendiente"}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-admin-tabla text-text-secondary">{payout.referencia_pago ?? "Pendiente"}</td>
                       <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{fecha(payout.procesado_en)}</td>
                     </tr>
                   );
@@ -200,8 +200,8 @@ export default function PaginaPagosAdmin() {
                     <tr key={cuenta.id} className="align-top">
                       <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{conductor?.nombre ?? cuenta.conductor_id.slice(0, 8)}</td>
                       <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{cuenta.banco}</td>
-                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-text-secondary">{ultimos4(cuenta.clabe)}</td>
-                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-xs text-text-secondary">{ultimos4(cuenta.numero_tarjeta)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-admin-tabla text-text-secondary">{ultimos4(cuenta.clabe)}</td>
+                      <td className="border-b border-ink/10 px-3 py-3 font-mono-ruum text-admin-tabla text-text-secondary">{ultimos4(cuenta.numero_tarjeta)}</td>
                       <td className="border-b border-ink/10 px-3 py-3"><Badge>{cuenta.estado.replaceAll("_", " ")}</Badge></td>
                       <td className="border-b border-ink/10 px-3 py-3 text-text-secondary">{fecha(cuenta.actualizado_en)}</td>
                     </tr>

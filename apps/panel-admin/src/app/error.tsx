@@ -27,7 +27,7 @@ export default function ErrorGlobalAdmin({
         Ocurrió un error inesperado en el panel. Puedes reintentar o volver al dashboard.
       </p>
       {process.env.NODE_ENV === "development" && error.message && (
-        <p className="mt-4 max-w-lg font-mono text-[11px] text-status-error opacity-70">{error.message}</p>
+        <p className="mt-4 max-w-lg font-mono text-admin-secundario text-status-error opacity-70">{error.message}</p>
       )}
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <button

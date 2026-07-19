@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import Image from "next/image";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import {
@@ -32,6 +32,17 @@ const ETIQUETA_ESTADO: Record<string, string> = {
   vigente: "Vigente",
   archivada: "Archivada"
 };
+
+const SECCIONES_TARIFAS = [
+  { id: "resumen", etiqueta: "Resumen" },
+  { id: "base", etiqueta: "Tarifas base" },
+  { id: "factores", etiqueta: "Factores" },
+  { id: "simulador", etiqueta: "Simulador" },
+  { id: "versiones", etiqueta: "Versiones" },
+  { id: "auditoria", etiqueta: "Auditoría" }
+] as const;
+
+type SeccionTarifas = (typeof SECCIONES_TARIFAS)[number]["id"];
 
 const VACIO: ConfiguracionTarifas = {
   vehiculo: [],
@@ -114,10 +125,31 @@ function ConfirmacionImpacto({
   onCancelar: () => void;
   onConfirmar: () => void;
 }) {
+  const dialogoRef = useRef<HTMLDivElement | null>(null);
+  const focoPrevioRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+    focoPrevioRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialogo = dialogoRef.current;
+    const primerControl = dialogo?.querySelector<HTMLElement>("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+    window.requestAnimationFrame(() => primerControl?.focus());
+
+    function cerrarConEscape(evento: KeyboardEvent) {
+      if (evento.key === "Escape") onCancelar();
+    }
+
+    document.addEventListener("keydown", cerrarConEscape);
+    return () => {
+      document.removeEventListener("keydown", cerrarConEscape);
+      window.requestAnimationFrame(() => focoPrevioRef.current?.focus());
+    };
+  }, [abierto, onCancelar]);
+
   if (!abierto) return null;
   return (
     <div className="admin-modal-backdrop fixed inset-0 z-50 flex items-center justify-center px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="confirmacion-impacto-titulo">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-ink/20 bg-surface-primary shadow-[var(--ruum-shadow-4)]">
+      <div ref={dialogoRef} className="w-full max-w-md overflow-hidden rounded-2xl border border-ink/20 bg-surface-primary shadow-[var(--ruum-shadow-4)]">
         <div className="border-b border-status-warning/20 bg-status-warning-soft px-6 py-5">
           <p className="font-mono-ruum text-xs font-medium uppercase tracking-wide text-status-warning">Cambio de alto impacto</p>
           <h2 id="confirmacion-impacto-titulo" className="mt-1 font-display text-xl font-semibold text-ink">Confirmar cambio vigente</h2>
@@ -141,6 +173,8 @@ export default function PaginaTarifasAdmin() {
   const [configVista, setConfigVista] = useState<TarifaConfigRow | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [seccionActiva, setSeccionActiva] = useState<SeccionTarifas>("resumen");
+  const [hayCambiosSinGuardar, setHayCambiosSinGuardar] = useState(false);
 
   async function cargar() {
     if (!tieneSupabaseConfigurado()) {
@@ -168,8 +202,28 @@ export default function PaginaTarifasAdmin() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    if (!hayCambiosSinGuardar) return;
+    function confirmarSalida(evento: BeforeUnloadEvent) {
+      evento.preventDefault();
+      evento.returnValue = "";
+    }
+    window.addEventListener("beforeunload", confirmarSalida);
+    return () => window.removeEventListener("beforeunload", confirmarSalida);
+  }, [hayCambiosSinGuardar]);
+
+  function cambiarSeccion(siguiente: SeccionTarifas) {
+    if (siguiente === seccionActiva) return;
+    if (hayCambiosSinGuardar && !window.confirm("Hay modificaciones sin guardar. Si cambias de sección se perderá el borrador actual.")) {
+      return;
+    }
+    setHayCambiosSinGuardar(false);
+    setSeccionActiva(siguiente);
+  }
+
   const cliente = tieneSupabaseConfigurado() ? crearClienteNavegador() : null;
   const datosFormula = useMemo(() => ({ ...datos, config: configVista ?? datos.config }), [configVista, datos]);
+  const modoActual = seccionActiva === "base" || seccionActiva === "factores" || seccionActiva === "versiones" ? "Editando" : "Consultando";
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
@@ -212,14 +266,95 @@ export default function PaginaTarifasAdmin() {
         </div>
       ) : (
         <div className="mt-6 grid gap-6">
-          <PrincipiosTarifarios />
-          <PoliticaVigente key={datos.config?.actualizado_en ?? "sin-config"} datos={datos} cliente={cliente} onGuardado={cargar} />
-          <FormulaVigente datos={datosFormula} />
-          <ParametrosNormativos datos={datos} cliente={cliente} onGuardado={cargar} onConfigVista={setConfigVista} />
-          <SimuladorNormativo datos={datos} />
+          <ResumenVigente datos={datos} modo={modoActual} hayCambios={hayCambiosSinGuardar} />
+          <nav className="sticky top-0 z-30 -mx-2 rounded-lg border border-border-default bg-surface-primary/95 px-2 py-2 shadow-[var(--ruum-shadow-2)] backdrop-blur" aria-label="Secciones de tarifas">
+            <div className="flex gap-1 overflow-x-auto">
+              {SECCIONES_TARIFAS.map((seccion) => (
+                <button
+                  key={seccion.id}
+                  type="button"
+                  onClick={() => cambiarSeccion(seccion.id)}
+                  aria-current={seccionActiva === seccion.id ? "page" : undefined}
+                  className={[
+                    "shrink-0 rounded-lg px-4 py-2.5 font-body text-sm font-semibold transition-colors",
+                    seccionActiva === seccion.id ? "bg-signal text-ink" : "text-text-secondary hover:bg-surface-secondary hover:text-ink"
+                  ].join(" ")}
+                >
+                  {seccion.etiqueta}
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {seccionActiva === "resumen" && (
+            <>
+              <PrincipiosTarifarios />
+              <FormulaVigente datos={datosFormula} />
+            </>
+          )}
+          {seccionActiva === "base" && (
+            <ParametrosNormativos
+              key={`base-${datos.config?.actualizado_en ?? "sin-config"}`}
+              seccion="base"
+              datos={datos}
+              cliente={cliente}
+              onGuardado={cargar}
+              onConfigVista={setConfigVista}
+              onDirtyChange={setHayCambiosSinGuardar}
+            />
+          )}
+          {seccionActiva === "factores" && (
+            <ParametrosNormativos
+              key={`factores-${datos.config?.actualizado_en ?? "sin-config"}`}
+              seccion="factores"
+              datos={datos}
+              cliente={cliente}
+              onGuardado={cargar}
+              onConfigVista={setConfigVista}
+              onDirtyChange={setHayCambiosSinGuardar}
+            />
+          )}
+          {seccionActiva === "simulador" && <SimuladorNormativo datos={datos} />}
+          {seccionActiva === "versiones" && (
+            <PoliticaVigente
+              key={datos.config?.actualizado_en ?? "sin-config"}
+              datos={datos}
+              cliente={cliente}
+              onGuardado={cargar}
+              onDirtyChange={setHayCambiosSinGuardar}
+            />
+          )}
+          {seccionActiva === "auditoria" && <AuditoriaTarifaria datos={datos} />}
         </div>
       )}
     </main>
+  );
+}
+
+function ResumenVigente({ datos, modo, hayCambios }: { datos: ConfiguracionTarifas; modo: string; hayCambios: boolean }) {
+  const config = datos.config;
+  return (
+    <section className="sticky top-16 z-20 rounded-card border border-focus-default/25 bg-surface-primary/95 p-4 shadow-[var(--ruum-shadow-2)] backdrop-blur" aria-label="Versión vigente y modo actual">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Versión vigente siempre visible</p>
+          <h2 className="mt-1 font-display text-lg font-semibold text-ink">{config?.nombre_version ?? "Sin versión configurada"}</h2>
+          <div className="mt-2 flex flex-wrap gap-2 font-body text-xs">
+            <span className={`rounded-full border px-3 py-1 font-semibold ${claseEstado(config?.estado ?? "borrador")}`}>
+              {ETIQUETA_ESTADO[config?.estado ?? "borrador"] ?? config?.estado ?? "Sin estado"}
+            </span>
+            <span className="rounded-full border border-ink/10 bg-surface-primary px-3 py-1 text-text-secondary">
+              Vigente desde {formatoFecha(config?.vigente_desde)}
+            </span>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Modo</p>
+          <p className="mt-1 font-display text-lg font-semibold text-ink">{modo}</p>
+          {hayCambios && <p className="mt-1 font-body text-xs font-semibold text-status-warning">Cambios sin guardar</p>}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -254,11 +389,13 @@ function PrincipiosTarifarios() {
 function PoliticaVigente({
   datos,
   cliente,
-  onGuardado
+  onGuardado,
+  onDirtyChange
 }: {
   datos: ConfiguracionTarifas;
   cliente: ReturnType<typeof crearClienteNavegador> | null;
   onGuardado: () => Promise<void>;
+  onDirtyChange: (hayCambios: boolean) => void;
 }) {
   const config = datos.config;
   const [nombre, setNombre] = useState(config?.nombre_version ?? "");
@@ -267,6 +404,16 @@ function PoliticaVigente({
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [pendiente, startTransition] = useTransition();
+  const hayCambios = Boolean(config) && (
+    nombre !== (config?.nombre_version ?? "") ||
+    estado !== (config?.estado ?? "borrador") ||
+    vigenteDesde !== fechaParaInput(config?.vigente_desde)
+  );
+
+  useEffect(() => {
+    onDirtyChange(hayCambios);
+    return () => onDirtyChange(false);
+  }, [hayCambios, onDirtyChange]);
 
   function guardar() {
     if (!cliente || !config) return;
@@ -291,6 +438,7 @@ function PoliticaVigente({
           notas: config.notas
         });
         await onGuardado();
+        onDirtyChange(false);
         setMensaje("Política actualizada.");
       } catch (error) {
         setMensaje(error instanceof Error ? error.message : "No se pudo guardar la política.");
@@ -344,7 +492,7 @@ function PoliticaVigente({
         </label>
       </div>
       <div className="mt-4 flex items-center gap-3">
-        <Button onClick={guardar} disabled={pendiente}>Guardar política</Button>
+        <Button onClick={guardar} disabled={pendiente || !hayCambios}>Guardar política</Button>
         {mensaje && <span className="font-body text-xs text-text-secondary">{mensaje}</span>}
       </div>
       <ConfirmacionImpacto

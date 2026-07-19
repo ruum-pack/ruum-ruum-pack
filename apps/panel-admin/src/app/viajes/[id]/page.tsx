@@ -21,7 +21,9 @@ import {
   guardarDistanciaYTiempoTraslado,
   sugerirTarifaTraslado,
   clasificarVehiculoParaTarifa,
-  aplicarTarifaNormativaAdmin
+  aplicarTarifaNormativaAdmin,
+  obtenerTrazabilidadMasivaTraslado,
+  type TrazabilidadMasivaTraslado
 } from "@ruum/api/services";
 import { obtenerRutaMapbox, tieneMapboxConfigurado } from "../../../lib/mapbox-rutas";
 import { VIAJES_DEMO, CONDUCTORES_DEMO, ADMIN_DEMO } from "../../../lib/datos-demo";
@@ -52,6 +54,7 @@ export default function PaginaDetalleViajeAdmin() {
   const [conductores, setConductores] = useState<ConductorRow[]>([]);
   const [notas, setNotas] = useState<NotaRow[]>([]);
   const [auditoria, setAuditoria] = useState<AuditoriaRow[]>([]);
+  const [trazabilidadMasiva, setTrazabilidadMasiva] = useState<TrazabilidadMasivaTraslado | null>(null);
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
 
@@ -79,6 +82,7 @@ export default function PaginaDetalleViajeAdmin() {
         setConductores(CONDUCTORES_DEMO);
         setNotas([]);
         setAuditoria([]);
+        setTrazabilidadMasiva(null);
         setPrecioFinalInput(demo?.precio_final != null ? String(demo.precio_final) : "");
         setEsDemo(true);
         setCargando(false);
@@ -87,17 +91,19 @@ export default function PaginaDetalleViajeAdmin() {
 
       try {
         const cliente = crearClienteNavegador();
-        const [p, conds, notasReales, auditoriaReal, adminReal] = await Promise.all([
+        const [p, conds, notasReales, auditoriaReal, adminReal, trazabilidadReal] = await Promise.all([
           obtenerPasaporteDigital(cliente, id),
           listarConductoresAdmin(cliente),
           obtenerNotasInternas(cliente, id),
           obtenerAuditoriaTraslado(cliente, id),
-          obtenerAdminActual(cliente)
+          obtenerAdminActual(cliente),
+          obtenerTrazabilidadMasivaTraslado(cliente, id)
         ]);
         setPasaporte(p);
         setConductores(conds.filter((c) => c.estado === "activo" || c.estado === "modo_prueba_supervisada"));
         setNotas(notasReales);
         setAuditoria(auditoriaReal);
+        setTrazabilidadMasiva(trazabilidadReal);
         setPrecioFinalInput(p?.precio_final != null ? String(p.precio_final) : "");
         if (adminReal) setAdminId(adminReal.id);
         setEsDemo(false);
@@ -106,12 +112,14 @@ export default function PaginaDetalleViajeAdmin() {
           setPasaporte(demo ?? null);
           setConductores(CONDUCTORES_DEMO);
           setAuditoria([]);
+          setTrazabilidadMasiva(null);
           setPrecioFinalInput("");
           setEsDemo(true);
         } else {
           setPasaporte(null);
           setConductores([]);
           setAuditoria([]);
+          setTrazabilidadMasiva(null);
           setPrecioFinalInput("");
           setEsDemo(false);
         }
@@ -465,6 +473,45 @@ export default function PaginaDetalleViajeAdmin() {
         <EstadoStepper estado={pasaporte.estado} />
       </div>
 
+      {trazabilidadMasiva && (
+        <div className="mt-6">
+          <PassportCard>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Origen corporativo</p>
+                <h2 className="mt-1 font-display text-lg font-semibold text-ink">Carga masiva</h2>
+                <p className="mt-1 font-body text-sm text-text-secondary">
+                  Archivo {trazabilidadMasiva.carga.nombre_archivo} · fila {trazabilidadMasiva.fila.numero_fila}
+                </p>
+              </div>
+              <span className="w-fit rounded-full border border-route-dark/25 bg-route-soft px-3 py-1.5 font-body text-xs font-semibold text-route-dark">
+                Corporativo
+              </span>
+            </div>
+            <dl className="mt-4 grid gap-3 font-body text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-text-tertiary">Referencia externa</dt>
+                <dd className="mt-1 font-mono-ruum text-xs text-ink">{trazabilidadMasiva.fila.referencia_externa ?? "Sin referencia"}</dd>
+              </div>
+              <div>
+                <dt className="text-text-tertiary">Lote</dt>
+                <dd className="mt-1 font-mono-ruum text-xs text-ink">{trazabilidadMasiva.carga.id.slice(0, 8).toUpperCase()}</dd>
+              </div>
+              <div>
+                <dt className="text-text-tertiary">Resultado del lote</dt>
+                <dd className="mt-1 text-ink">
+                  {trazabilidadMasiva.carga.filas_creadas} creadas · {trazabilidadMasiva.carga.filas_error} error
+                </dd>
+              </div>
+              <div>
+                <dt className="text-text-tertiary">Procesado</dt>
+                <dd className="mt-1 text-ink">{fechaAdministrativa(trazabilidadMasiva.carga.creado_en)}</dd>
+              </div>
+            </dl>
+          </PassportCard>
+        </div>
+      )}
+
       <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
         {/* Bloque 1 — Resumen + Bloque 2 — Vehículo */}
         <PassportCard>
@@ -728,7 +775,7 @@ export default function PaginaDetalleViajeAdmin() {
               notas.map((n) => (
                 <div key={n.id} className="font-body text-sm">
                   <p>{n.contenido}</p>
-                  <p className="mt-0.5 font-mono-ruum text-[10px] uppercase tracking-wide text-text-tertiary">
+                  <p className="mt-0.5 font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary">
                     {fechaAdministrativa(n.creada_en)}
                   </p>
                 </div>
@@ -758,11 +805,11 @@ export default function PaginaDetalleViajeAdmin() {
                         Actor: {evento.actor} · {evento.actor_id}
                       </p>
                     </div>
-                    <p className="font-mono-ruum text-[10px] uppercase tracking-wide text-text-tertiary">
+                    <p className="font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary">
                       {fechaAdministrativa(evento.timestamp)}
                     </p>
                   </div>
-                  <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-ink/[0.04] p-3 font-mono-ruum text-[11px] text-text-secondary">
+                  <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-ink/[0.04] p-3 font-mono-ruum text-admin-secundario text-text-secondary">
                     {JSON.stringify(evento.datos, null, 2)}
                   </pre>
                 </div>

@@ -10,7 +10,7 @@
  * Por ahora se muestra el pin de origen registrado en el traslado.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Map as MapboxMap, Marker as MapboxMarker } from "mapbox-gl";
 import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";
@@ -113,14 +113,33 @@ function obtenerColoresMapa() {
   };
 }
 
-function crearPin(color: string, borde: string): HTMLButtonElement {
+function crearPin(color: string, borde: string, etiqueta: string): HTMLButtonElement {
   const pin = document.createElement("button");
+  const punto = document.createElement("span");
   pin.type = "button";
-  pin.setAttribute("aria-label", "Seleccionar traslado en el mapa");
+  pin.setAttribute("aria-label", etiqueta);
   Object.assign(pin.style, {
-    width: "18px", height: "18px", borderRadius: "9999px", background: color,
-    border: `3px solid ${borde}`, boxShadow: COLOR_MAPA.pinSombra, cursor: "pointer"
+    width: "40px",
+    height: "40px",
+    border: "0",
+    borderRadius: "9999px",
+    background: "transparent",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "0"
   });
+  Object.assign(punto.style, {
+    width: "18px",
+    height: "18px",
+    borderRadius: "9999px",
+    background: color,
+    border: `3px solid ${borde}`,
+    boxShadow: COLOR_MAPA.pinSombra,
+    pointerEvents: "none"
+  });
+  pin.appendChild(punto);
   return pin;
 }
 
@@ -132,7 +151,27 @@ export default function PaginaMapaOperativo() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<MapboxMap | null>(null);
   const marcadoresRef = useRef<MapboxMarker[]>([]);
+  const focoPrevioPanelRef = useRef<HTMLElement | null>(null);
   const [errorMapa, setErrorMapa] = useState<string | null>(null);
+
+  const seleccionarTraslado = useCallback((trasladoId: string) => {
+    focoPrevioPanelRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSeleccionado(trasladoId);
+  }, []);
+
+  const cerrarPanelSeleccionado = useCallback(() => {
+    setSeleccionado(null);
+    window.requestAnimationFrame(() => focoPrevioPanelRef.current?.focus());
+  }, []);
+
+  useEffect(() => {
+    if (!seleccionado) return;
+    function cerrarConEscape(evento: KeyboardEvent) {
+      if (evento.key === "Escape") cerrarPanelSeleccionado();
+    }
+    document.addEventListener("keydown", cerrarConEscape);
+    return () => document.removeEventListener("keydown", cerrarConEscape);
+  }, [seleccionado, cerrarPanelSeleccionado]);
 
   useEffect(() => {
     async function cargar() {
@@ -194,11 +233,14 @@ export default function PaginaMapaOperativo() {
           mapa.addSource(sourceId, { type: "geojson", data: { type: "Feature", properties: {}, geometry: geometria } });
           mapa.addLayer({ id: sourceId, type: "line", source: sourceId, paint: { "line-color": color, "line-width": 3, "line-opacity": .65 } });
 
-          const origenEl = crearPin(color, coloresMapa.pinBordeClaro);
-          origenEl.onclick = () => setSeleccionado(t.traslado_id);
+          const etiquetaTraslado = `${t.vehiculo_marca ?? "Vehículo"} ${t.vehiculo_modelo ?? ""}`.trim();
+          const origenEl = crearPin(color, coloresMapa.pinBordeClaro, `Seleccionar origen de ${etiquetaTraslado} hacia ${t.destino_ciudad}`);
+          origenEl.onclick = () => seleccionarTraslado(t.traslado_id);
           const origenMarker = new mapboxgl.Marker({ element: origenEl }).setLngLat(origen)
             .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`${t.vehiculo_marca ?? ""} ${t.vehiculo_modelo ?? ""} → ${t.destino_ciudad}`)).addTo(mapa);
-          const destinoMarker = new mapboxgl.Marker({ element: crearPin(coloresMapa.destino, coloresMapa.pinBordeOscuro) }).setLngLat(destino)
+          const destinoEl = crearPin(coloresMapa.destino, coloresMapa.pinBordeOscuro, `Seleccionar destino de ${etiquetaTraslado} en ${t.destino_ciudad}`);
+          destinoEl.onclick = () => seleccionarTraslado(t.traslado_id);
+          const destinoMarker = new mapboxgl.Marker({ element: destinoEl }).setLngLat(destino)
             .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`Destino: ${t.destino_ciudad}`)).addTo(mapa);
           marcadoresRef.current.push(origenMarker, destinoMarker);
           bounds.extend(origen).extend(destino);
@@ -216,7 +258,7 @@ export default function PaginaMapaOperativo() {
       mapaRef.current?.remove();
       mapaRef.current = null;
     };
-  }, [cargando, traslados]);
+  }, [cargando, traslados, seleccionarTraslado]);
 
   const sel = traslados.find((t) => t.traslado_id === seleccionado);
   const enRuta = traslados.filter((t) => t.estado === "traslado_en_curso").length;
@@ -276,7 +318,7 @@ export default function PaginaMapaOperativo() {
           <div ref={mapRef} style={{ height: "100%", minHeight: 480 }} />
 
           <div className="absolute bottom-4 left-4 z-[400] rounded-xl border border-border-default bg-surface-primary/95 px-4 py-3 backdrop-blur-sm">
-            <p className="mb-2 font-mono-ruum text-[10px] uppercase tracking-widest text-text-tertiary">Leyenda</p>
+            <p className="mb-2 font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary">Leyenda</p>
             <div className="flex flex-col gap-1.5">
               {[
                 [COLOR_MAPA.origen, "Origen activo"],
@@ -297,7 +339,14 @@ export default function PaginaMapaOperativo() {
             <div className="border-b border-border-default bg-surface-secondary/40 p-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="font-mono-ruum text-xs uppercase tracking-widest text-text-tertiary">Seleccionado</p>
-                <button onClick={() => setSeleccionado(null)} className="font-mono-ruum text-xs text-text-tertiary hover:text-text-secondary">✕</button>
+                <button
+                  type="button"
+                  onClick={cerrarPanelSeleccionado}
+                  className="inline-flex size-10 items-center justify-center rounded-lg font-mono-ruum text-admin-boton text-text-tertiary hover:bg-surface-primary hover:text-text-secondary"
+                  aria-label="Cerrar detalle del traslado seleccionado"
+                >
+                  ✕
+                </button>
               </div>
               <p className="font-display text-sm font-semibold">{sel.vehiculo_marca} {sel.vehiculo_modelo}</p>
               <p className="font-mono-ruum text-xs text-text-secondary">{sel.origen_ciudad} → {sel.destino_ciudad}</p>
@@ -317,12 +366,12 @@ export default function PaginaMapaOperativo() {
           )}
 
           <div className="p-4">
-            <p className="mb-3 font-mono-ruum text-[10px] uppercase tracking-widest text-text-tertiary">Todos los activos</p>
+            <p className="mb-3 font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary">Todos los activos</p>
             <div className="flex flex-col gap-2">
               {traslados.map((t) => (
                 <button
                   key={t.traslado_id}
-                  onClick={() => setSeleccionado(t.traslado_id)}
+                  onClick={() => seleccionarTraslado(t.traslado_id)}
                   className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${
                     seleccionado === t.traslado_id
                       ? "border-status-info bg-status-info-soft"
@@ -336,15 +385,15 @@ export default function PaginaMapaOperativo() {
                       <p className="font-display text-sm font-semibold leading-tight">
                         {t.vehiculo_marca} {t.vehiculo_modelo}
                       </p>
-                      <p className="font-mono-ruum text-[10px] text-text-tertiary">{t.origen_ciudad} → {t.destino_ciudad}</p>
+                      <p className="font-mono-ruum text-admin-secundario text-text-tertiary">{t.origen_ciudad} → {t.destino_ciudad}</p>
                     </div>
                     {t.tiene_incidencia_abierta && (
-                      <span className="mt-0.5 flex-shrink-0 rounded-full bg-status-error-soft px-2 py-0.5 font-mono-ruum text-[9px] text-status-error">INC</span>
+                      <span className="mt-0.5 flex-shrink-0 rounded-full bg-status-error-soft px-2 py-0.5 font-mono-ruum text-admin-secundario text-status-error">INC</span>
                     )}
                   </div>
                   <div className="mt-1.5 flex items-center justify-between">
-                    <p className="font-body text-xs text-text-tertiary">{ETIQUETA_ESTADO[t.estado] ?? t.estado}</p>
-                    <p className="font-mono-ruum text-[10px] text-text-tertiary">{tiempoRelativo(t.actualizado_en)}</p>
+                    <p className="font-body text-admin-secundario text-text-tertiary">{ETIQUETA_ESTADO[t.estado] ?? t.estado}</p>
+                    <p className="font-mono-ruum text-admin-secundario text-text-tertiary">{tiempoRelativo(t.actualizado_en)}</p>
                   </div>
                 </button>
               ))}
