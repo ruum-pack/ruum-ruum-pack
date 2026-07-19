@@ -1,13 +1,8 @@
 export const PASOS_REGISTRO = [
   {
     titulo: "Cuenta",
-    objetivo: "Crea o confirma el acceso con el que podrás retomar tu registro.",
+    objetivo: "",
     tiempo: "2 min"
-  },
-  {
-    titulo: "Identidad",
-    objetivo: "Confirma quién eres y dónde podemos validar tu operación.",
-    tiempo: "4 min"
   },
   {
     titulo: "Licencia y experiencia",

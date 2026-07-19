@@ -52,16 +52,8 @@ function canalRegistro(): "web" | "android" | "ios" {
   return "web";
 }
 
-/**
- * Fase 4 — borrador NO sensible del wizard.
- * Se guardan solo datos de bajo riesgo para retomar el registro si la app se
- * cierra a medio camino. Excluidos deliberadamente: contraseña, CURP y los
- * archivos de documentos (los File no sobreviven un reinicio y la contraseña
- * y la CURP no deben tocar el almacenamiento local del dispositivo).
- */
+
 const RETRASO_GUARDADO_REMOTO_MS = 900;
-// Fase 5 (auditoría H-3) — el borrador caduca: no queremos PII de bajo riesgo
-// viviendo indefinidamente en el almacenamiento del dispositivo.
 
 const CODIGO_OTP_LONGITUD = 6;
 const ESPERA_REENVIO_OTP_SEGUNDOS = 60;
@@ -469,7 +461,7 @@ export default function PaginaRegistroConductor() {
       return;
     }
     if (!tieneSupabaseConfigurado()) {
-      setError("Supabase no está configurado. El registro no está disponible en este entorno.");
+      setError(" El registro no está disponible en este entorno.");
       return;
     }
 
@@ -517,9 +509,7 @@ export default function PaginaRegistroConductor() {
         limpiarBorradorRegistroLocal();
         setEnviado(true);
       } else {
-        // Fase 4 — la cuenta requiere confirmar el correo. En vez de mandar al
-        // conductor a su bandeja (y perderlo), pedimos aquí mismo el código de
-        // 6 dígitos que Supabase incluye en el correo de confirmación.
+        
         setEsperaReenvioOtp(ESPERA_REENVIO_OTP_SEGUNDOS);
         setPendienteOtp(true);
       }
@@ -531,12 +521,7 @@ export default function PaginaRegistroConductor() {
     }
   }
 
-  /**
-   * Fase 4 — verifica el código de 6 dígitos del correo de confirmación.
-   * Al validarse queda sesión activa, así que aprovechamos para subir los
-   * documentos en ese mismo momento (el flujo original los perdía hasta
-   * que el conductor entrara a Configuración).
-   */
+  
   async function confirmarCodigoOtp(e: FormEvent) {
     e.preventDefault();
     const codigo = codigoOtp.trim();
@@ -604,15 +589,13 @@ export default function PaginaRegistroConductor() {
     }
   }
 
-  // Cooldown del botón de reenvío.
+  
   useEffect(() => {
     if (!pendienteOtp || esperaReenvioOtp <= 0) return;
     const intervalo = setInterval(() => setEsperaReenvioOtp((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(intervalo);
   }, [pendienteOtp, esperaReenvioOtp]);
 
-  // RT-19 — al volver desde cualquier dispositivo, la sesión hidrata el
-  // expediente remoto y deja de depender del borrador del navegador.
   useEffect(() => {
     if (!tieneSupabaseConfigurado()) { hidratacionRemotaCompletaRef.current=true; return; }
     let activo=true;
@@ -626,18 +609,7 @@ export default function PaginaRegistroConductor() {
         setEmail(sesion.user.email??"");
         const solicitud=await obtenerSolicitudConductorActual(cliente);
         if (!solicitud) {
-          // H-5 — antes asumíamos "sesión sin solicitud = ya eres conductor
-          // certificado" y mandábamos directo a /panel sin comprobarlo. Eso
-          // dejaba varada a cualquier cuenta autenticada que en realidad
-          // nunca llegó a iniciar su solicitud (p. ej. confirmó el correo
-          // desde el enlace crudo del correo en vez de terminar el flujo de
-          // verificación dentro de la app: el enlace sí confirma la cuenta,
-          // pero iniciar_solicitud_conductor solo se llama desde acá). /panel
-          // tampoco rescataba a ese usuario — quedaba viendo un dashboard
-          // vacío sin ruta de regreso. Verificamos primero si de verdad
-          // existe un conductor antes de mandar a /panel; si no existe ni
-          // conductor ni solicitud, creamos la solicitud aquí mismo y
-          // dejamos que el registro siga normalmente.
+          
           const conductorExistente = await obtenerConductorActual(cliente);
           if (conductorExistente) { router.replace("/panel"); return; }
           const inicio = await iniciarSolicitudConductor(cliente);
@@ -794,14 +766,12 @@ export default function PaginaRegistroConductor() {
         ) : (
           <>
             <h1 id="titulo-registro-conductor" className="mt-8 font-display text-2xl font-bold text-text-primary">Registro de conductor</h1>
-            <p className="mt-2 font-body text-sm leading-6 text-text-secondary">
-              Completa una etapa a la vez. Guardamos tu avance para que puedas continuar posteriormente.
-            </p>
+        
 
             {borradorDisponible && (
               <div className="mt-5 rounded-xl border border-route-action bg-route-soft p-4">
                 <p className="font-body text-sm font-semibold text-text-primary">Encontramos un registro sin terminar</p>
-                <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
+                <p className="mt- Cuen -body text-xs leading-5 text-text-secondary">
                   Guardado el {new Date(borradorDisponible.guardadoEn).toLocaleString("es-MX")} y disponible por 24 horas.
                   Por seguridad no guardamos CURP, contraseña, domicilio preciso, licencia, contacto ni archivos.
                 </p>
