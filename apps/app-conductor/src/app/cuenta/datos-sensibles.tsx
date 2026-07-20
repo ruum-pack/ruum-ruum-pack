@@ -58,7 +58,7 @@ export function DatosSensiblesInfo({ tipo, compacto = false }: { tipo: TipoDatoS
     <div className={`rounded-xl border border-border/22 bg-surface ${compacto ? "px-3 py-3" : "px-4 py-4"}`}>
       <p className="font-body text-sm font-semibold text-text-primary">{texto.titulo}</p>
       <dl className="mt-2 grid gap-2 font-body text-sm leading-6 text-text-secondary">
-        <div><dt className="font-semibold text-text-primary">¿Por qué lo pedimos?</dt><dd>{texto.finalidad}</dd></div>
+        <div><dt className="font-semibold text-text-primary"> qué lo pedimos?</dt><dd>{texto.finalidad}</dd></div>
         <div><dt className="font-semibold text-text-primary">¿Quién puede verlo?</dt><dd>{texto.acceso}</dd></div>
         <div><dt className="font-semibold text-text-primary">¿Cómo se protege?</dt><dd>{texto.proteccion}</dd></div>
       </dl>

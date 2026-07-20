@@ -1,12 +1,12 @@
 export const PASOS_REGISTRO = [
   {
     titulo: "Cuenta",
-    objetivo: "",
+    objetivo: "Crea tu cuenta para poder iniciar sesión.",
     tiempo: "2 min"
   },
   {
-    titulo: "Licencia y experiencia",
-    objetivo: "Registra tu licencia vigente",
+    titulo: "Identidad y domicilio",
+    objetivo: "Deja que verifiquemos tu identidad y domicilio.",
     tiempo: "3 min"
   },
   {
