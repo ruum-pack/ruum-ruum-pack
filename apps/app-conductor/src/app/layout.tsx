@@ -4,6 +4,8 @@ import "./globals.css";
 import { SincronizadorEvidenciaOffline } from "./SincronizadorEvidenciaOffline";
 import { NavegacionConductor } from "./NavegacionConductor";
 import { ViajeActivoProvider } from "./ViajeActivoContext";
+import { OfflineShell } from "./OfflineShell";
+import { EstadoSincronizacionGlobal } from "./EstadoSincronizacionGlobal";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -38,6 +40,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <ViajeActivoProvider>
           <SincronizadorEvidenciaOffline />
           <NavegacionConductor />
+          <EstadoSincronizacionGlobal />
+          <OfflineShell />
           <main id="contenido-principal" className="conductor-page" role="main">
             {children}
           </main>

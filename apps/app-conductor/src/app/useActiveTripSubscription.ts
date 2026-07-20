@@ -13,6 +13,7 @@ import {
   viajeActivoDesdePasaporte,
   viajeEsOperacionActiva
 } from "./active-trip-state";
+import { leerCacheViajeActivo } from "../lib/offline-active-trip-cache";
 
 const RUTAS_SIN_VIAJE_ACTIVO = new Set(["/login", "/registro", "/onboarding"]);
 const INTERVALO_REFRESCO_VIAJE_ACTIVO_MS = 45_000;
@@ -52,6 +53,7 @@ export function useActiveTripSubscription(pathname: string) {
           setViajeActivoSinActualizar(false);
         }
       } catch (error) {
+        const cache = await leerCacheViajeActivo();
         logger.warn(
           "active_trip_refresh_failed",
           {
@@ -60,7 +62,18 @@ export function useActiveTripSubscription(pathname: string) {
           },
           "connectivity"
         );
-        if (!cancelado) setViajeActivoSinActualizar(true);
+        if (!cancelado) {
+          if (cache) {
+            setViajeActivo({
+              trasladoId: cache.trasladoId,
+              estado: cache.estado,
+              folio: cache.folio,
+              etapa: cache.siguienteAccion.label,
+              destinoActual: cache.siguienteAccion.nextStep ?? cache.siguienteAccion.instruction
+            });
+          }
+          setViajeActivoSinActualizar(true);
+        }
       }
     }
 

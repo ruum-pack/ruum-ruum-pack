@@ -20,6 +20,10 @@ export interface ItemColaEvidencia {
   tipo: "inicial" | "final";
   angulo: string;
   dataUrl: string;
+  fileName?: string;
+  fileSizeBytes?: number;
+  sha256?: string;
+  requisitoId?: string;
   lat?: number;
   lng?: number;
   capturadaEn: string;
@@ -96,13 +100,20 @@ export async function encolarEvidencia(item: ItemColaEvidencia): Promise<void> {
         existente.trasladoId === itemNormalizado.trasladoId &&
         existente.tipo === itemNormalizado.tipo &&
         existente.angulo === itemNormalizado.angulo
+      ) &&
+      !(
+        Boolean(existente.sha256 && itemNormalizado.sha256) &&
+        existente.trasladoId === itemNormalizado.trasladoId &&
+        existente.sha256 === itemNormalizado.sha256
       )
   );
   await storageColaEvidencia.write([...sinDuplicados, itemNormalizado]);
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("ruum:evidencia-pendiente"));
 }
 
-export async function leerColaEvidencia(): Promise<ItemColaEvidencia[]> {
-  return normalizarItemsCola(await storageColaEvidencia.read());
+export async function leerColaEvidencia(trasladoId?: string): Promise<ItemColaEvidencia[]> {
+  const cola = normalizarItemsCola(await storageColaEvidencia.read());
+  return trasladoId ? cola.filter((item) => item.trasladoId === trasladoId) : cola;
 }
 
 export async function quitarDeColaEvidencia(localId: string): Promise<void> {
@@ -119,6 +130,10 @@ export async function contarColaEvidencia(trasladoId?: string): Promise<number> 
 export async function leerColaEvidenciaDeTraslado(trasladoId: string): Promise<ItemColaEvidencia[]> {
   const cola = await leerColaEvidencia();
   return cola.filter((item) => item.trasladoId === trasladoId);
+}
+
+export async function limpiarColaEvidencia(): Promise<void> {
+  await storageColaEvidencia.clear();
 }
 
 function extensionDesdeDataUrl(dataUrl: string) {

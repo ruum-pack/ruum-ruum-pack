@@ -106,3 +106,6 @@
  ✓ Compiled in 768ms (544 modules)
  ✓ Compiled in 718ms (544 modules)
  ✓ Compiled in 609ms (544 modules)
+undefined
+C:\Users\hmlom\ruum\apps\panel-admin:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1073807364: next dev -p 3004

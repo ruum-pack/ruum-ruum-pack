@@ -22,6 +22,7 @@ import { TripEvidenceComparison } from "./TripEvidenceComparison";
 import { RegistroViajeActivo } from "../../ViajeActivoContext";
 import { EstadoError } from "../../EstadoError";
 import { registroViajeActivoDesdePasaporte } from "../../active-trip-state";
+import { CacheViajeActivoOffline } from "../../CacheViajeActivoOffline";
 
 function calcularHorasDesdeCierre(actualizadoEn: string | null) {
   if (!actualizadoEn) return Number.POSITIVE_INFINITY;
@@ -170,6 +171,7 @@ export default async function PaginaDetalleViaje({
       <RegistroViajeActivo
         viaje={registroViajeActivoDesdePasaporte(pasaporte)}
       />
+      <CacheViajeActivoOffline pasaporte={pasaporte} />
       <TripCard folio={pasaporte.traslado_id.slice(0, 8).toUpperCase()} className="overflow-visible">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
