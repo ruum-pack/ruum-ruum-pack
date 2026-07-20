@@ -67,7 +67,7 @@ export function TripOpportunityList({
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
                 <div className="min-w-0 rounded-xl border border-route-action/24 bg-surface px-4 py-4">
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="font-body text-xs uppercase tracking-wide text-[#8EC5FF]">Oportunidad disponible</p>
+                    <p className="font-body text-xs uppercase tracking-wide text-route-action">Oportunidad disponible</p>
                     <p className="font-body text-sm font-semibold text-text-secondary">
                       {formatearFecha(detalle.fechaHora)} · {formatearHora(detalle.fechaHora)}
                     </p>
@@ -84,7 +84,7 @@ export function TripOpportunityList({
                   </div>
                 </div>
                 <div className="rounded-xl border border-success/36 bg-success/10 px-4 py-4 shadow-1 lg:min-w-60">
-                  <p className="font-body text-xs uppercase tracking-wide text-[#65E3AD]">{etiquetaGanancia}</p>
+                  <p className="font-body text-xs uppercase tracking-wide text-success">{etiquetaGanancia}</p>
                   <DriverEarning
                     amount={detalle.gananciaConductorOficial}
                     status={detalle.estadoEconomico === "confirmado" ? "confirmado" : detalle.estadoEconomico === "estimado" ? "estimado" : "sin_calcular"}

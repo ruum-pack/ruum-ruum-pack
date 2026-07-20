@@ -12,6 +12,7 @@ import { PanelActiveTrip } from "./PanelActiveTrip";
 import { PanelHome } from "./PanelHome";
 import { usePanelData } from "./usePanelData";
 import { registroViajeActivoDesdePasaporte } from "../active-trip-state";
+import { desactivarPushDelDispositivo } from "../../lib/push-notifications";
 
 function PanelLoadingSkeleton() {
   return (
@@ -58,7 +59,8 @@ export default function PaginaPanel() {
 
   async function cerrarSesion() {
     const cliente = crearClienteNavegador();
-    await cliente.auth.signOut();
+    await desactivarPushDelDispositivo();
+      await cliente.auth.signOut();
     limpiarBorradorRegistroLocal();
     router.push("/onboarding");
     router.refresh();

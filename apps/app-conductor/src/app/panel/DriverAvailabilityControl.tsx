@@ -93,7 +93,7 @@ export function DriverAvailabilityControl({ value, saving, onChange }: DriverAva
                 className={[
                   "min-h-10 rounded-lg px-3 py-2 text-center font-body text-sm font-semibold transition",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action",
-                  active ? "bg-route-action text-[#14213D] shadow-sm" : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary",
+                  active ? "bg-route-action text-on-primary shadow-sm" : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary",
                   disabled || active ? "disabled:cursor-not-allowed disabled:opacity-80" : ""
                 ].join(" ")}
               >

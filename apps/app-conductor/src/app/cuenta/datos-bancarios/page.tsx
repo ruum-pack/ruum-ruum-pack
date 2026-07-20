@@ -1,5 +1,7 @@
 "use client";
 
+import { ConfirmDialog } from "../../../components/ConfirmDialog";
+
 import { useEffect, useState } from "react";
 import { Aviso, Button, Field, FinancialCard } from "@ruum/ui";
 import { guardarDatosBancariosConductor, obtenerGananciasConductor } from "@ruum/api/services";
@@ -19,6 +21,7 @@ const ETIQUETA_DATOS_BANCARIOS: Record<Database["public"]["Enums"]["estado_datos
 };
 
 export default function PaginaDatosBancarios() {
+  const [confirmacionAbierta, setConfirmacionAbierta] = useState(false);
   const [datosBancarios, setDatosBancarios] = useState<DatosBancarios | null>(null);
   const [formulario, setFormulario] = useState({ titularCuenta: "", banco: "", clabe: "", numeroTarjeta: "" });
   const [edicionAutorizada, setEdicionAutorizada] = useState(false);
@@ -81,8 +84,11 @@ export default function PaginaDatosBancarios() {
       setMensaje("Confirma tu sesión antes de editar datos bancarios.");
       return;
     }
-    const confirmado = window.confirm("Tus datos bancarios volverán a revisión antes de usarse para depósitos. ¿Quieres guardar el cambio?");
-    if (!confirmado) return;
+    if (!confirmacionAbierta) {
+      setConfirmacionAbierta(true);
+      return;
+    }
+    setConfirmacionAbierta(false);
     setGuardando(true);
     setMensaje(null);
     try {
@@ -99,6 +105,8 @@ export default function PaginaDatosBancarios() {
   }
 
   return (
+    <>
+      <ConfirmDialog open={confirmacionAbierta} title="Actualizar cuenta para depósitos" consequence="La cuenta quedará pendiente de revisión y no se usará para depósitos hasta ser aprobada." maskedData={[formulario.clabe ? `CLABE terminación ${formulario.clabe.slice(-4)}` : "CLABE no capturada", formulario.numeroTarjeta ? `Tarjeta terminación ${formulario.numeroTarjeta.slice(-4)}` : "Tarjeta no capturada"]} confirmLabel="Guardar y enviar a revisión" busy={guardando} onCancel={() => setConfirmacionAbierta(false)} onConfirm={() => void guardar()} />
     <div className="mx-auto max-w-3xl px-6 py-10 sm:py-14">
       <CuentaHeader titulo="Datos bancarios" descripcion="Protegemos esta sección porque afecta tus depósitos." />
       {mensaje && <div className="mt-5"><Aviso tono="info">{mensaje}</Aviso></div>}
@@ -149,5 +157,6 @@ export default function PaginaDatosBancarios() {
         )}
       </FinancialCard>
     </div>
+    </>
   );
 }

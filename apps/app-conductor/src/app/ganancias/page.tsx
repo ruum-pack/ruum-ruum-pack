@@ -176,7 +176,7 @@ export default function PaginaGanancias() {
       {sinRegistros && (
         <FinancialCard className="mt-6 border-route-action/35 bg-surface-elevated" padding="lg">
           <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-            <div className="flex size-12 items-center justify-center rounded-full border border-route-action/35 bg-surface text-[#65B8FF]" aria-hidden>
+            <div className="flex size-12 items-center justify-center rounded-full border border-route-action/35 bg-surface text-route-action" aria-hidden>
               $
             </div>
             <h2 className="mt-4 font-display text-2xl font-semibold text-text-primary">Aún no hay ganancias registradas</h2>
@@ -214,7 +214,7 @@ export default function PaginaGanancias() {
               <FinancialAmount amount={resumen.retenciones} status={resumen.retenciones > 0 ? "retenido" : resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
             </FinancialCard>
             <FinancialCard className="border-route-action/35 bg-surface-elevated lg:col-span-12 xl:col-span-2" padding="lg">
-              <p className="font-body text-xs uppercase tracking-wide text-[#8EC5FF]">Depósito final</p>
+              <p className="font-body text-xs uppercase tracking-wide text-route-action">Depósito final</p>
               <FinancialAmount amount={resumen.deposito} status={resumenSemanal.estatus} currency="MXN" className="mt-3" amountClassName="font-display text-3xl sm:text-4xl" />
             </FinancialCard>
           </section>

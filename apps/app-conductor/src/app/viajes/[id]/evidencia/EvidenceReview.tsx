@@ -39,7 +39,7 @@ export function EvidenceReview({
 
   return (
     <section className="mt-5 rounded-2xl border border-border/28 bg-surface p-6 text-text-primary shadow-[0_18px_48px_rgba(0,0,0,0.45)]">
-      <p className="font-body text-sm font-semibold text-[#8EC5FF]">Revisión final</p>
+      <p className="font-body text-sm font-semibold text-route-action">Revisión final</p>
       <h2 className="mt-2 font-display text-2xl font-semibold text-text-primary">Confirma el registro completo</h2>
       <div className="mt-4">
         <EvidenceSyncStatus pendientesSubida={pendientesSubida} sincronizando={sincronizando} missing={etiquetasFaltantes} complete={registroCompleto} />

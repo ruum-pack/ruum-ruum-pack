@@ -1367,6 +1367,12 @@ export type Database = {
           conductor_id: string
           modo_no_molestar: boolean
           notificaciones_push: boolean
+          notificar_oportunidades: boolean
+          notificar_traslados_asignados: boolean
+          notificar_cambios_operativos: boolean
+          notificar_documentos: boolean
+          notificar_ganancias: boolean
+          notificar_promociones: boolean
           viajes_empresariales: boolean
           viajes_foraneos: boolean
           viajes_locales: boolean
@@ -1382,6 +1388,18 @@ export type Database = {
           conductor_id: string
           modo_no_molestar?: boolean
           notificaciones_push?: boolean
+          notificar_oportunidades?: boolean
+          notificar_traslados_asignados?: boolean
+          notificar_cambios_operativos?: boolean
+          notificar_documentos?: boolean
+          notificar_ganancias?: boolean
+          notificar_promociones?: boolean
+          notificar_oportunidades?: boolean
+          notificar_traslados_asignados?: boolean
+          notificar_cambios_operativos?: boolean
+          notificar_documentos?: boolean
+          notificar_ganancias?: boolean
+          notificar_promociones?: boolean
           viajes_empresariales?: boolean
           viajes_foraneos?: boolean
           viajes_locales?: boolean

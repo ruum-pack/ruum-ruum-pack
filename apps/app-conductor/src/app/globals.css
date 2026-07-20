@@ -75,12 +75,23 @@
     padding-bottom: max(104px, calc(var(--conductor-mobile-nav-offset) + env(safe-area-inset-bottom))) !important;
   }
 
-  .conductor-page :where([class*="sm:grid-cols"], [class*="md:grid-cols"], [class*="lg:grid-cols"]) {
-    grid-template-columns: minmax(0, 1fr) !important;
+  /* Responsive opt-in: cada módulo decide qué colapsa en móvil. */
+  .conductor-responsive-grid,
+  .conductor-panel-grid,
+  .conductor-opportunities-grid,
+  .conductor-evidence-grid,
+  .conductor-earnings-grid,
+  .conductor-registration-grid,
+  .conductor-profile-grid,
+  .conductor-banking-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .conductor-page :where([class*="sm:flex-row"], [class*="md:flex-row"], [class*="lg:flex-row"]) {
-    flex-direction: column !important;
+  .conductor-responsive-stack,
+  .conductor-active-trip-actions,
+  .conductor-profile-actions,
+  .conductor-banking-actions {
+    flex-direction: column;
   }
 
   .conductor-page :where(button, input, select, textarea, [role="button"], [role="tab"], a[class]) {

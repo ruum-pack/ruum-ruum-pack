@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+const read = (p) => fs.readFileSync(new URL(`../../${p}`, import.meta.url), "utf8");
+const pkg = JSON.parse(read("package.json"));
+assert(pkg.dependencies["@capacitor/push-notifications"]);
+assert(pkg.dependencies["@capacitor/device"]);
+const push = read("src/lib/push-notifications.ts");
+assert.match(push, /registrar_dispositivo_push/);
+assert.match(push, /pushNotificationActionPerformed/);
+assert.match(push, /registrar_apertura_push/);
+const center = read("src/app/notificaciones/page.tsx");
+assert.match(center, /No leídas/);
+assert.match(center, /marcar_notificacion_leida/);
+console.log("Sprint C4 static checks: PASS");

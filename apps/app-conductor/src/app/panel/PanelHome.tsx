@@ -75,7 +75,7 @@ export function PanelHome({
         <OperationalCard className="border-action-primary/42 bg-surface-elevated" padding="lg">
           <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <p className="font-body text-sm font-semibold text-[#F6C453]">Listo para tomar viajes</p>
+              <p className="font-body text-sm font-semibold text-warning">Listo para tomar viajes</p>
               <h2 className="mt-2 font-display text-2xl font-semibold text-text-primary">Activa tu disponibilidad para recibir oportunidades</h2>
               <p className="mt-2 max-w-2xl font-body text-base leading-7 text-text-secondary">
                 Cuando estés disponible, te mostraremos traslados cercanos y próximos pasos para empezar a operar.

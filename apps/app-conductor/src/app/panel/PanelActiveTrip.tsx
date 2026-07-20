@@ -70,7 +70,7 @@ export function PanelActiveTrip({ viaje }: { viaje: PasaporteRow }) {
       </Card>
 
       <section className="rounded-xl border border-warning/30 bg-warning/10 p-4 text-text-primary shadow-1">
-        <p className="font-body text-sm font-semibold text-[#F6C453]">Próximo requisito pendiente</p>
+        <p className="font-body text-sm font-semibold text-warning">Próximo requisito pendiente</p>
         <h2 className="mt-1 font-display text-xl font-semibold text-text-primary">
           {requiereDecisionOperativa
             ? "Esperando Torre de Control"

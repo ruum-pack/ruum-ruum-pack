@@ -123,7 +123,7 @@ function EmptyTripsState({
       <button
         type="button"
         onClick={contenido.onAction}
-        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-action-primary px-5 py-3 font-display text-sm font-bold text-[#14213D] shadow-sm hover:bg-[#FFB940]"
+        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-action-primary px-5 py-3 font-display text-sm font-bold text-on-primary shadow-sm hover:bg-action-primary-hover"
       >
         {contenido.accion}
       </button>

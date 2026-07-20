@@ -37,6 +37,14 @@ function IcoGanancias() {
     </svg>
   );
 }
+function IcoNotificaciones() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+      <path d="M10 21h4" />
+    </svg>
+  );
+}
 function IcoCuenta() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -53,6 +61,7 @@ const DESTINOS: { href: string; etiqueta: string; Icono: DestinoIcono }[] = [
   { href: "/panel", etiqueta: "Inicio", Icono: IcoHome },
   { href: "/viajes", etiqueta: "Traslados", Icono: IcoViajes },
   { href: "/ganancias", etiqueta: "Ganancias", Icono: IcoGanancias },
+  { href: "/notificaciones", etiqueta: "Avisos", Icono: IcoNotificaciones },
   { href: "/cuenta", etiqueta: "Cuenta", Icono: IcoCuenta },
 ];
 
@@ -99,7 +108,7 @@ export function NavegacionConductor() {
                   aria-label={activo ? `Página actual: ${destino.etiqueta}` : destino.etiqueta}
                   className={[
                     "inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 font-body text-sm font-semibold",
-                    activo ? "bg-action-primary text-[#14213D] shadow-sm" : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
+                    activo ? "bg-action-primary text-on-primary shadow-sm" : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
                   ].join(" ")}
                 >
                   <destino.Icono />
@@ -119,15 +128,15 @@ export function NavegacionConductor() {
                 className="min-w-0 rounded-xl px-1 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
                 aria-label={`Ver detalles del traslado ${viajeActivo.folio}`}
               >
-                <p className="flex items-center gap-2 font-body text-sm font-semibold text-[#8EC5FF]">
+                <p className="flex items-center gap-2 font-body text-sm font-semibold text-route-action">
                   <span>Traslado activo · {viajeActivo.folio}</span>
                   {hayAccionPendiente && (
-                    <span className="rounded-full border border-warning bg-warning px-2 py-0.5 font-body text-sm font-bold text-[#14213D]">
+                    <span className="rounded-full border border-warning bg-warning px-2 py-0.5 font-body text-sm font-bold text-on-primary">
                       Acción pendiente
                     </span>
                   )}
                   {viajeActivoSinActualizar && (
-                    <span className="rounded-full border border-warning bg-[#2A2232] px-2 py-0.5 font-body text-sm font-bold text-warning">
+                    <span className="rounded-full border border-warning bg-warning/10 px-2 py-0.5 font-body text-sm font-bold text-warning">
                       Información sin actualizar
                     </span>
                   )}
@@ -161,7 +170,7 @@ export function NavegacionConductor() {
                 </Link>
                 <Link
                   href={`/viajes/${viajeActivo.trasladoId}#emergencia`}
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-danger-action bg-[#2A1320] px-2 py-2 text-center font-body text-sm font-semibold text-danger-action"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-danger-action bg-danger-soft px-2 py-2 text-center font-body text-sm font-semibold text-danger-action"
                 >
                   Emergencia
                 </Link>
@@ -181,7 +190,7 @@ export function NavegacionConductor() {
             >
               <span className="min-w-0">
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate font-body text-xs font-bold uppercase text-[#8EC5FF]">
+                  <span className="truncate font-body text-xs font-bold uppercase text-route-action">
                     Traslado activo · {viajeActivo.folio}
                   </span>
                   {hayAccionPendiente && (
@@ -193,7 +202,7 @@ export function NavegacionConductor() {
                     </span>
                   )}
                   {viajeActivoSinActualizar && (
-                    <span className="rounded-full border border-warning bg-[#2A2232] px-2 py-0.5 font-body text-sm font-bold text-warning">
+                    <span className="rounded-full border border-warning bg-warning/10 px-2 py-0.5 font-body text-sm font-bold text-warning">
                       Información sin actualizar
                     </span>
                   )}
@@ -224,7 +233,7 @@ export function NavegacionConductor() {
                 aria-label={notificar ? `${destino.etiqueta}: acción pendiente en traslado activo` : destino.etiqueta}
                 className={[
                   "relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 font-body text-xs font-semibold",
-                  activo ? "bg-action-primary text-[#14213D]" : "text-text-secondary"
+                  activo ? "bg-action-primary text-on-primary" : "text-text-secondary"
                 ].join(" ")}
               >
                 {notificar && (

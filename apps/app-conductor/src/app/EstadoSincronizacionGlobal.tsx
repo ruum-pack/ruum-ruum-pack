@@ -47,7 +47,7 @@ export function EstadoSincronizacionGlobal() {
   if (snapshot.status === "todo_sincronizado") return null;
 
   return (
-    <div className={`mx-auto mt-3 w-[min(100%-24px,1120px)] rounded-xl border px-4 py-2 font-body text-sm font-semibold ${CLASES[snapshot.status]}`}>
+    <div aria-live="polite" aria-atomic="true" className={`mx-auto mt-3 w-[min(100%-24px,1120px)] rounded-xl border px-4 py-2 font-body text-sm font-semibold ${CLASES[snapshot.status]}`}>
       {snapshot.message}
     </div>
   );

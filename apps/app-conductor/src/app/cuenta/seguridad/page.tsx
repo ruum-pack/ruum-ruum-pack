@@ -7,6 +7,7 @@ import { Aviso, Button, Card } from "@ruum/ui";
 import { limpiarBorradorRegistroLocal } from "../../../lib/borrador-registro";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 import { CuentaHeader } from "../CuentaHeader";
+import { desactivarPushDelDispositivo } from "../../../lib/push-notifications";
 
 export default function PaginaSeguridadCuenta() {
   const [cerrando, setCerrando] = useState(false);
@@ -17,6 +18,7 @@ export default function PaginaSeguridadCuenta() {
     setCerrando(true);
     try {
       const cliente = crearClienteNavegador();
+      await desactivarPushDelDispositivo();
       await cliente.auth.signOut();
       limpiarBorradorRegistroLocal();
       router.push("/onboarding");

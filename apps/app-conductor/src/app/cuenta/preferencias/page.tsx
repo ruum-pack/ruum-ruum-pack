@@ -18,6 +18,12 @@ const PREFS_DEFAULT = {
   alertas_pago: true,
   alertas_documentos: true,
   alertas_admin: false,
+  notificar_oportunidades: true,
+  notificar_traslados_asignados: true,
+  notificar_cambios_operativos: true,
+  notificar_documentos: true,
+  notificar_ganancias: true,
+  notificar_promociones: false,
   viajes_locales: true,
   viajes_foraneos: true,
   viajes_nocturnos: false,
@@ -81,12 +87,14 @@ export default function PaginaPreferenciasCuenta() {
             <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Notificaciones</p>
             <div className="mt-5 grid gap-3">
               {[
-                ["Push", "notificaciones_push"],
-                ["Modo no molestar 22:00 - 07:00", "modo_no_molestar"],
-                ["Alertas de nuevos viajes", "alertas_viaje"],
-                ["Pagos", "alertas_pago"],
-                ["Documentos", "alertas_documentos"],
-                ["Administrativas", "alertas_admin"]
+                ["Push en este dispositivo", "notificaciones_push"],
+                ["Horario silencioso 22:00 - 07:00 (solo no operativo)", "modo_no_molestar"],
+                ["Nuevas oportunidades", "notificar_oportunidades"],
+                ["Traslados asignados", "notificar_traslados_asignados"],
+                ["Cambios operativos", "notificar_cambios_operativos"],
+                ["Documentos", "notificar_documentos"],
+                ["Ganancias y pagos", "notificar_ganancias"],
+                ["Promociones", "notificar_promociones"]
               ].map(([label, clave]) => (
                 <label key={clave} className="flex items-center justify-between gap-4 rounded-lg border border-border px-4 py-3">
                   <span className="font-body text-sm font-medium">{label}</span>
@@ -94,6 +102,7 @@ export default function PaginaPreferenciasCuenta() {
                 </label>
               ))}
             </div>
+            <p className="mt-4 font-body text-xs text-text-tertiary">Los avisos críticos de seguridad y los cambios urgentes de un traslado activo permanecen habilitados por protección operativa.</p>
           </Card>
           <Card>
             <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Tipos de viaje</p>

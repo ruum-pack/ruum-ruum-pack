@@ -19,7 +19,7 @@ export function TripsFilters({
 
   return (
     <details className="mt-4 rounded-xl border border-border/18 bg-surface">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-body text-sm font-semibold text-text-primary hover:text-[#8EC5FF] [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-body text-sm font-semibold text-text-primary hover:text-route-action [&::-webkit-details-marker]:hidden">
         <span>Filtros</span>
         <span className="flex items-center gap-2 text-xs font-semibold text-text-tertiary">
           {filtrosActivos.length > 0 ? filtrosActivos.join(" · ") : "Todos"}

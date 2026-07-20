@@ -49,6 +49,11 @@
   --color-danger-action: var(--ruum-danger);
   --color-danger-action-hover: var(--ruum-danger-hover);
   --color-danger-action-active: var(--ruum-danger-active);
+  --color-on-primary: var(--ruum-on-primary);
+  --color-on-danger: var(--ruum-on-danger);
+  --color-surface-muted: var(--ruum-surface-subtle);
+  --color-overlay: var(--ruum-overlay);
+  --color-focus: var(--ruum-focus);
 
   /* Alias de compatibilidad para componentes ya escritos. */
   --color-paper: var(--color-mist);
@@ -91,6 +96,9 @@
   --ruum-focus: #0e5cab;
   --ruum-focus-ring: rgba(14, 92, 171, 0.24);
   --ruum-action-primary: #f5a623;
+  --ruum-on-primary: #14213d;
+  --ruum-on-danger: #ffffff;
+  --ruum-overlay: rgba(7, 11, 20, 0.72);
   --ruum-action-primary-hover: #d88f16;
   --ruum-action-primary-active: #c77f0a;
   --ruum-route: #0e5cab;
@@ -134,6 +142,9 @@
   --ruum-focus: #4da3ff;
   --ruum-focus-ring: rgba(77, 163, 255, 0.3);
   --ruum-action-primary: #f5a623;
+  --ruum-on-primary: #14213d;
+  --ruum-on-danger: #070b14;
+  --ruum-overlay: rgba(0, 0, 0, 0.78);
   --ruum-action-primary-hover: #d88f16;
   --ruum-action-primary-active: #c77f0a;
   --ruum-route: #4da3ff;

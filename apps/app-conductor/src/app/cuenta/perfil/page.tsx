@@ -1,5 +1,7 @@
 "use client";
 
+import { ConfirmDialog } from "../../../components/ConfirmDialog";
+
 import { ChangeEvent, useEffect, useState } from "react";
 import { Button, Card } from "@ruum/ui";
 import { actualizarPerfilConductor, subirFotoPerfilConductor } from "@ruum/api/services";
@@ -100,6 +102,7 @@ function perfilDesdeConductor(conductor: ConductorCuenta | null) {
 }
 
 export default function PaginaPerfilCuenta() {
+  const [confirmacionAbierta, setConfirmacionAbierta] = useState(false);
   const [conductor, setConductor] = useState<ConductorCuenta | null>(null);
   const [perfil, setPerfil] = useState(PERFIL_DEFAULT);
   const [sensiblesEditados, setSensiblesEditados] = useState<Set<CampoSensiblePerfil>>(new Set());
@@ -136,10 +139,11 @@ export default function PaginaPerfilCuenta() {
 
   async function guardarPerfil() {
     if (!conductor || guardando) return;
-    if (sensiblesEditados.size > 0) {
-      const confirmado = window.confirm("Vas a cambiar datos sensibles de tu expediente. Operación podría revisarlos nuevamente. ¿Quieres guardar?");
-      if (!confirmado) return;
+    if (sensiblesEditados.size > 0 && !confirmacionAbierta) {
+      setConfirmacionAbierta(true);
+      return;
     }
+    setConfirmacionAbierta(false);
     setNotificacion(null);
     setGuardando(true);
     try {
@@ -199,6 +203,8 @@ export default function PaginaPerfilCuenta() {
   }
 
   return (
+    <>
+      <ConfirmDialog open={confirmacionAbierta} title="Guardar cambios sensibles" consequence="Operación podría revisar nuevamente tu expediente antes de aprobar los cambios." maskedData={[`Campos modificados: ${sensiblesEditados.size}`]} confirmLabel="Guardar y enviar a revisión" busy={guardando} onCancel={() => setConfirmacionAbierta(false)} onConfirm={() => void guardarPerfil()} />
     <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:py-14">
       <CuentaHeader titulo="Perfil" descripcion="Actualiza tus datos personales y de contacto operativo." />
       {notificacion && (
@@ -240,7 +246,7 @@ export default function PaginaPerfilCuenta() {
                           <label htmlFor={inputId}>{campo.etiqueta}</label>
                           {tipoDatoSensible && <DatosSensiblesTooltip tipo={tipoDatoSensible} align={tooltipAlign} />}
                           {esSoloLectura && (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-text-tertiary/28 bg-[#0B1220] px-2 py-0.5 text-xs font-semibold normal-case tracking-normal text-text-tertiary">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-text-tertiary/28 bg-surface-muted px-2 py-0.5 text-xs font-semibold normal-case tracking-normal text-text-tertiary">
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <rect x="4" y="11" width="16" height="9" rx="2" />
                                 <path d="M8 11V7a4 4 0 0 1 8 0v4" />
@@ -266,7 +272,7 @@ export default function PaginaPerfilCuenta() {
                           className={[
                             "rounded-lg border px-3 py-2 font-body text-base normal-case tracking-normal text-text-primary placeholder:text-text-tertiary",
                             esSoloLectura
-                              ? "border-border/12 bg-[#0B1220] text-text-tertiary outline-none"
+                              ? "border-border/12 bg-surface-muted text-text-tertiary outline-none"
                               : "border-border bg-surface"
                           ].join(" ")}
                         />
@@ -286,5 +292,6 @@ export default function PaginaPerfilCuenta() {
         )}
       </Card>
     </div>
+    </>
   );
 }

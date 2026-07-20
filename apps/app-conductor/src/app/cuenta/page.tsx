@@ -6,6 +6,7 @@ const SECCIONES = [
   { href: "/cuenta/perfil", titulo: "Perfil", descripcion: "Datos personales, dirección y contacto de emergencia." },
   { href: "/cuenta/documentos", titulo: "Documentos", descripcion: "Expediente operativo y carga de archivos." },
   { href: "/cuenta/preferencias", titulo: "Preferencias", descripcion: "Notificaciones y tipos de viaje." },
+  { href: "/notificaciones", titulo: "Centro de notificaciones", descripcion: "Avisos operativos leídos y pendientes." },
   { href: "/cuenta/datos-bancarios", titulo: "Datos bancarios", descripcion: "Cuenta para depósitos y estado de validación." },
   { href: "/cuenta/seguridad", titulo: "Seguridad", descripcion: "Contraseña, sesión y cambios sensibles." },
   { href: "/cuenta/soporte", titulo: "Soporte", descripcion: "Canales oficiales y baja de cuenta." },

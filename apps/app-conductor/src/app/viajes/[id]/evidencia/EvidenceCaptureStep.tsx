@@ -9,7 +9,7 @@ function VehicleSilhouette({ label }: { label: string }) {
       <div className="absolute inset-x-8 top-1/2 h-16 -translate-y-1/2 rounded-[40px] border-2 border-route-action/70" />
       <div className="absolute left-[25%] top-[calc(50%+22px)] size-8 rounded-full border-2 border-route-action/70 bg-surface" />
       <div className="absolute right-[25%] top-[calc(50%+22px)] size-8 rounded-full border-2 border-route-action/70 bg-surface" />
-      <p className="relative max-w-[220px] text-center font-body text-sm font-semibold text-[#8EC5FF]">{label}</p>
+      <p className="relative max-w-[220px] text-center font-body text-sm font-semibold text-route-action">{label}</p>
     </div>
   );
 }
@@ -37,7 +37,7 @@ export function EvidenceCaptureStep({
 }) {
   return (
     <section className="mt-5 rounded-2xl border border-border/28 bg-surface p-6 text-text-primary shadow-[0_18px_48px_rgba(0,0,0,0.45)]">
-      <p className="font-body text-sm font-semibold text-[#8EC5FF]">
+      <p className="font-body text-sm font-semibold text-route-action">
         {step} de {total}
       </p>
       <h2 className="mt-2 font-display text-2xl font-semibold text-text-primary">{item.titulo}</h2>

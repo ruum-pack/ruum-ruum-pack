@@ -62,7 +62,7 @@ export function DatosSensiblesInfo({ tipo, compacto = false }: { tipo: TipoDatoS
         <div><dt className="font-semibold text-text-primary">¿Quién puede verlo?</dt><dd>{texto.acceso}</dd></div>
         <div><dt className="font-semibold text-text-primary">¿Cómo se protege?</dt><dd>{texto.proteccion}</dd></div>
       </dl>
-      <Link href="/legal/privacidad" target="_blank" className="mt-3 inline-flex font-body text-sm font-semibold text-[#65B8FF] underline-offset-4 hover:underline">
+      <Link href="/legal/privacidad" target="_blank" className="mt-3 inline-flex font-body text-sm font-semibold text-route-action underline-offset-4 hover:underline">
         Ver aviso de privacidad
       </Link>
     </div>
@@ -95,7 +95,7 @@ export function DatosSensiblesTooltip({
         onKeyDown={(evento) => {
           if (evento.key === "Escape") setAbierto(false);
         }}
-        className="inline-flex size-7 items-center justify-center rounded-full border border-[rgba(101,184,255,0.42)] bg-surface-elevated font-body text-sm font-bold text-[#65B8FF] shadow-sm transition hover:border-[#65B8FF] hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
+        className="inline-flex size-7 items-center justify-center rounded-full border border-route-action/40 bg-surface-elevated font-body text-sm font-bold text-route-action shadow-sm transition hover:border-route-action hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
       >
         i
       </button>
@@ -126,7 +126,7 @@ export function DatosSensiblesTooltip({
           <Link
             href="/legal/privacidad"
             target="_blank"
-            className="mt-3 inline-flex font-body text-sm font-semibold text-[#65B8FF] underline-offset-4 hover:underline"
+            className="mt-3 inline-flex font-body text-sm font-semibold text-route-action underline-offset-4 hover:underline"
           >
             Ver aviso de privacidad
           </Link>

@@ -7,6 +7,10 @@ import { ViajeActivoProvider } from "./ViajeActivoContext";
 import { OfflineShell } from "./OfflineShell";
 import { EstadoSincronizacionGlobal } from "./EstadoSincronizacionGlobal";
 import { EstadoTrackingGlobal } from "./EstadoTrackingGlobal";
+import { PushNotificationsBootstrap } from "./PushNotificationsBootstrap";
+import { LiveRegionProvider } from "../components/LiveRegionProvider";
+import { VersionGate } from "./VersionGate";
+import { OperationalAccessibilityBridge } from "./OperationalAccessibilityBridge";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -38,16 +42,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="es" data-theme="dark">
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">Saltar al contenido principal</a>
-        <ViajeActivoProvider>
+        <LiveRegionProvider>
+          <ViajeActivoProvider>
           <SincronizadorEvidenciaOffline />
           <NavegacionConductor />
           <EstadoSincronizacionGlobal />
           <EstadoTrackingGlobal />
+          <PushNotificationsBootstrap />
+          <VersionGate />
+          <OperationalAccessibilityBridge />
           <OfflineShell />
           <main id="contenido-principal" className="conductor-page" role="main">
             {children}
           </main>
-        </ViajeActivoProvider>
+          </ViajeActivoProvider>
+        </LiveRegionProvider>
       </body>
     </html>
   );
