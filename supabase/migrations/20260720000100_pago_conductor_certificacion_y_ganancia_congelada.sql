@@ -287,6 +287,16 @@ grant execute on function public.puede_ver_tarifa_traslado(uuid) to authenticate
 -- final para no romper el orden existente (CREATE OR REPLACE VIEW no permite
 -- insertar en medio -> error 42P16). precio_cotizado/precio_final sí cambian
 -- de expresión en su misma posición -- válido mientras el tipo no cambie.
+-- Corrección del statement 17 de:
+-- 20260720000100_pago_conductor_certificacion_y_ganancia_congelada.sql
+--
+-- Motivo:
+-- CREATE OR REPLACE VIEW no permite cambiar el tipo de una columna existente.
+-- Las expresiones CASE pierden el typmod numeric(10,2) y PostgreSQL las
+-- interpreta como numeric, provocando SQLSTATE 42P16.
+--
+-- Sustituir el statement original de CREATE OR REPLACE VIEW por este bloque.
+
 create or replace view public.pasaporte_digital
 with (security_invoker = true)
 as
@@ -299,8 +309,19 @@ select
   t.tiene_incidencia_abierta,
   t.tipo_pago,
   t.causa_fallido,
-  case when public.puede_ver_tarifa_traslado(t.usuario_id) then t.precio_cotizado else null end as precio_cotizado,
-  case when public.puede_ver_tarifa_traslado(t.usuario_id) then t.precio_final else null end as precio_final,
+
+  case
+    when public.puede_ver_tarifa_traslado(t.usuario_id)
+      then t.precio_cotizado
+    else null
+  end::numeric(10,2) as precio_cotizado,
+
+  case
+    when public.puede_ver_tarifa_traslado(t.usuario_id)
+      then t.precio_final
+    else null
+  end::numeric(10,2) as precio_final,
+
   t.creado_en,
   t.actualizado_en,
   v.tipo as vehiculo_tipo,
@@ -311,22 +332,37 @@ select
   c.estado as conductor_estado,
   c.nivel_operativo_vigente as conductor_nivel,
   c.calificacion_promedio as conductor_calificacion,
+
   (
-    select count(*) from public.evidencia_fotos ef
-    where ef.traslado_id = t.id and ef.tipo = 'inicial' and ef.sincronizada
+    select count(*)
+    from public.evidencia_fotos ef
+    where ef.traslado_id = t.id
+      and ef.tipo = 'inicial'
+      and ef.sincronizada
   ) as evidencia_inicial_fotos_sincronizadas,
+
   (
-    select count(*) from public.evidencia_fotos ef
-    where ef.traslado_id = t.id and ef.tipo = 'final' and ef.sincronizada
+    select count(*)
+    from public.evidencia_fotos ef
+    where ef.traslado_id = t.id
+      and ef.tipo = 'final'
+      and ef.sincronizada
   ) as evidencia_final_fotos_sincronizadas,
+
   (
-    select count(*) from public.incidencias i
-    where i.traslado_id = t.id and not i.resuelta
+    select count(*)
+    from public.incidencias i
+    where i.traslado_id = t.id
+      and not i.resuelta
   ) as incidencias_abiertas,
+
   (
-    select coalesce(sum(p.monto), 0) from public.pagos p
-    where p.traslado_id = t.id and p.estado = 'completado'
+    select coalesce(sum(p.monto), 0)
+    from public.pagos p
+    where p.traslado_id = t.id
+      and p.estado = 'completado'
   ) as monto_pagado,
+
   t.origen_lat,
   t.origen_lng,
   t.destino_lat,
@@ -349,23 +385,43 @@ select
   v.color as vehiculo_color,
   v.placas as vehiculo_placas,
   v.vin as vehiculo_vin,
+
   -- Columna nueva (pago al conductor). Tres casos, en orden:
-  --  a) soy el conductor ya asignado a este traslado -> mi monto congelado.
-  --  b) el traslado sigue disponible (sin asignar) y soy un conductor
-  --     autenticado -> estimación en vivo de MI propio corte, calculada con
-  --     MI certificación -- nunca la tarifa cruda ni el corte de otro conductor.
-  --  c) admin -> el monto congelado (o null si aún no se ha aceptado), para
-  --     panel-admin/pagos.
+  -- a) Soy el conductor ya asignado a este traslado:
+  --    se muestra mi monto congelado.
+  --
+  -- b) El traslado sigue disponible, sin conductor asignado, y soy un
+  --    conductor autenticado:
+  --    se calcula una estimación en vivo de mi propio corte usando mi
+  --    certificación; nunca se expone la tarifa cruda ni el corte de otro
+  --    conductor.
+  --
+  -- c) Soy administrador:
+  --    se muestra el monto congelado, o null si todavía no se ha aceptado.
   case
-    when c.auth_user_id = auth.uid() then t.ganancia_conductor_congelada
-    when t.estado = 'pendiente_de_conductor' and t.conductor_id is null then (
-      select public.calcular_pago_conductor(cc.certificacion_pago, coalesce(t.precio_final, t.precio_cotizado))
-      from public.conductores cc
-      where cc.auth_user_id = auth.uid()
-    )
-    when public.es_admin() then t.ganancia_conductor_congelada
+    when c.auth_user_id = auth.uid()
+      then t.ganancia_conductor_congelada
+
+    when t.estado = 'pendiente_de_conductor'
+      and t.conductor_id is null
+      then (
+        select public.calcular_pago_conductor(
+          cc.certificacion_pago,
+          coalesce(t.precio_final, t.precio_cotizado)
+        )
+        from public.conductores cc
+        where cc.auth_user_id = auth.uid()
+      )
+
+    when public.es_admin()
+      then t.ganancia_conductor_congelada
+
     else null
   end as ganancia_conductor
+
 from public.traslados t
-left join public.vehiculos v on v.id = t.vehiculo_id
-left join public.conductores c on c.id = t.conductor_id;
+left join public.vehiculos v
+  on v.id = t.vehiculo_id
+left join public.conductores c
+  on c.id = t.conductor_id;
+
