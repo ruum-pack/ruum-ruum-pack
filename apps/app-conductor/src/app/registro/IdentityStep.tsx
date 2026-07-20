@@ -1,7 +1,7 @@
 import { Field } from "@ruum/ui";
 import type { CampoRegistroConductor } from "@ruum/shared/validacion";
-import { DatosSensiblesInfo } from "../cuenta/datos-sensibles";
-import { formatoTelefonoNacional, soloDigitos } from "./registration-validation";
+import { DatosSensiblesTooltip } from "../cuenta/datos-sensibles";
+import { formatoTelefonoNacional, formatoTelefonoMask, soloDigitos } from "./registration-validation";
 import { SelectField } from "./SelectField";
 
 export function IdentityStep({
@@ -81,60 +81,119 @@ export function IdentityStep({
     <fieldset className="grid gap-4">
       <legend className="font-display text-xl font-bold text-text-primary">Identidad</legend>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field etiqueta="Nombre (s)" value={nombre} onChange={(e) => { setNombre(e.target.value); limpiarErrorCampo("nombre"); }} onBlur={() => validarCampo("nombre", nombre)} error={erroresCampos.nombre || undefined} required autoComplete="given-name" />
-        <Field etiqueta="Apellido (s)" value={apellidos} onChange={(e) => { setApellidos(e.target.value); limpiarErrorCampo("apellidos"); }} onBlur={() => validarCampo("apellidos", apellidos)} error={erroresCampos.apellidos || undefined} required autoComplete="family-name" />
+        <Field etiqueta="Nombre (s)" value={nombre} onChange={(e) => { setNombre(e.target.value); limpiarErrorCampo("nombre"); }} onBlur={() => validarCampo("nombre", nombre)} error={erroresCampos.nombre || undefined} required autoComplete="given-name" aria-required="true" />
+        <Field etiqueta="Apellido (s)" value={apellidos} onChange={(e) => { setApellidos(e.target.value); limpiarErrorCampo("apellidos"); }} onBlur={() => validarCampo("apellidos", apellidos)} error={erroresCampos.apellidos || undefined} required autoComplete="family-name" aria-required="true" />
       </div>
-      <Field etiqueta="CURP" value={curp} onChange={(e) => { setCurp(e.target.value.toUpperCase()); limpiarErrorCampo("curp"); }} onBlur={() => validarCurp()} error={erroresCampos.curp || undefined} required maxLength={18} autoComplete="off" />
-      <DatosSensiblesInfo tipo="curp" compacto />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field etiqueta="Código Postal" inputMode="numeric" value={codigoPostal} ayuda={consultandoCp ? "Buscando domicilio..." : "Al capturar 5 dígitos se completa el domicilio."} onChange={(e) => {
-          const cp = soloDigitos(e.target.value, 5);
-          setCodigoPostal(cp);
-          limpiarErrorCampo("codigoPostal");
-          if (cp.length < 5) {
-            setEstado("");
-            setCiudad("");
-            setCiudades([]);
-            setColonia("");
-            setColonias([]);
-          }
-          if (cp.length === 5) buscarCodigoPostal(cp);
-        }} error={erroresCampos.codigoPostal || undefined} required autoComplete="postal-code" />
-        <Field etiqueta="Estado" value={estado} onChange={(e) => { setEstado(e.target.value); limpiarErrorCampo("estado"); }} error={erroresCampos.estado || undefined} required autoComplete="address-level1" readOnly={colonias.length > 0} />
-      </div>
-      {ciudades.length > 0 ? (
-        <SelectField
-          etiqueta="Ciudad o Municipio"
-          value={ciudad}
-          onChange={(valor) => { setCiudad(valor); limpiarErrorCampo("ciudad"); }}
-          error={erroresCampos.ciudad || undefined}
-          required
-          placeholder="Selecciona tu ciudad o municipio"
-          opciones={ciudades}
+      <div className="flex items-center gap-2">
+        <Field 
+          etiqueta="CURP"
+          value={curp} 
+          onChange={(e) => { setCurp(e.target.value.toUpperCase()); limpiarErrorCampo("curp"); }} 
+          onBlur={() => validarCurp()} 
+          error={erroresCampos.curp || undefined} 
+          required 
+          maxLength={18} 
+          autoComplete="off"
+          aria-required="true"
         />
-      ) : (
-        <Field etiqueta="Ciudad o Municipio" ayuda={colonias.length > 0 ? "Captura el municipio; este CP no lo devolvió automáticamente." : undefined} value={ciudad} onChange={(e) => { setCiudad(e.target.value); limpiarErrorCampo("ciudad"); }} error={erroresCampos.ciudad || undefined} required autoComplete="address-level2" />
-      )}
+        <DatosSensiblesTooltip tipo="curp" />
+      </div>
+      <Field etiqueta="Código Postal" inputMode="numeric" value={codigoPostal} ayuda={consultandoCp ? "Buscando domicilio..." : "Al capturar 5 dígitos se completa el domicilio."} onChange={(e) => {
+        const cp = soloDigitos(e.target.value, 5);
+        setCodigoPostal(cp);
+        limpiarErrorCampo("codigoPostal");
+        if (cp.length < 5) {
+          setEstado("");
+          setCiudad("");
+          setCiudades([]);
+          setColonia("");
+          setColonias([]);
+        }
+        if (cp.length === 5) buscarCodigoPostal(cp);
+      }} error={erroresCampos.codigoPostal || undefined} required autoComplete="postal-code" aria-required="true" />
+      
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field 
+          etiqueta="Estado" 
+          value={estado} 
+          onChange={(e) => { setEstado(e.target.value); limpiarErrorCampo("estado"); }} 
+          error={erroresCampos.estado || undefined} 
+          required 
+          autoComplete="address-level1" 
+          disabled={codigoPostal.length < 5}
+          aria-required="true"
+        />
+        {ciudades.length > 0 ? (
+          <SelectField
+            etiqueta="Ciudad o Municipio"
+            value={ciudad}
+            onChange={(valor) => { setCiudad(valor); limpiarErrorCampo("ciudad"); }}
+            error={erroresCampos.ciudad || undefined}
+            required
+            placeholder="Selecciona tu ciudad o municipio"
+            opciones={ciudades}
+            disabled={codigoPostal.length < 5}
+          />
+        ) : (
+          <Field 
+            etiqueta="Ciudad o Municipio" 
+            ayuda={colonias.length > 0 ? "Captura el municipio; este CP no lo devolvió automáticamente." : undefined} 
+            value={ciudad} 
+            onChange={(e) => { setCiudad(e.target.value); limpiarErrorCampo("ciudad"); }} 
+            error={erroresCampos.ciudad || undefined} 
+            required 
+            autoComplete="address-level2" 
+            disabled={codigoPostal.length < 5}
+            aria-required="true"
+          />
+        )}
+      </div>
+      
       <SelectField
         etiqueta="Colonia"
         value={colonia}
         onChange={(valor) => { setColonia(valor); limpiarErrorCampo("colonia"); }}
         error={erroresCampos.colonia || undefined}
         required
-        disabled={colonias.length === 0}
-        placeholder={colonias.length === 0 ? "Captura primero un código postal válido" : "Selecciona tu colonia"}
+        disabled={codigoPostal.length < 5}
+        placeholder={codigoPostal.length < 5 ? "Captura primero un código postal válido" : colonias.length === 0 ? "No hay colonias para este CP" : "Selecciona tu colonia"}
         opciones={colonias}
+        aria-required="true"
       />
       <div className="grid gap-4 sm:grid-cols-[1fr_120px]">
-        <Field etiqueta="Calle" value={calle} onChange={(e) => { setCalle(e.target.value); limpiarErrorCampo("calle"); }} error={erroresCampos.calle || undefined} required autoComplete="address-line1" />
-        <Field etiqueta="Número" value={numero} onChange={(e) => { setNumero(e.target.value); limpiarErrorCampo("numero"); }} error={erroresCampos.numero || undefined} required />
+        <Field etiqueta="Calle" value={calle} onChange={(e) => { setCalle(e.target.value); limpiarErrorCampo("calle"); }} error={erroresCampos.calle || undefined} required autoComplete="address-line1" aria-required="true" />
+        <Field etiqueta="Número" value={numero} onChange={(e) => { setNumero(e.target.value); limpiarErrorCampo("numero"); }} error={erroresCampos.numero || undefined} required aria-required="true" />
       </div>
-      <Field etiqueta="Referencias" value={referencias} onChange={(e) => { setReferencias(e.target.value); limpiarErrorCampo("referencias"); }} error={erroresCampos.referencias || undefined} required />
+      <Field etiqueta="Referencias" value={referencias} onChange={(e) => { setReferencias(e.target.value); limpiarErrorCampo("referencias"); }} error={erroresCampos.referencias || undefined} required aria-required="true" />
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field etiqueta="Contacto de emergencia (nombre)" value={contactoEmergenciaNombre} onChange={(e) => { setContactoEmergenciaNombre(e.target.value); limpiarErrorCampo("contactoEmergenciaNombre"); }} error={erroresCampos.contactoEmergenciaNombre || undefined} required />
-        <Field etiqueta="Teléfono del contacto" type="tel" inputMode="numeric" value={formatoTelefonoNacional(contactoEmergenciaTelefono)} onChange={(e) => { setContactoEmergenciaTelefono(soloDigitos(e.target.value)); limpiarErrorCampo("contactoEmergenciaTelefono"); }} onBlur={() => validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono)} error={erroresCampos.contactoEmergenciaTelefono || undefined} required autoComplete="tel-national" />
+        <Field 
+          etiqueta="Contacto de emergencia (nombre)" 
+          value={contactoEmergenciaNombre} 
+          onChange={(e) => { setContactoEmergenciaNombre(e.target.value); limpiarErrorCampo("contactoEmergenciaNombre"); }} 
+          error={erroresCampos.contactoEmergenciaNombre || undefined} 
+          required 
+          aria-required="true"
+        />
+        <div className="flex items-center gap-2">
+          <Field 
+            etiqueta="Teléfono del contacto"
+            type="tel" 
+            inputMode="numeric" 
+            value={formatoTelefonoMask(contactoEmergenciaTelefono)} 
+            onChange={(e) => { 
+              const digitos = soloDigitos(e.target.value);
+              setContactoEmergenciaTelefono(digitos); 
+              limpiarErrorCampo("contactoEmergenciaTelefono"); 
+            }} 
+            onBlur={() => validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono)} 
+            error={erroresCampos.contactoEmergenciaTelefono || undefined} 
+            required 
+            autoComplete="tel-national"
+            aria-required="true"
+          />
+          <DatosSensiblesTooltip tipo="contacto_emergencia" />
+        </div>
       </div>
-      <DatosSensiblesInfo tipo="contacto_emergencia" compacto />
     </fieldset>
   );
 }

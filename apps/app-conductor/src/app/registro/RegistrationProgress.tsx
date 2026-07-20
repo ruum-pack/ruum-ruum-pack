@@ -45,15 +45,22 @@ export function RegistrationProgress({
         </p>
       )}
       {sesionAutenticada && estadoGuardadoRemoto !== "inactivo" && (
-        <p
-          className={`mt-2 font-body text-sm font-medium ${estadoGuardadoRemoto === "error" ? "text-danger-action" : estadoGuardadoRemoto === "sin_conexion" ? "text-warning" : "text-secondary"}`}
-          role="status"
-          aria-live="polite"
-          title={detalleGuardadoRemoto ?? undefined}
-        >
-          {TEXTO_GUARDADO_REMOTO[estadoGuardadoRemoto]}
-          {estadoGuardadoRemoto === "error" && detalleGuardadoRemoto ? `: ${detalleGuardadoRemoto}` : ""}
-        </p>
+        <div className="mt-2 flex items-center gap-2">
+          {estadoGuardadoRemoto === "guardado" && (
+            <span className="flex size-5 items-center justify-center rounded-full bg-success/10 text-success" aria-hidden="true">
+              ✓
+            </span>
+          )}
+          <p
+            className={`font-body text-sm font-medium ${estadoGuardadoRemoto === "error" ? "text-danger-action" : estadoGuardadoRemoto === "sin_conexion" ? "text-warning" : "text-text-secondary"}`}
+            role="status"
+            aria-live="polite"
+            title={detalleGuardadoRemoto ?? undefined}
+          >
+            {TEXTO_GUARDADO_REMOTO[estadoGuardadoRemoto]}
+            {estadoGuardadoRemoto === "error" && detalleGuardadoRemoto ? `: ${detalleGuardadoRemoto}` : ""}
+          </p>
+        </div>
       )}
     </>
   );

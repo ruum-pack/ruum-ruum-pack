@@ -7,6 +7,11 @@ export const PASOS_REGISTRO = [
   {
     titulo: "Identidad y domicilio",
     objetivo: "Deja que verifiquemos tu identidad y domicilio.",
+    tiempo: "4 min"
+  },
+  {
+    titulo: "Licencia y experiencia",
+    objetivo: "Registra la licencia con la que conducirás y tus autorizaciones.",
     tiempo: "3 min"
   },
   {
@@ -16,7 +21,8 @@ export const PASOS_REGISTRO = [
   },
   {
     titulo: "Revisión y envío",
-    objetivo: "Revisa tus datos antes de enviarlo",  tiempo: "2 min"
+    objetivo: "Revisa tus datos antes de enviarlo",
+    tiempo: "2 min"
   }
 ];
 
