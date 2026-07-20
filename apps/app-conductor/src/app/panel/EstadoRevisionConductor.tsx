@@ -166,7 +166,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
           Tu solicitud está en revisión
         </h1>
         <p className="mt-2 font-body text-sm leading-6 text-text-secondary">
-          Aún no puedes recibir viajes porque tu expediente no está elegible. Aquí puedes ver exactamente qué falta y corregir solo lo que operación rechazó.
+          No puedes recibir viajes porque tus documentos están siendo revisados.
         </p>
         <div className="mt-5 rounded-xl border border-border bg-surface p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -275,7 +275,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
         <div className="mt-6 rounded-xl border border-route-action bg-route-soft p-4">
           <p className="font-body text-sm font-semibold text-text-primary">Te avisaremos cuando cambie el estado</p>
           <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
-            Si actualizas un documento rechazado, volverá a aparecer como “En revisión”. No necesitas contactar a soporte para consultar el avance.
+            Si actualizas un documento, volverá a aparecer como "En revisión".
           </p>
         </div>
 
