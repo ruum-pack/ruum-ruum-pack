@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches:
@@ -46,6 +47,13 @@ jobs:
       - name: Verify unified app version
         run: node scripts/verify-app-version.mjs
 
+      - name: Run Android close static regression
+        run: |
+          node apps/app-conductor/tests/android/sprint-close-p0-static.test.mjs
+          node apps/app-conductor/tests/android/sprint-close-p1-static.test.mjs
+          node apps/app-conductor/tests/android/sprint-close-fix-static.test.mjs
+          node apps/app-conductor/tests/android/sprint-close-fix2-static.test.mjs
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -60,6 +68,144 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  app-conductor-critical-e2e:
+    name: App conductor critical Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      PLAYWRIGHT_E2E_CONDUCTOR_EMAIL: ${{ secrets.E2E_CONDUCTOR_EMAIL }}
+      PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD: ${{ secrets.E2E_CONDUCTOR_PASSWORD }}
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+      NEXT_PUBLIC_APP_VERSION: ci
+      NEXT_PUBLIC_RUUM_AMBIENTE: staging
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium
+
+      - name: Run critical conductor flows
+        run: pnpm --filter @ruum/app-conductor exec playwright test tests/e2e/sprint-c5-critical-flows.spec.ts
+
+      - name: Upload Playwright evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-conductor-critical-e2e
+          retention-days: 90
+          if-no-files-found: warn
+          path: |
+            apps/app-conductor/playwright-report/
+            apps/app-conductor/test-results/
+
+  signed-conductor-apk:
+    name: Signed conductor APK
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      RUUM_REMOTE_URL: ${{ vars.RUUM_CONDUCTOR_REMOTE_URL_STAGING }}
+      RUUM_ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/apps/app-conductor/android/app/release.keystore
+      RUUM_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RUUM_ANDROID_KEYSTORE_PASSWORD }}
+      RUUM_ANDROID_KEY_ALIAS: ${{ secrets.RUUM_ANDROID_KEY_ALIAS }}
+      RUUM_ANDROID_KEY_PASSWORD: ${{ secrets.RUUM_ANDROID_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Validate release secrets
+        env:
+          FIREBASE_JSON_B64: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_B64 }}
+          KEYSTORE_B64: ${{ secrets.RUUM_ANDROID_KEYSTORE_B64 }}
+        run: |
+          test -n "$FIREBASE_JSON_B64"
+          test -n "$KEYSTORE_B64"
+          test -n "$RUUM_ANDROID_KEYSTORE_PASSWORD"
+          test -n "$RUUM_ANDROID_KEY_ALIAS"
+          test -n "$RUUM_ANDROID_KEY_PASSWORD"
+          test -n "$RUUM_REMOTE_URL"
+
+      - name: Materialize Firebase and signing key
+        env:
+          FIREBASE_JSON_B64: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_B64 }}
+          KEYSTORE_B64: ${{ secrets.RUUM_ANDROID_KEYSTORE_B64 }}
+        run: |
+          echo "$FIREBASE_JSON_B64" | base64 --decode > apps/app-conductor/android/app/google-services.json
+          echo "$KEYSTORE_B64" | base64 --decode > "$RUUM_ANDROID_KEYSTORE_PATH"
+          jq -e '.project_info.project_id and ([.client[].client_info.android_client_info.package_name] | index("com.moviliax.ruumruum.conductor"))' apps/app-conductor/android/app/google-services.json
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build conductor web bundle
+        run: pnpm --filter @ruum/app-conductor build
+
+      - name: Sync Capacitor Android
+        run: pnpm --filter @ruum/app-conductor exec cap sync android
+
+      - name: Build signed release APK
+        working-directory: apps/app-conductor/android
+        run: ./gradlew --no-daemon clean assembleRelease
+
+      - name: Verify APK signature and hashes
+        run: |
+          APK=apps/app-conductor/android/app/build/outputs/apk/release/app-release.apk
+          test -f "$APK"
+          $ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner verify --verbose --print-certs "$APK" | tee apps/app-conductor/android/app/build/outputs/apk/release/signature.txt
+          sha256sum "$APK" | tee apps/app-conductor/android/app/build/outputs/apk/release/SHA256SUMS.txt
+
+      - name: Upload signed APK evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-conductor-signed-release
+          retention-days: 90
+          if-no-files-found: error
+          path: |
+            apps/app-conductor/android/app/build/outputs/apk/release/app-release.apk
+            apps/app-conductor/android/app/build/outputs/apk/release/signature.txt
+            apps/app-conductor/android/app/build/outputs/apk/release/SHA256SUMS.txt
 
   edge-functions:
     name: Edge Function checks
