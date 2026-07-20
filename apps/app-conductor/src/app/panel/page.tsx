@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Button } from "@ruum/ui";
+import { Aviso, Button } from "@ruum/ui";
 import { ConfirmarDisponibilidad } from "../ConfirmarDisponibilidad";
 import { RegistroViajeActivo } from "../ViajeActivoContext";
 import { EstadoRevisionConductor } from "./EstadoRevisionConductor";
@@ -10,7 +9,7 @@ import { PanelActiveTrip } from "./PanelActiveTrip";
 import { PanelHome } from "./PanelHome";
 import { usePanelData } from "./usePanelData";
 import { registroViajeActivoDesdePasaporte } from "../active-trip-state";
-import { limpiarSesionIntegral } from "../../lib/session-cleanup";
+import { useCerrarSesion } from "../../lib/use-cerrar-sesion";
 
 function PanelLoadingSkeleton() {
   return (
@@ -37,7 +36,7 @@ function PanelLoadingSkeleton() {
 }
 
 export default function PaginaPanel() {
-  const router = useRouter();
+  const { cerrarSesion, cerrandoSesion, errorCerrarSesion } = useCerrarSesion();
   const {
     cargando,
     conductor,
@@ -55,16 +54,6 @@ export default function PaginaPanel() {
     setDisponibilidadPendiente
   } = usePanelData();
 
-  async function cerrarSesion() {
-    const resultado = await limpiarSesionIntegral();
-    if (resultado.blocked) {
-      window.alert(`No se cerró la sesión: hay ${resultado.pendingEvidence} evidencia(s) y ${resultado.pendingTelemetry} punto(s) de telemetría pendientes.`);
-      return;
-    }
-    router.push("/onboarding");
-    router.refresh();
-  }
-
   if (enRevision) {
     return (
       <EstadoRevisionConductor
@@ -74,7 +63,7 @@ export default function PaginaPanel() {
         documentosIniciales={enRevision.documentos}
         estadoExpediente={enRevision.estado}
         enviadoEn={enRevision.enviadoEn}
-        onSalir={cerrarSesion}
+        onSalir={() => void cerrarSesion()}
       />
     );
   }
@@ -98,11 +87,12 @@ export default function PaginaPanel() {
           </Link>
           {conductor ? (
             <button 
-              onClick={cerrarSesion} 
+              onClick={() => void cerrarSesion()} 
               className="inline-flex min-h-11 items-center font-body text-sm text-text-secondary hover:text-text-primary"
               aria-label="Cerrar sesión actual"
+              disabled={cerrandoSesion}
             >
-              Cerrar sesión
+              {cerrandoSesion ? "Cerrando sesión..." : "Cerrar sesión"}
             </button>
           ) : (
             <Link href="/login" className="font-body text-sm font-medium text-text-secondary hover:text-text-primary" aria-label="Iniciar sesión">
@@ -111,6 +101,8 @@ export default function PaginaPanel() {
           )}
         </div>
       </header>
+
+      {errorCerrarSesion ? <div className="mt-4"><Aviso tono="danger">{errorCerrarSesion}</Aviso></div> : null}
 
       {cargando ? (
         <PanelLoadingSkeleton />

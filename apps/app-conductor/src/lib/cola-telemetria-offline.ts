@@ -10,6 +10,7 @@ const DISTANCIA_SIGNIFICATIVA_M = 25;
 const BACKOFF_TELEMETRIA_MS = [30_000, 2 * 60_000, 5 * 60_000, 15 * 60_000];
 
 export interface PuntoTelemetriaLocal {
+  usuarioId: string;
   localId: string;
   trasladoId: string;
   latitude: number;
@@ -70,7 +71,7 @@ function normalizar(items: unknown): PuntoTelemetriaLocal[] {
   return items
     .filter((item) => item && typeof item === "object")
     .map((item) => item as PuntoTelemetriaLocal)
-    .filter((item) => item.localId && item.trasladoId && Number.isFinite(item.latitude) && Number.isFinite(item.longitude))
+    .filter((item) => item.usuarioId && item.localId && item.trasladoId && Number.isFinite(item.latitude) && Number.isFinite(item.longitude))
     .map((item) => ({
       ...item,
       attempts: Number.isInteger(item.attempts) && item.attempts >= 0 ? item.attempts : 0
@@ -101,10 +102,12 @@ function limitarTamano(items: PuntoTelemetriaLocal[]) {
 export async function encolarPuntoTelemetria(
   trasladoId: string,
   ubicacion: Coordenadas & { heading?: number | null },
-  opciones: { critical?: boolean; localId?: string; deviceTimestamp?: string } = {}
+  opciones: { usuarioId: string; critical?: boolean; localId?: string; deviceTimestamp?: string }
 ) {
   const cola = await leerColaTelemetria();
+  if (!opciones.usuarioId) throw new Error("telemetry_queue_user_required");
   const punto: PuntoTelemetriaLocal = {
+    usuarioId: opciones.usuarioId,
     localId: opciones.localId ?? crypto.randomUUID(),
     trasladoId,
     latitude: ubicacion.lat,

@@ -22,6 +22,7 @@ const logger = createLogger("active_trip");
 export function useActiveTripSubscription(pathname: string) {
   const [viajeActivo, setViajeActivo] = useState<ViajeActivo | null>(null);
   const [viajeActivoSinActualizar, setViajeActivoSinActualizar] = useState(false);
+  const [pasaporteActivo, setPasaporteActivo] = useState<Awaited<ReturnType<typeof listarViajesAceptados>>[number] | null>(null);
   const rutaSinViajeActivo = RUTAS_SIN_VIAJE_ACTIVO.has(pathname);
   const registrarViajeActivo = useCallback((viaje: RegistroViajeActivoInput | null) => {
     setViajeActivo((previo) => (viaje ? normalizarViajeActivo(viaje, previo) : null));
@@ -41,6 +42,7 @@ export function useActiveTripSubscription(pathname: string) {
         if (!conductor) {
           if (!cancelado) {
             setViajeActivo(null);
+            setPasaporteActivo(null);
             setViajeActivoSinActualizar(false);
           }
           return;
@@ -50,6 +52,7 @@ export function useActiveTripSubscription(pathname: string) {
         const activo = viajes.find((viaje) => viaje.estado && viajeEsOperacionActiva(viaje.estado));
         if (!cancelado) {
           setViajeActivo(activo ? viajeActivoDesdePasaporte(activo) : null);
+          setPasaporteActivo(activo ?? null);
           setViajeActivoSinActualizar(false);
         }
       } catch (error) {
@@ -108,6 +111,7 @@ export function useActiveTripSubscription(pathname: string) {
   return {
     viajeActivo: rutaSinViajeActivo ? null : viajeActivo,
     viajeActivoSinActualizar: rutaSinViajeActivo ? false : viajeActivoSinActualizar,
+    pasaporteActivo: rutaSinViajeActivo ? null : pasaporteActivo,
     registrarViajeActivo
   };
 }

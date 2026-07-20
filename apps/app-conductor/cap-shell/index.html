@@ -1,1 +1,31 @@
-<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ruum Ruum sin conexión</title><style>body{font-family:system-ui;background:#101820;color:#fff;margin:0;padding:32px}.card{max-width:560px;margin:15vh auto;background:#18252f;padding:28px;border-radius:18px}button{padding:14px 18px;border:0;border-radius:10px;font-weight:700}</style><body><main class="card"><h1>Ruum Ruum</h1><h2>Sin conexión al iniciar</h2><p>El tracking nativo y los puntos pendientes permanecen seguros. Conéctate a internet y vuelve a intentar.</p><button onclick="location.reload()">Reintentar</button><p id="state" role="status"></p></main><script>addEventListener('online',()=>{document.querySelector('#state').textContent='Conexión recuperada. Reintentando…';location.reload()})</script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ruum Ruum · Modo sin conexión</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#101820;color:#fff;margin:0;padding:20px}.card{max-width:620px;margin:8vh auto;background:#18252f;padding:28px;border-radius:18px}.status{display:grid;gap:10px;margin:22px 0}.row{display:flex;justify-content:space-between;gap:16px;padding:12px;border-radius:12px;background:#22333f}.label{color:#b9c6ce}.value{text-align:right;font-weight:700}button{width:100%;padding:14px 18px;border:0;border-radius:10px;font-weight:700}.warning{padding:12px;border-left:4px solid #f2b84b;background:#2a2a24;border-radius:8px}small{color:#b9c6ce}
+</style></head>
+<body><main class="card" aria-labelledby="title">
+<p>Ruum Ruum Conductor</p><h1 id="title">Inicio sin conexión</h1>
+<p>La aplicación no detectó acceso validado a internet. Tu operación local y el tracking nativo continúan protegidos.</p>
+<section class="status" aria-label="Resumen operativo">
+<div class="row"><span class="label">Tracking</span><span class="value" id="tracking">Consultando…</span></div>
+<div class="row"><span class="label">Traslado</span><span class="value" id="trip">—</span></div>
+<div class="row"><span class="label">Puntos pendientes</span><span class="value" id="pending">—</span></div>
+<div class="row"><span class="label">Última ubicación</span><span class="value" id="last-location">—</span></div>
+<div class="row"><span class="label">Último envío</span><span class="value" id="last-sent">—</span></div>
+</section>
+<p class="warning" id="error" hidden role="alert"></p>
+<button id="retry">Reintentar conexión</button>
+<p id="state" role="status" aria-live="polite"></p>
+<small>No cierres sesión ni borres datos mientras existan elementos pendientes.</small>
+</main>
+<script>
+let remoteUrl='';let recovering=false;let validatedStreak=0;const fmt=v=>v?new Date(v).toLocaleString('es-MX'):'—';
+const plugin=()=>window.Capacitor?.Plugins?.BackgroundTracking;
+async function loadStatus(){try{const p=plugin();if(!p)throw new Error('plugin_unavailable');const s=await p.getStatus();remoteUrl=s.remoteUrl||remoteUrl;document.querySelector('#tracking').textContent=s.active?'Activo':'Detenido';document.querySelector('#trip').textContent=s.tripId||'Sin traslado activo';document.querySelector('#pending').textContent=String(s.pendingCount??0);document.querySelector('#last-location').textContent=fmt(s.lastLocationAt);document.querySelector('#last-sent').textContent=fmt(s.lastSentAt);const e=document.querySelector('#error');e.hidden=!s.lastError;e.textContent=s.lastError?'Atención: '+s.lastError:'';}catch{document.querySelector('#tracking').textContent='Estado no disponible';}}
+async function validatedNetwork(){try{const p=plugin();if(!p?.getValidatedNetworkStatus)return false;const result=await p.getValidatedNetworkStatus();remoteUrl=result.remoteUrl||remoteUrl;return result.validated===true;}catch{return false;}}
+async function recover(force=false){if(recovering)return;recovering=true;const state=document.querySelector('#state');state.textContent=force?'Validando conexión…':'Buscando reconexión segura…';try{const valid=await validatedNetwork();validatedStreak=valid?validatedStreak+1:0;if(!valid){state.textContent='La red todavía no tiene acceso validado a internet.';return;}if(validatedStreak<2&&!force){state.textContent='Conexión detectada. Confirmando estabilidad…';return;}if(!remoteUrl)await loadStatus();if(!remoteUrl){state.textContent='No se encontró la URL del ambiente.';return;}state.textContent='Conexión validada. Volviendo a Ruum Ruum…';location.replace(remoteUrl);}finally{recovering=false;}}
+document.querySelector('#retry').addEventListener('click',()=>recover(true));addEventListener('online',()=>{validatedStreak=0;recover(false)});addEventListener('visibilitychange',()=>{if(!document.hidden)recover(false)});loadStatus().then(()=>recover(false));setInterval(()=>{loadStatus();recover(false)},10000);
+</script></body></html>

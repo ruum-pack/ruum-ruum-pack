@@ -30,6 +30,7 @@ const DATA_URL_JPG = `data:image/jpeg;base64,${Buffer.from("foto").toString("bas
 
 function item(overrides: Partial<ItemColaEvidencia> = {}): ItemColaEvidencia {
   return {
+    usuarioId: "user-test",
     localId: "local-1",
     trasladoId: "traslado-1",
     tipo: "inicial",

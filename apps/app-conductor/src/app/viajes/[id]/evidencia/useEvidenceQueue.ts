@@ -40,9 +40,13 @@ export function useEvidenceQueue({ trasladoId, tipo }: { trasladoId: string; tip
   const registrarFotoEnCola = useCallback(
     async ({ angulo, dataUrl }: { angulo: AnguloEvidencia; dataUrl: string }) => {
       if (!tipo) return [];
+      const cliente = crearClienteNavegador();
+      const { data } = await cliente.auth.getUser();
+      if (!data.user?.id) throw new Error("No hay una sesión válida para asociar la evidencia pendiente.");
       const coords = await obtenerUbicacionActual();
       const localId = crypto.randomUUID();
       await encolarEvidencia({
+        usuarioId: data.user.id,
         localId,
         trasladoId,
         tipo,

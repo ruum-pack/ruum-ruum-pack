@@ -31,11 +31,12 @@ export function useDriverLocationTracking(viajeActivo: ViajeActivo | null) {
     const cliente = crearClienteNavegador();
 
     if (soportaTrackingNativo()) {
-      void cliente.auth.getSession().then(({ data }) => {
+      void cliente.auth.getSession().then(async ({ data }) => {
         const accessToken = data.session?.access_token;
+        const userId = data.session?.user.id;
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!accessToken || !supabaseUrl || !anonKey || cancelado) return;
+        if (!userId || !accessToken || !supabaseUrl || !anonKey || cancelado) return;
         try {
           const background = await solicitarUbicacionSegundoPlanoNativa();
           if (!background.granted) logger.warn("background_location_not_granted", { state: background.state, tripId: viaje.trasladoId }, "permission");
@@ -43,6 +44,7 @@ export function useDriverLocationTracking(viajeActivo: ViajeActivo | null) {
           logger.warn("background_location_request_failed", { tripId: viaje.trasladoId, errorCode: errorCode(error) }, "permission");
         }
         return iniciarTrackingNativo({
+          userId,
           tripId: viaje.trasladoId,
           tripCode: viaje.folio,
           tripState: viaje.estado,

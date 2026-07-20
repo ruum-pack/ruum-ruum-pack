@@ -22,7 +22,7 @@ export { viajeEsOperacionActiva, viajePermiteEmergencia };
 
 export function ViajeActivoProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { viajeActivo, viajeActivoSinActualizar, registrarViajeActivo } = useActiveTripSubscription(pathname);
+  const { viajeActivo, viajeActivoSinActualizar, pasaporteActivo, registrarViajeActivo } = useActiveTripSubscription(pathname);
   const [cacheViajeActivo, setCacheViajeActivo] = useState<OfflineActiveTripCache | null>(null);
   useDriverLocationTracking(viajeActivo);
 
@@ -34,6 +34,16 @@ export function ViajeActivoProvider({ children }: { children: React.ReactNode })
     await guardarCacheViajeActivo(cache);
     setCacheViajeActivo(cache);
   }, []);
+
+
+
+  useEffect(() => {
+    if (pasaporteActivo) {
+      void cachearPasaporteActivo(pasaporteActivo);
+    } else if (!viajeActivoSinActualizar && !viajeActivo) {
+      void limpiarCacheViajeActivo().then(() => setCacheViajeActivo(null));
+    }
+  }, [cachearPasaporteActivo, pasaporteActivo, viajeActivo, viajeActivoSinActualizar]);
 
   const limpiarViajeActivoGlobal = useCallback(async () => {
     registrarViajeActivo(null);

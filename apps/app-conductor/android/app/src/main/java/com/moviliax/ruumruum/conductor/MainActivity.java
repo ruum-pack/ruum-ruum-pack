@@ -1,8 +1,38 @@
 package com.moviliax.ruumruum.conductor;
-import android.net.ConnectivityManager; import android.net.Network; import android.net.NetworkCapabilities; import android.os.Bundle;
-import com.getcapacitor.BridgeActivity; import com.moviliax.ruumruum.conductor.tracking.BackgroundTrackingPlugin;
+
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.os.Bundle;
+import android.util.Log;
+import com.getcapacitor.BridgeActivity;
+import com.moviliax.ruumruum.conductor.tracking.BackgroundTrackingPlugin;
+
 public class MainActivity extends BridgeActivity {
- private static final String REMOTE_URL="https://www.concer.ruumruum-moviliax.online";
- @Override public void onCreate(Bundle b){ registerPlugin(BackgroundTrackingPlugin.class); super.onCreate(b); if(isOnline()) getBridge().getWebView().loadUrl(REMOTE_URL); }
- private boolean isOnline(){ ConnectivityManager cm=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE); Network n=cm.getActiveNetwork(); if(n==null)return false; NetworkCapabilities c=cm.getNetworkCapabilities(n); return c!=null&&(c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)||c.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)||c.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)); }
+    private static final String TAG = "RuumStartup";
+
+    @Override public void onCreate(Bundle state) {
+        registerPlugin(BackgroundTrackingPlugin.class);
+        super.onCreate(state);
+        if (hasValidatedInternet()) {
+            String remoteUrl = BuildConfig.RUUM_REMOTE_URL;
+            if (remoteUrl != null && remoteUrl.startsWith("https://")) {
+                getBridge().getWebView().loadUrl(remoteUrl);
+            } else {
+                Log.e(TAG, "remote_url_invalid");
+            }
+        } else {
+            Log.i(TAG, "validated_network_unavailable_using_local_shell");
+        }
+    }
+
+    private boolean hasValidatedInternet() {
+        ConnectivityManager manager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        Network network = manager.getActiveNetwork();
+        if (network == null) return false;
+        NetworkCapabilities capabilities = manager.getNetworkCapabilities(network);
+        return capabilities != null
+            && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+    }
 }

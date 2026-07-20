@@ -1,6 +1,8 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
 
 export interface BackgroundTrackingStatus {
+  remoteUrl?: string;
+  userId?: string | null;
   active: boolean;
   tripId?: string | null;
   lastLocationAt: number;
@@ -11,6 +13,7 @@ export interface BackgroundTrackingStatus {
 
 interface BackgroundTrackingPlugin {
   start(options: {
+    userId: string;
     tripId: string;
     tripCode?: string;
     tripState: string;

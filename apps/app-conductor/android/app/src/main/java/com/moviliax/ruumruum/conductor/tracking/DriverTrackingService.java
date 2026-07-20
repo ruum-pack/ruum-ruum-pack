@@ -67,6 +67,7 @@ public class DriverTrackingService extends Service {
         try {
             SharedPreferences prefs = SecureTrackingPreferences.get(this);
             JSONObject point = new JSONObject();
+            point.put("usuarioId", prefs.getString(TrackingContract.KEY_USER_ID, ""));
             point.put("localId", UUID.randomUUID().toString());
             point.put("lat", location.getLatitude());
             point.put("lng", location.getLongitude());
@@ -92,7 +93,8 @@ public class DriverTrackingService extends Service {
         android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         android.net.Network network = cm.getActiveNetwork();
         android.net.NetworkCapabilities caps = network == null ? null : cm.getNetworkCapabilities(network);
-        return caps != null && caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        return caps != null && caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            && caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED);
     }
 
     private int batteryPct() {

@@ -10,5 +10,5 @@ public final class SecureTrackingPreferences {
    return EncryptedSharedPreferences.create(context, TrackingContract.PREFS, key, EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV, EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM);
   } catch(Exception e) { throw new IllegalStateException("secure_tracking_storage_unavailable", e); }
  }
- public static void clearCredentials(Context c){ get(c).edit().remove(TrackingContract.KEY_ACCESS_TOKEN).remove(TrackingContract.KEY_REFRESH_TOKEN).remove(TrackingContract.KEY_ANON_KEY).remove(TrackingContract.KEY_SUPABASE_URL).remove(TrackingContract.KEY_TRIP_ID).remove(TrackingContract.KEY_TRIP_CODE).putBoolean(TrackingContract.KEY_ACTIVE,false).apply(); }
+ public static void clearCredentials(Context c){ get(c).edit().remove(TrackingContract.KEY_ACCESS_TOKEN).remove(TrackingContract.KEY_REFRESH_TOKEN).remove(TrackingContract.KEY_ANON_KEY).remove(TrackingContract.KEY_SUPABASE_URL).remove(TrackingContract.KEY_USER_ID).remove(TrackingContract.KEY_TRIP_ID).remove(TrackingContract.KEY_TRIP_CODE).putBoolean(TrackingContract.KEY_ACTIVE,false).apply(); }
 }

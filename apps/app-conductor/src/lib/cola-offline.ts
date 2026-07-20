@@ -2,6 +2,7 @@ import { Preferences } from "@capacitor/preferences";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
 import { createLogger, errorCode } from "@ruum/shared/utils";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "./supabase-browser";
 
 const CLAVE_COLA = "ruum_cola_evidencia";
 const BUCKET_EVIDENCIA = "evidencia";
@@ -14,6 +15,7 @@ const BACKOFF_REINTENTO_MS = [
 ];
 
 export interface ItemColaEvidencia {
+  usuarioId: string;
   /** UUID generado en el dispositivo — es la clave de idempotencia al subir (ver propuesta de arquitectura, sección 5). */
   localId: string;
   trasladoId: string;
@@ -78,6 +80,17 @@ export class InMemoryEvidenceStorage implements EvidenceQueueStorage {
   }
 }
 
+
+async function usuarioActualId(): Promise<string | null> {
+  if (!tieneSupabaseConfigurado()) return null;
+  try {
+    const { data } = await crearClienteNavegador().auth.getUser();
+    return data.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 let storageColaEvidencia: EvidenceQueueStorage = new CapacitorPreferencesEvidenceStorage();
 
 export function configurarStorageColaEvidencia(storage: EvidenceQueueStorage) {
@@ -91,7 +104,8 @@ export function configurarStorageColaEvidencia(storage: EvidenceQueueStorage) {
  * IndexedDB sin cambiar el contrato que consume la pantalla de evidencia.
  */
 export async function encolarEvidencia(item: ItemColaEvidencia): Promise<void> {
-  const cola = await leerColaEvidencia();
+  if (!item.usuarioId) throw new Error("evidence_queue_user_required");
+  const cola = await leerColaEvidencia(undefined, item.usuarioId);
   const itemNormalizado = normalizarItemCola(item);
   const sinDuplicados = cola.filter(
     (existente) =>
@@ -111,9 +125,11 @@ export async function encolarEvidencia(item: ItemColaEvidencia): Promise<void> {
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("ruum:evidencia-pendiente"));
 }
 
-export async function leerColaEvidencia(trasladoId?: string): Promise<ItemColaEvidencia[]> {
+export async function leerColaEvidencia(trasladoId?: string, usuarioIdExplicito?: string): Promise<ItemColaEvidencia[]> {
   const cola = normalizarItemsCola(await storageColaEvidencia.read());
-  return trasladoId ? cola.filter((item) => item.trasladoId === trasladoId) : cola;
+  const usuarioId = usuarioIdExplicito ?? await usuarioActualId();
+  const porUsuario = usuarioId ? cola.filter((item) => item.usuarioId === usuarioId) : cola;
+  return trasladoId ? porUsuario.filter((item) => item.trasladoId === trasladoId) : porUsuario;
 }
 
 export async function quitarDeColaEvidencia(localId: string): Promise<void> {

@@ -9,6 +9,7 @@ public final class TrackingContract {
     public static final int NOTIFICATION_ID = 4301;
     public static final String PREFS = "ruum_tracking_prefs";
     public static final String KEY_ACTIVE = "active";
+    public static final String KEY_USER_ID = "user_id";
     public static final String KEY_TRIP_ID = "trip_id";
     public static final String KEY_TRIP_CODE = "trip_code";
     public static final String KEY_TRIP_STATE = "trip_state";
