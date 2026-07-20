@@ -25,7 +25,7 @@ async function registrarToken(token: Token) {
   if (!sesion.session) return;
   const { error } = await (cliente as any).rpc("registrar_dispositivo_push", {
     p_device_id: uuidLocal(), p_token_push: token.value, p_plataforma: "android",
-    p_modelo: info.model ?? null, p_version_app: process.env.NEXT_PUBLIC_APP_VERSION ?? null, p_version_so: info.osVersion ?? null
+    p_modelo: info.model ?? null, p_version_app: process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0", p_version_so: info.osVersion ?? null
   });
   if (error) throw error;
 }

@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Aviso, Button, Card } from "@ruum/ui";
-import { limpiarBorradorRegistroLocal } from "../../../lib/borrador-registro";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 import { CuentaHeader } from "../CuentaHeader";
-import { desactivarPushDelDispositivo } from "../../../lib/push-notifications";
+import { limpiarSesionIntegral } from "../../../lib/session-cleanup";
 
 export default function PaginaSeguridadCuenta() {
   const [cerrando, setCerrando] = useState(false);
@@ -17,10 +16,7 @@ export default function PaginaSeguridadCuenta() {
     if (!tieneSupabaseConfigurado()) return;
     setCerrando(true);
     try {
-      const cliente = crearClienteNavegador();
-      await desactivarPushDelDispositivo();
-      await cliente.auth.signOut();
-      limpiarBorradorRegistroLocal();
+    await limpiarSesionIntegral();
       router.push("/onboarding");
       router.refresh();
     } catch {

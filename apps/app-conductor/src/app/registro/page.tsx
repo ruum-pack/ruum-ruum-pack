@@ -44,7 +44,7 @@ import { useRegistrationDocuments } from "./useRegistrationDocuments";
 import { useRegistrationDraft } from "./useRegistrationDraft";
 import { useRegistrationTelemetry } from "./useRegistrationTelemetry";
 
-const VERSION_APP_REGISTRO = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.1";
+const VERSION_APP_REGISTRO = "1.0.0";
 
 function canalRegistro(): "web" | "android" | "ios" {
   if (/android/i.test(navigator.userAgent)) return "android";

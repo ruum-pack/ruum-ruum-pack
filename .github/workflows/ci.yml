@@ -43,6 +43,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify unified app version
+        run: node scripts/verify-app-version.mjs
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -224,3 +227,21 @@ jobs:
           path: |
             apps/app-conductor/.lighthouse-ci/*.html
             apps/app-conductor/.lighthouse-ci/*.json
+
+  app-conductor-android-config:
+    name: Android Firebase and Gradle config
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject Firebase configuration
+        env:
+          FIREBASE_GOOGLE_SERVICES_JSON_B64: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          test -n "$FIREBASE_GOOGLE_SERVICES_JSON_B64" || (echo "Missing FIREBASE_GOOGLE_SERVICES_JSON_B64" && exit 1)
+          echo "$FIREBASE_GOOGLE_SERVICES_JSON_B64" | base64 --decode > apps/app-conductor/android/app/google-services.json
+      - name: Validate Firebase package and project
+        run: node scripts/validate-firebase-config.mjs
+      - name: Validate Gradle project
+        working-directory: apps/app-conductor/android
+        run: ./gradlew tasks --no-daemon

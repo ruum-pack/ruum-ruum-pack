@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@ruum/ui";
-import { crearClienteNavegador } from "../../lib/supabase-browser";
-import { limpiarBorradorRegistroLocal } from "../../lib/borrador-registro";
 import { ConfirmarDisponibilidad } from "../ConfirmarDisponibilidad";
 import { RegistroViajeActivo } from "../ViajeActivoContext";
 import { EstadoRevisionConductor } from "./EstadoRevisionConductor";
@@ -12,7 +10,7 @@ import { PanelActiveTrip } from "./PanelActiveTrip";
 import { PanelHome } from "./PanelHome";
 import { usePanelData } from "./usePanelData";
 import { registroViajeActivoDesdePasaporte } from "../active-trip-state";
-import { desactivarPushDelDispositivo } from "../../lib/push-notifications";
+import { limpiarSesionIntegral } from "../../lib/session-cleanup";
 
 function PanelLoadingSkeleton() {
   return (
@@ -58,10 +56,11 @@ export default function PaginaPanel() {
   } = usePanelData();
 
   async function cerrarSesion() {
-    const cliente = crearClienteNavegador();
-    await desactivarPushDelDispositivo();
-      await cliente.auth.signOut();
-    limpiarBorradorRegistroLocal();
+    const resultado = await limpiarSesionIntegral();
+    if (resultado.blocked) {
+      window.alert(`No se cerró la sesión: hay ${resultado.pendingEvidence} evidencia(s) y ${resultado.pendingTelemetry} punto(s) de telemetría pendientes.`);
+      return;
+    }
     router.push("/onboarding");
     router.refresh();
   }

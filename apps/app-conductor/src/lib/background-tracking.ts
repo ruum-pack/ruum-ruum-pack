@@ -20,6 +20,8 @@ interface BackgroundTrackingPlugin {
     refreshToken?: string;
   }): Promise<BackgroundTrackingStatus>;
   stop(): Promise<void>;
+  clearCredentials(): Promise<void>;
+  requestBackgroundLocation(): Promise<{ granted: boolean; state: string }>;
   getStatus(): Promise<BackgroundTrackingStatus>;
   updateTripState(options: { tripState: string }): Promise<BackgroundTrackingStatus>;
 }
@@ -34,9 +36,9 @@ export async function iniciarTrackingNativo(options: Parameters<BackgroundTracki
   return BackgroundTracking.start(options);
 }
 
-export async function detenerTrackingNativo() {
-  return BackgroundTracking.stop();
-}
+export async function detenerTrackingNativo() { return BackgroundTracking.stop(); }
+export async function limpiarCredencialesTrackingNativo() { return BackgroundTracking.clearCredentials(); }
+export async function solicitarUbicacionSegundoPlanoNativa() { return BackgroundTracking.requestBackgroundLocation(); }
 
 export async function obtenerEstadoTrackingNativo() {
   return BackgroundTracking.getStatus();

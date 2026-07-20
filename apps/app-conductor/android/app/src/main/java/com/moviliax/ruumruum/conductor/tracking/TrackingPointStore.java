@@ -37,10 +37,23 @@ final class TrackingPointStore {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, next.toString()).apply();
     }
 
+
+    static synchronized void removeByLocalIds(Context context, java.util.Set<String> ids) {
+        if (ids == null || ids.isEmpty()) return;
+        JSONArray current = readArray(context);
+        JSONArray next = new JSONArray();
+        for (int i = 0; i < current.length(); i++) {
+            JSONObject item = current.optJSONObject(i);
+            if (item == null || !ids.contains(item.optString("localId"))) next.put(current.opt(i));
+        }
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, next.toString()).apply();
+    }
+
     static synchronized int count(Context context) { return readArray(context).length(); }
 
     private static JSONArray readArray(Context context) {
         String raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, "[]");
         try { return new JSONArray(raw); } catch (Exception ignored) { return new JSONArray(); }
     }
+    public static synchronized void clear(Context context) { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY).apply(); }
 }

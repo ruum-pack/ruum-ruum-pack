@@ -33,7 +33,8 @@ public class DriverTrackingService extends Service {
         if (TrackingContract.ACTION_FLUSH.equals(action)) { uploader.execute(() -> TrackingUploadClient.flush(this)); return START_STICKY; }
         startForeground(TrackingContract.NOTIFICATION_ID, buildNotification());
         startLocationUpdates();
-        getSharedPreferences(TrackingContract.PREFS, MODE_PRIVATE).edit().putBoolean(TrackingContract.KEY_ACTIVE, true).apply();
+        SecureTrackingPreferences.get(this).edit().putBoolean(TrackingContract.KEY_ACTIVE, true)
+            .putLong(TrackingContract.KEY_STARTED_AT, SecureTrackingPreferences.get(this).getLong(TrackingContract.KEY_STARTED_AT, System.currentTimeMillis())).apply();
         return START_STICKY;
     }
 
@@ -41,11 +42,11 @@ public class DriverTrackingService extends Service {
     private void startLocationUpdates() {
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED &&
             ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            getSharedPreferences(TrackingContract.PREFS, MODE_PRIVATE).edit().putString(TrackingContract.KEY_LAST_ERROR, "location_permission_missing").apply();
+            SecureTrackingPreferences.get(this).edit().putString(TrackingContract.KEY_LAST_ERROR, "location_permission_missing").apply();
             stopSelf(); return;
         }
         if (callback != null) return;
-        SharedPreferences prefs = getSharedPreferences(TrackingContract.PREFS, MODE_PRIVATE);
+        SharedPreferences prefs = SecureTrackingPreferences.get(this);
         Sampling sampling = Sampling.forState(prefs.getString(TrackingContract.KEY_TRIP_STATE, "en_traslado"));
         LocationRequest request = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, sampling.intervalMs)
             .setMinUpdateIntervalMillis(Math.max(5000, sampling.intervalMs / 2))
@@ -64,7 +65,7 @@ public class DriverTrackingService extends Service {
         long now = System.currentTimeMillis();
         if (lastStoredLocation != null && now - lastStoredAt < sampling.intervalMs && location.distanceTo(lastStoredLocation) < sampling.distanceM) return;
         try {
-            SharedPreferences prefs = getSharedPreferences(TrackingContract.PREFS, MODE_PRIVATE);
+            SharedPreferences prefs = SecureTrackingPreferences.get(this);
             JSONObject point = new JSONObject();
             point.put("localId", UUID.randomUUID().toString());
             point.put("lat", location.getLatitude());
@@ -84,7 +85,7 @@ public class DriverTrackingService extends Service {
             prefs.edit().putLong(TrackingContract.KEY_LAST_LOCATION_AT, now).putInt(TrackingContract.KEY_PENDING, TrackingPointStore.count(this)).apply();
             lastStoredAt = now; lastStoredLocation = location;
             uploader.execute(() -> TrackingUploadClient.flush(this));
-        } catch (Exception ignored) {}
+        } catch (Exception error) { NativeErrorReporter.report(this, "tracking_point_persist_failed", error); }
     }
 
     private boolean isOnline() {
@@ -102,12 +103,12 @@ public class DriverTrackingService extends Service {
     }
 
     private Notification buildNotification() {
-        SharedPreferences prefs = getSharedPreferences(TrackingContract.PREFS, MODE_PRIVATE);
+        SharedPreferences prefs = SecureTrackingPreferences.get(this);
         String code = prefs.getString(TrackingContract.KEY_TRIP_CODE, "");
         Intent open = new Intent(this, MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pending = PendingIntent.getActivity(this, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         return new NotificationCompat.Builder(this, TrackingContract.CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_tracking)
             .setContentTitle("Ruum Ruum está compartiendo tu ubicación")
             .setContentText(code.isEmpty() ? "Traslado en curso · Toca para volver" : "Traslado " + code + " en curso · Toca para volver")
             .setContentIntent(pending).setOngoing(true).setOnlyAlertOnce(true)
@@ -126,7 +127,7 @@ public class DriverTrackingService extends Service {
         if (callback != null) locationClient.removeLocationUpdates(callback);
         callback = null;
         uploader.execute(() -> TrackingUploadClient.flush(this));
-        getSharedPreferences(TrackingContract.PREFS, MODE_PRIVATE).edit().putBoolean(TrackingContract.KEY_ACTIVE, false).apply();
+        SecureTrackingPreferences.get(this).edit().putBoolean(TrackingContract.KEY_ACTIVE, false).remove(TrackingContract.KEY_STARTED_AT).apply();
         stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
     }
 

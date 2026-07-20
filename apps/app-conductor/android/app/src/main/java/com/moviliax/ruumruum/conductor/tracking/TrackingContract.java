@@ -20,4 +20,7 @@ public final class TrackingContract {
     public static final String KEY_LAST_SENT_AT = "last_sent_at";
     public static final String KEY_PENDING = "pending_count";
     public static final String KEY_LAST_ERROR = "last_error";
+    public static final String KEY_LAST_ERROR_AT = "last_error_at";
+    public static final String KEY_STARTED_AT = "started_at";
+    public static final long MAX_BOOT_RECOVERY_AGE_MS = 12L * 60L * 60L * 1000L;
 }

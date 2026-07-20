@@ -1,0 +1,2 @@
+# COND-CLOSE-09 — Ruta física 60 minutos
+Registrar dispositivo, versión, batería inicial/final y traslado. Ejecutar 60 minutos con pantalla bloqueada incluyendo 10 min urbano, pérdida de GPS, cambio Wi-Fi/datos, 10 min detenido y reinicio. Aceptar sólo si no hay hueco mayor a 120 s fuera de pérdida deliberada, los reintentos no duplican puntos, tracking se recupera de forma segura y consumo queda documentado. Exportar timestamps dispositivo/servidor, precisión, lag y puntos pendientes.

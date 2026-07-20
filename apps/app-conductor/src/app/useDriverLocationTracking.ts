@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { registrarUbicacionTraslado } from "@ruum/api/services";
 import { createLogger, errorCode } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
-import { iniciarTrackingNativo, detenerTrackingNativo, soportaTrackingNativo } from "../lib/background-tracking";
+import { iniciarTrackingNativo, detenerTrackingNativo, solicitarUbicacionSegundoPlanoNativa, soportaTrackingNativo } from "../lib/background-tracking";
 import { distanciaMetrosEntre, observarUbicacionActual, obtenerUbicacionActual, type Coordenadas } from "../lib/ubicacion";
 import { type ViajeActivo, viajePermiteSeguimientoUbicacion } from "./active-trip-state";
 
@@ -36,6 +36,12 @@ export function useDriverLocationTracking(viajeActivo: ViajeActivo | null) {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
         if (!accessToken || !supabaseUrl || !anonKey || cancelado) return;
+        try {
+          const background = await solicitarUbicacionSegundoPlanoNativa();
+          if (!background.granted) logger.warn("background_location_not_granted", { state: background.state, tripId: viaje.trasladoId }, "permission");
+        } catch (error) {
+          logger.warn("background_location_request_failed", { tripId: viaje.trasladoId, errorCode: errorCode(error) }, "permission");
+        }
         return iniciarTrackingNativo({
           tripId: viaje.trasladoId,
           tripCode: viaje.folio,

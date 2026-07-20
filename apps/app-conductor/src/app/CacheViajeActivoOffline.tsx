@@ -1,15 +1,9 @@
 "use client";
-
 import { useEffect } from "react";
 import type { PasaporteRow } from "../lib/offline-active-trip-cache";
-import { crearCacheViajeActivoDesdePasaporte, guardarCacheViajeActivo } from "../lib/offline-active-trip-cache";
-
+import { useViajeActivo } from "./ViajeActivoContext";
 export function CacheViajeActivoOffline({ pasaporte }: { pasaporte: PasaporteRow }) {
-  useEffect(() => {
-    const cache = crearCacheViajeActivoDesdePasaporte(pasaporte);
-    if (cache) void guardarCacheViajeActivo(cache);
-  }, [pasaporte]);
-
+  const { cachearPasaporteActivo } = useViajeActivo();
+  useEffect(() => { void cachearPasaporteActivo(pasaporte); }, [cachearPasaporteActivo, pasaporte]);
   return null;
 }
-
