@@ -1,0 +1,17 @@
+{
+  "candidateVersion": "1.0.0",
+  "versionCode": 10000,
+  "commitSha": "90a6b9d71d9fb6d930ac1be20b3926b13ff790df",
+  "commitStatus": "Frozen for release/1.0.0",
+  "releaseBranch": "release/1.0.0",
+  "sourceTreeSha256": "cebfce7d9dae895fcdbe45f4dbc44a0de601476bc5b5a5c71cb059d7c09dc4d5",
+  "apk": null,
+  "apkStatus": "Pendiente de CI con Firebase y keystore reales",
+  "automatedStaticGate": "PASS",
+  "dependencyGate": "PENDING_CI",
+  "physicalGate": "PENDING_DEVICE",
+  "goNoGo": "NO_GO_UNTIL_PENDING_GATES_PASS",
+  "environment": "production",
+  "remoteUrl": "https://github.com/ruum-pack/ruum-ruum-pack.git",
+  "freezeTimestamp": "2026-07-20T19:43:32-06:00"
+}
