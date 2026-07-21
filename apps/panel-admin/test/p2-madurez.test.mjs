@@ -1,0 +1,7 @@
+import test from "node:test";import assert from "node:assert/strict";import fs from "node:fs";
+const read=p=>fs.readFileSync(p,"utf8");
+test("aprobación dual impide autoaprobación",()=>{const s=read("supabase/migrations/20260720001000_p2_madurez_operativa.sql");assert.match(s,/aprobada_por <> solicitada_por/);assert.match(s,/APROBADOR_DEBE_SER_DISTINTO/);assert.match(s,/for update/);});
+test("capacidades granulares pueden conceder o revocar",()=>{const s=read("supabase/migrations/20260720001000_p2_madurez_operativa.sql");assert.match(s,/admin_capacidades/);assert.match(s,/coalesce\(\(select ac\.concedida/);});
+test("exportación queda limitada, neutralizada y trazada",()=>{const s=read("apps/panel-admin/src/app/api/exportaciones/pagos/route.ts");assert.match(s,/LIMITE_FILAS=10_000/);assert.match(s,/\^\[=\+\\-@\]/);assert.match(s,/sha256/);assert.match(s,/admin_completar_exportacion/);});
+test("dashboard de auditoría consulta denegaciones y exportaciones",()=>{const s=read("apps/panel-admin/src/app/auditoria/page.tsx");assert.match(s,/auditoria_admin_seguridad/);assert.match(s,/exportaciones_admin/);assert.match(s,/auditoria:leer/);});
+test("hay carga y accesibilidad con sesión real",()=>{assert.ok(fs.existsSync("tests/load/panel-admin-degradacion.js"));const s=read("apps/panel-admin/tests/a11y-real/auditoria-sesiones.spec.ts");assert.match(s,/ADMIN_STORAGE_STATE/);assert.match(s,/AxeBuilder/);});

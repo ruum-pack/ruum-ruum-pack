@@ -7,7 +7,10 @@
     "build": "next build",
     "lint": "eslint .",
     "test:smoke": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "predev": "node ../../scripts/validate-env.mjs panel-admin",
+    "prebuild": "node ../../scripts/validate-env.mjs panel-admin",
+    "validate:env": "node ../../scripts/validate-env.mjs panel-admin"
   },
   "dependencies": {
     "@ruum/api": "workspace:*",

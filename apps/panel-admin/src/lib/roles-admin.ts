@@ -32,28 +32,28 @@ export const CONFIG_ROL_ADMIN: Record<RolAdminOperativo, ConfiguracionRolAdmin> 
     descripcion: "Prioriza excepciones, escalamiento y control de calidad operativo.",
     widgets: ["emergencias", "alertas_operativas", "indicadores", "acciones_frecuentes"],
     indicadores: ["riesgo_sla", "sin_asignacion", "con_incidencia", "traslados_activos", "finalizados_hoy"],
-    rutasPermitidas: ["/", "/viajes", "/masivos", "/mapa", "/alertas-sla", "/conductores", "/metricas-registro", "/incidencias", "/disputas", "/documentos", "/reportes"]
+    rutasPermitidas: ["/", "/viajes", "/masivos", "/mapa", "/alertas-sla", "/conductores", "/metricas-registro", "/incidencias", "/disputas", "/documentos", "/reportes", "/auditoria", "/aprobaciones"]
   },
   finanzas: {
     etiqueta: "Finanzas",
     descripcion: "Prioriza cierres, pagos y política tarifaria.",
     widgets: ["indicadores", "alertas_operativas"],
     indicadores: ["finalizados_hoy", "traslados_activos", "con_incidencia", "riesgo_sla"],
-    rutasPermitidas: ["/", "/viajes", "/pagos", "/tarifas", "/reportes", "/disputas", "/reclamos-seguro"]
+    rutasPermitidas: ["/", "/viajes", "/pagos", "/tarifas", "/reportes", "/disputas", "/reclamos-seguro", "/auditoria", "/aprobaciones"]
   },
   compliance: {
     etiqueta: "Compliance",
     descripcion: "Prioriza documentación, incidencias, SLA y evidencia auditables.",
     widgets: ["emergencias", "alertas_operativas", "indicadores"],
     indicadores: ["riesgo_sla", "con_incidencia", "sin_asignacion", "traslados_activos"],
-    rutasPermitidas: ["/", "/alertas-sla", "/documentos", "/incidencias", "/usuarios", "/conductores", "/empresas", "/reclamos-seguro", "/reportes"]
+    rutasPermitidas: ["/", "/alertas-sla", "/documentos", "/incidencias", "/usuarios", "/conductores", "/empresas", "/reclamos-seguro", "/reportes", "/auditoria", "/aprobaciones"]
   },
   direccion: {
     etiqueta: "Dirección",
     descripcion: "Prioriza salud general, riesgos y resultados del día.",
     widgets: ["indicadores", "emergencias", "alertas_operativas"],
     indicadores: ["traslados_activos", "finalizados_hoy", "riesgo_sla", "con_incidencia", "sin_asignacion"],
-    rutasPermitidas: ["/", "/viajes", "/mapa", "/alertas-sla", "/reportes", "/pagos", "/tarifas", "/incidencias", "/disputas", "/reclamos-seguro"]
+    rutasPermitidas: ["/", "/viajes", "/mapa", "/alertas-sla", "/reportes", "/pagos", "/tarifas", "/incidencias", "/disputas", "/reclamos-seguro", "/auditoria", "/aprobaciones"]
   }
 };
 
@@ -72,5 +72,9 @@ export function rutaBaseAdmin(href: string) {
 }
 
 export function puedeVerRuta(rol: RolAdminOperativo, href: string) {
-  return CONFIG_ROL_ADMIN[rol].rutasPermitidas.includes(rutaBaseAdmin(href));
+  const ruta = rutaBaseAdmin(href);
+  if (ruta === "/sin-permiso") return true;
+  return CONFIG_ROL_ADMIN[rol].rutasPermitidas.some(
+    (permitida) => permitida === "/" ? ruta === "/" : ruta === permitida || ruta.startsWith(`${permitida}/`)
+  );
 }

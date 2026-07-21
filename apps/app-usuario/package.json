@@ -7,7 +7,10 @@
     "build": "next build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "predev": "node ../../scripts/validate-env.mjs app-usuario",
+    "prebuild": "node ../../scripts/validate-env.mjs app-usuario",
+    "validate:env": "node ../../scripts/validate-env.mjs app-usuario"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

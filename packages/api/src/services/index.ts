@@ -11,3 +11,9 @@ export * from "./soporte";
 export * from "./disputas";
 export * from "./tarifas";
 export * from "./ubicaciones";
+
+export * from "./permisos-admin";
+
+export * from "./errores";
+export * from "./preferencias-admin";
+export * from "./aprobaciones-admin";

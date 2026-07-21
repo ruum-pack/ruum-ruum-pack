@@ -191,12 +191,16 @@ function aplicarSimboloMapa(figura: HTMLSpanElement, simbolo: SimboloMapa, color
   }
   if (simbolo === "destino") {
     Object.assign(figura.style, { borderRadius: "4px", borderColor: color });
-    figura.innerHTML = "<svg viewBox='0 0 24 24' aria-hidden='true' focusable='false' width='18' height='18'><path d='M7 21V4h9l-1.4 3L16 10H7' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linejoin='round'/></svg>";
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("aria-hidden", "true"); svg.setAttribute("width", "18"); svg.setAttribute("height", "18");
+    const path = document.createElementNS(svg.namespaceURI, "path"); path.setAttribute("d", "M7 21V4h9l-1.4 3L16 10H7"); path.setAttribute("fill", "none"); path.setAttribute("stroke", "currentColor"); path.setAttribute("stroke-width", "2.2"); path.setAttribute("stroke-linejoin", "round"); svg.appendChild(path); figura.replaceChildren(svg);
     return;
   }
   if (simbolo === "vehiculo") {
     Object.assign(figura.style, { borderRadius: "9999px", borderColor: color });
-    figura.innerHTML = "<svg viewBox='0 0 24 24' aria-hidden='true' focusable='false' width='18' height='18'><path d='M5 12l7-7 7 7h-4v7H9v-7H5z' fill='currentColor'/></svg>";
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("aria-hidden", "true"); svg.setAttribute("width", "18"); svg.setAttribute("height", "18");
+    const path = document.createElementNS(svg.namespaceURI, "path"); path.setAttribute("d", "M5 12l7-7 7 7h-4v7H9v-7H5z"); path.setAttribute("fill", "currentColor"); svg.appendChild(path); figura.replaceChildren(svg);
     return;
   }
   if (simbolo === "incidencia") {

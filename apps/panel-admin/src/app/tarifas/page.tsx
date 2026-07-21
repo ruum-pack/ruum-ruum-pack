@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import { AdminPageHeader } from "../admin-ui";
+import { ConfirmacionModal } from "../../components/ConfirmacionModal";
 import {
   actualizarConfigTarifas,
   actualizarPoliticaTarifariaNormativa,
@@ -178,6 +179,7 @@ export default function PaginaTarifasAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [seccionActiva, setSeccionActiva] = useState<SeccionTarifas>("resumen");
   const [hayCambiosSinGuardar, setHayCambiosSinGuardar] = useState(false);
+  const [seccionPendiente, setSeccionPendiente] = useState<SeccionTarifas | null>(null);
   const [ultimaSincronizacion, setUltimaSincronizacion] = useState<Date | null>(null);
 
   async function cargar() {
@@ -219,11 +221,15 @@ export default function PaginaTarifasAdmin() {
 
   function cambiarSeccion(siguiente: SeccionTarifas) {
     if (siguiente === seccionActiva) return;
-    if (hayCambiosSinGuardar && !window.confirm("Hay modificaciones sin guardar. Si cambias de sección se perderá el borrador actual.")) {
-      return;
-    }
-    setHayCambiosSinGuardar(false);
+    if (hayCambiosSinGuardar) { setSeccionPendiente(siguiente); return; }
     setSeccionActiva(siguiente);
+  }
+
+  function confirmarCambioSeccion() {
+    if (!seccionPendiente) return;
+    setHayCambiosSinGuardar(false);
+    setSeccionActiva(seccionPendiente);
+    setSeccionPendiente(null);
   }
 
   const cliente = tieneSupabaseConfigurado() ? crearClienteNavegador() : null;
@@ -232,6 +238,9 @@ export default function PaginaTarifasAdmin() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
+      <ConfirmacionModal abierto={seccionPendiente !== null} titulo="Descartar cambios sin guardar" confirmar={confirmarCambioSeccion} cancelar={() => setSeccionPendiente(null)} destructiva>
+        Hay modificaciones sin guardar. Al cambiar de sección se descartará el borrador actual.
+      </ConfirmacionModal>
       <AdminPageHeader
         etiqueta="Administración"
         titulo="Tarifas"

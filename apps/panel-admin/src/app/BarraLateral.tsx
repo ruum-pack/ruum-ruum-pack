@@ -131,6 +131,8 @@ export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
       { href: "/pagos?filtro=pendientes", etiqueta: "Pagos", icono: "pagos", contador: "pagosPendientes" },
       { href: "/tarifas", etiqueta: "Tarifas", icono: "tarifas" },
       { href: "/reportes", etiqueta: "Reportes operativos", icono: "reportes" },
+      { href: "/aprobaciones", etiqueta: "Aprobaciones duales", icono: "auditoria" },
+      { href: "/auditoria", etiqueta: "Auditoría", icono: "auditoria" },
       { href: "/configuracion", etiqueta: "Configuración", icono: "configuracion" },
     ],
   },

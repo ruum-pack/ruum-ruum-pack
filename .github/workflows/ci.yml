@@ -18,7 +18,7 @@ jobs:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
       NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
-      NEXT_PUBLIC_PANEL_ADMIN_DEMO: "true"
+      NEXT_PUBLIC_PANEL_ADMIN_DEMO: "false"
       NEXT_PUBLIC_APP_VERSION: ci
       NEXT_PUBLIC_RUUM_AMBIENTE: staging
       NEXT_PUBLIC_RUUM_SOPORTE_TELEFONO: "5500000000"
@@ -43,6 +43,14 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Verify clean-install contract
+        run: pnpm ci:clean
+
+      - name: Validate production-like environment
+        env:
+          NODE_ENV: production
+        run: pnpm --filter @ruum/panel-admin validate:env
 
       - name: Verify unified app version
         run: node scripts/verify-app-version.mjs

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { crearClienteServidor } from "@ruum/api/supabase";
+import { normalizarRolAdmin, puedeVerRuta } from "./lib/roles-admin";
 
 /**
  * Auditoría H-2 — Guard de autorización del panel-admin.
@@ -33,8 +34,22 @@ export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Modo demo (sin Supabase): nada que refrescar ni que autorizar.
+  const esProduccion = process.env.NODE_ENV === "production";
+  const modoDemo = process.env.NEXT_PUBLIC_PANEL_ADMIN_DEMO === "true";
+
+  // Fail closed: producción nunca puede continuar con demo o configuración incompleta.
+  if (esProduccion && (modoDemo || !url || !anonKey)) {
+    console.error("[security] panel-admin bloqueado por configuración insegura", {
+      pathname: request.nextUrl.pathname,
+      modoDemo,
+      supabaseConfigurado: Boolean(url && anonKey)
+    });
+    return new NextResponse("Configuración de producción incompleta", { status: 503 });
+  }
+
+  // Demo solo se permite explícitamente fuera de producción.
   if (!url || !anonKey) {
+    if (!modoDemo) return new NextResponse("Supabase no está configurado", { status: 503 });
     return response;
   }
 
@@ -81,7 +96,7 @@ export async function middleware(request: NextRequest) {
   // Ruta protegida con sesión pero SIN fila en admins -> no autorizado.
   const { data: admin, error } = await supabase
     .from("admins")
-    .select("id")
+    .select("id,rol_operativo")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
@@ -90,6 +105,28 @@ export async function middleware(request: NextRequest) {
     await supabase.auth.signOut();
     const destino = new URL("/login", request.url);
     destino.searchParams.set("error", "no_autorizado");
+    return NextResponse.redirect(destino);
+  }
+
+  const rol = normalizarRolAdmin(admin.rol_operativo);
+  if (!puedeVerRuta(rol, pathname)) {
+    console.warn("[security] acceso administrativo denegado", {
+      adminId: admin.id,
+      rol,
+      pathname,
+      metodo: request.method
+    });
+    const registrarDenegacion = supabase.rpc as unknown as (
+      fn: "registrar_acceso_admin_denegado",
+      args: { p_ruta: string; p_metodo: string; p_motivo: string }
+    ) => Promise<unknown>;
+    await registrarDenegacion("registrar_acceso_admin_denegado", {
+      p_ruta: pathname,
+      p_metodo: request.method,
+      p_motivo: "ruta_no_permitida"
+    });
+    const destino = new URL("/sin-permiso", request.url);
+    destino.searchParams.set("ruta", pathname);
     return NextResponse.redirect(destino);
   }
 

@@ -20,7 +20,10 @@
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
     "typecheck": "tsc --noEmit",
-    "test:e2e:critical": "playwright test tests/e2e/sprint-c5-critical-flows.spec.ts"
+    "test:e2e:critical": "playwright test tests/e2e/sprint-c5-critical-flows.spec.ts",
+    "predev": "node ../../scripts/validate-env.mjs app-conductor",
+    "prebuild": "node ../../scripts/validate-env.mjs app-conductor",
+    "validate:env": "node ../../scripts/validate-env.mjs app-conductor"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

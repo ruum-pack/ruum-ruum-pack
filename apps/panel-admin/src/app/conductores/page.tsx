@@ -62,6 +62,7 @@ export default function PaginaConductoresAdmin() {
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<FiltroBandeja>("todas");
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
+  const [avisoAccion, setAvisoAccion] = useState<string | null>(null);
 
   useEffect(() => {
     const filtroUrl = new URLSearchParams(window.location.search).get("filtro");
@@ -179,6 +180,7 @@ export default function PaginaConductoresAdmin() {
 
       {esDemo && <div className="mt-4"><Aviso tono="info">Configura Supabase para consultar solicitudes reales.</Aviso></div>}
       {error && <div className="mt-4"><Aviso tono="danger">{error}</Aviso></div>}
+      {avisoAccion && <div className="mt-4"><Aviso tono="info">{avisoAccion}</Aviso></div>}
 
       <div className="mt-6 flex flex-wrap gap-2" aria-label="Filtros de solicitudes">
         {FILTROS.map(({ valor, etiqueta }) => (
@@ -220,8 +222,8 @@ export default function PaginaConductoresAdmin() {
         onSelectionChange={setSeleccionados}
         rowActions={[{ label: "Revisar", href: (fila) => `/conductores/${fila.solicitud.id}` }]}
         bulkActions={[
-          { label: "Revisar selección", onClick: () => { window.alert("Revisión masiva pendiente de reglas backend."); } },
-          { label: "Exportar selección", onClick: () => { window.alert("Exportación operativa pendiente de backend."); } }
+          { label: "Revisar selección", onClick: () => setAvisoAccion("La revisión masiva requiere seleccionar una regla de decisión antes de ejecutarse.") },
+          { label: "Exportar selección", onClick: () => setAvisoAccion("La exportación se habilitará cuando el backend genere archivos firmados y auditables.") }
         ]}
       />
     </main>

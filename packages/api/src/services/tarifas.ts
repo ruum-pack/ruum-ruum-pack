@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@ruum/shared/types";
+import { assertAdminPermission } from "./permisos-admin";
 
 type Cliente = SupabaseClient<Database>;
 
@@ -31,6 +32,7 @@ export interface ConfiguracionTarifas {
  * o configuración sin sembrar.
  */
 export async function obtenerConfiguracionTarifas(cliente: Cliente): Promise<ConfiguracionTarifas> {
+  await assertAdminPermission(cliente, "tarifas:leer");
   const [vehiculo, gama, condicion, horario, dia, config, certificacionPago] = await Promise.all([
     cliente.from("tarifas_vehiculo").select("*").order("categoria").order("rango"),
     cliente.from("tarifas_gama").select("*").order("gama"),
@@ -80,6 +82,7 @@ export async function actualizarTarifaVehiculo(
   id: string,
   cambios: { base: number; por_km: number }
 ) {
+  await assertAdminPermission(cliente, "tarifas:editar");
   if (cambios.base < 0 || cambios.por_km < 0) throw new Error("Base y $/km deben ser mayores o iguales a 0.");
   const adminId = await idAdminActual(cliente);
   const { data, error } = await cliente
@@ -92,6 +95,7 @@ export async function actualizarTarifaVehiculo(
 }
 
 export async function actualizarFactorGama(cliente: Cliente, gama: TarifaGamaRow["gama"], factor: number) {
+  await assertAdminPermission(cliente, "tarifas:editar");
   if (factor <= 0) throw new Error("El factor debe ser mayor a 0.");
   const adminId = await idAdminActual(cliente);
   const { data, error } = await cliente
@@ -108,6 +112,7 @@ export async function actualizarFactorCondicion(
   condicion: TarifaCondicionRow["condicion"],
   factor: number
 ) {
+  await assertAdminPermission(cliente, "tarifas:editar");
   if (factor <= 0) throw new Error("El factor debe ser mayor a 0.");
   const adminId = await idAdminActual(cliente);
   const { data, error } = await cliente
@@ -120,6 +125,7 @@ export async function actualizarFactorCondicion(
 }
 
 export async function actualizarFactorHorario(cliente: Cliente, horario: TarifaHorarioRow["horario"], factor: number) {
+  await assertAdminPermission(cliente, "tarifas:editar");
   if (factor <= 0) throw new Error("El factor debe ser mayor a 0.");
   const adminId = await idAdminActual(cliente);
   const { data, error } = await cliente
@@ -132,6 +138,7 @@ export async function actualizarFactorHorario(cliente: Cliente, horario: TarifaH
 }
 
 export async function actualizarFactorDia(cliente: Cliente, dia: TarifaDiaRow["dia"], factor: number) {
+  await assertAdminPermission(cliente, "tarifas:editar");
   if (factor <= 0) throw new Error("El factor debe ser mayor a 0.");
   const adminId = await idAdminActual(cliente);
   const { data, error } = await cliente
@@ -154,6 +161,7 @@ export async function actualizarConfigTarifas(
     notas?: string | null;
   }
 ) {
+  await assertAdminPermission(cliente, "tarifas:editar");
   if (cambios.tarifa_hora < 0) throw new Error("La tarifa por hora debe ser mayor o igual a 0.");
   if (cambios.tope_factor_variable < 1) throw new Error("El tope del factor variable debe ser mayor o igual a 1.");
   if (cambios.nombre_version !== undefined && !cambios.nombre_version.trim()) {
@@ -177,6 +185,7 @@ export async function actualizarPagoConductorPorCertificacion(
   certificacion: CertificacionPagoRow["certificacion"],
   porcentaje: number
 ) {
+  await assertAdminPermission(cliente, "tarifas:editar");
   if (porcentaje < 0 || porcentaje > 100) throw new Error("El porcentaje debe estar entre 0 y 100.");
   const adminId = await idAdminActual(cliente);
   const { data, error } = await cliente
@@ -202,6 +211,7 @@ export async function actualizarPoliticaTarifariaNormativa(
   cliente: Cliente,
   payload: ActualizacionPoliticaTarifariaNormativa
 ) {
+  await assertAdminPermission(cliente, "tarifas:editar");
   const rpc = cliente.rpc as unknown as (
     fn: string,
     args: { p_payload: Json }
@@ -229,6 +239,7 @@ export async function clasificarVehiculoParaTarifa(
     condicion: Database["public"]["Enums"]["condicion_vehiculo"];
   }
 ) {
+  await assertAdminPermission(cliente, "tarifas:editar");
   const { error } = await cliente.from("vehiculos").update(clasificacion).eq("id", vehiculoId);
   if (error) throw error;
 }
@@ -243,6 +254,7 @@ export async function guardarDistanciaYTiempoTraslado(
   trasladoId: string,
   cambios: { distancia_km: number; tiempo_estimado_horas: number }
 ) {
+  await assertAdminPermission(cliente, "tarifas:editar");
   if (cambios.distancia_km < 0 || cambios.tiempo_estimado_horas < 0) {
     throw new Error("Distancia y tiempo deben ser mayores o iguales a 0.");
   }
@@ -306,6 +318,7 @@ export async function previsualizarTarifaUsuario(
  * confirma la aplicación del cálculo vigente vía aplicarTarifaNormativaAdmin.
  */
 export async function sugerirTarifaTraslado(cliente: Cliente, trasladoId: string): Promise<number> {
+  await assertAdminPermission(cliente, "tarifas:leer");
   const { data, error } = await cliente.rpc("admin_sugerir_tarifa_traslado", { p_traslado_id: trasladoId });
   if (error) throw error;
   if (data === null) throw new Error("No se pudo calcular una tarifa normativa para este traslado.");

@@ -14,7 +14,14 @@
     "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --local > packages/shared/src/types/supabase.ts",
     "typecheck:android": "pnpm -r run typecheck",
-    "test:unit:android": "pnpm --filter \"./packages/*\" run test"
+    "test:unit:android": "pnpm --filter \"./packages/*\" run test",
+    "ci:clean": "node scripts/verify-clean-ci.mjs",
+    "validate:env": "node scripts/validate-env.mjs workspace",
+    "test:p0": "node --test apps/panel-admin/test/*.test.mjs",
+    "test:p1": "node --test apps/panel-admin/test/p1-estabilizacion.test.mjs",
+    "test:p2": "node --test apps/panel-admin/test/p2-madurez.test.mjs",
+    "test:load": "k6 run tests/load/panel-admin-degradacion.js",
+    "test:a11y:real": "playwright test apps/panel-admin/tests/a11y-real"
   },
   "devDependencies": {
     "@axe-core/cli": "^4.12.1",

@@ -5,7 +5,9 @@ export function tieneSupabaseConfigurado(): boolean {
 }
 
 export function puedeUsarDatosDemo(): boolean {
-  return !tieneSupabaseConfigurado() || process.env.NEXT_PUBLIC_PANEL_ADMIN_DEMO === "true";
+  // Nunca inferir demo por ausencia de secretos: debe habilitarse de forma explícita
+  // y jamás en un build de producción.
+  return process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_PANEL_ADMIN_DEMO === "true";
 }
 
 /**

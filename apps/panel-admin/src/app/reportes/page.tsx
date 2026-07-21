@@ -57,6 +57,12 @@ export default function PaginaReportesAdmin() {
         ))}
       </section>
 
+      <section className="mt-6 rounded-xl border border-ink/10 p-5">
+        <h2 className="font-display text-xl font-semibold">Exportaciones seguras</h2>
+        <p className="mt-1 text-sm text-text-secondary">La exportación exige capacidad explícita, limita filas, neutraliza fórmulas CSV y registra una huella SHA-256.</p>
+        <a className="mt-4 inline-flex rounded-lg border border-ink/20 px-4 py-2 font-semibold" href="/api/exportaciones/pagos">Exportar pagos CSV</a>
+      </section>
+
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
         {REPORTES.map((grupo) => (
           <PassportCard key={grupo.categoria}>

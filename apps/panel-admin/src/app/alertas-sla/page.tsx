@@ -8,7 +8,9 @@ import {
   listarExcepcionesCriticasAdmin,
   type CategoriaExcepcionCritica,
   type ExcepcionCriticaAdmin,
-  type SeveridadExcepcionCritica
+  type SeveridadExcepcionCritica,
+  obtenerPreferenciaAdmin,
+  guardarPreferenciaAdmin
 } from "@ruum/api/services";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
@@ -280,8 +282,7 @@ export default function PaginaExcepcionesCriticas() {
   }
 
   useEffect(() => {
-    const guardados = window.localStorage.getItem("ruum-admin-responsables-excepciones");
-    if (guardados) setResponsables(JSON.parse(guardados) as Record<string, string>);
+    if (tieneSupabaseConfigurado()) void obtenerPreferenciaAdmin<Record<string, string>>(crearClienteNavegador(), "alertas_sla.responsables").then((guardados) => setResponsables(guardados ?? {}));
     const categoriaParametro = new URLSearchParams(window.location.search).get("categoria");
     if (esCategoriaExcepcion(categoriaParametro) && categoriaParametro !== "emergencia") {
       setCategoria(categoriaParametro);
@@ -292,7 +293,7 @@ export default function PaginaExcepcionesCriticas() {
   function asignarResponsable(id: string, responsable: string) {
     setResponsables((actual) => {
       const siguiente = { ...actual, [id]: responsable };
-      window.localStorage.setItem("ruum-admin-responsables-excepciones", JSON.stringify(siguiente));
+      if (tieneSupabaseConfigurado()) void guardarPreferenciaAdmin(crearClienteNavegador(), "alertas_sla.responsables", siguiente);
       return siguiente;
     });
     if (responsable) setAviso({ tono: "info", texto: `Responsable asignado: ${responsable}.` });

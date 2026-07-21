@@ -7,7 +7,7 @@ import { AdminDataTable, type AdminDataTableColumn, type AdminDataTableSortState
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
-import { listarCargasTrasladosMasivosAdmin, listarViajesAdmin, obtenerAdminActual, registrarEvento, type TrazabilidadMasivaTraslado } from "@ruum/api/services";
+import { listarCargasTrasladosMasivosAdmin, listarViajesAdmin, obtenerAdminActual, registrarEvento, obtenerPreferenciaAdmin, guardarPreferenciaAdmin, type TrazabilidadMasivaTraslado } from "@ruum/api/services";
 import { VIAJES_DEMO } from "../../lib/datos-demo";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -187,8 +187,8 @@ const VISTAS_PREDEFINIDAS: Array<Omit<VistaGuardada, "id" | "alcance" | "columna
   { id: "mis_asignados", nombre: "Mis traslados asignados", filtros: { ...FILTROS_INICIALES }, busqueda: "Torre de control" }
 ];
 
-const STORAGE_VISTAS_GUARDADAS = "ruum-admin-viajes-vistas-guardadas";
-const STORAGE_AUDITORIA_MASIVA = "ruum-admin-viajes-auditoria-masiva";
+const PREF_VISTAS_GUARDADAS = "viajes.vistas_guardadas";
+const PREF_AUDITORIA_MASIVA = "viajes.auditoria_masiva";
 
 export default function PaginaViajesAdmin() {
   const [pestana, setPestana] = useState(PESTANAS[0]!.id);
@@ -262,23 +262,27 @@ export default function PaginaViajesAdmin() {
   }, []);
 
   useEffect(() => {
-    try {
-      const vistasRaw = window.localStorage.getItem(STORAGE_VISTAS_GUARDADAS);
-      const auditoriaRaw = window.localStorage.getItem(STORAGE_AUDITORIA_MASIVA);
-      if (vistasRaw) setVistasGuardadas(JSON.parse(vistasRaw) as VistaGuardada[]);
-      if (auditoriaRaw) setAuditoriaMasiva(JSON.parse(auditoriaRaw) as AuditoriaOperacionMasiva[]);
-    } catch {
-      setVistasGuardadas([]);
-      setAuditoriaMasiva([]);
-    }
+    if (!tieneSupabaseConfigurado()) return;
+    const cliente = crearClienteNavegador();
+    void Promise.all([
+      obtenerPreferenciaAdmin<VistaGuardada[]>(cliente, PREF_VISTAS_GUARDADAS),
+      obtenerPreferenciaAdmin<AuditoriaOperacionMasiva[]>(cliente, PREF_AUDITORIA_MASIVA)
+    ]).then(([vistas, auditoria]) => {
+      setVistasGuardadas(vistas ?? []);
+      setAuditoriaMasiva(auditoria ?? []);
+    }).catch(() => { setVistasGuardadas([]); setAuditoriaMasiva([]); });
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_VISTAS_GUARDADAS, JSON.stringify(vistasGuardadas));
+    if (!tieneSupabaseConfigurado()) return;
+    const timer = window.setTimeout(() => void guardarPreferenciaAdmin(crearClienteNavegador(), PREF_VISTAS_GUARDADAS, vistasGuardadas), 400);
+    return () => window.clearTimeout(timer);
   }, [vistasGuardadas]);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_AUDITORIA_MASIVA, JSON.stringify(auditoriaMasiva.slice(0, 20)));
+    if (!tieneSupabaseConfigurado()) return;
+    const timer = window.setTimeout(() => void guardarPreferenciaAdmin(crearClienteNavegador(), PREF_AUDITORIA_MASIVA, auditoriaMasiva.slice(0, 20)), 400);
+    return () => window.clearTimeout(timer);
   }, [auditoriaMasiva]);
 
   useEffect(() => {

@@ -5,6 +5,7 @@ import { evidenciaCompleta } from "@ruum/shared/rules";
 import { consecuenciaCancelacionConductor, consecuenciaNoPresentacion, clasificarTrasladoFallido } from "@ruum/shared/rules";
 import type { FotoEvidencia } from "@ruum/shared/types";
 import { registrarEvento } from "./auditoria";
+import { assertAdminPermission } from "./permisos-admin";
 
 type Cliente = SupabaseClient<Database>;
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -550,6 +551,7 @@ export async function obtenerIndicadoresAccionablesDashboard(cliente: Cliente): 
 
 /** PRD §17.4 — lista de viajes con filtro por estatus ("todos" = sin filtro). */
 export async function listarViajesAdmin(cliente: Cliente, filtro: EstadoTraslado | "todos"): Promise<PasaporteRow[]> {
+  await assertAdminPermission(cliente, "viajes:leer");
   let query = cliente.from("pasaporte_digital").select("*").order("creado_en", { ascending: false });
   if (filtro !== "todos") {
     query = query.eq("estado", filtro);
@@ -561,6 +563,7 @@ export async function listarViajesAdmin(cliente: Cliente, filtro: EstadoTraslado
 
 /** PRD §17.6 — lista de conductores CONCER. */
 export async function listarConductoresAdmin(cliente: Cliente): Promise<ConductorRow[]> {
+  await assertAdminPermission(cliente, "conductores:leer");
   const { data, error } = await cliente.from("conductores").select("*").order("creado_en", { ascending: false });
   if (error) throw error;
   return data ?? [];
@@ -574,6 +577,7 @@ function valorTextoJson(valor: unknown, llave: string): string | null {
 
 /** RT-23 — la bandeja se construye exclusivamente desde expedientes y sus relaciones. */
 export async function listarSolicitudesConductorAdmin(cliente: Cliente): Promise<SolicitudConductorBandejaAdmin[]> {
+  await assertAdminPermission(cliente, "conductores:leer");
   const [solicitudes, documentos, consentimientos, historial] = await Promise.all([
     cliente.from("solicitudes_conductor").select("*").order("actualizado_en", { ascending: false }),
     cliente.from("documentos_conductor").select("*").eq("es_actual", true),
@@ -626,6 +630,7 @@ export async function listarSolicitudesConductorAdmin(cliente: Cliente): Promise
 
 /** PRD §17.5 — lista de usuarios. */
 export async function listarUsuariosAdmin(cliente: Cliente): Promise<UsuarioRow[]> {
+  await assertAdminPermission(cliente, "usuarios:leer");
   const { data, error } = await cliente.from("usuarios").select("*").order("creado_en", { ascending: false });
   if (error) throw error;
   return data ?? [];
@@ -633,6 +638,7 @@ export async function listarUsuariosAdmin(cliente: Cliente): Promise<UsuarioRow[
 
 /** Torre de Control — inventario operativo de vehículos registrados por usuarios. */
 export async function listarVehiculosAdmin(cliente: Cliente): Promise<DatosVehiculosAdmin> {
+  await assertAdminPermission(cliente, "conductores:leer");
   const [vehiculos, usuarios] = await Promise.all([
     cliente.from("vehiculos").select("*").order("creado_en", { ascending: false }),
     cliente.from("usuarios").select("*").order("creado_en", { ascending: false })
@@ -649,6 +655,7 @@ export async function listarVehiculosAdmin(cliente: Cliente): Promise<DatosVehic
 }
 
 export async function listarPagosAdmin(cliente: Cliente): Promise<DatosPagosAdmin> {
+  await assertAdminPermission(cliente, "pagos:leer");
   const [pagos, pasaportes, payouts, datosBancarios, conductores] = await Promise.all([
     cliente.from("pagos").select("*").order("registrado_en", { ascending: false }),
     cliente.from("pasaporte_digital").select("*").order("creado_en", { ascending: false }),
@@ -671,6 +678,7 @@ export async function listarPagosAdmin(cliente: Cliente): Promise<DatosPagosAdmi
 }
 
 export async function listarEmpresasAdmin(cliente: Cliente): Promise<DatosEmpresasAdmin> {
+  await assertAdminPermission(cliente, "empresas:leer");
   const [empresas, usuarios, traslados] = await Promise.all([
     cliente.from("empresas").select("*").order("creado_en", { ascending: false }),
     cliente
@@ -697,6 +705,7 @@ export async function crearEmpresaCorporativaAdmin(
   cliente: Cliente,
   datos: AltaEmpresaCorporativa
 ): Promise<ResultadoAltaEmpresaCorporativa> {
+  await assertAdminPermission(cliente, "empresas:gestionar");
   if (!datos.empresa.nombre.trim()) throw new Error("Captura el nombre comercial de la empresa.");
   if (!datos.empresa.rfc.trim()) throw new Error("Captura el RFC de la empresa.");
   if (!datos.titular.nombre.trim()) throw new Error("Captura el nombre del titular.");
@@ -725,6 +734,7 @@ export async function crearEmpresaCorporativaAdmin(
 }
 
 export async function listarCargasTrasladosMasivosAdmin(cliente: Cliente): Promise<DatosTrasladosMasivosAdmin> {
+  await assertAdminPermission(cliente, "masivos:gestionar");
   type ConsultaLibre<T> = {
     select: (columnas: string) => {
       order: (columna: string, opciones?: { ascending?: boolean }) => Promise<{ data: T[] | null; error: Error | null }>;
@@ -749,6 +759,7 @@ export async function obtenerTrazabilidadMasivaTraslado(
   cliente: Cliente,
   trasladoId: string
 ): Promise<TrazabilidadMasivaTraslado | null> {
+  await assertAdminPermission(cliente, "masivos:gestionar");
   type ConsultaDetalle<T> = {
     select: (columnas: string) => {
       eq: (columna: string, valor: string) => {
@@ -788,6 +799,7 @@ export async function crearTrasladosMasivosAdmin(
     filas: FilaTrasladoMasivoNormalizada[];
   }
 ): Promise<ResultadoCargaTrasladosMasivos> {
+  await assertAdminPermission(cliente, "masivos:gestionar");
   if (!parametros.empresaId) throw new Error("Selecciona la empresa corporativa.");
   if (!parametros.usuarioId) throw new Error("Selecciona el usuario solicitante.");
   if (!parametros.nombreArchivo.trim()) throw new Error("El archivo debe tener nombre.");
@@ -821,34 +833,30 @@ export async function validarDocumentoUsuario(
   estadoVerificacion: EstadoVerificacion,
   motivo?: string
 ) {
-  const adminId = await obtenerAdminIdParaAuditoria(cliente);
-  const { error } = await cliente
-    .from("usuarios")
-    .update({ estado_verificacion: estadoVerificacion })
-    .eq("id", usuarioId);
-
-  if (error) throw error;
-
-  await registrarEvento(cliente, "validacion_documentos", "admin", adminId, {
-    usuario_id: usuarioId,
-    estado_verificacion: estadoVerificacion,
-    ...(motivo?.trim() ? { motivo: motivo.trim() } : {})
+  await assertAdminPermission(cliente, "usuarios:validar");
+  const rpc = cliente.rpc as unknown as (
+    fn: "admin_actualiza_usuario_verificacion",
+    args: { p_usuario_id: string; p_estado: EstadoVerificacion; p_motivo: string | null }
+  ) => Promise<{ error: Error | null }>;
+  const { error } = await rpc("admin_actualiza_usuario_verificacion", {
+    p_usuario_id: usuarioId,
+    p_estado: estadoVerificacion,
+    p_motivo: motivo?.trim() || null
   });
+  if (error) throw error;
 }
 
 export async function validarDocumentoConductor(cliente: Cliente, conductorId: string, aprobado: boolean) {
-  const adminId = await obtenerAdminIdParaAuditoria(cliente);
-  const { error } = await cliente
-    .from("conductores")
-    .update({ documentos_vigentes: aprobado })
-    .eq("id", conductorId);
-
-  if (error) throw error;
-
-  await registrarEvento(cliente, "validacion_documentos", "admin", adminId, {
-    conductor_id: conductorId,
-    documentos_vigentes: aprobado
+  await assertAdminPermission(cliente, "conductores:validar");
+  const rpc = cliente.rpc as unknown as (
+    fn: "admin_actualiza_conductor_documentos",
+    args: { p_conductor_id: string; p_aprobado: boolean }
+  ) => Promise<{ error: Error | null }>;
+  const { error } = await rpc("admin_actualiza_conductor_documentos", {
+    p_conductor_id: conductorId,
+    p_aprobado: aprobado
   });
+  if (error) throw error;
 }
 
 type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
@@ -863,6 +871,7 @@ export async function obtenerDetalleConductorAdmin(
   cliente: Cliente,
   conductorId: string
 ): Promise<{ conductor: ConductorRow; documentos: DocumentoConductorRow[] }> {
+  await assertAdminPermission(cliente, "conductores:leer");
   const [conductor, documentos] = await Promise.all([
     cliente.from("conductores").select("*").eq("id", conductorId).single(),
     cliente
@@ -883,6 +892,7 @@ export async function obtenerDetalleSolicitudConductorAdmin(
   cliente: Cliente,
   solicitudId: string
 ): Promise<DetalleSolicitudConductorAdmin> {
+  await assertAdminPermission(cliente, "conductores:leer");
   const solicitud = await cliente.from("solicitudes_conductor").select("*").eq("id", solicitudId).single();
   if (solicitud.error) throw solicitud.error;
 
@@ -935,6 +945,7 @@ export async function revisarDocumentoConductorAdmin(
   estado: EstadoDocumentoConductor,
   notas?: string
 ) {
+  await assertAdminPermission(cliente, "conductores:validar");
   const motivo = notas?.trim() ?? "";
   if (estado !== "aprobado" && motivo.length < 5) {
     throw new Error("Escribe un motivo para el conductor (mínimo 5 caracteres).");
@@ -973,6 +984,7 @@ export async function revisarDocumentoConductorAdmin(
 
 /** RT-24 — aprobación final transaccional y atribuida al admin autenticado. */
 export async function aprobarSolicitudConductorAdmin(cliente: Cliente, solicitudId: string, motivo?: string) {
+  await assertAdminPermission(cliente, "conductores:validar");
   const { data, error } = await cliente.rpc("aprobar_solicitud_conductor_admin", {
     p_solicitud_id: solicitudId,
     ...(motivo?.trim() ? { p_motivo: motivo.trim() } : {})
@@ -983,6 +995,7 @@ export async function aprobarSolicitudConductorAdmin(cliente: Cliente, solicitud
 
 /** RT-24 — rechazo final con motivo obligatorio y transición registrada por servidor. */
 export async function rechazarSolicitudConductorAdmin(cliente: Cliente, solicitudId: string, motivo: string) {
+  await assertAdminPermission(cliente, "conductores:validar");
   const motivoLimpio = motivo.trim();
   if (motivoLimpio.length < 5) {
     throw new Error("Escribe un motivo de rechazo (mínimo 5 caracteres).");
@@ -1000,6 +1013,7 @@ export async function rechazarSolicitudConductorAdmin(cliente: Cliente, solicitu
  * pendiente_verificacion; si no, lanza error explícito.
  */
 export async function activarConductorAdmin(cliente: Cliente, conductorId: string) {
+  await assertAdminPermission(cliente, "conductores:validar");
   const adminId = await obtenerAdminIdParaAuditoria(cliente);
   const { conductor, documentos } = await obtenerDetalleConductorAdmin(cliente, conductorId);
 
@@ -1032,6 +1046,7 @@ export async function validarDocumentoEmpresa(
   estadoVerificacion: EstadoVerificacion,
   condicionesPago: string
 ) {
+  await assertAdminPermission(cliente, "empresas:gestionar");
   const adminId = await obtenerAdminIdParaAuditoria(cliente);
   const { error } = await cliente
     .from("empresas")
@@ -1052,12 +1067,14 @@ export async function validarDocumentoEmpresa(
 
 /** PRD §17.8 — lista de incidencias. */
 export async function listarIncidenciasAdmin(cliente: Cliente): Promise<IncidenciaRow[]> {
+  await assertAdminPermission(cliente, "incidencias:leer");
   const { data, error } = await cliente.from("incidencias").select("*").order("creada_en", { ascending: false });
   if (error) throw error;
   return data ?? [];
 }
 
 export async function listarDisputasAdmin(cliente: Cliente): Promise<DisputaRow[]> {
+  await assertAdminPermission(cliente, "disputas:leer");
   const { data, error } = await cliente.from("disputas").select("*").order("abierta_en", { ascending: false });
   if (error) throw error;
   return data ?? [];
@@ -1070,6 +1087,7 @@ export async function resolverDisputaAdmin(
   resolucion: ResolucionDisputa | null,
   detalle: string
 ) {
+  await assertAdminPermission(cliente, "disputas:resolver");
   const esEstadoResuelto = estado === "resuelta" || estado === "resuelta_senior";
   if (esEstadoResuelto && !resolucion) {
     throw new Error("Selecciona una resolución para cerrar la disputa.");
@@ -1086,6 +1104,7 @@ export async function resolverDisputaAdmin(
 }
 
 export async function listarReclamosSeguroAdmin(cliente: Cliente): Promise<ReclamoSeguroRow[]> {
+  await assertAdminPermission(cliente, "reclamos_seguro:leer");
   const { data, error } = await cliente.from("reclamos_seguro").select("*").order("abierto_en", { ascending: false });
   if (error) throw error;
   return data ?? [];
@@ -1098,6 +1117,7 @@ export async function actualizarReclamoSeguroAdmin(
   responsablePago: "aplicacion" | "conductor" | null,
   notasAdmin: string
 ) {
+  await assertAdminPermission(cliente, "reclamos_seguro:gestionar");
   if (estado === "resuelto" && !responsablePago) {
     throw new Error("Selecciona responsable de pago antes de resolver el reclamo.");
   }
@@ -1177,6 +1197,7 @@ export async function cambiarEstatusAdmin(
   estadoActual: EstadoTraslado,
   nuevoEstado: EstadoTraslado
 ) {
+  await assertAdminPermission(cliente, "viajes:gestionar");
   const adminId = await obtenerAdminIdParaAuditoria(cliente);
 
   if (!transicionValida(estadoActual, nuevoEstado)) {
@@ -1207,6 +1228,7 @@ export async function obtenerNotasInternas(cliente: Cliente, trasladoId: string)
 }
 
 export async function agregarNotaInterna(cliente: Cliente, trasladoId: string, adminId: string, contenido: string) {
+  await assertAdminPermission(cliente, "viajes:gestionar");
   const { error } = await cliente.from("notas_internas_traslado").insert({ traslado_id: trasladoId, admin_id: adminId, contenido });
   if (error) throw error;
 }
@@ -1223,6 +1245,7 @@ export async function agregarNotaInterna(cliente: Cliente, trasladoId: string, a
  * (en vez de `precio_cotizado`) para el cobro al cierre.
  */
 export async function ajustarPrecioFinalAdmin(cliente: Cliente, trasladoId: string, precioFinal: number) {
+  await assertAdminPermission(cliente, "tarifas:editar");
   if (!Number.isFinite(precioFinal) || precioFinal < 0) {
     throw new Error("La tarifa final debe ser un número válido mayor o igual a 0.");
   }
@@ -1256,6 +1279,7 @@ export async function aplicarTarifaNormativaAdmin(cliente: Cliente, trasladoId: 
 
 /** PRD §17.6 — "suspender/reactivar" conductor. */
 export async function cambiarEstadoConductorAdmin(cliente: Cliente, conductorId: string, nuevoEstado: EstadoConductor) {
+  await assertAdminPermission(cliente, "conductores:validar");
   const adminId = await obtenerAdminIdParaAuditoria(cliente);
   const { error } = await cliente.from("conductores").update({ estado: nuevoEstado }).eq("id", conductorId);
   if (error) throw error;
@@ -1267,6 +1291,7 @@ export async function cambiarEstadoConductorAdmin(cliente: Cliente, conductorId:
 }
 
 export async function registrarNoPresentacionConductor(cliente: Cliente, conductorId: string) {
+  await assertAdminPermission(cliente, "conductores:validar");
   const adminId = await obtenerAdminIdParaAuditoria(cliente);
   const { data: conductor, error: errorConductor } = await cliente
     .from("conductores")
@@ -1299,6 +1324,7 @@ export async function registrarNoPresentacionConductor(cliente: Cliente, conduct
 }
 
 export async function registrarCancelacionConductor(cliente: Cliente, conductorId: string, conJustificacion: boolean) {
+  await assertAdminPermission(cliente, "conductores:validar");
   const adminId = await obtenerAdminIdParaAuditoria(cliente);
 
   if (conJustificacion) {
@@ -1343,6 +1369,7 @@ export async function registrarCancelacionConductor(cliente: Cliente, conductorI
 }
 
 export async function marcarTrasladoFallido(cliente: Cliente, trasladoId: string, causa: CausaFallido) {
+  await assertAdminPermission(cliente, "viajes:gestionar");
   const resultado = clasificarTrasladoFallido(causa);
 
   const { error } = await cliente.rpc("admin_marca_traslado_fallido", {
