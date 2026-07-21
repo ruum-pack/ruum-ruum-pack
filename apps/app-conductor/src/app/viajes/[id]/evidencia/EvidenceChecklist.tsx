@@ -1,16 +1,9 @@
-import type { EvidenceRequirement } from "./evidence-requirements";
+"use client";
+import { useEvidenceWizard } from "./EvidenceContext";
 
-export function EvidenceChecklist({
-  items,
-  activeIndex,
-  statusFor,
-  onSelect
-}: {
-  items: EvidenceRequirement[];
-  activeIndex: number;
-  statusFor: (item: EvidenceRequirement) => "listo" | "pendiente" | "omitido";
-  onSelect: (index: number) => void;
-}) {
+export function EvidenceChecklist() {
+  const { requisitos: items, pasoActivo: activeIndex, statusFor, setPasoActivo: onSelect } = useEvidenceWizard();
+
   return (
     <nav aria-label="Checklist de evidencia" className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-6">
       {items.map((item, index) => {

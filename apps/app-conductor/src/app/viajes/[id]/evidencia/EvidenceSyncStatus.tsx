@@ -1,17 +1,11 @@
+"use client";
 import { Aviso } from "@ruum/ui";
 import { MENSAJE_EVIDENCIA_SINCRONIZANDO } from "@ruum/shared/constants";
+import { useEvidenceWizard } from "./EvidenceContext";
 
-export function EvidenceSyncStatus({
-  pendientesSubida,
-  sincronizando,
-  missing,
-  complete
-}: {
-  pendientesSubida: number;
-  sincronizando: boolean;
-  missing: string[];
-  complete: boolean;
-}) {
+export function EvidenceSyncStatus() {
+  const { pendientesSubida, sincronizando, etiquetasFaltantes: missing, registroCompleto: complete } = useEvidenceWizard();
+
   if (pendientesSubida > 0) {
     return (
       <Aviso tono="atencion">

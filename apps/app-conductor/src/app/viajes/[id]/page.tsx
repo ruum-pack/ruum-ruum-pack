@@ -226,27 +226,29 @@ export default async function PaginaDetalleViaje({
         </section>
 
         <section className="mt-5 rounded-card border border-route-action bg-route-soft p-4 shadow-2">
-          <p className="font-body text-sm font-semibold text-text-tertiary">{actual.etiqueta}</p>
-          <p className="mt-1 break-words font-display text-2xl font-semibold leading-7 text-text-primary">
-            {actual.direccion ?? "Dirección por confirmar"}
-          </p>
-          {actual.ciudad && <p className="mt-1 font-body text-base text-text-secondary">{actual.ciudad}</p>}
-          {actual.referencias && <p className="mt-2 font-body text-sm leading-6 text-text-secondary">Referencias: {actual.referencias}</p>}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="font-body text-sm font-semibold text-text-tertiary">{actual.etiqueta}</p>
+              <p className="mt-1 break-words font-display text-2xl font-semibold leading-7 text-text-primary">
+                {actual.direccion ?? "Dirección por confirmar"}
+              </p>
+              {actual.ciudad && <p className="mt-1 font-body text-base text-text-secondary">{actual.ciudad}</p>}
+              {actual.referencias && <p className="mt-2 font-body text-sm leading-6 text-text-secondary">Referencias: {actual.referencias}</p>}
+            </div>
+            {actual.lat !== null && actual.lng !== null && (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${actual.lat},${actual.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center justify-center rounded-lg bg-action-primary px-4 py-2 text-xs font-bold text-on-primary"
+              >
+                Abrir en Maps
+              </a>
+            )}
+          </div>
         </section>
 
         <ContactActionBar trasladoId={pasaporte.traslado_id} role={contacto.rol} name={contacto.nombre} phone={contacto.telefono} />
-
-        <section className="mt-4 rounded-card border border-border bg-surface-elevated p-4 shadow-1">
-          <p className="font-body text-sm font-semibold text-text-tertiary">Vehículo</p>
-          <p className="mt-1 font-display text-lg font-semibold">{vehiculo}</p>
-          <p className="mt-1 font-body text-sm text-text-secondary">
-            {[pasaporte.vehiculo_color, pasaporte.vehiculo_placas].filter(Boolean).join(" · ") || "Datos por confirmar"}
-          </p>
-          <p className="mt-2 font-body text-sm text-text-secondary">
-            {pasaporte.vehiculo_tipo ? ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo] : "Tipo por confirmar"}
-            {clasificacionCatalogo ? ` · ${clasificacionCatalogo}` : ""}
-          </p>
-        </section>
 
         {presentation.nextStep && (
           <section className="mt-4 rounded-card border border-border bg-surface p-4 shadow-1">
@@ -255,33 +257,23 @@ export default async function PaginaDetalleViaje({
           </section>
         )}
 
-        {pasaporte.tiene_incidencia_abierta && (
-          <div className="mt-6">
-            <Aviso tono="atencion">Este viaje tiene un problema reportado.</Aviso>
-          </div>
-        )}
-
-        <details className="group mt-6 overflow-hidden rounded-xl border border-border bg-surface">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 font-body text-sm font-semibold hover:bg-route-soft [&::-webkit-details-marker]:hidden">
-            <span>Ver información</span>
-            <span className="font-display text-lg leading-none text-text-tertiary transition-transform group-open:rotate-45" aria-hidden>
-              +
-            </span>
-          </summary>
-          <div className="grid gap-5 border-t border-border px-4 py-4 font-body text-sm">
-            <div className="grid gap-3 sm:grid-cols-2 md:hidden">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-text-tertiary">Estado operativo</p>
-                <div className="mt-2">
-                  <EstadoBadge estado={pasaporte.estado} />
+        <div className="mt-6 grid gap-3">
+          <details className="group overflow-hidden rounded-xl border border-border bg-surface">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 font-body text-sm font-semibold hover:bg-route-soft [&::-webkit-details-marker]:hidden">
+              <span>📍 Ruta</span>
+              <span className="font-display text-lg leading-none text-text-tertiary transition-transform group-open:rotate-45" aria-hidden>+</span>
+            </summary>
+            <div className="grid gap-4 border-t border-border px-4 py-4 font-body text-sm sm:grid-cols-2">
+              <div className="grid gap-3 sm:col-span-2 md:hidden">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-text-tertiary">Estado operativo</p>
+                  <div className="mt-2"><EstadoBadge estado={pasaporte.estado} /></div>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-text-tertiary">Progreso</p>
+                  <p className="mt-1 font-body font-semibold">Paso {presentation.stage} de {presentation.totalStages}</p>
                 </div>
               </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-text-tertiary">Progreso</p>
-                <p className="mt-1 font-body font-semibold">Paso {presentation.stage} de {presentation.totalStages}</p>
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-sm font-semibold text-text-tertiary">Origen</p>
                 <p className="mt-1 text-base font-semibold">{pasaporte.origen_direccion ?? "Por confirmar"}</p>
@@ -293,18 +285,49 @@ export default async function PaginaDetalleViaje({
                 <p className="text-text-secondary">{pasaporte.destino_ciudad}</p>
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+          </details>
+
+          <details className="group overflow-hidden rounded-xl border border-border bg-surface">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 font-body text-sm font-semibold hover:bg-route-soft [&::-webkit-details-marker]:hidden">
+              <span>🚗 Vehículo</span>
+              <span className="font-display text-lg leading-none text-text-tertiary transition-transform group-open:rotate-45" aria-hidden>+</span>
+            </summary>
+            <div className="grid gap-3 border-t border-border px-4 py-4 font-body text-sm">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-text-tertiary">Vehículo</p>
+                <p className="mt-1 font-semibold">{vehiculo}</p>
+                <p className="text-text-secondary">{pasaporte.vehiculo_tipo ? ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo] : "Tipo por confirmar"}{clasificacionCatalogo ? ` · ${clasificacionCatalogo}` : ""}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-text-tertiary">Detalles</p>
+                <p className="mt-1 font-semibold">{[pasaporte.vehiculo_color, pasaporte.vehiculo_placas].filter(Boolean).join(" · ") || "Datos por confirmar"}</p>
+              </div>
+            </div>
+          </details>
+
+          <details className="group overflow-hidden rounded-xl border border-border bg-surface">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 font-body text-sm font-semibold hover:bg-route-soft [&::-webkit-details-marker]:hidden">
+              <span>📸 Evidencia</span>
+              <span className="font-display text-lg leading-none text-text-tertiary transition-transform group-open:rotate-45" aria-hidden>+</span>
+            </summary>
+            <div className="grid gap-4 border-t border-border px-4 py-4 font-body text-sm sm:grid-cols-2">
               <div>
                 <p className="text-xs uppercase tracking-wide text-text-tertiary">Registro inicial del vehículo</p>
-                <p className="mt-1 font-body font-semibold">{pasaporte.evidencia_inicial_fotos_sincronizadas} / 5 fotos</p>
+                <p className="mt-1 font-semibold">{pasaporte.evidencia_inicial_fotos_sincronizadas} / 5 fotos</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-text-tertiary">Registro final del vehículo</p>
-                <p className="mt-1 font-body font-semibold">{pasaporte.evidencia_final_fotos_sincronizadas} / 5 fotos</p>
+                <p className="mt-1 font-semibold">{pasaporte.evidencia_final_fotos_sincronizadas} / 5 fotos</p>
               </div>
             </div>
-          </div>
-        </details>
+          </details>
+
+          {pasaporte.tiene_incidencia_abierta && (
+            <div className="mt-1">
+              <Aviso tono="atencion">Este viaje tiene un problema reportado.</Aviso>
+            </div>
+          )}
+        </div>
 
         {/* Comparación de evidencia inicial vs final */}
         {(pasaporte.evidencia_inicial_fotos_sincronizadas ?? 0) > 0 || (pasaporte.evidencia_final_fotos_sincronizadas ?? 0) > 0 ? (

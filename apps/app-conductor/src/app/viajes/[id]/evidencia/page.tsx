@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Aviso, Card } from "@ruum/ui";
 import { GLOSARIO_OPERATIVO } from "@ruum/shared/constants";
-import { evidenciaCompleta } from "@ruum/shared/rules";
 import type { AnguloEvidencia, FotoEvidencia, TipoEvidencia } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
@@ -16,18 +15,16 @@ import {
   firmarUrlsEvidencia
 } from "@ruum/api/services";
 import { EvidenceWizard } from "./EvidenceWizard";
+import { EvidenceWizardProvider } from "./EvidenceContext";
 import { useEvidenceQueue } from "./useEvidenceQueue";
 import { EvidenceReference } from "./EvidenceReference";
 import { useEvidenceComparison } from "./useEvidenceComparison";
 import type { EstadoTraslado, EvidenceRequirement, InspeccionEvidencia, PasaporteRow } from "./evidence-requirements";
 import {
-  CAMPOS_INSPECCION_OBLIGATORIOS,
   INSPECCION_INICIAL,
-  ETIQUETA_ANGULO,
   camposInspeccionFaltantes,
   listaEvidenciaObligatoria,
-  tipoEvidenciaPorEstado,
-  totalCamposInspeccionCompletados
+  tipoEvidenciaPorEstado
 } from "./evidence-requirements";
 
 function archivoADataUrl(archivo: File): Promise<string> {
@@ -317,41 +314,6 @@ export default function PaginaEvidencia() {
     );
   }
 
-  const resultado = evidenciaCompleta(fotos, tipo);
-  const requisitos = listaEvidenciaObligatoria(tipo);
-  const pasoEsRevision = pasoActivo >= requisitos.length;
-  const requisitoActivo = requisitos[Math.min(pasoActivo, requisitos.length - 1)];
-  const fotoPorAngulo = (angulo: AnguloEvidencia) =>
-    fotos
-      .filter((foto) => foto.angulo === angulo && foto.tipo === tipo)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-  const requisitosCompletados = requisitos.filter((item) => {
-    const foto = fotoPorAngulo(item.angulo);
-    if (item.obligatorio) return Boolean(foto);
-    return Boolean(foto) || noAplica.has(item.angulo);
-  }).length;
-  const camposInspeccionPendientes = camposInspeccionFaltantes(inspeccion);
-  const inspeccionCompletada = totalCamposInspeccionCompletados(inspeccion);
-  const requisitosTotales = requisitos.length + CAMPOS_INSPECCION_OBLIGATORIOS.length;
-  const progresoTotal = requisitosCompletados + inspeccionCompletada;
-  const etiquetasFaltantes = [
-    ...resultado.angulosFaltantes.map((angulo) => ETIQUETA_ANGULO[angulo as AnguloEvidencia] ?? angulo),
-    ...camposInspeccionPendientes.map((campo) => campo.etiqueta)
-  ];
-  const registroCompleto = resultado.completa && camposInspeccionPendientes.length === 0;
-
-  function statusRequisito(item: EvidenceRequirement) {
-    const foto = fotoPorAngulo(item.angulo);
-    if (foto) return "listo" as const;
-    if (!item.obligatorio && noAplica.has(item.angulo)) return "omitido" as const;
-    return "pendiente" as const;
-  }
-
-  function irASiguientePendiente() {
-    const pendiente = requisitos.findIndex((item) => statusRequisito(item) === "pendiente");
-    setPasoActivo(pendiente >= 0 ? pendiente : requisitos.length);
-  }
-
   async function registrarFotoLocal(angulo: AnguloEvidencia, dataUrl: string) {
     if (!tipo) return;
     const locales = await registrarFotoEnCola({ angulo, dataUrl });
@@ -448,6 +410,8 @@ export default function PaginaEvidencia() {
     }
   }
 
+  const camposInspeccionPendientes = camposInspeccionFaltantes(inspeccion);
+
   async function confirmar() {
     if (!tipo) return;
     setEnviando("confirmar");
@@ -481,53 +445,50 @@ export default function PaginaEvidencia() {
   // Usar evidenciaInicial local para referencia, o la del hook si está disponible
   const evidenciaInicialParaMostrar = evidenciaInicial || evidenciaInicialComparada;
 
+  // These are needed locally for registrarFotoLocal. The context also derives them.
+  const requisitos = listaEvidenciaObligatoria(tipo);
+  const statusRequisito = (item: EvidenceRequirement) => {
+    const foto = fotos
+      .filter((f) => f.angulo === item.angulo && f.tipo === tipo)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    if (foto) return "listo" as const;
+    if (!item.obligatorio && noAplica.has(item.angulo)) return "omitido" as const;
+    return "pendiente" as const;
+  };
+
   return (
-    <div className="flex flex-col gap-4">
-      {/* Mostrar referencia de evidencia inicial solo cuando capturamos evidencia final */}
-      {tipo === "final" && (
-        <EvidenceReference 
-          evidenciaInicial={evidenciaInicialParaMostrar} 
-          estaCargando={cargandoEvidenciaInicial || estaCargandoComparacion}
-        />
-      )}
-      
-      <EvidenceWizard
-        trasladoId={id}
-        estadoActual={estadoActual}
-        pasaporteActual={pasaporteActual}
-        tipo={tipo}
-        requisitos={requisitos}
-        requisitosCompletados={requisitosCompletados}
-        progresoTotal={progresoTotal}
-        requisitosTotales={requisitosTotales}
-        pasoActivo={pasoActivo}
-        pasoEsRevision={pasoEsRevision}
-        requisitoActivo={requisitoActivo}
-        aviso={aviso}
-        resultado={resultado}
-        registroCompleto={registroCompleto}
-        etiquetasFaltantes={etiquetasFaltantes}
-        pendientesSubida={pendientesSubida}
-        sincronizando={sincronizando}
-        inputArchivoRef={inputArchivoRef}
-        fotos={fotos}
-        noAplica={noAplica}
-        inspeccion={inspeccion}
-        camposInspeccionPendientes={camposInspeccionPendientes}
-        inspeccionCompletada={inspeccionCompletada}
-        enviando={enviando}
-        statusFor={statusRequisito}
-        fotoPorAngulo={fotoPorAngulo}
-        setPasoActivo={setPasoActivo}
-        setNoAplica={setNoAplica}
-        setInspeccion={setInspeccion}
-        onArchivoSeleccionado={(archivo) => void procesarArchivoSeleccionado(archivo)}
-        onBackToMissing={irASiguientePendiente}
-        onConfirm={() => void confirmar()}
-        onCapture={(angulo) => void capturar(angulo)}
-        onGallery={(angulo) => void seleccionarGaleria(angulo)}
-        onSaveInspection={() => void guardarInspeccion()}
-      />
-    </div>
+    <EvidenceWizardProvider
+      trasladoId={id}
+      estadoActual={estadoActual}
+      pasaporteActual={pasaporteActual}
+      tipo={tipo}
+      fotos={fotos}
+      inspeccion={inspeccion}
+      noAplica={noAplica}
+      pasoActivo={pasoActivo}
+      aviso={aviso}
+      pendientesSubida={pendientesSubida}
+      sincronizando={sincronizando}
+      enviando={enviando}
+      inputArchivoRef={inputArchivoRef}
+      setPasoActivo={setPasoActivo}
+      setNoAplica={setNoAplica}
+      setInspeccion={setInspeccion}
+      onArchivoSeleccionado={(archivo) => void procesarArchivoSeleccionado(archivo)}
+      onConfirm={() => void confirmar()}
+      onCapture={(angulo) => void capturar(angulo)}
+      onGallery={(angulo) => void seleccionarGaleria(angulo)}
+      onSaveInspection={() => void guardarInspeccion()}
+    >
+      <div className="flex flex-col gap-4">
+        {tipo === "final" && (
+          <EvidenceReference 
+            evidenciaInicial={evidenciaInicialParaMostrar} 
+            estaCargando={cargandoEvidenciaInicial || estaCargandoComparacion}
+          />
+        )}
+        <EvidenceWizard />
+      </div>
+    </EvidenceWizardProvider>
   );
 }

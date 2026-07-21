@@ -19,6 +19,34 @@ import {
   type PasaporteRow
 } from "./trips-utils";
 
+function distanciaEnKm(viaje: PasaporteRow, coordenadas: Coordenadas | null): number | null {
+  if (!coordenadas) return null;
+  return distanciaKmEntre(coordenadas, { lat: viaje.origen_lat, lng: viaje.origen_lng });
+}
+
+function formatoDistanciaCorta(km: number): string {
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  return `${km.toFixed(1)} km`;
+}
+
+function badgeProximidad(viaje: PasaporteRow, coordenadas: Coordenadas | null): React.ReactNode {
+  const km = distanciaEnKm(viaje, coordenadas);
+  if (km == null) return null;
+
+  if (km <= 3) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-route-action/32 bg-route-soft px-2.5 py-0.5 font-display text-[11px] font-bold text-route-action">
+        Cerca · {formatoDistanciaCorta(km)}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full border border-border/28 bg-surface-elevated px-2.5 py-0.5 font-body text-[11px] font-semibold text-text-secondary">
+      A {formatoDistanciaCorta(km)}
+    </span>
+  );
+}
+
 export function TripOpportunityList({
   viajes,
   detalles,
@@ -40,9 +68,18 @@ export function TripOpportunityList({
   onAccept: (trasladoId: string) => void;
   onReject: (viaje: PasaporteRow) => void;
 }) {
+  const ordenados = [...viajes].sort((a, b) => {
+    const dA = distanciaEnKm(a, coordenadas);
+    const dB = distanciaEnKm(b, coordenadas);
+    if (dA != null && dB != null) return dA - dB;
+    if (dA != null) return -1;
+    if (dB != null) return 1;
+    return 0;
+  });
+
   return (
     <>
-      {viajes.map((viaje) => {
+      {ordenados.map((viaje) => {
         if (!viaje.traslado_id) return null;
 
         const trasladoId = viaje.traslado_id;
@@ -68,9 +105,12 @@ export function TripOpportunityList({
                 <div className="min-w-0 rounded-xl border border-route-action/24 bg-surface px-4 py-4">
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <p className="font-body text-xs uppercase tracking-wide text-route-action">Oportunidad disponible</p>
-                    <p className="font-body text-sm font-semibold text-text-secondary">
-                      {formatearFecha(detalle.fechaHora)} · {formatearHora(detalle.fechaHora)}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-body text-sm font-semibold text-text-secondary">
+                        {formatearFecha(detalle.fechaHora)} · {formatearHora(detalle.fechaHora)}
+                      </p>
+                      {badgeProximidad(viaje, coordenadas)}
+                    </div>
                   </div>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div className="min-w-0 border-l-2 border-route-action pl-3">

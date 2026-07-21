@@ -90,7 +90,7 @@ function EmptyTripsState({
           titulo: filtrosActivos ? "No hay oportunidades con estos filtros" : "No hay oportunidades nuevas por ahora",
           descripcion: filtrosActivos
             ? "Prueba ver todos los días o todos los estados para ampliar la búsqueda."
-            : "Mantén tu disponibilidad activa y actualiza tu ubicación para ver oportunidades cercanas cuando entren.",
+            : "Activa tu disponibilidad y actualiza ubicación para recibir ofertas cercanas.",
           accion: filtrosActivos ? "Limpiar filtros" : "Actualizar ubicación",
           onAction: filtrosActivos ? () => onChange({ fecha: "todos", estado: "todos" }) : onUpdateLocation
         }
@@ -396,7 +396,7 @@ export default function PaginaViajes() {
       void persistirRechazo(pendiente).catch((err) => {
         setAviso(traducirErrorOperativo(err, "No pudimos registrar el rechazo."));
       });
-    }, 5000);
+    }, 8000);
   }
 
   function deshacerRechazo() {

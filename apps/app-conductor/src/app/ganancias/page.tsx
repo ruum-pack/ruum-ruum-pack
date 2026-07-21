@@ -259,25 +259,48 @@ export default function PaginaGanancias() {
             <div className="grid gap-3">
               {registros.map((registro) => (
                 <FinancialCard key={`${registro.fecha}-${registro.ruta}`}>
-                  <div className="grid gap-4 lg:grid-cols-[1fr_0.8fr_0.8fr_0.8fr_0.8fr] lg:items-center">
-                    <div>
-                      <p className="font-body text-sm font-semibold text-text-primary">{registro.ruta}</p>
-                      <p className="mt-1 font-body text-xs text-text-secondary">Fecha del viaje: {fecha(registro.fecha)}</p>
+                  <details className="group">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 lg:cursor-default [&::-webkit-details-marker]:hidden">
+                      <div className="grid min-w-0 flex-1 gap-4 lg:grid-cols-[1fr_0.8fr_0.8fr_0.8fr_0.8fr] lg:items-center">
+                        <div className="min-w-0">
+                          <p className="font-body text-sm font-semibold text-text-primary truncate">{registro.ruta}</p>
+                          <p className="mt-1 font-body text-xs text-text-secondary lg:hidden">Fecha del viaje: {fecha(registro.fecha)}</p>
+                        </div>
+                        <div className="hidden lg:block">
+                          <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Fecha</p>
+                          <p className="mt-1 font-body text-sm text-text-primary">{fecha(registro.fecha)}</p>
+                        </div>
+                        <div>
+                          <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Monto generado</p>
+                          <DriverEarning amount={registro.monto} status={registro.estatus} currency="MXN" className="mt-1" amountClassName="text-sm" />
+                        </div>
+                        <div className="hidden lg:block">
+                          <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Gastos autorizados</p>
+                          <FinancialAmount amount={registro.gastos} status={registro.estatus} currency="MXN" className="mt-1" amountClassName="text-sm" />
+                        </div>
+                        <div className="hidden lg:block">
+                          <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Liberación</p>
+                          <p className="mt-1 font-body text-sm text-text-primary">{fecha(registro.liberacion)}</p>
+                        </div>
+                        <FinancialAmount amount={null} status={registro.estatus} currency="MXN" amountClassName="sr-only" auxiliaryText="" />
+                      </div>
+                      <span className="font-display text-lg leading-none text-text-tertiary transition-transform group-open:rotate-45 lg:hidden" aria-hidden>+</span>
+                    </summary>
+                    <div className="mt-3 grid gap-3 border-t border-border/18 pt-3 lg:hidden">
+                      <div className="flex justify-between gap-4">
+                        <p className="font-body text-xs text-text-secondary">Fecha del viaje</p>
+                        <p className="font-body text-sm text-text-primary">{fecha(registro.fecha)}</p>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <p className="font-body text-xs text-text-secondary">Gastos autorizados</p>
+                        <FinancialAmount amount={registro.gastos} status={registro.estatus} currency="MXN" amountClassName="text-sm" />
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <p className="font-body text-xs text-text-secondary">Liberación estimada</p>
+                        <p className="font-body text-sm text-text-primary">{fecha(registro.liberacion)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Monto generado</p>
-                      <DriverEarning amount={registro.monto} status={registro.estatus} currency="MXN" className="mt-1" amountClassName="text-sm" />
-                    </div>
-                    <div>
-                      <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Gastos autorizados</p>
-                      <FinancialAmount amount={registro.gastos} status={registro.estatus} currency="MXN" className="mt-1" amountClassName="text-sm" />
-                    </div>
-                    <div>
-                      <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Liberación estimada</p>
-                      <p className="mt-1 font-body text-sm text-text-primary">{fecha(registro.liberacion)}</p>
-                    </div>
-                    <FinancialAmount amount={null} status={registro.estatus} currency="MXN" amountClassName="sr-only" auxiliaryText="" />
-                  </div>
+                  </details>
                 </FinancialCard>
               ))}
             </div>

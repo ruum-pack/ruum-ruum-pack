@@ -45,7 +45,15 @@ export default function PaginaLogin() {
   }
 
   return (
-    <div className="conductor-auth-shell flex items-center justify-center px-4 py-10 sm:px-6">
+    <div
+      className="flex items-center justify-center px-4 py-10 sm:px-6"
+      style={{
+        background:
+          "radial-gradient(circle at 12% 8%, rgba(58,165,255,0.08), transparent 42%)," +
+          "radial-gradient(circle at 92% 88%, rgba(168,232,32,0.05), transparent 38%)," +
+          "var(--ruum-canvas)"
+      }}
+    >
       <section className="conductor-auth-card p-6 sm:p-8" aria-labelledby="titulo-inicio-conductor">
         <div className="flex items-center gap-3">
           <LogoMarca tamano={34} color="signal" />
@@ -53,7 +61,7 @@ export default function PaginaLogin() {
             <p className="font-display text-lg font-extrabold tracking-tight text-text-primary">
               ruum<span className="text-signal">ruum</span>
             </p>
-            <p className="font-body text-xs font-semibold text-text-tertiary">Conductor</p>
+            <p className="font-body text-xs font-semibold text-text-tertiary">Tu operación, tu control</p>
           </div>
         </div>
 

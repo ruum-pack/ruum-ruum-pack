@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Conductor } from "@ruum/shared/types";
-import { AlertCard, Aviso, Button, DriverEarning, FinancialCard, OperationalCard, TripCard } from "@ruum/ui";
+import { AlertCard, Aviso, Button, OperationalCard, TripCard } from "@ruum/ui";
 import { DriverAvailabilityControl } from "./DriverAvailabilityControl";
 import type { Disponibilidad } from "./usePanelData";
 import { fechaViaje, folioViaje, nombreVehiculo, type PasaporteRow } from "./panel-utils";
@@ -130,13 +130,20 @@ export function PanelHome({
         </TripCard>
       )}
 
-      <FinancialCard padding="sm">
-        <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Ganancia semanal</p>
-        <DriverEarning amount={null} status="sin_calcular" currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
-        <Link href="/ganancias" className="mt-3 inline-flex min-h-11 items-center font-body text-sm font-semibold text-route-action hover:underline">
-          Abrir módulo de ganancias
-        </Link>
-      </FinancialCard>
+      <details className="group overflow-hidden rounded-2xl border border-border/22 bg-surface">
+        <summary className="flex cursor-pointer list-none items-center justify-between p-5 font-body text-xs uppercase tracking-wide text-text-tertiary [&::-webkit-details-marker]:hidden">
+          <span>Ganancia semanal</span>
+          <span className="font-display text-lg leading-none text-text-tertiary transition-transform group-open:rotate-45" aria-hidden>
+            +
+          </span>
+        </summary>
+        <div className="border-t border-border/22 px-5 pb-5 pt-4">
+          <p className="font-body text-sm text-text-secondary">Las ganancias aparecerán después de completar tu primer viaje.</p>
+          <Link href="/ganancias" className="mt-3 inline-flex min-h-11 items-center font-body text-sm font-semibold text-route-action hover:underline">
+            Abrir módulo de ganancias
+          </Link>
+        </div>
+      </details>
     </section>
   );
 }

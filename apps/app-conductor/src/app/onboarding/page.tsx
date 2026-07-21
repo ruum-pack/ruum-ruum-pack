@@ -46,7 +46,7 @@ const PASOS: Paso[] = [
     )
   },
   {
-    tag: "Disponibles, próximos, en curso",
+    tag: "Viajes compatibles, al instante",
     titulo: (
       <>
         Acepta viajes <span className="text-route-action">fácilmente</span>
@@ -65,7 +65,7 @@ const PASOS: Paso[] = [
     )
   },
   {
-    tag: "Transparencia en cada corte",
+    tag: "Registro que protege tu pago",
     titulo: (
       <>
         Registro del vehículo que respalda <span className="text-success">pagos claros</span>

@@ -1,39 +1,26 @@
-import { Button } from "@ruum/ui";
-import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
-import { evidenciaCompleta } from "@ruum/shared/rules";
-import type { AnguloEvidencia, FotoEvidencia } from "@ruum/shared/types";
+"use client";
+import { Button, Aviso } from "@ruum/ui";
+import { TEXTOS_CARGANDO, MENSAJE_EVIDENCIA_SINCRONIZANDO } from "@ruum/shared/constants";
 import { BadgeSincronizacion } from "./EvidencePreview";
-import { EvidenceSyncStatus } from "./EvidenceSyncStatus";
-import type { EvidenceRequirement, InspeccionEvidencia } from "./evidence-requirements";
+import { useEvidenceWizard } from "./EvidenceContext";
 import { CAMPOS_INSPECCION, CAMPOS_INSPECCION_OBLIGATORIOS, totalCamposInspeccionCompletados } from "./evidence-requirements";
 
-export function EvidenceReview({
-  items,
-  fotos,
-  noAplica,
-  resultado,
-  registroCompleto,
-  etiquetasFaltantes,
-  pendientesSubida,
-  sincronizando,
-  inspeccion,
-  enviando,
-  onBackToMissing,
-  onConfirm
-}: {
-  items: EvidenceRequirement[];
-  fotos: FotoEvidencia[];
-  noAplica: Set<AnguloEvidencia>;
-  resultado: ReturnType<typeof evidenciaCompleta>;
-  registroCompleto: boolean;
-  etiquetasFaltantes: string[];
-  pendientesSubida: number;
-  sincronizando: boolean;
-  inspeccion: InspeccionEvidencia;
-  enviando: boolean;
-  onBackToMissing: () => void;
-  onConfirm: () => void;
-}) {
+export function EvidenceReview() {
+  const {
+    requisitos: items,
+    fotos,
+    noAplica,
+    resultado,
+    registroCompleto,
+    etiquetasFaltantes,
+    pendientesSubida,
+    sincronizando,
+    inspeccion,
+    enviando,
+    onBackToMissing,
+    onConfirm
+  } = useEvidenceWizard();
+
   const blocked = !registroCompleto || pendientesSubida > 0;
   const inspeccionCompletada = totalCamposInspeccionCompletados(inspeccion);
 
@@ -42,7 +29,7 @@ export function EvidenceReview({
       <p className="font-body text-sm font-semibold text-route-action">Revisión final</p>
       <h2 className="mt-2 font-display text-2xl font-semibold text-text-primary">Confirma el registro completo</h2>
       <div className="mt-4">
-        <EvidenceSyncStatus pendientesSubida={pendientesSubida} sincronizando={sincronizando} missing={etiquetasFaltantes} complete={registroCompleto} />
+        <EvidenceSyncStatusInline pendientesSubida={pendientesSubida} sincronizando={sincronizando} missing={etiquetasFaltantes} complete={registroCompleto} />
       </div>
       <div className="mt-5 grid gap-3">
         {items.map((item) => {
@@ -81,10 +68,35 @@ export function EvidenceReview({
         <Button variant="secondary" onClick={onBackToMissing}>
           Revisar faltantes
         </Button>
-        <Button onClick={onConfirm} disabled={blocked} loading={enviando}>
-          {enviando ? TEXTOS_CARGANDO.confirmando : "Enviar registro"}
+        <Button onClick={onConfirm} disabled={blocked} loading={enviando === "confirmar"}>
+          {enviando === "confirmar" ? TEXTOS_CARGANDO.confirmando : "Enviar registro"}
         </Button>
       </div>
     </section>
   );
+}
+
+function EvidenceSyncStatusInline({
+  pendientesSubida,
+  sincronizando,
+  missing,
+  complete
+}: {
+  pendientesSubida: number;
+  sincronizando: boolean;
+  missing: string[];
+  complete: boolean;
+}) {
+  if (pendientesSubida > 0) {
+    return (
+      <Aviso tono="atencion">
+        {pendientesSubida} foto{pendientesSubida === 1 ? "" : "s"} pendiente{pendientesSubida === 1 ? "" : "s"} de subir.
+        {sincronizando ? ` ${MENSAJE_EVIDENCIA_SINCRONIZANDO}.` : " Puedes completar el flujo offline; el envío se habilita al sincronizar."}
+      </Aviso>
+    );
+  }
+  if (!complete) {
+    return <Aviso tono="atencion">Falta: {missing.join(", ")}.</Aviso>;
+  }
+  return <Aviso tono="info">Registro completo y sincronizado. Revisa antes de enviar.</Aviso>;
 }
