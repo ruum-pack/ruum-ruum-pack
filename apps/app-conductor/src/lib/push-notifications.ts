@@ -1,9 +1,16 @@
 "use client";
 
 import { Capacitor } from "@capacitor/core";
-import { Device } from "@capacitor/device";
-import { PushNotifications, type ActionPerformed, type PushNotificationSchema, type Token } from "@capacitor/push-notifications";
 import { crearClienteNavegador } from "./supabase-browser";
+
+// Tipos de Capacitor PushNotifications
+type Token = { value: string };
+type PushNotificationSchema = {
+  data?: Record<string, string>;
+};
+type ActionPerformed = {
+  notification: PushNotificationSchema;
+};
 
 const DEVICE_KEY = "ruum_push_device_id";
 
@@ -21,13 +28,27 @@ export function obtenerDeviceIdPush(): string | null {
 
 async function registrarToken(token: Token) {
   const cliente = crearClienteNavegador();
-  const [{ data: sesion }, info] = await Promise.all([cliente.auth.getSession(), Device.getInfo()]);
-  if (!sesion.session) return;
-  const { error } = await (cliente as any).rpc("registrar_dispositivo_push", {
-    p_device_id: uuidLocal(), p_token_push: token.value, p_plataforma: "android",
-    p_modelo: info.model ?? null, p_version_app: process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0", p_version_so: info.osVersion ?? null
-  });
-  if (error) throw error;
+  
+  // En entorno no-nativo, no hacer nada
+  if (!Capacitor.isNativePlatform()) return;
+  
+  try {
+    // @ts-ignore - Módulo solo disponible en entorno nativo
+    const { Device } = await import("@capacitor/device");
+    const [{ data: sesion }, info] = await Promise.all([cliente.auth.getSession(), Device.getInfo()]);
+    if (!sesion.session) return;
+    const { error } = await (cliente as any).rpc("registrar_dispositivo_push", {
+      p_device_id: uuidLocal(),
+      p_token_push: token.value,
+      p_plataforma: "android",
+      p_modelo: info.model ?? null,
+      p_version_app: process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0",
+      p_version_so: info.osVersion ?? null
+    });
+    if (error) throw error;
+  } catch {
+    // Ignorar errores si los módulos no están disponibles
+  }
 }
 
 function destinoDesdePush(notification: PushNotificationSchema | ActionPerformed["notification"]): string {
@@ -37,49 +58,71 @@ function destinoDesdePush(notification: PushNotificationSchema | ActionPerformed
 
 export async function inicializarPush(onNavigate: (destino: string) => void) {
   if (!Capacitor.isNativePlatform()) return () => undefined;
+  
   const clienteSesion = crearClienteNavegador();
 
   async function asegurarRegistro() {
-    const { data } = await clienteSesion.auth.getSession();
-    if (!data.session) return;
-    const estado = await PushNotifications.checkPermissions();
-    const permiso = estado.receive === "prompt" ? await PushNotifications.requestPermissions() : estado;
-    if (permiso.receive === "granted") await PushNotifications.register();
+    try {
+      // @ts-ignore - Módulo solo disponible en entorno nativo
+      const { PushNotifications } = await import("@capacitor/push-notifications");
+      const { data } = await clienteSesion.auth.getSession();
+      if (!data.session) return;
+      const estado = await PushNotifications.checkPermissions();
+      const permiso = estado.receive === "prompt" ? await PushNotifications.requestPermissions() : estado;
+      if (permiso.receive === "granted") await PushNotifications.register();
+    } catch {
+      // Ignorar errores si los módulos no están disponibles
+    }
   }
 
-  await Promise.all([
-    PushNotifications.createChannel({ id: "ruum_operativa", name: "Operación urgente", importance: 5, visibility: 1, vibration: true }),
-    PushNotifications.createChannel({ id: "ruum_general", name: "Avisos generales", importance: 3, visibility: 1 })
-  ]);
+  try {
+    // @ts-ignore - Módulo solo disponible en entorno nativo
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    await Promise.all([
+      PushNotifications.createChannel({ id: "ruum_operativa", name: "Operación urgente", importance: 5, visibility: 1, vibration: true }),
+      PushNotifications.createChannel({ id: "ruum_general", name: "Avisos generales", importance: 3, visibility: 1 })
+    ]);
 
-  const handles = await Promise.all([
-    PushNotifications.addListener("registration", registrarToken),
-    PushNotifications.addListener("registrationError", (error) => console.error("FCM registration", error)),
-    PushNotifications.addListener("pushNotificationReceived", () => window.dispatchEvent(new Event("ruum:notificaciones-actualizar"))),
-    PushNotifications.addListener("pushNotificationActionPerformed", async ({ notification }) => {
-      const cliente = crearClienteNavegador();
-      const notificacionId = notification.data?.notificacion_id;
-      if (typeof notificacionId === "string") {
-        await (cliente as any).rpc("registrar_apertura_push", { p_notificacion_id: notificacionId, p_device_id: uuidLocal() });
-      }
-      onNavigate(destinoDesdePush(notification));
-    })
-  ]);
-  const { data: authListener } = clienteSesion.auth.onAuthStateChange((event) => {
-    if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") void asegurarRegistro();
-  });
-  await asegurarRegistro();
-  return () => {
-    authListener.subscription.unsubscribe();
-    handles.forEach((handle) => void handle.remove());
-  };
+    const handles = await Promise.all([
+      PushNotifications.addListener("registration", registrarToken),
+      PushNotifications.addListener("registrationError", (error: unknown) => console.error("FCM registration", error)),
+      PushNotifications.addListener("pushNotificationReceived", () => window.dispatchEvent(new Event("ruum:notificaciones-actualizar"))),
+      PushNotifications.addListener("pushNotificationActionPerformed", async ({ notification }: { notification: PushNotificationSchema }) => {
+        const cliente = crearClienteNavegador();
+        const notificacionId = notification.data?.notificacion_id;
+        if (typeof notificacionId === "string") {
+          await (cliente as any).rpc("registrar_apertura_push", { p_notificacion_id: notificacionId, p_device_id: uuidLocal() });
+        }
+        onNavigate(destinoDesdePush(notification));
+      })
+    ]);
+    const { data: authListener } = clienteSesion.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") void asegurarRegistro();
+    });
+    await asegurarRegistro();
+    return () => {
+      authListener.subscription.unsubscribe();
+      handles.forEach((handle) => void handle.remove());
+    };
+  } catch {
+    // Si los módulos no están disponibles, devolver una función vacía
+    return () => undefined;
+  }
 }
 
 export async function desactivarPushDelDispositivo() {
   if (!Capacitor.isNativePlatform()) return;
+  
   const deviceId = obtenerDeviceIdPush();
   if (!deviceId) return;
   const cliente = crearClienteNavegador();
   await (cliente as any).rpc("desactivar_dispositivo_push", { p_device_id: deviceId });
-  await PushNotifications.removeAllDeliveredNotifications();
+  
+  try {
+    // @ts-ignore - Módulo solo disponible en entorno nativo
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    await PushNotifications.removeAllDeliveredNotifications();
+  } catch {
+    // Ignorar errores si el módulo no está disponible
+  }
 }

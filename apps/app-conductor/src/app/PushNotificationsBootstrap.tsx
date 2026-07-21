@@ -6,7 +6,7 @@ import { inicializarPush } from "../lib/push-notifications";
 export function PushNotificationsBootstrap() {
   const router = useRouter();
   useEffect(() => {
-    let dispose = () => undefined;
+    let dispose = () => {};
     void inicializarPush((destino) => router.push(destino)).then((fn) => { dispose = fn; });
     return () => dispose();
   }, [router]);

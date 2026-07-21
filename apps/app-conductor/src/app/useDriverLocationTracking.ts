@@ -39,9 +39,9 @@ export function useDriverLocationTracking(viajeActivo: ViajeActivo | null) {
         if (!userId || !accessToken || !supabaseUrl || !anonKey || cancelado) return;
         try {
           const background = await solicitarUbicacionSegundoPlanoNativa();
-          if (!background.granted) logger.warn("background_location_not_granted", { state: background.state, tripId: viaje.trasladoId }, "permission");
+          if (!background.granted) logger.warn("background_location_not_granted", { state: background.state, tripId: viaje.trasladoId }, "authorization");
         } catch (error) {
-          logger.warn("background_location_request_failed", { tripId: viaje.trasladoId, errorCode: errorCode(error) }, "permission");
+          logger.warn("background_location_request_failed", { tripId: viaje.trasladoId, errorCode: errorCode(error) }, "authorization");
         }
         return iniciarTrackingNativo({
           userId,
@@ -53,7 +53,7 @@ export function useDriverLocationTracking(viajeActivo: ViajeActivo | null) {
           accessToken,
           refreshToken: data.session?.refresh_token
         });
-      }).catch((error) => logger.warn("native_tracking_start_failed", { tripId: viaje.trasladoId, errorCode: errorCode(error) }, "device"));
+      }).catch((error) => logger.warn("native_tracking_start_failed", { tripId: viaje.trasladoId, errorCode: errorCode(error) }, "integration_failure"));
 
       return () => { cancelado = true; };
     }

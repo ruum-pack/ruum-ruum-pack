@@ -1210,6 +1210,27 @@ export type Database = {
           },
         ]
       }
+      feature_flags_app: {
+        Row: {
+          clave: string
+          habilitada: boolean
+          porcentaje_rollout: number
+          versiones_permitidas: string[] | null
+        }
+        Insert: {
+          clave: string
+          habilitada: boolean
+          porcentaje_rollout: number
+          versiones_permitidas?: string[] | null
+        }
+        Update: {
+          clave?: string
+          habilitada?: boolean
+          porcentaje_rollout?: number
+          versiones_permitidas?: string[] | null
+        }
+        Relationships: []
+      }
       notas_internas_traslado: {
         Row: {
           admin_id: string
@@ -1388,12 +1409,6 @@ export type Database = {
           conductor_id: string
           modo_no_molestar?: boolean
           notificaciones_push?: boolean
-          notificar_oportunidades?: boolean
-          notificar_traslados_asignados?: boolean
-          notificar_cambios_operativos?: boolean
-          notificar_documentos?: boolean
-          notificar_ganancias?: boolean
-          notificar_promociones?: boolean
           notificar_oportunidades?: boolean
           notificar_traslados_asignados?: boolean
           notificar_cambios_operativos?: boolean
@@ -2640,6 +2655,14 @@ export type Database = {
       obtener_metricas_registro_conductor: {
         Args: { p_desde?: string; p_hasta?: string }
         Returns: Json
+      }
+      obtener_politica_version_app: {
+        Args: { p_plataforma: string; p_version_actual: string }
+        Returns: Json
+      }
+      registrar_evento_operativo_app: {
+        Args: { p_detalle: Json; p_tipo: string; p_version_app: string }
+        Returns: undefined
       }
       rango_desde_distancia: {
         Args: { p_km: number }
