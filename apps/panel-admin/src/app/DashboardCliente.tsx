@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Aviso, PassportCard } from "@ruum/ui";
 import { AdminPanel } from "./admin-ui";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../lib/supabase-browser";
@@ -127,7 +126,6 @@ const INDICADORES_DEMO: IndicadorAccionableDashboard[] = [
 ];
 
 export default function DashboardCliente({ inicial }: { inicial: DashboardInitialData | null }) {
-  const router = useRouter();
   const [indicadores, setIndicadores] = useState<IndicadorAccionableDashboard[]>(inicial?.indicadores ?? []);
   const [incidencias, setIncidencias] = useState<IncidenciaRow[]>(inicial?.incidencias ?? []);
   const [emergencias, setEmergencias] = useState<AuditoriaRow[]>(inicial?.emergencias ?? []);
@@ -139,8 +137,6 @@ export default function DashboardCliente({ inicial }: { inicial: DashboardInitia
   const [estadoConexionDatos, setEstadoConexionDatos] = useState<EstadoConexionDashboard>("actualizando");
   const [seccionesDesactualizadas, setSeccionesDesactualizadas] = useState<string[]>([]);
   const [actualizandoManual, setActualizandoManual] = useState(false);
-  const [comandoGlobal, setComandoGlobal] = useState("");
-  const [avisoComando, setAvisoComando] = useState<string | null>(null);
   const [rolAdmin, setRolAdmin] = useState<RolAdminOperativo>(inicial?.rol ?? "operador");
   const ultimaRespuestaExitosaRef = useRef<Date | null>(null);
 
@@ -252,57 +248,47 @@ export default function DashboardCliente({ inicial }: { inicial: DashboardInitia
       .sort((a, b) => (orden.get(a.clave) ?? 99) - (orden.get(b.clave) ?? 99));
   }, [configuracionRol.indicadores, indicadores]);
 
-  function ejecutarComandoGlobal(evento: FormEvent<HTMLFormElement>) {
-    evento.preventDefault();
-    const comando = comandoGlobal.trim().toLowerCase();
-    const destino = comando.includes("program") || comando.includes("crear") || comando.includes("masiv")
-      ? ACCIONES_FRECUENTES[0].href
-      : comando.includes("asign") || comando.includes("conductor")
-        ? ACCIONES_FRECUENTES[1].href
-        : comando.includes("incid")
-          ? ACCIONES_FRECUENTES[2].href
-          : null;
-    if (!destino) {
-      setAvisoComando("Comando no reconocido.");
-      return;
-    }
-    setAvisoComando(null);
-    router.push(destino);
-  }
-
   return (
     <main className="admin-page-shell">
       <section className="rounded-card border border-border-default bg-surface-primary/90 px-4 py-4 shadow-[var(--ruum-shadow-1)] sm:px-5" aria-label="Cabecera operativa">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <p className="font-mono-ruum text-admin-secundario uppercase tracking-[0.16em] text-signal">Centro de control</p>
+            <p className="font-mono-ruum text-admin-secundario uppercase tracking-[0.16em] text-signal">Torre de Control</p>
             <h1 className="mt-1 font-display text-xl font-semibold text-ink">Dashboard operativo</h1>
             <p className="mt-1 font-body text-sm text-text-secondary">{configuracionRol.descripcion}</p>
           </div>
-          <Link
-            href="/viajes"
-            className="inline-flex shrink-0 items-center justify-center rounded-lg bg-signal px-4 py-2.5 font-body text-admin-boton font-semibold text-ink shadow-sm transition-colors hover:bg-signal/90"
-          >
-            Revisar traslados
-          </Link>
-          <button
-            type="button"
-            onClick={() => void cargarDashboard(true, true)}
-            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2.5 font-body text-admin-boton font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink"
-            disabled={actualizandoManual}
-          >
-            {actualizandoManual ? "Actualizando" : "Actualizar"}
-          </button>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <Link
+              href="/viajes"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-signal px-4 py-2 font-body text-admin-boton font-semibold text-ink shadow-sm transition-colors hover:bg-signal/90"
+            >
+              Revisar traslados
+            </Link>
+            <button
+              type="button"
+              onClick={() => void cargarDashboard(true, true)}
+              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2 font-body text-admin-boton font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink"
+              disabled={actualizandoManual}
+            >
+              {actualizandoManual ? "Actualizando" : "Actualizar"}
+            </button>
+          </div>
         </div>
-        <dl className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
-          <DatoCabecera etiqueta="Estado" valor={estadoOperacion} destacado={estadoOperacion !== "Operación estable"} />
-          <DatoCabecera etiqueta="Conexión" valor={textoEstadoConexion(estadoConexionDatos)} destacado={estadoConexionDatos !== "datos_en_vivo"} />
-          <DatoCabecera etiqueta="Actualización" valor={ultimaSincronizacion ? textoActualizadoHace(ultimaSincronizacion, ahora) : "Sin respuesta exitosa"} destacado={estadoConexionDatos === "desactualizado"} />
-          <DatoCabecera etiqueta="Tipo de datos" valor="Administrativos" />
-          <DatoCabecera etiqueta="Origen" valor={esDemo ? "Modo demo" : "Datos reales"} destacado={esDemo} />
-          <DatoCabecera etiqueta="Turno" valor={turno} />
-          <DatoCabecera etiqueta="Rol" valor={configuracionRol.etiqueta} />
-        </dl>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-body text-sm text-text-secondary">
+          <span className={`inline-flex items-center gap-1.5 font-semibold ${estadoOperacion === "Operación estable" ? "text-status-success" : estadoOperacion === "Emergencia activa" ? "text-status-error" : "text-status-warning"}`}>
+            <span className={`inline-block size-2 rounded-full ${estadoOperacion === "Operación estable" ? "bg-status-success" : estadoOperacion === "Emergencia activa" ? "bg-status-error" : "bg-status-warning"}`} aria-hidden="true" />
+            {estadoOperacion}
+          </span>
+          <span className="text-text-tertiary">·</span>
+          <span>{textoEstadoConexion(estadoConexionDatos)}</span>
+          <span className="text-text-tertiary">·</span>
+          <span>{ultimaSincronizacion ? textoActualizadoHace(ultimaSincronizacion, ahora) : "Sin respuesta"}</span>
+          <span className="text-text-tertiary">·</span>
+          <span>{configuracionRol.etiqueta}</span>
+          {esDemo && <><span className="text-text-tertiary">·</span><span className="text-status-warning">Demo</span></>}
+          <span className="text-text-tertiary">·</span>
+          <span>{turno}</span>
+        </div>
       </section>
 
       {seccionesDesactualizadas.length > 0 && (
@@ -351,24 +337,11 @@ export default function DashboardCliente({ inicial }: { inicial: DashboardInitia
             indicadoresVisibles,
             emergencias,
             incidencias,
-            conductoresDocVencido,
-            comandoGlobal,
-            avisoComando,
-            setComandoGlobal,
-            ejecutarComandoGlobal
+            conductoresDocVencido
           }))}
         </>
       )}
     </main>
-  );
-}
-
-function DatoCabecera({ etiqueta, valor, destacado = false }: { etiqueta: string; valor: string; destacado?: boolean }) {
-  return (
-    <div className={`rounded-lg border px-3 py-2 ${destacado ? "border-status-warning/35 bg-status-warning-soft" : "border-ink/10 bg-surface-secondary"}`}>
-      <dt className="font-body text-admin-secundario text-text-tertiary">{etiqueta}</dt>
-      <dd className={`mt-1 font-body text-sm font-semibold ${destacado ? "text-status-warning" : "text-ink"}`}>{valor}</dd>
-    </div>
   );
 }
 
@@ -379,10 +352,6 @@ function renderWidgetDashboard(
     emergencias: AuditoriaRow[];
     incidencias: IncidenciaRow[];
     conductoresDocVencido: ConductorRow[];
-    comandoGlobal: string;
-    avisoComando: string | null;
-    setComandoGlobal: (valor: string) => void;
-    ejecutarComandoGlobal: (evento: FormEvent<HTMLFormElement>) => void;
   }
 ) {
   if (widget === "indicadores") {
@@ -455,25 +424,6 @@ function renderWidgetDashboard(
             </Link>
           ))}
         </div>
-        <form className="mt-4" onSubmit={contexto.ejecutarComandoGlobal}>
-          <label className="sr-only" htmlFor="comando-global-admin">Comando global</label>
-          <div className="flex gap-2">
-            <input
-              id="comando-global-admin"
-              value={contexto.comandoGlobal}
-              onChange={(evento) => contexto.setComandoGlobal(evento.target.value)}
-              placeholder="Comando global"
-              className="min-w-0 flex-1 rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm text-ink placeholder:text-text-tertiary focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
-            />
-            <button
-              type="submit"
-              className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-admin-boton font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink"
-            >
-              Ejecutar
-            </button>
-          </div>
-          {contexto.avisoComando && <p className="mt-2 font-body text-xs text-status-warning">{contexto.avisoComando}</p>}
-        </form>
       </AdminPanel>
     </section>
   );

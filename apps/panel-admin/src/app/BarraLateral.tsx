@@ -99,7 +99,7 @@ export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
   {
     titulo: "OPERACIÓN",
     secciones: [
-      { href: "/", etiqueta: "Centro de control", icono: "dashboard" },
+      { href: "/", etiqueta: "Dashboard", icono: "dashboard" },
       { href: "/viajes", etiqueta: "Traslados", icono: "viajes" },
       { href: "/masivos", etiqueta: "Cargas masivas", icono: "masivos" },
       { href: "/mapa", etiqueta: "Mapa", icono: "mapa" },
@@ -142,8 +142,15 @@ export function rutaBase(href: string) {
   return href.split("?")[0] ?? href;
 }
 
-export function BadgeContador({ contador, colapsada }: { contador: ContadorMenu; colapsada: boolean }) {
-  if (contador.valor <= 0) return null;
+export function BadgeContador({ contador, colapsada, cargando }: { contador?: ContadorMenu; colapsada: boolean; cargando?: boolean }) {
+  if (cargando) {
+    return (
+      <span className={`ml-auto inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 ${colapsada ? "absolute right-0 top-0 translate-x-1 -translate-y-1" : ""}`}>
+        <span className="block size-3 animate-pulse rounded-full bg-ink/10" aria-hidden="true" />
+      </span>
+    );
+  }
+  if (!contador || contador.valor <= 0) return null;
   const texto = contador.critico ? `Crítico: ${contador.valor}` : String(contador.valor);
   return (
     <span
@@ -163,11 +170,15 @@ export function BadgeContador({ contador, colapsada }: { contador: ContadorMenu;
 
 export function useContadoresMenu(pathname: string) {
   const [contadores, setContadores] = useState<ContadoresMenu>({});
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
+    let cancelado = false;
     async function cargarContadores() {
+      setCargando(true);
       if (!tieneSupabaseConfigurado()) {
         setContadores({});
+        setCargando(false);
         return;
       }
       try {
@@ -184,43 +195,50 @@ export function useContadoresMenu(pathname: string) {
         const documentosPendientes = conductores.filter((conductor) => !conductor.documentos_vigentes).length
           + usuarios.filter((usuario) => usuario.estado_verificacion === "pendiente" || usuario.estado_verificacion === "en_revision").length;
 
-        setContadores({
-          alertasCriticas: {
-            valor: alertas.filter((alerta) => alerta.vencido).length,
-            critico: true,
-            etiqueta: "Alertas críticas vencidas"
-          },
-          conductoresRevision: {
-            valor: solicitudes.filter((fila) => fila.solicitud.estado === "en_revision").length,
-            etiqueta: "Conductores por revisar"
-          },
-          incidenciasAbiertas: {
-            valor: incidencias.filter((incidencia) => !incidencia.resuelta).length,
-            critico: incidencias.some((incidencia) => !incidencia.resuelta),
-            etiqueta: "Incidencias abiertas"
-          },
-          disputasPendientes: {
-            valor: disputas.filter((disputa) => disputa.estado !== "resuelta" && disputa.estado !== "resuelta_senior").length,
-            etiqueta: "Disputas pendientes"
-          },
-          pagosPendientes: {
-            valor: pagos.pagosUsuarios.filter((pago) => pago.estado === "pendiente").length
-              + pagos.payoutsConductores.filter((payout) => payout.estado === "pendiente").length,
-            etiqueta: "Pagos pendientes"
-          },
-          documentosPorVencer: {
-            valor: documentosPendientes,
-            etiqueta: "Documentos por vencer o actualizar"
-          }
-        });
+        if (!cancelado) {
+          setContadores({
+            alertasCriticas: {
+              valor: alertas.filter((alerta) => alerta.vencido).length,
+              critico: true,
+              etiqueta: "Alertas críticas vencidas"
+            },
+            conductoresRevision: {
+              valor: solicitudes.filter((fila) => fila.solicitud.estado === "en_revision").length,
+              etiqueta: "Conductores por revisar"
+            },
+            incidenciasAbiertas: {
+              valor: incidencias.filter((incidencia) => !incidencia.resuelta).length,
+              critico: incidencias.some((incidencia) => !incidencia.resuelta),
+              etiqueta: "Incidencias abiertas"
+            },
+            disputasPendientes: {
+              valor: disputas.filter((disputa) => disputa.estado !== "resuelta" && disputa.estado !== "resuelta_senior").length,
+              etiqueta: "Disputas pendientes"
+            },
+            pagosPendientes: {
+              valor: pagos.pagosUsuarios.filter((pago) => pago.estado === "pendiente").length
+                + pagos.payoutsConductores.filter((payout) => payout.estado === "pendiente").length,
+              etiqueta: "Pagos pendientes"
+            },
+            documentosPorVencer: {
+              valor: documentosPendientes,
+              etiqueta: "Documentos por vencer o actualizar"
+            }
+          });
+          setCargando(false);
+        }
       } catch {
-        setContadores({});
+        if (!cancelado) {
+          setContadores({});
+          setCargando(false);
+        }
       }
     }
     void cargarContadores();
+    return () => { cancelado = true; };
   }, [pathname]);
 
-  return contadores;
+  return { contadores, cargando };
 }
 
 export function BarraLateral() {
@@ -229,7 +247,7 @@ export function BarraLateral() {
   const [sesionReal, setSesionReal] = useState(false);
   const [rolAdmin, setRolAdmin] = useState<RolAdminOperativo>("operador");
   const [colapsada, setColapsada] = useState(false);
-  const contadores = useContadoresMenu(pathname);
+  const { contadores, cargando } = useContadoresMenu(pathname);
 
   useEffect(() => {
   const isColapsada = window.localStorage.getItem("ruum-admin-sidebar") === "colapsada";
@@ -290,7 +308,7 @@ export function BarraLateral() {
         <span className="flex items-center gap-2.5">
           <LogoMarca tamano={28} color="signal" />
           <span className={`font-display text-base font-bold tracking-tight text-mist ${colapsada ? "hidden" : "hidden lg:inline"}`}>
-            <span className="text-signal">ruum</span>ruum
+            ruum<span className="text-signal">ruum</span>
           </span>
         </span>
         <p className={`mt-0.5 font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary ${colapsada ? "hidden" : "hidden lg:block"}`}>
@@ -336,7 +354,7 @@ export function BarraLateral() {
                       <Icono nombre={s.icono} />
                     </span>
                     <span className={colapsada ? "hidden" : "hidden lg:inline"}>{s.etiqueta}</span>
-                    {contador && <BadgeContador contador={contador} colapsada={colapsada} />}
+                    <BadgeContador contador={contador} colapsada={colapsada} cargando={cargando} />
                   </Link>
                 );
               })}

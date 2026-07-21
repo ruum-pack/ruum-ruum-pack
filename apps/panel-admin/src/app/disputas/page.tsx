@@ -8,6 +8,8 @@ import { slaResolucionDisputa, slaRevisionAdmin } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { listarDisputasAdmin, listarViajesAdmin, resolverDisputaAdmin } from "@ruum/api/services";
+import { AdminPageHeader, AdminFiltroActivo, limpiarParamsFiltroUrl } from "../admin-ui";
+import { AdminLoadingState, AdminEmptyState, AdminErrorState, AdminBadge } from "../admin-components";
 
 type Disputa = Database["public"]["Tables"]["disputas"]["Row"];
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -104,8 +106,10 @@ export default function PaginaDisputasAdmin() {
   const [pasaportes, setPasaportes] = useState<Pasaporte[]>([]);
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   async function cargar() {
+    setError(null);
     if (!tieneSupabaseConfigurado()) {
       setDisputas(DISPUTAS_DEMO);
       setPasaportes([]);
@@ -127,6 +131,7 @@ export default function PaginaDisputasAdmin() {
       } else {
         setDisputas([]);
         setPasaportes([]);
+        setError("No pudimos cargar las disputas.");
         setEsDemo(false);
       }
     } finally {
@@ -151,12 +156,49 @@ export default function PaginaDisputasAdmin() {
     [disputas, filtroPendientes]
   );
 
+  if (cargando) {
+    return (
+      <main className="admin-page-shell">
+        <AdminLoadingState label="Cargando disputas" />
+      </main>
+    );
+  }
+
+  if (error && !esDemo && disputas.length === 0) {
+    return (
+      <main className="admin-page-shell">
+        <AdminErrorState
+          title={error}
+          action={<Button onClick={cargar}>Reintentar</Button>}
+        />
+      </main>
+    );
+  }
+
   return (
-    <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
-      <h1 className="font-display text-2xl font-semibold">Disputas</h1>
-      <p className="mt-1 font-body text-sm text-text-secondary">Revisión, SLA y resolución de inconformidades post-cierre.</p>
+    <main className="admin-page-shell">
+      <AdminPageHeader
+        etiqueta="Casos"
+        titulo="Disputas"
+        descripcion="Revisión, SLA y resolución de inconformidades post-cierre."
+        estadoConexion={esDemo ? "demo" : "datos_en_vivo"}
+        contadorResultados={disputasVisibles.length}
+      />
+
+      {filtroPendientes && (
+        <AdminFiltroActivo
+          etiqueta="Disputas pendientes"
+          onLimpiar={() => { setFiltroPendientes(false); limpiarParamsFiltroUrl(["filtro"]); }}
+        />
+      )}
+
       {esDemo && <div className="mt-4"><Aviso tono="info">Vista con datos de ejemplo.</Aviso></div>}
-      {cargando ? <p className="mt-8 font-body text-sm text-text-tertiary">Cargando...</p> : (
+
+      {disputasVisibles.length === 0 ? (
+        <div className="mt-6">
+          <AdminEmptyState title="Sin disputas" description="No hay disputas abiertas o pendientes de resolución." />
+        </div>
+      ) : (
         <section className="mt-6 grid gap-4">
           {disputasVisibles.map((disputa) => {
             const pasaporte = pasaportePorId.get(disputa.traslado_id);

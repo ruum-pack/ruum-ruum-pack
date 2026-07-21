@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Aviso } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
@@ -8,6 +8,7 @@ import { listarVehiculosAdmin, type DatosVehiculosAdmin } from "@ruum/api/servic
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { VIAJES_DEMO } from "../../lib/datos-demo";
 import { AdminPageHeader, AdminPanel } from "../admin-ui";
+import { AdminButton, AdminEmptyState, AdminErrorState, AdminLoadingState } from "../admin-components";
 
 type Vehiculo = Database["public"]["Tables"]["vehiculos"]["Row"];
 type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
@@ -85,39 +86,61 @@ function fecha(fechaIso: string | null | undefined) {
   return fechaIso ? new Date(fechaIso).toLocaleDateString("es-MX", { dateStyle: "medium" }) : "—";
 }
 
+type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "sin_conexion" | "demo";
+
 export default function PaginaVehiculosAdmin() {
   const [datos, setDatos] = useState<DatosVehiculosAdmin>(() => vehiculosDemo());
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
+  const [actualizandoManual, setActualizandoManual] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
+  const [estadoConexion, setEstadoConexion] = useState<EstadoConexionVista>("actualizando");
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
 
-  useEffect(() => {
-    async function cargar() {
-      if (!tieneSupabaseConfigurado()) {
-        setDatos(vehiculosDemo());
-        setEsDemo(true);
-        setCargando(false);
-        return;
-      }
+  const cargar = useCallback(async (manual = false) => {
+    if (manual) setActualizandoManual(true);
+    else setCargando(true);
 
-      try {
-        setDatos(await listarVehiculosAdmin(crearClienteNavegador()));
-        setEsDemo(false);
-      } catch {
-        if (puedeUsarDatosDemo()) {
-          setDatos(vehiculosDemo());
-          setEsDemo(true);
-        } else {
-          setDatos({ vehiculos: [], usuarios: [] });
-          setEsDemo(false);
-        }
-      } finally {
-        setCargando(false);
-      }
+    if (!tieneSupabaseConfigurado()) {
+      setDatos(vehiculosDemo());
+      setEsDemo(true);
+      setError(null);
+      setEstadoConexion("demo");
+      setUltimaActualizacion(new Date());
+      setCargando(false);
+      setActualizandoManual(false);
+      return;
     }
 
-    cargar();
+    try {
+      setError(null);
+      setDatos(await listarVehiculosAdmin(crearClienteNavegador()));
+      setEsDemo(false);
+      setEstadoConexion("datos_en_vivo");
+      setUltimaActualizacion(new Date());
+    } catch {
+      if (puedeUsarDatosDemo()) {
+        setDatos(vehiculosDemo());
+        setEsDemo(true);
+        setError(null);
+        setEstadoConexion("demo");
+        setUltimaActualizacion(new Date());
+      } else {
+        setDatos({ vehiculos: [], usuarios: [] });
+        setEsDemo(false);
+        setError("No pudimos cargar el inventario de vehículos.");
+        setEstadoConexion("sin_conexion");
+      }
+    } finally {
+      setCargando(false);
+      setActualizandoManual(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void cargar();
+  }, [cargar]);
 
   const usuarioPorId = useMemo(() => new Map(datos.usuarios.map((usuario) => [usuario.id, usuario])), [datos.usuarios]);
   const vehiculosFiltrados = useMemo(() => {
@@ -139,14 +162,36 @@ export default function PaginaVehiculosAdmin() {
   return (
     <main className="admin-page-shell">
       <AdminPageHeader
-        etiqueta="Inventario"
+        etiqueta="Gestión"
         titulo="Vehículos"
         descripcion="Registro operativo de vehículos asociados a usuarios, documentación mínima, placas y clasificación tarifaria."
+        estadoConexion={estadoConexion}
+        ultimaActualizacion={ultimaActualizacion}
+        tipoDatos="administrativos"
+        contadorResultados={vehiculosFiltrados.length}
+        accion={(
+          <AdminButton variant="secondary" loading={actualizandoManual} onClick={() => void cargar(true)}>
+            Actualizar
+          </AdminButton>
+        )}
       />
 
       {esDemo && (
         <div className="mt-4">
           <Aviso tono="info">Estás viendo datos de ejemplo, no vehículos reales.</Aviso>
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-4">
+          <AdminErrorState
+            description={error}
+            action={(
+              <AdminButton variant="secondary" onClick={() => void cargar(true)}>
+                Reintentar
+              </AdminButton>
+            )}
+          />
         </div>
       )}
 
@@ -161,71 +206,77 @@ export default function PaginaVehiculosAdmin() {
           className="flex-1 rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-text-tertiary focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
         />
         {busqueda && (
-          <button onClick={() => setBusqueda("")} className="font-body text-sm text-text-tertiary hover:text-ink" aria-label="Limpiar búsqueda">
+          <AdminButton variant="quiet" onClick={() => setBusqueda("")} aria-label="Limpiar búsqueda">
             Limpiar
-          </button>
+          </AdminButton>
         )}
       </div>
 
-      <AdminPanel className="admin-table-card mt-4">
-        <table>
-          <caption className="sr-only">Lista de vehículos registrados</caption>
-          <thead>
-            <tr>
-              <th>Vehículo</th>
-              <th>Usuario</th>
-              <th>Placas / VIN</th>
-              <th>Documentación</th>
-              <th>Tarifa</th>
-              <th>Alta</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cargando ? (
+      {cargando ? (
+        <div className="mt-4">
+          <AdminLoadingState label="Cargando vehículos" />
+        </div>
+      ) : vehiculosFiltrados.length === 0 ? (
+        <div className="mt-4">
+          <AdminEmptyState
+            title={busqueda.trim() ? "Sin resultados" : "Sin vehículos"}
+            description={busqueda.trim() ? "No encontramos vehículos con esa búsqueda." : "No hay vehículos registrados."}
+            action={busqueda.trim() ? (
+              <AdminButton variant="secondary" onClick={() => setBusqueda("")}>
+                Limpiar búsqueda
+              </AdminButton>
+            ) : undefined}
+          />
+        </div>
+      ) : (
+        <AdminPanel className="admin-table-card mt-4">
+          <table>
+            <caption className="sr-only">Lista de vehículos registrados</caption>
+            <thead>
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-text-tertiary">Cargando...</td>
+                <th>Vehículo</th>
+                <th>Usuario</th>
+                <th>Placas / VIN</th>
+                <th>Documentación</th>
+                <th>Tarifa</th>
+                <th>Alta</th>
               </tr>
-            ) : vehiculosFiltrados.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-text-tertiary">
-                  {busqueda.trim() ? "No encontramos vehículos con esa búsqueda." : "No hay vehículos registrados."}
-                </td>
-              </tr>
-            ) : (
-              vehiculosFiltrados.map((vehiculo) => {
+            </thead>
+            <tbody>
+              {vehiculosFiltrados.map((vehiculo) => {
                 const usuario = usuarioPorId.get(vehiculo.usuario_id);
                 const documental = estadoDocumental(vehiculo);
                 return (
                   <tr key={vehiculo.id}>
-                    <td>
+                    <td data-label="Vehículo">
                       <p className="font-body font-semibold text-ink">{vehiculo.marca} {vehiculo.modelo} {vehiculo.anio}</p>
                       <p className="mt-1 text-xs text-text-tertiary">{ETIQUETA_TIPO_VEHICULO[vehiculo.tipo]}{vehiculo.color ? ` · ${vehiculo.color}` : ""}</p>
                     </td>
-                    <td>
+                    <td data-label="Usuario">
                       <p className="font-body text-sm text-ink">{usuario?.nombre ?? usuario?.razon_social ?? "Usuario sin nombre"}</p>
                       <p className="mt-1 font-mono-ruum text-admin-tabla text-text-tertiary">{usuario?.correo_facturacion ?? vehiculo.usuario_id.slice(0, 8).toUpperCase()}</p>
                     </td>
-                    <td>
+                    <td data-label="Placas / VIN">
                       <p className="font-mono-ruum text-xs text-ink">{vehiculo.placas ?? "Sin placas"}</p>
                       <p className="mt-1 font-mono-ruum text-admin-tabla text-text-tertiary">{vehiculo.vin ?? "VIN pendiente"}</p>
                     </td>
-                    <td>
+                    <td data-label="Documentación">
                       <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-semibold ${documental.clase}`}>{documental.texto}</span>
                     </td>
-                    <td>
+                    <td data-label="Tarifa">
                       <p className="font-body text-sm text-ink">{vehiculo.categoria_tarifa ? ETIQUETA_CATEGORIA[vehiculo.categoria_tarifa] : "Sin categoría"}</p>
                       <p className="mt-1 text-xs text-text-tertiary">
                         {[vehiculo.gama ? ETIQUETA_GAMA[vehiculo.gama] : null, vehiculo.condicion ? ETIQUETA_CONDICION[vehiculo.condicion] : null].filter(Boolean).join(" · ") || "Pendiente"}
                       </p>
                     </td>
-                    <td className="font-body text-sm text-text-secondary">{fecha(vehiculo.creado_en)}</td>
+                    <td className="font-body text-sm text-text-secondary" data-label="Alta">{fecha(vehiculo.creado_en)}</td>
                   </tr>
                 );
-              })
-            )}
-          </tbody>
-        </table>
-      </AdminPanel>
+              })}
+            </tbody>
+          </table>
+        </AdminPanel>
+      )}
     </main>
   );
 }

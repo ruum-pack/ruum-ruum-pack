@@ -1,6 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import Link from "next/link";
+import { AdminButton } from "./admin-components";
 
 export default function ErrorGlobalAdmin({
   error,
@@ -30,15 +31,12 @@ export default function ErrorGlobalAdmin({
         <p className="mt-4 max-w-lg font-mono text-admin-secundario text-status-error opacity-70">{error.message}</p>
       )}
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <button
-          onClick={reset}
-          className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2 font-body text-sm font-medium text-ink transition hover:border-ink/40"
-        >
+        <AdminButton variant="secondary" onClick={reset}>
           Reintentar
-        </button>
+        </AdminButton>
         <Link
           href="/"
-          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-signal px-4 py-2 font-display text-sm font-bold text-ink transition hover:bg-signal/90"
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-signal bg-signal px-4 py-2 font-body text-admin-boton font-semibold text-ink transition-colors hover:bg-signal/90"
         >
           Ir al dashboard
         </Link>

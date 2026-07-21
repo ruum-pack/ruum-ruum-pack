@@ -57,17 +57,20 @@ export default function PaginaConfiguracionAdmin() {
           <PassportCard key={item}>
             <div className="flex items-center justify-between gap-4">
               <p className="font-body text-sm font-semibold">{item}</p>
-              <span className="rounded-full border border-ink/15 px-2.5 py-1 font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary">
-                Próximamente
+              <span className="rounded-full border border-ink/15 bg-ink/[0.04] px-2.5 py-1 font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary">
+                Catálogo
               </span>
             </div>
           </PassportCard>
         ))}
       </section>
 
-      <section className="mt-6">
-        <PassportCard>
-          <h2 className="font-display text-xl font-semibold">Roles internos y permisos conceptuales</h2>
+      <details className="mt-6 rounded-2xl border border-border-default [&_summary::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer items-center justify-between px-6 py-5 font-display text-xl font-semibold text-ink hover:text-signal [&::marker]:hidden">
+          Roles internos y permisos conceptuales
+          <span className="font-mono-ruum text-admin-secundario text-text-tertiary">▼</span>
+        </summary>
+        <PassportCard className="border-0">
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[860px] font-body text-sm">
               <caption className="sr-only">Roles internos y permisos del panel</caption>
@@ -90,9 +93,14 @@ export default function PaginaConfiguracionAdmin() {
             </table>
           </div>
         </PassportCard>
-      </section>
+      </details>
 
-      <section className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+      <details className="mt-6 rounded-2xl border border-border-default [&_summary::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer items-center justify-between px-6 py-5 font-display text-xl font-semibold text-ink hover:text-signal [&::marker]:hidden">
+          Versión responsive y alcance por rol
+          <span className="font-mono-ruum text-admin-secundario text-text-tertiary">▼</span>
+        </summary>
+        <div className="grid gap-6 p-6 pt-0 lg:grid-cols-[0.9fr_1.1fr]">
         <PassportCard>
           <h2 className="font-display text-xl font-semibold">Versión responsive móvil del Admin</h2>
           <p className="mt-2 font-body text-sm text-text-secondary">
@@ -109,7 +117,7 @@ export default function PaginaConfiguracionAdmin() {
         <Aviso tono="atencion">
           Seguridad y auditoría deben registrar cambios de roles, permisos, estados críticos, pagos, documentos y escalaciones.
         </Aviso>
-      </section>
+      </div></details>
     </main>
   );
 }

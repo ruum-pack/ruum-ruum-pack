@@ -59,11 +59,14 @@ export default function PaginaLogin() {
         </div>
 
         <h1 id="titulo-acceso-admin" className="mt-8 font-display text-2xl font-bold text-ink">Acceso operativo</h1>
-        <p className="mt-2 font-body text-sm leading-6 text-text-secondary">Consulta traslados, evidencia, incidencias y alertas de la operación.</p>
+        <p className="mt-2 font-body text-sm leading-6 text-text-secondary">Traslados, documentación, pagos, incidencias y alertas de la operación.</p>
 
         {!tieneSupabaseConfigurado() ? (
-          <div className="mt-6">
-            <Aviso tono="info">Supabase no está configurado todavía. El panel está disponible en modo demo.</Aviso>
+          <div className="mt-6 space-y-3">
+            <span className="inline-flex items-center gap-2 rounded-full border border-status-warning/35 bg-status-warning-soft px-3 py-1 font-body text-admin-secundario font-semibold text-status-warning">
+              Modo demo
+            </span>
+            <Aviso tono="info">Supabase no está configurado todavía. El panel está disponible en modo demo con datos simulados.</Aviso>
           </div>
         ) : (
           <form className="mt-7 grid gap-4" onSubmit={iniciarSesion}>

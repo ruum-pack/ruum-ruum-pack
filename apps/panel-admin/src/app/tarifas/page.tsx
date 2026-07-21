@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import { AdminPageHeader } from "../admin-ui";
-import { ConfirmacionModal } from "../../components/ConfirmacionModal";
+import { AdminDialog } from "../admin-components";
 import {
   actualizarConfigTarifas,
   actualizarPoliticaTarifariaNormativa,
@@ -118,60 +118,6 @@ function CampoBorrador({
   );
 }
 
-function ConfirmacionImpacto({
-  abierto,
-  onCancelar,
-  onConfirmar,
-  accionLabel = "Publicar versión"
-}: {
-  abierto: boolean;
-  onCancelar: () => void;
-  onConfirmar: () => void;
-  accionLabel?: string;
-}) {
-  const dialogoRef = useRef<HTMLDivElement | null>(null);
-  const focoPrevioRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!abierto) return;
-    focoPrevioRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const dialogo = dialogoRef.current;
-    const primerControl = dialogo?.querySelector<HTMLElement>("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
-    window.requestAnimationFrame(() => primerControl?.focus());
-
-    function cerrarConEscape(evento: KeyboardEvent) {
-      if (evento.key === "Escape") onCancelar();
-    }
-
-    document.addEventListener("keydown", cerrarConEscape);
-    return () => {
-      document.removeEventListener("keydown", cerrarConEscape);
-      window.requestAnimationFrame(() => focoPrevioRef.current?.focus());
-    };
-  }, [abierto, onCancelar]);
-
-  if (!abierto) return null;
-  return (
-    <div className="admin-modal-backdrop fixed inset-0 z-50 flex items-center justify-center px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="confirmacion-impacto-titulo">
-      <div ref={dialogoRef} className="w-full max-w-md overflow-hidden rounded-2xl border border-ink/20 bg-surface-primary shadow-[var(--ruum-shadow-4)]">
-        <div className="border-b border-status-warning/20 bg-status-warning-soft px-6 py-5">
-          <p className="font-mono-ruum text-xs font-medium uppercase tracking-wide text-status-warning">Publicación financiera</p>
-          <h2 id="confirmacion-impacto-titulo" className="mt-1 font-display text-xl font-semibold text-ink">{accionLabel}</h2>
-        </div>
-        <div className="px-6 py-5">
-          <p className="font-body text-sm leading-6 text-text-secondary">
-            Esta acción reemplaza la versión vigente para cálculos futuros. Los traslados con precio ya cotizado conservarán su tarifa original y la publicación debe quedar registrada en auditoría con responsable, fecha y posibilidad de reversión según reglas.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-end gap-3">
-            <Button variant="quiet" onClick={onCancelar}>Cancelar</Button>
-            <Button onClick={onConfirmar}>{accionLabel}</Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function PaginaTarifasAdmin() {
   const [datos, setDatos] = useState<ConfiguracionTarifas>(VACIO);
   const [configVista, setConfigVista] = useState<TarifaConfigRow | null>(null);
@@ -238,9 +184,13 @@ export default function PaginaTarifasAdmin() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
-      <ConfirmacionModal abierto={seccionPendiente !== null} titulo="Descartar cambios sin guardar" confirmar={confirmarCambioSeccion} cancelar={() => setSeccionPendiente(null)} destructiva>
-        Hay modificaciones sin guardar. Al cambiar de sección se descartará el borrador actual.
-      </ConfirmacionModal>
+      <AdminDialog
+        open={seccionPendiente !== null}
+        title="Descartar cambios sin guardar"
+        description="Hay modificaciones sin guardar. Al cambiar de sección se descartará el borrador actual."
+        onOpenChange={(abierto) => { if (!abierto) setSeccionPendiente(null); }}
+        footer={<><button type="button" onClick={() => setSeccionPendiente(null)} className="rounded-lg border border-ink/20 px-4 py-2 font-body text-admin-boton font-semibold text-ink hover:bg-surface-secondary">Cancelar</button><button type="button" onClick={confirmarCambioSeccion} className="rounded-lg border border-status-error/30 bg-status-error-soft px-4 py-2 font-body text-admin-boton font-semibold text-status-error hover:bg-status-error hover:text-background-main">Continuar</button></>}
+      ><span /></AdminDialog>
       <AdminPageHeader
         etiqueta="Administración"
         titulo="Tarifas"
@@ -499,15 +449,13 @@ function PoliticaVigente({
         <Button onClick={guardar} disabled={pendiente || !hayCambios}>Guardar política</Button>
         {mensaje && <span className="font-body text-xs text-text-secondary">{mensaje}</span>}
       </div>
-      <ConfirmacionImpacto
-        abierto={confirmando}
-        onCancelar={() => setConfirmando(false)}
-        onConfirmar={() => {
-          setConfirmando(false);
-          guardarConfirmado();
-        }}
-        accionLabel={`Publicar versión ${datos.config?.nombre_version ?? "tarifaria"}`}
-      />
+      <AdminDialog
+        open={confirmando}
+        title={`Publicar versión ${datos.config?.nombre_version ?? "tarifaria"}`}
+        description="Esta acción reemplaza la versión vigente para cálculos futuros. Los traslados con precio ya cotizado conservarán su tarifa original."
+        onOpenChange={(abierto) => { if (!abierto) setConfirmando(false); }}
+        footer={<><button type="button" onClick={() => setConfirmando(false)} className="rounded-lg border border-ink/20 px-4 py-2 font-body text-admin-boton font-semibold text-ink hover:bg-surface-secondary">Cancelar</button><button type="button" onClick={() => { setConfirmando(false); guardarConfirmado(); }} className="rounded-lg bg-signal px-4 py-2 font-body text-admin-boton font-semibold text-ink hover:bg-signal/90">Publicar versión</button></>}
+      ><span /></AdminDialog>
     </PassportCard>
   );
 }
@@ -782,15 +730,13 @@ function ParametrosNormativos({
 
       <ComparadorVersiones datos={datos} borrador={borrador} />
       <ImpactoTarifario datos={datos} borrador={borrador} />
-      <ConfirmacionImpacto
-        abierto={confirmando}
-        onCancelar={() => setConfirmando(false)}
-        onConfirmar={() => {
-          setConfirmando(false);
-          guardarConfirmado();
-        }}
-        accionLabel={`Publicar versión ${datos.config?.nombre_version ?? "tarifaria"}`}
-      />
+      <AdminDialog
+        open={confirmando}
+        title={`Publicar versión ${datos.config?.nombre_version ?? "tarifaria"}`}
+        description="Esta acción reemplaza la versión vigente para cálculos futuros. Los traslados con precio ya cotizado conservarán su tarifa original."
+        onOpenChange={(abierto) => { if (!abierto) setConfirmando(false); }}
+        footer={<><button type="button" onClick={() => setConfirmando(false)} className="rounded-lg border border-ink/20 px-4 py-2 font-body text-admin-boton font-semibold text-ink hover:bg-surface-secondary">Cancelar</button><button type="button" onClick={() => { setConfirmando(false); guardarConfirmado(); }} className="rounded-lg bg-signal px-4 py-2 font-body text-admin-boton font-semibold text-ink hover:bg-signal/90">Publicar versión</button></>}
+      ><span /></AdminDialog>
     </div>
   );
 }

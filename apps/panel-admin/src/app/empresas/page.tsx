@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Aviso, Button, PassportCard } from "@ruum/ui";
+import { Aviso, Button } from "@ruum/ui";
 import { crearEmpresaCorporativaAdmin, listarEmpresasAdmin, validarDocumentoEmpresa, type DatosEmpresasAdmin } from "@ruum/api/services";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { AdminPageHeader, AdminPanel } from "../admin-ui";
+import { AdminButton, AdminEmptyState, AdminErrorState, AdminLoadingState } from "../admin-components";
 
 type Empresa = Database["public"]["Tables"]["empresas"]["Row"];
 type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
@@ -106,46 +107,68 @@ function AccionesEmpresa({ empresa, onActualizado }: { empresa: Empresa; onActua
   );
 }
 
+type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "sin_conexion" | "demo";
+
 export default function PaginaEmpresasAdmin() {
   const [datos, setDatos] = useState<DatosEmpresasAdmin>(DATOS_DEMO);
   const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
+  const [actualizandoManual, setActualizandoManual] = useState(false);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [formulario, setFormulario] = useState(FORM_INICIAL);
   const [mensaje, setMensaje] = useState<{ tono: "info" | "danger" | "atencion"; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [estadoConexion, setEstadoConexion] = useState<EstadoConexionVista>("actualizando");
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
 
-  async function cargar() {
+  async function cargar(manual = false) {
+    if (manual) setActualizandoManual(true);
+    else setCargando(true);
+
     if (!tieneSupabaseConfigurado()) {
       setDatos(DATOS_DEMO);
       setEsDemo(true);
+      setErrorCarga(null);
+      setEstadoConexion("demo");
+      setUltimaActualizacion(new Date());
       setCargando(false);
+      setActualizandoManual(false);
       return;
     }
 
     try {
+      setErrorCarga(null);
       const cliente = crearClienteNavegador();
       setDatos(await listarEmpresasAdmin(cliente));
       setEsDemo(false);
+      setEstadoConexion("datos_en_vivo");
+      setUltimaActualizacion(new Date());
     } catch {
       if (puedeUsarDatosDemo()) {
         setDatos(DATOS_DEMO);
         setEsDemo(true);
+        setErrorCarga(null);
+        setEstadoConexion("demo");
+        setUltimaActualizacion(new Date());
       } else {
         setDatos(DATOS_DEMO);
         setEsDemo(false);
+        setErrorCarga("No pudimos cargar las empresas corporativas.");
+        setEstadoConexion("sin_conexion");
       }
     } finally {
       setCargando(false);
+      setActualizandoManual(false);
     }
   }
 
   useEffect(() => {
-  const timer = setTimeout(() => {
-    void cargar();
-  }, 0);
-  return () => clearTimeout(timer);
-}, []);
+    const timer = setTimeout(() => {
+      void cargar();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const usuariosPorEmpresa = useMemo(() => {
     const mapa = new Map<string, Usuario[]>();
@@ -213,16 +236,25 @@ export default function PaginaEmpresasAdmin() {
 
   return (
     <main className="admin-page-shell">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <AdminPageHeader
-          etiqueta="Corporativos"
-          titulo="Empresas"
-          descripcion="Alta y revisión de cuentas empresariales, titulares, condiciones de pago y datos fiscales."
-        />
-        <Button onClick={() => setMostrarFormulario((actual) => !actual)} icon="none">
-          {mostrarFormulario ? "Cerrar alta" : "Crear empresa"}
-        </Button>
-      </div>
+      <AdminPageHeader
+        etiqueta="Gestión"
+        titulo="Empresas"
+        descripcion="Alta y revisión de cuentas empresariales, titulares, condiciones de pago y datos fiscales."
+        estadoConexion={estadoConexion}
+        ultimaActualizacion={ultimaActualizacion}
+        tipoDatos="administrativos"
+        contadorResultados={datos.empresas.length}
+        accion={(
+          <div className="flex flex-wrap gap-2">
+            <AdminButton variant="secondary" loading={actualizandoManual} onClick={() => void cargar(true)}>
+              Actualizar
+            </AdminButton>
+            <AdminButton onClick={() => setMostrarFormulario((actual) => !actual)}>
+              {mostrarFormulario ? "Cerrar alta" : "Crear empresa"}
+            </AdminButton>
+          </div>
+        )}
+      />
 
       {mensaje && (
         <div className="mt-4">
@@ -230,8 +262,27 @@ export default function PaginaEmpresasAdmin() {
         </div>
       )}
 
+      {esDemo && (
+        <div className="mt-4">
+          <Aviso tono="info">Estás viendo el módulo sin datos reales de Supabase.</Aviso>
+        </div>
+      )}
+
+      {errorCarga && (
+        <div className="mt-4">
+          <AdminErrorState
+            description={errorCarga}
+            action={(
+              <AdminButton variant="secondary" onClick={() => void cargar(true)}>
+                Reintentar
+              </AdminButton>
+            )}
+          />
+        </div>
+      )}
+
       <section className="mt-6">
-        <AdminPanel>
+        <AdminPanel className="p-5">
           <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Tipos de empresa</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {TIPOS.map((tipo) => (
@@ -244,7 +295,7 @@ export default function PaginaEmpresasAdmin() {
       </section>
 
       {mostrarFormulario && (
-        <AdminPanel className="mt-6">
+        <AdminPanel className="mt-6 p-5 sm:p-6">
           <div className="grid gap-5">
             <div>
               <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Alta corporativa</p>
@@ -309,27 +360,29 @@ export default function PaginaEmpresasAdmin() {
             </div>
 
             <div className="flex flex-wrap justify-end gap-2">
-              <Button variant="quiet" onClick={() => setFormulario(FORM_INICIAL)} disabled={guardando}>Limpiar</Button>
-              <Button onClick={crearEmpresa} disabled={guardando}>{guardando ? "Guardando..." : "Guardar empresa"}</Button>
+              <AdminButton variant="quiet" onClick={() => setFormulario(FORM_INICIAL)} disabled={guardando}>Limpiar</AdminButton>
+              <AdminButton onClick={crearEmpresa} loading={guardando}>Guardar empresa</AdminButton>
             </div>
           </div>
         </AdminPanel>
       )}
 
-      {esDemo && (
-        <div className="mt-4">
-          <Aviso tono="atencion">No se pudieron cargar datos reales de Supabase; la lista queda vacía.</Aviso>
-        </div>
-      )}
-
       {cargando ? (
-        <p className="mt-8 font-body text-sm text-text-tertiary">Cargando empresas...</p>
+        <div className="mt-6">
+          <AdminLoadingState label="Cargando empresas" />
+        </div>
       ) : (
         <section className="mt-6 grid gap-4">
           {datos.empresas.length === 0 ? (
-            <PassportCard>
-              <p className="font-body text-sm text-text-secondary">No hay empresas registradas.</p>
-            </PassportCard>
+            <AdminEmptyState
+              title="Sin empresas"
+              description="No hay empresas registradas. Crea una cuenta corporativa para usarla en traslados masivos."
+              action={(
+                <AdminButton onClick={() => setMostrarFormulario(true)}>
+                  Crear empresa
+                </AdminButton>
+              )}
+            />
           ) : (
             datos.empresas.map((empresa) => {
               const usuarios = usuariosPorEmpresa.get(empresa.id) ?? [];
@@ -337,7 +390,7 @@ export default function PaginaEmpresasAdmin() {
               const titular = usuarios.find((usuario) => usuario.rol === "titular_empresa");
               const autorizado = usuarios.find((usuario) => usuario.rol === "usuario_autorizado");
               return (
-                <PassportCard key={empresa.id}>
+                <AdminPanel key={empresa.id} className="p-5 sm:p-6">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                       <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Cuenta empresarial</p>
@@ -378,8 +431,8 @@ export default function PaginaEmpresasAdmin() {
                     </div>
                   )}
 
-                  <AccionesEmpresa empresa={empresa} onActualizado={cargar} />
-                </PassportCard>
+                  <AccionesEmpresa empresa={empresa} onActualizado={() => void cargar(true)} />
+                </AdminPanel>
               );
             })
           )}

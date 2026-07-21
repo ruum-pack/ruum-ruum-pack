@@ -164,3 +164,54 @@ export function AdminPageHeader({
 export function AdminPanel({ children, className = "" }: AdminPanelProps) {
   return <section className={unir("admin-panel", className)}>{children}</section>;
 }
+
+type AdminFiltroActivoProps = {
+  etiqueta: string;
+  onLimpiar: () => void;
+  limpiarLabel?: string;
+  className?: string;
+};
+
+/** Banner cuando la vista entra o queda acotada por un filtro (p. ej. `?filtro=` del menú). */
+export function AdminFiltroActivo({
+  etiqueta,
+  onLimpiar,
+  limpiarLabel = "Ver todos",
+  className = ""
+}: AdminFiltroActivoProps) {
+  return (
+    <div
+      className={unir(
+        "mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-info/25 bg-status-info-soft px-4 py-3",
+        className
+      )}
+      role="status"
+    >
+      <p className="font-body text-sm font-semibold text-status-info">Filtro activo: {etiqueta}</p>
+      <button
+        type="button"
+        onClick={onLimpiar}
+        className="font-body text-sm font-semibold text-status-info hover:underline"
+      >
+        {limpiarLabel}
+      </button>
+    </div>
+  );
+}
+
+/** Quita `filtro` (u otras claves) de la URL sin recargar la página. */
+export function limpiarParamsFiltroUrl(claves: string[] = ["filtro", "accion"]) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  let cambio = false;
+  for (const clave of claves) {
+    if (url.searchParams.has(clave)) {
+      url.searchParams.delete(clave);
+      cambio = true;
+    }
+  }
+  if (cambio) {
+    const siguiente = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState({}, "", siguiente);
+  }
+}

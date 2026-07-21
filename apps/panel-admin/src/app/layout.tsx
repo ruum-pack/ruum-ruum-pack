@@ -26,7 +26,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ruum Ruum — Torre de Control",
+  title: "ruumruum — Torre de Control",
   description: "Seguimiento operativo, evidencia documentada y trazabilidad de cada traslado."
 };
 

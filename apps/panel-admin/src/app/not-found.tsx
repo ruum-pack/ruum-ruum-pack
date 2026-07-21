@@ -15,13 +15,13 @@ export default function PaginaNoEncontradaAdmin() {
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Link
           href="/"
-          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-signal px-5 py-2.5 font-display text-sm font-bold text-ink transition hover:bg-signal/90"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-signal bg-signal px-5 py-2.5 font-body text-admin-boton font-semibold text-ink transition-colors hover:bg-signal/90"
         >
           Ir al dashboard
         </Link>
         <Link
           href="/viajes"
-          className="inline-flex min-h-11 items-center justify-center rounded-xl border border-ink/20 bg-surface-primary px-5 py-2.5 font-body text-sm font-medium text-ink transition hover:border-ink/40"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border-default bg-surface-primary px-5 py-2.5 font-body text-admin-boton font-semibold text-ink transition-colors hover:bg-surface-secondary"
         >
           Ver traslados
         </Link>

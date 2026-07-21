@@ -629,8 +629,9 @@ export default function PaginaMapaOperativo() {
             </div>
           )}
           {!cargando && traslados.length === 0 && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
-              <p className="font-display text-lg text-text-tertiary">Sin traslados activos</p>
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 px-6">
+              <p className="font-display text-lg font-semibold text-text-tertiary">Sin traslados activos</p>
+              <p className="max-w-md text-center font-body text-sm text-text-tertiary">No hay traslados en curso con datos GPS disponibles en este momento.</p>
             </div>
           )}
           {errorMapa && (
@@ -813,7 +814,7 @@ export default function PaginaMapaOperativo() {
 
       <div className="border-t border-border-default px-6 py-2">
         <p className="font-body text-xs text-text-tertiary">
-          Rutas calculadas con Mapbox Directions. La posición del vehículo se marca como estimada hasta recibir GPS continuo con fuente y precisión confirmadas.
+          Las rutas se calculan con Mapbox Directions. El pin de origen marca el punto de recogida, no la posición actual del conductor. La ubicación del vehículo se marca como estimada hasta recibir GPS continuo con fuente y precisión confirmadas.
         </p>
       </div>
     </div>

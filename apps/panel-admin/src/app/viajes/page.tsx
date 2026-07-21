@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type RefObject, type SetStateAction } from "react";
 import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";
-import { AdminPageHeader } from "../admin-ui";
+import { AdminFiltroActivo, AdminPageHeader, limpiarParamsFiltroUrl } from "../admin-ui";
 import { AdminDataTable, type AdminDataTableColumn, type AdminDataTableSortState } from "../AdminDataTable";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
@@ -729,20 +729,14 @@ export default function PaginaViajesAdmin() {
       </div>
 
       {filtroKpi && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-info/25 bg-status-info-soft px-4 py-3">
-          <p className="font-body text-sm font-semibold text-status-info">
-            Filtro activo: {ETIQUETA_FILTRO_KPI[filtroKpi]}
-          </p>
-          <button
-            onClick={() => {
-              setFiltroKpi(null);
-              setAccionOperativa(null);
-            }}
-            className="font-body text-sm font-semibold text-status-info hover:underline"
-          >
-            Ver todos
-          </button>
-        </div>
+        <AdminFiltroActivo
+          etiqueta={ETIQUETA_FILTRO_KPI[filtroKpi]}
+          onLimpiar={() => {
+            setFiltroKpi(null);
+            setAccionOperativa(null);
+            limpiarParamsFiltroUrl();
+          }}
+        />
       )}
 
       {accionOperativa && (

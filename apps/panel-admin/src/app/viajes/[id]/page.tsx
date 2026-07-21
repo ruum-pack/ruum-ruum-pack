@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button, Field, Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
+import { AdminPageHeader } from "../../admin-ui";
+import { AdminLoadingState, AdminEmptyState, AdminErrorState } from "../../admin-components";
 import { ETIQUETA_TIPO_VEHICULO, ETIQUETA_NIVEL_CONCER } from "@ruum/shared/constants";
 import { resumenClasificacionVehiculo } from "@ruum/shared/catalogos";
 import { ETIQUETA_ESTADO_TRASLADO, TRANSICIONES } from "@ruum/shared/states";
@@ -400,31 +402,32 @@ export default function PaginaDetalleViajeAdmin() {
 
   if (cargando) {
     return (
-      <main className="mx-auto max-w-4xl px-6 py-8 sm:px-8 sm:py-10">
-        <p className="font-body text-sm text-text-tertiary">Cargando…</p>
+      <main className="admin-page-shell">
+        <AdminLoadingState label="Cargando detalle del traslado" />
       </main>
     );
   }
 
   if (!pasaporte) {
     return (
-      <main className="mx-auto max-w-4xl px-8 py-10 text-center">
-        <h1 className="font-display text-xl font-semibold">No encontramos ese traslado</h1>
-        <Link href="/viajes" className="mt-3 inline-block font-body text-sm text-status-info hover:underline">
-          ← Volver a traslados
-        </Link>
+      <main className="admin-page-shell">
+        <AdminEmptyState
+          title="No encontramos ese traslado"
+          description="El traslado que buscas no existe o no está disponible."
+          action={<Link href="/viajes" className="admin-button-primary inline-flex min-h-10 items-center justify-center rounded-lg bg-signal px-4 py-2 font-body text-admin-boton font-semibold text-ink">← Volver a traslados</Link>}
+        />
       </main>
     );
   }
 
   if (!pasaporte.traslado_id || !pasaporte.estado) {
     return (
-      <main className="mx-auto max-w-4xl px-8 py-10 text-center">
-        <h1 className="font-display text-xl font-semibold">No pudimos cargar el estado del traslado</h1>
-        <p className="mt-2 font-body text-sm text-text-secondary">El registro no incluye folio o estado operativo suficiente para administrarlo.</p>
-        <Link href="/viajes" className="mt-3 inline-block font-body text-sm text-status-info hover:underline">
-          ← Volver a traslados
-        </Link>
+      <main className="admin-page-shell">
+        <AdminErrorState
+          title="No pudimos cargar el estado del traslado"
+          description="El registro no incluye folio o estado operativo suficiente para administrarlo."
+          action={<Link href="/viajes" className="admin-button-primary inline-flex min-h-10 items-center justify-center rounded-lg bg-signal px-4 py-2 font-body text-admin-boton font-semibold text-ink">← Volver a traslados</Link>}
+        />
       </main>
     );
   }
@@ -436,10 +439,17 @@ export default function PaginaDetalleViajeAdmin() {
   );
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-8 sm:px-8 sm:py-10">
-      <Link href="/viajes" className="font-body text-sm text-text-secondary hover:text-ink">
-        ← Traslados
-      </Link>
+    <main className="admin-page-shell">
+      <AdminPageHeader
+        etiqueta="Operación"
+        titulo={`${pasaporte.vehiculo_marca} ${pasaporte.vehiculo_modelo} ${pasaporte.vehiculo_anio ?? ""}`}
+        descripcion={`Folio ${pasaporte.traslado_id.slice(0, 8).toUpperCase()}`}
+        breadcrumb={[
+          { label: "Traslados", href: "/viajes" },
+          { label: pasaporte.traslado_id.slice(0, 8).toUpperCase() }
+        ]}
+        accion={<EstadoBadge estado={pasaporte.estado} />}
+      />
 
       {esDemo && (
         <div className="mt-4">
@@ -458,16 +468,6 @@ export default function PaginaDetalleViajeAdmin() {
           <Aviso tono={aviso.tono}>{aviso.texto}</Aviso>
         </div>
       )}
-
-      <div className="mt-4 flex items-start justify-between gap-4">
-        <div>
-          <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Folio {pasaporte.traslado_id.slice(0, 8).toUpperCase()}</p>
-          <h1 className="mt-1 font-display text-2xl font-semibold">
-            {pasaporte.vehiculo_marca} {pasaporte.vehiculo_modelo} {pasaporte.vehiculo_anio}
-          </h1>
-        </div>
-        <EstadoBadge estado={pasaporte.estado} />
-      </div>
 
       <div className="mt-6">
         <EstadoStepper estado={pasaporte.estado} />
@@ -790,30 +790,43 @@ export default function PaginaDetalleViajeAdmin() {
         <PassportCard>
           <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Línea de tiempo</p>
           <h2 className="mt-1 font-display text-lg font-semibold">Registro de auditoría</h2>
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-0">
             {auditoria.length === 0 ? (
-              <p className="font-body text-sm text-text-tertiary">
-                Sin eventos registrados todavía. Las acciones críticas nuevas escribirán aquí.
-              </p>
+              <p className="font-body text-sm text-text-tertiary">Sin eventos registrados todavía.</p>
             ) : (
-              auditoria.map((evento) => (
-                <div key={evento.id} className="rounded-lg border border-ink/10 px-4 py-3">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="font-body text-sm font-semibold">{evento.evento.replaceAll("_", " ")}</p>
-                      <p className="mt-1 font-body text-xs text-text-tertiary">
-                        Actor: {evento.actor} · {evento.actor_id}
-                      </p>
+              <div className="relative">
+                <div className="absolute left-[11px] top-2 h-[calc(100%-16px)] w-0.5 bg-ink/10" aria-hidden="true" />
+                {auditoria.map((evento, indice) => {
+                  const eventoLabel = evento.evento.replaceAll("_", " ");
+                  const eventoData = JSON.stringify(evento.datos, null, 2);
+                  return (
+                    <div key={evento.id} className="relative flex gap-4 pb-5 last:pb-0">
+                      <div className={`relative mt-1.5 size-[23px] shrink-0 rounded-full border-2 ${indice === 0 ? "border-signal bg-signal" : "border-ink/20 bg-surface-primary"}`} aria-hidden="true">
+                        {indice === 0 && <span className="absolute inset-0 flex items-center justify-center text-[10px] text-ink">●</span>}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                          <p className="font-body text-sm font-semibold capitalize">{eventoLabel}</p>
+                          <p className="whitespace-nowrap font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary">
+                            {fechaAdministrativa(evento.timestamp)}
+                          </p>
+                        </div>
+                        <p className="mt-0.5 font-body text-xs text-text-tertiary">
+                          Actor: {evento.actor} · {evento.actor_id}
+                        </p>
+                        {eventoData !== "{}" && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer font-body text-xs font-semibold text-status-info hover:underline">Ver datos</summary>
+                            <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-ink/[0.04] p-3 font-mono-ruum text-admin-secundario text-text-secondary">
+                              {eventoData}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
                     </div>
-                    <p className="font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary">
-                      {fechaAdministrativa(evento.timestamp)}
-                    </p>
-                  </div>
-                  <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-ink/[0.04] p-3 font-mono-ruum text-admin-secundario text-text-secondary">
-                    {JSON.stringify(evento.datos, null, 2)}
-                  </pre>
-                </div>
-              ))
+                  );
+                })}
+              </div>
             )}
           </div>
         </PassportCard>

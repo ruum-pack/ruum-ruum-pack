@@ -12,8 +12,17 @@ import {
   type SeccionNavegacionAdmin,
   useContadoresMenu
 } from "./BarraLateral";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
+import { obtenerAdminActual } from "@ruum/api/services";
+import { normalizarRolAdmin, puedeVerRuta, type RolAdminOperativo } from "../lib/roles-admin";
 
-const PRIORITARIOS = ["/", "/viajes", "/conductores?filtro=en_revision", "/alertas-sla?filtro=vencidas"] as const;
+const PRIORITARIOS_POR_ROL: Partial<Record<RolAdminOperativo, readonly string[]>> = {
+  operador: ["/", "/viajes", "/conductores?filtro=en_revision", "/alertas-sla?filtro=vencidas"],
+  supervisor: ["/", "/viajes", "/alertas-sla?filtro=vencidas", "/incidencias?filtro=abiertas"],
+  finanzas: ["/", "/viajes", "/pagos?filtro=pendientes", "/tarifas"],
+  compliance: ["/", "/documentos?filtro=por_vencer", "/incidencias?filtro=abiertas", "/alertas-sla?filtro=vencidas"],
+  direccion: ["/", "/viajes", "/reportes", "/alertas-sla?filtro=vencidas"],
+};
 
 function esActivo(pathname: string, href: string) {
   const base = rutaBase(href);
@@ -30,9 +39,22 @@ export function NavegacionAdminMovil() {
   const pathname = usePathname();
   const [abierto, setAbierto] = useState(false);
   const [busqueda, setBusqueda] = useState("");
+  const [rolAdmin, setRolAdmin] = useState<RolAdminOperativo>("operador");
   const panelRef = useRef<HTMLDivElement | null>(null);
   const inicioToqueRef = useRef<number | null>(null);
-  const contadores = useContadoresMenu(pathname);
+  const { contadores, cargando } = useContadoresMenu(pathname);
+
+  useEffect(() => {
+    if (!tieneSupabaseConfigurado()) return;
+    async function revisarRol() {
+      try {
+        const cliente = crearClienteNavegador();
+        const admin = await obtenerAdminActual(cliente);
+        setRolAdmin(normalizarRolAdmin(admin?.rol_operativo));
+      } catch { /* Sin sesión real, usar default */ }
+    }
+    void revisarRol();
+  }, [pathname]);
 
   const destinosFiltrados = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
@@ -60,12 +82,16 @@ export function NavegacionAdminMovil() {
 
   if (pathname === "/login") return null;
 
-  const prioritarios = PRIORITARIOS.map(buscarDestino).filter((destino): destino is SeccionNavegacionAdmin => Boolean(destino));
+  const rutasPrioritarias = PRIORITARIOS_POR_ROL[rolAdmin] ?? PRIORITARIOS_POR_ROL.operador!;
+  const prioritarios = rutasPrioritarias
+    .filter((href) => puedeVerRuta(rolAdmin, href))
+    .map(buscarDestino)
+    .filter((destino): destino is SeccionNavegacionAdmin => Boolean(destino));
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-surface-primary/95 backdrop-blur supports-[backdrop-filter]:bg-surface-primary/85 lg:hidden">
       <div className="ruum-container flex min-h-16 items-center justify-between gap-3 py-2.5">
-        <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-lg" aria-label="Ir al centro de control">
+        <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-lg" aria-label="Ir a la Torre de Control">
           <LogoMarca tamano={28} color="signal" />
           <span className="font-display text-sm font-extrabold tracking-tight text-ink">
             ruum<span className="text-signal">ruum</span>
@@ -100,7 +126,7 @@ export function NavegacionAdminMovil() {
             >
               <Icono nombre={destino.icono} />
               <span className="w-full truncate text-center">{destino.etiqueta}</span>
-              {contador && <BadgeContador contador={contador} colapsada />}
+              <BadgeContador contador={contador} colapsada cargando={cargando} />
             </Link>
           );
         })}
@@ -177,7 +203,7 @@ export function NavegacionAdminMovil() {
                           >
                             <span className="flex size-8 items-center justify-center rounded-md bg-ink/[0.04]"><Icono nombre={seccion.icono} /></span>
                             <span className="min-w-0 flex-1">{seccion.etiqueta}</span>
-                            {contador && <BadgeContador contador={contador} colapsada={false} />}
+                            <BadgeContador contador={contador} colapsada={false} cargando={cargando} />
                           </Link>
                         );
                       })}

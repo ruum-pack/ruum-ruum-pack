@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import { AdminDataTable, type AdminDataTableColumn } from "../AdminDataTable";
+import { AdminFiltroActivo, AdminPageHeader, limpiarParamsFiltroUrl } from "../admin-ui";
+import { AdminButton, AdminErrorState } from "../admin-components";
 import {
   listarSolicitudesConductorAdmin,
   type SolicitudConductorBandejaAdmin
@@ -11,6 +12,7 @@ import {
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 type FiltroBandeja = "todas" | "nuevas" | "en_revision" | "documentos_rechazados" | "pendientes_correccion" | "aprobadas" | "rechazadas";
+type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "sin_conexion" | "demo";
 
 const FILTROS: { valor: FiltroBandeja; etiqueta: string }[] = [
   { valor: "todas", etiqueta: "Todas" },
@@ -57,38 +59,60 @@ function fecha(valor: string | null) {
 export default function PaginaConductoresAdmin() {
   const [solicitudes, setSolicitudes] = useState<SolicitudConductorBandejaAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [actualizandoManual, setActualizandoManual] = useState(false);
   const [esDemo, setEsDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<FiltroBandeja>("todas");
+  const [filtroDesdeUrl, setFiltroDesdeUrl] = useState(false);
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [avisoAccion, setAvisoAccion] = useState<string | null>(null);
+  const [estadoConexion, setEstadoConexion] = useState<EstadoConexionVista>("actualizando");
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
 
   useEffect(() => {
     const filtroUrl = new URLSearchParams(window.location.search).get("filtro");
-    if (FILTROS.some(({ valor }) => valor === filtroUrl)) setFiltro(filtroUrl as FiltroBandeja);
+    if (FILTROS.some(({ valor }) => valor === filtroUrl)) {
+      setFiltro(filtroUrl as FiltroBandeja);
+      setFiltroDesdeUrl(true);
+    }
   }, []);
 
-  const cargar = useCallback(async () => {
+  const cargar = useCallback(async (manual = false) => {
+    if (manual) setActualizandoManual(true);
+    else setCargando(true);
+
     if (!tieneSupabaseConfigurado()) {
       setSolicitudes([]);
       setEsDemo(true);
+      setError(null);
+      setEstadoConexion("demo");
+      setUltimaActualizacion(new Date());
       setCargando(false);
+      setActualizandoManual(false);
       return;
     }
+
     try {
       setError(null);
       setSolicitudes(await listarSolicitudesConductorAdmin(crearClienteNavegador()));
       setEsDemo(false);
+      setEstadoConexion("datos_en_vivo");
+      setUltimaActualizacion(new Date());
     } catch (err) {
       if (puedeUsarDatosDemo()) {
         setSolicitudes([]);
         setEsDemo(true);
+        setError(null);
+        setEstadoConexion("demo");
+        setUltimaActualizacion(new Date());
       } else {
         setError(err instanceof Error ? err.message : "No pudimos cargar la bandeja de revisión.");
+        setEstadoConexion("sin_conexion");
       }
     } finally {
       setCargando(false);
+      setActualizandoManual(false);
     }
   }, []);
 
@@ -107,6 +131,24 @@ export default function PaginaConductoresAdmin() {
       fila.nombre, fila.telefono, fila.curp, fila.solicitud.id
     ].some((valor) => valor?.toLowerCase().includes(termino)));
   }, [solicitudes, filtro, busqueda]);
+
+  const etiquetaFiltro = FILTROS.find((item) => item.valor === filtro)?.etiqueta ?? filtro;
+
+  function aplicarFiltro(valor: FiltroBandeja) {
+    setFiltro(valor);
+    if (valor === "todas") {
+      setFiltroDesdeUrl(false);
+      limpiarParamsFiltroUrl();
+    } else {
+      setFiltroDesdeUrl(false);
+    }
+  }
+
+  function limpiarFiltro() {
+    setFiltro("todas");
+    setFiltroDesdeUrl(false);
+    limpiarParamsFiltroUrl();
+  }
 
   const columnas = useMemo<AdminDataTableColumn<SolicitudConductorBandejaAdmin>[]>(() => [
     {
@@ -169,25 +211,59 @@ export default function PaginaConductoresAdmin() {
   ], []);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
-      <div>
-        <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Torre de Control</p>
-        <h1 className="mt-1 font-display text-2xl font-semibold">Solicitudes de conductor</h1>
-        <p className="mt-2 max-w-2xl font-body text-sm text-text-secondary">
-          Bandeja basada en expedientes, documentos vigentes, consentimientos y decisiones registradas.
-        </p>
-      </div>
+    <main className="admin-page-shell">
+      <AdminPageHeader
+        etiqueta="Gestión"
+        titulo="Solicitudes de conductor"
+        descripcion="Bandeja basada en expedientes, documentos vigentes, consentimientos y decisiones registradas."
+        estadoConexion={estadoConexion}
+        ultimaActualizacion={ultimaActualizacion}
+        tipoDatos="administrativos"
+        contadorResultados={filas.length}
+        accion={(
+          <AdminButton
+            variant="secondary"
+            loading={actualizandoManual}
+            onClick={() => void cargar(true)}
+          >
+            Actualizar
+          </AdminButton>
+        )}
+      />
 
-      {esDemo && <div className="mt-4"><Aviso tono="info">Configura Supabase para consultar solicitudes reales.</Aviso></div>}
-      {error && <div className="mt-4"><Aviso tono="danger">{error}</Aviso></div>}
-      {avisoAccion && <div className="mt-4"><Aviso tono="info">{avisoAccion}</Aviso></div>}
+      {esDemo && (
+        <div className="mt-4">
+          <Aviso tono="info">Configura Supabase para consultar solicitudes reales.</Aviso>
+        </div>
+      )}
+      {avisoAccion && (
+        <div className="mt-4">
+          <Aviso tono="info">{avisoAccion}</Aviso>
+        </div>
+      )}
+      {error && !cargando && (
+        <div className="mt-4">
+          <AdminErrorState
+            description={error}
+            action={(
+              <AdminButton variant="secondary" onClick={() => void cargar(true)}>
+                Reintentar
+              </AdminButton>
+            )}
+          />
+        </div>
+      )}
 
-      <div className="mt-6 flex flex-wrap gap-2" aria-label="Filtros de solicitudes">
+      {(filtroDesdeUrl || filtro !== "todas") && (
+        <AdminFiltroActivo etiqueta={etiquetaFiltro} onLimpiar={limpiarFiltro} />
+      )}
+
+      <div className="mt-6 flex flex-wrap gap-2" aria-label="Filtros de solicitudes" role="group">
         {FILTROS.map(({ valor, etiqueta }) => (
           <button
             key={valor}
             type="button"
-            onClick={() => setFiltro(valor)}
+            onClick={() => aplicarFiltro(valor)}
             aria-pressed={filtro === valor}
             className={`rounded-full border px-3 py-1.5 font-body text-admin-boton font-medium transition ${
               filtro === valor ? "border-status-info bg-status-info text-background-main" : "border-ink/15 bg-surface-primary text-text-secondary hover:border-status-info/40"
@@ -217,7 +293,7 @@ export default function PaginaConductoresAdmin() {
         getRowId={(fila) => fila.solicitud.id}
         loading={cargando}
         emptyMessage="No hay solicitudes para este filtro."
-        partialError={error}
+        partialError={null}
         selectedIds={seleccionados}
         onSelectionChange={setSeleccionados}
         rowActions={[{ label: "Revisar", href: (fila) => `/conductores/${fila.solicitud.id}` }]}
