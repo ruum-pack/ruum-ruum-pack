@@ -17,7 +17,7 @@ export type ConfiguracionAdmin = {
 
 export async function listarConfiguracionAdmin(cliente: Cliente): Promise<ConfiguracionAdmin[]> {
   await assertAdminPermission(cliente, "configuracion:leer");
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_listar_configuracion"
   ) => Promise<{ data: ConfiguracionAdmin[] | null; error: unknown }>;
   const { data, error } = await rpc("admin_listar_configuracion");
@@ -33,7 +33,7 @@ export async function actualizarConfiguracionAdmin(
   versionEsperada: number
 ): Promise<ConfiguracionAdmin> {
   await assertAdminPermission(cliente, "configuracion:editar");
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_actualizar_configuracion",
     args: { p_clave: string; p_valor: unknown; p_motivo: string; p_version_esperada: number }
   ) => Promise<{ data: ConfiguracionAdmin[] | null; error: unknown }>;

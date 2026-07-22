@@ -711,7 +711,7 @@ export async function crearEmpresaCorporativaAdmin(
   if (!datos.titular.nombre.trim()) throw new Error("Captura el nombre del titular.");
   if (!datos.titular.correo_facturacion.trim()) throw new Error("Captura el correo del titular.");
 
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_crea_empresa_corporativa",
     args: { p_empresa: AltaEmpresaCorporativa["empresa"]; p_titular: AltaEmpresaCorporativa["titular"] }
   ) => Promise<{ data: ResultadoAltaEmpresaCorporativa | null; error: Error | null }>;
@@ -806,7 +806,7 @@ export async function crearTrasladosMasivosAdmin(
   if (parametros.filas.length === 0) throw new Error("El archivo no contiene filas válidas para enviar.");
   if (parametros.filas.length > 500) throw new Error("El lote excede el máximo de 500 filas por carga.");
 
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_crea_traslados_masivos",
     args: {
       p_empresa_id: string;
@@ -834,7 +834,7 @@ export async function validarDocumentoUsuario(
   motivo?: string
 ) {
   await assertAdminPermission(cliente, "usuarios:validar");
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_actualiza_usuario_verificacion",
     args: { p_usuario_id: string; p_estado: EstadoVerificacion; p_motivo: string | null }
   ) => Promise<{ error: Error | null }>;
@@ -848,7 +848,7 @@ export async function validarDocumentoUsuario(
 
 export async function validarDocumentoConductor(cliente: Cliente, conductorId: string, aprobado: boolean) {
   await assertAdminPermission(cliente, "conductores:validar");
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_actualiza_conductor_documentos",
     args: { p_conductor_id: string; p_aprobado: boolean }
   ) => Promise<{ error: Error | null }>;
@@ -1213,7 +1213,7 @@ export async function cambiarEstatusAdmin(
     throw new Error(`El estado ${nuevoEstado} requiere aprobación dual. Proporciona un aprobacionId.`);
   }
 
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_cambiar_estado_traslado",
     args: { p_traslado_id: string; p_nuevo_estado: string; p_version_esperada?: number; p_aprobacion_id?: string }
   ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
@@ -1257,7 +1257,7 @@ export async function ajustarPrecioFinalAdmin(
     throw new Error("Esta operación requiere una aprobación dual válida (aprobacionId).");
   }
 
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_ajustar_precio_final",
     args: { p_aprobacion_id: string; p_traslado_id: string; p_precio_final: number }
   ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
@@ -1277,7 +1277,7 @@ export async function emitirCotizacionAdmin(cliente: Cliente, trasladoId: string
 }
 
 export async function aplicarTarifaNormativaAdmin(cliente: Cliente, trasladoId: string): Promise<number> {
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_aplica_tarifa_normativa",
     args: { p_traslado_id: string }
   ) => Promise<{ data: number | null; error: Error | null }>;
@@ -1299,7 +1299,7 @@ export async function cambiarEstadoConductorAdmin(
     throw new Error("Esta operación requiere una aprobación dual válida (aprobacionId).");
   }
 
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_suspender_conductor",
     args: { p_aprobacion_id: string; p_conductor_id: string; p_nuevo_estado: string; p_motivo?: string }
   ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
@@ -1334,7 +1334,7 @@ export async function registrarNoPresentacionConductor(
   const ocurrencias = conductor.no_presentaciones_6m + 1;
   const consecuencia = consecuenciaNoPresentacion(ocurrencias);
 
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_registrar_no_presentacion",
     args: { p_aprobacion_id: string; p_conductor_id: string; p_ocurrencias: number; p_nuevo_estado: string }
   ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
@@ -1384,7 +1384,7 @@ export async function registrarCancelacionConductor(
   const cancelaciones = conductor.cancelaciones_sin_justificacion_count + 1;
   const consecuencia = consecuenciaCancelacionConductor(cancelaciones);
 
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_registrar_cancelacion_injustificada",
     args: { p_aprobacion_id: string; p_conductor_id: string; p_cancelaciones: number; p_nuevo_estado: string }
   ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;

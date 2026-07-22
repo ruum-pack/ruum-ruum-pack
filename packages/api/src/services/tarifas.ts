@@ -213,7 +213,7 @@ export async function actualizarPoliticaTarifariaNormativa(
   payload: ActualizacionPoliticaTarifariaNormativa
 ) {
   await assertAdminPermission(cliente, "tarifas:editar");
-  const rpc = cliente.rpc as unknown as (
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: string,
     args: { p_aprobacion_id: string; p_payload: Json }
   ) => Promise<{ data: { actualizadas?: number; aprobacion_id?: string } | null; error: Error | null }>;
