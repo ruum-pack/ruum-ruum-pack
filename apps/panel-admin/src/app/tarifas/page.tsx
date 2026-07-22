@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState, useTransition, type ReactNode } from "rea
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import { AdminPageHeader } from "../admin-ui";
 import { AdminDialog } from "../admin-components";
+import type { Json } from "@ruum/shared/types";
 import {
   actualizarConfigTarifas,
   actualizarPoliticaTarifariaNormativa,
   obtenerConfiguracionTarifas,
+  solicitarAprobacionAdmin,
   simularTarifaNormativa,
   type ActualizacionPoliticaTarifariaNormativa,
   type ConfiguracionTarifas
@@ -669,12 +671,25 @@ function ParametrosNormativos({
           payload.config = { tarifa_hora: tarifaHora, tope_factor_variable: topeFactorVariable };
         }
 
-        const actualizadas = await actualizarPoliticaTarifariaNormativa(cliente, payload);
+        const aprobacionId = await solicitarAprobacionAdmin(cliente, {
+          tipo: "tarifas",
+          capacidad: "tarifas:editar",
+          recurso: "tarifas",
+          accion: "actualizar_politica_tarifaria",
+          payload: payload as Json
+        });
+
+        const actualizadas = await actualizarPoliticaTarifariaNormativa(cliente, aprobacionId, payload);
         await onGuardado();
         onDirtyChange(false);
-        setMensaje(`Versión publicada. Cambios aplicados: ${actualizadas}.`);
+        setMensaje(`Solicitud de aprobación #${aprobacionId.slice(0, 8).toUpperCase()} ejecutada. Cambios aplicados: ${actualizadas}.`);
       } catch (error) {
-        setMensaje(error instanceof Error ? error.message : "No se pudo publicar la versión.");
+        const msg = error instanceof Error ? error.message : "No se pudo publicar la versión.";
+        if (msg.includes("APROBACION_NO_APROBADA") || msg.includes("PERMISO_INSUFICIENTE")) {
+          setMensaje("Solicitud de aprobación creada. Un administrador con permisos de aprobación debe aprobarla antes de ejecutar los cambios. Dirígete a /aprobaciones.");
+        } else {
+          setMensaje(msg);
+        }
       }
     });
   }

@@ -209,14 +209,16 @@ export interface ActualizacionPoliticaTarifariaNormativa {
 
 export async function actualizarPoliticaTarifariaNormativa(
   cliente: Cliente,
+  aprobacionId: string,
   payload: ActualizacionPoliticaTarifariaNormativa
 ) {
   await assertAdminPermission(cliente, "tarifas:editar");
   const rpc = cliente.rpc as unknown as (
     fn: string,
-    args: { p_payload: Json }
-  ) => Promise<{ data: { actualizadas?: number } | null; error: Error | null }>;
+    args: { p_aprobacion_id: string; p_payload: Json }
+  ) => Promise<{ data: { actualizadas?: number; aprobacion_id?: string } | null; error: Error | null }>;
   const { data, error } = await rpc("admin_actualizar_politica_tarifaria_normativa", {
+    p_aprobacion_id: aprobacionId,
     p_payload: payload as Json
   });
   if (error) throw error;

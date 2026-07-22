@@ -39,7 +39,7 @@ export const CONFIG_ROL_ADMIN: Record<RolAdminOperativo, ConfiguracionRolAdmin> 
     descripcion: "Prioriza cierres, pagos y política tarifaria.",
     widgets: ["indicadores", "alertas_operativas"],
     indicadores: ["finalizados_hoy", "traslados_activos", "con_incidencia", "riesgo_sla"],
-    rutasPermitidas: ["/", "/viajes", "/pagos", "/tarifas", "/reportes", "/disputas", "/reclamos-seguro", "/auditoria", "/aprobaciones"]
+    rutasPermitidas: ["/", "/viajes", "/pagos", "/tarifas", "/reportes", "/disputas", "/reclamos-seguro"]
   },
   compliance: {
     etiqueta: "Compliance",

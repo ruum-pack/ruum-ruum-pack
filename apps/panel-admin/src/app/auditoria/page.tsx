@@ -39,6 +39,16 @@ export default function PaginaAuditoria() {
     }
     try {
       const cliente = crearClienteNavegador();
+      const rpc = cliente.rpc as unknown as (
+        fn: "admin_tiene_permiso",
+        args: { p_permiso: string }
+      ) => Promise<{ data: boolean | null; error: unknown }>;
+      const { data: tienePermiso } = await rpc("admin_tiene_permiso", { p_permiso: "auditoria:leer" });
+      if (!tienePermiso) {
+        setError("No tienes permiso 'auditoria:leer' para acceder al módulo de Auditoría.");
+        setCargando(false);
+        return;
+      }
       const from = cliente.from as unknown as (tabla: string) => any;
       const [{ data: eventosData }, { data: exportacionesData }] = await Promise.all([
         from("auditoria_admin_seguridad").select("id,creado_en,tipo,recurso,accion,motivo,rol,datos").order("creado_en", { ascending: false }).limit(200),

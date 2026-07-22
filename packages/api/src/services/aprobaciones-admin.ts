@@ -4,7 +4,7 @@ import { assertAdminPermission, type PermisoAdmin } from "./permisos-admin";
 import { normalizarError } from "./errores";
 
 type Cliente = SupabaseClient<Database>;
-export type TipoAprobacion = "finanzas" | "sancion";
+export type TipoAprobacion = "finanzas" | "sancion" | "tarifas";
 export type SolicitudAprobacionAdmin = {
   id: string; tipo: TipoAprobacion; capacidad_requerida: string; recurso: string; recurso_id: string | null;
   accion: string; payload: Json; estado: "pendiente"|"aprobada"|"rechazada"|"ejecutada"|"expirada";
