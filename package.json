@@ -21,7 +21,14 @@
     "test:p1": "node --test apps/panel-admin/test/p1-estabilizacion.test.mjs",
     "test:p2": "node --test apps/panel-admin/test/p2-madurez.test.mjs",
     "test:load": "k6 run tests/load/panel-admin-degradacion.js",
+    "test:load:report": "k6 run tests/load/panel-admin-degradacion.js --out json=tests/load/results/resultados.json",
     "test:a11y:real": "playwright test apps/panel-admin/tests/a11y-real",
+    "test:a11y:real:all": "playwright test apps/panel-admin/tests/a11y-real --reporter=html",
+    "test:e2e:real": "playwright test apps/panel-admin/tests/e2e --reporter=html",
+    "test:sql": "supabase test db",
+    "test:sql:rls": "supabase test db supabase/test/rt42_rls_admin_roles.test.sql",
+    "test:sql:concurrencia": "supabase test db supabase/test/rt43_concurrencia_operadores.test.sql",
+    "scan:secrets": "node scripts/scan-secrets.mjs",
     "test:ui": "vitest --ui"
   },
   "devDependencies": {

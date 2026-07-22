@@ -13,6 +13,7 @@ export * from "./tarifas";
 export * from "./ubicaciones";
 
 export * from "./permisos-admin";
+export * from "./admin-capacidades";
 
 export * from "./errores";
 export * from "./preferencias-admin";

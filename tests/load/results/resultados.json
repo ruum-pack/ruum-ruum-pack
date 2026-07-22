@@ -1,0 +1,35 @@
+[
+  {
+    "type": "info",
+    "data": {
+      "message": "Ejecutar 'pnpm test:load' con k6 instalado para generar resultados reales. Este archivo es un placeholder del sprint 4."
+    }
+  },
+  {
+    "type": "Point",
+    "data": {
+      "time": "2026-07-22T03:00:00Z",
+      "value": 0,
+      "tags": {
+        "scenario": "baseline",
+        "group": "",
+        "name": "http_req_duration",
+        "method": "GET",
+        "url": "http://127.0.0.1:3002/api/observabilidad"
+      }
+    }
+  },
+  {
+    "type": "Point",
+    "data": {
+      "time": "2026-07-22T03:00:00Z",
+      "value": 0,
+      "tags": {
+        "scenario": "baseline",
+        "name": "http_req_failed",
+        "method": "GET",
+        "url": "http://127.0.0.1:3002/api/observabilidad"
+      }
+    }
+  }
+]

@@ -1,0 +1,32 @@
+=== REPORTE DE PRUEBA DE CARGA ===
+Fecha: 2026-07-22
+Prueba: panel-admin-degradacion.js
+Endpoint: /api/observabilidad
+
+Escenario: baseline (ramping-arrival-rate)
+  - Inicio: 5 solicitudes/s
+  - Rampa 1: 25 solicitudes/s (1 minuto)
+  - Rampa 2: 50 solicitudes/s (2 minutos)
+  - Rampa 3: 5 solicitudes/s (1 minuto)
+  - VUs: 20 preasignados, máximo 100
+
+Umbrales:
+  - http_req_failed < 1%
+  - p(95) < 800ms
+  - p(99) < 1500ms
+  - checks > 99%
+
+Comando: pnpm test:load
+
+Instrucciones:
+  1. Asegurar que el servidor panel-admin esté corriendo
+  2. Ejecutar: pnpm test:load
+  3. k6 generará resultados en tiempo real
+  4. Los resultados JSON se guardan en tests/load/results/resultados.json
+  5. Verificar que todos los umbrales se cumplan antes del despliegue
+
+Resultados esperados (baseline):
+  - Tasa de error < 1%
+  - p95 < 800ms
+  - p99 < 1500ms
+  - Sin timeouts

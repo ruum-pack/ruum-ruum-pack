@@ -3179,7 +3179,15 @@ export type Database = {
         Returns: number
       }
       admin_actualizar_politica_tarifaria_normativa: {
-        Args: { p_payload: Json }
+        Args: { p_aprobacion_id: string; p_payload: Json }
+        Returns: Json
+      }
+      admin_ajustar_precio_final: {
+        Args: {
+          p_aprobacion_id: string
+          p_precio_final: number
+          p_traslado_id: string
+        }
         Returns: Json
       }
       admin_aplica_tarifa_normativa: {
@@ -3190,12 +3198,30 @@ export type Database = {
         Args: { p_conductor_id: string; p_traslado_id: string }
         Returns: Database["public"]["Enums"]["estado_traslado"]
       }
+      admin_cambiar_estado_traslado: {
+        Args: {
+          p_aprobacion_id?: string
+          p_nuevo_estado: string
+          p_traslado_id: string
+          p_version_esperada?: number
+        }
+        Returns: Json
+      }
       admin_completar_exportacion: {
         Args: {
           p_error?: string
           p_filas: number
           p_hash: string
           p_id: string
+        }
+        Returns: undefined
+      }
+      admin_conceder_capacidad: {
+        Args: {
+          p_admin_id: string
+          p_capacidad: string
+          p_concedida: boolean
+          p_motivo: string
         }
         Returns: undefined
       }
@@ -3221,10 +3247,34 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_ejecutar_aprobacion: {
+        Args: { p_aprobacion_id: string }
+        Returns: undefined
+      }
+      admin_ejecutar_pago: {
+        Args: {
+          p_aprobacion_id: string
+          p_monto?: number
+          p_traslado_id: string
+        }
+        Returns: Json
+      }
       admin_emite_cotizacion: {
         Args: { p_precio: number; p_traslado_id: string }
         Returns: undefined
       }
+      admin_listar_capacidades: {
+        Args: { p_admin_id?: string }
+        Returns: {
+          capacidad: string
+          concedida: boolean
+          creada_en: string
+          motivo: string
+          origen: string
+          otorgada_por: string
+        }[]
+      }
+      admin_listar_capacidades_catalogo: { Args: never; Returns: string[] }
       admin_marca_traslado_fallido: {
         Args: {
           p_cargo_aplica_cliente: boolean
@@ -3236,9 +3286,27 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_registrar_cancelacion_injustificada: {
+        Args: {
+          p_aprobacion_id: string
+          p_cancelaciones: number
+          p_conductor_id: string
+          p_nuevo_estado: string
+        }
+        Returns: Json
+      }
       admin_registrar_exportacion: {
         Args: { p_filtros: Json; p_formato: string; p_recurso: string }
         Returns: string
+      }
+      admin_registrar_no_presentacion: {
+        Args: {
+          p_aprobacion_id: string
+          p_conductor_id: string
+          p_nuevo_estado: string
+          p_ocurrencias: number
+        }
+        Returns: Json
       }
       admin_resuelve_disputa: {
         Args: {
@@ -3248,6 +3316,15 @@ export type Database = {
           p_resolucion: Database["public"]["Enums"]["resolucion_disputa"]
         }
         Returns: undefined
+      }
+      admin_sancionar_conductor: {
+        Args: {
+          p_aprobacion_id: string
+          p_conductor_id: string
+          p_dias_suspension?: number
+          p_motivo: string
+        }
+        Returns: Json
       }
       admin_solicitar_aprobacion: {
         Args: {
@@ -3264,7 +3341,27 @@ export type Database = {
         Args: { p_traslado_id: string }
         Returns: number
       }
+      admin_suspender_conductor: {
+        Args: {
+          p_aprobacion_id: string
+          p_conductor_id: string
+          p_motivo?: string
+          p_nuevo_estado: string
+        }
+        Returns: Json
+      }
       admin_tiene_permiso: { Args: { p_permiso: string }; Returns: boolean }
+      admin_validar_aprobacion: {
+        Args: {
+          p_accion: string
+          p_aprobacion_id: string
+          p_capacidad_requerida: string
+          p_payload?: Json
+          p_recurso: string
+          p_recurso_id: string
+        }
+        Returns: Json
+      }
       aprobar_expediente_conductor_admin: {
         Args: { p_conductor_id: string }
         Returns: undefined

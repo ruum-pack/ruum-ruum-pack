@@ -1,4 +1,4 @@
-import type { ClaveIndicadorDashboard } from "@ruum/api/services";
+import type { ClaveIndicadorDashboard, PermisoAdmin } from "@ruum/api/services";
 import type { Database } from "@ruum/shared/types";
 
 export type RolAdminOperativo = Database["public"]["Enums"]["rol_admin_operativo"];
@@ -53,8 +53,33 @@ export const CONFIG_ROL_ADMIN: Record<RolAdminOperativo, ConfiguracionRolAdmin> 
     descripcion: "Prioriza salud general, riesgos y resultados del día.",
     widgets: ["indicadores", "emergencias", "alertas_operativas"],
     indicadores: ["traslados_activos", "finalizados_hoy", "riesgo_sla", "con_incidencia", "sin_asignacion"],
-    rutasPermitidas: ["/", "/viajes", "/mapa", "/alertas-sla", "/reportes", "/pagos", "/tarifas", "/incidencias", "/disputas", "/reclamos-seguro", "/auditoria", "/aprobaciones", "/masivos", "/conductores", "/usuarios", "/vehiculos", "/empresas", "/documentos", "/configuracion", "/metricas-registro"]
+    rutasPermitidas: ["/", "/viajes", "/mapa", "/alertas-sla", "/reportes", "/pagos", "/tarifas", "/incidencias", "/disputas", "/reclamos-seguro", "/auditoria", "/aprobaciones", "/masivos", "/conductores", "/usuarios", "/vehiculos", "/empresas", "/documentos", "/configuracion", "/capacidades", "/metricas-registro"]
   }
+};
+
+// Mapa ruta → capacidad requerida (middleware capability check)
+// Las rutas se evalúan de más específica a menos específica.
+export const RUTA_A_CAPACIDAD: Record<string, PermisoAdmin> = {
+  "/auditoria": "auditoria:leer",
+  "/aprobaciones": "aprobaciones:aprobar",
+  "/capacidades": "capacidades:administrar",
+  "/configuracion": "capacidades:administrar",
+  "/conductores": "conductores:leer",
+  "/disputas": "disputas:leer",
+  "/documentos": "conductores:validar",
+  "/empresas": "empresas:leer",
+  "/incidencias": "incidencias:leer",
+  "/masivos": "masivos:gestionar",
+  "/metricas-registro": "conductores:leer",
+  "/pagos": "pagos:leer",
+  "/reclamos-seguro": "reclamos_seguro:leer",
+  "/reportes": "exportaciones:crear",
+  "/tarifas": "tarifas:leer",
+  "/usuarios": "usuarios:leer",
+  "/vehiculos": "conductores:leer",
+  "/viajes": "viajes:leer",
+  "/mapa": "viajes:leer",
+  "/alertas-sla": "viajes:leer",
 };
 
 export function normalizarRolAdmin(valor: unknown): RolAdminOperativo {
@@ -77,4 +102,14 @@ export function puedeVerRuta(rol: RolAdminOperativo, href: string) {
   return CONFIG_ROL_ADMIN[rol].rutasPermitidas.some(
     (permitida) => permitida === "/" ? ruta === "/" : ruta === permitida || ruta.startsWith(`${permitida}/`)
   );
+}
+
+export function obtenerCapacidadParaRuta(href: string): PermisoAdmin | null {
+  const ruta = rutaBaseAdmin(href);
+  if (ruta === "/" || ruta === "/sin-permiso") return null;
+  const ordenada = Object.keys(RUTA_A_CAPACIDAD).sort((a, b) => b.split("/").length - a.split("/").length);
+  for (const prefijo of ordenada) {
+    if (ruta === prefijo || ruta.startsWith(`${prefijo}/`)) return RUTA_A_CAPACIDAD[prefijo];
+  }
+  return null;
 }

@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { crearClienteServidor } from "@ruum/api/supabase";
-import { normalizarRolAdmin, puedeVerRuta } from "./lib/roles-admin";
+import { normalizarRolAdmin, puedeVerRuta, obtenerCapacidadParaRuta } from "./lib/roles-admin";
 
 /**
  * Auditoría H-2 — Guard de autorización del panel-admin.
@@ -116,11 +116,7 @@ export async function middleware(request: NextRequest) {
       pathname,
       metodo: request.method
     });
-    const registrarDenegacion = supabase.rpc as unknown as (
-      fn: "registrar_acceso_admin_denegado",
-      args: { p_ruta: string; p_metodo: string; p_motivo: string }
-    ) => Promise<unknown>;
-    await registrarDenegacion("registrar_acceso_admin_denegado", {
+    await supabase.rpc("registrar_acceso_admin_denegado", {
       p_ruta: pathname,
       p_metodo: request.method,
       p_motivo: "ruta_no_permitida"
@@ -128,6 +124,29 @@ export async function middleware(request: NextRequest) {
     const destino = new URL("/sin-permiso", request.url);
     destino.searchParams.set("ruta", pathname);
     return NextResponse.redirect(destino);
+  }
+
+  // Verificación de capacidad efectiva (incluye overrides de admin_capacidades)
+  const permisoRequerido = obtenerCapacidadParaRuta(pathname);
+  if (permisoRequerido) {
+    const { data: tienePermiso } = await supabase.rpc("admin_tiene_permiso", { p_permiso: permisoRequerido });
+    if (tienePermiso !== true) {
+      console.warn("[security] capacidad insuficiente para ruta", {
+        adminId: admin.id,
+        rol,
+        pathname,
+        permisoRequerido,
+        metodo: request.method
+      });
+      await supabase.rpc("registrar_acceso_admin_denegado", {
+        p_ruta: pathname,
+        p_metodo: request.method,
+        p_motivo: `capacidad_insuficiente:${permisoRequerido}`
+      });
+      const destino = new URL("/sin-permiso", request.url);
+      destino.searchParams.set("ruta", pathname);
+      return NextResponse.redirect(destino);
+    }
   }
 
   return response;

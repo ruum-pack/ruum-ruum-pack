@@ -1191,11 +1191,14 @@ export async function asignarConductorAdmin(
  * evidencia o pago real detrás (mismo criterio que ya aplicaban
  * evidencia.ts::confirmarEvidenciaCompleta y el webhook de Stripe).
  */
+export const ESTADOS_CRITICOS_TRASLADO: readonly EstadoTraslado[] = ["pago_completado"];
+
 export async function cambiarEstatusAdmin(
   cliente: Cliente,
   trasladoId: string,
   estadoActual: EstadoTraslado,
-  nuevoEstado: EstadoTraslado
+  nuevoEstado: EstadoTraslado,
+  aprobacionId?: string
 ) {
   await assertAdminPermission(cliente, "viajes:gestionar");
   const adminId = await obtenerAdminIdParaAuditoria(cliente);
@@ -1203,17 +1206,24 @@ export async function cambiarEstatusAdmin(
   if (!transicionValida(estadoActual, nuevoEstado)) {
     throw new Error(`Transición no permitida: ${estadoActual} -> ${nuevoEstado}`);
   }
-
   await validarPrerequisitosEstatusAdmin(cliente, trasladoId, nuevoEstado);
 
-  const { error } = await cliente.from("traslados").update({ estado: nuevoEstado }).eq("id", trasladoId).eq("estado", estadoActual);
-  if (error) throw error;
+  const esCritico = (ESTADOS_CRITICOS_TRASLADO as readonly string[]).includes(nuevoEstado);
+  if (esCritico && !aprobacionId) {
+    throw new Error(`El estado ${nuevoEstado} requiere aprobación dual. Proporciona un aprobacionId.`);
+  }
 
-  await registrarEvento(cliente, "modificacion_traslado_activo", "admin", adminId, {
-    traslado_id: trasladoId,
-    estado_anterior: estadoActual,
-    estado_nuevo: nuevoEstado
+  const rpc = cliente.rpc as unknown as (
+    fn: "admin_cambiar_estado_traslado",
+    args: { p_traslado_id: string; p_nuevo_estado: string; p_version_esperada?: number; p_aprobacion_id?: string }
+  ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
+  const { data, error } = await rpc("admin_cambiar_estado_traslado", {
+    p_traslado_id: trasladoId,
+    p_nuevo_estado: nuevoEstado,
+    p_aprobacion_id: aprobacionId
   });
+  if (error) throw error;
+  if (!data?.ejecutado) throw new Error("No se pudo cambiar el estado del traslado.");
 }
 
 /** PRD §17.4, bloque 7 — notas internas, visibles solo para el equipo de operación. */
@@ -1233,31 +1243,31 @@ export async function agregarNotaInterna(cliente: Cliente, trasladoId: string, a
   if (error) throw error;
 }
 
-/**
- * PRD §4.6 — "El precio puede ser dinámico." Ni el PRD ni el resto del
- * código definían quién fija `precio_final` ni cuándo — la columna existía
- * desde la migración inicial (0005) y panel-admin ya la mostraba, pero
- * siempre en "—" porque nada la escribía. Decisión de UX consistente con
- * PRD §3 ("el conductor no puede modificar precio"): es un ajuste de Admin,
- * sin atarlo a un estado específico (puede afinarse en cualquier momento
- * antes del cierre, ej. al revisar evidencia o resolver una incidencia con
- * costo). `crear-payment-intent` ya usa `precio_final` en cuanto existe
- * (en vez de `precio_cotizado`) para el cobro al cierre.
- */
-export async function ajustarPrecioFinalAdmin(cliente: Cliente, trasladoId: string, precioFinal: number) {
+export async function ajustarPrecioFinalAdmin(
+  cliente: Cliente,
+  trasladoId: string,
+  precioFinal: number,
+  aprobacionId?: string
+) {
   await assertAdminPermission(cliente, "tarifas:editar");
   if (!Number.isFinite(precioFinal) || precioFinal < 0) {
     throw new Error("La tarifa final debe ser un número válido mayor o igual a 0.");
   }
+  if (!aprobacionId) {
+    throw new Error("Esta operación requiere una aprobación dual válida (aprobacionId).");
+  }
 
-  const adminId = await obtenerAdminIdParaAuditoria(cliente);
-  const { error } = await cliente.from("traslados").update({ precio_final: precioFinal }).eq("id", trasladoId);
-  if (error) throw error;
-
-  await registrarEvento(cliente, "modificacion_traslado_activo", "admin", adminId, {
-    traslado_id: trasladoId,
-    precio_final: precioFinal
+  const rpc = cliente.rpc as unknown as (
+    fn: "admin_ajustar_precio_final",
+    args: { p_aprobacion_id: string; p_traslado_id: string; p_precio_final: number }
+  ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
+  const { data, error } = await rpc("admin_ajustar_precio_final", {
+    p_aprobacion_id: aprobacionId,
+    p_traslado_id: trasladoId,
+    p_precio_final: precioFinal
   });
+  if (error) throw error;
+  if (!data?.ejecutado) throw new Error("No se pudo ajustar el precio final.");
 }
 
 export async function emitirCotizacionAdmin(cliente: Cliente, trasladoId: string, precio: number) {
@@ -1277,57 +1287,79 @@ export async function aplicarTarifaNormativaAdmin(cliente: Cliente, trasladoId: 
   return data;
 }
 
-/** PRD §17.6 — "suspender/reactivar" conductor. */
-export async function cambiarEstadoConductorAdmin(cliente: Cliente, conductorId: string, nuevoEstado: EstadoConductor) {
-  await assertAdminPermission(cliente, "conductores:validar");
-  const adminId = await obtenerAdminIdParaAuditoria(cliente);
-  const { error } = await cliente.from("conductores").update({ estado: nuevoEstado }).eq("id", conductorId);
-  if (error) throw error;
+export async function cambiarEstadoConductorAdmin(
+  cliente: Cliente,
+  conductorId: string,
+  nuevoEstado: EstadoConductor,
+  aprobacionId?: string,
+  motivo?: string
+) {
+  await assertAdminPermission(cliente, "conductores:sancionar");
+  if (!aprobacionId) {
+    throw new Error("Esta operación requiere una aprobación dual válida (aprobacionId).");
+  }
 
-  await registrarEvento(cliente, "suspension_conductor", "admin", adminId, {
-    conductor_id: conductorId,
-    estado_nuevo: nuevoEstado
+  const rpc = cliente.rpc as unknown as (
+    fn: "admin_suspender_conductor",
+    args: { p_aprobacion_id: string; p_conductor_id: string; p_nuevo_estado: string; p_motivo?: string }
+  ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
+  const { data, error } = await rpc("admin_suspender_conductor", {
+    p_aprobacion_id: aprobacionId,
+    p_conductor_id: conductorId,
+    p_nuevo_estado: nuevoEstado,
+    p_motivo: motivo
   });
+  if (error) throw error;
+  if (!data?.ejecutado) throw new Error("No se pudo suspender al conductor.");
 }
 
-export async function registrarNoPresentacionConductor(cliente: Cliente, conductorId: string) {
-  await assertAdminPermission(cliente, "conductores:validar");
-  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+export async function registrarNoPresentacionConductor(
+  cliente: Cliente,
+  conductorId: string,
+  aprobacionId?: string
+) {
+  await assertAdminPermission(cliente, "conductores:sancionar");
+  if (!aprobacionId) {
+    throw new Error("Esta operación requiere una aprobación dual válida (aprobacionId).");
+  }
+
   const { data: conductor, error: errorConductor } = await cliente
     .from("conductores")
     .select("id, no_presentaciones_6m")
     .eq("id", conductorId)
     .maybeSingle();
-
   if (errorConductor) throw errorConductor;
   if (!conductor) throw new Error("No se encontró el conductor.");
 
   const ocurrencias = conductor.no_presentaciones_6m + 1;
   const consecuencia = consecuenciaNoPresentacion(ocurrencias);
-  const { error } = await cliente
-    .from("conductores")
-    .update({ no_presentaciones_6m: ocurrencias, estado: consecuencia.nuevoEstado })
-    .eq("id", conductorId);
 
-  if (error) throw error;
-
-  await registrarEvento(cliente, "suspension_conductor", "admin", adminId, {
-    conductor_id: conductorId,
-    tipo: "no_presentacion",
-    ocurrencias_6m: ocurrencias,
-    estado_nuevo: consecuencia.nuevoEstado,
-    dias_suspension: consecuencia.diasSuspension ?? null,
-    mensaje: consecuencia.mensaje
+  const rpc = cliente.rpc as unknown as (
+    fn: "admin_registrar_no_presentacion",
+    args: { p_aprobacion_id: string; p_conductor_id: string; p_ocurrencias: number; p_nuevo_estado: string }
+  ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
+  const { data, error } = await rpc("admin_registrar_no_presentacion", {
+    p_aprobacion_id: aprobacionId,
+    p_conductor_id: conductorId,
+    p_ocurrencias: ocurrencias,
+    p_nuevo_estado: consecuencia.nuevoEstado
   });
+  if (error) throw error;
+  if (!data?.ejecutado) throw new Error("No se pudo registrar la no presentación.");
 
   return consecuencia;
 }
 
-export async function registrarCancelacionConductor(cliente: Cliente, conductorId: string, conJustificacion: boolean) {
-  await assertAdminPermission(cliente, "conductores:validar");
-  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+export async function registrarCancelacionConductor(
+  cliente: Cliente,
+  conductorId: string,
+  conJustificacion: boolean,
+  aprobacionId?: string
+) {
+  await assertAdminPermission(cliente, "conductores:sancionar");
 
   if (conJustificacion) {
+    const adminId = await obtenerAdminIdParaAuditoria(cliente);
     await registrarEvento(cliente, "suspension_conductor", "admin", adminId, {
       conductor_id: conductorId,
       tipo: "cancelacion_conductor",
@@ -1337,33 +1369,33 @@ export async function registrarCancelacionConductor(cliente: Cliente, conductorI
     return null;
   }
 
+  if (!aprobacionId) {
+    throw new Error("Esta operación requiere una aprobación dual válida (aprobacionId).");
+  }
+
   const { data: conductor, error: errorConductor } = await cliente
     .from("conductores")
     .select("id, cancelaciones_sin_justificacion_count")
     .eq("id", conductorId)
     .maybeSingle();
-
   if (errorConductor) throw errorConductor;
   if (!conductor) throw new Error("No se encontró el conductor.");
 
   const cancelaciones = conductor.cancelaciones_sin_justificacion_count + 1;
   const consecuencia = consecuenciaCancelacionConductor(cancelaciones);
-  const { error } = await cliente
-    .from("conductores")
-    .update({ cancelaciones_sin_justificacion_count: cancelaciones, estado: consecuencia.nuevoEstado })
-    .eq("id", conductorId);
 
-  if (error) throw error;
-
-  await registrarEvento(cliente, "suspension_conductor", "admin", adminId, {
-    conductor_id: conductorId,
-    tipo: "cancelacion_conductor",
-    con_justificacion: false,
-    cancelaciones_sin_justificacion: cancelaciones,
-    estado_nuevo: consecuencia.nuevoEstado,
-    dias_suspension: consecuencia.diasSuspension ?? null,
-    mensaje: consecuencia.mensaje
+  const rpc = cliente.rpc as unknown as (
+    fn: "admin_registrar_cancelacion_injustificada",
+    args: { p_aprobacion_id: string; p_conductor_id: string; p_cancelaciones: number; p_nuevo_estado: string }
+  ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
+  const { data, error } = await rpc("admin_registrar_cancelacion_injustificada", {
+    p_aprobacion_id: aprobacionId,
+    p_conductor_id: conductorId,
+    p_cancelaciones: cancelaciones,
+    p_nuevo_estado: consecuencia.nuevoEstado
   });
+  if (error) throw error;
+  if (!data?.ejecutado) throw new Error("No se pudo registrar la cancelación.");
 
   return consecuencia;
 }

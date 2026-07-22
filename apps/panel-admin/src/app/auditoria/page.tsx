@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@ruum/ui";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { AdminPageHeader } from "../admin-ui";
 import { AdminLoadingState, AdminEmptyState, AdminErrorState, AdminBadge, AdminInput, AdminSelect } from "../admin-components";
 
+type DatosAuditoria = Record<string, unknown>;
+
 type Evento = {
   id: string; creado_en: string; tipo: string; recurso: string;
-  accion: string | null; motivo: string | null; rol: string | null; datos: unknown;
+  accion: string | null; motivo: string | null; rol: string | null; datos: DatosAuditoria;
 };
 
 type Exportacion = {
@@ -16,10 +17,31 @@ type Exportacion = {
   filas: number; estado: string; hash_sha256: string | null;
 };
 
+type Paginacion = {
+  page: number; pageSize: number; total: number; totalPages: number;
+};
+
 const TIPOS_EVENTO = ["todas", "mutacion", "consulta", "denegado", "aprobacion", "exportacion"] as const;
+const OPCIONES_POR_PAGINA = [10, 20, 50, 100];
 
 function fecha(fechaIso: string) {
   return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(fechaIso));
+}
+
+function sanitizarDatosVisibles(datos: DatosAuditoria): DatosAuditoria {
+  const CAMPOS_SENSIBLES = new Set([
+    "auth_user_id", "token", "secret", "password", "cvv", "card_number",
+    "numero_tarjeta", "cvv2", "pin", "refresh_token", "session_id"
+  ]);
+  const limpios: DatosAuditoria = {};
+  for (const [clave, valor] of Object.entries(datos)) {
+    if (CAMPOS_SENSIBLES.has(clave)) {
+      limpios[clave] = "[REDACTED]";
+    } else {
+      limpios[clave] = valor;
+    }
+  }
+  return limpios;
 }
 
 export default function PaginaAuditoria() {
@@ -29,66 +51,60 @@ export default function PaginaAuditoria() {
   const [error, setError] = useState<string | null>(null);
   const [filtroTipo, setFiltroTipo] = useState<string>("todas");
   const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [paginas, setPaginas] = useState<Paginacion>({ page: 1, pageSize: 20, total: 0, totalPages: 0 });
+  const [tamanoPagina, setTamanoPagina] = useState(20);
 
-  async function cargar() {
+  const cargar = useCallback(async (page: number, pageSize: number, tipo: string, q: string) => {
     setError(null);
-    if (!tieneSupabaseConfigurado()) {
-      setError("Supabase no está configurado en este entorno.");
-      setCargando(false);
-      return;
-    }
+    setCargando(true);
     try {
-      const cliente = crearClienteNavegador();
-      const rpc = cliente.rpc as unknown as (
-        fn: "admin_tiene_permiso",
-        args: { p_permiso: string }
-      ) => Promise<{ data: boolean | null; error: unknown }>;
-      const { data: tienePermiso } = await rpc("admin_tiene_permiso", { p_permiso: "auditoria:leer" });
-      if (!tienePermiso) {
-        setError("No tienes permiso 'auditoria:leer' para acceder al módulo de Auditoría.");
-        setCargando(false);
-        return;
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+        tipo,
+        busqueda: q
+      });
+      const res = await fetch(`/api/auditoria?${params}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.mensaje ?? `Error ${res.status} al cargar auditoría.`);
       }
-      const from = cliente.from as unknown as (tabla: string) => any;
-      const [{ data: eventosData }, { data: exportacionesData }] = await Promise.all([
-        from("auditoria_admin_seguridad").select("id,creado_en,tipo,recurso,accion,motivo,rol,datos").order("creado_en", { ascending: false }).limit(200),
-        from("exportaciones_admin").select("id,creada_en,recurso,formato,filas,estado,hash_sha256").order("creada_en", { ascending: false }).limit(50)
-      ]);
-      setEventos((eventosData ?? []) as Evento[]);
-      setExportaciones((exportacionesData ?? []) as Exportacion[]);
+      const datos = await res.json();
+      setEventos(datos.eventos ?? []);
+      setExportaciones(datos.exportaciones ?? []);
+      setPaginas(datos.paginacion ?? { page, pageSize, total: 0, totalPages: 0 });
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudieron cargar los datos de auditoría.");
     } finally {
       setCargando(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => void cargar(), 0);
+    const timer = setTimeout(() => void cargar(pagina, tamanoPagina, filtroTipo, busqueda), 0);
     return () => clearTimeout(timer);
-  }, []);
+  }, [pagina, tamanoPagina, filtroTipo, busqueda, cargar]);
+
+  function cambiarFiltroTipo(valor: string) {
+    setFiltroTipo(valor);
+    setPagina(1);
+  }
+
+  function cambiarBusqueda(valor: string) {
+    setBusqueda(valor);
+    setPagina(1);
+  }
+
+  function cambiarTamanoPagina(valor: number) {
+    setTamanoPagina(valor);
+    setPagina(1);
+  }
 
   const denegados = eventos.filter((e) => e.tipo.includes("denegado")).length;
   const mutaciones = eventos.filter((e) => e.tipo === "mutacion").length;
 
-  const eventosFiltrados = useMemo(() => {
-    let filtrados = eventos;
-    if (filtroTipo !== "todas") {
-      filtrados = filtrados.filter((e) => e.tipo === filtroTipo || (filtroTipo === "denegado" && e.tipo.includes("denegado")));
-    }
-    if (busqueda.trim()) {
-      const q = busqueda.toLowerCase();
-      filtrados = filtrados.filter((e) =>
-        e.recurso.toLowerCase().includes(q) ||
-        (e.accion ?? "").toLowerCase().includes(q) ||
-        (e.rol ?? "").toLowerCase().includes(q) ||
-        (e.motivo ?? "").toLowerCase().includes(q)
-      );
-    }
-    return filtrados;
-  }, [eventos, filtroTipo, busqueda]);
-
-  if (cargando) {
+  if (cargando && eventos.length === 0) {
     return (
       <main className="admin-page-shell">
         <AdminLoadingState label="Cargando registro de auditoría" />
@@ -99,7 +115,7 @@ export default function PaginaAuditoria() {
   if (error && eventos.length === 0) {
     return (
       <main className="admin-page-shell">
-        <AdminErrorState title={error} action={<Button onClick={cargar}>Reintentar</Button>} />
+        <AdminErrorState title={error} action={<Button onClick={() => cargar(pagina, tamanoPagina, filtroTipo, busqueda)}>Reintentar</Button>} />
       </main>
     );
   }
@@ -111,13 +127,13 @@ export default function PaginaAuditoria() {
         titulo="Auditoría"
         descripcion="Accesos denegados, mutaciones, aprobaciones y exportaciones trazables."
         estadoConexion={error ? "sin_conexion" : "datos_en_vivo"}
-        contadorResultados={eventos.length}
+        contadorResultados={paginas.total}
       />
 
       <section className="mt-6 grid gap-3 sm:grid-cols-3" aria-label="Resumen de auditoría">
         <div className="rounded-card border border-border-default bg-surface-primary p-4">
-          <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Eventos recientes</p>
-          <p className="mt-1 font-display text-2xl font-semibold text-ink">{eventos.length}</p>
+          <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Eventos totales</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-ink">{paginas.total}</p>
         </div>
         <div className="rounded-card border border-border-default bg-surface-primary p-4">
           <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Denegaciones</p>
@@ -136,12 +152,17 @@ export default function PaginaAuditoria() {
               label="Buscar"
               placeholder="Recurso, acción, rol…"
               value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
+              onChange={(e) => cambiarBusqueda(e.target.value)}
             />
           </div>
           <div className="sm:w-44">
-            <AdminSelect label="Tipo" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>
+            <AdminSelect label="Tipo" value={filtroTipo} onChange={(e) => cambiarFiltroTipo(e.target.value)}>
               {TIPOS_EVENTO.map((t) => <option key={t} value={t}>{t === "todas" ? "Todos" : t}</option>)}
+            </AdminSelect>
+          </div>
+          <div className="sm:w-32">
+            <AdminSelect label="Por página" value={String(tamanoPagina)} onChange={(e) => cambiarTamanoPagina(Number(e.target.value))}>
+              {OPCIONES_POR_PAGINA.map((n) => <option key={n} value={n}>{n}</option>)}
             </AdminSelect>
           </div>
         </div>
@@ -149,44 +170,67 @@ export default function PaginaAuditoria() {
 
       <section className="mt-6">
         <h2 className="font-display text-lg font-semibold text-ink">Eventos</h2>
-        {eventosFiltrados.length === 0 ? (
+        {eventos.length === 0 ? (
           <div className="mt-3">
             <AdminEmptyState title="Sin eventos" description="No hay eventos que coincidan con los filtros seleccionados." />
           </div>
         ) : (
-          <div className="mt-3 overflow-x-auto rounded-card border border-border-default">
-            <table className="w-full min-w-[700px] border-separate border-spacing-0 font-body text-sm">
-              <caption className="sr-only">Últimos eventos administrativos</caption>
-              <thead>
-                <tr>
-                  {["Fecha", "Tipo", "Recurso", "Acción", "Rol / motivo", "Datos"].map((col) => (
-                    <th key={col} className="border-b border-ink/10 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-tertiary">{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {eventosFiltrados.map((e) => (
-                  <tr key={e.id} className="border-b border-ink/10 last:border-b-0 hover:bg-ink/[0.02]">
-                    <td className="whitespace-nowrap px-4 py-3 text-text-secondary">{fecha(e.creado_en)}</td>
-                    <td className="px-4 py-3">
-                      <AdminBadge tone={e.tipo.includes("denegado") ? "danger" : e.tipo === "mutacion" ? "warning" : "neutral"}>{e.tipo}</AdminBadge>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-ink">{e.recurso}</td>
-                    <td className="px-4 py-3 text-text-secondary">{e.accion ?? "—"}</td>
-                    <td className="px-4 py-3 text-text-secondary">{e.rol ?? "—"}{e.motivo ? ` · ${e.motivo}` : ""}</td>
-                    <td className="px-4 py-3">
-                      {e.datos && JSON.stringify(e.datos) !== "{}" ? (
-                        <details>
-                          <summary className="cursor-pointer font-body text-xs font-semibold text-status-info hover:underline">Ver</summary>
-                          <pre className="mt-1 max-h-24 overflow-auto rounded bg-ink/[0.04] p-2 font-mono-ruum text-admin-secundario text-text-secondary">{JSON.stringify(e.datos, null, 2)}</pre>
-                        </details>
-                      ) : "—"}
-                    </td>
+          <>
+            <div className="mt-3 overflow-x-auto rounded-card border border-border-default">
+              <table className="w-full min-w-[700px] border-separate border-spacing-0 font-body text-sm">
+                <caption className="sr-only">Eventos administrativos</caption>
+                <thead>
+                  <tr>
+                    {["Fecha", "Tipo", "Recurso", "Acción", "Rol / motivo", "Datos"].map((col) => (
+                      <th key={col} className="border-b border-ink/10 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-tertiary">{col}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {eventos.map((e) => (
+                    <tr key={e.id} className="border-b border-ink/10 last:border-b-0 hover:bg-ink/[0.02]">
+                      <td className="whitespace-nowrap px-4 py-3 text-text-secondary">{fecha(e.creado_en)}</td>
+                      <td className="px-4 py-3">
+                        <AdminBadge tone={e.tipo.includes("denegado") ? "danger" : e.tipo === "mutacion" ? "warning" : "neutral"}>{e.tipo}</AdminBadge>
+                      </td>
+                      <td className="px-4 py-3 font-medium text-ink">{e.recurso}</td>
+                      <td className="px-4 py-3 text-text-secondary">{e.accion ?? "—"}</td>
+                      <td className="px-4 py-3 text-text-secondary">{e.rol ?? "—"}{e.motivo ? ` · ${e.motivo}` : ""}</td>
+                      <td className="px-4 py-3">
+                        {e.datos && JSON.stringify(e.datos) !== "{}" ? (
+                          <details>
+                            <summary className="cursor-pointer font-body text-xs font-semibold text-status-info hover:underline">Ver</summary>
+                            <pre className="mt-1 max-h-24 overflow-auto rounded bg-ink/[0.04] p-2 font-mono-ruum text-admin-secundario text-text-secondary">{JSON.stringify(sanitizarDatosVisibles(e.datos), null, 2)}</pre>
+                          </details>
+                        ) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="font-body text-sm text-text-tertiary">
+                Página {paginas.page} de {paginas.totalPages} ({paginas.total} eventos)
+              </p>
+              <div className="flex gap-2">
+                <button
+                  className="inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-xl px-5 py-3 font-display text-sm font-bold leading-5 transition-[background-color,border-color,box-shadow,transform] duration-150 border border-border-strong bg-surface text-text-primary shadow-sm hover:-translate-y-0.5 hover:border-route-action hover:bg-surface-elevated hover:shadow-md active:translate-y-0 active:bg-surface-elevated focus-visible:outline-route-action disabled:cursor-not-allowed disabled:transform-none disabled:border-border disabled:bg-surface-elevated disabled:text-disabled disabled:shadow-none"
+                  disabled={pagina <= 1}
+                  onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                >
+                  Anterior
+                </button>
+                <button
+                  className="inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-xl px-5 py-3 font-display text-sm font-bold leading-5 transition-[background-color,border-color,box-shadow,transform] duration-150 border border-border-strong bg-surface text-text-primary shadow-sm hover:-translate-y-0.5 hover:border-route-action hover:bg-surface-elevated hover:shadow-md active:translate-y-0 active:bg-surface-elevated focus-visible:outline-route-action disabled:cursor-not-allowed disabled:transform-none disabled:border-border disabled:bg-surface-elevated disabled:text-disabled disabled:shadow-none"
+                  disabled={pagina >= paginas.totalPages}
+                  onClick={() => setPagina((p) => p + 1)}
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </section>
 
