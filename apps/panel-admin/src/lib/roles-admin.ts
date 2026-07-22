@@ -32,21 +32,21 @@ export const CONFIG_ROL_ADMIN: Record<RolAdminOperativo, ConfiguracionRolAdmin> 
     descripcion: "Prioriza excepciones, escalamiento y control de calidad operativo.",
     widgets: ["emergencias", "alertas_operativas", "indicadores", "acciones_frecuentes"],
     indicadores: ["riesgo_sla", "sin_asignacion", "con_incidencia", "traslados_activos", "finalizados_hoy"],
-    rutasPermitidas: ["/", "/viajes", "/masivos", "/mapa", "/alertas-sla", "/conductores", "/metricas-registro", "/incidencias", "/disputas", "/documentos", "/reportes", "/auditoria", "/aprobaciones"]
+    rutasPermitidas: ["/", "/viajes", "/masivos", "/mapa", "/alertas-sla", "/conductores", "/metricas-registro", "/incidencias", "/disputas", "/documentos", "/reportes", "/auditoria", "/aprobaciones", "/configuracion"]
   },
   finanzas: {
     etiqueta: "Finanzas",
     descripcion: "Prioriza cierres, pagos y política tarifaria.",
     widgets: ["indicadores", "alertas_operativas"],
     indicadores: ["finalizados_hoy", "traslados_activos", "con_incidencia", "riesgo_sla"],
-    rutasPermitidas: ["/", "/viajes", "/pagos", "/tarifas", "/reportes", "/disputas", "/reclamos-seguro"]
+    rutasPermitidas: ["/", "/viajes", "/pagos", "/tarifas", "/reportes", "/disputas", "/reclamos-seguro", "/configuracion"]
   },
   compliance: {
     etiqueta: "Compliance",
     descripcion: "Prioriza documentación, incidencias, SLA y evidencia auditables.",
     widgets: ["emergencias", "alertas_operativas", "indicadores"],
     indicadores: ["riesgo_sla", "con_incidencia", "sin_asignacion", "traslados_activos"],
-    rutasPermitidas: ["/", "/alertas-sla", "/documentos", "/incidencias", "/usuarios", "/conductores", "/empresas", "/reclamos-seguro", "/reportes", "/auditoria", "/aprobaciones"]
+    rutasPermitidas: ["/", "/alertas-sla", "/documentos", "/incidencias", "/usuarios", "/conductores", "/empresas", "/reclamos-seguro", "/reportes", "/auditoria", "/aprobaciones", "/configuracion"]
   },
   direccion: {
     etiqueta: "Dirección",
@@ -63,7 +63,7 @@ export const RUTA_A_CAPACIDAD: Record<string, PermisoAdmin> = {
   "/auditoria": "auditoria:leer",
   "/aprobaciones": "aprobaciones:aprobar",
   "/capacidades": "capacidades:administrar",
-  "/configuracion": "capacidades:administrar",
+  "/configuracion": "configuracion:leer",
   "/conductores": "conductores:leer",
   "/disputas": "disputas:leer",
   "/documentos": "conductores:validar",

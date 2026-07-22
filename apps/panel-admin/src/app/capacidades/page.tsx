@@ -68,12 +68,8 @@ export default function PaginaCapacidades() {
     if (adminSeleccionado) cargarCapacidades(adminSeleccionado);
   }, [adminSeleccionado]);
 
-  function adminActualId(): string | null {
-    return null;
-  }
-
   function ejecutarConcesion() {
-    if (!adminSeleccionado || !formCapacidad || !formMotivo.trim()) return;
+    if (!adminSeleccionado || !formCapacidad || formMotivo.trim().length < 10) return;
     setMensaje(null);
     startTransition(async () => {
       try {
@@ -83,7 +79,7 @@ export default function PaginaCapacidades() {
         setShowForm(false);
         setFormCapacidad("");
         setFormMotivo("");
-        cargarCapacidades(adminSeleccionado);
+        await cargarCapacidades(adminSeleccionado);
       } catch (e) {
         setMensaje(e instanceof Error ? e.message : "No se pudo procesar la operación.");
       }
@@ -203,7 +199,7 @@ export default function PaginaCapacidades() {
         footer={
           <>
             <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-ink/20 px-4 py-2 font-body text-admin-boton font-semibold text-ink hover:bg-surface-secondary">Cancelar</button>
-            <button type="button" onClick={ejecutarConcesion} disabled={pendiente || !formCapacidad || !formMotivo.trim()} className={`rounded-lg px-4 py-2 font-body text-admin-boton font-semibold ${formConceder ? "bg-signal text-ink hover:bg-signal/90" : "border border-status-error/30 bg-status-error-soft text-status-error hover:bg-status-error hover:text-background-main"}`}>
+            <button type="button" onClick={ejecutarConcesion} disabled={pendiente || !formCapacidad || formMotivo.trim().length < 10} className={`rounded-lg px-4 py-2 font-body text-admin-boton font-semibold ${formConceder ? "bg-signal text-ink hover:bg-signal/90" : "border border-status-error/30 bg-status-error-soft text-status-error hover:bg-status-error hover:text-background-main"}`}>
               {pendiente ? "Procesando..." : formConceder ? "Confirmar concesión" : "Confirmar revocación"}
             </button>
           </>

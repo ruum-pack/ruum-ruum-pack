@@ -18,3 +18,5 @@ export * from "./admin-capacidades";
 export * from "./errores";
 export * from "./preferencias-admin";
 export * from "./aprobaciones-admin";
+
+export * from "./configuracion-admin";
