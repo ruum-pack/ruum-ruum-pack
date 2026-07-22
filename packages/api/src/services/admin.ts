@@ -4,7 +4,7 @@ import { transicionValida } from "@ruum/shared/states";
 import { evidenciaCompleta } from "@ruum/shared/rules";
 import { consecuenciaCancelacionConductor, consecuenciaNoPresentacion, clasificarTrasladoFallido } from "@ruum/shared/rules";
 import type { FotoEvidencia } from "@ruum/shared/types";
-import { registrarEvento } from "./auditoria";
+import { registrarEvento, generarTraceId } from "./auditoria";
 import { assertAdminPermission } from "./permisos-admin";
 
 type Cliente = SupabaseClient<Database>;
@@ -549,7 +549,49 @@ export async function obtenerIndicadoresAccionablesDashboard(cliente: Cliente): 
   ];
 }
 
-/** PRD §17.4 — lista de viajes con filtro por estatus ("todos" = sin filtro). */
+export interface PaginacionViajes {
+  data: PasaporteRow[];
+  paginacion: {
+    pagina: number;
+    tamano: number;
+    total: number;
+    total_paginas: number;
+  };
+}
+
+/**
+ * Reintento idempotente para operaciones del admin.
+ * Envuelve una operacion con clave de idempotencia, evitando
+ * duplicados si la operacion ya se completo previamente.
+ */
+async function withIdempotentRetry<T>(
+  operacion: () => Promise<T>
+): Promise<T> {
+  const maxIntentos = 3;
+  let ultimoError: Error | null = null;
+
+  for (let intento = 1; intento <= maxIntentos; intento++) {
+    try {
+      return await operacion();
+    } catch (err) {
+      ultimoError = err instanceof Error ? err : new Error(String(err));
+      const msg = ultimoError.message;
+
+      if (msg.includes("CONCURRENCY_CONFLICT") || msg.includes("PERMISO_INSUFICIENTE") || msg.includes("TRANSICION_INVALIDA")) {
+        throw ultimoError;
+      }
+
+      if (intento < maxIntentos) {
+        const espera = Math.min(200 * Math.pow(2, intento - 1), 2000);
+        await new Promise((resolve) => setTimeout(resolve, espera));
+      }
+    }
+  }
+
+  throw ultimoError ?? new Error("Reintentos agotados sin resultado.");
+}
+
+/** PRD §17.4 — lista de viajes con paginación de servidor. */
 export async function listarViajesAdmin(cliente: Cliente, filtro: EstadoTraslado | "todos"): Promise<PasaporteRow[]> {
   await assertAdminPermission(cliente, "viajes:leer");
   let query = cliente.from("pasaporte_digital").select("*").order("creado_en", { ascending: false });
@@ -559,6 +601,40 @@ export async function listarViajesAdmin(cliente: Cliente, filtro: EstadoTraslado
   const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
+}
+
+export async function listarViajesAdminPaginados(
+  cliente: Cliente,
+  pagina: number,
+  tamano: number,
+  filtroEstado: EstadoTraslado | "todos",
+  busqueda?: string,
+  ordenColumna?: string,
+  ordenDireccion?: string
+): Promise<PaginacionViajes> {
+  await assertAdminPermission(cliente, "viajes:leer");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "listar_viajes_admin_paginados",
+    args: {
+      p_pagina: number;
+      p_tamano: number;
+      p_filtro_estado: string;
+      p_busqueda?: string;
+      p_orden_columna?: string;
+      p_orden_direccion?: string;
+    }
+  ) => Promise<{ data: PaginacionViajes | null; error: unknown }>;
+  const { data, error } = await rpc("listar_viajes_admin_paginados", {
+    p_pagina: pagina,
+    p_tamano: tamano,
+    p_filtro_estado: filtroEstado,
+    p_busqueda: busqueda?.trim() || undefined,
+    p_orden_columna: ordenColumna,
+    p_orden_direccion: ordenDireccion
+  });
+  if (error) throw error;
+  if (!data) return { data: [], paginacion: { pagina: 1, tamano: 25, total: 0, total_paginas: 0 } };
+  return data;
 }
 
 /** PRD §17.6 — lista de conductores CONCER. */
@@ -1198,32 +1274,108 @@ export async function cambiarEstatusAdmin(
   trasladoId: string,
   estadoActual: EstadoTraslado,
   nuevoEstado: EstadoTraslado,
-  aprobacionId?: string
+  aprobacionId?: string,
+  versionEsperada?: number
 ) {
   await assertAdminPermission(cliente, "viajes:gestionar");
-  const adminId = await obtenerAdminIdParaAuditoria(cliente);
 
   if (!transicionValida(estadoActual, nuevoEstado)) {
     throw new Error(`Transición no permitida: ${estadoActual} -> ${nuevoEstado}`);
   }
-  await validarPrerequisitosEstatusAdmin(cliente, trasladoId, nuevoEstado);
 
-  const esCritico = (ESTADOS_CRITICOS_TRASLADO as readonly string[]).includes(nuevoEstado);
-  if (esCritico && !aprobacionId) {
-    throw new Error(`El estado ${nuevoEstado} requiere aprobación dual. Proporciona un aprobacionId.`);
-  }
-
-  const rpc = cliente.rpc.bind(cliente) as unknown as (
-    fn: "admin_cambiar_estado_traslado",
-    args: { p_traslado_id: string; p_nuevo_estado: string; p_version_esperada?: number; p_aprobacion_id?: string }
-  ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
-  const { data, error } = await rpc("admin_cambiar_estado_traslado", {
-    p_traslado_id: trasladoId,
-    p_nuevo_estado: nuevoEstado,
-    p_aprobacion_id: aprobacionId
+  return withIdempotentRetry(async () => {
+    const rpc = cliente.rpc.bind(cliente) as unknown as (
+      fn: "admin_cambiar_estado_traslado",
+      args: { p_traslado_id: string; p_nuevo_estado: string; p_version_esperada?: number; p_aprobacion_id?: string }
+    ) => Promise<{ data: { ejecutado?: boolean; version?: number } | null; error: unknown }>;
+    const { data, error } = await rpc("admin_cambiar_estado_traslado", {
+      p_traslado_id: trasladoId,
+      p_nuevo_estado: nuevoEstado,
+      p_version_esperada: versionEsperada,
+      p_aprobacion_id: aprobacionId
+    });
+    if (error) throw error;
+    if (!data?.ejecutado) throw new Error("No se pudo cambiar el estado del traslado.");
   });
-  if (error) throw error;
-  if (!data?.ejecutado) throw new Error("No se pudo cambiar el estado del traslado.");
+}
+
+export interface ResultadoAccionMasiva {
+  traslado_id: string;
+  estado: "aplicado" | "omitido" | "bloqueado";
+  detalle: string;
+}
+
+export interface ResultadoAccionMasivaGlobal {
+  trace_id: string;
+  accion: string;
+  total: number;
+  aplicados: number;
+  omitidos: number;
+  bloqueados: number;
+  resultados: ResultadoAccionMasiva[];
+}
+
+export async function ejecutarAccionMasiva(
+  cliente: Cliente,
+  accion: string,
+  trasladoIds: string[],
+  payload: Record<string, unknown> = {}
+): Promise<ResultadoAccionMasivaGlobal> {
+  await assertAdminPermission(cliente, "viajes:gestionar");
+  return withIdempotentRetry(async () => {
+    const rpc = cliente.rpc.bind(cliente) as unknown as (
+      fn: "admin_accion_masiva",
+      args: { p_accion: string; p_traslado_ids: string[]; p_payload: Record<string, unknown> }
+    ) => Promise<{ data: ResultadoAccionMasivaGlobal | null; error: unknown }>;
+    const { data, error } = await rpc("admin_accion_masiva", {
+      p_accion: accion,
+      p_traslado_ids: trasladoIds,
+      p_payload: payload
+    });
+    if (error) throw error;
+    if (!data) throw new Error("No se pudo ejecutar la acción masiva.");
+    return data;
+  });
+}
+
+export async function exportarEvidenciaFirmada(
+  cliente: Cliente,
+  trasladoIds: string[]
+): Promise<{ evidencia: Array<{ traslado_id: string; fotos: Array<{ id: string; tipo: string; angulo: string; storage_path: string; capturada_en: string }> }>; total: number }> {
+  await assertAdminPermission(cliente, "viajes:gestionar");
+  return withIdempotentRetry(async () => {
+    const rpc = cliente.rpc.bind(cliente) as unknown as (
+      fn: "admin_exportar_evidencia_firmada",
+      args: { p_traslado_ids: string[] }
+    ) => Promise<{ data: { evidencia: Array<{ traslado_id: string; fotos: Array<{ id: string; tipo: string; angulo: string; storage_path: string; capturada_en: string }> }>; total: number } | null; error: unknown }>;
+    const { data, error } = await rpc("admin_exportar_evidencia_firmada", { p_traslado_ids: trasladoIds });
+    if (error) throw error;
+    if (!data) return { evidencia: [], total: 0 };
+    return data;
+  });
+}
+
+export async function mutacionConAuditoria(
+  cliente: Cliente,
+  accion: string,
+  trasladoId: string,
+  payload: Record<string, unknown> = {}
+): Promise<{ ejecutado: boolean; traslado_id: string }> {
+  await assertAdminPermission(cliente, "viajes:gestionar");
+  return withIdempotentRetry(async () => {
+    const rpc = cliente.rpc.bind(cliente) as unknown as (
+      fn: "admin_mutacion_con_auditoria",
+      args: { p_accion: string; p_traslado_id: string; p_payload: Record<string, unknown> }
+    ) => Promise<{ data: { ejecutado: boolean; traslado_id: string } | null; error: unknown }>;
+    const { data, error } = await rpc("admin_mutacion_con_auditoria", {
+      p_accion: accion,
+      p_traslado_id: trasladoId,
+      p_payload: payload
+    });
+    if (error) throw error;
+    if (!data) throw new Error("No se pudo ejecutar la mutación.");
+    return data;
+  });
 }
 
 /** PRD §17.4, bloque 7 — notas internas, visibles solo para el equipo de operación. */

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button, Field, Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
@@ -9,7 +9,7 @@ import { ETIQUETA_TIPO_VEHICULO, ETIQUETA_NIVEL_CONCER } from "@ruum/shared/cons
 import { resumenClasificacionVehiculo } from "@ruum/shared/catalogos";
 import { ETIQUETA_ESTADO_TRASLADO, TRANSICIONES } from "@ruum/shared/states";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 import {
   obtenerPasaporteDigital,
   listarConductoresAdmin,
@@ -28,7 +28,6 @@ import {
   type TrazabilidadMasivaTraslado
 } from "@ruum/api/services";
 import { obtenerRutaMapbox, tieneMapboxConfigurado } from "../../../lib/mapbox-rutas";
-import { VIAJES_DEMO, CONDUCTORES_DEMO, ADMIN_DEMO } from "../../../lib/datos-demo";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
@@ -53,6 +52,7 @@ export default function PaginaDetalleViajeAdmin() {
   const { id } = useParams<{ id: string }>();
 
   const [pasaporte, setPasaporte] = useState<PasaporteRow | null>(null);
+  const [version, setVersion] = useState<number | undefined>(undefined);
   const [conductores, setConductores] = useState<ConductorRow[]>([]);
   const [notas, setNotas] = useState<NotaRow[]>([]);
   const [auditoria, setAuditoria] = useState<AuditoriaRow[]>([]);
@@ -67,8 +67,7 @@ export default function PaginaDetalleViajeAdmin() {
   const [notaNueva, setNotaNueva] = useState("");
   const [procesando, setProcesando] = useState<"conductor" | "estado" | "precio" | "nota" | "fallido" | "sugerencia" | null>(null);
   const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
-  const [adminId, setAdminId] = useState(ADMIN_DEMO.id);
-  /* Ítem 17 — foco al aviso tras cada acción para operadores de teclado */
+  const [adminId, setAdminId] = useState<string | null>(null);
   const avisoRef = useRef<HTMLDivElement>(null);
 
   function mostrarAviso(aviso: { tono: "info" | "danger"; texto: string }) {
@@ -76,61 +75,79 @@ export default function PaginaDetalleViajeAdmin() {
     setTimeout(() => avisoRef.current?.focus(), 50);
   }
 
-  useEffect(() => {
-    async function cargar() {
-      const demo = VIAJES_DEMO.find((v) => v.traslado_id === id);
-      if (!tieneSupabaseConfigurado() || demo) {
-        setPasaporte(demo ?? null);
-        setConductores(CONDUCTORES_DEMO);
-        setNotas([]);
-        setAuditoria([]);
-        setTrazabilidadMasiva(null);
-        setPrecioFinalInput(demo?.precio_final != null ? String(demo.precio_final) : "");
-        setEsDemo(true);
-        setCargando(false);
-        return;
-      }
-
-      try {
-        const cliente = crearClienteNavegador();
-        const [p, conds, notasReales, auditoriaReal, adminReal, trazabilidadReal] = await Promise.all([
-          obtenerPasaporteDigital(cliente, id),
-          listarConductoresAdmin(cliente),
-          obtenerNotasInternas(cliente, id),
-          obtenerAuditoriaTraslado(cliente, id),
-          obtenerAdminActual(cliente),
-          obtenerTrazabilidadMasivaTraslado(cliente, id)
-        ]);
-        setPasaporte(p);
-        setConductores(conds.filter((c) => c.estado === "activo" || c.estado === "modo_prueba_supervisada"));
-        setNotas(notasReales);
-        setAuditoria(auditoriaReal);
-        setTrazabilidadMasiva(trazabilidadReal);
-        setPrecioFinalInput(p?.precio_final != null ? String(p.precio_final) : "");
-        if (adminReal) setAdminId(adminReal.id);
-        setEsDemo(false);
-      } catch {
-        if (puedeUsarDatosDemo() || demo) {
-          setPasaporte(demo ?? null);
-          setConductores(CONDUCTORES_DEMO);
-          setAuditoria([]);
-          setTrazabilidadMasiva(null);
-          setPrecioFinalInput("");
-          setEsDemo(true);
-        } else {
-          setPasaporte(null);
-          setConductores([]);
-          setAuditoria([]);
-          setTrazabilidadMasiva(null);
-          setPrecioFinalInput("");
-          setEsDemo(false);
-        }
-      } finally {
-        setCargando(false);
-      }
+  const recargar = useCallback(async () => {
+    if (!tieneSupabaseConfigurado()) {
+      setPasaporte(null);
+      setConductores([]);
+      setNotas([]);
+      setAuditoria([]);
+      setTrazabilidadMasiva(null);
+      setPrecioFinalInput("");
+      setVersion(undefined);
+      setEsDemo(false);
+      setCargando(false);
+      return;
     }
-    cargar();
+
+    try {
+      const cliente = crearClienteNavegador();
+      const [p, v, conds, notasReales, auditoriaReal, adminReal, trazabilidadReal] = await Promise.all([
+        obtenerPasaporteDigital(cliente, id),
+        cliente.from("traslados").select("version").eq("id", id).maybeSingle() as Promise<{ data: { version: number } | null; error: unknown }>,
+        listarConductoresAdmin(cliente),
+        obtenerNotasInternas(cliente, id),
+        obtenerAuditoriaTraslado(cliente, id),
+        obtenerAdminActual(cliente),
+        obtenerTrazabilidadMasivaTraslado(cliente, id)
+      ]);
+      setPasaporte(p);
+      setVersion(v?.data?.version ?? undefined);
+      setConductores(conds.filter((c) => c.estado === "activo" || c.estado === "modo_prueba_supervisada"));
+      setNotas(notasReales);
+      setAuditoria(auditoriaReal);
+      setTrazabilidadMasiva(trazabilidadReal);
+      setPrecioFinalInput(p?.precio_final != null ? String(p.precio_final) : "");
+      if (adminReal) setAdminId(adminReal.id);
+      setEsDemo(false);
+    } catch {
+      setPasaporte(null);
+      setConductores([]);
+      setAuditoria([]);
+      setTrazabilidadMasiva(null);
+      setPrecioFinalInput("");
+      setVersion(undefined);
+      setEsDemo(false);
+    } finally {
+      setCargando(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    void recargar();
+
+    const cliente = tieneSupabaseConfigurado() ? crearClienteNavegador() : null;
+    const canal = cliente
+      ? cliente
+          .channel(`detalle-traslado-${id}`)
+          .on("postgres_changes", { event: "*", schema: "public", table: "traslados", filter: `id=eq.${id}` }, () => {
+            void recargar();
+          })
+          .subscribe()
+      : null;
+
+    function manejarVisibilidad() {
+      if (document.visibilityState === "visible") void recargar();
+    }
+    document.addEventListener("visibilitychange", manejarVisibilidad);
+
+    const intervalo = setInterval(() => void recargar(), 60000);
+
+    return () => {
+      if (canal) cliente?.removeChannel(canal);
+      document.removeEventListener("visibilitychange", manejarVisibilidad);
+      clearInterval(intervalo);
+    };
+  }, [recargar, id]);
 
   async function asignar() {
     if (!pasaporte || !conductorSeleccionado) return;
@@ -142,13 +159,6 @@ export default function PaginaDetalleViajeAdmin() {
     const estadoActual = pasaporte.estado;
     setProcesando("conductor");
     setAviso(null);
-
-    if (esDemo) {
-      await new Promise((r) => setTimeout(r, 400));
-      mostrarAviso({ tono: "info", texto: "Conductor asignado en modo demo." });
-      setProcesando(null);
-      return;
-    }
 
     try {
       const cliente = crearClienteNavegador();
@@ -174,22 +184,25 @@ export default function PaginaDetalleViajeAdmin() {
     setProcesando("estado");
     setAviso(null);
 
-    if (esDemo) {
-      await new Promise((r) => setTimeout(r, 400));
-      mostrarAviso({ tono: "info", texto: "Estatus cambiado en modo demo." });
-      setProcesando(null);
-      return;
-    }
-
     try {
       const cliente = crearClienteNavegador();
-      await cambiarEstatusAdmin(cliente, trasladoId, estadoActual, estadoSeleccionado);
+      await cambiarEstatusAdmin(cliente, trasladoId, estadoActual, estadoSeleccionado, undefined, version);
       mostrarAviso({ tono: "info", texto: "Estatus actualizado." });
-      setPasaporte(await obtenerPasaporteDigital(cliente, trasladoId));
+      const [nuevoP, nuevoV] = await Promise.all([
+        obtenerPasaporteDigital(cliente, trasladoId),
+        cliente.from("traslados").select("version").eq("id", trasladoId).maybeSingle() as Promise<{ data: { version: number } | null; error: unknown }>
+      ]);
+      setPasaporte(nuevoP);
+      setVersion(nuevoV?.data?.version ?? undefined);
       setAuditoria(await obtenerAuditoriaTraslado(cliente, trasladoId));
       setEstadoSeleccionado("");
     } catch (err) {
-      mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos cambiar el estatus." });
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("CONCURRENCY_CONFLICT")) {
+        mostrarAviso({ tono: "danger", texto: "El registro fue modificado por otro operador. Recarga la página e inténtalo de nuevo." });
+      } else {
+        mostrarAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos cambiar el estatus." });
+      }
     } finally {
       setProcesando(null);
     }
@@ -204,10 +217,6 @@ export default function PaginaDetalleViajeAdmin() {
     const trasladoId = pasaporte.traslado_id;
     if (!categoriaTarifaInput || !gamaInput || !condicionInput) {
       mostrarAviso({ tono: "danger", texto: "Selecciona categoría, gama y condición." });
-      return;
-    }
-    if (esDemo) {
-      mostrarAviso({ tono: "info", texto: "La clasificación de vehículo no está disponible en modo demo." });
       return;
     }
     setProcesando("sugerencia");
@@ -235,10 +244,6 @@ export default function PaginaDetalleViajeAdmin() {
       return null;
     }
     const trasladoId = pasaporte.traslado_id;
-    if (esDemo) {
-      mostrarAviso({ tono: "info", texto: "El cálculo normativo de tarifa no está disponible en modo demo." });
-      return null;
-    }
     const coordenadasCompletas =
       pasaporte.origen_lat != null && pasaporte.origen_lng != null &&
       pasaporte.destino_lat != null && pasaporte.destino_lng != null;

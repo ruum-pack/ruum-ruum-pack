@@ -7,8 +7,8 @@ import { AdminDataTable, type AdminDataTableColumn, type AdminDataTableSortState
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
-import { listarCargasTrasladosMasivosAdmin, listarViajesAdmin, obtenerAdminActual, registrarEvento, obtenerPreferenciaAdmin, guardarPreferenciaAdmin, type TrazabilidadMasivaTraslado } from "@ruum/api/services";
-import { VIAJES_DEMO } from "../../lib/datos-demo";
+import { listarCargasTrasladosMasivosAdmin, listarViajesAdminPaginados, obtenerAdminActual, registrarEvento, obtenerPreferenciaAdmin, guardarPreferenciaAdmin, ejecutarAccionMasiva, exportarEvidenciaFirmada, resolverUrlEvidencia, type TrazabilidadMasivaTraslado } from "@ruum/api/services";
+
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -219,6 +219,11 @@ export default function PaginaViajesAdmin() {
   const [vistasGuardadas, setVistasGuardadas] = useState<VistaGuardada[]>([]);
   const [nombreVista, setNombreVista] = useState("");
   const [alcanceVista, setAlcanceVista] = useState<AlcanceVistaGuardada>("privada");
+  const [pagina, setPagina] = useState(1);
+  const [tamanoPagina, setTamanoPagina] = useState(25);
+  const [totalResultados, setTotalResultados] = useState(0);
+  const [totalPaginas, setTotalPaginas] = useState(0);
+  const [procesandoMasiva, setProcesandoMasiva] = useState(false);
   const filtrosInicializados = useRef(false);
   const botonCerrarDetalleRef = useRef<HTMLButtonElement | null>(null);
   const focoAntesDetalleRef = useRef<HTMLElement | null>(null);
@@ -319,18 +324,17 @@ export default function PaginaViajesAdmin() {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [detalleAbiertoId]);
 
-  const cargar = useCallback(async (esRefresco = false) => {
+  const cargar = useCallback(async (esRefresco = false, paginaRequerida?: number) => {
       if (!esRefresco) setCargando(true);
       if (esRefresco) {
         setActualizandoManual(true);
         setEstadoConexion(ultimaRespuestaExitosa ? "reconectando" : "actualizando");
       }
       if (!tieneSupabaseConfigurado()) {
-        const lista = filtroActual === "todos" ? VIAJES_DEMO : VIAJES_DEMO.filter((v) => v.estado === filtroActual);
-        setTraslados(lista);
-        setEsDemo(true);
-        setEstadoConexion("demo");
-        setUltimaRespuestaExitosa(new Date());
+        setTraslados([]);
+        setEsDemo(false);
+        setEstadoConexion("sin_conexion");
+        setUltimaRespuestaExitosa(null);
         setSeccionesDesactualizadas([]);
         setCargando(false);
         setActualizandoManual(false);
@@ -339,8 +343,9 @@ export default function PaginaViajesAdmin() {
 
       try {
         const cliente = crearClienteNavegador();
-        const [lista, masivos] = await Promise.all([
-          listarViajesAdmin(cliente, filtroActual),
+        const pag = paginaRequerida ?? pagina;
+        const [resultado, masivos] = await Promise.all([
+          listarViajesAdminPaginados(cliente, pag, tamanoPagina, filtroActual, busqueda || undefined, "creado_en", "desc"),
           listarCargasTrasladosMasivosAdmin(cliente)
         ]);
         const cargasPorId = new Map(masivos.cargas.map((carga) => [carga.id, carga]));
@@ -352,36 +357,42 @@ export default function PaginaViajesAdmin() {
               return carga && fila.traslado_id ? [[fila.traslado_id, { carga, fila } as TrazabilidadMasivaTraslado]] : [];
             })
         ));
-        setTraslados(lista);
+        setTraslados(resultado.data);
+        setTotalResultados(resultado.paginacion.total);
+        setTotalPaginas(resultado.paginacion.total_paginas);
+        setPagina(resultado.paginacion.pagina);
         setEsDemo(false);
         setEstadoConexion("datos_en_vivo");
         setUltimaRespuestaExitosa(new Date());
         setSeccionesDesactualizadas([]);
       } catch {
-        const teniaRespuesta = Boolean(ultimaRespuestaExitosa);
-        if (puedeUsarDatosDemo()) {
-          const lista = filtroActual === "todos" ? VIAJES_DEMO : VIAJES_DEMO.filter((v) => v.estado === filtroActual);
-          setTraslados(lista);
-          setTrazabilidadPorTraslado(new Map());
-          setEsDemo(true);
-          setEstadoConexion(teniaRespuesta ? "desactualizado" : "sin_conexion");
-          setSeccionesDesactualizadas(["traslados administrativos", "trazabilidad de cargas masivas"]);
-        } else {
-          setTraslados([]);
-          setTrazabilidadPorTraslado(new Map());
-          setEsDemo(false);
-          setEstadoConexion(teniaRespuesta ? "desactualizado" : "sin_conexion");
-          setSeccionesDesactualizadas(["traslados administrativos", "trazabilidad de cargas masivas"]);
-        }
+        setTraslados([]);
+        setTrazabilidadPorTraslado(new Map());
+        setEsDemo(false);
+        setEstadoConexion(Boolean(ultimaRespuestaExitosa) ? "desactualizado" : "sin_conexion");
+        setSeccionesDesactualizadas(["traslados administrativos"]);
       } finally {
         setCargando(false);
         setActualizandoManual(false);
       }
-  }, [setCargando, setActualizandoManual, setEstadoConexion, setTraslados, setTrazabilidadPorTraslado, setEsDemo, setUltimaRespuestaExitosa, setSeccionesDesactualizadas, ultimaRespuestaExitosa, filtroActual]);
+  }, [setCargando, setActualizandoManual, setEstadoConexion, setTraslados, setTrazabilidadPorTraslado, setEsDemo, setUltimaRespuestaExitosa, setSeccionesDesactualizadas, ultimaRespuestaExitosa, filtroActual, pagina, tamanoPagina, busqueda]);
 
   useEffect(() => {
-    void cargar();
-  }, [cargar, filtroActual]);
+    setPagina(1);
+    void cargar(false, 1);
+  }, [cargar, filtroActual, busqueda, tamanoPagina]);
+
+  useEffect(() => {
+    function manejarVisibilidad() {
+      if (document.visibilityState === "visible") void cargar(false);
+    }
+    document.addEventListener("visibilitychange", manejarVisibilidad);
+    const intervalo = setInterval(() => void cargar(false), 120000);
+    return () => {
+      document.removeEventListener("visibilitychange", manejarVisibilidad);
+      clearInterval(intervalo);
+    };
+  }, [cargar]);
 
   const trasladosPorKpi = useMemo(() => {
     if (!filtroKpi) return traslados;
@@ -593,16 +604,97 @@ export default function PaginaViajesAdmin() {
 
   async function ejecutarAccionMasiva() {
     if (!accionMasiva || trasladosSeleccionados.length === 0) return;
-    const resultados = construirResultadosAccionMasiva(accionMasiva.id, trasladosSeleccionados, {
-      responsable: responsableMasivo,
-      prioridad: prioridadMasiva,
-      etiqueta: etiquetaMasiva
-    });
-    if (accionMasiva.id === "exportar") descargarArchivo("ruum-traslados-seleccion.csv", "text/csv", exportarTrasladosCsv(trasladosSeleccionados));
-    if (accionMasiva.id === "descargar_evidencia") descargarArchivo("ruum-evidencia-seleccion.json", "application/json", JSON.stringify(exportarEvidencia(trasladosSeleccionados), null, 2));
-    await registrarAuditoriaMasiva(accionMasiva, resultados);
-    setResultadosAccionMasiva(resultados);
-    setEstadoAccionMasiva(resolverEstadoAccion(resultados));
+    setProcesandoMasiva(true);
+
+    const ids = trasladosSeleccionados
+      .map((t) => t.traslado_id)
+      .filter(Boolean) as string[];
+
+    if (accionMasiva.id === "exportar") {
+      descargarArchivo("ruum-traslados-seleccion.csv", "text/csv", exportarTrasladosCsv(trasladosSeleccionados));
+      const resultados = ids.map((id) => ({
+        trasladoId: id,
+        folio: id.slice(0, 8).toUpperCase(),
+        estado: "aplicado" as const,
+        detalle: "Incluido en exportación CSV."
+      }));
+      await registrarAuditoriaMasiva(accionMasiva, resultados);
+      setResultadosAccionMasiva(resultados);
+      setEstadoAccionMasiva("exitoso");
+      setProcesandoMasiva(false);
+      return;
+    }
+
+    if (accionMasiva.id === "descargar_evidencia") {
+      try {
+        const cliente = crearClienteNavegador();
+        const evidencia = await exportarEvidenciaFirmada(cliente, ids);
+        const conUrls = await Promise.all(
+          evidencia.evidencia.map(async (item) => ({
+            ...item,
+            fotos: await Promise.all(
+              item.fotos.map(async (foto) => ({
+                ...foto,
+                url_firmada: await resolverUrlEvidencia(cliente, foto.storage_path)
+              }))
+            )
+          }))
+        );
+        descargarArchivo("ruum-evidencia-seleccion.json", "application/json", JSON.stringify(conUrls, null, 2));
+        const resultados = ids.map((id) => ({
+          trasladoId: id,
+          folio: id.slice(0, 8).toUpperCase(),
+          estado: "aplicado" as const,
+          detalle: "Evidencia exportada con URLs firmadas."
+        }));
+        await registrarAuditoriaMasiva(accionMasiva, resultados);
+        setResultadosAccionMasiva(resultados);
+        setEstadoAccionMasiva("exitoso");
+      } catch (err) {
+        const resultados = ids.map((id) => ({
+          trasladoId: id,
+          folio: id.slice(0, 8).toUpperCase(),
+          estado: "bloqueado" as const,
+          detalle: err instanceof Error ? err.message : "Error al exportar evidencia."
+        }));
+        setResultadosAccionMasiva(resultados);
+        setEstadoAccionMasiva("bloqueado");
+      }
+      setProcesandoMasiva(false);
+      return;
+    }
+
+    try {
+      const cliente = crearClienteNavegador();
+      const payload: Record<string, unknown> = {};
+      if (accionMasiva.id === "asignar_responsable") payload.responsable = responsableMasivo;
+      if (accionMasiva.id === "cambiar_prioridad") payload.prioridad = prioridadMasiva;
+      if (accionMasiva.id === "etiquetar") payload.etiqueta = etiquetaMasiva;
+
+      const resultado = await ejecutarAccionMasiva(cliente, accionMasiva.id, ids, payload);
+      const resultados = (resultado.resultados ?? []).map((r) => ({
+        trasladoId: r.traslado_id,
+        folio: r.traslado_id.slice(0, 8).toUpperCase(),
+        estado: r.estado as ResultadoAccionMasiva["estado"],
+        detalle: r.detalle
+      }));
+      await registrarAuditoriaMasiva(accionMasiva, resultados);
+      setResultadosAccionMasiva(resultados);
+      setEstadoAccionMasiva(
+        resultado.bloqueados === resultado.total ? "bloqueado" :
+        resultado.aplicados === resultado.total ? "exitoso" : "parcial"
+      );
+    } catch (err) {
+      const resultados = ids.map((id) => ({
+        trasladoId: id,
+        folio: id.slice(0, 8).toUpperCase(),
+        estado: "bloqueado" as const,
+        detalle: err instanceof Error ? err.message : "Error al ejecutar acción masiva."
+      }));
+      setResultadosAccionMasiva(resultados);
+      setEstadoAccionMasiva("bloqueado");
+    }
+    setProcesandoMasiva(false);
   }
 
   async function registrarAuditoriaMasiva(accion: AccionMasivaConfig, resultados: ResultadoAccionMasiva[]) {
@@ -618,7 +710,7 @@ export default function PaginaViajesAdmin() {
       folios: resultados.map((resultado) => resultado.folio)
     };
     setAuditoriaMasiva((actual) => [entrada, ...actual].slice(0, 20));
-    if (!tieneSupabaseConfigurado() || esDemo) return;
+    if (!tieneSupabaseConfigurado()) return;
     try {
       const cliente = crearClienteNavegador();
       const admin = await obtenerAdminActual(cliente);
@@ -631,11 +723,9 @@ export default function PaginaViajesAdmin() {
         folio: resultado.folio
       })));
     } catch {
-      setAuditoriaMasiva((actual) => [{
-        ...entrada,
-        id: `${entrada.id}-local`,
-        detalle: `${entrada.detalle} | Auditoría remota no disponible; registro local conservado.`
-      }, ...actual].slice(0, 20));
+      // Fail-fast: si la auditoría remota falla, revertir la presentación optimista
+      setAuditoriaMasiva((actual) => actual.filter((item) => item.id !== entrada.id));
+      throw new Error("No se pudo registrar la auditoría remota. La operación no se completó.");
     }
   }
 
@@ -902,6 +992,7 @@ export default function PaginaViajesAdmin() {
         onSortChange={setOrdenTabla}
         visibleColumnIds={columnasVisibles}
         onVisibleColumnIdsChange={setColumnasVisibles}
+        pageSizeOptions={[tamanoPagina]}
         rowActions={[
           { label: "Vista rápida", onClick: abrirDetalleRapido },
           { label: "Abrir", href: (v) => v.traslado_id ? `/viajes/${v.traslado_id}` : "/viajes" },
@@ -914,6 +1005,54 @@ export default function PaginaViajesAdmin() {
           onClick: () => abrirAccionMasiva(accion)
         }))}
       />
+
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3 px-1">
+        <label className="font-body text-sm text-text-secondary">
+          Filas por página
+          <select
+            className="ml-2 rounded-lg border border-ink/20 bg-surface-primary px-2 py-1"
+            value={tamanoPagina}
+            onChange={(e) => {
+              setTamanoPagina(Number(e.target.value));
+              setPagina(1);
+            }}
+          >
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+        </label>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="rounded-lg border border-ink/20 px-3 py-1.5 text-sm disabled:opacity-50"
+            disabled={pagina <= 1 || cargando}
+            onClick={() => {
+              const sig = Math.max(1, pagina - 1);
+              setPagina(sig);
+              void cargar(false, sig);
+            }}
+          >
+            Anterior
+          </button>
+          <span className="font-body text-sm text-text-secondary">
+            Página {totalPaginas > 0 ? pagina : 0} de {totalPaginas} ({totalResultados} resultados)
+          </span>
+          <button
+            type="button"
+            className="rounded-lg border border-ink/20 px-3 py-1.5 text-sm disabled:opacity-50"
+            disabled={pagina >= totalPaginas || cargando}
+            onClick={() => {
+              const sig = Math.min(totalPaginas, pagina + 1);
+              setPagina(sig);
+              void cargar(false, sig);
+            }}
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
 
       {auditoriaMasiva.length > 0 && (
         <section className="mt-4 rounded-card border border-border-default bg-surface-primary p-4" aria-label="Auditoría de acciones masivas">
@@ -954,6 +1093,7 @@ export default function PaginaViajesAdmin() {
           onPrioridadChange={setPrioridadMasiva}
           etiqueta={etiquetaMasiva}
           onEtiquetaChange={setEtiquetaMasiva}
+          procesando={procesandoMasiva}
           onCerrar={() => setAccionMasiva(null)}
           onEjecutar={() => void ejecutarAccionMasiva()}
         />
@@ -1200,6 +1340,7 @@ function AccionMasivaDialog({
   onPrioridadChange,
   etiqueta,
   onEtiquetaChange,
+  procesando,
   onCerrar,
   onEjecutar
 }: {
@@ -1215,6 +1356,7 @@ function AccionMasivaDialog({
   onPrioridadChange: (value: PrioridadOperativa) => void;
   etiqueta: string;
   onEtiquetaChange: (value: string) => void;
+  procesando?: boolean;
   onCerrar: () => void;
   onEjecutar: () => void;
 }) {
@@ -1282,8 +1424,8 @@ function AccionMasivaDialog({
         </div>
         <div className="flex flex-wrap justify-end gap-2 border-t border-ink/10 p-4">
           <button type="button" onClick={onCerrar} className="rounded-lg border border-ink/20 px-4 py-2 font-body text-sm font-semibold text-text-secondary">Cerrar</button>
-          <button type="button" disabled={!puedeEjecutar} onClick={onEjecutar} className="rounded-lg border border-signal/40 bg-signal px-4 py-2 font-body text-sm font-semibold text-ink disabled:opacity-50">
-            Ejecutar
+          <button type="button" disabled={!puedeEjecutar || procesandoMasiva} onClick={onEjecutar} className="rounded-lg border border-signal/40 bg-signal px-4 py-2 font-body text-sm font-semibold text-ink disabled:opacity-50">
+            {procesandoMasiva ? "Procesando..." : "Ejecutar"}
           </button>
         </div>
       </section>

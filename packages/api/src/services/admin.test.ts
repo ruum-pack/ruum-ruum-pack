@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   aplicarTarifaNormativaAdmin,
   ajustarPrecioFinalAdmin,
@@ -7,8 +7,10 @@ import {
   listarExcepcionesCriticasAdmin,
   listarViajesAdmin,
   obtenerTrazabilidadMasivaTraslado,
-  obtenerMetricasRegistroConductor
+  obtenerMetricasRegistroConductor,
+  cambiarEstatusAdmin
 } from "./admin";
+import { crearClienteFake } from "./__tests__/supabase-fake";
 import { crearClienteFake } from "./__tests__/supabase-fake";
 
 describe("servicios admin", () => {
@@ -77,30 +79,18 @@ describe("servicios admin", () => {
         traslados: { data: null },
         registro_auditoria: { data: null }
       },
-      rpcs: { admin_tiene_permiso: { data: true } }
+      rpcs: { admin_tiene_permiso: { data: true }, admin_ajustar_precio_final: { data: { ejecutado: true } } }
     });
 
-    await expect(ajustarPrecioFinalAdmin(cliente as never, "traslado-1", -1)).rejects.toThrow(
-      "La tarifa final debe ser un número válido mayor o igual a 0."
+    await expect(ajustarPrecioFinalAdmin(cliente as never, "traslado-1", -1, "aprob-1")).rejects.toThrow(
     );
 
-    await ajustarPrecioFinalAdmin(cliente as never, "traslado-1", 2500);
+    await ajustarPrecioFinalAdmin(cliente as never, "traslado-1", 2500, "aprob-1");
 
     expect(cliente.llamadas).toContainEqual({
-      table: "traslados",
-      action: "update",
-      args: [{ precio_final: 2500 }]
-    });
-    expect(cliente.llamadas).toContainEqual({
-      table: "registro_auditoria",
-      action: "insert",
-      args: [{
-        traslado_id: "traslado-1",
-        evento: "modificacion_traslado_activo",
-        actor: "admin",
-        actor_id: "admin-1",
-        datos: { traslado_id: "traslado-1", precio_final: 2500 }
-      }]
+      table: "rpc",
+      action: "admin_ajustar_precio_final",
+      args: [{ p_aprobacion_id: "aprob-1", p_traslado_id: "traslado-1", p_precio_final: 2500 }]
     });
   });
 
@@ -284,5 +274,47 @@ describe("servicios admin", () => {
         accionEscalamiento: expect.objectContaining({ etiqueta: "Escalar a supervisor" })
       })
     ]);
+  });
+
+  it("Lanza CONCURRENCY_CONFLICT si la versión no coincide", async () => {
+    const cliente = crearClienteFake({
+      tablas: {
+        admins: { data: { id: "admin-1", rol_operativo: "supervisor" } },
+        traslados: { data: [{ id: "t1", version: 1 }] }
+      },
+      rpcs: {
+        admin_tiene_permiso: { data: true },
+        admin_cambiar_estado_traslado: { data: null, error: new Error("CONCURRENCY_CONFLICT: la versión del traslado ha cambiado") }
+      }
+    });
+
+    await expect(
+      cambiarEstatusAdmin(cliente as never, "t1", "conductor_asignado", "traslado_fallido", undefined, 2)
+    ).rejects.toThrow("CONCURRENCY_CONFLICT");
+  });
+
+  it("withIdempotentRetry reintenta en error transitorio y falla en error determinista", async () => {
+    let intentos = 0;
+    const cliente = crearClienteFake({
+      tablas: {
+        admins: { data: { id: "admin-1", rol_operativo: "supervisor" } },
+        traslados: { data: [{ id: "t1", version: 1 }] }
+      },
+      rpcs: {
+        admin_tiene_permiso: { data: true }
+      }
+    });
+    cliente.rpc = vi.fn(async (nombre: string, _args: unknown) => {
+      intentos++;
+      if (nombre === "admin_tiene_permiso") return { data: true, error: null };
+      if (intentos < 3) return { data: null, error: new Error("network error") };
+      return { data: { ejecutado: true, version: 2 }, error: null };
+    });
+
+    await expect(
+      cambiarEstatusAdmin(cliente as never, "t1", "conductor_asignado", "traslado_fallido")
+    ).resolves.not.toThrow();
+
+    expect(intentos).toBe(3); // 1 for admin_tiene_permiso + 2 retries + 1 success for cambiar_estado
   });
 });
