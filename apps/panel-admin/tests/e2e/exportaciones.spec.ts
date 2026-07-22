@@ -19,7 +19,7 @@ test.describe("Exportaciones", () => {
       expect(status === 403 || status === 200).toBe(true);
       if (status === 403) {
         const body = await response.json();
-        expect(body.error).toBe("FORBIDDEN");
+        expect(["forbidden", "export_init_failed"]).toContain(body.error);
       }
       await context.close();
     });

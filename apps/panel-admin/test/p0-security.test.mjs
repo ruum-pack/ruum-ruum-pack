@@ -43,3 +43,28 @@ test("demo data requires an explicit non-production flag", () => {
   assert.match(helper, /NODE_ENV !== "production"/);
   assert.doesNotMatch(helper, /!tieneSupabaseConfigurado\(\) \|\|/);
 });
+
+test("payload modificado durante exportación es detectado por hash SHA-256", () => {
+  const route = read("apps/panel-admin/src/app/api/exportaciones/pagos/route.ts");
+  assert.match(route, /sha256/);
+  assert.match(route, /x-content-sha256/);
+  assert.match(route, /p_hash/);
+});
+
+test("aprobación reutilizada: versión esperada previene doble ejecución", () => {
+  const migracion = read("supabase/migrations/20260720001200_sprint1_bypass_cerrar.sql");
+  assert.match(migracion, /APROBACION_PAYLOAD_NO_COINCIDE/);
+  assert.match(migracion, /p_version_esperada/);
+  assert.match(migracion, /version/);
+  const servicio = read("packages/api/src/services/aprobaciones-admin.ts");
+  assert.match(servicio, /admin_decidir_aprobacion/);
+  assert.match(servicio, /p_version_esperada/);
+});
+
+test("fallo de auditoría durante exportación no entrega CSV", () => {
+  const route = read("apps/panel-admin/src/app/api/exportaciones/pagos/route.ts");
+  assert.match(route, /export_audit_failed/);
+  assert.match(route, /no se entrega CSV/);
+  assert.match(route, /admin_completar_exportacion/);
+  assert.match(route, /status: ?500/);
+});

@@ -29,11 +29,11 @@ export async function GET(request:Request){
  const {data: tieneExportCrear}=await cliente.rpc("admin_tiene_permiso",{p_permiso:"exportaciones:crear"});
 
  if(!tienePagosExportar && !(tienePagosLeer && tieneExportCrear)){
-  return NextResponse.json({error:"FORBIDDEN",traceId},{status:403,headers:{"x-request-id":traceId}});
+   return NextResponse.json({error:"forbidden",traceId},{status:403,headers:{"x-request-id":traceId}});
  }
 
  const {data: registroId,error: registroError}=await cliente.rpc("admin_registrar_exportacion",{p_recurso:"pagos",p_filtros:filtros as unknown as Json,p_formato:"csv"});
- if(registroError)return NextResponse.json({error:"EXPORT_INIT_FAILED",traceId},{status:500,headers:{"x-request-id":traceId}});
+ if(registroError)return NextResponse.json({error:"export_init_failed",traceId},{status:500,headers:{"x-request-id":traceId}});
 
  let csv="";
  try{
@@ -45,7 +45,7 @@ export async function GET(request:Request){
   if(error)throw error; const filas=data??[]; csv=["id,traslado_id,monto,estado,registrado_en",...filas.map(f=>[f.id,f.traslado_id,f.monto,f.estado,f.registrado_en].map(celda).join(","))].join("\n");
   const hash=createHash("sha256").update(csv).digest("hex");
   const {error: completarError}=await cliente.rpc("admin_completar_exportacion",{p_id:registroId as string,p_filas:filas.length,p_hash:hash});
-  if(completarError){console.error("[export] auditoría fallida, no se entrega CSV",completarError);return NextResponse.json({error:"EXPORT_AUDIT_FAILED",traceId},{status:500,headers:{"x-request-id":traceId}});}
+  if(completarError){console.error("[export] auditoría fallida, no se entrega CSV",completarError);return NextResponse.json({error:"export_audit_failed",traceId},{status:500,headers:{"x-request-id":traceId}});}
   return new NextResponse(csv,{headers:{"content-type":"text/csv; charset=utf-8","content-disposition":`attachment; filename="pagos-${new Date().toISOString().slice(0,10)}.csv"`,"cache-control":"no-store","x-content-sha256":hash,"x-request-id":traceId,"server-timing":`app;dur=${Date.now()-inicio}`}});
- }catch(error){await cliente.rpc("admin_completar_exportacion",{p_id:registroId as string,p_filas:0,p_hash:"",p_error:"EXPORT_FAILED"});return NextResponse.json({error:"EXPORT_FAILED",traceId},{status:500,headers:{"x-request-id":traceId}});}
+ }catch(error){await cliente.rpc("admin_completar_exportacion",{p_id:registroId as string,p_filas:0,p_hash:"",p_error:"export_failed"});return NextResponse.json({error:"export_failed",traceId},{status:500,headers:{"x-request-id":traceId}});}
 }

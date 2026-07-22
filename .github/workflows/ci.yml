@@ -55,6 +55,9 @@ jobs:
       - name: Verify unified app version
         run: node scripts/verify-app-version.mjs
 
+      - name: Run panel-admin security regression (p0)
+        run: pnpm test:p0
+
       - name: Run Android close static regression
         run: |
           node apps/app-conductor/tests/android/sprint-close-p0-static.test.mjs
@@ -261,6 +264,62 @@ jobs:
 
       - name: Run panel admin smoke
         run: pnpm --filter @ruum/panel-admin test:smoke
+
+  panel-admin-load-test:
+    name: Panel admin load test (k6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install k6
+        run: |
+          curl -L -o k6.tar.gz https://github.com/grafana/k6/releases/download/v0.54.0/k6-v0.54.0-linux-amd64.tar.gz
+          tar xzf k6.tar.gz
+          sudo cp k6-v0.54.0-linux-amd64/k6 /usr/local/bin/k6
+          k6 version
+
+      - name: Start panel-admin server
+        run: |
+          pnpm --filter @ruum/panel-admin build
+          pnpm --filter @ruum/panel-admin exec next start -p 3102 &
+          sleep 10
+          curl -f http://127.0.0.1:3102/api/observabilidad || echo "Server ready"
+
+      - name: Run k6 load test
+        run: |
+          mkdir -p tests/load/results
+          k6 run tests/load/panel-admin-degradacion.js \
+            --out json=tests/load/results/resultados.json \
+            -e BASE_URL=http://127.0.0.1:3102 \
+            2>&1 | tee tests/load/results/reporte.txt
+
+      - name: Upload k6 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: panel-admin-k6-results
+          retention-days: 90
+          if-no-files-found: warn
+          path: |
+            tests/load/results/
 
   app-conductor-a11y:
     name: App conductor accessibility

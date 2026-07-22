@@ -22,7 +22,7 @@ test('migración P1 incorpora concurrencia optimista y auditoría',()=>{
 });
 test('errores de servicios se normalizan con códigos estables',()=>{
   const source=read('packages/api/src/services/errores.ts');
-  assert.match(source,/CONFLICT/); assert.match(source,/FORBIDDEN/); assert.match(source,/normalizarError/);
+  assert.match(source,/conflict/); assert.match(source,/forbidden/); assert.match(source,/normalizarError/);
 });
 test('dashboard mueve lectura inicial al servidor',()=>{
   const page=read('apps/panel-admin/src/app/page.tsx');
