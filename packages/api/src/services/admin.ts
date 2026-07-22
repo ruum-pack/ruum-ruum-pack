@@ -922,6 +922,132 @@ export async function validarDocumentoUsuario(
   if (error) throw error;
 }
 
+export async function obtenerUsuarioAdmin(cliente: Cliente, usuarioId: string): Promise<UsuarioRow | null> {
+  await assertAdminPermission(cliente, "usuarios:leer");
+  const { data, error } = await cliente.from("usuarios").select("*").eq("id", usuarioId).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export type UsuarioActualizableAdmin = Pick<
+  Database["public"]["Tables"]["usuarios"]["Update"],
+  "nombre" | "telefono" | "correo_facturacion" | "pais" | "estado" | "ciudad" | "codigo_postal" | "colonia" | "calle" | "numero" | "direccion_principal"
+>;
+
+export async function actualizarUsuarioAdmin(cliente: Cliente, usuarioId: string, datos: UsuarioActualizableAdmin): Promise<UsuarioRow> {
+  await assertAdminPermission(cliente, "usuarios:validar");
+  const { data, error } = await cliente.from("usuarios").update(datos).eq("id", usuarioId).select("*").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function suspenderUsuarioAdmin(cliente: Cliente, usuarioId: string, motivo: string): Promise<void> {
+  await assertAdminPermission(cliente, "usuarios:validar");
+  const { error } = await cliente.from("usuarios").update({ estado_cuenta: "suspendida" }).eq("id", usuarioId);
+  if (error) throw error;
+  await registrarEvento(cliente, "usuario_suspendido" as never, "admin", usuarioId, { motivo });
+}
+
+export async function reactivarUsuarioAdmin(cliente: Cliente, usuarioId: string, motivo: string): Promise<void> {
+  await assertAdminPermission(cliente, "usuarios:validar");
+  const { error } = await cliente.from("usuarios").update({ estado_cuenta: "activa" }).eq("id", usuarioId);
+  if (error) throw error;
+  await registrarEvento(cliente, "usuario_reactivado" as never, "admin", usuarioId, { motivo });
+}
+
+export async function cerrarCuentaUsuarioAdmin(cliente: Cliente, usuarioId: string, motivo: string): Promise<void> {
+  await assertAdminPermission(cliente, "usuarios:validar");
+  const { error } = await cliente.from("usuarios").update({ estado_cuenta: "cerrada" }).eq("id", usuarioId);
+  if (error) throw error;
+  await registrarEvento(cliente, "usuario_cuenta_cerrada" as never, "admin", usuarioId, { motivo });
+}
+
+export async function listarSesionesUsuario(cliente: Cliente, usuarioId: string): Promise<Array<{ id: string; creada_en: string; ultimo_acceso: string | null; agente_usuario: string | null; direccion_ip: string | null; activa: boolean }>> {
+  await assertAdminPermission(cliente, "usuarios:leer");
+  if (!usuarioId) return [];
+  const { data: usuario } = await cliente.from("usuarios").select("auth_user_id").eq("id", usuarioId).maybeSingle();
+  if (!usuario?.auth_user_id) return [];
+
+  const { data: sesiones } = await cliente.from("sesiones_usuario").select("*").eq("auth_user_id", usuario.auth_user_id).order("creada_en", { ascending: false });
+  if (!sesiones) return [];
+  return (sesiones as Array<{ id: string; creada_en: string; ultimo_acceso: string | null; agente_usuario: string | null; direccion_ip: string | null; activa: boolean }>).map((s) => ({
+    ...s,
+    activa: s.activa ?? false
+  }));
+}
+
+export async function revocarSesionUsuario(cliente: Cliente, sesionId: string): Promise<void> {
+  await assertAdminPermission(cliente, "usuarios:validar");
+  const { error } = await cliente.from("sesiones_usuario").update({ activa: false }).eq("id", sesionId);
+  if (error) throw error;
+}
+
+export async function listarPagosDeUsuario(cliente: Cliente, usuarioId: string): Promise<PagoRow[]> {
+  await assertAdminPermission(cliente, "pagos:leer");
+  const { data, error } = await cliente.from("pagos").select("*").eq("usuario_id", usuarioId).order("creado_en", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listarIncidenciasDeUsuario(cliente: Cliente, usuarioId: string): Promise<IncidenciaRow[]> {
+  await assertAdminPermission(cliente, "incidencias:leer");
+  const { data, error } = await cliente.from("incidencias").select("*").eq("usuario_id", usuarioId).order("creada_en", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listarEmpresasDeUsuario(cliente: Cliente, usuarioId: string): Promise<EmpresaRow[]> {
+  await assertAdminPermission(cliente, "empresas:leer");
+  const { data: usuario } = await cliente.from("usuarios").select("empresa_id").eq("id", usuarioId).maybeSingle();
+  if (!usuario?.empresa_id) return [];
+  const { data, error } = await cliente.from("empresas").select("*").eq("id", usuario.empresa_id);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function obtenerAuditoriaUsuario(cliente: Cliente, usuarioId: string): Promise<Array<{ evento: string; creado_en: string; datos: Record<string, unknown> | null }>> {
+  await assertAdminPermission(cliente, "usuarios:leer");
+  const { data, error } = await cliente
+    .from("registro_auditoria")
+    .select("evento, creado_en, datos")
+    .eq("actor_id", usuarioId)
+    .order("creado_en", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return (data ?? []).map((r: { evento: string; creado_en: string; datos: unknown }) => ({
+    evento: r.evento,
+    creado_en: r.creado_en,
+    datos: (r.datos ?? null) as Record<string, unknown> | null
+  }));
+}
+
+/** PRD §17.5 — lista paginada de usuarios. */
+export interface PaginacionUsuarios {
+  data: UsuarioRow[];
+  paginacion: { pagina: number; tamano: number; total: number; total_paginas: number };
+}
+
+export async function listarUsuariosAdminPaginados(
+  cliente: Cliente,
+  pagina: number,
+  tamano: number,
+  busqueda?: string
+): Promise<PaginacionUsuarios> {
+  await assertAdminPermission(cliente, "usuarios:leer");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "listar_usuarios_admin_paginados",
+    args: { p_pagina: number; p_tamano: number; p_busqueda?: string }
+  ) => Promise<{ data: PaginacionUsuarios | null; error: unknown }>;
+  const { data, error } = await rpc("listar_usuarios_admin_paginados", {
+    p_pagina: pagina,
+    p_tamano: tamano,
+    p_busqueda: busqueda?.trim() || undefined
+  });
+  if (error) throw error;
+  if (!data) return { data: [], paginacion: { pagina: 1, tamano: 25, total: 0, total_paginas: 0 } };
+  return data;
+}
+
 export async function validarDocumentoConductor(cliente: Cliente, conductorId: string, aprobado: boolean) {
   await assertAdminPermission(cliente, "conductores:validar");
   const rpc = cliente.rpc.bind(cliente) as unknown as (
