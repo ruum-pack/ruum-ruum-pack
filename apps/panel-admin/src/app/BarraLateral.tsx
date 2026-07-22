@@ -97,11 +97,11 @@ export function Icono({ nombre }: { nombre: IconoNombre }) {
 
 export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
   {
-    titulo: "OPERACIÓN",
+    titulo: "CONTROL OPERATIVO",
     secciones: [
       { href: "/", etiqueta: "Dashboard", icono: "dashboard" },
       { href: "/viajes", etiqueta: "Traslados", icono: "viajes" },
-      { href: "/masivos", etiqueta: "Cargas masivas", icono: "masivos" },
+      { href: "/masivos", etiqueta: "Traslados masivos", icono: "masivos" },
       { href: "/mapa", etiqueta: "Mapa", icono: "mapa" },
       { href: "/alertas-sla?filtro=vencidas", etiqueta: "Alertas y SLA", icono: "sla", contador: "alertasCriticas" },
     ],
@@ -110,7 +110,6 @@ export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
     titulo: "GESTIÓN",
     secciones: [
       { href: "/conductores?filtro=en_revision", etiqueta: "Conductores", icono: "conductor", contador: "conductoresRevision" },
-      { href: "/metricas-registro", etiqueta: "Métricas de conductores", icono: "reportes" },
       { href: "/usuarios", etiqueta: "Usuarios", icono: "usuario" },
       { href: "/vehiculos", etiqueta: "Vehículos", icono: "vehiculo" },
       { href: "/empresas", etiqueta: "Empresas", icono: "empresa" },
@@ -126,14 +125,21 @@ export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
     ],
   },
   {
-    titulo: "ADMINISTRACIÓN",
+    titulo: "FINANZAS Y GOBIERNO",
     secciones: [
       { href: "/pagos?filtro=pendientes", etiqueta: "Pagos", icono: "pagos", contador: "pagosPendientes" },
       { href: "/tarifas", etiqueta: "Tarifas", icono: "tarifas" },
-      { href: "/reportes", etiqueta: "Reportes operativos", icono: "reportes" },
       { href: "/aprobaciones", etiqueta: "Aprobaciones duales", icono: "auditoria" },
       { href: "/auditoria", etiqueta: "Auditoría", icono: "auditoria" },
+    ],
+  },
+   {
+    titulo: "SISTEMAS Y ANALITICA",
+    secciones: [
+      { href: "/reportes", etiqueta: "Reportes operativos", icono: "reportes" },
+      { href: "/metricas-registro", etiqueta: "Métricas de conductores", icono: "reportes" },
       { href: "/configuracion", etiqueta: "Configuración", icono: "configuracion" },
+      
     ],
   },
 ];

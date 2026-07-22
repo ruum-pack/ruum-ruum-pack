@@ -53,7 +53,7 @@ export const CONFIG_ROL_ADMIN: Record<RolAdminOperativo, ConfiguracionRolAdmin> 
     descripcion: "Prioriza salud general, riesgos y resultados del día.",
     widgets: ["indicadores", "emergencias", "alertas_operativas"],
     indicadores: ["traslados_activos", "finalizados_hoy", "riesgo_sla", "con_incidencia", "sin_asignacion"],
-    rutasPermitidas: ["/", "/viajes", "/mapa", "/alertas-sla", "/reportes", "/pagos", "/tarifas", "/incidencias", "/disputas", "/reclamos-seguro", "/auditoria", "/aprobaciones"]
+    rutasPermitidas: ["/", "/viajes", "/mapa", "/alertas-sla", "/reportes", "/pagos", "/tarifas", "/incidencias", "/disputas", "/reclamos-seguro", "/auditoria", "/aprobaciones", "/masivos", "/conductores", "/usuarios", "/vehiculos", "/empresas", "/documentos", "/configuracion", "/metricas-registro"]
   }
 };
 
