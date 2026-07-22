@@ -50,9 +50,9 @@ export const CONFIG_ROL_ADMIN: Record<RolAdminOperativo, ConfiguracionRolAdmin> 
   },
   direccion: {
     etiqueta: "Dirección",
-    descripcion: "Prioriza salud general, riesgos y resultados del día.",
-    widgets: ["indicadores", "emergencias", "alertas_operativas"],
-    indicadores: ["traslados_activos", "finalizados_hoy", "riesgo_sla", "con_incidencia", "sin_asignacion"],
+    descripcion: "Acceso integral a la operación, los riesgos y los resultados del día.",
+    widgets: ["emergencias", "indicadores", "alertas_operativas", "acciones_frecuentes"],
+    indicadores: ["traslados_activos", "inician_60_min", "sin_asignacion", "riesgo_sla", "con_incidencia", "finalizados_hoy"],
     rutasPermitidas: ["/", "/viajes", "/mapa", "/alertas-sla", "/reportes", "/pagos", "/tarifas", "/incidencias", "/disputas", "/reclamos-seguro", "/auditoria", "/aprobaciones", "/masivos", "/conductores", "/usuarios", "/vehiculos", "/empresas", "/documentos", "/configuracion", "/capacidades", "/metricas-registro"]
   }
 };
