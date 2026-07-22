@@ -54,13 +54,12 @@ export function DriverAvailabilityControl({ value, saving, onChange }: DriverAva
       ].join(" ")}
     >
       {feedback && (
-        <div
-          role="status"
+        <output
           aria-live="polite"
           className="conductor-toast-bottom fixed right-4 z-50 max-w-[calc(100vw-2rem)] rounded-xl border border-success/35 bg-success/14 px-4 py-3 font-body text-sm font-semibold text-text-primary shadow-[0_18px_48px_rgba(0,0,0,0.42)] sm:right-6 sm:max-w-sm"
         >
           {feedback}
-        </div>
+        </output>
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

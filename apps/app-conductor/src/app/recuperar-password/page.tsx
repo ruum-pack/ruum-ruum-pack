@@ -81,9 +81,9 @@ export default function PaginaRecuperarPasswordConductor() {
               autoComplete="email"
             />
             {error && (
-              <div role="status" aria-live="polite" aria-atomic="true">
+              <output aria-live="polite" aria-atomic="true">
                 <Aviso tono="danger">{error}</Aviso>
-              </div>
+              </output>
             )}
             <Button type="submit" loading={enviando} className="mt-2 w-full">
               Enviar enlace

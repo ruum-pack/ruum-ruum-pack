@@ -59,7 +59,7 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
   const [confirmando911, setConfirmando911] = useState(false);
   const [procesando, setProcesando] = useState<AccionPanel | null>(null);
   const [mensaje, setMensaje] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
-  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const tituloRef = useRef<HTMLHeadingElement | null>(null);
   const elementoPrevioRef = useRef<HTMLElement | null>(null);
 
@@ -251,10 +251,9 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
       </div>
 
       {abierto && (
-        <div className="fixed inset-0 z-50 bg-black/60 px-3 py-[max(12px,env(safe-area-inset-top))]" role="presentation">
-          <div
+        <div className="fixed inset-0 z-50 bg-black/60 px-3 py-[max(12px,env(safe-area-inset-top))]">
+          <dialog
             ref={dialogRef}
-            role="dialog"
             aria-modal="true"
             aria-labelledby="emergency-panel-title"
             className="mx-auto flex max-h-[calc(100dvh_-_24px_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_24px_80px_rgba(26,31,46,0.34)]"
@@ -318,7 +317,7 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
                 );
               })}
             </div>
-          </div>
+          </dialog>
         </div>
       )}
     </section>

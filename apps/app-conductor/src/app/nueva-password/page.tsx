@@ -130,9 +130,9 @@ export default function PaginaNuevaPasswordConductor() {
             />
 
             {error && (
-              <div role="status" aria-live="polite" aria-atomic="true">
+              <output aria-live="polite" aria-atomic="true">
                 <Aviso tono="danger">{error}</Aviso>
-              </div>
+              </output>
             )}
             <Button type="submit" loading={enviando} disabled={enviando} className="mt-2 w-full">
               {enviando ? "Guardando…" : "Guardar nueva contraseña"}

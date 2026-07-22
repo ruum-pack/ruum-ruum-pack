@@ -8,7 +8,10 @@ const compat = new FlatCompat({
 })
 
 const eslintConfig = defineConfig([
-  ...compat.extends('next/core-web-vitals')
+  ...compat.extends('next/core-web-vitals'),
+  {
+    ignores: ['android/**', '**.android.js']
+  }
 ])
 
 export default eslintConfig

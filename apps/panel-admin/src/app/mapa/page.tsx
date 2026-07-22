@@ -282,7 +282,7 @@ export default function PaginaMapaOperativo() {
     return () => document.removeEventListener("keydown", cerrarConEscape);
   }, [seleccionado, cerrarPanelSeleccionado]);
 
-  async function cargar(esRefresco = false) {
+  const cargar = useCallback(async (esRefresco = false) => {
       if (!esRefresco) setCargando(true);
       if (esRefresco) {
         setActualizandoManual(true);
@@ -322,11 +322,11 @@ export default function PaginaMapaOperativo() {
         setCargando(false);
         setActualizandoManual(false);
       }
-  }
+  }, [setCargando, setActualizandoManual, setEstadoConexionGps, setTraslados, setEsDemo, setUltimaRespuestaExitosa, setSeccionesDesactualizadas, ultimaRespuestaExitosa]);
 
   useEffect(() => {
     void cargar();
-  }, []);
+  }, [cargar]);
 
   useEffect(() => {
     setAhora(new Date());

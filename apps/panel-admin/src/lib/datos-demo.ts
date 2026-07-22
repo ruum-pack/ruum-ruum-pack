@@ -67,6 +67,7 @@ export const VIAJES_DEMO: PasaporteRow[] = [
     evidencia_inicial_fotos_sincronizadas: 0,
     evidencia_final_fotos_sincronizadas: 0,
     incidencias_abiertas: 0,
+    ganancia_conductor: null,
     monto_pagado: 0
   },
   {
@@ -115,6 +116,7 @@ export const VIAJES_DEMO: PasaporteRow[] = [
     evidencia_inicial_fotos_sincronizadas: 5,
     evidencia_final_fotos_sincronizadas: 0,
     incidencias_abiertas: 1,
+    ganancia_conductor: null,
     monto_pagado: 1500
   },
   {
@@ -163,6 +165,7 @@ export const VIAJES_DEMO: PasaporteRow[] = [
     evidencia_inicial_fotos_sincronizadas: 5,
     evidencia_final_fotos_sincronizadas: 5,
     incidencias_abiertas: 0,
+    ganancia_conductor: 0,
     monto_pagado: 950
   }
 ];
@@ -207,7 +210,9 @@ function conductorDemo(datos: Pick<ConductorRow, "id" | "nombre"> & Partial<Cond
     terminos_aceptados_en: ahora,
     traslados_completados: 0,
     version_terminos_aceptada: 1,
-    ...datos
+    ...datos,
+    certificacion_pago: datos.certificacion_pago ?? "estandar",
+    version: datos.version ?? 1
   };
 }
 

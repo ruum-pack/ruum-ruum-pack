@@ -33,7 +33,8 @@ describe("servicios de tarifas admin", () => {
         },
         admins: { data: { id: "admin-1", nombre: "Torre Control" } },
         certificacion_pago_conductor: { data: [{ certificacion: "basico", porcentaje: 70 }] }
-      }
+      },
+      rpcs: { admin_tiene_permiso: { data: true } }
     });
 
     await expect(obtenerConfiguracionTarifas(cliente as never)).resolves.toMatchObject({
@@ -50,7 +51,8 @@ describe("servicios de tarifas admin", () => {
 
   it("actualiza tarifas de vehículo con admin actual y bloquea negativos", async () => {
     const cliente = crearClienteFake({
-      tablas: { admins: { data: { id: "admin-1" } }, tarifas_vehiculo: { data: [{ id: "tarifa-1" }] } }
+      tablas: { admins: { data: { id: "admin-1" } }, tarifas_vehiculo: { data: [{ id: "tarifa-1" }] } },
+      rpcs: { admin_tiene_permiso: { data: true } }
     });
 
     await expect(actualizarTarifaVehiculo(cliente as never, "tarifa-1", { base: -1, por_km: 10 })).rejects.toThrow(
@@ -68,7 +70,8 @@ describe("servicios de tarifas admin", () => {
 
   it("avisa con un mensaje claro cuando el UPDATE no afecta ninguna fila (bloqueo silencioso de RLS)", async () => {
     const cliente = crearClienteFake({
-      tablas: { admins: { data: { id: "admin-1" } }, tarifas_vehiculo: { data: [] } }
+      tablas: { admins: { data: { id: "admin-1" } }, tarifas_vehiculo: { data: [] } },
+      rpcs: { admin_tiene_permiso: { data: true } }
     });
 
     await expect(actualizarTarifaVehiculo(cliente as never, "tarifa-1", { base: 900, por_km: 18 })).rejects.toThrow(
@@ -82,7 +85,8 @@ describe("servicios de tarifas admin", () => {
         admins: { data: { id: "admin-1" } },
         tarifas_gama: { data: [{ gama: "premium" }] },
         tarifas_config: { data: [{ id: true }] }
-      }
+      },
+      rpcs: { admin_tiene_permiso: { data: true } }
     });
 
     await expect(actualizarFactorGama(cliente as never, "premium", 0)).rejects.toThrow("El factor debe ser mayor a 0.");
@@ -107,8 +111,8 @@ describe("servicios de tarifas admin", () => {
 
   it("guarda distancia/tiempo no negativos y delega sugerencia al RPC", async () => {
     const cliente = crearClienteFake({
-      tablas: { traslados: {} },
-      rpcs: { admin_sugerir_tarifa_traslado: { data: 3450 } }
+      tablas: { traslados: {}, admins: { data: { id: "admin-1", rol_operativo: "finanzas" } } },
+      rpcs: { admin_tiene_permiso: { data: true }, admin_sugerir_tarifa_traslado: { data: 3450 } }
     });
 
     await expect(guardarDistanciaYTiempoTraslado(cliente as never, "traslado-1", { distancia_km: -1, tiempo_estimado_horas: 1 })).rejects.toThrow(
@@ -127,7 +131,10 @@ describe("servicios de tarifas admin", () => {
   });
 
   it("rechaza tarifa normativa nula del RPC", async () => {
-    const cliente = crearClienteFake({ rpcs: { admin_sugerir_tarifa_traslado: { data: null } } });
+    const cliente = crearClienteFake({
+      tablas: { admins: { data: { id: "admin-1", rol_operativo: "finanzas" } } },
+      rpcs: { admin_tiene_permiso: { data: true }, admin_sugerir_tarifa_traslado: { data: null } }
+    });
 
     await expect(sugerirTarifaTraslado(cliente as never, "traslado-1")).rejects.toThrow(
       "No se pudo calcular una tarifa normativa para este traslado."

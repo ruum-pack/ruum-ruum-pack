@@ -95,9 +95,9 @@ export default function PaginaLogin() {
             />
 
             {error && (
-              <div role="status" aria-live="polite" aria-atomic="true">
+              <output aria-live="polite" aria-atomic="true">
                 <Aviso tono="danger">{error}</Aviso>
-              </div>
+              </output>
             )}
 
             <div className="flex justify-end">

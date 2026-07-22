@@ -21,7 +21,8 @@
     "test:p1": "node --test apps/panel-admin/test/p1-estabilizacion.test.mjs",
     "test:p2": "node --test apps/panel-admin/test/p2-madurez.test.mjs",
     "test:load": "k6 run tests/load/panel-admin-degradacion.js",
-    "test:a11y:real": "playwright test apps/panel-admin/tests/a11y-real"
+    "test:a11y:real": "playwright test apps/panel-admin/tests/a11y-real",
+    "test:ui": "vitest --ui"
   },
   "devDependencies": {
     "@axe-core/cli": "^4.12.1",
@@ -29,6 +30,7 @@
     "@playwright/test": "^1.51.1",
     "@storybook/addon-a11y": "^10.5.2",
     "@types/node": "^22.10.0",
+    "@vitest/ui": "^4.1.10",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "turbo": "^2.10.5",
     "typescript": "^5.7.2"

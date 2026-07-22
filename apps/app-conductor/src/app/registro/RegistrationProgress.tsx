@@ -40,9 +40,9 @@ export function RegistrationProgress({
         <p className="mt-1 font-body text-sm leading-6 text-text-secondary">{PASOS_REGISTRO[paso].objetivo}</p>
       </div>
       {!sesionAutenticada && borradorLocalGuardado && (
-        <p className="mt-2 font-body text-sm font-medium text-text-secondary" role="status" aria-live="polite">
+        <output className="mt-2 block font-body text-sm font-medium text-text-secondary" aria-live="polite">
           Guardado en este dispositivo
-        </p>
+        </output>
       )}
       {sesionAutenticada && estadoGuardadoRemoto !== "inactivo" && (
         <div className="mt-2 flex items-center gap-2">
@@ -51,15 +51,14 @@ export function RegistrationProgress({
               ✓
             </span>
           )}
-          <p
+          <output
             className={`font-body text-sm font-medium ${estadoGuardadoRemoto === "error" ? "text-danger-action" : estadoGuardadoRemoto === "sin_conexion" ? "text-warning" : "text-text-secondary"}`}
-            role="status"
             aria-live="polite"
             title={detalleGuardadoRemoto ?? undefined}
           >
             {TEXTO_GUARDADO_REMOTO[estadoGuardadoRemoto]}
             {estadoGuardadoRemoto === "error" && detalleGuardadoRemoto ? `: ${detalleGuardadoRemoto}` : ""}
-          </p>
+          </output>
         </div>
       )}
     </>

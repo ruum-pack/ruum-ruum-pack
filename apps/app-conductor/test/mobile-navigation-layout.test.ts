@@ -30,10 +30,10 @@ describe("navegación móvil con viaje activo", () => {
   it("mantiene la interfaz en una columna y con controles táctiles bajo 768px", () => {
     const mobile = mediaBlock("@media (max-width: 767px)");
 
-    expect(mobile).toContain('[class*="sm:grid-cols"]');
-    expect(mobile).toContain("grid-template-columns: minmax(0, 1fr) !important");
-    expect(mobile).toContain('[class*="sm:flex-row"]');
-    expect(mobile).toContain("flex-direction: column !important");
+    expect(mobile).toContain(".conductor-responsive-grid");
+    expect(mobile).toContain("grid-template-columns: minmax(0, 1fr)");
+    expect(mobile).toContain(".conductor-responsive-stack");
+    expect(mobile).toContain("flex-direction: column");
     expect(mobile).toContain("min-height: 44px");
   });
 

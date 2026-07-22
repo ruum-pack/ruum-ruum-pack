@@ -51,7 +51,7 @@ type RechazoPendiente = {
 
 function TripsLoadingList() {
   return (
-    <div role="status" aria-label="Cargando viajes" aria-busy="true" className="grid gap-4">
+    <output aria-label="Cargando viajes" aria-busy="true" className="grid gap-4">
       {[1, 2, 3].map((i) => (
         <div key={i} className="space-y-3 rounded-card border border-border p-5">
           <div className="flex items-start justify-between gap-4">
@@ -67,7 +67,7 @@ function TripsLoadingList() {
           </div>
         </div>
       ))}
-    </div>
+    </output>
   );
 }
 
@@ -488,9 +488,9 @@ export default function PaginaViajes() {
         )}
 
         {aviso && (
-          <div className="mt-4" role="status" aria-live="polite" aria-atomic="true">
+          <output className="mt-4" aria-live="polite" aria-atomic="true">
             <Aviso tono="info">{aviso}</Aviso>
-          </div>
+          </output>
         )}
 
         <div className="mt-6 grid gap-4">
@@ -531,8 +531,7 @@ export default function PaginaViajes() {
       />
 
       {rechazoPendiente && (
-        <div
-          role="status"
+        <output
           aria-live="polite"
           className="conductor-toast-bottom fixed inset-x-4 z-50 rounded-xl border border-border bg-surface-strong px-4 py-3 text-surface shadow-[0_18px_50px_rgba(26,31,46,0.28)] sm:left-auto sm:right-6 sm:w-[360px]"
         >
@@ -549,7 +548,7 @@ export default function PaginaViajes() {
               Deshacer
             </button>
           </div>
-        </div>
+        </output>
       )}
     </div>
   );

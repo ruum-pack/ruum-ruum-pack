@@ -13,9 +13,8 @@ export function RejectTripDialog({
   if (!viaje) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-surface-strong" role="presentation">
-      <div
-        role="dialog"
+    <div className="fixed inset-0 z-50 bg-surface-strong">
+      <dialog
         aria-modal="true"
         aria-labelledby="rechazo-viaje-titulo"
         className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-border bg-surface p-5 shadow-[0_-24px_70px_rgba(26,31,46,0.22)]"
@@ -49,7 +48,7 @@ export function RejectTripDialog({
             </button>
           ))}
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

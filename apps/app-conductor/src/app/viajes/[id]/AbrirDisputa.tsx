@@ -74,9 +74,9 @@ export function AbrirDisputaConductor({
         <Button variant="secondary" onClick={enviar} disabled={pendiente}>
           {pendiente ? TEXTOS_CARGANDO.enviando : "Solicitar revisión"}
         </Button>
-        <div role="status" aria-live="polite" aria-atomic="true" className="min-h-[20px]">
+        <output aria-live="polite" aria-atomic="true" className="min-h-[20px]">
           {mensaje && <span className="font-body text-sm text-text-secondary">{mensaje}</span>}
-        </div>
+        </output>
       </div>
     </div>
   );

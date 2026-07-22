@@ -51,11 +51,17 @@ describe("servicios admin", () => {
   });
 
   it("lista viajes sin filtro para todos y con eq para estados específicos", async () => {
-    const clienteTodos = crearClienteFake({ tablas: { pasaporte_digital: { data: [{ traslado_id: "t1" }] } } });
+    const clienteTodos = crearClienteFake({
+      tablas: { pasaporte_digital: { data: [{ traslado_id: "t1" }] }, admins: { data: { id: "admin-1", rol_operativo: "direccion" } } },
+      rpcs: { admin_tiene_permiso: { data: true } }
+    });
     await expect(listarViajesAdmin(clienteTodos as never, "todos")).resolves.toEqual([{ traslado_id: "t1" }]);
     expect(clienteTodos.llamadas.some((l) => l.table === "pasaporte_digital" && l.action === "eq")).toBe(false);
 
-    const clienteFiltrado = crearClienteFake({ tablas: { pasaporte_digital: { data: [] } } });
+    const clienteFiltrado = crearClienteFake({
+      tablas: { pasaporte_digital: { data: [] }, admins: { data: { id: "admin-1", rol_operativo: "direccion" } } },
+      rpcs: { admin_tiene_permiso: { data: true } }
+    });
     await listarViajesAdmin(clienteFiltrado as never, "pendiente_de_conductor");
     expect(clienteFiltrado.llamadas).toContainEqual({
       table: "pasaporte_digital",
@@ -67,10 +73,11 @@ describe("servicios admin", () => {
   it("ajusta precio final con auditoría de admin y rechaza montos inválidos", async () => {
     const cliente = crearClienteFake({
       tablas: {
-        admins: { data: { id: "admin-1" } },
+        admins: { data: { id: "admin-1", rol_operativo: "finanzas" } },
         traslados: { data: null },
         registro_auditoria: { data: null }
-      }
+      },
+      rpcs: { admin_tiene_permiso: { data: true } }
     });
 
     await expect(ajustarPrecioFinalAdmin(cliente as never, "traslado-1", -1)).rejects.toThrow(
@@ -109,7 +116,9 @@ describe("servicios admin", () => {
 
   it("crea traslados masivos corporativos por RPC y bloquea lotes vacíos", async () => {
     const cliente = crearClienteFake({
+      tablas: { admins: { data: { id: "admin-1", rol_operativo: "direccion" } } },
       rpcs: {
+        admin_tiene_permiso: { data: true },
         admin_crea_traslados_masivos: {
           data: {
             carga_id: "carga-1",
@@ -164,6 +173,7 @@ describe("servicios admin", () => {
   it("obtiene trazabilidad masiva por traslado", async () => {
     const cliente = crearClienteFake({
       tablas: {
+        admins: { data: { id: "admin-1", rol_operativo: "direccion" } },
         filas_carga_traslados_masivos: {
           data: {
             id: "fila-1",
@@ -192,7 +202,8 @@ describe("servicios admin", () => {
             creado_en: "2026-07-18T00:00:00.000Z"
           }
         }
-      }
+      },
+      rpcs: { admin_tiene_permiso: { data: true } }
     });
 
     await expect(obtenerTrazabilidadMasivaTraslado(cliente as never, "traslado-1")).resolves.toMatchObject({
@@ -203,7 +214,9 @@ describe("servicios admin", () => {
 
   it("crea empresa corporativa con titular por RPC y valida datos mínimos", async () => {
     const cliente = crearClienteFake({
+      tablas: { admins: { data: { id: "admin-1", rol_operativo: "direccion" } } },
       rpcs: {
+        admin_tiene_permiso: { data: true },
         admin_crea_empresa_corporativa: {
           data: { empresa_id: "empresa-1", usuario_id: "usuario-1" }
         }
@@ -241,6 +254,7 @@ describe("servicios admin", () => {
   it("lista excepciones críticas con acciones obligatorias", async () => {
     const cliente = crearClienteFake({
       tablas: {
+        admins: { data: { id: "admin-1", rol_operativo: "supervisor" } },
         registro_auditoria: {
           data: [{
             id: "evento-1",
@@ -258,7 +272,8 @@ describe("servicios admin", () => {
         conductores: { data: [] },
         traslados: { data: [] },
         incidencias: { data: [] }
-      }
+      },
+      rpcs: { admin_tiene_permiso: { data: true } }
     });
 
     await expect(listarExcepcionesCriticasAdmin(cliente as never)).resolves.toEqual([

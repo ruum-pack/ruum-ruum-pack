@@ -278,7 +278,7 @@ export default function PaginaEvidencia() {
 
   if (cargando || mostrarSkeleton) {
     return (
-      <div role="status" aria-label="Cargando registro del vehículo" aria-busy="true" className="mx-auto w-full max-w-2xl px-6 py-12">
+      <output aria-label="Cargando registro del vehículo" aria-busy="true" className="mx-auto w-full max-w-2xl px-6 py-12">
         <h1 className="font-display text-2xl font-semibold">{GLOSARIO_OPERATIVO.evidencia}</h1>
         <p className="mt-2 font-body text-sm text-text-secondary">Preparando checklist de ángulos obligatorios.</p>
 
@@ -296,7 +296,7 @@ export default function PaginaEvidencia() {
           </p>
           <Button disabled={true}>Confirmar registro</Button>
         </div>
-      </div>
+      </output>
     );
   }
 

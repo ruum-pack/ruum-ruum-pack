@@ -13,7 +13,7 @@ import { useCerrarSesion } from "../../lib/use-cerrar-sesion";
 
 function PanelLoadingSkeleton() {
   return (
-    <section className="mt-8 grid gap-5" role="status" aria-label="Cargando panel operativo" aria-busy="true">
+    <output className="mt-8 grid gap-5" aria-label="Cargando panel operativo" aria-busy="true">
       <div className="rounded-2xl border border-route-action/35 bg-surface-elevated p-5">
         <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div className="grid gap-3">
@@ -31,7 +31,7 @@ function PanelLoadingSkeleton() {
           <div className="mt-3 h-4 w-full max-w-md animate-pulse rounded bg-text-secondary/14" />
         </div>
       ))}
-    </section>
+    </output>
   );
 }
 

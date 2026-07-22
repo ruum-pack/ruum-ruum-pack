@@ -3,6 +3,7 @@
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 
 import { ChangeEvent, useEffect, useState } from "react";
+import Image from "next/image";
 import { Button, Card } from "@ruum/ui";
 import { actualizarPerfilConductor, subirFotoPerfilConductor } from "@ruum/api/services";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
@@ -209,8 +210,8 @@ export default function PaginaPerfilCuenta() {
       <CuentaHeader titulo="Perfil" descripcion="Actualiza tus datos personales y de contacto operativo." />
       {notificacion && (
         <div
-          role="status"
           aria-live="polite"
+          aria-atomic="true"
           className={`conductor-toast-bottom fixed right-4 z-50 max-w-[calc(100vw-2rem)] rounded-xl border px-4 py-3 font-body text-sm font-semibold shadow-[0_18px_48px_rgba(0,0,0,0.42)] sm:right-6 sm:max-w-sm ${claseToast(notificacion.tipo)}`}
         >
           {notificacion.mensaje}
@@ -221,7 +222,7 @@ export default function PaginaPerfilCuenta() {
           <div className="grid gap-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-signal-soft font-display text-3xl font-semibold text-text-primary">
-                {conductor?.foto_perfil_url ? <img src={conductor.foto_perfil_url} alt="" className="h-full w-full object-cover" /> : (perfil.nombre || "CD").slice(0, 2).toUpperCase()}
+                {conductor?.foto_perfil_url ? <Image src={conductor.foto_perfil_url} alt="" width={96} height={96} className="h-full w-full object-cover" /> : (perfil.nombre || "CD").slice(0, 2).toUpperCase()}
               </div>
               <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 font-body text-sm font-semibold text-text-secondary hover:border-signal">
                 {subiendoFoto ? "Subiendo..." : "Subir o actualizar foto"}

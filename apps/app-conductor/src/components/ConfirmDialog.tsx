@@ -19,7 +19,7 @@ export function ConfirmDialog({ open, title, consequence, maskedData = [], confi
   const titleId = useId();
   const descriptionId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -41,8 +41,8 @@ export function ConfirmDialog({ open, title, consequence, maskedData = [], confi
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-overlay p-4 sm:items-center" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onCancel(); }}>
-      <div ref={dialogRef} role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={descriptionId} className="w-full max-w-lg rounded-2xl border border-border bg-surface p-5 shadow-xl">
+    <button type="button" className="fixed inset-0 z-[100] flex items-end justify-center bg-overlay p-4 sm:items-center" aria-hidden="true" onClick={(e) => { if (e.target === e.currentTarget && !busy) onCancel(); }}>
+      <dialog ref={dialogRef} aria-modal="true" aria-labelledby={titleId} aria-describedby={descriptionId} className="w-full max-w-lg rounded-2xl border border-border bg-surface p-5 shadow-xl">
         <h2 id={titleId} className="font-display text-xl font-bold text-text-primary">{title}</h2>
         <p id={descriptionId} className="mt-2 font-body text-sm leading-6 text-text-secondary">{consequence}</p>
         {maskedData.length > 0 && <ul className="mt-4 rounded-xl bg-surface-muted p-3 font-mono text-sm text-text-secondary">{maskedData.map((item) => <li key={item}>{item}</li>)}</ul>}
@@ -50,7 +50,7 @@ export function ConfirmDialog({ open, title, consequence, maskedData = [], confi
           <button ref={cancelRef} type="button" disabled={busy} onClick={onCancel} className="min-h-11 rounded-xl border border-border px-4 font-semibold text-text-primary hover:bg-surface-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50">{cancelLabel}</button>
           <button type="button" disabled={busy} onClick={onConfirm} className={`min-h-11 rounded-xl px-4 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50 ${destructive ? "bg-danger-action text-on-danger hover:brightness-110" : "bg-action-primary text-on-primary hover:brightness-110"}`}>{busy ? "Procesando…" : confirmLabel}</button>
         </div>
-      </div>
-    </div>
+      </dialog>
+    </button>
   );
 }

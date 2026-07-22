@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Aviso, Button } from "@ruum/ui";
 import { AdminPageHeader, AdminPanel } from "../admin-ui";
@@ -237,7 +237,7 @@ export default function PaginaExcepcionesCriticas() {
   const [seccionesDesactualizadas, setSeccionesDesactualizadas] = useState<string[]>([]);
   const [actualizandoManual, setActualizandoManual] = useState(false);
 
-  async function cargar(esRefresco = false) {
+  const cargar = useCallback(async (esRefresco = false) => {
     if (!esRefresco) setCargando(true);
     if (esRefresco) {
       setActualizandoManual(true);
@@ -279,7 +279,7 @@ export default function PaginaExcepcionesCriticas() {
       setCargando(false);
       setActualizandoManual(false);
     }
-  }
+  }, [setCargando, setActualizandoManual, setEstadoConexion, setAviso, setExcepciones, setEsDemo, setSeccionesDesactualizadas, setUltimaRespuestaExitosa, ultimaRespuestaExitosa]);
 
   useEffect(() => {
     if (tieneSupabaseConfigurado()) void obtenerPreferenciaAdmin<Record<string, string>>(crearClienteNavegador(), "alertas_sla.responsables").then((guardados) => setResponsables(guardados ?? {}));
@@ -288,7 +288,7 @@ export default function PaginaExcepcionesCriticas() {
       setCategoria(categoriaParametro);
     }
     void cargar();
-  }, []);
+  }, [cargar, setResponsables, setCategoria]);
 
   function asignarResponsable(id: string, responsable: string) {
     setResponsables((actual) => {

@@ -190,14 +190,14 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
         <div className="mt-4"><Aviso tono={rechazados > 0 ? "atencion" : "info"}>{motivoBloqueo}</Aviso></div>
 
         {error && (
-          <div className="mt-4" role="status" aria-live="polite" aria-atomic="true">
+          <output className="mt-4" aria-live="polite" aria-atomic="true">
             <Aviso tono="danger">{error}</Aviso>
-          </div>
+          </output>
         )}
         {mensaje && (
-          <div className="mt-4" role="status" aria-live="polite" aria-atomic="true">
+          <output className="mt-4" aria-live="polite" aria-atomic="true">
             <Aviso tono="info">{mensaje}</Aviso>
-          </div>
+          </output>
         )}
 
         <div className="mt-6 space-y-3" aria-label="Estado documental">
@@ -275,7 +275,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
         <div className="mt-6 rounded-xl border border-route-action bg-route-soft p-4">
           <p className="font-body text-sm font-semibold text-text-primary">Te avisaremos cuando cambie el estado</p>
           <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
-            Si actualizas un documento, volverá a aparecer como "En revisión".
+            Si actualizas un documento, volverá a aparecer como &quot;En revisión&quot;.
           </p>
         </div>
 

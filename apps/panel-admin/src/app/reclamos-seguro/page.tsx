@@ -16,6 +16,7 @@ const RECLAMOS_DEMO: Reclamo[] = [
   {
     id: "demo-reclamo-001",
     traslado_id: "demo-admin-003",
+    version: 1,
     estado: "en_revision",
     abierto_en: new Date(Date.now() - 1000 * 60 * 60 * 30).toISOString(),
     resuelto_en: null,

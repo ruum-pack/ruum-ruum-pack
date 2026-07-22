@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type RefObject, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type RefObject, type SetStateAction } from "react";
 import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";
 import { AdminFiltroActivo, AdminPageHeader, limpiarParamsFiltroUrl } from "../admin-ui";
@@ -319,7 +319,7 @@ export default function PaginaViajesAdmin() {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [detalleAbiertoId]);
 
-  async function cargar(esRefresco = false) {
+  const cargar = useCallback(async (esRefresco = false) => {
       if (!esRefresco) setCargando(true);
       if (esRefresco) {
         setActualizandoManual(true);
@@ -377,11 +377,11 @@ export default function PaginaViajesAdmin() {
         setCargando(false);
         setActualizandoManual(false);
       }
-  }
+  }, [setCargando, setActualizandoManual, setEstadoConexion, setTraslados, setTrazabilidadPorTraslado, setEsDemo, setUltimaRespuestaExitosa, setSeccionesDesactualizadas, ultimaRespuestaExitosa, filtroActual]);
 
   useEffect(() => {
     void cargar();
-  }, [filtroActual]);
+  }, [cargar, filtroActual]);
 
   const trasladosPorKpi = useMemo(() => {
     if (!filtroKpi) return traslados;

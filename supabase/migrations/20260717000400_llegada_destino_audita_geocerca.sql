@@ -1,534 +1,92 @@
--- Autorización administrativa por permisos.
--- Esta migración reemplaza políticas administrativas generales
--- por permisos específicos según el rol operativo.
+-- UX-01 -- La confirmación manual fuera de geocerca debe quedar visible en
+-- auditoría operativa para revisión y prevención de abuso.
 
--- ============================================================
--- 1. FUNCIÓN CENTRAL DE PERMISOS
--- ============================================================
--- ============================================================
--- 0. ASEGURAR ROL OPERATIVO EN ADMINS
--- ============================================================
+drop function if exists public.conductor_confirmar_llegada_destino(uuid);
 
-do $$
-begin
-  if not exists (
-    select 1
-    from pg_type t
-    join pg_namespace n
-      on n.oid = t.typnamespace
-    where n.nspname = 'public'
-      and t.typname = 'rol_admin_operativo'
-  ) then
-    create type public.rol_admin_operativo as enum (
-      'operador',
-      'supervisor',
-      'finanzas',
-      'compliance',
-      'direccion'
-    );
-  end if;
-end
-$$;
-
-alter table public.admins
-  add column if not exists rol_operativo
-  public.rol_admin_operativo
-  not null
-  default 'operador';
-
-comment on column public.admins.rol_operativo is
-  'Rol operativo utilizado para autorización administrativa.';
-  create or replace function public.admin_tiene_permiso(
-  p_permiso text
+create or replace function public.conductor_confirmar_llegada_destino(
+  p_traslado_id uuid,
+  p_fuera_geocerca boolean default false,
+  p_distancia_m numeric default null
 )
-returns boolean
-language sql
-stable
+returns public.estado_traslado
+language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = public
 as $$
-  select exists (
-    select 1
-    from public.admins as a
-    where a.auth_user_id = auth.uid()
-      and case a.rol_operativo
-        when 'operador' then
-          p_permiso = any (
-            array[
-              'dashboard.leer',
-              'viajes.leer',
-              'viajes.gestionar',
-              'masivos.gestionar',
-              'conductores.leer',
-              'incidencias.leer'
-            ]::text[]
-          )
-
-        when 'supervisor' then
-          p_permiso = any (
-            array[
-              'dashboard.leer',
-              'viajes.leer',
-              'viajes.gestionar',
-              'masivos.gestionar',
-              'conductores.leer',
-              'conductores.validar',
-              'incidencias.leer',
-              'disputas.leer',
-              'disputas.resolver'
-            ]::text[]
-          )
-
-        when 'finanzas' then
-          p_permiso = any (
-            array[
-              'dashboard.leer',
-              'viajes.leer',
-              'pagos.leer',
-              'tarifas.leer',
-              'tarifas.editar',
-              'disputas.leer',
-              'disputas.resolver',
-              'reclamos_seguro.leer',
-              'reclamos_seguro.gestionar'
-            ]::text[]
-          )
-
-        when 'compliance' then
-          p_permiso = any (
-            array[
-              'dashboard.leer',
-              'conductores.leer',
-              'conductores.validar',
-              'usuarios.leer',
-              'usuarios.validar',
-              'empresas.leer',
-              'empresas.gestionar',
-              'incidencias.leer',
-              'reclamos_seguro.leer',
-              'reclamos_seguro.gestionar'
-            ]::text[]
-          )
-
-        when 'direccion' then
-          true
-
-        else
-          false
-      end
-  );
-$$;
-
-revoke all
-  on function public.admin_tiene_permiso(text)
-  from public;
-
-grant execute
-  on function public.admin_tiene_permiso(text)
-  to authenticated;
-  
-create or replace function public.admin_tiene_permiso(
-  p_permiso text
-)
-returns boolean
-language sql
-stable
-security definer
-set search_path = public, pg_temp
-as $$
-  select exists (
-    select 1
-    from public.admins as a
-    where a.auth_user_id = auth.uid()
-      and case a.rol_operativo
-        when 'operador' then
-          p_permiso = any (
-            array[
-              'dashboard.leer',
-              'viajes.leer',
-              'viajes.gestionar',
-              'masivos.gestionar',
-              'conductores.leer',
-              'incidencias.leer'
-            ]::text[]
-          )
-
-        when 'supervisor' then
-          p_permiso = any (
-            array[
-              'dashboard.leer',
-              'viajes.leer',
-              'viajes.gestionar',
-              'masivos.gestionar',
-              'conductores.leer',
-              'conductores.validar',
-              'incidencias.leer',
-              'disputas.leer',
-              'disputas.resolver'
-            ]::text[]
-          )
-
-        when 'finanzas' then
-          p_permiso = any (
-            array[
-              'dashboard.leer',
-              'viajes.leer',
-              'pagos.leer',
-              'tarifas.leer',
-              'tarifas.editar',
-              'disputas.leer',
-              'disputas.resolver',
-              'reclamos_seguro.leer',
-              'reclamos_seguro.gestionar'
-            ]::text[]
-          )
-
-        when 'compliance' then
-          p_permiso = any (
-            array[
-              'dashboard.leer',
-              'conductores.leer',
-              'conductores.validar',
-              'usuarios.leer',
-              'usuarios.validar',
-              'empresas.leer',
-              'empresas.gestionar',
-              'incidencias.leer',
-              'reclamos_seguro.leer',
-              'reclamos_seguro.gestionar'
-            ]::text[]
-          )
-
-        when 'direccion' then
-          true
-
-        else
-          false
-      end
-  );
-$$;
-
-revoke all
-  on function public.admin_tiene_permiso(text)
-  from public;
-
-grant execute
-  on function public.admin_tiene_permiso(text)
-  to authenticated;
-
-comment on function public.admin_tiene_permiso(text) is
-  'Comprueba si el administrador autenticado posee un permiso operativo.';
-
-
--- ============================================================
--- 2. USUARIOS
--- ============================================================
-
-drop policy if exists
-  "admin_acceso_total_usuarios"
-  on public.usuarios;
-
-drop policy if exists
-  "admin_lee_usuarios_por_permiso"
-  on public.usuarios;
-
-drop policy if exists
-  "admin_actualiza_usuarios_por_permiso"
-  on public.usuarios;
-
-create policy "admin_lee_usuarios_por_permiso"
-  on public.usuarios
-  for select
-  to authenticated
-  using (
-    public.admin_tiene_permiso('usuarios.leer'::text)
-  );
-
-create policy "admin_actualiza_usuarios_por_permiso"
-  on public.usuarios
-  for update
-  to authenticated
-  using (
-    public.admin_tiene_permiso('usuarios.validar'::text)
-  )
-  with check (
-    public.admin_tiene_permiso('usuarios.validar'::text)
-  );
-
-
--- ============================================================
--- 3. PAGOS
--- ============================================================
-
-drop policy if exists
-  "admin_acceso_total_pagos"
-  on public.pagos;
-
-drop policy if exists
-  "admin_lee_pagos_por_permiso"
-  on public.pagos;
-
-create policy "admin_lee_pagos_por_permiso"
-  on public.pagos
-  for select
-  to authenticated
-  using (
-    public.admin_tiene_permiso('pagos.leer'::text)
-  );
-
-
--- ============================================================
--- 4. EMPRESAS
--- ============================================================
-
-drop policy if exists
-  "admin_acceso_total_empresas"
-  on public.empresas;
-
-drop policy if exists
-  "admin_lee_empresas_por_permiso"
-  on public.empresas;
-
-drop policy if exists
-  "admin_inserta_empresas_por_permiso"
-  on public.empresas;
-
-drop policy if exists
-  "admin_actualiza_empresas_por_permiso"
-  on public.empresas;
-
-create policy "admin_lee_empresas_por_permiso"
-  on public.empresas
-  for select
-  to authenticated
-  using (
-    public.admin_tiene_permiso('empresas.leer'::text)
-  );
-
-create policy "admin_inserta_empresas_por_permiso"
-  on public.empresas
-  for insert
-  to authenticated
-  with check (
-    public.admin_tiene_permiso('empresas.gestionar'::text)
-  );
-
-create policy "admin_actualiza_empresas_por_permiso"
-  on public.empresas
-  for update
-  to authenticated
-  using (
-    public.admin_tiene_permiso('empresas.gestionar'::text)
-  )
-  with check (
-    public.admin_tiene_permiso('empresas.gestionar'::text)
-  );
-
-
--- ============================================================
--- 5. DISPUTAS
--- ============================================================
-
-drop policy if exists
-  "admin_acceso_total_disputas"
-  on public.disputas;
-
-drop policy if exists
-  "admin_lee_disputas_por_permiso"
-  on public.disputas;
-
-drop policy if exists
-  "admin_actualiza_disputas_por_permiso"
-  on public.disputas;
-
-create policy "admin_lee_disputas_por_permiso"
-  on public.disputas
-  for select
-  to authenticated
-  using (
-    public.admin_tiene_permiso('disputas.leer'::text)
-  );
-
-create policy "admin_actualiza_disputas_por_permiso"
-  on public.disputas
-  for update
-  to authenticated
-  using (
-    public.admin_tiene_permiso('disputas.resolver'::text)
-  )
-  with check (
-    public.admin_tiene_permiso('disputas.resolver'::text)
-  );
-
-
--- ============================================================
--- 6. RECLAMOS DE SEGURO
--- ============================================================
-
-drop policy if exists
-  "admin_acceso_total_reclamos_seguro"
-  on public.reclamos_seguro;
-
-drop policy if exists
-  "admin_lee_reclamos_seguro_por_permiso"
-  on public.reclamos_seguro;
-
-drop policy if exists
-  "admin_actualiza_reclamos_seguro_por_permiso"
-  on public.reclamos_seguro;
-
-create policy "admin_lee_reclamos_seguro_por_permiso"
-  on public.reclamos_seguro
-  for select
-  to authenticated
-  using (
-    public.admin_tiene_permiso('reclamos_seguro.leer'::text)
-  );
-
-create policy "admin_actualiza_reclamos_seguro_por_permiso"
-  on public.reclamos_seguro
-  for update
-  to authenticated
-  using (
-    public.admin_tiene_permiso(
-      'reclamos_seguro.gestionar'::text
-    )
-  )
-  with check (
-    public.admin_tiene_permiso(
-      'reclamos_seguro.gestionar'::text
-    )
-  );
-
-
--- ============================================================
--- 7. TABLAS TARIFARIAS VIGENTES
--- ============================================================
--- No se usa public.tarifas_admin porque esa tabla fue eliminada
--- por la migración del modelo tarifario v2.
-
-do $$
 declare
-  nombre_tabla text;
-  politica_anterior text;
-  politica_lectura text;
-  politica_escritura text;
+  v_conductor_id uuid;
+  v_estado_actual public.estado_traslado;
+  v_distancia_m numeric;
 begin
-  foreach nombre_tabla in array array[
-    'tarifas_vehiculo',
-    'tarifas_gama',
-    'tarifas_condicion',
-    'tarifas_horario',
-    'tarifas_dia',
-    'tarifas_config',
-    'certificacion_pago_conductor'
-  ]::text[]
-  loop
-    if to_regclass(
-      format('public.%I', nombre_tabla)
-    ) is null then
-      raise exception
-        'Falta la tabla public.% antes de aplicar permisos administrativos',
-        nombre_tabla;
-    end if;
+  select id into v_conductor_id
+  from public.conductores
+  where auth_user_id = auth.uid();
 
-    politica_anterior :=
-      case
-        when nombre_tabla = 'certificacion_pago_conductor'
-          then 'admin_acceso_total_certificacion_pago'
-        else
-          'admin_acceso_total_' || nombre_tabla
-      end;
+  if v_conductor_id is null then
+    raise exception 'Solo un conductor autenticado puede confirmar la llegada a destino.';
+  end if;
 
-    politica_lectura :=
-      'admin_lee_' || nombre_tabla || '_por_permiso';
+  select estado into v_estado_actual
+  from public.traslados
+  where id = p_traslado_id
+    and conductor_id = v_conductor_id
+  for update;
 
-    politica_escritura :=
-      'admin_escribe_' || nombre_tabla || '_por_permiso';
+  if v_estado_actual is null then
+    raise exception 'El traslado no existe o no está asignado al conductor autenticado.';
+  end if;
 
-    execute format(
-      'drop policy if exists %I on public.%I',
-      politica_anterior,
-      nombre_tabla
-    );
+  if v_estado_actual = 'llegada_a_destino' then
+    return v_estado_actual;
+  end if;
 
-    execute format(
-      'drop policy if exists %I on public.%I',
-      politica_lectura,
-      nombre_tabla
-    );
+  if v_estado_actual not in ('evidencia_inicial_completada', 'vehiculo_recibido', 'traslado_en_curso') then
+    raise exception 'No se puede confirmar llegada a destino desde estado %', v_estado_actual;
+  end if;
 
-    execute format(
-      'drop policy if exists %I on public.%I',
-      politica_escritura,
-      nombre_tabla
-    );
+  if p_distancia_m is not null and p_distancia_m < 0 then
+    raise exception 'La distancia de geocerca no puede ser negativa.';
+  end if;
 
-    execute format(
-      'create policy %I
-       on public.%I
-       for select
-       to authenticated
-       using (
-         public.admin_tiene_permiso(%L::text)
-       )',
-      politica_lectura,
-      nombre_tabla,
-      'tarifas.leer'
-    );
+  v_distancia_m := case
+    when p_distancia_m is null then null
+    else round(p_distancia_m)
+  end;
 
-    execute format(
-      'create policy %I
-       on public.%I
-       for all
-       to authenticated
-       using (
-         public.admin_tiene_permiso(%L::text)
-       )
-       with check (
-         public.admin_tiene_permiso(%L::text)
-       )',
-      politica_escritura,
-      nombre_tabla,
-      'tarifas.editar',
-      'tarifas.editar'
-    );
-  end loop;
-end
+  update public.traslados
+  set estado = 'llegada_a_destino'
+  where id = p_traslado_id
+    and conductor_id = v_conductor_id
+    and estado = v_estado_actual;
+
+  if not found then
+    raise exception 'No se pudo confirmar la llegada a destino. Intenta de nuevo.';
+  end if;
+
+  insert into public.registro_auditoria (
+    traslado_id,
+    evento,
+    actor,
+    actor_id,
+    datos
+  ) values (
+    p_traslado_id,
+    'llegada_destino',
+    'conductor',
+    v_conductor_id,
+    jsonb_build_object(
+      'accion', 'conductor_confirmar_llegada_destino',
+      'estado_anterior', v_estado_actual,
+      'estado_nuevo', 'llegada_a_destino',
+      'transicion_atomica', true,
+      'fuera_geocerca', coalesce(p_fuera_geocerca, false),
+      'distancia_m', v_distancia_m
+    )
+  );
+
+  return 'llegada_a_destino';
+end;
 $$;
 
-
--- ============================================================
--- 8. CONDUCTORES
--- ============================================================
-
-drop policy if exists
-  "admin_acceso_total_conductores"
-  on public.conductores;
-
-drop policy if exists
-  "admin_lee_conductores_por_permiso"
-  on public.conductores;
-
-drop policy if exists
-  "admin_actualiza_conductores_por_permiso"
-  on public.conductores;
-
-create policy "admin_lee_conductores_por_permiso"
-  on public.conductores
-  for select
-  to authenticated
-  using (
-    public.admin_tiene_permiso('conductores.leer'::text)
-  );
-
-create policy "admin_actualiza_conductores_por_permiso"
-  on public.conductores
-  for update
-  to authenticated
-  using (
-    public.admin_tiene_permiso('conductores.validar'::text)
-  )
-  with check (
-    public.admin_tiene_permiso('conductores.validar'::text)
-  );
+revoke all on function public.conductor_confirmar_llegada_destino(uuid, boolean, numeric) from public;
+grant execute on function public.conductor_confirmar_llegada_destino(uuid, boolean, numeric) to authenticated;

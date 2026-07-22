@@ -34,6 +34,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_capacidades: {
+        Row: {
+          admin_id: string
+          capacidad: string
+          concedida: boolean
+          creada_en: string
+          motivo: string | null
+          otorgada_por: string | null
+        }
+        Insert: {
+          admin_id: string
+          capacidad: string
+          concedida?: boolean
+          creada_en?: string
+          motivo?: string | null
+          otorgada_por?: string | null
+        }
+        Update: {
+          admin_id?: string
+          capacidad?: string
+          concedida?: boolean
+          creada_en?: string
+          motivo?: string | null
+          otorgada_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_capacidades_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_capacidades_otorgada_por_fkey"
+            columns: ["otorgada_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admins: {
         Row: {
           auth_user_id: string | null
@@ -57,6 +99,53 @@ export type Database = {
           rol_operativo?: Database["public"]["Enums"]["rol_admin_operativo"]
         }
         Relationships: []
+      }
+      auditoria_admin_seguridad: {
+        Row: {
+          accion: string | null
+          admin_id: string | null
+          auth_user_id: string | null
+          creado_en: string
+          datos: Json
+          id: string
+          motivo: string | null
+          recurso: string
+          rol: string | null
+          tipo: string
+        }
+        Insert: {
+          accion?: string | null
+          admin_id?: string | null
+          auth_user_id?: string | null
+          creado_en?: string
+          datos?: Json
+          id?: string
+          motivo?: string | null
+          recurso: string
+          rol?: string | null
+          tipo: string
+        }
+        Update: {
+          accion?: string | null
+          admin_id?: string | null
+          auth_user_id?: string | null
+          creado_en?: string
+          datos?: Json
+          id?: string
+          motivo?: string | null
+          recurso?: string
+          rol?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_admin_seguridad_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       calificaciones_traslado: {
         Row: {
@@ -100,6 +189,67 @@ export type Database = {
             columns: ["traslado_id"]
             isOneToOne: true
             referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cargas_traslados_masivos: {
+        Row: {
+          creado_en: string
+          creado_por_admin_id: string | null
+          empresa_id: string
+          estado: string
+          filas_creadas: number
+          filas_error: number
+          id: string
+          nombre_archivo: string
+          total_filas: number
+          usuario_id: string
+        }
+        Insert: {
+          creado_en?: string
+          creado_por_admin_id?: string | null
+          empresa_id: string
+          estado?: string
+          filas_creadas?: number
+          filas_error?: number
+          id?: string
+          nombre_archivo: string
+          total_filas?: number
+          usuario_id: string
+        }
+        Update: {
+          creado_en?: string
+          creado_por_admin_id?: string | null
+          empresa_id?: string
+          estado?: string
+          filas_creadas?: number
+          filas_error?: number
+          id?: string
+          nombre_archivo?: string
+          total_filas?: number
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cargas_traslados_masivos_creado_por_admin_id_fkey"
+            columns: ["creado_por_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargas_traslados_masivos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargas_traslados_masivos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -165,6 +315,7 @@ export type Database = {
           calificacion_promedio: number
           calle: string | null
           cancelaciones_sin_justificacion_count: number
+          certificacion_pago: Database["public"]["Enums"]["certificacion_conductor"]
           ciudad_municipio: string | null
           codigo_postal: string | null
           colonia: string | null
@@ -198,6 +349,7 @@ export type Database = {
           telefono: string | null
           terminos_aceptados_en: string | null
           traslados_completados: number
+          version: number
           version_terminos_aceptada: number | null
         }
         Insert: {
@@ -207,6 +359,7 @@ export type Database = {
           calificacion_promedio?: number
           calle?: string | null
           cancelaciones_sin_justificacion_count?: number
+          certificacion_pago?: Database["public"]["Enums"]["certificacion_conductor"]
           ciudad_municipio?: string | null
           codigo_postal?: string | null
           colonia?: string | null
@@ -240,6 +393,7 @@ export type Database = {
           telefono?: string | null
           terminos_aceptados_en?: string | null
           traslados_completados?: number
+          version?: number
           version_terminos_aceptada?: number | null
         }
         Update: {
@@ -249,6 +403,7 @@ export type Database = {
           calificacion_promedio?: number
           calle?: string | null
           cancelaciones_sin_justificacion_count?: number
+          certificacion_pago?: Database["public"]["Enums"]["certificacion_conductor"]
           ciudad_municipio?: string | null
           codigo_postal?: string | null
           colonia?: string | null
@@ -282,6 +437,7 @@ export type Database = {
           telefono?: string | null
           terminos_aceptados_en?: string | null
           traslados_completados?: number
+          version?: number
           version_terminos_aceptada?: number | null
         }
         Relationships: []
@@ -400,6 +556,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      dispositivos_push: {
+        Row: {
+          activo: boolean
+          actualizado_en: string
+          creado_en: string
+          device_id: string
+          id: string
+          modelo: string | null
+          plataforma: string
+          token_push: string
+          ultimo_acceso: string
+          usuario_id: string
+          version_app: string | null
+          version_so: string | null
+        }
+        Insert: {
+          activo?: boolean
+          actualizado_en?: string
+          creado_en?: string
+          device_id: string
+          id?: string
+          modelo?: string | null
+          plataforma: string
+          token_push: string
+          ultimo_acceso?: string
+          usuario_id: string
+          version_app?: string | null
+          version_so?: string | null
+        }
+        Update: {
+          activo?: boolean
+          actualizado_en?: string
+          creado_en?: string
+          device_id?: string
+          id?: string
+          modelo?: string | null
+          plataforma?: string
+          token_push?: string
+          ultimo_acceso?: string
+          usuario_id?: string
+          version_app?: string | null
+          version_so?: string | null
+        }
+        Relationships: []
       }
       disputas: {
         Row: {
@@ -784,6 +985,69 @@ export type Database = {
         }
         Relationships: []
       }
+      eventos_observabilidad: {
+        Row: {
+          creado_en: string
+          datos: Json
+          duracion_ms: number | null
+          id: number
+          nivel: string
+          nombre: string
+          servicio: string
+          trace_id: string | null
+        }
+        Insert: {
+          creado_en?: string
+          datos?: Json
+          duracion_ms?: number | null
+          id?: number
+          nivel: string
+          nombre: string
+          servicio: string
+          trace_id?: string | null
+        }
+        Update: {
+          creado_en?: string
+          datos?: Json
+          duracion_ms?: number | null
+          id?: number
+          nivel?: string
+          nombre?: string
+          servicio?: string
+          trace_id?: string | null
+        }
+        Relationships: []
+      }
+      eventos_operativos_app: {
+        Row: {
+          creado_en: string
+          detalle: Json
+          id: string
+          plataforma: string
+          tipo: string
+          usuario_id: string | null
+          version_app: string
+        }
+        Insert: {
+          creado_en?: string
+          detalle?: Json
+          id?: string
+          plataforma?: string
+          tipo: string
+          usuario_id?: string | null
+          version_app: string
+        }
+        Update: {
+          creado_en?: string
+          detalle?: Json
+          id?: string
+          plataforma?: string
+          tipo?: string
+          usuario_id?: string | null
+          version_app?: string
+        }
+        Relationships: []
+      }
       eventos_registro_conductor: {
         Row: {
           auth_user_id: string | null
@@ -962,6 +1226,151 @@ export type Database = {
           origen?: Database["public"]["Enums"]["estado_expediente_conductor"]
         }
         Relationships: []
+      }
+      exportaciones_admin: {
+        Row: {
+          admin_id: string
+          completada_en: string | null
+          creada_en: string
+          error_codigo: string | null
+          estado: string
+          filas: number
+          filtros: Json
+          formato: string
+          hash_sha256: string | null
+          id: string
+          recurso: string
+        }
+        Insert: {
+          admin_id: string
+          completada_en?: string | null
+          creada_en?: string
+          error_codigo?: string | null
+          estado?: string
+          filas?: number
+          filtros?: Json
+          formato: string
+          hash_sha256?: string | null
+          id?: string
+          recurso: string
+        }
+        Update: {
+          admin_id?: string
+          completada_en?: string | null
+          creada_en?: string
+          error_codigo?: string | null
+          estado?: string
+          filas?: number
+          filtros?: Json
+          formato?: string
+          hash_sha256?: string | null
+          id?: string
+          recurso?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exportaciones_admin_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_flags_app: {
+        Row: {
+          actualizado_en: string
+          clave: string
+          descripcion: string | null
+          habilitada: boolean
+          porcentaje_rollout: number
+          versiones_permitidas: string[]
+        }
+        Insert: {
+          actualizado_en?: string
+          clave: string
+          descripcion?: string | null
+          habilitada?: boolean
+          porcentaje_rollout?: number
+          versiones_permitidas?: string[]
+        }
+        Update: {
+          actualizado_en?: string
+          clave?: string
+          descripcion?: string | null
+          habilitada?: boolean
+          porcentaje_rollout?: number
+          versiones_permitidas?: string[]
+        }
+        Relationships: []
+      }
+      filas_carga_traslados_masivos: {
+        Row: {
+          carga_id: string
+          creado_en: string
+          datos: Json
+          errores: string[]
+          estado: string
+          id: string
+          numero_fila: number
+          referencia_externa: string | null
+          traslado_id: string | null
+          vehiculo_id: string | null
+        }
+        Insert: {
+          carga_id: string
+          creado_en?: string
+          datos: Json
+          errores?: string[]
+          estado: string
+          id?: string
+          numero_fila: number
+          referencia_externa?: string | null
+          traslado_id?: string | null
+          vehiculo_id?: string | null
+        }
+        Update: {
+          carga_id?: string
+          creado_en?: string
+          datos?: Json
+          errores?: string[]
+          estado?: string
+          id?: string
+          numero_fila?: number
+          referencia_externa?: string | null
+          traslado_id?: string | null
+          vehiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "filas_carga_traslados_masivos_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cargas_traslados_masivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "filas_carga_traslados_masivos_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "filas_carga_traslados_masivos_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "filas_carga_traslados_masivos_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       historial_estados_solicitud_conductor: {
         Row: {
@@ -1210,27 +1619,6 @@ export type Database = {
           },
         ]
       }
-      feature_flags_app: {
-        Row: {
-          clave: string
-          habilitada: boolean
-          porcentaje_rollout: number
-          versiones_permitidas: string[] | null
-        }
-        Insert: {
-          clave: string
-          habilitada: boolean
-          porcentaje_rollout: number
-          versiones_permitidas?: string[] | null
-        }
-        Update: {
-          clave?: string
-          habilitada?: boolean
-          porcentaje_rollout?: number
-          versiones_permitidas?: string[] | null
-        }
-        Relationships: []
-      }
       notas_internas_traslado: {
         Row: {
           admin_id: string
@@ -1273,6 +1661,123 @@ export type Database = {
             columns: ["traslado_id"]
             isOneToOne: false
             referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificaciones_conductor: {
+        Row: {
+          actualizado_en: string
+          creado_en: string
+          cuerpo: string
+          datos: Json
+          destino: string
+          entidad_id: string | null
+          entidad_tipo: string | null
+          enviada_en: string | null
+          estado: string
+          id: string
+          idempotency_key: string
+          leida_en: string | null
+          prioridad: string
+          tipo: string
+          titulo: string
+          usuario_id: string
+        }
+        Insert: {
+          actualizado_en?: string
+          creado_en?: string
+          cuerpo: string
+          datos?: Json
+          destino: string
+          entidad_id?: string | null
+          entidad_tipo?: string | null
+          enviada_en?: string | null
+          estado?: string
+          id?: string
+          idempotency_key: string
+          leida_en?: string | null
+          prioridad?: string
+          tipo: string
+          titulo: string
+          usuario_id: string
+        }
+        Update: {
+          actualizado_en?: string
+          creado_en?: string
+          cuerpo?: string
+          datos?: Json
+          destino?: string
+          entidad_id?: string | null
+          entidad_tipo?: string | null
+          enviada_en?: string | null
+          estado?: string
+          id?: string
+          idempotency_key?: string
+          leida_en?: string | null
+          prioridad?: string
+          tipo?: string
+          titulo?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
+      notificaciones_push_entregas: {
+        Row: {
+          abierta_en: string | null
+          actualizado_en: string
+          codigo_error: string | null
+          creado_en: string
+          detalle_error: string | null
+          dispositivo_id: string
+          enviada_en: string | null
+          estado: string
+          fcm_message_id: string | null
+          id: string
+          notificacion_id: string
+          recibida_en: string | null
+        }
+        Insert: {
+          abierta_en?: string | null
+          actualizado_en?: string
+          codigo_error?: string | null
+          creado_en?: string
+          detalle_error?: string | null
+          dispositivo_id: string
+          enviada_en?: string | null
+          estado?: string
+          fcm_message_id?: string | null
+          id?: string
+          notificacion_id: string
+          recibida_en?: string | null
+        }
+        Update: {
+          abierta_en?: string | null
+          actualizado_en?: string
+          codigo_error?: string | null
+          creado_en?: string
+          detalle_error?: string | null
+          dispositivo_id?: string
+          enviada_en?: string | null
+          estado?: string
+          fcm_message_id?: string | null
+          id?: string
+          notificacion_id?: string
+          recibida_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificaciones_push_entregas_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: false
+            referencedRelation: "dispositivos_push"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificaciones_push_entregas_notificacion_id_fkey"
+            columns: ["notificacion_id"]
+            isOneToOne: false
+            referencedRelation: "notificaciones_conductor"
             referencedColumns: ["id"]
           },
         ]
@@ -1378,6 +1883,68 @@ export type Database = {
           },
         ]
       }
+      politicas_version_app: {
+        Row: {
+          actualizado_en: string
+          funcionalidades_incompatibles: string[]
+          mensaje: string | null
+          plataforma: string
+          version_minima: string
+          version_recomendada: string
+          version_vigente: string
+        }
+        Insert: {
+          actualizado_en?: string
+          funcionalidades_incompatibles?: string[]
+          mensaje?: string | null
+          plataforma: string
+          version_minima: string
+          version_recomendada: string
+          version_vigente: string
+        }
+        Update: {
+          actualizado_en?: string
+          funcionalidades_incompatibles?: string[]
+          mensaje?: string | null
+          plataforma?: string
+          version_minima?: string
+          version_recomendada?: string
+          version_vigente?: string
+        }
+        Relationships: []
+      }
+      preferencias_admin: {
+        Row: {
+          actualizado_en: string
+          admin_id: string
+          clave: string
+          valor: Json
+          version: number
+        }
+        Insert: {
+          actualizado_en?: string
+          admin_id: string
+          clave: string
+          valor?: Json
+          version?: number
+        }
+        Update: {
+          actualizado_en?: string
+          admin_id?: string
+          clave?: string
+          valor?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preferencias_admin_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       preferencias_conductor: {
         Row: {
           actualizado_en: string
@@ -1388,12 +1955,12 @@ export type Database = {
           conductor_id: string
           modo_no_molestar: boolean
           notificaciones_push: boolean
-          notificar_oportunidades: boolean
-          notificar_traslados_asignados: boolean
           notificar_cambios_operativos: boolean
           notificar_documentos: boolean
           notificar_ganancias: boolean
+          notificar_oportunidades: boolean
           notificar_promociones: boolean
+          notificar_traslados_asignados: boolean
           viajes_empresariales: boolean
           viajes_foraneos: boolean
           viajes_locales: boolean
@@ -1409,12 +1976,12 @@ export type Database = {
           conductor_id: string
           modo_no_molestar?: boolean
           notificaciones_push?: boolean
-          notificar_oportunidades?: boolean
-          notificar_traslados_asignados?: boolean
           notificar_cambios_operativos?: boolean
           notificar_documentos?: boolean
           notificar_ganancias?: boolean
+          notificar_oportunidades?: boolean
           notificar_promociones?: boolean
+          notificar_traslados_asignados?: boolean
           viajes_empresariales?: boolean
           viajes_foraneos?: boolean
           viajes_locales?: boolean
@@ -1430,6 +1997,12 @@ export type Database = {
           conductor_id?: string
           modo_no_molestar?: boolean
           notificaciones_push?: boolean
+          notificar_cambios_operativos?: boolean
+          notificar_documentos?: boolean
+          notificar_ganancias?: boolean
+          notificar_oportunidades?: boolean
+          notificar_promociones?: boolean
+          notificar_traslados_asignados?: boolean
           viajes_empresariales?: boolean
           viajes_foraneos?: boolean
           viajes_locales?: boolean
@@ -1455,6 +2028,7 @@ export type Database = {
           responsable_pago: string | null
           resuelto_en: string | null
           traslado_id: string
+          version: number
         }
         Insert: {
           abierto_en?: string
@@ -1464,6 +2038,7 @@ export type Database = {
           responsable_pago?: string | null
           resuelto_en?: string | null
           traslado_id: string
+          version?: number
         }
         Update: {
           abierto_en?: string
@@ -1473,6 +2048,7 @@ export type Database = {
           responsable_pago?: string | null
           resuelto_en?: string | null
           traslado_id?: string
+          version?: number
         }
         Relationships: [
           {
@@ -1586,6 +2162,78 @@ export type Database = {
             columns: ["traslado_id"]
             isOneToOne: true
             referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solicitudes_aprobacion_admin: {
+        Row: {
+          accion: string
+          aprobada_por: string | null
+          capacidad_requerida: string
+          creada_en: string
+          decidida_en: string | null
+          ejecutada_en: string | null
+          estado: string
+          expira_en: string
+          id: string
+          motivo_decision: string | null
+          payload: Json
+          recurso: string
+          recurso_id: string | null
+          solicitada_por: string
+          tipo: string
+          version: number
+        }
+        Insert: {
+          accion: string
+          aprobada_por?: string | null
+          capacidad_requerida: string
+          creada_en?: string
+          decidida_en?: string | null
+          ejecutada_en?: string | null
+          estado?: string
+          expira_en?: string
+          id?: string
+          motivo_decision?: string | null
+          payload?: Json
+          recurso: string
+          recurso_id?: string | null
+          solicitada_por: string
+          tipo: string
+          version?: number
+        }
+        Update: {
+          accion?: string
+          aprobada_por?: string | null
+          capacidad_requerida?: string
+          creada_en?: string
+          decidida_en?: string | null
+          ejecutada_en?: string | null
+          estado?: string
+          expira_en?: string
+          id?: string
+          motivo_decision?: string | null
+          payload?: Json
+          recurso?: string
+          recurso_id?: string | null
+          solicitada_por?: string
+          tipo?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_aprobacion_admin_aprobada_por_fkey"
+            columns: ["aprobada_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_aprobacion_admin_solicitada_por_fkey"
+            columns: ["solicitada_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
             referencedColumns: ["id"]
           },
         ]
@@ -1856,6 +2504,71 @@ export type Database = {
           },
         ]
       }
+      tracking_salud_traslado: {
+        Row: {
+          actualizado_en: string
+          conductor_id: string
+          fuente: string | null
+          online: boolean | null
+          precision_m: number | null
+          traslado_id: string
+          ultima_ubicacion_en: string | null
+          ultimo_envio_en: string | null
+          ultimo_punto_id: string | null
+        }
+        Insert: {
+          actualizado_en?: string
+          conductor_id: string
+          fuente?: string | null
+          online?: boolean | null
+          precision_m?: number | null
+          traslado_id: string
+          ultima_ubicacion_en?: string | null
+          ultimo_envio_en?: string | null
+          ultimo_punto_id?: string | null
+        }
+        Update: {
+          actualizado_en?: string
+          conductor_id?: string
+          fuente?: string | null
+          online?: boolean | null
+          precision_m?: number | null
+          traslado_id?: string
+          ultima_ubicacion_en?: string | null
+          ultimo_envio_en?: string | null
+          ultimo_punto_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_salud_traslado_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_salud_traslado_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: true
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "tracking_salud_traslado_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: true
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_salud_traslado_ultimo_punto_id_fkey"
+            columns: ["ultimo_punto_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones_traslado"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       traslados: {
         Row: {
           actualizado_en: string
@@ -1876,6 +2589,7 @@ export type Database = {
           distancia_km: number | null
           estado: Database["public"]["Enums"]["estado_traslado"]
           fecha_hora_programada: string | null
+          ganancia_conductor_congelada: number | null
           id: string
           instrucciones_especiales: string | null
           modalidad_programacion: string | null
@@ -1897,6 +2611,7 @@ export type Database = {
           vehiculo_id: string
           ventana_entrega: string | null
           ventana_recoleccion: string | null
+          version: number
         }
         Insert: {
           actualizado_en?: string
@@ -1917,6 +2632,7 @@ export type Database = {
           distancia_km?: number | null
           estado?: Database["public"]["Enums"]["estado_traslado"]
           fecha_hora_programada?: string | null
+          ganancia_conductor_congelada?: number | null
           id?: string
           instrucciones_especiales?: string | null
           modalidad_programacion?: string | null
@@ -1938,6 +2654,7 @@ export type Database = {
           vehiculo_id: string
           ventana_entrega?: string | null
           ventana_recoleccion?: string | null
+          version?: number
         }
         Update: {
           actualizado_en?: string
@@ -1958,6 +2675,7 @@ export type Database = {
           distancia_km?: number | null
           estado?: Database["public"]["Enums"]["estado_traslado"]
           fecha_hora_programada?: string | null
+          ganancia_conductor_congelada?: number | null
           id?: string
           instrucciones_especiales?: string | null
           modalidad_programacion?: string | null
@@ -1979,6 +2697,7 @@ export type Database = {
           vehiculo_id?: string
           ventana_entrega?: string | null
           ventana_recoleccion?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -2006,32 +2725,59 @@ export type Database = {
       }
       ubicaciones_traslado: {
         Row: {
+          altitud_m: number | null
+          bateria_pct: number | null
           conductor_id: string
+          direccion_grados: number | null
+          dispositivo_timestamp: string | null
+          estado_viaje: string | null
+          fuente: string
           id: string
           lat: number
           lng: number
+          local_id: string | null
+          online: boolean | null
           precision_m: number | null
           registrado_en: string
+          servidor_timestamp: string
           traslado_id: string
           velocidad_mps: number | null
         }
         Insert: {
+          altitud_m?: number | null
+          bateria_pct?: number | null
           conductor_id: string
+          direccion_grados?: number | null
+          dispositivo_timestamp?: string | null
+          estado_viaje?: string | null
+          fuente?: string
           id?: string
           lat: number
           lng: number
+          local_id?: string | null
+          online?: boolean | null
           precision_m?: number | null
           registrado_en?: string
+          servidor_timestamp?: string
           traslado_id: string
           velocidad_mps?: number | null
         }
         Update: {
+          altitud_m?: number | null
+          bateria_pct?: number | null
           conductor_id?: string
+          direccion_grados?: number | null
+          dispositivo_timestamp?: string | null
+          estado_viaje?: string | null
+          fuente?: string
           id?: string
           lat?: number
           lng?: number
+          local_id?: string | null
+          online?: boolean | null
           precision_m?: number | null
           registrado_en?: string
+          servidor_timestamp?: string
           traslado_id?: string
           velocidad_mps?: number | null
         }
@@ -2336,6 +3082,7 @@ export type Database = {
           estado: Database["public"]["Enums"]["estado_traslado"] | null
           evidencia_final_fotos_sincronizadas: number | null
           evidencia_inicial_fotos_sincronizadas: number | null
+          ganancia_conductor: number | null
           incidencias_abiertas: number | null
           monto_pagado: number | null
           origen_ciudad: string | null
@@ -2402,6 +3149,10 @@ export type Database = {
         Returns: string
       }
       admin_actual_id: { Args: never; Returns: string }
+      admin_actualiza_conductor_documentos: {
+        Args: { p_aprobado: boolean; p_conductor_id: string }
+        Returns: undefined
+      }
       admin_actualiza_reclamo_seguro: {
         Args: {
           p_estado: Database["public"]["Enums"]["estado_reclamo_seguro"]
@@ -2411,13 +3162,64 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_actualiza_usuario_verificacion: {
+        Args: {
+          p_estado: Database["public"]["Enums"]["estado_verificacion"]
+          p_motivo?: string
+          p_usuario_id: string
+        }
+        Returns: undefined
+      }
+      admin_actualizar_estado_traslado_con_version: {
+        Args: {
+          p_estado: Database["public"]["Enums"]["estado_traslado"]
+          p_traslado_id: string
+          p_version_esperada: number
+        }
+        Returns: number
+      }
       admin_actualizar_politica_tarifaria_normativa: {
         Args: { p_payload: Json }
         Returns: Json
       }
+      admin_aplica_tarifa_normativa: {
+        Args: { p_traslado_id: string }
+        Returns: number
+      }
       admin_asigna_conductor: {
         Args: { p_conductor_id: string; p_traslado_id: string }
         Returns: Database["public"]["Enums"]["estado_traslado"]
+      }
+      admin_completar_exportacion: {
+        Args: {
+          p_error?: string
+          p_filas: number
+          p_hash: string
+          p_id: string
+        }
+        Returns: undefined
+      }
+      admin_crea_empresa_corporativa: {
+        Args: { p_empresa: Json; p_titular: Json }
+        Returns: Json
+      }
+      admin_crea_traslados_masivos: {
+        Args: {
+          p_empresa_id: string
+          p_filas: Json
+          p_nombre_archivo: string
+          p_usuario_id: string
+        }
+        Returns: Json
+      }
+      admin_decidir_aprobacion: {
+        Args: {
+          p_aprobar: boolean
+          p_motivo: string
+          p_solicitud_id: string
+          p_version_esperada: number
+        }
+        Returns: undefined
       }
       admin_emite_cotizacion: {
         Args: { p_precio: number; p_traslado_id: string }
@@ -2434,6 +3236,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_registrar_exportacion: {
+        Args: { p_filtros: Json; p_formato: string; p_recurso: string }
+        Returns: string
+      }
       admin_resuelve_disputa: {
         Args: {
           p_detalle: string
@@ -2443,10 +3249,22 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_solicitar_aprobacion: {
+        Args: {
+          p_accion: string
+          p_capacidad: string
+          p_payload?: Json
+          p_recurso: string
+          p_recurso_id: string
+          p_tipo: string
+        }
+        Returns: string
+      }
       admin_sugerir_tarifa_traslado: {
         Args: { p_traslado_id: string }
         Returns: number
       }
+      admin_tiene_permiso: { Args: { p_permiso: string }; Returns: boolean }
       aprobar_expediente_conductor_admin: {
         Args: { p_conductor_id: string }
         Returns: undefined
@@ -2466,6 +3284,17 @@ export type Database = {
       auth_es_usuario_de_traslado: {
         Args: { p_traslado_id: string }
         Returns: boolean
+      }
+      calcular_pago_conductor: {
+        Args: {
+          p_certificacion: Database["public"]["Enums"]["certificacion_conductor"]
+          p_precio: number
+        }
+        Returns: number
+      }
+      calcular_pago_conductor_traslado: {
+        Args: { p_conductor_id?: string; p_traslado_id: string }
+        Returns: number
       }
       calcular_tarifa_traslado: {
         Args: {
@@ -2576,6 +3405,10 @@ export type Database = {
         Args: { p_usuario: unknown }
         Returns: undefined
       }
+      desactivar_dispositivo_push: {
+        Args: { p_device_id: string }
+        Returns: undefined
+      }
       determinar_tipo_pago_usuario: {
         Args: { p_usuario_id: string }
         Returns: Database["public"]["Enums"]["tipo_pago"]
@@ -2585,6 +3418,21 @@ export type Database = {
         Returns: Database["public"]["Enums"]["dia_traslado"]
       }
       empresa_id_del_titular_actual: { Args: never; Returns: string }
+      encolar_notificacion_conductor: {
+        Args: {
+          p_cuerpo: string
+          p_datos?: Json
+          p_destino: string
+          p_entidad_id?: string
+          p_entidad_tipo?: string
+          p_idempotency_key: string
+          p_prioridad?: string
+          p_tipo: string
+          p_titulo: string
+          p_usuario_id: string
+        }
+        Returns: string
+      }
       enviar_mensaje_chat: {
         Args: { p_contenido: string; p_traslado_id: string }
         Returns: {
@@ -2631,6 +3479,10 @@ export type Database = {
           solicitud_id: string
         }[]
       }
+      guardar_preferencia_admin: {
+        Args: { p_clave: string; p_valor: Json; p_version_esperada?: number }
+        Returns: number
+      }
       horario_desde_timestamp: {
         Args: { p_ts: string }
         Returns: Database["public"]["Enums"]["horario_traslado"]
@@ -2643,6 +3495,10 @@ export type Database = {
           paso_actual: number
           solicitud_id: string
         }[]
+      }
+      marcar_notificacion_leida: {
+        Args: { p_notificacion_id: string }
+        Returns: undefined
       }
       objetivo_documento_pertenece_auth: {
         Args: { p_auth_user_id?: string; p_objetivo_id: string }
@@ -2660,9 +3516,10 @@ export type Database = {
         Args: { p_plataforma: string; p_version_actual: string }
         Returns: Json
       }
-      registrar_evento_operativo_app: {
-        Args: { p_detalle: Json; p_tipo: string; p_version_app: string }
-        Returns: undefined
+      obtener_preferencia_admin: { Args: { p_clave: string }; Returns: Json }
+      puede_ver_tarifa_traslado: {
+        Args: { p_usuario_id: string }
+        Returns: boolean
       }
       rango_desde_distancia: {
         Args: { p_km: number }
@@ -2692,6 +3549,14 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_acceso_admin_denegado: {
+        Args: { p_metodo: string; p_motivo: string; p_ruta: string }
+        Returns: undefined
+      }
+      registrar_apertura_push: {
+        Args: { p_device_id: string; p_notificacion_id: string }
+        Returns: undefined
+      }
       registrar_consentimientos_conductor: {
         Args: {
           p_canal: string
@@ -2700,6 +3565,17 @@ export type Database = {
           p_version_app: string
         }
         Returns: number
+      }
+      registrar_dispositivo_push: {
+        Args: {
+          p_device_id: string
+          p_modelo?: string
+          p_plataforma?: string
+          p_token_push: string
+          p_version_app?: string
+          p_version_so?: string
+        }
+        Returns: string
       }
       registrar_documento_conductor: {
         Args: {
@@ -2725,6 +3601,10 @@ export type Database = {
         Args: { p_ruta: string }
         Returns: undefined
       }
+      registrar_evento_operativo_app: {
+        Args: { p_detalle?: Json; p_tipo: string; p_version_app: string }
+        Returns: string
+      }
       registrar_evento_registro_conductor: {
         Args: {
           p_codigo?: string
@@ -2734,6 +3614,14 @@ export type Database = {
           p_sesion_id: string
         }
         Returns: string
+      }
+      registrar_permiso_admin_denegado: {
+        Args: { p_motivo: string; p_permiso: string }
+        Returns: undefined
+      }
+      registrar_telemetria_lote: {
+        Args: { p_puntos: Json; p_traslado_id: string }
+        Returns: Json
       }
       revisar_documento_conductor_admin: {
         Args: { p_documento_id: string; p_estado: string; p_notas?: string }
@@ -3811,6 +4699,13 @@ export const Constants = {
       rango_distancia: ["rango_1", "rango_2", "rango_3", "rango_4"],
       remitente_chat: ["usuario", "conductor"],
       resolucion_disputa: ["favor_reclamante", "en_contra", "solucion_parcial"],
+      rol_admin_operativo: [
+        "operador",
+        "supervisor",
+        "finanzas",
+        "compliance",
+        "direccion",
+      ],
       rol_usuario: ["personal", "titular_empresa", "usuario_autorizado"],
       tipo_disputa: [
         "cobro_incorrecto",
@@ -3849,3 +4744,4 @@ export const Constants = {
     },
   },
 } as const
+

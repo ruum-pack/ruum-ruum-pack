@@ -24,5 +24,5 @@ export function EstadoTrackingGlobal() {
   }, []);
   if (!status?.active && !status?.lastError) return null;
   const warning = Boolean(status?.lastError || (status?.lastLocationAt && Date.now() - status.lastLocationAt > 120_000));
-  return <div role="status" className={`mx-auto mt-3 w-[min(100%-24px,1120px)] rounded-xl border px-4 py-2 font-body text-sm font-semibold ${warning ? "border-warning/40 bg-warning/10 text-warning" : "border-success/30 bg-success/10 text-success"}`}>{status ? etiqueta(status) : "Consultando seguimiento"}</div>;
+  return <output className={`mx-auto mt-3 block w-[min(100%-24px,1120px)] rounded-xl border px-4 py-2 font-body text-sm font-semibold ${warning ? "border-warning/40 bg-warning/10 text-warning" : "border-success/30 bg-success/10 text-success"}`}>{status ? etiqueta(status) : "Consultando seguimiento"}</output>;
 }

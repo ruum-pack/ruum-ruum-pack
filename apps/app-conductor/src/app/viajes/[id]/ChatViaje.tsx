@@ -167,13 +167,12 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
                   i
                 </button>
                 {popoverAvisoAbierto && (
-                  <div
-                    role="dialog"
+                  <dialog
                     aria-label="Aviso de comunicación"
                     className="absolute left-0 z-20 mt-2 w-72 rounded-xl border border-route-action bg-surface p-3 font-body text-sm leading-5 text-route-action shadow-3"
                   >
                     {MENSAJES_CLAVE_UX.comunicacion}
-                  </div>
+                  </dialog>
                 )}
               </div>
             )}

@@ -173,7 +173,7 @@ export function ReportarIncidencia({ trasladoId }: { trasladoId: string }) {
   const [adjunto, setAdjunto] = useState<File | null>(null);
   const [procesando, setProcesando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
-  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const tituloRef = useRef<HTMLHeadingElement | null>(null);
   const elementoPrevioRef = useRef<HTMLElement | null>(null);
 
@@ -284,16 +284,15 @@ export function ReportarIncidencia({ trasladoId }: { trasladoId: string }) {
       </div>
 
       {mensaje && !abierto && (
-        <div className="mt-4" role="status" aria-live="polite" aria-atomic="true">
+        <output className="mt-4" aria-live="polite" aria-atomic="true">
           <Aviso tono={mensaje.tono}>{mensaje.texto}</Aviso>
-        </div>
+        </output>
       )}
 
       {abierto && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/60 px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-[max(12px,env(safe-area-inset-top))]" role="presentation">
-          <div
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60 px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-[max(12px,env(safe-area-inset-top))]">
+          <dialog
             ref={dialogRef}
-            role="dialog"
             aria-modal="true"
             aria-labelledby="reportar-problema-titulo"
             className="mx-auto flex max-h-[min(86dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-[0_-18px_70px_rgba(26,31,46,0.28)] sm:rounded-2xl"
@@ -317,9 +316,9 @@ export function ReportarIncidencia({ trasladoId }: { trasladoId: string }) {
 
             <div className="overflow-y-auto px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-4">
               {mensaje && (
-                <div role="status" aria-live="polite" aria-atomic="true">
+                <output aria-live="polite" aria-atomic="true">
                   <Aviso tono={mensaje.tono}>{mensaje.texto}</Aviso>
-                </div>
+                </output>
               )}
 
               <fieldset className="mt-4">
@@ -380,7 +379,7 @@ export function ReportarIncidencia({ trasladoId }: { trasladoId: string }) {
                 </div>
               )}
             </div>
-          </div>
+          </dialog>
         </div>
       )}
     </section>
