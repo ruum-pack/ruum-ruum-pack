@@ -9,10 +9,10 @@ import {
   listarSolicitudesConductorAdmin,
   type SolicitudConductorBandejaAdmin
 } from "@ruum/api/services";
-import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 type FiltroBandeja = "todas" | "nuevas" | "en_revision" | "documentos_rechazados" | "pendientes_correccion" | "aprobadas" | "rechazadas";
-type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "sin_conexion" | "demo";
+type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "sin_conexion";
 
 const FILTROS: { valor: FiltroBandeja; etiqueta: string }[] = [
   { valor: "todas", etiqueta: "Todas" },
@@ -60,7 +60,6 @@ export default function PaginaConductoresAdmin() {
   const [solicitudes, setSolicitudes] = useState<SolicitudConductorBandejaAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
   const [actualizandoManual, setActualizandoManual] = useState(false);
-  const [esDemo, setEsDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<FiltroBandeja>("todas");
@@ -84,9 +83,8 @@ export default function PaginaConductoresAdmin() {
 
     if (!tieneSupabaseConfigurado()) {
       setSolicitudes([]);
-      setEsDemo(true);
-      setError(null);
-      setEstadoConexion("demo");
+      setError("Supabase no configurado.");
+      setEstadoConexion("sin_conexion");
       setUltimaActualizacion(new Date());
       setCargando(false);
       setActualizandoManual(false);
@@ -96,20 +94,11 @@ export default function PaginaConductoresAdmin() {
     try {
       setError(null);
       setSolicitudes(await listarSolicitudesConductorAdmin(crearClienteNavegador()));
-      setEsDemo(false);
       setEstadoConexion("datos_en_vivo");
       setUltimaActualizacion(new Date());
     } catch (err) {
-      if (puedeUsarDatosDemo()) {
-        setSolicitudes([]);
-        setEsDemo(true);
-        setError(null);
-        setEstadoConexion("demo");
-        setUltimaActualizacion(new Date());
-      } else {
-        setError(err instanceof Error ? err.message : "No pudimos cargar la bandeja de revisión.");
-        setEstadoConexion("sin_conexion");
-      }
+      setError(err instanceof Error ? err.message : "No pudimos cargar la bandeja de revisión.");
+      setEstadoConexion("sin_conexion");
     } finally {
       setCargando(false);
       setActualizandoManual(false);
@@ -231,11 +220,6 @@ export default function PaginaConductoresAdmin() {
         )}
       />
 
-      {esDemo && (
-        <div className="mt-4">
-          <Aviso tono="info">Configura Supabase para consultar solicitudes reales.</Aviso>
-        </div>
-      )}
       {avisoAccion && (
         <div className="mt-4">
           <Aviso tono="info">{avisoAccion}</Aviso>
