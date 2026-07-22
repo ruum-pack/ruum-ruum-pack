@@ -98,7 +98,7 @@ export function rutaBaseAdmin(href: string) {
 
 export function puedeVerRuta(rol: RolAdminOperativo, href: string) {
   const ruta = rutaBaseAdmin(href);
-  if (ruta === "/sin-permiso") return true;
+  if (ruta === "/sin-permiso" || rol === "direccion") return true;
   return CONFIG_ROL_ADMIN[rol].rutasPermitidas.some(
     (permitida) => permitida === "/" ? ruta === "/" : ruta === permitida || ruta.startsWith(`${permitida}/`)
   );
