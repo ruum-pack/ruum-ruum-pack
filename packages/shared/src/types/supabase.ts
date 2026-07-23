@@ -322,6 +322,7 @@ export type Database = {
           contacto_emergencia_nombre: string | null
           contacto_emergencia_telefono: string | null
           creado_en: string
+          empresa_id: string | null
           curp: string | null
           declara_sin_suspensiones: boolean
           documentos_vigentes: boolean
@@ -366,6 +367,7 @@ export type Database = {
           contacto_emergencia_nombre?: string | null
           contacto_emergencia_telefono?: string | null
           creado_en?: string
+          empresa_id?: string | null
           curp?: string | null
           declara_sin_suspensiones?: boolean
           documentos_vigentes?: boolean
@@ -410,6 +412,7 @@ export type Database = {
           contacto_emergencia_nombre?: string | null
           contacto_emergencia_telefono?: string | null
           creado_en?: string
+          empresa_id?: string | null
           curp?: string | null
           declara_sin_suspensiones?: boolean
           documentos_vigentes?: boolean
@@ -674,6 +677,53 @@ export type Database = {
         }
         Relationships: []
       }
+      documentos_vehiculo: {
+        Row: {
+          actualizado_en: string
+          creado_en: string
+          estado: string
+          id: string
+          mime_type: string
+          nombre_archivo: string
+          tamano_bytes: number
+          tipo: string
+          url: string
+          vehiculo_id: string
+        }
+        Insert: {
+          actualizado_en?: string
+          creado_en?: string
+          estado?: string
+          id?: string
+          mime_type: string
+          nombre_archivo: string
+          tamano_bytes: number
+          tipo: string
+          url: string
+          vehiculo_id: string
+        }
+        Update: {
+          actualizado_en?: string
+          creado_en?: string
+          estado?: string
+          id?: string
+          mime_type?: string
+          nombre_archivo?: string
+          tamano_bytes?: number
+          tipo?: string
+          url?: string
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_vehiculo_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos_conductor: {
         Row: {
           actualizado_en: string
@@ -681,6 +731,7 @@ export type Database = {
           creado_en: string
           documento_anterior_id: string | null
           es_actual: boolean
+          expira_en: string | null
           estado: string
           id: string
           motivo_rechazo: string | null
@@ -700,6 +751,7 @@ export type Database = {
           creado_en?: string
           documento_anterior_id?: string | null
           es_actual?: boolean
+          expira_en?: string | null
           estado?: string
           id?: string
           motivo_rechazo?: string | null
@@ -719,6 +771,7 @@ export type Database = {
           creado_en?: string
           documento_anterior_id?: string | null
           es_actual?: boolean
+          expira_en?: string | null
           estado?: string
           id?: string
           motivo_rechazo?: string | null
@@ -837,6 +890,7 @@ export type Database = {
           eliminado_storage_en?: string | null
           error_eliminacion?: string | null
           es_actual?: boolean
+          expira_en?: string | null
           estado?: string
           id?: string
           intentos_eliminacion?: number
@@ -857,6 +911,7 @@ export type Database = {
           eliminado_storage_en?: string | null
           error_eliminacion?: string | null
           es_actual?: boolean
+          expira_en?: string | null
           estado?: string
           id?: string
           intentos_eliminacion?: number
@@ -1444,6 +1499,7 @@ export type Database = {
           resuelta_en: string | null
           tipo: Database["public"]["Enums"]["tipo_incidencia"]
           traslado_id: string
+          usuario_id?: string | null
         }
         Insert: {
           creada_en?: string
@@ -1455,6 +1511,7 @@ export type Database = {
           resuelta_en?: string | null
           tipo: Database["public"]["Enums"]["tipo_incidencia"]
           traslado_id: string
+          usuario_id?: string | null
         }
         Update: {
           creada_en?: string
@@ -1466,6 +1523,7 @@ export type Database = {
           resuelta_en?: string | null
           tipo?: Database["public"]["Enums"]["tipo_incidencia"]
           traslado_id?: string
+          usuario_id?: string | null
         }
         Relationships: [
           {
@@ -1793,6 +1851,7 @@ export type Database = {
           stripe_event_id: string | null
           stripe_payment_intent_id: string | null
           traslado_id: string
+          usuario_id?: string | null
         }
         Insert: {
           estado?: Database["public"]["Enums"]["estado_pago"]
@@ -1804,6 +1863,7 @@ export type Database = {
           stripe_event_id?: string | null
           stripe_payment_intent_id?: string | null
           traslado_id: string
+          usuario_id?: string | null
         }
         Update: {
           estado?: Database["public"]["Enums"]["estado_pago"]
@@ -1815,6 +1875,7 @@ export type Database = {
           stripe_event_id?: string | null
           stripe_payment_intent_id?: string | null
           traslado_id?: string
+          usuario_id?: string | null
         }
         Relationships: [
           {
@@ -1829,6 +1890,13 @@ export type Database = {
             columns: ["traslado_id"]
             isOneToOne: false
             referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -2117,6 +2185,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sesiones_usuario: {
+        Row: {
+          activa: boolean
+          agente_usuario: string | null
+          auth_user_id: string | null
+          creada_en: string
+          direccion_ip: string | null
+          id: string
+          ultimo_acceso: string | null
+        }
+        Insert: {
+          activa?: boolean
+          agente_usuario?: string | null
+          auth_user_id?: string | null
+          creada_en?: string
+          direccion_ip?: string | null
+          id?: string
+          ultimo_acceso?: string | null
+        }
+        Update: {
+          activa?: boolean
+          agente_usuario?: string | null
+          auth_user_id?: string | null
+          creada_en?: string
+          direccion_ip?: string | null
+          id?: string
+          ultimo_acceso?: string | null
+        }
+        Relationships: []
       }
       sesiones_proxy_traslado: {
         Row: {
@@ -2819,11 +2917,13 @@ export type Database = {
           colonia: string | null
           correo_facturacion: string | null
           creado_en: string
+          curp: string | null
           direccion_principal: string | null
           doc_identidad_subido_en: string | null
           doc_identidad_url: string | null
           empresa_id: string | null
           estado: string | null
+          estado_cuenta: string | null
           estado_verificacion: Database["public"]["Enums"]["estado_verificacion"]
           foto_url: string | null
           id: string
@@ -2860,11 +2960,13 @@ export type Database = {
           colonia?: string | null
           correo_facturacion?: string | null
           creado_en?: string
+          curp?: string | null
           direccion_principal?: string | null
           doc_identidad_subido_en?: string | null
           doc_identidad_url?: string | null
           empresa_id?: string | null
           estado?: string | null
+          estado_cuenta?: string | null
           estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"]
           foto_url?: string | null
           id?: string
@@ -2901,11 +3003,13 @@ export type Database = {
           colonia?: string | null
           correo_facturacion?: string | null
           creado_en?: string
+          curp?: string | null
           direccion_principal?: string | null
           doc_identidad_subido_en?: string | null
           doc_identidad_url?: string | null
           empresa_id?: string | null
           estado?: string | null
+          estado_cuenta?: string | null
           estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"]
           foto_url?: string | null
           id?: string
@@ -2939,6 +3043,130 @@ export type Database = {
           },
         ]
       }
+      historial_asignacion_vehiculo: {
+        Row: {
+          activo: boolean
+          asignado_en: string
+          conductor_id: string
+          desasignado_en: string | null
+          id: string
+          motivo: string | null
+          vehiculo_id: string
+        }
+        Insert: {
+          activo?: boolean
+          asignado_en?: string
+          conductor_id: string
+          desasignado_en?: string | null
+          id?: string
+          motivo?: string | null
+          vehiculo_id: string
+        }
+        Update: {
+          activo?: boolean
+          asignado_en?: string
+          conductor_id?: string
+          desasignado_en?: string | null
+          id?: string
+          motivo?: string | null
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historial_asignacion_vehiculo_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historial_asignacion_vehiculo_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historial_vehiculos: {
+        Row: {
+          cambiado_en: string
+          cambiado_por: string
+          conductor_id: string | null
+          empresa_id: string | null
+          estado_anterior: string | null
+          estado_nuevo: string
+          id: string
+          vehiculo_id: string
+        }
+        Insert: {
+          cambiado_en?: string
+          cambiado_por: string
+          conductor_id?: string | null
+          empresa_id?: string | null
+          estado_anterior?: string | null
+          estado_nuevo: string
+          id?: string
+          vehiculo_id: string
+        }
+        Update: {
+          cambiado_en?: string
+          cambiado_por?: string
+          conductor_id?: string | null
+          empresa_id?: string | null
+          estado_anterior?: string | null
+          estado_nuevo?: string
+          id?: string
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historial_vehiculos_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historial_estatus_conductor: {
+        Row: {
+          cambiado_en: string
+          cambiado_por: string
+          conductor_id: string
+          estado_anterior: string | null
+          estado_nuevo: string
+          id: string
+          motivo: string | null
+        }
+        Insert: {
+          cambiado_en?: string
+          cambiado_por: string
+          conductor_id: string
+          estado_anterior?: string | null
+          estado_nuevo: string
+          id?: string
+          motivo?: string | null
+        }
+        Update: {
+          cambiado_en?: string
+          cambiado_por?: string
+          conductor_id?: string
+          estado_anterior?: string | null
+          estado_nuevo?: string
+          id?: string
+          motivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historial_estatus_conductor_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehiculos: {
         Row: {
           alias: string | null
@@ -2949,6 +3177,8 @@ export type Database = {
           color: string | null
           condicion: Database["public"]["Enums"]["condicion_vehiculo"] | null
           creado_en: string
+          conductor_id: string | null
+          empresa_id: string | null
           estado_general_declarado: string | null
           fotos_urls: string[]
           gama: Database["public"]["Enums"]["gama_vehiculo"] | null
@@ -2965,6 +3195,8 @@ export type Database = {
           transmision: string | null
           usuario_id: string
           vin: string | null
+          version: number
+          actualizado_en: string
         }
         Insert: {
           alias?: string | null
@@ -2975,6 +3207,8 @@ export type Database = {
           color?: string | null
           condicion?: Database["public"]["Enums"]["condicion_vehiculo"] | null
           creado_en?: string
+          conductor_id?: string | null
+          empresa_id?: string | null
           estado_general_declarado?: string | null
           fotos_urls?: string[]
           gama?: Database["public"]["Enums"]["gama_vehiculo"] | null
@@ -2991,6 +3225,8 @@ export type Database = {
           transmision?: string | null
           usuario_id: string
           vin?: string | null
+          version?: number
+          actualizado_en?: string
         }
         Update: {
           alias?: string | null
@@ -3001,6 +3237,8 @@ export type Database = {
           color?: string | null
           condicion?: Database["public"]["Enums"]["condicion_vehiculo"] | null
           creado_en?: string
+          conductor_id?: string | null
+          empresa_id?: string | null
           estado_general_declarado?: string | null
           fotos_urls?: string[]
           gama?: Database["public"]["Enums"]["gama_vehiculo"] | null
@@ -3017,6 +3255,8 @@ export type Database = {
           transmision?: string | null
           usuario_id?: string
           vin?: string | null
+          version?: number
+          actualizado_en?: string
         }
         Relationships: [
           {
@@ -3198,6 +3438,14 @@ export type Database = {
         Args: { p_conductor_id: string; p_traslado_id: string }
         Returns: Database["public"]["Enums"]["estado_traslado"]
       }
+      admin_actualizar_vehiculo: {
+        Args: {
+          p_vehiculo_id: string
+          p_datos: Json
+          p_version_esperada: number
+        }
+        Returns: Json
+      }
       admin_cambiar_estado_traslado: {
         Args: {
           p_aprobacion_id?: string
@@ -3359,6 +3607,7 @@ export type Database = {
           p_payload?: Json
           p_recurso: string
           p_recurso_id: string
+          p_requerida_por?: string
         }
         Returns: Json
       }

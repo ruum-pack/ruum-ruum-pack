@@ -239,8 +239,8 @@ function TabPagos({ usuarioId }: { usuarioId: string }) {
             <tr key={p.id} className="border-b border-ink/5 last:border-0">
               <td className="px-4 py-3 font-mono-ruum">${(p.monto ?? 0).toFixed(2)}</td>
               <td className="px-4 py-3 capitalize">{p.estado?.replaceAll("_", " ")}</td>
-              <td className="px-4 py-3 text-text-secondary">{p.metodo_pago ?? "-"}</td>
-              <td className="px-4 py-3 text-text-secondary">{new Date(p.creado_en).toLocaleDateString("es-MX")}</td>
+              <td className="px-4 py-3 text-text-secondary">{p.metodo ?? "-"}</td>
+              <td className="px-4 py-3 text-text-secondary">{new Date(p.registrado_en).toLocaleDateString("es-MX")}</td>
             </tr>
           ))}
         </tbody>
@@ -266,19 +266,13 @@ function TabIncidencias({ usuarioId }: { usuarioId: string }) {
         <thead><tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-text-tertiary">
           <th className="px-4 py-3">Tipo</th>
           <th className="px-4 py-3">Estado</th>
-          <th className="px-4 py-3">Severidad</th>
           <th className="px-4 py-3">Fecha</th>
         </tr></thead>
         <tbody>
           {incidencias.map((inc) => (
             <tr key={inc.id} className="border-b border-ink/5 last:border-0">
               <td className="px-4 py-3 capitalize">{inc.tipo?.replaceAll("_", " ")}</td>
-              <td className="px-4 py-3 capitalize">{inc.estado}</td>
-              <td className="px-4 py-3">
-                <span className={`rounded-full px-2 py-0.5 text-xs ${
-                  inc.severidad === "alta" ? "bg-status-error/20 text-status-error" : "bg-status-warning/20 text-status-warning"
-                }`}>{inc.severidad}</span>
-              </td>
+              <td className="px-4 py-3 capitalize">{inc.resuelta ? "Resuelta" : "Abierta"}</td>
               <td className="px-4 py-3 text-text-secondary">{new Date(inc.creada_en).toLocaleDateString("es-MX")}</td>
             </tr>
           ))}
@@ -289,7 +283,7 @@ function TabIncidencias({ usuarioId }: { usuarioId: string }) {
 }
 
 function TabSesiones({ usuarioId }: { usuarioId: string }) {
-  const [sesiones, setSesiones] = useState<Array<{ id: string; creada_en: string; ultimo_acceso: string | null; agente_usuario: string | null; activa: boolean }> | null>(null);
+  const [sesiones, setSesiones] = useState<Array<{ id: string; creada_en: string; ultimo_acceso: string | null; agente_usuario: string | null; direccion_ip: string | null; activa: boolean }> | null>(null);
   const [cargando, setCargando] = useState(true);
   const [revocando, setRevocando] = useState<string | null>(null);
 

@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
 import {
   obtenerConductorAdmin,
   actualizarConductorAdmin,
@@ -34,14 +34,24 @@ type HistorialEstatus = {
 
 const ESTADO_CLASE: Record<string, string> = {
   activo: "border-status-success/30 bg-status-success-soft text-status-success",
-  suspendido: "border-status-error/30 bg-status-error-soft text-status-error",
-  baja: "border-ink/30 bg-ink/10 text-text-tertiary"
+  suspendido_7d: "border-status-error/30 bg-status-error-soft text-status-error",
+  suspendido_14d: "border-status-error/30 bg-status-error-soft text-status-error",
+  suspendido_30d: "border-status-error/30 bg-status-error-soft text-status-error",
+  suspendido_indefinido: "border-status-error/30 bg-status-error-soft text-status-error",
+  bloqueado_permanente: "border-ink/30 bg-ink/10 text-text-tertiary",
+  modo_prueba_supervisada: "border-status-warning/30 bg-status-warning-soft text-status-warning",
+  pendiente_verificacion: "border-ink/30 bg-ink/10 text-text-tertiary"
 };
 
 const ETIQUETA_ESTADO: Record<string, string> = {
   activo: "Activo",
-  suspendido: "Suspendido",
-  baja: "Baja"
+  suspendido_7d: "Suspendido (7d)",
+  suspendido_14d: "Suspendido (14d)",
+  suspendido_30d: "Suspendido (30d)",
+  suspendido_indefinido: "Suspendido",
+  bloqueado_permanente: "Baja",
+  modo_prueba_supervisada: "Modo prueba",
+  pendiente_verificacion: "Pendiente"
 };
 
 const ETIQUETA_DOCUMENTO: Record<string, string> = {
@@ -70,7 +80,6 @@ export default function PaginaDetalleConductorAdmin() {
   const [vehiculos, setVehiculos] = useState<VehiculoRow[]>([]);
   const [empresa, setEmpresa] = useState<EmpresaRow | null>(null);
   const [historial, setHistorial] = useState<HistorialEstatus[]>([]);
-  const [alertasVencimiento, setAlertasVencimiento] = useState<string[]>([]);
   const [cargando, setCargando] = useState(true);
   const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
 
@@ -88,10 +97,10 @@ export default function PaginaDetalleConductorAdmin() {
       ]);
       setConductor(c);
       if (!d.error) setDocumentos(d.data ?? []);
-      if (!v.error) setVehiculos(v.data ?? []);
+      setVehiculos(v);
       setEmpresa(e);
       setHistorial(h);
-      setAlertasVencimiento(a);
+      void a;
     } catch { setConductor(null); }
     finally { setCargando(false); }
   }, [id]);
@@ -125,7 +134,7 @@ export default function PaginaDetalleConductorAdmin() {
         <h1 className="font-display text-2xl font-semibold">{conductor.nombre}</h1>
         <p className="mt-1 font-body text-sm text-text-secondary">{conductor.curp ?? "Sin CURP"} · {conductor.telefono ?? "Sin teléfono"}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <span className={`rounded-full border px-3 py-1 font-body text-xs font-medium ${ESTADO_CLASE[conductor.estado]}`}>{ETIQUETA_ESTADO[conductor.estado]}</span>
+          <span className={`rounded-full border px-3 py-1 font-body text-xs font-medium ${ESTADO_CLASE[conductor.estado] ?? ""}`}>{ETIQUETA_ESTADO[conductor.estado] ?? conductor.estado}</span>
           <span className="rounded-full bg-ink/10 px-3 py-1 font-body text-xs">Licencia: {conductor.licencia_numero ?? "—"}</span>
         </div>
       </div>
@@ -152,7 +161,7 @@ export default function PaginaDetalleConductorAdmin() {
         </Seccion>
 
         <Seccion titulo="Estados y fechas">
-          <Dato etiqueta="Estado actual" valor={ETIQUETA_ESTADO[conductor.estado]} />
+          <Dato etiqueta="Estado actual" valor={ETIQUETA_ESTADO[conductor.estado] ?? conductor.estado} />
           <Dato etiqueta="Registrado" valor={fecha(conductor.creado_en)} />
           <Dato etiqueta="Actualizado" valor={fecha(conductor.actualizado_en)} />
         </Seccion>
@@ -182,10 +191,10 @@ export default function PaginaDetalleConductorAdmin() {
           {conductor.estado === "activo" && (
             <SuspenderConductor conductorId={conductor.id} onCompletado={() => { void cargar(); setAviso({ tono: "info", texto: "Conductor suspendido." }); }} />
           )}
-          {conductor.estado === "suspendido" && (
+          {(conductor.estado === "suspendido_7d" || conductor.estado === "suspendido_14d" || conductor.estado === "suspendido_30d" || conductor.estado === "suspendido_indefinido") && (
             <ReactivarConductor conductorId={conductor.id} onCompletado={() => { void cargar(); setAviso({ tono: "info", texto: "Conductor reactivado." }); }} />
           )}
-          {conductor.estado !== "baja" && (
+          {conductor.estado !== "bloqueado_permanente" && (
             <DarBajaConductor conductorId={conductor.id} onCompletado={() => { void cargar(); setAviso({ tono: "info", texto: "Conductor dado de baja." }); }} />
           )}
         </div>

@@ -18,15 +18,23 @@ type EstadoConductor = Database["public"]["Enums"]["estado_conductor"];
 const ETIQUETA_ESTADO: Record<EstadoConductor, string> = {
   pendiente_verificacion: "Pendiente verificación",
   activo: "Activo",
-  suspendido: "Suspendido",
-  baja: "Baja"
+  suspendido_7d: "Suspendido (7d)",
+  suspendido_14d: "Suspendido (14d)",
+  suspendido_30d: "Suspendido (30d)",
+  suspendido_indefinido: "Suspendido",
+  bloqueado_permanente: "Baja",
+  modo_prueba_supervisada: "Modo prueba"
 };
 
 const ESTADO_CLASE: Record<EstadoConductor, string> = {
   pendiente_verificacion: "bg-status-warning/20 text-status-warning border-status-warning/30",
   activo: "bg-status-success/20 text-status-success border-status-success/30",
-  suspendido: "bg-status-error/20 text-status-error border-status-error/30",
-  baja: "bg-ink/10 text-text-tertiary border-ink/20"
+  suspendido_7d: "bg-status-error/20 text-status-error border-status-error/30",
+  suspendido_14d: "bg-status-error/20 text-status-error border-status-error/30",
+  suspendido_30d: "bg-status-error/20 text-status-error border-status-error/30",
+  suspendido_indefinido: "bg-status-error/20 text-status-error border-status-error/30",
+  bloqueado_permanente: "bg-ink/10 text-text-tertiary border-ink/20",
+  modo_prueba_supervisada: "bg-status-warning/20 text-status-warning border-status-warning/30"
 };
 
 export default function PaginaConductoresActivos() {

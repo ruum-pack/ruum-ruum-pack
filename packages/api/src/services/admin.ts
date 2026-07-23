@@ -1041,15 +1041,15 @@ export async function obtenerAuditoriaUsuario(cliente: Cliente, usuarioId: strin
   await assertAdminPermission(cliente, "usuarios:leer");
   const { data, error } = await cliente
     .from("registro_auditoria")
-    .select("evento, creado_en, datos")
+    .select("evento, timestamp, datos")
     .eq("actor_id", usuarioId)
-    .order("creado_en", { ascending: false })
+    .order("timestamp", { ascending: false })
     .limit(100);
   if (error) throw error;
-  return (data ?? []).map((r: { evento: string; creado_en: string; datos: unknown }) => ({
+  return (data ?? []).map((r: { evento: string; timestamp: string; datos: unknown }) => ({
     evento: r.evento,
-    creado_en: r.creado_en,
-    datos: (r.datos ?? null) as Record<string, unknown> | null
+    creado_en: r.timestamp,
+    datos: r.datos as Record<string, unknown> | null
   }));
 }
 
@@ -1376,7 +1376,7 @@ export async function verificarDocumentoIdentidadVigente(
   if (!data) return { vigente: false };
   const ahora = new Date();
   const expira = data.expira_en ? new Date(data.expira_en) : null;
-  if (expira && expira < ahora) return { vigente: false, documentoId: data.id, expiraEn: data.expira_en };
+  if (expira && expira < ahora) return { vigente: false, documentoId: data.id, expiraEn: data.expira_en ?? undefined };
   return { vigente: true, documentoId: data.id, expiraEn: data.expira_en ?? undefined };
 }
 
@@ -1409,8 +1409,8 @@ export async function obtenerUrlDocumentoConductor(
   const { data, error } = await cliente.storage
     .from("documentos-conductor")
     .createSignedUrl(storagePath, expiracionSegundos);
-if (error) throw error;
-  return data ?? [];
+  if (error) throw error;
+  return data.signedUrl;
 }
 
 /**
@@ -1431,8 +1431,8 @@ export async function obtenerVehiculoAdmin(
  */
 export async function validarVinYPlacasUnicos(
   cliente: Cliente,
-  vin: string | null,
-  placas: string | null,
+  vin: string | null | undefined,
+  placas: string | null | undefined,
   excluirId?: string
 ): Promise<{ vinUnico: boolean; placasUnicas: boolean; conflictoVin?: string; conflictoPlacas?: string }> {
   const [conflictoVin, conflictoPlacas] = await Promise.all([
@@ -1530,7 +1530,7 @@ export async function actualizarVehiculoAdmin(
   if (versionEsperada !== undefined) {
     const { data: rpcData, error: rpcError } = await cliente.rpc("admin_actualizar_vehiculo", {
       p_vehiculo_id: vehiculoId,
-      p_datos: datos as Record<string, unknown>,
+      p_datos: datos as any,
       p_version_esperada: versionEsperada
     });
     if (rpcError) {
@@ -1715,17 +1715,17 @@ export async function obtenerViajesDeVehiculoAdmin(
   await assertAdminPermission(cliente, "viajes:leer");
   const { data, error } = await cliente
     .from("pasaporte_digital")
-    .select("id, creado_en, estado, origen, destino, conductor_nombre")
+    .select("traslado_id, creado_en, estado, origen_ciudad, destino_ciudad, conductor_nombre")
     .eq("vehiculo_id", vehiculoId)
     .order("creado_en", { ascending: false })
     .limit(limite);
   if (error) throw error;
   return (data ?? []).map((v) => ({
-    id: v.id,
-    creado_en: v.creado_en,
-    estado: v.estado,
-    origen: v.origen,
-    destino: v.destino,
+    id: v.traslado_id ?? "",
+    creado_en: v.creado_en ?? "",
+    estado: v.estado ?? "",
+    origen: v.origen_ciudad,
+    destino: v.destino_ciudad,
     conductor_nombre: v.conductor_nombre
   }));
 
@@ -2008,7 +2008,10 @@ export async function aprobarSolicitudConductorAdmin(cliente: Cliente, solicitud
   if (aprobacionId) {
     const { error: errAprob } = await cliente.rpc("admin_validar_aprobacion", {
       p_aprobacion_id: aprobacionId,
-      p_requerida_por: "aprobacion_solicitud_conductor"
+      p_capacidad_requerida: "conductores:validar",
+      p_recurso: "solicitud_conductor",
+      p_recurso_id: solicitudId,
+      p_accion: "aprobar"
     });
     if (errAprob) throw errAprob;
   }
@@ -2061,7 +2064,10 @@ export async function activarConductorAdmin(cliente: Cliente, conductorId: strin
   if (aprobacionId) {
     const { error: errAprob } = await cliente.rpc("admin_validar_aprobacion", {
       p_aprobacion_id: aprobacionId,
-      p_requerida_por: "activacion_conductor"
+      p_capacidad_requerida: "conductores:validar",
+      p_recurso: "conductor",
+      p_recurso_id: conductorId,
+      p_accion: "activar"
     });
     if (errAprob) throw errAprob;
   } else {

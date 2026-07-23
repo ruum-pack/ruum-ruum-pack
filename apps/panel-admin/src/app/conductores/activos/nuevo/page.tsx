@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Aviso, Button } from "@ruum/ui";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "../../../../lib/supabase-browser";
 import { crearConductorAdmin, type ConductorCrearAdmin } from "@ruum/api/services";
 
 type EstadoConductor = "activo" | "suspendido" | "baja";
@@ -129,13 +129,13 @@ export default function PaginaNuevoConductor() {
   );
 }
 
-function CampoObligatorio({ label, value, onChange, placeholder, type = "text", maxLength }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; maxLength?: number }) {
+function CampoObligatorio({ label, value, onChange, placeholder, type = "text", maxLength }: { label: string; value: string | null | undefined; onChange: (v: string) => void; placeholder?: string; type?: string; maxLength?: number }) {
   return (
     <label className="flex flex-col gap-1">
       <span className="font-body text-xs font-medium text-text-secondary">{label} <span className="text-status-error">*</span></span>
       <input
         type={type}
-        value={value}
+        value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
@@ -145,13 +145,13 @@ function CampoObligatorio({ label, value, onChange, placeholder, type = "text", 
   );
 }
 
-function CampoOpcional({ label, value, onChange, placeholder, type = "text" }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
+function CampoOpcional({ label, value, onChange, placeholder, type = "text" }: { label: string; value: string | null | undefined; onChange: (v: string) => void; placeholder?: string; type?: string }) {
   return (
     <label className="flex flex-col gap-1">
       <span className="font-body text-xs font-medium text-text-secondary">{label}</span>
       <input
         type={type}
-        value={value}
+        value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
