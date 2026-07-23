@@ -76,7 +76,7 @@ export const RUTA_A_CAPACIDAD: Record<string, PermisoAdmin> = {
   "/reportes": "exportaciones:crear",
   "/tarifas": "tarifas:leer",
   "/usuarios": "usuarios:leer",
-  "/vehiculos": "conductores:leer",
+  "/vehiculos": "vehiculos:leer",
   "/viajes": "viajes:leer",
   "/mapa": "viajes:leer",
   "/alertas-sla": "viajes:leer",
