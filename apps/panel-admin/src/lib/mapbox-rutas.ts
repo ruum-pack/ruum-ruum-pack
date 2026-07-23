@@ -26,7 +26,18 @@ export async function obtenerRutaMapbox(
   const lineaRecta: LineaRuta = { type: "LineString", coordinates: [origen, destino] };
   if (!tokenMapbox) return { geometry: lineaRecta, distanciaKm: null, tiempoHoras: null };
 
-  const ruta = await obtenerRutaDirectionsMapbox(origen, destino, tokenMapbox);
+  let ruta;
+  try {
+    ruta = await obtenerRutaDirectionsMapbox(origen, destino, tokenMapbox);
+  } catch (error) {
+    if (error instanceof Error && /401|unauthorized|token/i.test(error.message)) {
+      throw new Error("Mapbox rechazó el token de acceso.");
+    }
+    if (error instanceof Error && /429|rate|quota|limit/i.test(error.message)) {
+      throw new Error("Mapbox alcanzó el límite de cuota o frecuencia.");
+    }
+    throw error;
+  }
   if (!ruta) return { geometry: lineaRecta, distanciaKm: null, tiempoHoras: null };
   return {
     geometry: ruta.geometry ?? lineaRecta,

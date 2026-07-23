@@ -4,7 +4,7 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(4);
+select plan(5);
 
 insert into auth.users (id, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -55,10 +55,30 @@ values (
   8.1
 );
 
+select public.registrar_telemetria_lote(
+  '93300000-0000-4000-8000-000000000401',
+  jsonb_build_array(jsonb_build_object(
+    'localId', '93300000-0000-4000-8000-00000000a001',
+    'lat', 19.441,
+    'lng', -99.151,
+    'precisionM', 9.5,
+    'velocidadMps', 7.2,
+    'deviceTimestamp', now(),
+    'fuente', 'android_foreground_service',
+    'online', true
+  ))
+);
+
 select is(
   (select count(*) from public.ubicaciones_traslado where traslado_id = '93300000-0000-4000-8000-000000000401'),
-  1::bigint,
+  2::bigint,
   'RT-33.1: el conductor asignado inserta y lee su ubicacion'
+);
+
+select is(
+  (select precision_m from public.tracking_salud_traslado where traslado_id = '93300000-0000-4000-8000-000000000401'),
+  9.5::numeric,
+  'RT-33.1b: la ingesta por lote actualiza salud GPS consumida por mapa'
 );
 reset role;
 
@@ -66,7 +86,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '93300000-0000-4000-8000-000000000001', true);
 select is(
   (select count(*) from public.ubicaciones_traslado where traslado_id = '93300000-0000-4000-8000-000000000401'),
-  1::bigint,
+  2::bigint,
   'RT-33.2: el usuario dueno lee la ubicacion del traslado'
 );
 reset role;

@@ -4,7 +4,7 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(6);
+select plan(12);
 
 insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -51,14 +51,13 @@ select public.admin_crea_traslados_masivos(
     'destino_lat', '19.5000',
     'destino_lng', '-99.2000',
     'destino_direccion', 'Destino RT38',
-    'destino_ciudad', 'CDMX',
-    'precio_cotizado', '1'
+    'destino_ciudad', 'CDMX'
   ))
 ) as resultado
 \gset
 
-select is((:'resultado'::jsonb->>'filas_creadas')::int, 1, 'RT-38.1: el lote crea una fila valida');
-select is((:'resultado'::jsonb->>'filas_error')::int, 0, 'RT-38.2: el lote no reporta errores');
+select is((:'resultado'::jsonb->>'estado'), 'pendiente', 'RT-38.1: el lote queda encolado');
+select is((:'resultado'::jsonb->>'filas_creadas')::int, 0, 'RT-38.2: el lote no crea traslados antes del job');
 
 select is(
   (select count(*) from public.cargas_traslados_masivos where nombre_archivo = 'rt38.csv')::int,
@@ -67,18 +66,16 @@ select is(
 );
 
 select is(
-  (select count(*) from public.filas_carga_traslados_masivos where referencia_externa = 'RT38-001' and estado = 'creada')::int,
+  (select count(*) from public.filas_carga_traslados_masivos where referencia_externa = 'RT38-001' and estado = 'pendiente')::int,
   1,
-  'RT-38.4: la fila queda trazada como creada'
+  'RT-38.4: la fila queda trazada como pendiente'
 );
 
-select is(
-  (select precio_cotizado from public.traslados where id = (
-    select traslado_id from public.filas_carga_traslados_masivos where referencia_externa = 'RT38-001'
-  )),
-  null::numeric,
-  'RT-38.5: el precio cotizado nace nulo aunque el CSV intente enviarlo'
-);
+select public.admin_procesa_carga_traslados_masivos((:'resultado'::jsonb->>'carga_id')::uuid, 10) as procesado
+\gset
+
+select is((:'procesado'::jsonb->>'filas_creadas')::int, 1, 'RT-38.5: el job crea una fila valida');
+select is((:'procesado'::jsonb->>'filas_error')::int, 0, 'RT-38.6: el job no reporta errores');
 
 select ok(
   exists (
@@ -87,7 +84,97 @@ select ok(
       and placas = 'RT38001'
       and categoria_tarifa = 'ligero_a'
   ),
-  'RT-38.6: el vehiculo queda indexado al usuario corporativo con clasificacion tarifaria'
+  'RT-38.7: el vehiculo queda indexado al usuario corporativo con clasificacion tarifaria'
+);
+
+select public.admin_crea_traslados_masivos(
+  '93800000-0000-4000-8000-0000000000ee',
+  '93800000-0000-4000-8000-000000000101',
+  'rt38-precio-libre.csv',
+  jsonb_build_array(jsonb_build_object(
+    'referencia_externa', 'RT38-PRECIO',
+    'vehiculo_placas', 'RT38PRE',
+    'vehiculo_marca', 'Nissan',
+    'vehiculo_modelo', 'Versa',
+    'vehiculo_anio', '2024',
+    'vehiculo_tipo', 'sedan',
+    'categoria_tarifa', 'ligero_a',
+    'gama', 'entrada',
+    'condicion', 'seminueva',
+    'origen_lat', '19.4326',
+    'origen_lng', '-99.1332',
+    'destino_lat', '19.5000',
+    'destino_lng', '-99.2000',
+    'precio_cotizado', '1'
+  ))
+) as precio_libre
+\gset
+
+select is((:'precio_libre'::jsonb->>'estado'), 'rechazada', 'RT-38.8: rechaza columna precio libre desde backend');
+select ok(
+  (select array_to_string(errores, '; ') from public.filas_carga_traslados_masivos where carga_id = (:'precio_libre'::jsonb->>'carga_id')::uuid)
+    like '%Columna no permitida: precio_cotizado%',
+  'RT-38.9: reporta columna no permitida por registro'
+);
+
+select public.admin_crea_traslados_masivos(
+  '93800000-0000-4000-8000-0000000000ee',
+  '93800000-0000-4000-8000-000000000101',
+  'rt38.csv',
+  jsonb_build_array(jsonb_build_object(
+    'referencia_externa', 'RT38-001',
+    'vehiculo_placas', 'RT38001',
+    'vehiculo_marca', 'Nissan',
+    'vehiculo_modelo', 'Versa',
+    'vehiculo_anio', '2024',
+    'vehiculo_tipo', 'sedan',
+    'categoria_tarifa', 'ligero_a',
+    'gama', 'entrada',
+    'condicion', 'seminueva',
+    'origen_lat', '19.4326',
+    'origen_lng', '-99.1332',
+    'destino_lat', '19.5000',
+    'destino_lng', '-99.2000'
+  )),
+  (select hash_archivo from public.cargas_traslados_masivos where id = (:'resultado'::jsonb->>'carga_id')::uuid),
+  1024,
+  'text/csv'
+) as reintento
+\gset
+
+select ok((:'reintento'::jsonb->>'reutilizada')::boolean, 'RT-38.10: reintento reutiliza la carga por hash');
+select is(
+  (select count(*) from public.traslados where usuario_id = '93800000-0000-4000-8000-000000000101')::int,
+  1,
+  'RT-38.11: reintento no duplica traslados'
+);
+
+select public.admin_crea_traslados_masivos(
+  '93800000-0000-4000-8000-0000000000ee',
+  '93800000-0000-4000-8000-000000000101',
+  'rt38-cancel.csv',
+  jsonb_build_array(jsonb_build_object(
+    'referencia_externa', 'RT38-CANCEL',
+    'vehiculo_placas', 'RT38CAN',
+    'vehiculo_marca', 'Nissan',
+    'vehiculo_modelo', 'Versa',
+    'vehiculo_anio', '2024',
+    'vehiculo_tipo', 'sedan',
+    'categoria_tarifa', 'ligero_a',
+    'gama', 'entrada',
+    'condicion', 'seminueva',
+    'origen_lat', '19.4326',
+    'origen_lng', '-99.1332',
+    'destino_lat', '19.5000',
+    'destino_lng', '-99.2000'
+  ))
+) as cancelable
+\gset
+
+select is(
+  (public.admin_cancela_carga_traslados_masivos((:'cancelable'::jsonb->>'carga_id')::uuid, 'Prueba RT-38') ->> 'estado'),
+  'cancelada',
+  'RT-38.12: permite cancelar cargas no iniciadas'
 );
 
 select * from finish();

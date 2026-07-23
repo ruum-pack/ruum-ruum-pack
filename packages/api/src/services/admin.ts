@@ -16,6 +16,10 @@ type HistorialSolicitudRow = Database["public"]["Tables"]["historial_estados_sol
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 type VehiculoRow = Database["public"]["Tables"]["vehiculos"]["Row"];
 type EmpresaRow = Database["public"]["Tables"]["empresas"]["Row"];
+type EmpresaDocumentoRow = Database["public"]["Tables"]["empresas_documentos"]["Row"];
+type EmpresaDatosFiscalesVersionRow = Database["public"]["Tables"]["empresas_datos_fiscales_versiones"]["Row"];
+type EmpresaCondicionesVersionRow = Database["public"]["Tables"]["empresas_condiciones_comerciales_versiones"]["Row"];
+type EmpresaCambioSensibleRow = Database["public"]["Tables"]["empresas_cambios_sensibles"]["Row"];
 type IncidenciaRow = Database["public"]["Tables"]["incidencias"]["Row"];
 type DisputaRow = Database["public"]["Tables"]["disputas"]["Row"];
 type ReclamoSeguroRow = Database["public"]["Tables"]["reclamos_seguro"]["Row"];
@@ -53,6 +57,12 @@ export interface DatosEmpresasAdmin {
   empresas: EmpresaRow[];
   usuarios: UsuarioRow[];
   traslados: TrasladoRow[];
+  vehiculos: VehiculoRow[];
+  conductores: ConductorRow[];
+  documentos: EmpresaDocumentoRow[];
+  versionesFiscales: EmpresaDatosFiscalesVersionRow[];
+  versionesCondiciones: EmpresaCondicionesVersionRow[];
+  cambiosSensibles: EmpresaCambioSensibleRow[];
 }
 
 export interface AltaEmpresaCorporativa {
@@ -66,6 +76,10 @@ export interface AltaEmpresaCorporativa {
     correo_facturacion?: string;
     condiciones_pago?: string;
     estado_verificacion?: EstadoVerificacion;
+    limite_credito_mxn?: number;
+    credito_disponible_mxn?: number;
+    dias_credito?: number;
+    requiere_orden_compra?: boolean;
   };
   titular: {
     nombre: string;
@@ -79,6 +93,41 @@ export interface AltaEmpresaCorporativa {
 export interface ResultadoAltaEmpresaCorporativa {
   empresa_id: string;
   usuario_id: string;
+}
+
+export interface ActualizacionEmpresaCorporativa {
+  nombre?: string;
+  rfc?: string;
+  razon_social?: string;
+  regimen_fiscal?: string;
+  codigo_postal_fiscal?: string;
+  uso_cfdi?: string;
+  correo_facturacion?: string;
+  condiciones_pago?: string;
+  limite_credito_mxn?: number;
+  credito_disponible_mxn?: number;
+  dias_credito?: number;
+  requiere_orden_compra?: boolean;
+}
+
+export interface UsuarioEmpresaAdmin {
+  id?: string;
+  rol: "titular_empresa" | "usuario_autorizado";
+  nombre: string;
+  telefono?: string;
+  correo_facturacion?: string;
+  metodo_pago_registrado?: boolean;
+}
+
+export interface DocumentoEmpresaAdmin {
+  tipo: string;
+  nombre: string;
+  folio?: string;
+  url?: string;
+  estado?: EstadoVerificacion;
+  vigente_desde?: string;
+  vigente_hasta?: string;
+  notas?: string;
 }
 
 export interface FilaTrasladoMasivoNormalizada {
@@ -131,8 +180,21 @@ export interface ResultadoCargaTrasladosMasivos {
   total_filas: number;
   filas_creadas: number;
   filas_error: number;
-  estado: "procesada" | "procesada_con_errores" | "rechazada";
+  filas_procesadas: number;
+  estado: EstadoCargaTrasladosMasivos;
+  reutilizada?: boolean;
+  procesadas_en_esta_corrida?: number;
 }
+
+export type EstadoCargaTrasladosMasivos =
+  | "pendiente"
+  | "procesando"
+  | "procesada"
+  | "procesada_con_errores"
+  | "rechazada"
+  | "cancelada";
+
+export type EstadoFilaCargaTrasladosMasivos = "pendiente" | "creada" | "error" | "cancelada";
 
 export interface CargaTrasladosMasivosAdmin {
   id: string;
@@ -143,7 +205,17 @@ export interface CargaTrasladosMasivosAdmin {
   total_filas: number;
   filas_creadas: number;
   filas_error: number;
-  estado: "procesada" | "procesada_con_errores" | "rechazada";
+  filas_procesadas: number;
+  estado: EstadoCargaTrasladosMasivos;
+  hash_archivo: string | null;
+  tamano_bytes: number;
+  mime_type: string | null;
+  iniciado_en: string | null;
+  finalizado_en: string | null;
+  cancelado_en: string | null;
+  cancelado_por: string | null;
+  reporte_errores_csv: string | null;
+  mensaje_estado: string | null;
   creado_en: string;
 }
 
@@ -151,12 +223,15 @@ export interface FilaCargaTrasladosMasivosAdmin {
   id: string;
   carga_id: string;
   numero_fila: number;
-  estado: "creada" | "error";
+  estado: EstadoFilaCargaTrasladosMasivos;
   referencia_externa: string | null;
   datos: unknown;
   errores: string[];
+  hash_fila: string | null;
+  clave_idempotencia: string | null;
   vehiculo_id: string | null;
   traslado_id: string | null;
+  procesado_en: string | null;
   creado_en: string;
 }
 
@@ -787,7 +862,7 @@ export async function listarPagosAdmin(cliente: Cliente): Promise<DatosPagosAdmi
 
 export async function listarEmpresasAdmin(cliente: Cliente): Promise<DatosEmpresasAdmin> {
   await assertAdminPermission(cliente, "empresas:leer");
-  const [empresas, usuarios, traslados] = await Promise.all([
+  const [empresas, usuarios, traslados, vehiculos, conductores, documentos, versionesFiscales, versionesCondiciones, cambiosSensibles] = await Promise.all([
     cliente.from("empresas").select("*").order("creado_en", { ascending: false }),
     cliente
       .from("usuarios")
@@ -795,17 +870,29 @@ export async function listarEmpresasAdmin(cliente: Cliente): Promise<DatosEmpres
       .not("empresa_id", "is", null)
       .in("rol", ["titular_empresa", "usuario_autorizado"])
       .order("creado_en", { ascending: false }),
-    cliente.from("traslados").select("*").order("creado_en", { ascending: false })
+    cliente.from("traslados").select("*").order("creado_en", { ascending: false }),
+    cliente.from("vehiculos").select("*").not("empresa_id", "is", null).order("creado_en", { ascending: false }),
+    cliente.from("conductores").select("*").not("empresa_id", "is", null).order("creado_en", { ascending: false }),
+    cliente.from("empresas_documentos").select("*").order("creado_en", { ascending: false }),
+    cliente.from("empresas_datos_fiscales_versiones").select("*").order("version", { ascending: false }),
+    cliente.from("empresas_condiciones_comerciales_versiones").select("*").order("version", { ascending: false }),
+    cliente.from("empresas_cambios_sensibles").select("*").order("solicitado_en", { ascending: false })
   ]);
 
-  for (const resultado of [empresas, usuarios, traslados]) {
+  for (const resultado of [empresas, usuarios, traslados, vehiculos, conductores, documentos, versionesFiscales, versionesCondiciones, cambiosSensibles]) {
     if (resultado.error) throw resultado.error;
   }
 
   return {
     empresas: empresas.data ?? [],
     usuarios: usuarios.data ?? [],
-    traslados: traslados.data ?? []
+    traslados: traslados.data ?? [],
+    vehiculos: vehiculos.data ?? [],
+    conductores: conductores.data ?? [],
+    documentos: documentos.data ?? [],
+    versionesFiscales: versionesFiscales.data ?? [],
+    versionesCondiciones: versionesCondiciones.data ?? [],
+    cambiosSensibles: cambiosSensibles.data ?? []
   };
 }
 
@@ -905,14 +992,19 @@ export async function crearTrasladosMasivosAdmin(
     usuarioId: string;
     nombreArchivo: string;
     filas: FilaTrasladoMasivoNormalizada[];
+    hashArchivo: string;
+    tamanoBytes: number;
+    mimeType: string;
   }
 ): Promise<ResultadoCargaTrasladosMasivos> {
   await assertAdminPermission(cliente, "masivos:gestionar");
   if (!parametros.empresaId) throw new Error("Selecciona la empresa corporativa.");
   if (!parametros.usuarioId) throw new Error("Selecciona el usuario solicitante.");
   if (!parametros.nombreArchivo.trim()) throw new Error("El archivo debe tener nombre.");
+  if (!/^[0-9a-f]{64}$/i.test(parametros.hashArchivo)) throw new Error("No se pudo calcular un hash válido del archivo.");
+  if (parametros.tamanoBytes <= 0) throw new Error("El archivo está vacío.");
+  if (parametros.tamanoBytes > 5 * 1024 * 1024) throw new Error("El archivo debe pesar máximo 5 MB.");
   if (parametros.filas.length === 0) throw new Error("El archivo no contiene filas válidas para enviar.");
-  if (parametros.filas.length > 500) throw new Error("El lote excede el máximo de 500 filas por carga.");
 
   const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_crea_traslados_masivos",
@@ -921,6 +1013,9 @@ export async function crearTrasladosMasivosAdmin(
       p_usuario_id: string;
       p_nombre_archivo: string;
       p_filas: FilaTrasladoMasivoNormalizada[];
+      p_hash_archivo: string;
+      p_tamano_bytes: number;
+      p_mime_type: string;
     }
   ) => Promise<{ data: ResultadoCargaTrasladosMasivos | null; error: Error | null }>;
 
@@ -928,10 +1023,49 @@ export async function crearTrasladosMasivosAdmin(
     p_empresa_id: parametros.empresaId,
     p_usuario_id: parametros.usuarioId,
     p_nombre_archivo: parametros.nombreArchivo,
-    p_filas: parametros.filas
+    p_filas: parametros.filas,
+    p_hash_archivo: parametros.hashArchivo.toLowerCase(),
+    p_tamano_bytes: parametros.tamanoBytes,
+    p_mime_type: parametros.mimeType || "text/csv"
   });
   if (error) throw error;
   if (!data) throw new Error("No se pudo confirmar la carga masiva.");
+  return data;
+}
+
+export async function procesarCargaTrasladosMasivosAdmin(
+  cliente: Cliente,
+  cargaId: string,
+  limite = 50
+): Promise<ResultadoCargaTrasladosMasivos> {
+  await assertAdminPermission(cliente, "masivos:gestionar");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_procesa_carga_traslados_masivos",
+    args: { p_carga_id: string; p_limite: number }
+  ) => Promise<{ data: ResultadoCargaTrasladosMasivos | null; error: Error | null }>;
+
+  const { data, error } = await rpc("admin_procesa_carga_traslados_masivos", {
+    p_carga_id: cargaId,
+    p_limite: limite
+  });
+  if (error) throw error;
+  if (!data) throw new Error("No se pudo procesar la carga masiva.");
+  return data;
+}
+
+export async function cancelarCargaTrasladosMasivosAdmin(cliente: Cliente, cargaId: string, motivo: string) {
+  await assertAdminPermission(cliente, "masivos:gestionar");
+  if (!motivo.trim()) throw new Error("Captura el motivo de cancelación.");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_cancela_carga_traslados_masivos",
+    args: { p_carga_id: string; p_motivo: string }
+  ) => Promise<{ data: { carga_id: string; estado: EstadoCargaTrasladosMasivos } | null; error: Error | null }>;
+
+  const { data, error } = await rpc("admin_cancela_carga_traslados_masivos", {
+    p_carga_id: cargaId,
+    p_motivo: motivo.trim()
+  });
+  if (error) throw error;
   return data;
 }
 
@@ -2111,19 +2245,116 @@ export async function validarDocumentoEmpresa(
   const adminId = await obtenerAdminIdParaAuditoria(cliente);
   const { error } = await cliente
     .from("empresas")
-    .update({
-      estado_verificacion: estadoVerificacion,
-      condiciones_pago: condicionesPago.trim() || null
-    })
+    .update({ estado_verificacion: estadoVerificacion })
     .eq("id", empresaId);
 
   if (error) throw error;
 
+  if (condicionesPago.trim()) {
+    await actualizarEmpresaCorporativaAdmin(
+      cliente,
+      empresaId,
+      { condiciones_pago: condicionesPago.trim() },
+      "Validación documental y condiciones de pago"
+    );
+  }
+
   await registrarEvento(cliente, "validacion_documentos", "admin", adminId, {
     empresa_id: empresaId,
-    estado_verificacion: estadoVerificacion,
-    condiciones_pago: condicionesPago.trim() || null
+    estado_verificacion: estadoVerificacion
   });
+}
+
+export async function actualizarEmpresaCorporativaAdmin(
+  cliente: Cliente,
+  empresaId: string,
+  datos: ActualizacionEmpresaCorporativa,
+  motivo: string
+) {
+  await assertAdminPermission(cliente, "empresas:gestionar");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_actualiza_empresa_corporativa",
+    args: { p_empresa_id: string; p_datos: ActualizacionEmpresaCorporativa; p_motivo: string }
+  ) => Promise<{ data: { empresa_id: string; cambio_fiscal_id: string | null; cambio_condiciones_id: string | null } | null; error: Error | null }>;
+
+  const { data, error } = await rpc("admin_actualiza_empresa_corporativa", {
+    p_empresa_id: empresaId,
+    p_datos: datos,
+    p_motivo: motivo.trim() || "Actualización operativa"
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function cambiarEstadoEmpresaAdmin(
+  cliente: Cliente,
+  empresaId: string,
+  estadoOperativo: "activa" | "suspendida",
+  motivo: string
+) {
+  await assertAdminPermission(cliente, "empresas:gestionar");
+  if (!motivo.trim()) throw new Error("Captura el motivo del cambio de estado.");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_cambia_estado_empresa",
+    args: { p_empresa_id: string; p_estado_operativo: "activa" | "suspendida"; p_motivo: string }
+  ) => Promise<{ data: { empresa_id: string; estado_operativo: "activa" | "suspendida" } | null; error: Error | null }>;
+
+  const { data, error } = await rpc("admin_cambia_estado_empresa", {
+    p_empresa_id: empresaId,
+    p_estado_operativo: estadoOperativo,
+    p_motivo: motivo.trim()
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function guardarUsuarioEmpresaAdmin(cliente: Cliente, empresaId: string, usuario: UsuarioEmpresaAdmin) {
+  await assertAdminPermission(cliente, "empresas:gestionar");
+  if (!usuario.nombre.trim()) throw new Error("Captura el nombre del usuario empresarial.");
+  if (!usuario.correo_facturacion?.trim() && !usuario.telefono?.trim()) throw new Error("Captura correo o teléfono del usuario empresarial.");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_guarda_usuario_empresa",
+    args: { p_empresa_id: string; p_usuario: UsuarioEmpresaAdmin }
+  ) => Promise<{ data: { empresa_id: string; usuario_id: string } | null; error: Error | null }>;
+
+  const { data, error } = await rpc("admin_guarda_usuario_empresa", {
+    p_empresa_id: empresaId,
+    p_usuario: usuario
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function guardarDocumentoEmpresaAdmin(cliente: Cliente, empresaId: string, documento: DocumentoEmpresaAdmin) {
+  await assertAdminPermission(cliente, "empresas:gestionar");
+  if (!documento.nombre.trim()) throw new Error("Captura el nombre del documento.");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_guarda_documento_empresa",
+    args: { p_empresa_id: string; p_documento: DocumentoEmpresaAdmin }
+  ) => Promise<{ data: { empresa_id: string; documento_id: string } | null; error: Error | null }>;
+
+  const { data, error } = await rpc("admin_guarda_documento_empresa", {
+    p_empresa_id: empresaId,
+    p_documento: documento
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function resolverCambioEmpresaAdmin(cliente: Cliente, cambioId: string, aprobar: boolean, comentario: string) {
+  await assertAdminPermission(cliente, "empresas:gestionar");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_resuelve_cambio_empresa",
+    args: { p_cambio_id: string; p_aprobar: boolean; p_comentario: string | null }
+  ) => Promise<{ data: { cambio_id: string; estado: "aprobado" | "rechazado"; version?: number } | null; error: Error | null }>;
+
+  const { data, error } = await rpc("admin_resuelve_cambio_empresa", {
+    p_cambio_id: cambioId,
+    p_aprobar: aprobar,
+    p_comentario: comentario.trim() || null
+  });
+  if (error) throw error;
+  return data;
 }
 
 /** PRD §17.8 — lista de incidencias. */
@@ -2620,6 +2851,14 @@ export interface TrasladoMapa {
   destino_lat: number | null;
   destino_lng: number | null;
   destino_ciudad: string;
+  conductor_lat: number | null;
+  conductor_lng: number | null;
+  gps_actualizado_en: string | null;
+  gps_recibido_en: string | null;
+  gps_precision_m: number | null;
+  gps_fuente: string | null;
+  gps_online: boolean | null;
+  coordenadas_sensibles_protegidas: boolean;
   actualizado_en: string;
 }
 
@@ -2670,6 +2909,22 @@ type TrasladoActivoMapaRow = {
   vehiculos: { marca: string; modelo: string } | null;
 };
 
+type TrackingSaludMapaRow = {
+  traslado_id: string;
+  ultimo_punto_id: string | null;
+  ultima_ubicacion_en: string | null;
+  ultimo_envio_en: string | null;
+  fuente: string | null;
+  online: boolean | null;
+  precision_m: number | null;
+};
+
+type UbicacionMapaRow = {
+  id: string;
+  lat: number;
+  lng: number;
+};
+
 const ESTADOS_ACTIVOS: EstadoTraslado[] = [
   "conductor_asignado",
   "conductor_en_camino_al_origen",
@@ -2696,6 +2951,10 @@ const ESTADOS_ACTIVOS: EstadoTraslado[] = [
  * unida con conductores y vehículos.
  */
 export async function listarTrasladosActivosMapa(cliente: Cliente): Promise<TrasladoMapa[]> {
+  await assertAdminPermission(cliente, "viajes:leer");
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+  const admin = await obtenerAdminActual(cliente);
+  const puedeVerCoordenadasPrecisas = admin?.rol_operativo === "direccion" || admin?.rol_operativo === "supervisor" || admin?.rol_operativo === "operador";
   const { data, error } = await cliente
     .from("traslados")
     .select(
@@ -2711,8 +2970,65 @@ export async function listarTrasladosActivosMapa(cliente: Cliente): Promise<Tras
   if (error) throw error;
 
   const traslados = (data ?? []) as unknown as TrasladoActivoMapaRow[];
+  const trasladoIds = traslados.map((t) => t.id);
+  const clienteLibre = cliente as unknown as {
+    from: <T>(tabla: string) => {
+      select: (columnas: string) => {
+        in: (columna: string, valores: string[]) => Promise<{ data: T[] | null; error: Error | null }>;
+      };
+      insert: (fila: Record<string, unknown>) => Promise<{ error: Error | null }>;
+    };
+  };
+
+  const tracking = trasladoIds.length > 0
+    ? await clienteLibre
+      .from<TrackingSaludMapaRow>("tracking_salud_traslado")
+      .select("traslado_id, ultimo_punto_id, ultima_ubicacion_en, ultimo_envio_en, fuente, online, precision_m")
+      .in("traslado_id", trasladoIds)
+    : { data: [], error: null };
+
+  if (tracking.error) throw tracking.error;
+
+  const trackingRows = tracking.data ?? [];
+  const puntoIds = trackingRows.map((row) => row.ultimo_punto_id).filter((id): id is string => Boolean(id));
+  const puntos = puntoIds.length > 0
+    ? await clienteLibre.from<UbicacionMapaRow>("ubicaciones_traslado").select("id, lat, lng").in("id", puntoIds)
+    : { data: [], error: null };
+
+  if (puntos.error) throw puntos.error;
+
+  const trackingPorTraslado = new Map(trackingRows.map((row) => [row.traslado_id, row]));
+  const puntoPorId = new Map((puntos.data ?? []).map((row) => [row.id, row]));
+
+  const auditoriaUbicacion = await clienteLibre.from("auditoria_admin_seguridad").insert({
+    admin_id: adminId,
+    auth_user_id: (await cliente.auth.getUser()).data.user?.id ?? null,
+    tipo: "consulta",
+    recurso: "ubicaciones",
+    accion: "mapa_operativo",
+    datos: {
+      total_traslados: traslados.length,
+      total_con_gps: trackingRows.length,
+      coordenadas_precisas: puedeVerCoordenadasPrecisas
+    }
+  });
+  if (auditoriaUbicacion.error) throw auditoriaUbicacion.error;
 
   return traslados.map((t) => ({
+    ...(() => {
+      const salud = trackingPorTraslado.get(t.id);
+      const punto = salud?.ultimo_punto_id ? puntoPorId.get(salud.ultimo_punto_id) : null;
+      return {
+        conductor_lat: puedeVerCoordenadasPrecisas ? (punto?.lat ?? null) : null,
+        conductor_lng: puedeVerCoordenadasPrecisas ? (punto?.lng ?? null) : null,
+        gps_actualizado_en: salud?.ultima_ubicacion_en ?? null,
+        gps_recibido_en: salud?.ultimo_envio_en ?? null,
+        gps_precision_m: salud?.precision_m ?? null,
+        gps_fuente: salud?.fuente ?? null,
+        gps_online: salud?.online ?? null,
+        coordenadas_sensibles_protegidas: !puedeVerCoordenadasPrecisas && Boolean(punto)
+      };
+    })(),
     traslado_id: t.id,
     estado: t.estado,
     conductor_nombre: (t.conductores as { nombre: string } | null)?.nombre ?? null,

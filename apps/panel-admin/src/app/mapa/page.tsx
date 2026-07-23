@@ -5,9 +5,9 @@
  * de origen (azul trazabilidad) y pin de destino (amarillo ruta), línea punteada de
  * ruta calculada, y panel lateral de selección. Usa Mapbox GL JS y Directions.
  *
- * Nota: la ubicación en tiempo real del conductor no está disponible hasta
- * que se implemente el GPS continuo (Foreground Service nativo, PRD §15).
- * Por ahora se muestra el pin de origen registrado en el traslado.
+ * La posición del conductor se pinta solo cuando existe telemetría real en
+ * tracking_salud_traslado/ubicaciones_traslado. Origen y destino son
+ * referencias operativas de ruta, no sustitutos de GPS.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,54 +16,7 @@ import Link from "next/link";
 import { Aviso, EstadoBadge } from "@ruum/ui";
 import { listarTrasladosActivosMapa, type TrasladoMapa } from "@ruum/api/services";
 import { obtenerRutaMapbox } from "../../lib/mapbox-rutas";
-import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
-
-const TRASLADOS_MAPA_DEMO: TrasladoMapa[] = [
-  {
-    traslado_id: "demo-mapa-001",
-    estado: "traslado_en_curso",
-    conductor_nombre: "Conductor Demo A",
-    vehiculo_marca: "Mazda",
-    vehiculo_modelo: "3",
-    tiene_incidencia_abierta: false,
-    origen_lat: 19.4326, origen_lng: -99.1332, origen_ciudad: "CDMX",
-    destino_lat: 20.6597, destino_lng: -103.3496, destino_ciudad: "Guadalajara",
-    actualizado_en: new Date(Date.now() - 1000 * 60 * 45).toISOString()
-  },
-  {
-    traslado_id: "demo-mapa-002",
-    estado: "conductor_en_camino_al_origen",
-    conductor_nombre: "Conductor Demo B",
-    vehiculo_marca: "Toyota",
-    vehiculo_modelo: "Corolla",
-    tiene_incidencia_abierta: false,
-    origen_lat: 25.6866, origen_lng: -100.3161, origen_ciudad: "Monterrey",
-    destino_lat: 19.4326, destino_lng: -99.1332, destino_ciudad: "CDMX",
-    actualizado_en: new Date(Date.now() - 1000 * 60 * 10).toISOString()
-  },
-  {
-    traslado_id: "demo-mapa-003",
-    estado: "traslado_en_curso",
-    conductor_nombre: "Conductor Demo C",
-    vehiculo_marca: "BMW",
-    vehiculo_modelo: "Serie 3",
-    tiene_incidencia_abierta: true,
-    origen_lat: 21.1619, origen_lng: -86.8515, origen_ciudad: "Cancún",
-    destino_lat: 20.9674, destino_lng: -89.6237, destino_ciudad: "Mérida",
-    actualizado_en: new Date(Date.now() - 1000 * 60 * 90).toISOString()
-  },
-  {
-    traslado_id: "demo-mapa-004",
-    estado: "evidencia_inicial_completada",
-    conductor_nombre: "Conductor Demo D",
-    vehiculo_marca: "Nissan",
-    vehiculo_modelo: "Frontier",
-    tiene_incidencia_abierta: false,
-    origen_lat: 29.0729, origen_lng: -110.9559, origen_ciudad: "Hermosillo",
-    destino_lat: 32.5027, destino_lng: -117.0036, destino_ciudad: "Tijuana",
-    actualizado_en: new Date(Date.now() - 1000 * 60 * 20).toISOString()
-  }
-];
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 const ETIQUETA_ESTADO: Partial<Record<string, string>> = {
   conductor_asignado: "Conductor asignado",
@@ -83,7 +36,7 @@ const ETIQUETA_ESTADO: Partial<Record<string, string>> = {
   pago_completado: "Pago completado"
 };
 
-type EstadoConexionMapa = "datos_en_vivo" | "actualizando" | "reconectando" | "sin_conexion" | "desactualizado" | "demo";
+type EstadoConexionMapa = "datos_en_vivo" | "actualizando" | "reconectando" | "sin_conexion" | "desactualizado";
 type VistaMapaMovil = "mapa" | "lista" | "alertas";
 type FiltroMapa = "todos" | "en_ruta" | "incidencias" | "sin_coordenadas" | "sin_senal" | "ubicacion_antigua";
 type SimboloMapa = "origen" | "destino" | "vehiculo" | "incidencia" | "emergencia" | "sin_senal";
@@ -101,6 +54,7 @@ const tokenMapbox = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 const estiloMapbox = process.env.NEXT_PUBLIC_MAPBOX_STYLE_URL || "mapbox://styles/mapbox/streets-v12";
 const UMBRAL_UBICACION_ANTIGUA_MIN = 30;
 const UMBRAL_SIN_SENAL_MIN = 60;
+const FRECUENCIA_GPS_ESPERADA_SEG = 30;
 const ORDEN_PRIORIDAD_MAPA: CategoriaPrioridadMapa[] = ["emergencia", "incidencia_critica", "sla_vencido", "sin_senal", "desviacion", "en_riesgo", "normal"];
 const ETIQUETA_PRIORIDAD_MAPA: Record<CategoriaPrioridadMapa, string> = {
   emergencia: "Emergencia",
@@ -228,7 +182,6 @@ function aplicarSimboloMapa(figura: HTMLSpanElement, simbolo: SimboloMapa, color
 
 export default function PaginaMapaOperativo() {
   const [traslados, setTraslados] = useState<TrasladoMapa[]>([]);
-  const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [estadoConexionGps, setEstadoConexionGps] = useState<EstadoConexionMapa>("actualizando");
@@ -246,6 +199,7 @@ export default function PaginaMapaOperativo() {
   const marcadoresRef = useRef<MapboxMarker[]>([]);
   const focoPrevioPanelRef = useRef<HTMLElement | null>(null);
   const [errorMapa, setErrorMapa] = useState<string | null>(null);
+  const [errorOperacional, setErrorOperacional] = useState<string | null>(null);
 
   const seleccionarTraslado = useCallback((trasladoId: string) => {
     focoPrevioPanelRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -289,11 +243,10 @@ export default function PaginaMapaOperativo() {
         setEstadoConexionGps(ultimaRespuestaExitosa ? "reconectando" : "actualizando");
       }
       if (!tieneSupabaseConfigurado()) {
-        setTraslados(TRASLADOS_MAPA_DEMO);
-        setEsDemo(true);
-        setEstadoConexionGps("demo");
-        setUltimaRespuestaExitosa(new Date());
-        setSeccionesDesactualizadas([]);
+        if (!ultimaRespuestaExitosa) setTraslados([]);
+        setEstadoConexionGps(ultimaRespuestaExitosa ? "desactualizado" : "sin_conexion");
+        setSeccionesDesactualizadas(["ubicaciones reales", "traslados activos"]);
+        setErrorOperacional("Supabase no está configurado. El mapa operativo no muestra registros demo.");
         setCargando(false);
         setActualizandoManual(false);
         return;
@@ -301,28 +254,21 @@ export default function PaginaMapaOperativo() {
       try {
         const cliente = crearClienteNavegador();
         setTraslados(await listarTrasladosActivosMapa(cliente));
-        setEsDemo(false);
         setEstadoConexionGps("datos_en_vivo");
         setUltimaRespuestaExitosa(new Date());
         setSeccionesDesactualizadas([]);
-      } catch {
+        setErrorOperacional(null);
+      } catch (error) {
         const teniaRespuesta = Boolean(ultimaRespuestaExitosa);
-        if (puedeUsarDatosDemo()) {
-          setTraslados(TRASLADOS_MAPA_DEMO);
-          setEsDemo(true);
-          setEstadoConexionGps(teniaRespuesta ? "desactualizado" : "sin_conexion");
-          setSeccionesDesactualizadas(["datos GPS del mapa", "traslados activos"]);
-        } else {
-          setTraslados([]);
-          setEsDemo(false);
-          setEstadoConexionGps(teniaRespuesta ? "desactualizado" : "sin_conexion");
-          setSeccionesDesactualizadas(["datos GPS del mapa", "traslados activos"]);
-        }
+        if (!teniaRespuesta) setTraslados([]);
+        setEstadoConexionGps(teniaRespuesta ? "desactualizado" : "sin_conexion");
+        setSeccionesDesactualizadas(["ubicaciones reales", "traslados activos"]);
+        setErrorOperacional(error instanceof Error ? error.message : "No se pudieron cargar ubicaciones reales del mapa.");
       } finally {
         setCargando(false);
         setActualizandoManual(false);
       }
-  }, [setCargando, setActualizandoManual, setEstadoConexionGps, setTraslados, setEsDemo, setUltimaRespuestaExitosa, setSeccionesDesactualizadas, ultimaRespuestaExitosa]);
+  }, [setCargando, setActualizandoManual, setEstadoConexionGps, setTraslados, setUltimaRespuestaExitosa, setSeccionesDesactualizadas, ultimaRespuestaExitosa]);
 
   useEffect(() => {
     void cargar();
@@ -417,28 +363,33 @@ export default function PaginaMapaOperativo() {
           destinoEl.onclick = () => seleccionarTraslado(t.traslado_id);
           const destinoMarker = new mapboxgl.Marker({ element: destinoEl }).setLngLat(destino)
             .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`Destino: ${t.destino_ciudad}`)).addTo(mapa);
-          const puntoVehiculo = puntoMedio(origen, destino);
-          const vehiculoEl = crearPin(
-            sinSenal ? "sin_senal" : "vehiculo",
-            sinSenal || ubicacionAntigua ? coloresMapa.sinSenal : coloresMapa.vehiculo,
-            coloresMapa.pinBordeClaro,
-            `${calidad.estadoTexto} de ${etiquetaTraslado}. ${calidad.tiempoTexto}. Punto ${calidad.tipoPunto}. Seleccionar traslado.`
-          );
-          vehiculoEl.onclick = () => seleccionarTraslado(t.traslado_id);
-          const vehiculoMarker = new mapboxgl.Marker({ element: vehiculoEl }).setLngLat(puntoVehiculo)
-            .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`${calidad.estadoTexto}: ${etiquetaTraslado}. ${calidad.tiempoTexto}`)).addTo(mapa);
-          marcadoresRef.current.push(origenMarker, destinoMarker, vehiculoMarker);
+          const puntoVehiculo = puntoConductor(t);
+          if (puntoVehiculo) {
+            const vehiculoEl = crearPin(
+              sinSenal ? "sin_senal" : "vehiculo",
+              sinSenal || ubicacionAntigua ? coloresMapa.sinSenal : coloresMapa.vehiculo,
+              coloresMapa.pinBordeClaro,
+              `${calidad.estadoTexto} de ${etiquetaTraslado}. ${calidad.tiempoTexto}. Punto ${calidad.tipoPunto}. Seleccionar traslado.`
+            );
+            vehiculoEl.onclick = () => seleccionarTraslado(t.traslado_id);
+            const vehiculoMarker = new mapboxgl.Marker({ element: vehiculoEl }).setLngLat(puntoVehiculo)
+              .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`${calidad.estadoTexto}: ${etiquetaTraslado}. ${calidad.tiempoTexto}`)).addTo(mapa);
+            marcadoresRef.current.push(vehiculoMarker);
+          }
+          marcadoresRef.current.push(origenMarker, destinoMarker);
           if (t.tiene_incidencia_abierta) {
+            const puntoAlerta = puntoVehiculo ?? puntoMedio(origen, destino);
             const incidenciaEl = crearPin("incidencia", coloresMapa.incidencia, coloresMapa.pinBordeClaro, `Incidencia abierta en traslado ${etiquetaTraslado}. Seleccionar traslado.`);
             incidenciaEl.onclick = () => seleccionarTraslado(t.traslado_id);
-            const incidenciaMarker = new mapboxgl.Marker({ element: incidenciaEl }).setLngLat(puntoConOffset(puntoVehiculo, 0.16))
+            const incidenciaMarker = new mapboxgl.Marker({ element: incidenciaEl }).setLngLat(puntoConOffset(puntoAlerta, 0.16))
               .setPopup(new mapboxgl.Popup({ offset: 18 }).setText("Incidencia abierta")).addTo(mapa);
             marcadoresRef.current.push(incidenciaMarker);
           }
           if (emergencia) {
+            const puntoAlerta = puntoVehiculo ?? puntoMedio(origen, destino);
             const emergenciaEl = crearPin("emergencia", coloresMapa.emergencia, coloresMapa.pinBordeClaro, `Emergencia operativa en traslado ${etiquetaTraslado}. Seleccionar traslado.`);
             emergenciaEl.onclick = () => seleccionarTraslado(t.traslado_id);
-            const emergenciaMarker = new mapboxgl.Marker({ element: emergenciaEl }).setLngLat(puntoConOffset(puntoVehiculo, -0.16))
+            const emergenciaMarker = new mapboxgl.Marker({ element: emergenciaEl }).setLngLat(puntoConOffset(puntoAlerta, -0.16))
               .setPopup(new mapboxgl.Popup({ offset: 18 }).setText("Emergencia operativa")).addTo(mapa);
             marcadoresRef.current.push(emergenciaMarker);
           }
@@ -481,8 +432,7 @@ export default function PaginaMapaOperativo() {
             <span className={`rounded-full border px-2.5 py-1 font-body text-admin-secundario font-semibold ${claseEstadoConexion(estadoConexionGps)}`}>
               {textoEstadoConexionMapa(estadoConexionGps)}
             </span>
-            <span className="font-body text-admin-secundario text-text-tertiary">Datos GPS</span>
-            {esDemo && <span className="font-body text-admin-secundario text-status-warning">Origen demo</span>}
+            <span className="font-body text-admin-secundario text-text-tertiary">GPS cada {FRECUENCIA_GPS_ESPERADA_SEG}s · expira en {UMBRAL_SIN_SENAL_MIN} min</span>
             {ultimaRespuestaExitosa && (
               <time dateTime={ultimaRespuestaExitosa.toISOString()} className="font-body text-admin-secundario text-text-tertiary">
                 {textoActualizadoHace(ultimaRespuestaExitosa, ahora)}
@@ -493,6 +443,9 @@ export default function PaginaMapaOperativo() {
             <p className="mt-2 font-body text-admin-secundario text-status-warning">
               Pueden estar desactualizadas: {seccionesDesactualizadas.join(", ")}.
             </p>
+          )}
+          {errorOperacional && (
+            <div className="mt-3 max-w-3xl"><Aviso tono="danger">{errorOperacional}</Aviso></div>
           )}
         </div>
         <button
@@ -631,7 +584,7 @@ export default function PaginaMapaOperativo() {
           {!cargando && traslados.length === 0 && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 px-6">
               <p className="font-display text-lg font-semibold text-text-tertiary">Sin traslados activos</p>
-              <p className="max-w-md text-center font-body text-sm text-text-tertiary">No hay traslados en curso con datos GPS disponibles en este momento.</p>
+              <p className="max-w-md text-center font-body text-sm text-text-tertiary">No hay traslados activos obtenidos desde la fuente real en este momento.</p>
             </div>
           )}
           {errorMapa && (
@@ -814,7 +767,7 @@ export default function PaginaMapaOperativo() {
 
       <div className="border-t border-border-default px-6 py-2">
         <p className="font-body text-xs text-text-tertiary">
-          Las rutas se calculan con Mapbox Directions. El pin de origen marca el punto de recogida, no la posición actual del conductor. La ubicación del vehículo se marca como estimada hasta recibir GPS continuo con fuente y precisión confirmadas.
+          Las rutas se calculan con Mapbox Directions; si el proveedor falla, se usa línea recta como degradación visual. Origen y destino son referencias de ruta. El pin de vehículo solo aparece con GPS real de `ubicaciones_traslado`.
         </p>
       </div>
     </div>
@@ -826,14 +779,13 @@ function textoEstadoConexionMapa(estado: EstadoConexionMapa) {
   if (estado === "actualizando") return "Actualizando";
   if (estado === "reconectando") return "Reconectando";
   if (estado === "desactualizado") return "Datos posiblemente desactualizados";
-  if (estado === "demo") return "Modo demo";
   return "Sin conexión";
 }
 
 function claseEstadoConexion(estado: EstadoConexionMapa) {
   if (estado === "datos_en_vivo") return "border-status-success/30 bg-status-success-soft text-status-success";
   if (estado === "actualizando" || estado === "reconectando") return "border-status-info/30 bg-status-info-soft text-status-info";
-  if (estado === "demo" || estado === "desactualizado") return "border-status-warning/35 bg-status-warning-soft text-status-warning";
+  if (estado === "desactualizado") return "border-status-warning/35 bg-status-warning-soft text-status-warning";
   return "border-status-error/30 bg-status-error-soft text-status-error";
 }
 
@@ -846,27 +798,33 @@ function trasladoSinSenal(traslado: TrasladoMapa) {
 }
 
 function calidadUbicacion(traslado: TrasladoMapa, ahora: Date | null) {
-  const sinUbicacion = trasladoSinCoordenadas(traslado);
-  const minutos = minutosDesdeActualizacion(traslado.actualizado_en, ahora);
-  const estadoSenal: EstadoSenalMapa = sinUbicacion
+  const gpsDisponible = traslado.conductor_lat !== null && traslado.conductor_lng !== null && traslado.gps_actualizado_en !== null;
+  const minutos = minutosDesdeActualizacion(traslado.gps_actualizado_en ?? traslado.actualizado_en, ahora);
+  const estadoSenal: EstadoSenalMapa = traslado.coordenadas_sensibles_protegidas
+    ? "sin_ubicacion"
+    : !gpsDisponible
     ? "sin_ubicacion"
     : minutos >= UMBRAL_SIN_SENAL_MIN
     ? "sin_senal"
     : minutos >= UMBRAL_UBICACION_ANTIGUA_MIN
     ? "antigua"
-    : "estimada";
-  const ultimaPosicion = sinUbicacion ? "Sin última posición completa" : `${traslado.origen_ciudad} a ${traslado.destino_ciudad}`;
+    : "confirmada";
+  const ultimaPosicion = traslado.coordenadas_sensibles_protegidas
+    ? "Coordenadas protegidas por rol"
+    : gpsDisponible
+      ? `${traslado.conductor_lat?.toFixed(5)}, ${traslado.conductor_lng?.toFixed(5)}`
+      : "Sin GPS real reportado";
   return {
     minutos,
     estadoSenal,
     estadoTexto: etiquetaEstadoSenal(estadoSenal),
     estadoCorto: etiquetaEstadoSenalCorta(estadoSenal),
     tiempoTexto: textoTiempoUbicacion(minutos),
-    fuente: sinUbicacion ? "No reportada" : "Ruta operativa",
-    precision: sinUbicacion ? "No reportada" : "Estimada por ruta",
-    tipoPunto: sinUbicacion ? "No confirmado" : estadoSenal === "estimada" ? "Estimado" : "Estimado desactualizado",
+    fuente: traslado.gps_fuente ?? "No reportada",
+    precision: traslado.gps_precision_m === null ? "No reportada" : `${Math.round(traslado.gps_precision_m)} m`,
+    tipoPunto: gpsDisponible ? "GPS conductor" : traslado.coordenadas_sensibles_protegidas ? "Protegido por rol" : "No confirmado",
     ultimaPosicion,
-    ultimoPuntoValido: sinUbicacion ? "Sin punto válido" : traslado.destino_ciudad || traslado.origen_ciudad || "Ruta registrada"
+    ultimoPuntoValido: traslado.gps_actualizado_en ? textoTiempoUbicacion(minutos) : "Sin punto válido"
   };
 }
 
@@ -898,7 +856,8 @@ function etiquetaEstadoSenalCorta(estado: EstadoSenalMapa) {
 }
 
 function claseCalidadUbicacion(estado: EstadoSenalMapa) {
-  if (estado === "estimada" || estado === "confirmada") return "bg-status-success-soft text-status-success";
+  if (estado === "confirmada") return "bg-status-success-soft text-status-success";
+  if (estado === "estimada") return "bg-status-warning-soft text-status-warning";
   if (estado === "antigua" || estado === "sin_senal") return "bg-status-warning-soft text-status-warning";
   return "bg-status-error-soft text-status-error";
 }
@@ -933,6 +892,11 @@ function esEmergenciaMapa(traslado: TrasladoMapa) {
 
 function puntoMedio(origen: [number, number], destino: [number, number]): [number, number] {
   return [(origen[0] + destino[0]) / 2, (origen[1] + destino[1]) / 2];
+}
+
+function puntoConductor(traslado: TrasladoMapa): [number, number] | null {
+  if (traslado.conductor_lat === null || traslado.conductor_lng === null) return null;
+  return [traslado.conductor_lng, traslado.conductor_lat];
 }
 
 function puntoConOffset(punto: [number, number], offset: number): [number, number] {

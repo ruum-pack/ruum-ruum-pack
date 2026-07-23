@@ -197,40 +197,77 @@ export type Database = {
         Row: {
           creado_en: string
           creado_por_admin_id: string | null
+          cancelado_en: string | null
+          cancelado_por: string | null
           empresa_id: string
           estado: string
+          filas_procesadas: number
           filas_creadas: number
           filas_error: number
+          finalizado_en: string | null
+          hash_archivo: string | null
           id: string
+          iniciado_en: string | null
+          mensaje_estado: string | null
+          mime_type: string | null
           nombre_archivo: string
+          reporte_errores_csv: string | null
+          tamano_bytes: number
           total_filas: number
           usuario_id: string
         }
         Insert: {
           creado_en?: string
           creado_por_admin_id?: string | null
+          cancelado_en?: string | null
+          cancelado_por?: string | null
           empresa_id: string
           estado?: string
+          filas_procesadas?: number
           filas_creadas?: number
           filas_error?: number
+          finalizado_en?: string | null
+          hash_archivo?: string | null
           id?: string
+          iniciado_en?: string | null
+          mensaje_estado?: string | null
+          mime_type?: string | null
           nombre_archivo: string
+          reporte_errores_csv?: string | null
+          tamano_bytes?: number
           total_filas?: number
           usuario_id: string
         }
         Update: {
           creado_en?: string
           creado_por_admin_id?: string | null
+          cancelado_en?: string | null
+          cancelado_por?: string | null
           empresa_id?: string
           estado?: string
+          filas_procesadas?: number
           filas_creadas?: number
           filas_error?: number
+          finalizado_en?: string | null
+          hash_archivo?: string | null
           id?: string
+          iniciado_en?: string | null
+          mensaje_estado?: string | null
+          mime_type?: string | null
           nombre_archivo?: string
+          reporte_errores_csv?: string | null
+          tamano_bytes?: number
           total_filas?: number
           usuario_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cargas_traslados_masivos_cancelado_por_fkey"
+            columns: ["cancelado_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cargas_traslados_masivos_creado_por_admin_id_fkey"
             columns: ["creado_por_admin_id"]
@@ -987,12 +1024,20 @@ export type Database = {
           condiciones_pago: string | null
           correo_facturacion: string | null
           creado_en: string
+          credito_disponible_mxn: number
+          dias_credito: number
           estado_verificacion: Database["public"]["Enums"]["estado_verificacion"]
+          estado_operativo: string
           id: string
+          limite_credito_mxn: number
+          motivo_suspension: string | null
           nombre: string
           razon_social: string | null
           regimen_fiscal: string | null
+          requiere_orden_compra: boolean
           rfc: string | null
+          suspendida_en: string | null
+          suspendida_por: string | null
           uso_cfdi: string | null
         }
         Insert: {
@@ -1001,12 +1046,20 @@ export type Database = {
           condiciones_pago?: string | null
           correo_facturacion?: string | null
           creado_en?: string
+          credito_disponible_mxn?: number
+          dias_credito?: number
           estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"]
+          estado_operativo?: string
           id?: string
+          limite_credito_mxn?: number
+          motivo_suspension?: string | null
           nombre: string
           razon_social?: string | null
           regimen_fiscal?: string | null
+          requiere_orden_compra?: boolean
           rfc?: string | null
+          suspendida_en?: string | null
+          suspendida_por?: string | null
           uso_cfdi?: string | null
         }
         Update: {
@@ -1015,15 +1068,240 @@ export type Database = {
           condiciones_pago?: string | null
           correo_facturacion?: string | null
           creado_en?: string
+          credito_disponible_mxn?: number
+          dias_credito?: number
           estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"]
+          estado_operativo?: string
           id?: string
+          limite_credito_mxn?: number
+          motivo_suspension?: string | null
           nombre?: string
           razon_social?: string | null
           regimen_fiscal?: string | null
+          requiere_orden_compra?: boolean
           rfc?: string | null
+          suspendida_en?: string | null
+          suspendida_por?: string | null
           uso_cfdi?: string | null
         }
         Relationships: []
+      }
+      empresas_cambios_sensibles: {
+        Row: {
+          aprobado_por: string | null
+          comentario_resolucion: string | null
+          datos_anteriores: Json
+          datos_propuestos: Json
+          empresa_id: string
+          estado: string
+          id: string
+          motivo: string
+          resuelto_en: string | null
+          solicitado_en: string
+          solicitado_por: string
+          tipo: string
+        }
+        Insert: {
+          aprobado_por?: string | null
+          comentario_resolucion?: string | null
+          datos_anteriores?: Json
+          datos_propuestos?: Json
+          empresa_id: string
+          estado?: string
+          id?: string
+          motivo: string
+          resuelto_en?: string | null
+          solicitado_en?: string
+          solicitado_por: string
+          tipo: string
+        }
+        Update: {
+          aprobado_por?: string | null
+          comentario_resolucion?: string | null
+          datos_anteriores?: Json
+          datos_propuestos?: Json
+          empresa_id?: string
+          estado?: string
+          id?: string
+          motivo?: string
+          resuelto_en?: string | null
+          solicitado_en?: string
+          solicitado_por?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresas_cambios_sensibles_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresas_condiciones_comerciales_versiones: {
+        Row: {
+          aprobado_por: string | null
+          cambio_sensible_id: string | null
+          condiciones_pago: string | null
+          creado_en: string
+          creado_por: string | null
+          credito_disponible_mxn: number
+          dias_credito: number
+          empresa_id: string
+          id: string
+          limite_credito_mxn: number
+          requiere_orden_compra: boolean
+          version: number
+          vigente_desde: string
+          vigente_hasta: string | null
+        }
+        Insert: {
+          aprobado_por?: string | null
+          cambio_sensible_id?: string | null
+          condiciones_pago?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          credito_disponible_mxn?: number
+          dias_credito?: number
+          empresa_id: string
+          id?: string
+          limite_credito_mxn?: number
+          requiere_orden_compra?: boolean
+          version: number
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Update: {
+          aprobado_por?: string | null
+          cambio_sensible_id?: string | null
+          condiciones_pago?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          credito_disponible_mxn?: number
+          dias_credito?: number
+          empresa_id?: string
+          id?: string
+          limite_credito_mxn?: number
+          requiere_orden_compra?: boolean
+          version?: number
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Relationships: []
+      }
+      empresas_datos_fiscales_versiones: {
+        Row: {
+          aprobado_por: string | null
+          cambio_sensible_id: string | null
+          codigo_postal_fiscal: string | null
+          correo_facturacion: string | null
+          creado_en: string
+          creado_por: string | null
+          empresa_id: string
+          id: string
+          razon_social: string | null
+          regimen_fiscal: string | null
+          rfc: string
+          uso_cfdi: string | null
+          version: number
+          vigente_desde: string
+          vigente_hasta: string | null
+        }
+        Insert: {
+          aprobado_por?: string | null
+          cambio_sensible_id?: string | null
+          codigo_postal_fiscal?: string | null
+          correo_facturacion?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          empresa_id: string
+          id?: string
+          razon_social?: string | null
+          regimen_fiscal?: string | null
+          rfc: string
+          uso_cfdi?: string | null
+          version: number
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Update: {
+          aprobado_por?: string | null
+          cambio_sensible_id?: string | null
+          codigo_postal_fiscal?: string | null
+          correo_facturacion?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          empresa_id?: string
+          id?: string
+          razon_social?: string | null
+          regimen_fiscal?: string | null
+          rfc?: string
+          uso_cfdi?: string | null
+          version?: number
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Relationships: []
+      }
+      empresas_documentos: {
+        Row: {
+          actualizado_en: string
+          creado_en: string
+          creado_por: string | null
+          empresa_id: string
+          estado: Database["public"]["Enums"]["estado_verificacion"]
+          folio: string | null
+          id: string
+          nombre: string
+          notas: string | null
+          revisado_por: string | null
+          tipo: string
+          url: string | null
+          vigente_desde: string | null
+          vigente_hasta: string | null
+        }
+        Insert: {
+          actualizado_en?: string
+          creado_en?: string
+          creado_por?: string | null
+          empresa_id: string
+          estado?: Database["public"]["Enums"]["estado_verificacion"]
+          folio?: string | null
+          id?: string
+          nombre: string
+          notas?: string | null
+          revisado_por?: string | null
+          tipo: string
+          url?: string | null
+          vigente_desde?: string | null
+          vigente_hasta?: string | null
+        }
+        Update: {
+          actualizado_en?: string
+          creado_en?: string
+          creado_por?: string | null
+          empresa_id?: string
+          estado?: Database["public"]["Enums"]["estado_verificacion"]
+          folio?: string | null
+          id?: string
+          nombre?: string
+          notas?: string | null
+          revisado_por?: string | null
+          tipo?: string
+          url?: string | null
+          vigente_desde?: string | null
+          vigente_hasta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresas_documentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       estado_transiciones_validas: {
         Row: {
@@ -1366,8 +1644,11 @@ export type Database = {
           datos: Json
           errores: string[]
           estado: string
+          hash_fila: string | null
           id: string
+          clave_idempotencia: string | null
           numero_fila: number
+          procesado_en: string | null
           referencia_externa: string | null
           traslado_id: string | null
           vehiculo_id: string | null
@@ -1378,8 +1659,11 @@ export type Database = {
           datos: Json
           errores?: string[]
           estado: string
+          hash_fila?: string | null
           id?: string
+          clave_idempotencia?: string | null
           numero_fila: number
+          procesado_en?: string | null
           referencia_externa?: string | null
           traslado_id?: string | null
           vehiculo_id?: string | null
@@ -1390,8 +1674,11 @@ export type Database = {
           datos?: Json
           errores?: string[]
           estado?: string
+          hash_fila?: string | null
           id?: string
+          clave_idempotencia?: string | null
           numero_fila?: number
+          procesado_en?: string | null
           referencia_externa?: string | null
           traslado_id?: string | null
           vehiculo_id?: string | null

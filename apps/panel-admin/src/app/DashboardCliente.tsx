@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { Aviso, PassportCard } from "@ruum/ui";
 import { AdminPanel } from "./admin-ui";
-import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
 import {
   obtenerIndicadoresAccionablesDashboard,
   listarIncidenciasAdmin,
@@ -13,7 +13,6 @@ import {
   obtenerAdminActual,
   type IndicadorAccionableDashboard
 } from "@ruum/api/services";
-import { INCIDENCIAS_DEMO, CONDUCTORES_DEMO } from "../lib/datos-demo";
 import { CONFIG_ROL_ADMIN, normalizarRolAdmin, type RolAdminOperativo, type WidgetDashboardAdmin } from "../lib/roles-admin";
 import type { Database } from "@ruum/shared/types";
 import { useHybridRefresh } from "../hooks/useHybridRefresh";
@@ -21,7 +20,7 @@ import { useHybridRefresh } from "../hooks/useHybridRefresh";
 type IncidenciaRow = Database["public"]["Tables"]["incidencias"]["Row"];
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
 type AuditoriaRow = Database["public"]["Tables"]["registro_auditoria"]["Row"];
-type EstadoConexionDashboard = "datos_en_vivo" | "actualizando" | "reconectando" | "sin_conexion" | "desactualizado" | "demo";
+type EstadoConexionDashboard = "datos_en_vivo" | "actualizando" | "reconectando" | "sin_conexion" | "desactualizado";
 
 export type DashboardInitialData = {
   indicadores: IndicadorAccionableDashboard[];
@@ -50,112 +49,36 @@ const ACCIONES_FRECUENTES = [
   }
 ] as const;
 
-const INDICADORES_DEMO: IndicadorAccionableDashboard[] = [
-  {
-    clave: "traslados_activos",
-    titulo: "Traslados activos",
-    valor: 7,
-    ventanaTemporal: "Ahora · operación abierta",
-    variacion: 12,
-    umbral: "Atención > 12 · crítico > 18",
-    subgrupoCritico: "1 con incidencia",
-    href: "/viajes?filtro=activos",
-    severidad: "normal",
-    actualizadoEn: new Date().toISOString()
-  },
-  {
-    clave: "inician_60_min",
-    titulo: "Inician en 60 minutos",
-    valor: 2,
-    ventanaTemporal: "Próximos 60 min",
-    variacion: 0,
-    umbral: "Atención > 3 · crítico > 6",
-    subgrupoCritico: "1 sin conductor",
-    href: "/viajes?filtro=inician_60",
-    severidad: "normal",
-    actualizadoEn: new Date().toISOString()
-  },
-  {
-    clave: "sin_asignacion",
-    titulo: "Sin asignación",
-    valor: 2,
-    ventanaTemporal: "Ahora · pendientes de conductor",
-    variacion: 50,
-    umbral: "Atención > 1 · crítico > 3",
-    subgrupoCritico: "0 con más de 24 h",
-    href: "/viajes?filtro=sin_asignacion",
-    severidad: "atencion",
-    actualizadoEn: new Date().toISOString()
-  },
-  {
-    clave: "riesgo_sla",
-    titulo: "En riesgo de SLA",
-    valor: 3,
-    ventanaTemporal: "Ahora · excepciones SLA",
-    variacion: 0,
-    umbral: "Atención > 0 · crítico si vencido",
-    subgrupoCritico: "1 vencido",
-    href: "/alertas-sla?categoria=sla_en_riesgo",
-    severidad: "critico",
-    actualizadoEn: new Date().toISOString()
-  },
-  {
-    clave: "con_incidencia",
-    titulo: "Con incidencia",
-    valor: 1,
-    ventanaTemporal: "Ahora · traslados activos",
-    variacion: 0,
-    umbral: "Atención > 0 · crítico > 2",
-    subgrupoCritico: "0 documentación bloqueante",
-    href: "/viajes?filtro=incidencia",
-    severidad: "atencion",
-    actualizadoEn: new Date().toISOString()
-  },
-  {
-    clave: "finalizados_hoy",
-    titulo: "Finalizados hoy",
-    valor: 3,
-    ventanaTemporal: "Hoy · 00:00 a ahora",
-    variacion: 25,
-    umbral: "Meta >= cierre del día anterior",
-    subgrupoCritico: "2 ayer",
-    href: "/viajes?filtro=finalizados_hoy",
-    severidad: "normal",
-    actualizadoEn: new Date().toISOString()
-  }
-];
-
 export default function DashboardCliente({ inicial }: { inicial: DashboardInitialData | null }) {
   const [indicadores, setIndicadores] = useState<IndicadorAccionableDashboard[]>(inicial?.indicadores ?? []);
   const [incidencias, setIncidencias] = useState<IncidenciaRow[]>(inicial?.incidencias ?? []);
   const [emergencias, setEmergencias] = useState<AuditoriaRow[]>(inicial?.emergencias ?? []);
   const [conductoresDocVencido, setConductoresDocVencido] = useState<ConductorRow[]>(inicial?.conductoresDocVencido ?? []);
-  const [esDemo, setEsDemo] = useState(false);
   const [cargando, setCargando] = useState(!inicial);
   const [ultimaSincronizacion, setUltimaSincronizacion] = useState<Date | null>(inicial ? new Date(inicial.cargadoEn) : null);
   const [ahora, setAhora] = useState<Date | null>(null);
-  const [estadoConexionDatos, setEstadoConexionDatos] = useState<EstadoConexionDashboard>("actualizando");
+  const [estadoConexionDatos, setEstadoConexionDatos] = useState<EstadoConexionDashboard>(inicial ? "datos_en_vivo" : "actualizando");
   const [seccionesDesactualizadas, setSeccionesDesactualizadas] = useState<string[]>([]);
   const [actualizandoManual, setActualizandoManual] = useState(false);
   const [rolAdmin, setRolAdmin] = useState<RolAdminOperativo>(inicial?.rol ?? "operador");
-  const ultimaRespuestaExitosaRef = useRef<Date | null>(null);
+  const [errorOperacional, setErrorOperacional] = useState<string | null>(inicial ? null : "No pudimos obtener datos reales del dashboard. Verifica la sesión administrativa y la configuración de Supabase.");
+  const ultimaRespuestaExitosaRef = useRef<Date | null>(inicial ? new Date(inicial.cargadoEn) : null);
 
   async function cargarDashboard(esRefresco = false, manual = false, activo = true) {
       if (!esRefresco) setCargando(true);
       if (manual) setActualizandoManual(true);
       if (!tieneSupabaseConfigurado()) {
         if (!activo) return;
-        setIndicadores(INDICADORES_DEMO.map((indicador) => ({ ...indicador, actualizadoEn: new Date().toISOString() })));
-        setIncidencias(INCIDENCIAS_DEMO);
-        setEmergencias([]);
-        setConductoresDocVencido(CONDUCTORES_DEMO.filter((c) => !c.documentos_vigentes));
-        setEsDemo(true);
-        setRolAdmin("operador");
-        const fecha = new Date();
-        ultimaRespuestaExitosaRef.current = fecha;
-        setUltimaSincronizacion(fecha);
-        setEstadoConexionDatos("demo");
-        setSeccionesDesactualizadas([]);
+        const teniaRespuestaExitosa = Boolean(ultimaRespuestaExitosaRef.current);
+        if (!teniaRespuestaExitosa) {
+          setIndicadores([]);
+          setIncidencias([]);
+          setEmergencias([]);
+          setConductoresDocVencido([]);
+        }
+        setEstadoConexionDatos(teniaRespuestaExitosa ? "desactualizado" : "sin_conexion");
+        setSeccionesDesactualizadas(["KPIs administrativos", "alertas operativas", "conductores"]);
+        setErrorOperacional("Supabase no está configurado. El dashboard final no muestra datos demo; requiere una fuente administrativa real.");
         setCargando(false);
         setActualizandoManual(false);
         return;
@@ -176,35 +99,25 @@ export default function DashboardCliente({ inicial }: { inicial: DashboardInitia
         setIncidencias(incidenciasReales.filter((i) => !i.resuelta));
         setEmergencias(emergenciasReales);
         setConductoresDocVencido(conductoresReales.filter((c) => !c.documentos_vigentes));
-        setEsDemo(false);
         setRolAdmin(normalizarRolAdmin(adminActual?.rol_operativo));
         const fecha = new Date();
         ultimaRespuestaExitosaRef.current = fecha;
         setUltimaSincronizacion(fecha);
         setEstadoConexionDatos("datos_en_vivo");
         setSeccionesDesactualizadas([]);
-      } catch {
+        setErrorOperacional(null);
+      } catch (error) {
         const teniaRespuestaExitosa = Boolean(ultimaRespuestaExitosaRef.current);
-        if (puedeUsarDatosDemo()) {
-          if (!activo) return;
-          setIndicadores(INDICADORES_DEMO.map((indicador) => ({ ...indicador, actualizadoEn: new Date().toISOString() })));
-          setIncidencias(INCIDENCIAS_DEMO);
-          setEmergencias([]);
-          setConductoresDocVencido(CONDUCTORES_DEMO.filter((c) => !c.documentos_vigentes));
-          setEsDemo(true);
-          setRolAdmin("operador");
-          setEstadoConexionDatos(teniaRespuestaExitosa ? "desactualizado" : "sin_conexion");
-          setSeccionesDesactualizadas(["KPIs administrativos", "alertas operativas", "conductores"]);
-        } else {
-          if (!activo) return;
+        if (!activo) return;
+        if (!teniaRespuestaExitosa) {
           setIndicadores([]);
           setIncidencias([]);
           setEmergencias([]);
           setConductoresDocVencido([]);
-          setEsDemo(false);
-          setEstadoConexionDatos(teniaRespuestaExitosa ? "desactualizado" : "sin_conexion");
-          setSeccionesDesactualizadas(["KPIs administrativos", "alertas operativas", "conductores"]);
         }
+        setEstadoConexionDatos(teniaRespuestaExitosa ? "desactualizado" : "sin_conexion");
+        setSeccionesDesactualizadas(["KPIs administrativos", "alertas operativas", "conductores"]);
+        setErrorOperacional(error instanceof Error ? error.message : "No pudimos obtener datos reales del dashboard.");
       } finally {
         if (activo) setCargando(false);
         if (activo) setActualizandoManual(false);
@@ -285,21 +198,20 @@ export default function DashboardCliente({ inicial }: { inicial: DashboardInitia
           <span>{ultimaSincronizacion ? textoActualizadoHace(ultimaSincronizacion, ahora) : "Sin respuesta"}</span>
           <span className="text-text-tertiary">·</span>
           <span>{configuracionRol.etiqueta}</span>
-          {esDemo && <><span className="text-text-tertiary">·</span><span className="text-status-warning">Demo</span></>}
           <span className="text-text-tertiary">·</span>
           <span>{turno}</span>
         </div>
       </section>
 
-      {seccionesDesactualizadas.length > 0 && (
+      {errorOperacional && (
         <div className="mt-4">
-          <Aviso tono="atencion">Pueden estar desactualizadas: {seccionesDesactualizadas.join(", ")}.</Aviso>
+          <Aviso tono="danger">{errorOperacional}</Aviso>
         </div>
       )}
 
-      {esDemo && (
+      {seccionesDesactualizadas.length > 0 && (
         <div className="mt-4">
-          <Aviso tono="info">Estás viendo datos de ejemplo, no la operación real.</Aviso>
+          <Aviso tono="atencion">Pueden estar desactualizadas: {seccionesDesactualizadas.join(", ")}.</Aviso>
         </div>
       )}
 
@@ -333,7 +245,16 @@ export default function DashboardCliente({ inicial }: { inicial: DashboardInitia
         </div>
       ) : (
         <>
-          {configuracionRol.widgets.map((widget) => renderWidgetDashboard(widget, {
+          {errorOperacional && indicadoresVisibles.length === 0 ? (
+            <div className="mt-8">
+              <AdminPanel className="p-5 sm:p-6">
+                <h2 className="font-display text-base font-semibold">Datos no disponibles</h2>
+                <p className="mt-2 font-body text-sm text-text-secondary">
+                  El tablero está cerrado hasta recibir indicadores administrativos reales.
+                </p>
+              </AdminPanel>
+            </div>
+          ) : configuracionRol.widgets.map((widget) => renderWidgetDashboard(widget, {
             indicadoresVisibles,
             emergencias,
             incidencias,
@@ -434,7 +355,6 @@ function textoEstadoConexion(estado: EstadoConexionDashboard) {
   if (estado === "actualizando") return "Actualizando";
   if (estado === "reconectando") return "Reconectando";
   if (estado === "desactualizado") return "Posiblemente desactualizados";
-  if (estado === "demo") return "Modo demo";
   return "Sin conexión";
 }
 
@@ -477,6 +397,7 @@ function IndicadorAccionable({ indicador }: { indicador: IndicadorAccionableDash
       </div>
       <dl className="mt-4 grid gap-2 border-t border-ink/10 pt-3">
         <DatoKpi etiqueta="Ventana" valor={indicador.ventanaTemporal} />
+        <DatoKpi etiqueta="Corte" valor={formatoCorteIndicador(indicador.actualizadoEn)} />
         <DatoKpi etiqueta="Umbral" valor={indicador.umbral} />
         <DatoKpi etiqueta="Subgrupo crítico" valor={indicador.subgrupoCritico} />
       </dl>
@@ -498,4 +419,12 @@ function formatoVariacion(valor: number) {
   if (valor > 0) return `+${valor}%`;
   if (valor < 0) return `${valor}%`;
   return "0%";
+}
+
+function formatoCorteIndicador(valor: string) {
+  return new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "America/Mexico_City"
+  }).format(new Date(valor));
 }

@@ -107,7 +107,15 @@ const ADMIN_BASE = { tablas: { admins: { data: { id: "admin-1", rol_operativo: "
 
   it("crearTrasladosMasivosAdmin lanza si el archivo está vacío", async () => {
     const cliente = crearClienteFake(ADMIN_BASE);
-    await expect(crearTrasladosMasivosAdmin(cliente as never, { empresaId: "e1", usuarioId: "u1", nombreArchivo: "x.csv", filas: [] })).rejects.toThrow("válidas");
+    await expect(crearTrasladosMasivosAdmin(cliente as never, {
+      empresaId: "e1",
+      usuarioId: "u1",
+      nombreArchivo: "x.csv",
+      hashArchivo: "a".repeat(64),
+      tamanoBytes: 128,
+      mimeType: "text/csv",
+      filas: []
+    })).rejects.toThrow("válidas");
   });
 
   it("cambiarEstatusAdmin lanza si transición inválida", async () => {
