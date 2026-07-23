@@ -845,9 +845,108 @@ export async function listarViajesAdminPaginados(
     p_orden_columna: ordenColumna,
     p_orden_direccion: ordenDireccion
   });
+  if (error && esRpcNoEncontrado(error)) {
+    return listarViajesAdminPaginadosFallback(cliente, pagina, tamano, filtroEstado, busqueda, ordenColumna, ordenDireccion);
+  }
   if (error) throw error;
   if (!data) return { data: [], paginacion: { pagina: 1, tamano: 25, total: 0, total_paginas: 0 } };
   return data;
+}
+
+function esRpcNoEncontrado(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const datos = error as { code?: string; message?: string; details?: string; status?: number };
+  const texto = `${datos.code ?? ""} ${datos.message ?? ""} ${datos.details ?? ""}`.toLowerCase();
+  return datos.status === 404 || texto.includes("pgrst202") || texto.includes("could not find the function") || texto.includes("not found");
+}
+
+function esRecursoSupabasePendiente(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const datos = error as { code?: string; message?: string; details?: string; status?: number };
+  const texto = `${datos.code ?? ""} ${datos.message ?? ""} ${datos.details ?? ""}`.toLowerCase();
+  return (
+    datos.status === 404 ||
+    datos.code === "42P01" ||
+    datos.code === "42703" ||
+    texto.includes("pgrst202") ||
+    texto.includes("pgrst204") ||
+    texto.includes("could not find") ||
+    texto.includes("does not exist") ||
+    texto.includes("not found")
+  );
+}
+
+function columnaOrdenPasaporte(columna?: string): keyof PasaporteRow {
+  switch (columna) {
+    case "folio":
+      return "traslado_id";
+    case "inicio_programado":
+      return "creado_en";
+    case "ruta":
+      return "origen_ciudad";
+    case "vehiculo":
+      return "vehiculo_marca";
+    case "conductor":
+      return "conductor_nombre";
+    case "estatus":
+      return "estado";
+    default:
+      return "creado_en";
+  }
+}
+
+async function listarViajesAdminPaginadosFallback(
+  cliente: Cliente,
+  pagina: number,
+  tamano: number,
+  filtroEstado: EstadoTraslado | "todos",
+  busqueda?: string,
+  ordenColumna?: string,
+  ordenDireccion?: string
+): Promise<PaginacionViajes> {
+  const paginaNormalizada = Math.max(pagina, 1);
+  const tamanoNormalizado = Math.min(Math.max(tamano, 1), 100);
+  const desde = (paginaNormalizada - 1) * tamanoNormalizado;
+  const hasta = desde + tamanoNormalizado - 1;
+  const columna = columnaOrdenPasaporte(ordenColumna);
+  const ascending = ordenDireccion === "asc";
+
+  let query = cliente
+    .from("pasaporte_digital")
+    .select("*", { count: "exact" })
+    .order(columna, { ascending, nullsFirst: false })
+    .range(desde, hasta);
+
+  if (filtroEstado !== "todos") {
+    query = query.eq("estado", filtroEstado);
+  }
+
+  const termino = busqueda?.trim();
+  if (termino) {
+    const patron = termino.replace(/%/g, "\\%").replace(/,/g, "\\,");
+    query = query.or([
+      `origen_ciudad.ilike.%${patron}%`,
+      `destino_ciudad.ilike.%${patron}%`,
+      `vehiculo_marca.ilike.%${patron}%`,
+      `vehiculo_modelo.ilike.%${patron}%`,
+      `vehiculo_placas.ilike.%${patron}%`,
+      `conductor_nombre.ilike.%${patron}%`
+    ].join(","));
+  }
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  const total = count ?? data?.length ?? 0;
+  return {
+    data: data ?? [],
+    paginacion: {
+      pagina: paginaNormalizada,
+      tamano: tamanoNormalizado,
+      total,
+      total_paginas: total === 0 ? 0 : Math.ceil(total / tamanoNormalizado)
+    }
+  };
 }
 
 /** PRD §17.6 — lista de conductores CONCER. */
@@ -1068,7 +1167,7 @@ export async function listarEmpresasAdmin(cliente: Cliente): Promise<DatosEmpres
     cliente.from("empresas_cambios_sensibles").select("*").order("solicitado_en", { ascending: false })
   ]);
 
-  for (const resultado of [empresas, usuarios, traslados, vehiculos, conductores, documentos, versionesFiscales, versionesCondiciones, cambiosSensibles]) {
+  for (const resultado of [empresas, usuarios, traslados]) {
     if (resultado.error) throw resultado.error;
   }
 
@@ -1076,13 +1175,19 @@ export async function listarEmpresasAdmin(cliente: Cliente): Promise<DatosEmpres
     empresas: empresas.data ?? [],
     usuarios: usuarios.data ?? [],
     traslados: traslados.data ?? [],
-    vehiculos: vehiculos.data ?? [],
-    conductores: conductores.data ?? [],
-    documentos: documentos.data ?? [],
-    versionesFiscales: versionesFiscales.data ?? [],
-    versionesCondiciones: versionesCondiciones.data ?? [],
-    cambiosSensibles: cambiosSensibles.data ?? []
+    vehiculos: resultadoOpcional(vehiculos),
+    conductores: resultadoOpcional(conductores),
+    documentos: resultadoOpcional(documentos),
+    versionesFiscales: resultadoOpcional(versionesFiscales),
+    versionesCondiciones: resultadoOpcional(versionesCondiciones),
+    cambiosSensibles: resultadoOpcional(cambiosSensibles)
   };
+}
+
+function resultadoOpcional<T>(resultado: { data: T[] | null; error: unknown }): T[] {
+  if (!resultado.error) return resultado.data ?? [];
+  if (esRecursoSupabasePendiente(resultado.error)) return [];
+  throw resultado.error;
 }
 
 export async function crearEmpresaCorporativaAdmin(
