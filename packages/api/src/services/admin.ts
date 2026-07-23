@@ -1,9 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, EstadoDocumentoConductor } from "@ruum/shared/types";
 import { transicionValida } from "@ruum/shared/states";
-import { evidenciaCompleta } from "@ruum/shared/rules";
+import { evidenciaCompleta, esElegibleParaViaje } from "@ruum/shared/rules";
 import { consecuenciaCancelacionConductor, consecuenciaNoPresentacion, clasificarTrasladoFallido } from "@ruum/shared/rules";
-import type { FotoEvidencia } from "@ruum/shared/types";
+import type { FotoEvidencia, Conductor } from "@ruum/shared/types";
 import { registrarEvento, generarTraceId } from "./auditoria";
 import { assertAdminPermission } from "./permisos-admin";
 
@@ -730,6 +730,38 @@ export async function listarVehiculosAdmin(cliente: Cliente): Promise<DatosVehic
   };
 }
 
+export interface EvidenciaVehiculoTraslado {
+  traslado_id: string;
+  traslado_estado: string;
+  fotos: Array<{
+    id: string;
+    tipo: string;
+    angulo: string;
+    url: string | null;
+    capturada_en: string;
+    sincronizada: boolean;
+  }>;
+}
+
+/**
+ * Obtiene la evidencia (fotos) asociada a un vehículo a través de sus traslados.
+ */
+export async function obtenerEvidenciaVehiculo(
+  cliente: Cliente,
+  vehiculoId: string
+): Promise<EvidenciaVehiculoTraslado[]> {
+  await assertAdminPermission(cliente, "viajes:leer");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_obtener_evidencia_vehiculo",
+    args: { p_vehiculo_id: string }
+  ) => Promise<{ data: EvidenciaVehiculoTraslado[] | null; error: unknown }>;
+  const { data, error } = await rpc("admin_obtener_evidencia_vehiculo", {
+    p_vehiculo_id: vehiculoId
+  });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function listarPagosAdmin(cliente: Cliente): Promise<DatosPagosAdmin> {
   await assertAdminPermission(cliente, "pagos:leer");
   const [pagos, pasaportes, payouts, datosBancarios, conductores] = await Promise.all([
@@ -1377,10 +1409,327 @@ export async function obtenerUrlDocumentoConductor(
   const { data, error } = await cliente.storage
     .from("documentos-conductor")
     .createSignedUrl(storagePath, expiracionSegundos);
-  if (error) throw error;
-  return data.signedUrl;
+if (error) throw error;
+  return data ?? [];
 }
 
+/**
+ * Obtiene un vehículo por ID con validaciones.
+ */
+export async function obtenerVehiculoAdmin(
+  cliente: Cliente,
+  vehiculoId: string
+): Promise<Database["public"]["Tables"]["vehiculos"]["Row"] | null> {
+  await assertAdminPermission(cliente, "conductores:leer");
+  const { data, error } = await cliente.from("vehiculos").select("*").eq("id", vehiculoId).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Valida unicidad de VIN y placas.
+ */
+export async function validarVinYPlacasUnicos(
+  cliente: Cliente,
+  vin: string | null,
+  placas: string | null,
+  excluirId?: string
+): Promise<{ vinUnico: boolean; placasUnicas: boolean; conflictoVin?: string; conflictoPlacas?: string }> {
+  const [conflictoVin, conflictoPlacas] = await Promise.all([
+    vin ? cliente.from("vehiculos").select("id, placas").eq("vin", vin.toUpperCase()).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    placas ? cliente.from("vehiculos").select("id, vin").eq("placas", placas.toUpperCase()).maybeSingle() : Promise.resolve({ data: null, error: null })
+  ]);
+  const vinExiste = conflictoVin.data && (!excluirId || conflictoVin.data.id !== excluirId);
+  const placasExisten = conflictoPlacas.data && (!excluirId || conflictoPlacas.data.id !== excluirId);
+  return {
+    vinUnico: !vinExiste,
+    placasUnicas: !placasExisten,
+    conflictoVin: vinExiste ? conflictoVin.data!.id : undefined,
+    conflictoPlacas: placasExisten ? conflictoPlacas.data!.id : undefined
+  };
+}
+
+/**
+ * Valida formato de VIN (17 caracteres alfanuméricos estándar ISO 3779).
+ */
+export function validarFormatoVin(vin: string): boolean {
+  return /^[A-HJ-NPR-Z0-9]{17}$/.test(vin.toUpperCase());
+}
+
+/**
+ * Valida formato de placas (formato genérico: 3-7 alfanuméricos).
+ */
+export function validarFormatoPlacas(placas: string): boolean {
+  return /^[A-Z0-9]{3,7}$/.test(placas.toUpperCase());
+}
+
+/**
+ * Alta de vehículo real (sin datos demo).
+ */
+export type VehiculoCrearAdmin = Database["public"]["Tables"]["vehiculos"]["Insert"] & {
+  usuario_id: string;
+};
+
+export async function crearVehiculoAdmin(
+  cliente: Cliente,
+  datos: VehiculoCrearAdmin
+): Promise<Database["public"]["Tables"]["vehiculos"]["Row"]> {
+  await assertAdminPermission(cliente, "conductores:validar");
+
+  if (datos.vin) {
+    const valido = validarFormatoVin(datos.vin);
+    if (!valido) throw new Error("VIN inválido: debe tener 17 caracteres alfanuméricos (ISO 3779).");
+    const unicos = await validarVinYPlacasUnicos(cliente, datos.vin, datos.placas);
+    if (!unicos.vinUnico) throw new Error("El VIN ya está registrado en otro vehículo.");
+  }
+  if (datos.placas) {
+    const valido = validarFormatoPlacas(datos.placas);
+    if (!valido) throw new Error("Placas inválidas: 3-7 caracteres alfanuméricos.");
+    const unicos = await validarVinYPlacasUnicos(cliente, datos.vin, datos.placas);
+    if (!unicos.placasUnicas) throw new Error("Las placas ya están registradas en otro vehículo.");
+  }
+
+  const { data, error } = await cliente.from("vehiculos").insert(datos).select("*").single();
+  if (error) throw error;
+  await registrarEvento(cliente, "creacion_vehiculo" as never, "admin", data.id, { accion: "alta_manual" });
+  return data;
+}
+
+/**
+ * Edición de vehículo con validaciones.
+ */
+export type VehiculoActualizarAdmin = Pick<
+  Database["public"]["Tables"]["vehiculos"]["Update"],
+  "tipo" | "marca" | "modelo" | "anio" | "color" | "placas" | "vin" | "alias" | "transmision" |
+  "estado_general_declarado" | "fotos_urls" | "permiso_especial_vigente" | "tiene_placas" | "tiene_tarjeta_circulacion" |
+  "tiene_verificacion" | "puede_circular_rodando" | "categoria_tarifa" | "gama" | "condicion" |
+  "usuario_id" | "conductor_id" | "empresa_id"
+>;
+
+export async function actualizarVehiculoAdmin(
+  cliente: Cliente,
+  vehiculoId: string,
+  datos: VehiculoActualizarAdmin,
+  versionEsperada?: number
+): Promise<Database["public"]["Tables"]["vehiculos"]["Row"]> {
+  await assertAdminPermission(cliente, "conductores:validar");
+
+  if (datos.vin) {
+    const valido = validarFormatoVin(datos.vin);
+    if (!valido) throw new Error("VIN inválido: debe tener 17 caracteres alfanuméricos (ISO 3779).");
+    const unicos = await validarVinYPlacasUnicos(cliente, datos.vin, datos.placas, vehiculoId);
+    if (!unicos.vinUnico) throw new Error("El VIN ya está registrado en otro vehículo.");
+  }
+  if (datos.placas) {
+    const valido = validarFormatoPlacas(datos.placas);
+    if (!valido) throw new Error("Placas inválidas: 3-7 caracteres alfanuméricos.");
+    const unicos = await validarVinYPlacasUnicos(cliente, datos.vin, datos.placas, vehiculoId);
+    if (!unicos.placasUnicas) throw new Error("Las placas ya están registradas en otro vehículo.");
+  }
+
+  if (versionEsperada !== undefined) {
+    const { data: rpcData, error: rpcError } = await cliente.rpc("admin_actualizar_vehiculo", {
+      p_vehiculo_id: vehiculoId,
+      p_datos: datos as Record<string, unknown>,
+      p_version_esperada: versionEsperada
+    });
+    if (rpcError) {
+      if (String(rpcError).includes("CONCURRENCY_CONFLICT")) {
+        throw new Error("Conflicto de concurrencia: el vehículo fue modificado por otro operador. Recarga los datos e intenta de nuevo.");
+      }
+      throw rpcError;
+    }
+    const { data: refreshed } = await cliente.from("vehiculos").select("*").eq("id", vehiculoId).single();
+    if (refreshed) return refreshed;
+    throw new Error("No se pudo recuperar el vehículo actualizado.");
+  }
+
+  const { data, error } = await cliente.from("vehiculos").update(datos).eq("id", vehiculoId).select("*").single();
+  if (error) throw error;
+  await registrarEvento(cliente, "actualizacion_vehiculo" as never, "admin", vehiculoId, { accion: "edicion" });
+  return data;
+}
+
+/**
+ * Documentos del vehículo (tarjeta circulación, seguro, verificación).
+ */
+export async function obtenerDocumentosVehiculoAdmin(
+  cliente: Cliente,
+  vehiculoId: string
+): Promise<Database["public"]["Tables"]["documentos_vehiculo"]["Row"][]> {
+  await assertAdminPermission(cliente, "conductores:leer");
+  const { data, error } = await cliente
+    .from("documentos_vehiculo")
+    .select("*")
+    .eq("vehiculo_id", vehiculoId)
+    .order("creado_en", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function subirDocumentoVehiculoAdmin(
+  cliente: Cliente,
+  vehiculoId: string,
+  tipo: "tarjeta_circulacion" | "seguro" | "verificacion" | "permiso_especial",
+  archivo: File
+): Promise<Database["public"]["Tables"]["documentos_vehiculo"]["Row"]> {
+  await assertAdminPermission(cliente, "conductores:validar");
+  // Validaciones de archivo
+  if (archivo.size > 10 * 1024 * 1024) throw new Error("El archivo debe pesar máximo 10 MB.");
+  const ext = archivo.name.split(".").pop()?.toLowerCase();
+  if (!["pdf", "jpg", "jpeg", "png", "webp"].includes(ext ?? "")) throw new Error("Formato inválido: PDF, JPG, PNG o WEBP.");
+
+  const path = `${vehiculoId}/${tipo}.${ext}`;
+  const { error: errUp } = await cliente.storage.from("documentos-vehiculo").upload(path, archivo, { upsert: true, contentType: archivo.type });
+  if (errUp) throw errUp;
+
+  const { data: urlData } = cliente.storage.from("documentos-vehiculo").getPublicUrl(path);
+  const url = `${urlData.publicUrl}?v=${Date.now()}`;
+
+  const { data, error } = await cliente.from("documentos_vehiculo").insert({
+    vehiculo_id: vehiculoId,
+    tipo,
+    url,
+    nombre_archivo: archivo.name,
+    tamano_bytes: archivo.size,
+    mime_type: archivo.type
+  }).select("*").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function eliminarDocumentoVehiculoAdmin(
+  cliente: Cliente,
+  documentoId: string
+): Promise<void> {
+  await assertAdminPermission(cliente, "conductores:validar");
+  const { data: doc, error: errDoc } = await cliente.from("documentos_vehiculo").select("url, vehiculo_id").eq("id", documentoId).single();
+  if (errDoc) throw errDoc;
+  if (doc?.url) {
+    const url = new URL(doc.url);
+    const path = url.pathname.split("/documentos-vehiculo/")[1];
+    if (path) await cliente.storage.from("documentos-vehiculo").remove([path]);
+  }
+  const { error } = await cliente.from("documentos_vehiculo").delete().eq("id", documentoId);
+  if (error) throw error;
+}
+
+/**
+ * Asociar/desasociar conductor y empresa.
+ */
+export async function asociarConductorVehiculoAdmin(
+  cliente: Cliente,
+  vehiculoId: string,
+  conductorId: string | null
+): Promise<void> {
+  await assertAdminPermission(cliente, "conductores:validar");
+  const { error } = await cliente.from("vehiculos").update({ conductor_id: conductorId }).eq("id", vehiculoId);
+  if (error) throw error;
+  await registrarEvento(cliente, "asociacion_conductor_vehiculo" as never, "admin", vehiculoId, { conductor_id: conductorId });
+}
+
+export async function asociarEmpresaVehiculoAdmin(
+  cliente: Cliente,
+  vehiculoId: string,
+  empresaId: string | null
+): Promise<void> {
+  await assertAdminPermission(cliente, "conductores:validar");
+  const { error } = await cliente.from("vehiculos").update({ empresa_id: empresaId }).eq("id", vehiculoId);
+  if (error) throw error;
+  await registrarEvento(cliente, "asociacion_empresa_vehiculo" as never, "admin", vehiculoId, { empresa_id: empresaId });
+}
+
+/**
+ * Suspender vehículo no elegible (documentación vencida, sin seguro, etc.).
+ */
+export async function suspenderVehiculoAdmin(
+  cliente: Cliente,
+  vehiculoId: string,
+  motivo: string
+): Promise<void> {
+  await assertAdminPermission(cliente, "conductores:validar");
+  const { error } = await cliente.from("vehiculos").update({ puede_circular_rodando: false }).eq("id", vehiculoId);
+  if (error) throw error;
+  await registrarEvento(cliente, "suspension_vehiculo" as never, "admin", vehiculoId, { motivo });
+}
+
+/**
+ * Reactivar vehículo.
+ */
+export async function reactivarVehiculoAdmin(
+  cliente: Cliente,
+  vehiculoId: string,
+  motivo: string
+): Promise<void> {
+  await assertAdminPermission(cliente, "conductores:validar");
+  const { error } = await cliente.from("vehiculos").update({ puede_circular_rodando: true }).eq("id", vehiculoId);
+  if (error) throw error;
+  await registrarEvento(cliente, "reactivacion_vehiculo" as never, "admin", vehiculoId, { motivo });
+}
+
+/**
+ * Historial de asignaciones y viajes.
+ */
+export interface HistorialAsignacionVehiculo {
+  id: string;
+  vehiculo_id: string;
+  conductor_id: string | null;
+  empresa_id: string | null;
+  estado_anterior: string | null;
+  estado_nuevo: string;
+  cambiado_por: string;
+  cambiado_en: string;
+}
+
+export async function obtenerHistorialVehiculoAdmin(
+  cliente: Cliente,
+  vehiculoId: string
+): Promise<HistorialAsignacionVehiculo[]> {
+  await assertAdminPermission(cliente, "conductores:leer");
+  const { data, error } = await cliente
+    .from("historial_vehiculos")
+    .select("*")
+    .eq("vehiculo_id", vehiculoId)
+    .order("cambiado_en", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export interface ViajeVehiculoResumen {
+  id: string;
+  creado_en: string;
+  estado: string;
+  origen: string | null;
+  destino: string | null;
+  conductor_nombre: string | null;
+}
+
+/**
+ * Obtiene los viajes asociados al vehículo (vía pasaporte_digital).
+ */
+export async function obtenerViajesDeVehiculoAdmin(
+  cliente: Cliente,
+  vehiculoId: string,
+  limite = 50
+): Promise<ViajeVehiculoResumen[]> {
+  await assertAdminPermission(cliente, "viajes:leer");
+  const { data, error } = await cliente
+    .from("pasaporte_digital")
+    .select("id, creado_en, estado, origen, destino, conductor_nombre")
+    .eq("vehiculo_id", vehiculoId)
+    .order("creado_en", { ascending: false })
+    .limit(limite);
+  if (error) throw error;
+  return (data ?? []).map((v) => ({
+    id: v.id,
+    creado_en: v.creado_en,
+    estado: v.estado,
+    origen: v.origen,
+    destino: v.destino,
+    conductor_nombre: v.conductor_nombre
+  }));
+
+}
 /**
  * Obtiene vehículos asignados al conductor.
  */
@@ -1397,6 +1746,9 @@ export async function obtenerVehiculosDeConductorAdmin(
   if (error) throw error;
   return data ?? [];
 }
+
+/**
+ * Obtiene la empresa vinculada al conductor (si tiene).
 
 /**
  * Obtiene la empresa vinculada al conductor (si tiene).
@@ -1851,6 +2203,29 @@ const CADENA_HASTA_CONDUCTOR_ASIGNADO: EstadoTraslado[] = [
  * explícitamente: reasignar conductor a media ruta es un caso distinto,
  * fuera de alcance de este fix.
  */
+function aConductorRegla(fila: ConductorRow): Conductor {
+  return {
+    id: fila.id,
+    nombre: fila.nombre,
+    estado: fila.estado,
+    calificacion_promedio: fila.calificacion_promedio,
+    traslados_completados: fila.traslados_completados,
+    suspensiones_activas: fila.suspensiones_activas,
+    no_presentaciones_6m: fila.no_presentaciones_6m,
+    cancelaciones_sin_justificacion_count: fila.cancelaciones_sin_justificacion_count,
+    documentos_vigentes: fila.documentos_vigentes,
+    certificaciones: [],
+    incidencias_graves_6m: fila.incidencias_graves_6m,
+    incidencias_graves_12m: fila.incidencias_graves_12m,
+    creado_en: fila.creado_en
+  };
+}
+
+function tipoRutaParaElegibilidad(tipoRuta: string | null): "intraurbana" | "interurbana_mas_100km" {
+  if (tipoRuta === "foraneo") return "interurbana_mas_100km";
+  return "intraurbana";
+}
+
 export async function asignarConductorAdmin(
   cliente: Cliente,
   trasladoId: string,
@@ -1861,6 +2236,33 @@ export async function asignarConductorAdmin(
     throw new Error(
       `No se puede asignar conductor desde el estado "${estadoActual}" — ese estado no forma parte del camino hacia conductor_asignado (¿el viaje ya está en tránsito, cancelado, o fallido?).`
     );
+  }
+
+  const [conductor, traslado] = await Promise.all([
+    cliente.from("conductores").select("*").eq("id", conductorId).maybeSingle(),
+    cliente.from("traslados").select("id, tipo_ruta, vehiculo_id").eq("id", trasladoId).maybeSingle()
+  ]);
+
+  if (conductor.error) throw conductor.error;
+  if (traslado.error) throw traslado.error;
+  if (!conductor.data) throw new Error("Conductor no encontrado.");
+  if (!traslado.data) throw new Error("Traslado no encontrado.");
+
+  if (conductor.data.estado_expediente !== "aprobado") {
+    throw new Error("El conductor no tiene el expediente aprobado para asignarle viajes.");
+  }
+
+  const { data: vehiculo } = await cliente.from("vehiculos").select("tipo").eq("id", traslado.data.vehiculo_id).maybeSingle();
+  if (!vehiculo) throw new Error("El traslado no tiene un vehículo asociado.");
+
+  const resultado = esElegibleParaViaje(
+    aConductorRegla(conductor.data),
+    vehiculo.tipo,
+    tipoRutaParaElegibilidad(traslado.data.tipo_ruta)
+  );
+
+  if (!resultado.elegible) {
+    throw new Error(`Restricción de elegibilidad: ${resultado.motivo ?? "El conductor no cumple los requisitos para este viaje."}`);
   }
 
   const { error } = await cliente.rpc("admin_asigna_conductor", {
