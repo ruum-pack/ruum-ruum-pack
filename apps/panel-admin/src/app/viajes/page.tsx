@@ -337,21 +337,23 @@ export default function PaginaViajesAdmin() {
         const pag = paginaRequerida ?? pagina;
         const [resultado, masivos] = await Promise.all([
           listarViajesAdminPaginados(cliente, pag, tamanoPagina, filtroActual, busqueda || undefined, "creado_en", "desc"),
-          listarCargasTrasladosMasivosAdmin(cliente)
+          listarCargasTrasladosMasivosAdmin(cliente).catch(() => ({ cargas: [], filas: [] }))
         ]);
-        const cargasPorId = new Map(masivos.cargas.map((carga) => [carga.id, carga]));
+        const trasladosResultado = Array.isArray(resultado.data) ? resultado.data : [];
+        const paginacionResultado = resultado.paginacion ?? { pagina: pag, tamano: tamanoPagina, total: trasladosResultado.length, total_paginas: trasladosResultado.length > 0 ? 1 : 0 };
+        const cargasPorId = new Map((masivos.cargas ?? []).map((carga) => [carga.id, carga]));
         setTrazabilidadPorTraslado(new Map(
-          masivos.filas
+          (masivos.filas ?? [])
             .filter((fila) => fila.traslado_id)
             .flatMap((fila) => {
               const carga = cargasPorId.get(fila.carga_id);
               return carga && fila.traslado_id ? [[fila.traslado_id, { carga, fila } as TrazabilidadMasivaTraslado]] : [];
             })
         ));
-        setTraslados(resultado.data);
-        setTotalResultados(resultado.paginacion.total);
-        setTotalPaginas(resultado.paginacion.total_paginas);
-        setPagina(resultado.paginacion.pagina);
+        setTraslados(trasladosResultado);
+        setTotalResultados(paginacionResultado.total);
+        setTotalPaginas(paginacionResultado.total_paginas);
+        setPagina(paginacionResultado.pagina);
         setEstadoConexion("datos_en_vivo");
         setUltimaRespuestaExitosa(new Date());
         setSeccionesDesactualizadas([]);
@@ -607,7 +609,7 @@ export default function PaginaViajesAdmin() {
         estado: "aplicado" as const,
         detalle: "Incluido en exportación CSV."
       }));
-      await registrarAuditoriaMasiva(accionMasiva, resultados);
+      await registrarAuditoriaMasiva(accionMasiva, resultados, { bloquearSiFalla: false });
       setResultadosAccionMasiva(resultados);
       setEstadoAccionMasiva("exitoso");
       setProcesandoMasiva(false);
@@ -636,7 +638,7 @@ export default function PaginaViajesAdmin() {
           estado: "aplicado" as const,
           detalle: "Evidencia exportada con URLs firmadas."
         }));
-        await registrarAuditoriaMasiva(accionMasiva, resultados);
+        await registrarAuditoriaMasiva(accionMasiva, resultados, { bloquearSiFalla: false });
         setResultadosAccionMasiva(resultados);
         setEstadoAccionMasiva("exitoso");
       } catch (err) {
@@ -686,7 +688,11 @@ export default function PaginaViajesAdmin() {
     setProcesandoMasiva(false);
   }
 
-  async function registrarAuditoriaMasiva(accion: AccionMasivaConfig, resultados: ResultadoAccionMasiva[]) {
+  async function registrarAuditoriaMasiva(
+    accion: AccionMasivaConfig,
+    resultados: ResultadoAccionMasiva[],
+    opciones: { bloquearSiFalla?: boolean } = {}
+  ) {
     if (!tieneSupabaseConfigurado()) return;
     try {
       const cliente = crearClienteNavegador();
@@ -701,7 +707,10 @@ export default function PaginaViajesAdmin() {
       })));
       setAuditoriaMasiva(await listarAuditoriaOperativaTraslados(cliente).catch(() => []));
     } catch {
-      throw new Error("No se pudo registrar la auditoría remota. La operación no se completó.");
+      if (opciones.bloquearSiFalla) {
+        throw new Error("No se pudo registrar la auditoría remota. La operación no se completó.");
+      }
+      setAuditoriaMasiva([]);
     }
   }
 

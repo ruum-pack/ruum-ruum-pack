@@ -47,7 +47,7 @@ begin
 
   v_order := case
     when p_orden_columna = 'folio' then 'p.traslado_id'
-    when p_orden_columna = 'inicio_programado' then 'coalesce(p.fecha_hora_programada, p.creado_en)'
+    when p_orden_columna = 'inicio_programado' then 'p.creado_en'
     when p_orden_columna = 'ruta' then 'p.origen_ciudad'
     when p_orden_columna = 'vehiculo' then 'p.vehiculo_marca'
     when p_orden_columna = 'conductor' then 'p.conductor_nombre'

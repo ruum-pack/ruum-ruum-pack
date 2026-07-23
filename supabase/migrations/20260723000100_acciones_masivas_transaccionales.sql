@@ -419,9 +419,9 @@ begin
 
   -- Obtener filas paginadas
   execute format(
-    'SELECT jsonb_agg(sub ORDER BY %s) FROM (
+    'SELECT coalesce(jsonb_agg(to_jsonb(sub)), ''[]''::jsonb) FROM (
       SELECT p.* FROM public.pasaporte_digital p WHERE %s ORDER BY %s LIMIT %L OFFSET %L
-    ) sub', v_order, v_where, v_order, v_limit, v_offset
+    ) sub', v_where, v_order, v_limit, v_offset
   ) into v_filas;
 
   return jsonb_build_object(

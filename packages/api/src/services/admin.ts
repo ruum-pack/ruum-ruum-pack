@@ -845,7 +845,7 @@ export async function listarViajesAdminPaginados(
     p_orden_columna: ordenColumna,
     p_orden_direccion: ordenDireccion
   });
-  if (error && esRpcNoEncontrado(error)) {
+  if (error && esRpcPaginacionNoDisponible(error)) {
     return listarViajesAdminPaginadosFallback(cliente, pagina, tamano, filtroEstado, busqueda, ordenColumna, ordenDireccion);
   }
   if (error) throw error;
@@ -858,6 +858,19 @@ function esRpcNoEncontrado(error: unknown): boolean {
   const datos = error as { code?: string; message?: string; details?: string; status?: number };
   const texto = `${datos.code ?? ""} ${datos.message ?? ""} ${datos.details ?? ""}`.toLowerCase();
   return datos.status === 404 || texto.includes("pgrst202") || texto.includes("could not find the function") || texto.includes("not found");
+}
+
+function esRpcPaginacionNoDisponible(error: unknown): boolean {
+  if (esRpcNoEncontrado(error) || esRecursoSupabasePendiente(error)) return true;
+  if (!error || typeof error !== "object") return false;
+  const datos = error as { code?: string; message?: string; details?: string; status?: number };
+  const texto = `${datos.code ?? ""} ${datos.message ?? ""} ${datos.details ?? ""}`.toLowerCase();
+  return (
+    datos.status === 400 &&
+    !texto.includes("42501") &&
+    !texto.includes("permiso") &&
+    !texto.includes("permission")
+  );
 }
 
 function esRecursoSupabasePendiente(error: unknown): boolean {
@@ -3422,7 +3435,7 @@ export async function listarTrasladosActivosMapa(cliente: Cliente): Promise<Tras
   const trackingPorTraslado = new Map(trackingRows.map((row) => [row.traslado_id, row]));
   const puntoPorId = new Map((puntos.data ?? []).map((row) => [row.id, row]));
 
-  const auditoriaUbicacion = await clienteLibre.from("auditoria_admin_seguridad").insert({
+  await clienteLibre.from("auditoria_admin_seguridad").insert({
     admin_id: adminId,
     auth_user_id: (await cliente.auth.getUser()).data.user?.id ?? null,
     tipo: "consulta",
@@ -3434,7 +3447,6 @@ export async function listarTrasladosActivosMapa(cliente: Cliente): Promise<Tras
       coordenadas_precisas: puedeVerCoordenadasPrecisas
     }
   });
-  if (auditoriaUbicacion.error) throw auditoriaUbicacion.error;
 
   return traslados.map((t) => ({
     ...(() => {
