@@ -376,7 +376,7 @@ export default function PaginaVehiculosAdmin() {
 
             <div className="space-y-6 p-6">
               {errorEvidencia && (
-                <Aviso tono="warning">{errorEvidencia}</Aviso>
+                <Aviso tono="atencion">{errorEvidencia}</Aviso>
               )}
 
               {cargandoEvidencia ? (
@@ -463,7 +463,7 @@ export default function PaginaVehiculosAdmin() {
                 <Aviso tono="danger">{errorEdicion}</Aviso>
               )}
               {avisoGuardado && (
-                <Aviso tono="success">{avisoGuardado}</Aviso>
+                <Aviso tono="info">{avisoGuardado}</Aviso>
               )}
 
               <div className="grid grid-cols-2 gap-4">

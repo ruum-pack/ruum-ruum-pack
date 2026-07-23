@@ -3477,6 +3477,14 @@ export type Database = {
         Args: { p_empresa: Json; p_titular: Json }
         Returns: Json
       }
+      admin_invitar_usuario: {
+        Args: {
+          p_correo: string
+          p_nombre?: string | null
+          p_tipo_cuenta?: string
+        }
+        Returns: string
+      }
       admin_crea_traslados_masivos: {
         Args: {
           p_empresa_id: string

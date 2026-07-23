@@ -1080,6 +1080,20 @@ export async function listarUsuariosAdminPaginados(
   return data;
 }
 
+export async function invitarUsuarioAdmin(
+  cliente: Cliente,
+  datos: { correo: string; nombre?: string | null; tipoCuenta: "personal" | "empresa" }
+): Promise<string> {
+  await assertAdminPermission(cliente, "usuarios:validar");
+  const { data, error } = await cliente.rpc("admin_invitar_usuario", {
+    p_correo: datos.correo,
+    p_nombre: datos.nombre ?? null,
+    p_tipo_cuenta: datos.tipoCuenta
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function validarDocumentoConductor(cliente: Cliente, conductorId: string, aprobado: boolean) {
   await assertAdminPermission(cliente, "conductores:validar");
   const rpc = cliente.rpc.bind(cliente) as unknown as (

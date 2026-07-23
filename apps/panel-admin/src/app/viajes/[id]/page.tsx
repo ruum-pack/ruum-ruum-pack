@@ -93,7 +93,7 @@ export default function PaginaDetalleViajeAdmin() {
       const cliente = crearClienteNavegador();
       const [p, v, conds, notasReales, auditoriaReal, adminReal, trazabilidadReal] = await Promise.all([
         obtenerPasaporteDigital(cliente, id),
-        cliente.from("traslados").select("version").eq("id", id).maybeSingle() as Promise<{ data: { version: number } | null; error: unknown }>,
+        cliente.from("traslados").select("version").eq("id", id).maybeSingle() as unknown as Promise<{ data: { version: number } | null; error: unknown }>,
         listarConductoresAdmin(cliente),
         obtenerNotasInternas(cliente, id),
         obtenerAuditoriaTraslado(cliente, id),
@@ -190,7 +190,7 @@ export default function PaginaDetalleViajeAdmin() {
       mostrarAviso({ tono: "info", texto: "Estatus actualizado." });
       const [nuevoP, nuevoV] = await Promise.all([
         obtenerPasaporteDigital(cliente, trasladoId),
-        cliente.from("traslados").select("version").eq("id", trasladoId).maybeSingle() as Promise<{ data: { version: number } | null; error: unknown }>
+        cliente.from("traslados").select("version").eq("id", trasladoId).maybeSingle() as unknown as Promise<{ data: { version: number } | null; error: unknown }>
       ]);
       setPasaporte(nuevoP);
       setVersion(nuevoV?.data?.version ?? undefined);
@@ -320,7 +320,6 @@ export default function PaginaDetalleViajeAdmin() {
       setProcesando(null);
       return;
     }
-
     try {
       const tarifa = await calcularTarifaNormativa();
       if (tarifa == null || Number.isNaN(tarifa) || tarifa <= 0) {
@@ -389,6 +388,11 @@ export default function PaginaDetalleViajeAdmin() {
         ...prev
       ]);
       setNotaNueva("");
+      setProcesando(null);
+      return;
+    }
+    if (!adminId) {
+      mostrarAviso({ tono: "danger", texto: "No pudimos identificar al administrador para guardar la nota." });
       setProcesando(null);
       return;
     }

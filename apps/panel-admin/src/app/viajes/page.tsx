@@ -7,7 +7,7 @@ import { AdminDataTable, type AdminDataTableColumn, type AdminDataTableSortState
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
-import { listarCargasTrasladosMasivosAdmin, listarViajesAdminPaginados, obtenerAdminActual, registrarEvento, obtenerPreferenciaAdmin, guardarPreferenciaAdmin, ejecutarAccionMasiva, exportarEvidenciaFirmada, resolverUrlEvidencia, type TrazabilidadMasivaTraslado } from "@ruum/api/services";
+import { listarCargasTrasladosMasivosAdmin, listarViajesAdminPaginados, obtenerAdminActual, registrarEvento, obtenerPreferenciaAdmin, guardarPreferenciaAdmin, ejecutarAccionMasiva as ejecutarAccionMasivaAdmin, exportarEvidenciaFirmada, resolverUrlEvidencia, type TrazabilidadMasivaTraslado } from "@ruum/api/services";
 
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -671,7 +671,7 @@ export default function PaginaViajesAdmin() {
       if (accionMasiva.id === "cambiar_prioridad") payload.prioridad = prioridadMasiva;
       if (accionMasiva.id === "etiquetar") payload.etiqueta = etiquetaMasiva;
 
-      const resultado = await ejecutarAccionMasiva(cliente, accionMasiva.id, ids, payload);
+      const resultado = await ejecutarAccionMasivaAdmin(cliente, accionMasiva.id, ids, payload);
       const resultados = (resultado.resultados ?? []).map((r) => ({
         trasladoId: r.traslado_id,
         folio: r.traslado_id.slice(0, 8).toUpperCase(),
@@ -1424,8 +1424,8 @@ function AccionMasivaDialog({
         </div>
         <div className="flex flex-wrap justify-end gap-2 border-t border-ink/10 p-4">
           <button type="button" onClick={onCerrar} className="rounded-lg border border-ink/20 px-4 py-2 font-body text-sm font-semibold text-text-secondary">Cerrar</button>
-          <button type="button" disabled={!puedeEjecutar || procesandoMasiva} onClick={onEjecutar} className="rounded-lg border border-signal/40 bg-signal px-4 py-2 font-body text-sm font-semibold text-ink disabled:opacity-50">
-            {procesandoMasiva ? "Procesando..." : "Ejecutar"}
+          <button type="button" disabled={!puedeEjecutar || procesando} onClick={onEjecutar} className="rounded-lg border border-signal/40 bg-signal px-4 py-2 font-body text-sm font-semibold text-ink disabled:opacity-50">
+            {procesando ? "Procesando..." : "Ejecutar"}
           </button>
         </div>
       </section>

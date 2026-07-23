@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Aviso } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
-import { listarUsuariosAdminPaginados, type PaginacionUsuarios } from "@ruum/api/services";
+import { invitarUsuarioAdmin, listarUsuariosAdminPaginados } from "@ruum/api/services";
 import Link from "next/link";
 
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
@@ -160,18 +160,21 @@ function InvitarUsuarioDialog({ onCerrar, onCreado }: { onCerrar: () => void; on
     setError(null);
     try {
       const cliente = crearClienteNavegador();
-      const { error: errInv } = await cliente.rpc("admin_invitar_usuario", {
-        p_correo: correo.trim(),
-        p_nombre: nombre.trim() || null,
-        p_tipo_cuenta: tipoCuenta
+      await invitarUsuarioAdmin(cliente, {
+        correo: correo.trim(),
+        nombre: nombre.trim() || null,
+        tipoCuenta
       });
-      if (errInv) {
-        if (errInv.message?.includes("already")) throw new Error("El correo ya esta registrado.");
-        throw errInv;
-      }
       onCreado();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo invitar al usuario.");
+      const mensaje = err instanceof Error ? err.message : "No se pudo invitar al usuario.";
+      if (mensaje.includes("CORREO_YA_REGISTRADO") || mensaje.includes("duplicate")) {
+        setError("El correo ya esta registrado.");
+      } else if (mensaje.includes("CORREO_INVALIDO")) {
+        setError("Ingresa un correo electronico valido.");
+      } else {
+        setError(mensaje);
+      }
     } finally {
       setProcesando(false);
     }
@@ -181,7 +184,7 @@ function InvitarUsuarioDialog({ onCerrar, onCreado }: { onCerrar: () => void; on
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40">
       <div className="w-full max-w-md rounded-card bg-surface-primary p-6 shadow-xl">
         <h2 className="font-display text-lg font-semibold">Invitar usuario</h2>
-        <p className="mt-1 font-body text-sm text-text-secondary">Se enviara un correo con instrucciones para crear su cuenta.</p>
+        <p className="mt-1 font-body text-sm text-text-secondary">Se registrara una cuenta pendiente para seguimiento operativo.</p>
 
         {error && <div className="mt-3"><Aviso tono="danger">{error}</Aviso></div>}
 
