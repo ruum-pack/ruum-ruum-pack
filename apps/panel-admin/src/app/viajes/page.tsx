@@ -221,6 +221,7 @@ export default function PaginaViajesAdmin() {
   const [tamanoPagina, setTamanoPagina] = useState(25);
   const [totalResultados, setTotalResultados] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(0);
+  const paginaRef = useRef(1);
   const [procesandoMasiva, setProcesandoMasiva] = useState(false);
   const filtrosInicializados = useRef(false);
   const botonCerrarDetalleRef = useRef<HTMLButtonElement | null>(null);
@@ -320,7 +321,6 @@ export default function PaginaViajesAdmin() {
       if (!esRefresco) setCargando(true);
       if (esRefresco) {
         setActualizandoManual(true);
-        setEstadoConexion(ultimaRespuestaExitosa ? "reconectando" : "actualizando");
       }
       if (!tieneSupabaseConfigurado()) {
         setTraslados([]);
@@ -333,9 +333,12 @@ export default function PaginaViajesAdmin() {
       }
 
       try {
-        const cliente = crearClienteNavegador();
-        const pag = paginaRequerida ?? pagina;
-        const [resultado, masivos] = await Promise.all([
+      const cliente = crearClienteNavegador();
+        const pag = paginaRequerida ?? paginaRef.current;
+      if (esRefresco) {
+        setEstadoConexion((estadoAnterior) => estadoAnterior === "datos_en_vivo" ? "reconectando" : "actualizando");
+      }
+      const [resultado, masivos] = await Promise.all([
           listarViajesAdminPaginados(cliente, pag, tamanoPagina, filtroActual, busqueda || undefined, "creado_en", "desc"),
           listarCargasTrasladosMasivosAdmin(cliente).catch(() => ({ cargas: [], filas: [] }))
         ]);
@@ -353,6 +356,7 @@ export default function PaginaViajesAdmin() {
         setTraslados(trasladosResultado);
         setTotalResultados(paginacionResultado.total);
         setTotalPaginas(paginacionResultado.total_paginas);
+        paginaRef.current = paginacionResultado.pagina;
         setPagina(paginacionResultado.pagina);
         setEstadoConexion("datos_en_vivo");
         setUltimaRespuestaExitosa(new Date());
@@ -360,15 +364,16 @@ export default function PaginaViajesAdmin() {
       } catch {
         setTraslados([]);
         setTrazabilidadPorTraslado(new Map());
-        setEstadoConexion(Boolean(ultimaRespuestaExitosa) ? "desactualizado" : "sin_conexion");
+        setEstadoConexion((estadoAnterior) => estadoAnterior === "datos_en_vivo" || estadoAnterior === "reconectando" ? "desactualizado" : "sin_conexion");
         setSeccionesDesactualizadas(["traslados administrativos"]);
       } finally {
         setCargando(false);
         setActualizandoManual(false);
       }
-  }, [setCargando, setActualizandoManual, setEstadoConexion, setTraslados, setTrazabilidadPorTraslado, setUltimaRespuestaExitosa, setSeccionesDesactualizadas, ultimaRespuestaExitosa, filtroActual, pagina, tamanoPagina, busqueda]);
+  }, [setCargando, setActualizandoManual, setEstadoConexion, setTraslados, setTrazabilidadPorTraslado, setUltimaRespuestaExitosa, setSeccionesDesactualizadas, filtroActual, tamanoPagina, busqueda]);
 
   useEffect(() => {
+    paginaRef.current = 1;
     setPagina(1);
     void cargar(false, 1);
   }, [cargar, filtroActual, busqueda, tamanoPagina]);
@@ -993,6 +998,7 @@ export default function PaginaViajesAdmin() {
             value={tamanoPagina}
             onChange={(e) => {
               setTamanoPagina(Number(e.target.value));
+              paginaRef.current = 1;
               setPagina(1);
             }}
           >
@@ -1009,6 +1015,7 @@ export default function PaginaViajesAdmin() {
             disabled={pagina <= 1 || cargando}
             onClick={() => {
               const sig = Math.max(1, pagina - 1);
+              paginaRef.current = sig;
               setPagina(sig);
               void cargar(false, sig);
             }}
@@ -1024,6 +1031,7 @@ export default function PaginaViajesAdmin() {
             disabled={pagina >= totalPaginas || cargando}
             onClick={() => {
               const sig = Math.min(totalPaginas, pagina + 1);
+              paginaRef.current = sig;
               setPagina(sig);
               void cargar(false, sig);
             }}

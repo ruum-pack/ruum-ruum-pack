@@ -71,7 +71,7 @@ export default function PaginaConductoresAdmin() {
     }
   }, []);
 
-  const cargar = useCallback(async (manual = false, paginaSolicitada = pagina) => {
+  const cargar = useCallback(async (manual = false, paginaSolicitada = 1) => {
     if (manual) setActualizandoManual(true);
     else setCargando(true);
 
@@ -102,12 +102,12 @@ export default function PaginaConductoresAdmin() {
       setUltimaActualizacion(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : "No pudimos cargar la bandeja de revisión.");
-      setEstadoConexion(ultimaActualizacion ? "desactualizado" : "sin_conexion");
+      setEstadoConexion((estadoAnterior) => estadoAnterior === "datos_en_vivo" ? "desactualizado" : "sin_conexion");
     } finally {
       setCargando(false);
       setActualizandoManual(false);
     }
-  }, [busqueda, filtro, pagina, ultimaActualizacion]);
+  }, [busqueda, filtro]);
 
   useEffect(() => {
     const timer = setTimeout(() => { void cargar(false, 1); }, 250);

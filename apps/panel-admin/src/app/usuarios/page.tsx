@@ -76,8 +76,8 @@ export default function PaginaUsuariosAdmin() {
 
       <div className="mt-6 flex items-center gap-3">
         <label className="sr-only" htmlFor="buscar-usuarios">Buscar usuarios</label>
-        <input id="buscar-usuarios" type="search" value={busqueda} onChange={(e) => { setBusqueda(e.target.value); setPagina(1); void cargar(1); }} placeholder="Buscar por nombre o correo…" className="flex-1 rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-text-tertiary focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20" />
-        {busqueda && <button onClick={() => { setBusqueda(""); setPagina(1); void cargar(1); }} className="font-body text-sm text-text-tertiary hover:text-ink" aria-label="Limpiar busqueda">Limpiar</button>}
+        <input id="buscar-usuarios" type="search" value={busqueda} onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }} placeholder="Buscar por nombre o correo…" className="flex-1 rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-text-tertiary focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20" />
+        {busqueda && <button onClick={() => { setBusqueda(""); setPagina(1); }} className="font-body text-sm text-text-tertiary hover:text-ink" aria-label="Limpiar busqueda">Limpiar</button>}
       </div>
 
       {error && <div className="mt-3"><Aviso tono="danger">{error}</Aviso></div>}

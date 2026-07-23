@@ -60,6 +60,7 @@ export default function PaginaConductoresActivos() {
       const cliente = crearClienteNavegador();
       const resultado = await listarConductoresAdminPaginados(cliente, pg, 25, busqueda || undefined, estadoFiltro);
       setConductores(resultado.data);
+      setPagina(resultado.paginacion.pagina);
       setTotal(resultado.paginacion.total);
       setTotalPaginas(resultado.paginacion.total_paginas);
     } catch (err) {
@@ -99,13 +100,13 @@ export default function PaginaConductoresActivos() {
         <input
           type="search"
           value={busqueda}
-          onChange={(e) => { setBusqueda(e.target.value); void cargar(1); }}
+          onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
           placeholder="Buscar por nombre, CURP, licencia, teléfono…"
           className="flex-1 min-w-[250px] rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-text-tertiary focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
         />
         <select
           value={estadoFiltro}
-          onChange={(e) => { setEstadoFiltro(e.target.value as "todos" | EstadoConductor); void cargar(1); }}
+          onChange={(e) => { setEstadoFiltro(e.target.value as "todos" | EstadoConductor); setPagina(1); }}
           className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
         >
           <option value="todos">Todos los estados</option>
