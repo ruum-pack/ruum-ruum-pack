@@ -108,6 +108,29 @@ const ADMIN_BASE = { tablas: { admins: { data: { id: "admin-1", rol_operativo: "
     await expect(crearEmpresaCorporativaAdmin(cliente as never, { empresa: { nombre: "", rfc: "" }, titular: { nombre: "", correo_facturacion: "" } })).rejects.toThrow("Captura");
   });
 
+  it("crearEmpresaCorporativaAdmin valida RFC y correo antes del RPC", async () => {
+    const cliente = crearClienteFake(ADMIN_BASE);
+    await expect(crearEmpresaCorporativaAdmin(cliente as never, {
+      empresa: { nombre: "Empresa", rfc: "RFC-MALO" },
+      titular: { nombre: "Titular", correo_facturacion: "correo-malo" }
+    })).rejects.toThrow("RFC mexicano");
+    expect(cliente.rpc).not.toHaveBeenCalledWith("admin_crea_empresa_corporativa", expect.anything());
+  });
+
+  it("crearEmpresaCorporativaAdmin traduce errores del alta corporativa", async () => {
+    const cliente = crearClienteFake({
+      ...ADMIN_BASE,
+      rpcs: {
+        admin_tiene_permiso: { data: true },
+        admin_crea_empresa_corporativa: { error: new Error("Ya existe una empresa con ese RFC") }
+      }
+    });
+    await expect(crearEmpresaCorporativaAdmin(cliente as never, {
+      empresa: { nombre: "Empresa", rfc: "XAXX010101000" },
+      titular: { nombre: "Titular", correo_facturacion: "titular@empresa.com" }
+    })).rejects.toThrow("Ya existe una empresa con ese RFC");
+  });
+
   it("listarExcepcionesCriticasAdmin devuelve arreglo vacío si no hay datos", async () => {
     const cliente = crearClienteFake({
       ...ADMIN_BASE,

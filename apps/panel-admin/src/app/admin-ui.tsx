@@ -88,12 +88,7 @@ function formatoActualizacion(valor: string | Date) {
 
 function formatoActualizacionRelativa(valor: string | Date) {
   const fecha = valor instanceof Date ? valor : new Date(valor);
-  const segundos = Math.max(0, Math.floor((Date.now() - fecha.getTime()) / 1000));
-  if (segundos < 60) return `Actualizado hace ${segundos} segundos`;
-  const minutos = Math.floor(segundos / 60);
-  if (minutos < 60) return `Actualizado hace ${minutos} minutos`;
-  const horas = Math.floor(minutos / 60);
-  return `Actualizado hace ${horas} horas`;
+  return Number.isNaN(fecha.getTime()) ? "Actualización sin fecha válida" : "Última actualización";
 }
 
 export function AdminPageHeader({

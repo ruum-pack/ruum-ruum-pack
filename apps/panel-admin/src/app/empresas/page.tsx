@@ -87,6 +87,7 @@ const ETIQUETA_ESTADO: Record<EstadoVerificacion, string> = {
 };
 
 const RFC_MEXICO = /^([A-Z&Ñ]{3}|[A-Z&Ñ]{4})\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[A-Z0-9]{3}$/;
+const CORREO_BASICO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function fecha(fechaIso: string | null | undefined) {
   if (!fechaIso) return "Sin fecha";
@@ -372,6 +373,7 @@ export default function PaginaEmpresasAdmin() {
     const rfc = formulario.rfc.trim().toUpperCase();
     return Boolean(rfc && datos.empresas.some((empresa) => empresa.rfc?.toUpperCase() === rfc));
   }, [datos.empresas, formulario.rfc]);
+  const formularioIncompleto = !formulario.nombre.trim() || !formulario.rfc.trim() || !formulario.titular_nombre.trim() || !formulario.titular_correo.trim();
 
   function actualizarCampo(campo: keyof typeof FORM_INICIAL, valor: string | boolean) {
     setFormulario((actual) => ({ ...actual, [campo]: valor }));
@@ -380,8 +382,35 @@ export default function PaginaEmpresasAdmin() {
   async function crearEmpresa() {
     setMensaje(null);
     const rfc = formulario.rfc.trim().toUpperCase();
+    const nombre = formulario.nombre.trim();
+    const titularNombre = formulario.titular_nombre.trim();
+    const titularCorreo = formulario.titular_correo.trim().toLowerCase();
+    const correoFacturacion = (formulario.correo_facturacion || titularCorreo).trim().toLowerCase();
+    const limiteCredito = Number(formulario.limite_credito_mxn || 0);
+    const creditoDisponible = Number(formulario.credito_disponible_mxn || formulario.limite_credito_mxn || 0);
+    const diasCredito = Number(formulario.dias_credito || 0);
+    if (!nombre) {
+      setMensaje({ tono: "danger", texto: "Captura el nombre comercial de la empresa." });
+      return;
+    }
     if (!RFC_MEXICO.test(rfc)) {
       setMensaje({ tono: "danger", texto: "Captura un RFC mexicano formalmente válido." });
+      return;
+    }
+    if (!titularNombre) {
+      setMensaje({ tono: "danger", texto: "Captura el nombre del titular." });
+      return;
+    }
+    if (!CORREO_BASICO.test(titularCorreo)) {
+      setMensaje({ tono: "danger", texto: "Captura un correo válido para el titular." });
+      return;
+    }
+    if (correoFacturacion && !CORREO_BASICO.test(correoFacturacion)) {
+      setMensaje({ tono: "danger", texto: "Captura un correo de facturación válido." });
+      return;
+    }
+    if (![limiteCredito, creditoDisponible, diasCredito].every((valor) => Number.isFinite(valor) && valor >= 0)) {
+      setMensaje({ tono: "danger", texto: "Crédito y días de pago deben ser números mayores o iguales a cero." });
       return;
     }
     if (rfcDuplicado) {
@@ -397,24 +426,24 @@ export default function PaginaEmpresasAdmin() {
     try {
       await crearEmpresaCorporativaAdmin(crearClienteNavegador(), {
         empresa: {
-          nombre: formulario.nombre,
+          nombre,
           rfc,
-          razon_social: formulario.razon_social,
-          regimen_fiscal: formulario.regimen_fiscal,
-          codigo_postal_fiscal: formulario.codigo_postal_fiscal,
-          uso_cfdi: formulario.uso_cfdi,
-          correo_facturacion: formulario.correo_facturacion || formulario.titular_correo,
-          condiciones_pago: formulario.condiciones_pago,
+          razon_social: formulario.razon_social.trim(),
+          regimen_fiscal: formulario.regimen_fiscal.trim(),
+          codigo_postal_fiscal: formulario.codigo_postal_fiscal.trim(),
+          uso_cfdi: formulario.uso_cfdi.trim(),
+          correo_facturacion: correoFacturacion,
+          condiciones_pago: formulario.condiciones_pago.trim(),
           estado_verificacion: "en_revision",
-          limite_credito_mxn: Number(formulario.limite_credito_mxn || 0),
-          credito_disponible_mxn: Number(formulario.credito_disponible_mxn || formulario.limite_credito_mxn || 0),
-          dias_credito: Number(formulario.dias_credito || 0),
+          limite_credito_mxn: limiteCredito,
+          credito_disponible_mxn: creditoDisponible,
+          dias_credito: diasCredito,
           requiere_orden_compra: formulario.requiere_orden_compra
         },
         titular: {
-          nombre: formulario.titular_nombre,
-          telefono: formulario.titular_telefono,
-          correo_facturacion: formulario.titular_correo,
+          nombre: titularNombre,
+          telefono: formulario.titular_telefono.trim(),
+          correo_facturacion: titularCorreo,
           estado_verificacion: "verificado",
           metodo_pago_registrado: formulario.metodo_pago_registrado
         }
@@ -490,7 +519,7 @@ export default function PaginaEmpresasAdmin() {
               </label>
               <div className="flex flex-wrap gap-2">
                 <AdminButton variant="quiet" onClick={() => setFormulario(FORM_INICIAL)} disabled={guardando}>Limpiar</AdminButton>
-                <AdminButton onClick={crearEmpresa} loading={guardando} disabled={rfcDuplicado}>Guardar empresa</AdminButton>
+                <AdminButton onClick={crearEmpresa} loading={guardando} disabled={rfcDuplicado || formularioIncompleto || esDemo}>Guardar empresa</AdminButton>
               </div>
             </div>
           </div>

@@ -104,6 +104,9 @@ export interface ResultadoAltaEmpresaCorporativa {
   usuario_id: string;
 }
 
+const RFC_MEXICO_FORMAL = /^([A-Z&Ñ]{3}|[A-Z&Ñ]{4})\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[A-Z0-9]{3}$/;
+const CORREO_BASICO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export interface ActualizacionEmpresaCorporativa {
   nombre?: string;
   rfc?: string;
@@ -1203,15 +1206,51 @@ function resultadoOpcional<T>(resultado: { data: T[] | null; error: unknown }): 
   throw resultado.error;
 }
 
+function numeroCorporativo(valor: number | null | undefined, etiqueta: string): number | undefined {
+  if (valor === undefined || valor === null) return valor === null ? 0 : undefined;
+  if (!Number.isFinite(valor) || valor < 0) throw new Error(`${etiqueta} debe ser un número mayor o igual a cero.`);
+  return valor;
+}
+
+function errorAltaEmpresa(error: Error): Error {
+  const mensaje = String(error.message || error);
+  if (/PERMISO_INSUFICIENTE|Acceso denegado|42501|ADMIN_PERMISSION_DENIED|empresas:gestionar/i.test(mensaje)) {
+    return new Error("Tu rol no tiene permiso para crear empresas corporativas.");
+  }
+  if (/RFC inválido/i.test(mensaje)) return new Error("Captura un RFC mexicano formalmente válido.");
+  if (/Ya existe una empresa con ese RFC|23505|empresas_rfc_unico/i.test(mensaje)) {
+    return new Error("Ya existe una empresa con ese RFC.");
+  }
+  if (/Nombre comercial requerido/i.test(mensaje)) return new Error("Captura el nombre comercial de la empresa.");
+  if (/Nombre del titular requerido/i.test(mensaje)) return new Error("Captura el nombre del titular.");
+  if (/Correo del titular requerido/i.test(mensaje)) return new Error("Captura el correo del titular.");
+  return error;
+}
+
 export async function crearEmpresaCorporativaAdmin(
   cliente: Cliente,
   datos: AltaEmpresaCorporativa
 ): Promise<ResultadoAltaEmpresaCorporativa> {
-  await assertAdminPermission(cliente, "empresas:gestionar");
-  if (!datos.empresa.nombre.trim()) throw new Error("Captura el nombre comercial de la empresa.");
-  if (!datos.empresa.rfc.trim()) throw new Error("Captura el RFC de la empresa.");
-  if (!datos.titular.nombre.trim()) throw new Error("Captura el nombre del titular.");
-  if (!datos.titular.correo_facturacion.trim()) throw new Error("Captura el correo del titular.");
+  try {
+    await assertAdminPermission(cliente, "empresas:gestionar");
+  } catch (error) {
+    throw errorAltaEmpresa(error instanceof Error ? error : new Error("No se pudo validar el permiso administrativo."));
+  }
+  const nombre = datos.empresa.nombre.trim();
+  const rfc = datos.empresa.rfc.trim().toUpperCase();
+  const titularNombre = datos.titular.nombre.trim();
+  const titularCorreo = datos.titular.correo_facturacion.trim().toLowerCase();
+  const correoFacturacion = (datos.empresa.correo_facturacion || titularCorreo).trim().toLowerCase();
+  if (!nombre) throw new Error("Captura el nombre comercial de la empresa.");
+  if (!rfc) throw new Error("Captura el RFC de la empresa.");
+  if (!RFC_MEXICO_FORMAL.test(rfc)) throw new Error("Captura un RFC mexicano formalmente válido.");
+  if (!titularNombre) throw new Error("Captura el nombre del titular.");
+  if (!titularCorreo) throw new Error("Captura el correo del titular.");
+  if (!CORREO_BASICO.test(titularCorreo)) throw new Error("Captura un correo válido para el titular.");
+  if (correoFacturacion && !CORREO_BASICO.test(correoFacturacion)) throw new Error("Captura un correo de facturación válido.");
+  const limiteCredito = numeroCorporativo(datos.empresa.limite_credito_mxn, "El límite de crédito");
+  const creditoDisponible = numeroCorporativo(datos.empresa.credito_disponible_mxn, "El crédito disponible");
+  const diasCredito = numeroCorporativo(datos.empresa.dias_credito, "Los días de crédito");
 
   const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_crea_empresa_corporativa",
@@ -1221,16 +1260,20 @@ export async function crearEmpresaCorporativaAdmin(
   const { data, error } = await rpc("admin_crea_empresa_corporativa", {
     p_empresa: {
       ...datos.empresa,
-      nombre: datos.empresa.nombre.trim(),
-      rfc: datos.empresa.rfc.trim().toUpperCase()
+      nombre,
+      rfc,
+      correo_facturacion: correoFacturacion,
+      limite_credito_mxn: limiteCredito,
+      credito_disponible_mxn: creditoDisponible ?? limiteCredito ?? 0,
+      dias_credito: diasCredito
     },
     p_titular: {
       ...datos.titular,
-      nombre: datos.titular.nombre.trim(),
-      correo_facturacion: datos.titular.correo_facturacion.trim().toLowerCase()
+      nombre: titularNombre,
+      correo_facturacion: titularCorreo
     }
   });
-  if (error) throw error;
+  if (error) throw errorAltaEmpresa(error);
   if (!data) throw new Error("No se pudo confirmar el alta corporativa.");
   return data;
 }
