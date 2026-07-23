@@ -302,6 +302,7 @@ export default function PaginaEmpresasAdmin() {
   const [formulario, setFormulario] = useState(FORM_INICIAL);
   const [mensaje, setMensaje] = useState<{ tono: "info" | "danger" | "atencion"; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [puedeGestionarEmpresas, setPuedeGestionarEmpresas] = useState(false);
   const [estadoConexion, setEstadoConexion] = useState<EstadoConexionVista>("actualizando");
   const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
 
@@ -312,6 +313,7 @@ export default function PaginaEmpresasAdmin() {
     if (!tieneSupabaseConfigurado()) {
       setDatos(DATOS_DEMO);
       setEsDemo(true);
+      setPuedeGestionarEmpresas(false);
       setErrorCarga(null);
       setEstadoConexion("demo");
       setUltimaActualizacion(new Date());
@@ -323,7 +325,13 @@ export default function PaginaEmpresasAdmin() {
     try {
       setErrorCarga(null);
       const cliente = crearClienteNavegador();
-      setDatos(await listarEmpresasAdmin(cliente));
+      const [datosEmpresas, permisoGestionar] = await Promise.all([
+        listarEmpresasAdmin(cliente),
+        cliente.rpc("admin_tiene_permiso", { p_permiso: "empresas:gestionar" })
+      ]);
+      if (permisoGestionar.error) throw permisoGestionar.error;
+      setDatos(datosEmpresas);
+      setPuedeGestionarEmpresas(permisoGestionar.data === true);
       setEsDemo(false);
       setEstadoConexion("datos_en_vivo");
       setUltimaActualizacion(new Date());
@@ -331,12 +339,14 @@ export default function PaginaEmpresasAdmin() {
       if (puedeUsarDatosDemo()) {
         setDatos(DATOS_DEMO);
         setEsDemo(true);
+        setPuedeGestionarEmpresas(false);
         setErrorCarga(null);
         setEstadoConexion("demo");
         setUltimaActualizacion(new Date());
       } else {
         setDatos(DATOS_DEMO);
         setEsDemo(false);
+        setPuedeGestionarEmpresas(false);
         setErrorCarga("No pudimos cargar las empresas corporativas.");
         setEstadoConexion("sin_conexion");
       }
@@ -421,6 +431,10 @@ export default function PaginaEmpresasAdmin() {
       setMensaje({ tono: "atencion", texto: "El alta de empresas requiere conexión real a Supabase." });
       return;
     }
+    if (!puedeGestionarEmpresas) {
+      setMensaje({ tono: "danger", texto: "Tu rol puede consultar empresas, pero no tiene permiso para crear empresas corporativas." });
+      return;
+    }
 
     setGuardando(true);
     try {
@@ -474,7 +488,10 @@ export default function PaginaEmpresasAdmin() {
             <AdminButton variant="secondary" loading={actualizandoManual} onClick={() => void cargar(true)}>
               Actualizar
             </AdminButton>
-            <AdminButton onClick={() => setMostrarFormulario((actual) => !actual)}>
+            <AdminButton
+              disabled={!puedeGestionarEmpresas}
+              onClick={() => setMostrarFormulario((actual) => !actual)}
+            >
               {mostrarFormulario ? "Cerrar alta" : "Crear empresa"}
             </AdminButton>
           </div>
@@ -483,6 +500,11 @@ export default function PaginaEmpresasAdmin() {
 
       {mensaje && <div className="mt-4"><Aviso tono={mensaje.tono}>{mensaje.texto}</Aviso></div>}
       {esDemo && <div className="mt-4"><Aviso tono="info">Estás viendo el módulo sin datos reales de Supabase. No se muestran fixtures demo.</Aviso></div>}
+      {!esDemo && !cargando && !puedeGestionarEmpresas && (
+        <div className="mt-4">
+          <Aviso tono="atencion">Tu rol puede consultar empresas, pero el alta requiere permiso empresas:gestionar.</Aviso>
+        </div>
+      )}
       {errorCarga && <div className="mt-4"><AdminErrorState description={errorCarga} action={<AdminButton variant="secondary" onClick={() => void cargar(true)}>Reintentar</AdminButton>} /></div>}
 
       {mostrarFormulario && (
@@ -519,7 +541,7 @@ export default function PaginaEmpresasAdmin() {
               </label>
               <div className="flex flex-wrap gap-2">
                 <AdminButton variant="quiet" onClick={() => setFormulario(FORM_INICIAL)} disabled={guardando}>Limpiar</AdminButton>
-                <AdminButton onClick={crearEmpresa} loading={guardando} disabled={rfcDuplicado || formularioIncompleto || esDemo}>Guardar empresa</AdminButton>
+                <AdminButton onClick={crearEmpresa} loading={guardando} disabled={rfcDuplicado || formularioIncompleto || esDemo || !puedeGestionarEmpresas}>Guardar empresa</AdminButton>
               </div>
             </div>
           </div>
