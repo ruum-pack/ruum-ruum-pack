@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Aviso } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
@@ -32,20 +32,23 @@ export default function PaginaUsuariosAdmin() {
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [mostrarInvitar, setMostrarInvitar] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const paginaRef = useRef(1);
 
-  const cargar = useCallback(async (paginaAAbrir?: number) => {
+  const cargar = useCallback(async (paginaAAbrir = paginaRef.current) => {
     if (!tieneSupabaseConfigurado()) {
       setUsuarios([]);
       setCargando(false);
       return;
     }
-    const p = paginaAAbrir ?? pagina;
+    const p = paginaAAbrir;
     setCargando(true);
     setError(null);
     try {
       const cliente = crearClienteNavegador();
       const resultado = await listarUsuariosAdminPaginados(cliente, p, tamanoPagina, busqueda || undefined);
       setUsuarios(resultado.data);
+      paginaRef.current = resultado.paginacion.pagina;
+      setPagina(resultado.paginacion.pagina);
       setTotalResultados(resultado.paginacion.total);
       setTotalPaginas(resultado.paginacion.total_paginas);
     } catch (err) {
@@ -54,15 +57,18 @@ export default function PaginaUsuariosAdmin() {
     } finally {
       setCargando(false);
     }
-  }, [pagina, tamanoPagina, busqueda]);
+  }, [tamanoPagina, busqueda]);
 
   useEffect(() => {
-    const timer = setTimeout(() => { void cargar(1); }, 0);
+    paginaRef.current = 1;
+    setPagina(1);
+    const timer = setTimeout(() => { void cargar(1); }, 300);
     return () => clearTimeout(timer);
-  }, [cargar]);
+  }, [busqueda, cargar, tamanoPagina]);
 
   function irAPagina(p: number) {
     if (p < 1 || p > totalPaginas) return;
+    paginaRef.current = p;
     setPagina(p);
     void cargar(p);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import { AdminPageHeader } from "../../admin-ui";
@@ -47,19 +47,20 @@ export default function PaginaConductoresActivos() {
   const [total, setTotal] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const paginaRef = useRef(1);
 
-  const cargar = useCallback(async (p?: number) => {
+  const cargar = useCallback(async (p = paginaRef.current) => {
     if (!tieneSupabaseConfigurado()) {
       setConductores([]);
       setCargando(false);
       return;
     }
-    const pg = p ?? 1;
     setCargando(true);
     try {
       const cliente = crearClienteNavegador();
-      const resultado = await listarConductoresAdminPaginados(cliente, pg, 25, busqueda || undefined, estadoFiltro);
+      const resultado = await listarConductoresAdminPaginados(cliente, p, tamanoPagina, busqueda || undefined, estadoFiltro);
       setConductores(resultado.data);
+      paginaRef.current = resultado.paginacion.pagina;
       setPagina(resultado.paginacion.pagina);
       setTotal(resultado.paginacion.total);
       setTotalPaginas(resultado.paginacion.total_paginas);
@@ -68,14 +69,19 @@ export default function PaginaConductoresActivos() {
     } finally {
       setCargando(false);
     }
-  }, [busqueda, estadoFiltro]);
+  }, [busqueda, estadoFiltro, tamanoPagina]);
 
   useEffect(() => {
-    void cargar(1);
-  }, [cargar]);
+    paginaRef.current = 1;
+    setPagina(1);
+    const timer = window.setTimeout(() => void cargar(1), 300);
+    return () => window.clearTimeout(timer);
+  }, [busqueda, cargar, estadoFiltro]);
 
   const irPagina = (p: number) => {
     if (p < 1 || p > totalPaginas) return;
+    paginaRef.current = p;
+    setPagina(p);
     void cargar(p);
   };
 
@@ -176,8 +182,8 @@ export default function PaginaConductoresActivos() {
           <div className="flex items-center gap-3">
             <span>Página {pagina} de {totalPaginas}</span>
             <div className="flex gap-1">
-              <button onClick={() => void cargar(pagina - 1)} disabled={pagina <= 1} className="rounded-md border border-ink/20 px-3 py-1.5 text-xs disabled:opacity-30">&larr; Anterior</button>
-              <button onClick={() => void cargar(pagina + 1)} disabled={pagina >= totalPaginas} className="rounded-md border border-ink/20 px-3 py-1.5 text-xs disabled:opacity-30">Siguiente &rarr;</button>
+              <button onClick={() => irPagina(pagina - 1)} disabled={pagina <= 1} className="rounded-md border border-ink/20 px-3 py-1.5 text-xs disabled:opacity-30">&larr; Anterior</button>
+              <button onClick={() => irPagina(pagina + 1)} disabled={pagina >= totalPaginas} className="rounded-md border border-ink/20 px-3 py-1.5 text-xs disabled:opacity-30">Siguiente &rarr;</button>
             </div>
           </div>
         </div>

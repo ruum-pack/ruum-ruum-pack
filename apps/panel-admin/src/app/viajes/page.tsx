@@ -378,18 +378,6 @@ export default function PaginaViajesAdmin() {
     void cargar(false, 1);
   }, [cargar, filtroActual, busqueda, tamanoPagina]);
 
-  useEffect(() => {
-    function manejarVisibilidad() {
-      if (document.visibilityState === "visible") void cargar(false);
-    }
-    document.addEventListener("visibilitychange", manejarVisibilidad);
-    const intervalo = setInterval(() => void cargar(false), 120000);
-    return () => {
-      document.removeEventListener("visibilitychange", manejarVisibilidad);
-      clearInterval(intervalo);
-    };
-  }, [cargar]);
-
   const trasladosPorKpi = useMemo(() => {
     if (!filtroKpi) return traslados;
     const ahora = Date.now();

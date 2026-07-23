@@ -38,6 +38,18 @@ test('traslados no conserva ramas demo',()=>{
   const detail=read('apps/panel-admin/src/app/viajes/[id]/page.tsx');
   assert.doesNotMatch(`${list}\n${detail}`,/puedeUsarDatosDemo|esDemo|Modo demo|modo demo|datos de ejemplo|demo-\$\{Date\.now\(\)\}|Tarifa normativa aplicada en modo demo|Traslado marcado como fallido en modo demo/);
 });
+test('listas operativas no usan refresco automático que mueva tablas',()=>{
+  for (const ruta of [
+    'apps/panel-admin/src/app/viajes/page.tsx',
+    'apps/panel-admin/src/app/conductores/page.tsx',
+    'apps/panel-admin/src/app/conductores/activos/page.tsx',
+    'apps/panel-admin/src/app/usuarios/page.tsx'
+  ]) {
+    const source=read(ruta);
+    assert.doesNotMatch(source,/setInterval\(/);
+    assert.doesNotMatch(source,/visibilitychange/);
+  }
+});
 test('no quedan alert confirm ni innerHTML en panel admin',()=>{
   const root=new URL('../src/',import.meta.url);
   const walk=(dir)=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(new URL(`${e.name}/`,dir)):[new URL(e.name,dir)]);
