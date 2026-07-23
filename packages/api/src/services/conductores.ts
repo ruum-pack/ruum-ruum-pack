@@ -199,6 +199,9 @@ export interface DatosEventoRegistroConductor {
   paso?: number;
   codigo?: string;
   duracionMs?: number;
+  zona?: string;
+  fuente?: string;
+  empresaId?: string;
 }
 
 /**
@@ -209,13 +212,16 @@ export async function registrarEventoRegistroConductor(
   cliente: Cliente,
   datos: DatosEventoRegistroConductor
 ) {
-  const { data, error } = await cliente.rpc("registrar_evento_registro_conductor", {
+  const { data, error } = await cliente.rpc("registrar_evento_registro_conductor_v2" as never, {
     p_sesion_id: datos.sesionId,
     p_evento: datos.evento,
     ...(datos.paso !== undefined ? { p_paso: datos.paso } : {}),
     ...(datos.codigo !== undefined ? { p_codigo: datos.codigo } : {}),
-    ...(datos.duracionMs !== undefined ? { p_duracion_ms: datos.duracionMs } : {})
-  });
+    ...(datos.duracionMs !== undefined ? { p_duracion_ms: datos.duracionMs } : {}),
+    ...(datos.zona !== undefined ? { p_zona: datos.zona } : {}),
+    ...(datos.fuente !== undefined ? { p_fuente: datos.fuente } : {}),
+    ...(datos.empresaId !== undefined ? { p_empresa_id: datos.empresaId } : {})
+  } as never);
   if (error) throw error;
   return data;
 }

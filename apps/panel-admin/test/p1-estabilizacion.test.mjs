@@ -69,3 +69,33 @@ test('servicio de mapa consume tracking real y audita acceso a ubicación',()=>{
   assert.match(service,/auditoria_admin_seguridad/);
   assert.match(service,/coordenadas_sensibles_protegidas/);
 });
+test('alertas SLA no usa demo ni preferencias como asignacion operacional',()=>{
+  const page=read('apps/panel-admin/src/app/alertas-sla/page.tsx');
+  assert.doesNotMatch(page,/EXCEPCIONES_DEMO|puedeUsarDatosDemo|Modo demo|alertas_sla\.responsables|guardarPreferenciaAdmin|obtenerPreferenciaAdmin/);
+  assert.match(page,/actualizarAlertaSlaAdmin/);
+  assert.match(page,/Alertas y SLA no muestra excepciones demo/);
+});
+test('servicio alertas SLA usa reglas y acciones persistidas en Supabase',()=>{
+  const service=read('packages/api/src/services/admin.ts');
+  const sql=read('supabase/migrations/20260723000700_alertas_sla_operacionales.sql');
+  assert.match(service,/admin_sincroniza_alertas_sla_operacionales/);
+  assert.match(service,/admin_actualiza_alerta_sla/);
+  assert.match(sql,/sla_reglas_operativas/);
+  assert.match(sql,/alertas_sla_historial/);
+  assert.match(sql,/notificaciones_admin_operativas/);
+  assert.match(sql,/dedupe_key text not null unique/);
+});
+test('metricas registro conductor usa formulas oficiales, segmentos y exportacion auditada',()=>{
+  const page=read('apps/panel-admin/src/app/metricas-registro/page.tsx');
+  const service=read('packages/api/src/services/admin.ts');
+  const sql=read('supabase/migrations/20260723000900_metricas_registro_conductor_madurez.sql');
+  const route=read('apps/panel-admin/src/app/api/exportaciones/metricas-registro/route.ts');
+  assert.match(service,/obtener_metricas_registro_conductor_v2/);
+  assert.match(page,/Detalle y fórmula oficial/);
+  assert.match(page,/Segmento por zona/);
+  assert.match(page,/Exportar CSV/);
+  assert.match(sql,/metas_registro_conductor/);
+  assert.match(sql,/eventos_duplicados/);
+  assert.match(route,/admin_registrar_exportacion/);
+  assert.match(route,/x-content-sha256/);
+});

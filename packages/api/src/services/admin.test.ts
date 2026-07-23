@@ -19,17 +19,28 @@ describe("servicios admin", () => {
   it("normaliza métricas de registro desde el RPC sin exponer eventos crudos", async () => {
     const cliente = crearClienteFake({
       rpcs: {
-        obtener_metricas_registro_conductor: {
+        obtener_metricas_registro_conductor_v2: {
           data: {
             periodo: { desde: "2026-07-01", hasta: "2026-07-13" },
+            filtros: { zona: null, fuente: null, empresa_id: null },
+            metricas: {
+              solicitudes_iniciadas: 12,
+              solicitudes_enviadas: 9,
+              conversion_envio_pct: 75,
+              errores_otp: 3,
+              errores_rpc: "no-numero",
+              fallos_documentos: 4,
+              tiempo_promedio_registro_segundos: null,
+              tiempo_promedio_revision_segundos: 3600
+            },
+            comparacion: { periodo_anterior: { desde: "2026-06-18", hasta: "2026-06-30" }, metricas: { solicitudes_enviadas: 7 } },
             abandono_por_paso: [{ paso: 2, total: 5 }, { paso: "x", total: null }],
-            errores_otp: 3,
-            errores_rpc: "no-numero",
-            fallos_documentos: 4,
-            tiempo_promedio_registro_segundos: null,
-            tiempo_promedio_revision_segundos: 3600,
             documentos_rechazados_por_tipo: [{ tipo: "licencia_frente", total: 2 }],
-            solicitudes_enviadas: 9
+            detalle: [{ clave: "solicitudes_enviadas", nombre: "Solicitudes enviadas", valor: 9, formula: "count", consulta_referencia: "solicitudes_conductor", explicacion: "Enviadas", meta: 10, operador_meta: "min", alerta: true, severidad: "alta" }],
+            segmentos: { zona: [{ segmento: "CDMX", iniciadas: 12, enviadas: 9, conversion_envio_pct: 75, errores_otp: 3, errores_rpc: 0, fallos_documentos: 4 }], fuente: [], empresa: [] },
+            calidad_datos: { eventos_tardios: 1, eventos_duplicados: 2, nota: "calidad" },
+            alertas: [{ clave: "solicitudes_enviadas", nombre: "Solicitudes enviadas", valor: 9, meta: 10, severidad: "alta" }],
+            exportacion: { recurso: "metricas_registro_conductor", formato: "csv", requiere_permiso: "exportaciones:crear" }
           }
         }
       }
@@ -37,7 +48,7 @@ describe("servicios admin", () => {
 
     const metricas = await obtenerMetricasRegistroConductor(cliente as never, "2026-07-01", "2026-07-13");
 
-    expect(metricas).toEqual({
+    expect(metricas).toMatchObject({
       periodo: { desde: "2026-07-01", hasta: "2026-07-13" },
       abandonoPorPaso: [{ paso: 2, total: 5 }, { paso: 0, total: 0 }],
       erroresOtp: 3,
@@ -46,11 +57,19 @@ describe("servicios admin", () => {
       tiempoPromedioRegistroSegundos: null,
       tiempoPromedioRevisionSegundos: 3600,
       documentosRechazadosPorTipo: [{ tipo: "licencia_frente", total: 2 }],
-      solicitudesEnviadas: 9
+      solicitudesIniciadas: 12,
+      solicitudesEnviadas: 9,
+      conversionEnvioPct: 75,
+      calidadDatos: { eventosTardios: 1, eventosDuplicados: 2, nota: "calidad" }
     });
-    expect(cliente.rpc).toHaveBeenCalledWith("obtener_metricas_registro_conductor", {
+    expect(metricas.detalle[0]).toMatchObject({ clave: "solicitudes_enviadas", alerta: true });
+    expect(metricas.segmentos.zona[0]).toMatchObject({ segmento: "CDMX", iniciadas: 12 });
+    expect(cliente.rpc).toHaveBeenCalledWith("obtener_metricas_registro_conductor_v2", {
       p_desde: "2026-07-01",
-      p_hasta: "2026-07-13"
+      p_hasta: "2026-07-13",
+      p_zona: null,
+      p_fuente: null,
+      p_empresa_id: null
     });
   });
 
@@ -64,7 +83,7 @@ describe("servicios admin", () => {
 
   it("lanza error si el RPC del RPC falla en obtenerMetricasRegistroConductor", async () => {
     const cliente = crearClienteFake({
-      rpcs: { obtener_metricas_registro_conductor: { error: new Error("RPC caído") } }
+      rpcs: { obtener_metricas_registro_conductor_v2: { error: new Error("RPC caído") } }
     });
     await expect(obtenerMetricasRegistroConductor(cliente as never, "d", "h")).rejects.toThrow("RPC caído");
   });

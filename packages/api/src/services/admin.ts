@@ -29,7 +29,6 @@ type DatosBancariosConductorRow = Database["public"]["Tables"]["datos_bancarios_
 type NotaRow = Database["public"]["Tables"]["notas_internas_traslado"]["Row"];
 type EvidenciaRow = Database["public"]["Tables"]["evidencia_fotos"]["Row"];
 type TrasladoRow = Database["public"]["Tables"]["traslados"]["Row"];
-type AuditoriaRow = Database["public"]["Tables"]["registro_auditoria"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 type EstadoConductor = Database["public"]["Enums"]["estado_conductor"];
 type TipoEvidencia = Database["public"]["Enums"]["tipo_evidencia"];
@@ -38,7 +37,6 @@ type EstadoDisputa = Database["public"]["Enums"]["estado_disputa"];
 type ResolucionDisputa = Database["public"]["Enums"]["resolucion_disputa"];
 type EstadoReclamoSeguro = Database["public"]["Enums"]["estado_reclamo_seguro"];
 type EstadoVerificacion = Database["public"]["Enums"]["estado_verificacion"];
-type TipoIncidencia = Database["public"]["Enums"]["tipo_incidencia"];
 
 export interface DatosPagosAdmin {
   pagosUsuarios: PagoRow[];
@@ -375,6 +373,7 @@ export interface IndicadorAccionableDashboard {
 
 export interface MetricasRegistroConductor {
   periodo: { desde: string; hasta: string };
+  filtros?: { zona: string | null; fuente: string | null; empresaId: string | null };
   abandonoPorPaso: Array<{ paso: number; total: number }>;
   erroresOtp: number;
   erroresRpc: number;
@@ -382,7 +381,34 @@ export interface MetricasRegistroConductor {
   tiempoPromedioRegistroSegundos: number | null;
   tiempoPromedioRevisionSegundos: number | null;
   documentosRechazadosPorTipo: Array<{ tipo: string; total: number }>;
+  solicitudesIniciadas: number;
   solicitudesEnviadas: number;
+  conversionEnvioPct: number;
+  comparacion: { periodoAnterior: { desde: string; hasta: string }; metricas: Record<string, number> };
+  detalle: Array<{
+    clave: string;
+    nombre: string;
+    valor: number | null;
+    formula: string;
+    consultaReferencia: string;
+    explicacion: string;
+    meta: number | null;
+    operadorMeta: "max" | "min" | null;
+    alerta: boolean;
+    severidad: "critica" | "alta" | "media" | null;
+  }>;
+  segmentos: Record<"zona" | "fuente" | "empresa", Array<{
+    segmento: string;
+    iniciadas: number;
+    enviadas: number;
+    conversionEnvioPct: number;
+    erroresOtp: number;
+    erroresRpc: number;
+    fallosDocumentos: number;
+  }>>;
+  calidadDatos: { eventosTardios: number; eventosDuplicados: number; nota: string };
+  alertas: Array<{ clave: string; nombre: string; valor: number; meta: number; severidad: "critica" | "alta" | "media" }>;
+  exportacion: { recurso: string; formato: string; requierePermiso: string };
 }
 
 function objetoMetrica(valor: unknown): Record<string, unknown> {
@@ -403,36 +429,115 @@ function numeroMetricaNullable(valor: unknown): number | null {
 export async function obtenerMetricasRegistroConductor(
   cliente: Cliente,
   desde: string,
-  hasta: string
+  hasta: string,
+  filtros: { zona?: string; fuente?: string; empresaId?: string } = {}
 ): Promise<MetricasRegistroConductor> {
-  const { data, error } = await cliente.rpc("obtener_metricas_registro_conductor", {
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "obtener_metricas_registro_conductor_v2",
+    args: { p_desde: string; p_hasta: string; p_zona: string | null; p_fuente: string | null; p_empresa_id: string | null }
+  ) => Promise<{ data: unknown; error: Error | null }>;
+  const { data, error } = await rpc("obtener_metricas_registro_conductor_v2", {
     p_desde: desde,
-    p_hasta: hasta
+    p_hasta: hasta,
+    p_zona: filtros.zona ?? null,
+    p_fuente: filtros.fuente ?? null,
+    p_empresa_id: filtros.empresaId ?? null
   });
   if (error) throw error;
 
   const raiz = objetoMetrica(data);
   const periodo = objetoMetrica(raiz.periodo);
+  const filtrosRespuesta = objetoMetrica(raiz.filtros);
+  const metricas = objetoMetrica(raiz.metricas);
+  const comparacion = objetoMetrica(raiz.comparacion);
+  const periodoAnterior = objetoMetrica(comparacion.periodo_anterior);
+  const metricasAnteriores = objetoMetrica(comparacion.metricas);
+  const segmentos = objetoMetrica(raiz.segmentos);
+  const calidadDatos = objetoMetrica(raiz.calidad_datos);
   const abandonos = Array.isArray(raiz.abandono_por_paso) ? raiz.abandono_por_paso : [];
   const rechazados = Array.isArray(raiz.documentos_rechazados_por_tipo) ? raiz.documentos_rechazados_por_tipo : [];
+  const detalle = Array.isArray(raiz.detalle) ? raiz.detalle : [];
+  const alertas = Array.isArray(raiz.alertas) ? raiz.alertas : [];
+  const exportacion = objetoMetrica(raiz.exportacion);
 
   return {
     periodo: { desde: String(periodo.desde ?? desde), hasta: String(periodo.hasta ?? hasta) },
+    filtros: {
+      zona: typeof filtrosRespuesta.zona === "string" ? filtrosRespuesta.zona : null,
+      fuente: typeof filtrosRespuesta.fuente === "string" ? filtrosRespuesta.fuente : null,
+      empresaId: typeof filtrosRespuesta.empresa_id === "string" ? filtrosRespuesta.empresa_id : null
+    },
     abandonoPorPaso: abandonos.map(objetoMetrica).map((fila) => ({
       paso: numeroMetrica(fila.paso),
       total: numeroMetrica(fila.total)
     })),
-    erroresOtp: numeroMetrica(raiz.errores_otp),
-    erroresRpc: numeroMetrica(raiz.errores_rpc),
-    fallosDocumentos: numeroMetrica(raiz.fallos_documentos),
-    tiempoPromedioRegistroSegundos: numeroMetricaNullable(raiz.tiempo_promedio_registro_segundos),
-    tiempoPromedioRevisionSegundos: numeroMetricaNullable(raiz.tiempo_promedio_revision_segundos),
+    erroresOtp: numeroMetrica(metricas.errores_otp),
+    erroresRpc: numeroMetrica(metricas.errores_rpc),
+    fallosDocumentos: numeroMetrica(metricas.fallos_documentos),
+    tiempoPromedioRegistroSegundos: numeroMetricaNullable(metricas.tiempo_promedio_registro_segundos),
+    tiempoPromedioRevisionSegundos: numeroMetricaNullable(metricas.tiempo_promedio_revision_segundos),
     documentosRechazadosPorTipo: rechazados.map(objetoMetrica).map((fila) => ({
       tipo: String(fila.tipo ?? "desconocido"),
       total: numeroMetrica(fila.total)
     })),
-    solicitudesEnviadas: numeroMetrica(raiz.solicitudes_enviadas)
+    solicitudesIniciadas: numeroMetrica(metricas.solicitudes_iniciadas),
+    solicitudesEnviadas: numeroMetrica(metricas.solicitudes_enviadas),
+    conversionEnvioPct: numeroMetrica(metricas.conversion_envio_pct),
+    comparacion: {
+      periodoAnterior: {
+        desde: String(periodoAnterior.desde ?? ""),
+        hasta: String(periodoAnterior.hasta ?? "")
+      },
+      metricas: Object.fromEntries(Object.entries(metricasAnteriores).map(([clave, valor]) => [clave, numeroMetrica(valor)]))
+    },
+    detalle: detalle.map(objetoMetrica).map((fila) => ({
+      clave: String(fila.clave ?? ""),
+      nombre: String(fila.nombre ?? ""),
+      valor: fila.valor === null ? null : numeroMetrica(fila.valor),
+      formula: String(fila.formula ?? ""),
+      consultaReferencia: String(fila.consulta_referencia ?? ""),
+      explicacion: String(fila.explicacion ?? ""),
+      meta: fila.meta === null ? null : numeroMetrica(fila.meta),
+      operadorMeta: fila.operador_meta === "max" || fila.operador_meta === "min" ? fila.operador_meta : null,
+      alerta: Boolean(fila.alerta),
+      severidad: fila.severidad === "critica" || fila.severidad === "alta" || fila.severidad === "media" ? fila.severidad : null
+    })),
+    segmentos: {
+      zona: mapearSegmentoRegistro(segmentos.zona),
+      fuente: mapearSegmentoRegistro(segmentos.fuente),
+      empresa: mapearSegmentoRegistro(segmentos.empresa)
+    },
+    calidadDatos: {
+      eventosTardios: numeroMetrica(calidadDatos.eventos_tardios),
+      eventosDuplicados: numeroMetrica(calidadDatos.eventos_duplicados),
+      nota: String(calidadDatos.nota ?? "")
+    },
+    alertas: alertas.map(objetoMetrica).map((fila) => ({
+      clave: String(fila.clave ?? ""),
+      nombre: String(fila.nombre ?? ""),
+      valor: numeroMetrica(fila.valor),
+      meta: numeroMetrica(fila.meta),
+      severidad: fila.severidad === "critica" || fila.severidad === "alta" || fila.severidad === "media" ? fila.severidad : "media"
+    })),
+    exportacion: {
+      recurso: String(exportacion.recurso ?? "metricas_registro_conductor"),
+      formato: String(exportacion.formato ?? "csv"),
+      requierePermiso: String(exportacion.requiere_permiso ?? "exportaciones:crear")
+    }
   };
+}
+
+function mapearSegmentoRegistro(valor: unknown) {
+  const filas = Array.isArray(valor) ? valor : [];
+  return filas.map(objetoMetrica).map((fila) => ({
+    segmento: String(fila.segmento ?? "sin_segmento"),
+    iniciadas: numeroMetrica(fila.iniciadas),
+    enviadas: numeroMetrica(fila.enviadas),
+    conversionEnvioPct: numeroMetrica(fila.conversion_envio_pct),
+    erroresOtp: numeroMetrica(fila.errores_otp),
+    erroresRpc: numeroMetrica(fila.errores_rpc),
+    fallosDocumentos: numeroMetrica(fila.fallos_documentos)
+  }));
 }
 
 /**
@@ -2878,12 +2983,18 @@ export interface ExcepcionCriticaAdmin {
   id: string;
   categoria: CategoriaExcepcionCritica;
   severidad: SeveridadExcepcionCritica;
+  estado: "abierta" | "acusada" | "escalada" | "resuelta" | "cerrada";
+  prioridad: number;
   folioOEntidad: string;
   descripcion: string;
   creadoEn: string;
   actualizadoEn: string;
+  venceEn: string | null;
   responsable: string | null;
   slaRestanteHoras: number | null;
+  porcentajeConsumido: number | null;
+  notificacionEstado: string | null;
+  metadata?: Record<string, unknown>;
   accionPrincipal: {
     etiqueta: string;
     href: string;
@@ -2893,6 +3004,30 @@ export interface ExcepcionCriticaAdmin {
     href: string;
   };
 }
+
+type AlertaSlaOperacionalRow = {
+  id: string;
+  categoria: CategoriaExcepcionCritica;
+  severidad: SeveridadExcepcionCritica;
+  estado: ExcepcionCriticaAdmin["estado"];
+  prioridad: number;
+  entidad_tipo: string;
+  entidad_id: string;
+  traslado_id: string | null;
+  folio: string;
+  descripcion: string;
+  origen_creado_en: string;
+  vence_en: string | null;
+  sla_restante_horas: number | null;
+  horas_transcurridas: number | null;
+  horas_limite: number | null;
+  porcentaje_consumido: number | null;
+  responsable: string | null;
+  notificacion_estado: string | null;
+  metadata: Record<string, unknown>;
+  creado_en: string;
+  actualizado_en: string;
+};
 
 type TrasladoActivoMapaRow = {
   id: string;
@@ -3045,149 +3180,65 @@ export async function listarTrasladosActivosMapa(cliente: Cliente): Promise<Tras
   }));
 }
 
-function horasDesde(fechaIso: string) {
-  return Math.max(0, (Date.now() - new Date(fechaIso).getTime()) / 36e5);
-}
-
-function folioCorto(id: string) {
-  return id.slice(0, 8).toUpperCase();
-}
-
-function severidadPeso(severidad: SeveridadExcepcionCritica) {
-  if (severidad === "critica") return 3;
-  if (severidad === "alta") return 2;
-  return 1;
-}
-
-function esIncidenciaDesviacion(tipo: TipoIncidencia) {
-  return tipo === "perdida_conectividad" || tipo === "descompostura_en_ruta" || tipo === "infraccion_autoridad_vial";
-}
-
-function trasladoIdDesdeDatosAuditoria(datos: AuditoriaRow["datos"]) {
-  if (!datos || typeof datos !== "object" || Array.isArray(datos)) return null;
-  const valor = datos.traslado_id;
-  return typeof valor === "string" ? valor : null;
-}
-
 export async function listarExcepcionesCriticasAdmin(cliente: Cliente): Promise<ExcepcionCriticaAdmin[]> {
-  const [emergencias, alertasSla, traslados, incidencias] = await Promise.all([
-    cliente
-      .from("registro_auditoria")
-      .select("*")
-      .eq("evento", "activacion_soporte_emergencia")
-      .order("timestamp", { ascending: false })
-      .limit(20),
-    listarAlertasSLA(cliente),
-    listarTrasladosActivosMapa(cliente),
-    listarIncidenciasAdmin(cliente)
-  ]);
-
-  if (emergencias.error) throw emergencias.error;
-
-  const excepciones: ExcepcionCriticaAdmin[] = [];
-
-  for (const evento of (emergencias.data ?? []) as AuditoriaRow[]) {
-    const trasladoId = evento.traslado_id ?? trasladoIdDesdeDatosAuditoria(evento.datos);
-    excepciones.push({
-      id: `emergencia-${evento.id}`,
-      categoria: "emergencia",
-      severidad: "critica",
-      folioOEntidad: trasladoId ? `Traslado ${folioCorto(trasladoId)}` : `Evento ${folioCorto(evento.id)}`,
-      descripcion: "Emergencia activada desde canal operativo. Requiere atención inmediata y registro de seguimiento.",
-      creadoEn: evento.timestamp,
-      actualizadoEn: evento.timestamp,
-      responsable: "Torre de Control",
-      slaRestanteHoras: 0,
-      accionPrincipal: {
-        etiqueta: trasladoId ? "Abrir traslado" : "Revisar emergencia",
-        href: trasladoId ? `/viajes/${trasladoId}` : "/"
-      },
-      accionEscalamiento: { etiqueta: "Escalar a supervisor", href: "/configuracion" }
-    });
-  }
-
-  for (const alerta of alertasSla) {
-    if (!alerta.vencido && !alerta.requiere_alerta) continue;
-    const esUsuario = alerta.tipo === "cuenta_nueva_usuario" || alerta.tipo === "documentos_usuario";
-    const documentacion = alerta.tipo === "documentos_usuario" || alerta.tipo === "documentos_conductor";
-    const categoria: CategoriaExcepcionCritica = documentacion
-      ? "documentacion_bloqueante"
-      : alerta.vencido
-        ? "sla_vencido"
-        : "sla_en_riesgo";
-    const restante = alerta.horas_limite - alerta.horas_transcurridas;
-    excepciones.push({
-      id: `sla-${alerta.tipo}-${alerta.id}`,
-      categoria,
-      severidad: alerta.vencido ? "alta" : "media",
-      folioOEntidad: `${esUsuario ? "Usuario" : "Conductor"} ${folioCorto(alerta.id)}`,
-      descripcion: `${alerta.nombre} tiene ${alerta.vencido ? "SLA vencido" : "SLA en riesgo"} para ${alerta.tipo.replace(/_/g, " ")}.`,
-      creadoEn: alerta.creado_en,
-      actualizadoEn: alerta.creado_en,
-      responsable: null,
-      slaRestanteHoras: Number(restante.toFixed(1)),
-      accionPrincipal: { etiqueta: esUsuario ? "Revisar usuario" : "Revisar conductor", href: esUsuario ? "/usuarios" : "/conductores" },
-      accionEscalamiento: { etiqueta: "Escalar revisión", href: documentacion ? "/documentos" : "/configuracion" }
-    });
-  }
-
-  for (const traslado of traslados) {
-    const horasSinActualizacion = horasDesde(traslado.actualizado_en);
-    if (traslado.estado === "pendiente_de_conductor") {
-      excepciones.push({
-        id: `sin-conductor-${traslado.traslado_id}`,
-        categoria: "traslado_sin_conductor",
-        severidad: horasSinActualizacion >= 2 ? "alta" : "media",
-        folioOEntidad: `Traslado ${folioCorto(traslado.traslado_id)}`,
-        descripcion: `${traslado.vehiculo_marca ?? "Vehículo"} ${traslado.vehiculo_modelo ?? ""} está pendiente de conductor.`,
-        creadoEn: traslado.actualizado_en,
-        actualizadoEn: traslado.actualizado_en,
-        responsable: "Asignación",
-        slaRestanteHoras: Number((2 - horasSinActualizacion).toFixed(1)),
-        accionPrincipal: { etiqueta: "Asignar conductor", href: `/viajes/${traslado.traslado_id}` },
-        accionEscalamiento: { etiqueta: "Escalar asignación", href: "/conductores" }
-      });
+  await assertAdminPermission(cliente, "incidencias:leer");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_sincroniza_alertas_sla_operacionales",
+    args?: Record<string, never>
+  ) => Promise<{ data: AlertaSlaOperacionalRow[] | null; error: Error | null }>;
+  const { data, error } = await rpc("admin_sincroniza_alertas_sla_operacionales");
+  if (error) throw error;
+  return (data ?? []).map((alerta) => ({
+    id: alerta.id,
+    categoria: alerta.categoria,
+    severidad: alerta.severidad,
+    estado: alerta.estado,
+    prioridad: alerta.prioridad,
+    folioOEntidad: alerta.folio,
+    descripcion: alerta.descripcion,
+    creadoEn: alerta.origen_creado_en,
+    actualizadoEn: alerta.actualizado_en,
+    venceEn: alerta.vence_en,
+    responsable: alerta.responsable,
+    slaRestanteHoras: alerta.sla_restante_horas,
+    porcentajeConsumido: alerta.porcentaje_consumido,
+    notificacionEstado: alerta.notificacion_estado,
+    metadata: alerta.metadata,
+    accionPrincipal: accionPrincipalAlerta(alerta),
+    accionEscalamiento: {
+      etiqueta: "Escalar",
+      href: alerta.traslado_id ? `/viajes/${alerta.traslado_id}` : "/alertas-sla"
     }
+  }));
+}
 
-    if (traslado.conductor_nombre && horasSinActualizacion >= 1.5) {
-      excepciones.push({
-        id: `sin-senal-${traslado.traslado_id}`,
-        categoria: "conductor_sin_senal",
-        severidad: horasSinActualizacion >= 3 ? "critica" : "alta",
-        folioOEntidad: `Traslado ${folioCorto(traslado.traslado_id)}`,
-        descripcion: `${traslado.conductor_nombre} no registra actualización operativa reciente.`,
-        creadoEn: traslado.actualizado_en,
-        actualizadoEn: traslado.actualizado_en,
-        responsable: "Monitoreo",
-        slaRestanteHoras: Number((1.5 - horasSinActualizacion).toFixed(1)),
-        accionPrincipal: { etiqueta: "Abrir mapa", href: "/mapa" },
-        accionEscalamiento: { etiqueta: "Escalar a soporte", href: `/viajes/${traslado.traslado_id}` }
-      });
-    }
-  }
+function accionPrincipalAlerta(alerta: AlertaSlaOperacionalRow) {
+  if (alerta.traslado_id) return { etiqueta: "Abrir traslado", href: `/viajes/${alerta.traslado_id}` };
+  if (alerta.entidad_tipo === "usuario") return { etiqueta: "Revisar usuario", href: "/usuarios" };
+  if (alerta.entidad_tipo === "conductor") return { etiqueta: "Revisar conductor", href: "/conductores" };
+  if (alerta.entidad_tipo === "incidencia") return { etiqueta: "Atender incidencia", href: "/incidencias?filtro=abiertas" };
+  return { etiqueta: "Revisar alerta", href: "/alertas-sla" };
+}
 
-  for (const incidencia of incidencias.filter((item) => !item.resuelta)) {
-    const desviacion = esIncidenciaDesviacion(incidencia.tipo);
-    excepciones.push({
-      id: `${desviacion ? "desviacion" : "incidencia"}-${incidencia.id}`,
-      categoria: desviacion ? "desviacion_ruta" : "incidencia_sin_responsable",
-      severidad: desviacion ? "alta" : "media",
-      folioOEntidad: `Traslado ${folioCorto(incidencia.traslado_id)}`,
-      descripcion: incidencia.descripcion || incidencia.tipo.replace(/_/g, " "),
-      creadoEn: incidencia.creada_en,
-      actualizadoEn: incidencia.creada_en,
-      responsable: null,
-      slaRestanteHoras: Number((1 - horasDesde(incidencia.creada_en)).toFixed(1)),
-      accionPrincipal: { etiqueta: "Atender incidencia", href: `/viajes/${incidencia.traslado_id}` },
-      accionEscalamiento: { etiqueta: "Escalar incidencia", href: "/incidencias?filtro=abiertas" }
-    });
-  }
-
-  return excepciones.sort((a, b) => {
-    const severidad = severidadPeso(b.severidad) - severidadPeso(a.severidad);
-    if (severidad !== 0) return severidad;
-    return new Date(a.creadoEn).getTime() - new Date(b.creadoEn).getTime();
+export async function actualizarAlertaSlaAdmin(
+  cliente: Cliente,
+  alertaId: string,
+  accion: "asignar" | "acuse" | "escalar" | "resolver" | "cerrar",
+  parametros: { responsable?: string; comentario?: string } = {}
+) {
+  await assertAdminPermission(cliente, accion === "escalar" || accion === "resolver" || accion === "cerrar" ? "viajes:gestionar" : "incidencias:leer");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_actualiza_alerta_sla",
+    args: { p_alerta_id: string; p_accion: string; p_responsable: string | null; p_comentario: string | null }
+  ) => Promise<{ data: { alerta_id: string; estado: ExcepcionCriticaAdmin["estado"]; responsable: string | null } | null; error: Error | null }>;
+  const { data, error } = await rpc("admin_actualiza_alerta_sla", {
+    p_alerta_id: alertaId,
+    p_accion: accion,
+    p_responsable: parametros.responsable ?? null,
+    p_comentario: parametros.comentario ?? null
   });
+  if (error) throw error;
+  return data;
 }
 
 // ─── Alertas SLA ─────────────────────────────────────────────────────────────
@@ -3210,99 +3261,30 @@ export interface AlertaSLA {
   vencido: boolean;             // >100% del SLA
 }
 
-/** Calcula horas hábiles transcurridas desde una fecha ISO.
- *  Aproximación pragmática: L-V 09:00-18:00 hora local (9h/día).
- *  Suficiente para el propósito de alertas de SLA operativo. */
-function horasHabilesDesde(fechaIso: string): number {
-  const inicio = new Date(fechaIso);
-  const ahora = new Date();
-  let horas = 0;
-  const cursor = new Date(inicio);
-
-  while (cursor < ahora) {
-    const diaSemana = cursor.getDay(); // 0=dom, 6=sab
-    const horaActual = cursor.getHours();
-    if (diaSemana >= 1 && diaSemana <= 5 && horaActual >= 9 && horaActual < 18) {
-      horas += 1;
-    }
-    cursor.setHours(cursor.getHours() + 1);
-  }
-  return horas;
-}
-
 /**
- * PRD §4.1 — SLAs de verificación. Admin recibe alerta cuando un usuario o
- * conductor supera el 80% del SLA sin resolución. Esta función devuelve todos
- * los pendientes con su porcentaje de consumo para mostrarlos como panel de
- * alertas en Torre de Control.
+ * Compatibilidad para contadores legacy: los vencimientos ya vienen calculados
+ * por public.admin_sincroniza_alertas_sla_operacionales().
  */
 export async function listarAlertasSLA(cliente: Cliente): Promise<AlertaSLA[]> {
-  const LIMITE: Record<TipoSLA, number> = {
-    cuenta_nueva_usuario: 2,
-    documentos_usuario: 4,
-    conductor_primera_vez: 24,
-    documentos_conductor: 24
-  };
-
-  const [usuarios, conductores] = await Promise.all([
-    cliente
-      .from("usuarios")
-      .select("id, nombre, estado_verificacion, creado_en")
-      .in("estado_verificacion", ["pendiente", "en_revision"])
-      .order("creado_en", { ascending: true }),
-    cliente
-      .from("conductores")
-      .select("id, nombre, estado, documentos_vigentes, creado_en, traslados_completados")
-      .eq("estado", "pendiente_verificacion")
-      .order("creado_en", { ascending: true })
-  ]);
-
-  if (usuarios.error) throw usuarios.error;
-  if (conductores.error) throw conductores.error;
-
-  const alertas: AlertaSLA[] = [];
-
-  for (const u of usuarios.data ?? []) {
-    const tipo: TipoSLA =
-      u.estado_verificacion === "pendiente" ? "cuenta_nueva_usuario" : "documentos_usuario";
-    const limite = LIMITE[tipo];
-    const horas = horasHabilesDesde(u.creado_en);
-    const porcentaje = Math.min(Math.round((horas / limite) * 100), 999);
-    alertas.push({
-      id: u.id,
+  await assertAdminPermission(cliente, "incidencias:leer");
+  const filas = await listarExcepcionesCriticasAdmin(cliente);
+  const tipos: TipoSLA[] = ["cuenta_nueva_usuario", "documentos_usuario", "conductor_primera_vez", "documentos_conductor"];
+  return filas.flatMap((alerta) => {
+    const fila = alerta as ExcepcionCriticaAdmin & { metadata?: Record<string, unknown> };
+    const tipo = typeof fila.metadata?.tipo_alerta === "string" && tipos.includes(fila.metadata.tipo_alerta as TipoSLA)
+      ? fila.metadata.tipo_alerta as TipoSLA
+      : null;
+    if (!tipo) return [];
+    return [{
+      id: alerta.id,
       tipo,
-      nombre: u.nombre ?? "Usuario sin nombre",
-      creado_en: u.creado_en,
-      horas_transcurridas: horas,
-      horas_limite: limite,
-      porcentaje_consumido: porcentaje,
-      requiere_alerta: porcentaje >= 80 && horas <= limite,
-      vencido: horas > limite
-    });
-  }
-
-  for (const c of conductores.data ?? []) {
-    const tipo: TipoSLA =
-      (c.traslados_completados ?? 0) === 0 ? "conductor_primera_vez" : "documentos_conductor";
-    const limite = LIMITE[tipo];
-    const horas = horasHabilesDesde(c.creado_en);
-    const porcentaje = Math.min(Math.round((horas / limite) * 100), 999);
-    alertas.push({
-      id: c.id,
-      tipo,
-      nombre: c.nombre ?? "Conductor sin nombre",
-      creado_en: c.creado_en,
-      horas_transcurridas: horas,
-      horas_limite: limite,
-      porcentaje_consumido: porcentaje,
-      requiere_alerta: porcentaje >= 80 && horas <= limite,
-      vencido: horas > limite
-    });
-  }
-
-  // Primero vencidos, luego por porcentaje consumido descendente
-  return alertas.sort((a, b) => {
-    if (a.vencido !== b.vencido) return a.vencido ? -1 : 1;
-    return b.porcentaje_consumido - a.porcentaje_consumido;
+      nombre: alerta.folioOEntidad,
+      creado_en: alerta.creadoEn,
+      horas_transcurridas: Math.max((alerta.porcentajeConsumido ?? 0) / 100, 0),
+      horas_limite: 1,
+      porcentaje_consumido: alerta.porcentajeConsumido ?? 0,
+      requiere_alerta: (alerta.porcentajeConsumido ?? 0) >= 80 && (alerta.porcentajeConsumido ?? 0) < 100,
+      vencido: (alerta.porcentajeConsumido ?? 0) >= 100
+    }];
   });
 }

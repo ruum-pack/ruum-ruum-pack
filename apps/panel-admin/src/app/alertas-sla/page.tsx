@@ -5,14 +5,13 @@ import Link from "next/link";
 import { Aviso, Button } from "@ruum/ui";
 import { AdminPageHeader, AdminPanel } from "../admin-ui";
 import {
+  actualizarAlertaSlaAdmin,
   listarExcepcionesCriticasAdmin,
   type CategoriaExcepcionCritica,
   type ExcepcionCriticaAdmin,
-  type SeveridadExcepcionCritica,
-  obtenerPreferenciaAdmin,
-  guardarPreferenciaAdmin
+  type SeveridadExcepcionCritica
 } from "@ruum/api/services";
-import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 const RESPONSABLES = [
   "Torre de Control",
@@ -52,75 +51,7 @@ const CLASE_SEVERIDAD: Record<SeveridadExcepcionCritica, string> = {
   media: "border-status-info/35 bg-status-info-soft text-status-info"
 };
 
-type EstadoConexionCritica = "datos_en_vivo" | "actualizando" | "reconectando" | "sin_conexion" | "desactualizado" | "demo";
-
-const EXCEPCIONES_DEMO: ExcepcionCriticaAdmin[] = [
-  {
-    id: "demo-emergencia-1",
-    categoria: "emergencia",
-    severidad: "critica",
-    folioOEntidad: "Traslado DEMO-911",
-    descripcion: "Emergencia activada por conductor durante traslado en curso.",
-    creadoEn: new Date(Date.now() - 1000 * 60 * 22).toISOString(),
-    actualizadoEn: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
-    responsable: "Torre de Control",
-    slaRestanteHoras: 0,
-    accionPrincipal: { etiqueta: "Abrir traslado", href: "/viajes" },
-    accionEscalamiento: { etiqueta: "Escalar a supervisor", href: "/configuracion" }
-  },
-  {
-    id: "demo-sla-vencido-1",
-    categoria: "sla_vencido",
-    severidad: "alta",
-    folioOEntidad: "Usuario 7A12B900",
-    descripcion: "Revisión documental vencida para cuenta corporativa.",
-    creadoEn: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    actualizadoEn: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    responsable: null,
-    slaRestanteHoras: -1,
-    accionPrincipal: { etiqueta: "Revisar usuario", href: "/usuarios" },
-    accionEscalamiento: { etiqueta: "Escalar revisión", href: "/documentos" }
-  },
-  {
-    id: "demo-sin-conductor-1",
-    categoria: "traslado_sin_conductor",
-    severidad: "alta",
-    folioOEntidad: "Traslado C0RP0101",
-    descripcion: "Traslado corporativo programado sin conductor asignado.",
-    creadoEn: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
-    actualizadoEn: new Date(Date.now() - 1000 * 60 * 80).toISOString(),
-    responsable: "Asignación",
-    slaRestanteHoras: 0.4,
-    accionPrincipal: { etiqueta: "Asignar conductor", href: "/viajes" },
-    accionEscalamiento: { etiqueta: "Escalar asignación", href: "/conductores" }
-  },
-  {
-    id: "demo-senal-1",
-    categoria: "conductor_sin_senal",
-    severidad: "alta",
-    folioOEntidad: "Traslado F1A90210",
-    descripcion: "Conductor sin actualización operativa reciente.",
-    creadoEn: new Date(Date.now() - 1000 * 60 * 140).toISOString(),
-    actualizadoEn: new Date(Date.now() - 1000 * 60 * 110).toISOString(),
-    responsable: "Monitoreo",
-    slaRestanteHoras: -0.3,
-    accionPrincipal: { etiqueta: "Abrir mapa", href: "/mapa" },
-    accionEscalamiento: { etiqueta: "Escalar a soporte", href: "/viajes" }
-  },
-  {
-    id: "demo-incidencia-1",
-    categoria: "incidencia_sin_responsable",
-    severidad: "media",
-    folioOEntidad: "Traslado A11C9090",
-    descripcion: "Incidencia abierta sin responsable operativo asignado.",
-    creadoEn: new Date(Date.now() - 1000 * 60 * 70).toISOString(),
-    actualizadoEn: new Date(Date.now() - 1000 * 60 * 65).toISOString(),
-    responsable: null,
-    slaRestanteHoras: 0.2,
-    accionPrincipal: { etiqueta: "Atender incidencia", href: "/incidencias?filtro=abiertas" },
-    accionEscalamiento: { etiqueta: "Escalar incidencia", href: "/incidencias?filtro=abiertas" }
-  }
-];
+type EstadoConexionCritica = "datos_en_vivo" | "actualizando" | "reconectando" | "sin_conexion" | "desactualizado";
 
 function tiempoRelativo(fechaIso: string) {
   const minutos = Math.max(0, Math.floor((Date.now() - new Date(fechaIso).getTime()) / 60000));
@@ -134,6 +65,10 @@ function fechaAdministrativa(fechaIso: string) {
   return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(fechaIso));
 }
 
+function fechaAdministrativaOpcional(fechaIso: string | null) {
+  return fechaIso ? fechaAdministrativa(fechaIso) : "No definido";
+}
+
 function textoSlaRestante(horas: number | null) {
   if (horas == null) return "No definido";
   if (horas <= 0) return `${Math.abs(horas).toFixed(1)} h vencido`;
@@ -142,14 +77,15 @@ function textoSlaRestante(horas: number | null) {
 
 function TarjetaExcepcion({
   excepcion,
-  responsable,
-  onAsignar
+  onAsignar,
+  onAccion
 }: {
   excepcion: ExcepcionCriticaAdmin;
-  responsable: string;
-  onAsignar: (id: string, responsable: string) => void;
+  onAsignar: (id: string, responsable: string) => Promise<void>;
+  onAccion: (id: string, accion: "acuse" | "escalar" | "resolver" | "cerrar") => Promise<void>;
 }) {
   const accionFaltante = !excepcion.accionPrincipal?.href || !excepcion.accionEscalamiento?.href;
+  const cerrable = excepcion.estado === "resuelta";
 
   return (
     <article className="rounded-xl border border-border-default bg-surface-primary p-4 shadow-sm">
@@ -158,6 +94,9 @@ function TarjetaExcepcion({
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full border px-2.5 py-1 font-body text-admin-secundario font-semibold ${CLASE_SEVERIDAD[excepcion.severidad]}`}>
               {excepcion.severidad}
+            </span>
+            <span className="rounded-full border border-border-default bg-surface-secondary px-2.5 py-1 font-body text-admin-secundario font-semibold text-text-secondary">
+              {excepcion.estado}
             </span>
             <span className="font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary">
               {ETIQUETA_CATEGORIA[excepcion.categoria]}
@@ -177,8 +116,8 @@ function TarjetaExcepcion({
           <dt className="font-body text-admin-secundario uppercase tracking-wide text-text-tertiary">Responsable</dt>
           <dd className="mt-1">
             <select
-              value={responsable}
-              onChange={(evento) => onAsignar(excepcion.id, evento.target.value)}
+              value={excepcion.responsable ?? ""}
+              onChange={(evento) => void onAsignar(excepcion.id, evento.target.value)}
               className="w-full rounded-lg border border-ink/20 bg-surface-primary px-2.5 py-2 font-body text-sm text-ink"
               aria-label={`Asignar responsable para ${excepcion.folioOEntidad}`}
             >
@@ -194,10 +133,12 @@ function TarjetaExcepcion({
           <dd className={excepcion.slaRestanteHoras != null && excepcion.slaRestanteHoras <= 0 ? "mt-1 font-semibold text-status-error" : "mt-1 text-ink"}>
             {textoSlaRestante(excepcion.slaRestanteHoras)}
           </dd>
+          <dd className="mt-1 font-body text-xs text-text-tertiary">{excepcion.porcentajeConsumido ?? 0}% consumido</dd>
         </div>
         <div>
-          <dt className="font-body text-admin-secundario uppercase tracking-wide text-text-tertiary">Última actualización</dt>
-          <dd className="mt-1 text-ink">{fechaAdministrativa(excepcion.actualizadoEn)}</dd>
+          <dt className="font-body text-admin-secundario uppercase tracking-wide text-text-tertiary">Vence</dt>
+          <dd className="mt-1 text-ink">{fechaAdministrativaOpcional(excepcion.venceEn)}</dd>
+          <dd className="mt-1 font-body text-xs text-text-tertiary">Actualizado {fechaAdministrativa(excepcion.actualizadoEn)}</dd>
         </div>
       </dl>
 
@@ -217,8 +158,37 @@ function TarjetaExcepcion({
             href={excepcion.accionEscalamiento.href}
             className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2.5 font-body text-sm font-semibold text-text-secondary transition-colors hover:border-status-error/40 hover:text-status-error"
           >
-            {excepcion.accionEscalamiento.etiqueta}
+            Ver origen
           </Link>
+          <button
+            type="button"
+            onClick={() => void onAccion(excepcion.id, "acuse")}
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2.5 font-body text-sm font-semibold text-text-secondary transition-colors hover:border-status-info/40 hover:text-status-info"
+          >
+            Acusar
+          </button>
+          <button
+            type="button"
+            onClick={() => void onAccion(excepcion.id, "escalar")}
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-status-error/30 bg-status-error-soft px-4 py-2.5 font-body text-sm font-semibold text-status-error transition-colors hover:border-status-error/60"
+          >
+            Escalar
+          </button>
+          <button
+            type="button"
+            onClick={() => void onAccion(excepcion.id, "resolver")}
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-status-success/30 bg-status-success-soft px-4 py-2.5 font-body text-sm font-semibold text-status-success transition-colors hover:border-status-success/60"
+          >
+            Resolver
+          </button>
+          <button
+            type="button"
+            disabled={!cerrable}
+            onClick={() => void onAccion(excepcion.id, "cerrar")}
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2.5 font-body text-sm font-semibold text-text-secondary transition-colors hover:border-ink/40 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cerrar
+          </button>
         </div>
       )}
     </article>
@@ -227,10 +197,8 @@ function TarjetaExcepcion({
 
 export default function PaginaExcepcionesCriticas() {
   const [excepciones, setExcepciones] = useState<ExcepcionCriticaAdmin[]>([]);
-  const [responsables, setResponsables] = useState<Record<string, string>>({});
   const [categoria, setCategoria] = useState<CategoriaExcepcionCritica | "todas">("todas");
   const [cargando, setCargando] = useState(true);
-  const [esDemo, setEsDemo] = useState(true);
   const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
   const [estadoConexion, setEstadoConexion] = useState<EstadoConexionCritica>("actualizando");
   const [ultimaRespuestaExitosa, setUltimaRespuestaExitosa] = useState<Date | null>(null);
@@ -245,11 +213,10 @@ export default function PaginaExcepcionesCriticas() {
     }
     setAviso(null);
     if (!tieneSupabaseConfigurado()) {
-      setExcepciones(EXCEPCIONES_DEMO);
-      setEsDemo(true);
-      setEstadoConexion("demo");
-      setUltimaRespuestaExitosa(new Date());
-      setSeccionesDesactualizadas([]);
+      if (!ultimaRespuestaExitosa) setExcepciones([]);
+      setEstadoConexion(ultimaRespuestaExitosa ? "desactualizado" : "sin_conexion");
+      setSeccionesDesactualizadas(["alertas SLA reales", "historial operacional", "notificaciones"]);
+      setAviso({ tono: "danger", texto: "Supabase no está configurado. Alertas y SLA no muestra excepciones demo." });
       setCargando(false);
       setActualizandoManual(false);
       return;
@@ -257,46 +224,48 @@ export default function PaginaExcepcionesCriticas() {
     try {
       const cliente = crearClienteNavegador();
       setExcepciones(await listarExcepcionesCriticasAdmin(cliente));
-      setEsDemo(false);
       setEstadoConexion("datos_en_vivo");
       setUltimaRespuestaExitosa(new Date());
       setSeccionesDesactualizadas([]);
     } catch (error) {
       const teniaRespuesta = Boolean(ultimaRespuestaExitosa);
-      if (puedeUsarDatosDemo()) {
-        setExcepciones(EXCEPCIONES_DEMO);
-        setEsDemo(true);
-        setEstadoConexion(teniaRespuesta ? "desactualizado" : "sin_conexion");
-        setSeccionesDesactualizadas(["emergencias", "SLA", "asignación", "incidencias"]);
-      } else {
-        setExcepciones([]);
-        setEsDemo(false);
-        setEstadoConexion(teniaRespuesta ? "desactualizado" : "sin_conexion");
-        setSeccionesDesactualizadas(["emergencias", "SLA", "asignación", "incidencias"]);
-        setAviso({ tono: "danger", texto: error instanceof Error ? error.message : "No se pudieron cargar excepciones críticas." });
-      }
+      if (!teniaRespuesta) setExcepciones([]);
+      setEstadoConexion(teniaRespuesta ? "desactualizado" : "sin_conexion");
+      setSeccionesDesactualizadas(["emergencias", "SLA", "asignación", "incidencias"]);
+      setAviso({ tono: "danger", texto: error instanceof Error ? error.message : "No se pudieron cargar excepciones críticas reales." });
     } finally {
       setCargando(false);
       setActualizandoManual(false);
     }
-  }, [setCargando, setActualizandoManual, setEstadoConexion, setAviso, setExcepciones, setEsDemo, setSeccionesDesactualizadas, setUltimaRespuestaExitosa, ultimaRespuestaExitosa]);
+  }, [setCargando, setActualizandoManual, setEstadoConexion, setAviso, setExcepciones, setSeccionesDesactualizadas, setUltimaRespuestaExitosa, ultimaRespuestaExitosa]);
 
   useEffect(() => {
-    if (tieneSupabaseConfigurado()) void obtenerPreferenciaAdmin<Record<string, string>>(crearClienteNavegador(), "alertas_sla.responsables").then((guardados) => setResponsables(guardados ?? {}));
     const categoriaParametro = new URLSearchParams(window.location.search).get("categoria");
     if (esCategoriaExcepcion(categoriaParametro) && categoriaParametro !== "emergencia") {
       setCategoria(categoriaParametro);
     }
     void cargar();
-  }, [cargar, setResponsables, setCategoria]);
+  }, [cargar, setCategoria]);
 
-  function asignarResponsable(id: string, responsable: string) {
-    setResponsables((actual) => {
-      const siguiente = { ...actual, [id]: responsable };
-      if (tieneSupabaseConfigurado()) void guardarPreferenciaAdmin(crearClienteNavegador(), "alertas_sla.responsables", siguiente);
-      return siguiente;
-    });
-    if (responsable) setAviso({ tono: "info", texto: `Responsable asignado: ${responsable}.` });
+  async function asignarResponsable(id: string, responsable: string) {
+    if (!responsable) return;
+    try {
+      await actualizarAlertaSlaAdmin(crearClienteNavegador(), id, "asignar", { responsable });
+      setAviso({ tono: "info", texto: `Responsable asignado: ${responsable}.` });
+      await cargar(true);
+    } catch (error) {
+      setAviso({ tono: "danger", texto: error instanceof Error ? error.message : "No se pudo asignar responsable." });
+    }
+  }
+
+  async function ejecutarAccion(id: string, accion: "acuse" | "escalar" | "resolver" | "cerrar") {
+    try {
+      await actualizarAlertaSlaAdmin(crearClienteNavegador(), id, accion, { comentario: `Acción ${accion} desde bandeja Alertas y SLA` });
+      setAviso({ tono: "info", texto: `Alerta actualizada: ${accion}.` });
+      await cargar(true);
+    } catch (error) {
+      setAviso({ tono: "danger", texto: error instanceof Error ? error.message : "No se pudo actualizar la alerta." });
+    }
   }
 
   const emergencias = excepciones.filter((item) => item.categoria === "emergencia");
@@ -362,8 +331,8 @@ export default function PaginaExcepcionesCriticas() {
               <TarjetaExcepcion
                 key={excepcion.id}
                 excepcion={excepcion}
-                responsable={responsables[excepcion.id] ?? excepcion.responsable ?? ""}
                 onAsignar={asignarResponsable}
+                onAccion={ejecutarAccion}
               />
             ))}
           </div>
@@ -403,8 +372,8 @@ export default function PaginaExcepcionesCriticas() {
               <TarjetaExcepcion
                 key={excepcion.id}
                 excepcion={excepcion}
-                responsable={responsables[excepcion.id] ?? excepcion.responsable ?? ""}
                 onAsignar={asignarResponsable}
+                onAccion={ejecutarAccion}
               />
             ))}
           </div>
