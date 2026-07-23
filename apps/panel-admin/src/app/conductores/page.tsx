@@ -6,13 +6,14 @@ import { AdminDataTable, type AdminDataTableColumn } from "../AdminDataTable";
 import { AdminFiltroActivo, AdminPageHeader, limpiarParamsFiltroUrl } from "../admin-ui";
 import { AdminButton, AdminErrorState } from "../admin-components";
 import {
-  listarSolicitudesConductorAdmin,
+  listarSolicitudesConductorAdminPaginadas,
   type SolicitudConductorBandejaAdmin
 } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 type FiltroBandeja = "todas" | "nuevas" | "en_revision" | "documentos_rechazados" | "pendientes_correccion" | "aprobadas" | "rechazadas";
-type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "sin_conexion";
+type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "sin_conexion" | "desactualizado";
+const TAMANO_PAGINA = 25;
 
 const FILTROS: { valor: FiltroBandeja; etiqueta: string }[] = [
   { valor: "todas", etiqueta: "Todas" },
@@ -42,16 +43,6 @@ function esNueva(fila: SolicitudConductorBandejaAdmin) {
     && (!fila.ultimaDecision || ["registro_inicial", "cambio_estado"].includes(fila.ultimaDecision.decision));
 }
 
-function coincideFiltro(fila: SolicitudConductorBandejaAdmin, filtro: FiltroBandeja) {
-  if (filtro === "todas") return true;
-  if (filtro === "nuevas") return esNueva(fila);
-  if (filtro === "en_revision") return fila.solicitud.estado === "en_revision";
-  if (filtro === "documentos_rechazados") return fila.documentosRechazados > 0;
-  if (filtro === "pendientes_correccion") return fila.solicitud.estado === "requiere_correccion";
-  if (filtro === "aprobadas") return fila.solicitud.estado === "aprobado";
-  return fila.solicitud.estado === "rechazado";
-}
-
 function fecha(valor: string | null) {
   return valor ? new Date(valor).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" }) : "Sin enviar";
 }
@@ -68,6 +59,9 @@ export default function PaginaConductoresAdmin() {
   const [avisoAccion, setAvisoAccion] = useState<string | null>(null);
   const [estadoConexion, setEstadoConexion] = useState<EstadoConexionVista>("actualizando");
   const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const [totalResultados, setTotalResultados] = useState(0);
+  const [totalPaginas, setTotalPaginas] = useState(0);
 
   useEffect(() => {
     const filtroUrl = new URLSearchParams(window.location.search).get("filtro");
@@ -77,7 +71,7 @@ export default function PaginaConductoresAdmin() {
     }
   }, []);
 
-  const cargar = useCallback(async (manual = false) => {
+  const cargar = useCallback(async (manual = false, paginaSolicitada = pagina) => {
     if (manual) setActualizandoManual(true);
     else setCargando(true);
 
@@ -93,33 +87,39 @@ export default function PaginaConductoresAdmin() {
 
     try {
       setError(null);
-      setSolicitudes(await listarSolicitudesConductorAdmin(crearClienteNavegador()));
+      const resultado = await listarSolicitudesConductorAdminPaginadas(
+        crearClienteNavegador(),
+        paginaSolicitada,
+        TAMANO_PAGINA,
+        filtro,
+        busqueda
+      );
+      setSolicitudes(resultado.data);
+      setPagina(resultado.paginacion.pagina);
+      setTotalResultados(resultado.paginacion.total);
+      setTotalPaginas(resultado.paginacion.total_paginas);
       setEstadoConexion("datos_en_vivo");
       setUltimaActualizacion(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : "No pudimos cargar la bandeja de revisión.");
-      setEstadoConexion("sin_conexion");
+      setEstadoConexion(ultimaActualizacion ? "desactualizado" : "sin_conexion");
     } finally {
       setCargando(false);
       setActualizandoManual(false);
     }
-  }, []);
+  }, [busqueda, filtro, pagina, ultimaActualizacion]);
 
   useEffect(() => {
-    const timer = setTimeout(() => { void cargar(); }, 0);
+    const timer = setTimeout(() => { void cargar(false, 1); }, 250);
     return () => clearTimeout(timer);
-  }, [cargar]);
-
-  const conteos = useMemo(() => Object.fromEntries(
-    FILTROS.map(({ valor }) => [valor, solicitudes.filter((fila) => coincideFiltro(fila, valor)).length])
-  ) as Record<FiltroBandeja, number>, [solicitudes]);
+  }, [busqueda, cargar, filtro]);
 
   const filas = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
-    return solicitudes.filter((fila) => coincideFiltro(fila, filtro)).filter((fila) => !termino || [
+    return solicitudes.filter((fila) => !termino || [
       fila.nombre, fila.telefono, fila.curp, fila.solicitud.id
     ].some((valor) => valor?.toLowerCase().includes(termino)));
-  }, [solicitudes, filtro, busqueda]);
+  }, [solicitudes, busqueda]);
 
   const etiquetaFiltro = FILTROS.find((item) => item.valor === filtro)?.etiqueta ?? filtro;
 
@@ -208,12 +208,12 @@ export default function PaginaConductoresAdmin() {
         estadoConexion={estadoConexion}
         ultimaActualizacion={ultimaActualizacion}
         tipoDatos="administrativos"
-        contadorResultados={filas.length}
+        contadorResultados={totalResultados}
         accion={(
           <AdminButton
             variant="secondary"
             loading={actualizandoManual}
-            onClick={() => void cargar(true)}
+            onClick={() => void cargar(true, pagina)}
           >
             Actualizar
           </AdminButton>
@@ -230,7 +230,7 @@ export default function PaginaConductoresAdmin() {
           <AdminErrorState
             description={error}
             action={(
-              <AdminButton variant="secondary" onClick={() => void cargar(true)}>
+              <AdminButton variant="secondary" onClick={() => void cargar(true, pagina)}>
                 Reintentar
               </AdminButton>
             )}
@@ -253,7 +253,7 @@ export default function PaginaConductoresAdmin() {
               filtro === valor ? "border-status-info bg-status-info text-background-main" : "border-ink/15 bg-surface-primary text-text-secondary hover:border-status-info/40"
             }`}
           >
-            {etiqueta} · {conteos[valor] ?? 0}
+            {etiqueta}{filtro === valor ? ` · ${totalResultados}` : ""}
           </button>
         ))}
       </div>
@@ -286,6 +286,17 @@ export default function PaginaConductoresAdmin() {
           { label: "Exportar selección", onClick: () => setAvisoAccion("La exportación se habilitará cuando el backend genere archivos firmados y auditables.") }
         ]}
       />
+      {totalPaginas > 1 && (
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <AdminButton variant="secondary" disabled={pagina <= 1 || actualizandoManual} onClick={() => void cargar(true, pagina - 1)}>
+            Anterior
+          </AdminButton>
+          <span className="font-body text-sm text-text-tertiary">Página {pagina} de {totalPaginas}</span>
+          <AdminButton variant="secondary" disabled={pagina >= totalPaginas || actualizandoManual} onClick={() => void cargar(true, pagina + 1)}>
+            Siguiente
+          </AdminButton>
+        </div>
+      )}
     </main>
   );
 }

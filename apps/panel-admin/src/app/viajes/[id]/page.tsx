@@ -25,6 +25,8 @@ import {
   clasificarVehiculoParaTarifa,
   aplicarTarifaNormativaAdmin,
   obtenerTrazabilidadMasivaTraslado,
+  obtenerFinanzasTrasladoAdmin,
+  type FinanzasTrasladoAdmin,
   type TrazabilidadMasivaTraslado
 } from "@ruum/api/services";
 import { obtenerRutaMapbox, tieneMapboxConfigurado } from "../../../lib/mapbox-rutas";
@@ -48,6 +50,10 @@ function fechaAdministrativa(fechaIso: string | null | undefined) {
   return fechaIso ? new Date(fechaIso).toLocaleString("es-MX") : "Pendiente";
 }
 
+function dinero(valor: number | null | undefined) {
+  return (valor ?? 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+}
+
 export default function PaginaDetalleViajeAdmin() {
   const { id } = useParams<{ id: string }>();
 
@@ -57,7 +63,7 @@ export default function PaginaDetalleViajeAdmin() {
   const [notas, setNotas] = useState<NotaRow[]>([]);
   const [auditoria, setAuditoria] = useState<AuditoriaRow[]>([]);
   const [trazabilidadMasiva, setTrazabilidadMasiva] = useState<TrazabilidadMasivaTraslado | null>(null);
-  const [esDemo, setEsDemo] = useState(true);
+  const [finanzas, setFinanzas] = useState<FinanzasTrasladoAdmin | null>(null);
   const [cargando, setCargando] = useState(true);
 
   const [conductorSeleccionado, setConductorSeleccionado] = useState("");
@@ -82,23 +88,24 @@ export default function PaginaDetalleViajeAdmin() {
       setNotas([]);
       setAuditoria([]);
       setTrazabilidadMasiva(null);
+      setFinanzas(null);
       setPrecioFinalInput("");
       setVersion(undefined);
-      setEsDemo(false);
       setCargando(false);
       return;
     }
 
     try {
       const cliente = crearClienteNavegador();
-      const [p, v, conds, notasReales, auditoriaReal, adminReal, trazabilidadReal] = await Promise.all([
+      const [p, v, conds, notasReales, auditoriaReal, adminReal, trazabilidadReal, finanzasReales] = await Promise.all([
         obtenerPasaporteDigital(cliente, id),
         cliente.from("traslados").select("version").eq("id", id).maybeSingle() as unknown as Promise<{ data: { version: number } | null; error: unknown }>,
         listarConductoresAdmin(cliente),
         obtenerNotasInternas(cliente, id),
         obtenerAuditoriaTraslado(cliente, id),
         obtenerAdminActual(cliente),
-        obtenerTrazabilidadMasivaTraslado(cliente, id)
+        obtenerTrazabilidadMasivaTraslado(cliente, id),
+        obtenerFinanzasTrasladoAdmin(cliente, id).catch(() => null)
       ]);
       setPasaporte(p);
       setVersion(v?.data?.version ?? undefined);
@@ -106,17 +113,17 @@ export default function PaginaDetalleViajeAdmin() {
       setNotas(notasReales);
       setAuditoria(auditoriaReal);
       setTrazabilidadMasiva(trazabilidadReal);
+      setFinanzas(finanzasReales);
       setPrecioFinalInput(p?.precio_final != null ? String(p.precio_final) : "");
       if (adminReal) setAdminId(adminReal.id);
-      setEsDemo(false);
     } catch {
       setPasaporte(null);
       setConductores([]);
       setAuditoria([]);
       setTrazabilidadMasiva(null);
+      setFinanzas(null);
       setPrecioFinalInput("");
       setVersion(undefined);
-      setEsDemo(false);
     } finally {
       setCargando(false);
     }
@@ -311,15 +318,6 @@ export default function PaginaDetalleViajeAdmin() {
 
     setAviso(null);
 
-    if (esDemo) {
-      setProcesando("precio");
-      await new Promise((r) => setTimeout(r, 400));
-      setPasaporte((prev) => (prev ? { ...prev, precio_cotizado: 1800, estado: "cotizacion_generada" } : prev));
-      setPrecioFinalInput("1800");
-      mostrarAviso({ tono: "info", texto: "Tarifa normativa aplicada en modo demo." });
-      setProcesando(null);
-      return;
-    }
     try {
       const tarifa = await calcularTarifaNormativa();
       if (tarifa == null || Number.isNaN(tarifa) || tarifa <= 0) {
@@ -350,14 +348,6 @@ export default function PaginaDetalleViajeAdmin() {
     setProcesando("fallido");
     setAviso(null);
 
-    if (esDemo) {
-      await new Promise((r) => setTimeout(r, 400));
-      setPasaporte((prev) => (prev ? { ...prev, estado: "traslado_fallido", causa_fallido: causaFallido } : prev));
-      mostrarAviso({ tono: "info", texto: "Traslado marcado como fallido en modo demo." });
-      setProcesando(null);
-      return;
-    }
-
     try {
       const cliente = crearClienteNavegador();
       const resultado = await marcarTrasladoFallido(cliente, trasladoId, causaFallido);
@@ -381,16 +371,6 @@ export default function PaginaDetalleViajeAdmin() {
     setProcesando("nota");
     setAviso(null);
 
-    if (esDemo) {
-      await new Promise((r) => setTimeout(r, 300));
-      setNotas((prev) => [
-        { id: `demo-${Date.now()}`, traslado_id: trasladoId, admin_id: "demo", contenido: notaNueva, creada_en: new Date().toISOString() },
-        ...prev
-      ]);
-      setNotaNueva("");
-      setProcesando(null);
-      return;
-    }
     if (!adminId) {
       mostrarAviso({ tono: "danger", texto: "No pudimos identificar al administrador para guardar la nota." });
       setProcesando(null);
@@ -460,11 +440,6 @@ export default function PaginaDetalleViajeAdmin() {
         accion={<EstadoBadge estado={pasaporte.estado} />}
       />
 
-      {esDemo && (
-        <div className="mt-4">
-          <Aviso tono="info">Estás viendo datos de ejemplo, no un traslado real.</Aviso>
-        </div>
-      )}
       {aviso && (
         <div
           ref={avisoRef}
@@ -539,6 +514,40 @@ export default function PaginaDetalleViajeAdmin() {
               <dd>{pasaporte.conductor_nombre ?? "Sin asignar"}</dd>
             </div>
           </dl>
+        </PassportCard>
+
+        <PassportCard>
+          <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Finanzas</p>
+          {finanzas ? (
+            <dl className="mt-3 space-y-2 font-body text-sm">
+              <div className="flex justify-between">
+                <dt className="text-text-tertiary">Precio operativo</dt>
+                <dd>{dinero(finanzas.precioOperativo)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-text-tertiary">Pagos cobrados</dt>
+                <dd>{dinero(finanzas.ingresosCobrados)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-text-tertiary">Gastos</dt>
+                <dd>{dinero(finanzas.gastosOperativos)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-text-tertiary">Pago conductor</dt>
+                <dd>{dinero(finanzas.pagoConductor)}</dd>
+              </div>
+              <div className="flex justify-between border-t border-ink/10 pt-2 font-semibold">
+                <dt>Margen estimado</dt>
+                <dd className={finanzas.margenEstimado < 0 ? "text-status-error" : "text-status-success"}>{dinero(finanzas.margenEstimado)}</dd>
+              </div>
+              <div className="flex justify-between text-xs">
+                <dt className="text-text-tertiary">Corte</dt>
+                <dd>{fechaAdministrativa(finanzas.corteEn)}</dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="mt-3 font-body text-sm text-text-tertiary">Finanzas no disponibles para este rol o entorno.</p>
+          )}
         </PassportCard>
 
         <PassportCard>

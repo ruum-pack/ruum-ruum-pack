@@ -6,15 +6,15 @@ import { AdminFiltroActivo, AdminPageHeader, limpiarParamsFiltroUrl } from "../a
 import { AdminDataTable, type AdminDataTableColumn, type AdminDataTableSortState } from "../AdminDataTable";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
-import { listarCargasTrasladosMasivosAdmin, listarViajesAdminPaginados, obtenerAdminActual, registrarEvento, obtenerPreferenciaAdmin, guardarPreferenciaAdmin, ejecutarAccionMasiva as ejecutarAccionMasivaAdmin, exportarEvidenciaFirmada, resolverUrlEvidencia, type TrazabilidadMasivaTraslado } from "@ruum/api/services";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { listarAuditoriaOperativaTraslados, listarCargasTrasladosMasivosAdmin, listarViajesAdminPaginados, obtenerAdminActual, registrarEvento, obtenerPreferenciaAdmin, guardarPreferenciaAdmin, ejecutarAccionMasiva as ejecutarAccionMasivaAdmin, exportarEvidenciaFirmada, resolverUrlEvidencia, type TrazabilidadMasivaTraslado } from "@ruum/api/services";
 
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 type FiltroKpi = "activos" | "inician_60" | "sin_asignacion" | "incidencia" | "finalizados_hoy";
 type AccionOperativa = "asignar_conductor" | "registrar_incidencia";
-type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "reconectando" | "sin_conexion" | "desactualizado" | "demo";
+type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "reconectando" | "sin_conexion" | "desactualizado";
 type FiltroSla = "todos" | "en_riesgo" | "vencido";
 type FiltroFecha = "todos" | "hoy" | "7d" | "30d";
 type PrioridadOperativa = "baja" | "media" | "alta" | "critica";
@@ -188,13 +188,11 @@ const VISTAS_PREDEFINIDAS: Array<Omit<VistaGuardada, "id" | "alcance" | "columna
 ];
 
 const PREF_VISTAS_GUARDADAS = "viajes.vistas_guardadas";
-const PREF_AUDITORIA_MASIVA = "viajes.auditoria_masiva";
 
 export default function PaginaViajesAdmin() {
   const [pestana, setPestana] = useState(PESTANAS[0]!.id);
   const [traslados, setTraslados] = useState<PasaporteRow[]>([]);
   const [trazabilidadPorTraslado, setTrazabilidadPorTraslado] = useState<Map<string, TrazabilidadMasivaTraslado>>(new Map());
-  const [esDemo, setEsDemo] = useState(true);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroKpi, setFiltroKpi] = useState<FiltroKpi | null>(null);
@@ -271,7 +269,7 @@ export default function PaginaViajesAdmin() {
     const cliente = crearClienteNavegador();
     void Promise.all([
       obtenerPreferenciaAdmin<VistaGuardada[]>(cliente, PREF_VISTAS_GUARDADAS),
-      obtenerPreferenciaAdmin<AuditoriaOperacionMasiva[]>(cliente, PREF_AUDITORIA_MASIVA)
+      listarAuditoriaOperativaTraslados(cliente).catch(() => [])
     ]).then(([vistas, auditoria]) => {
       setVistasGuardadas(vistas ?? []);
       setAuditoriaMasiva(auditoria ?? []);
@@ -283,12 +281,6 @@ export default function PaginaViajesAdmin() {
     const timer = window.setTimeout(() => void guardarPreferenciaAdmin(crearClienteNavegador(), PREF_VISTAS_GUARDADAS, vistasGuardadas), 400);
     return () => window.clearTimeout(timer);
   }, [vistasGuardadas]);
-
-  useEffect(() => {
-    if (!tieneSupabaseConfigurado()) return;
-    const timer = window.setTimeout(() => void guardarPreferenciaAdmin(crearClienteNavegador(), PREF_AUDITORIA_MASIVA, auditoriaMasiva.slice(0, 20)), 400);
-    return () => window.clearTimeout(timer);
-  }, [auditoriaMasiva]);
 
   useEffect(() => {
     if (!filtrosInicializados.current) return;
@@ -332,7 +324,6 @@ export default function PaginaViajesAdmin() {
       }
       if (!tieneSupabaseConfigurado()) {
         setTraslados([]);
-        setEsDemo(false);
         setEstadoConexion("sin_conexion");
         setUltimaRespuestaExitosa(null);
         setSeccionesDesactualizadas([]);
@@ -361,21 +352,19 @@ export default function PaginaViajesAdmin() {
         setTotalResultados(resultado.paginacion.total);
         setTotalPaginas(resultado.paginacion.total_paginas);
         setPagina(resultado.paginacion.pagina);
-        setEsDemo(false);
         setEstadoConexion("datos_en_vivo");
         setUltimaRespuestaExitosa(new Date());
         setSeccionesDesactualizadas([]);
       } catch {
         setTraslados([]);
         setTrazabilidadPorTraslado(new Map());
-        setEsDemo(false);
         setEstadoConexion(Boolean(ultimaRespuestaExitosa) ? "desactualizado" : "sin_conexion");
         setSeccionesDesactualizadas(["traslados administrativos"]);
       } finally {
         setCargando(false);
         setActualizandoManual(false);
       }
-  }, [setCargando, setActualizandoManual, setEstadoConexion, setTraslados, setTrazabilidadPorTraslado, setEsDemo, setUltimaRespuestaExitosa, setSeccionesDesactualizadas, ultimaRespuestaExitosa, filtroActual, pagina, tamanoPagina, busqueda]);
+  }, [setCargando, setActualizandoManual, setEstadoConexion, setTraslados, setTrazabilidadPorTraslado, setUltimaRespuestaExitosa, setSeccionesDesactualizadas, ultimaRespuestaExitosa, filtroActual, pagina, tamanoPagina, busqueda]);
 
   useEffect(() => {
     setPagina(1);
@@ -698,18 +687,6 @@ export default function PaginaViajesAdmin() {
   }
 
   async function registrarAuditoriaMasiva(accion: AccionMasivaConfig, resultados: ResultadoAccionMasiva[]) {
-    const entrada: AuditoriaOperacionMasiva = {
-      id: `${Date.now()}-${accion.id}`,
-      accion: accion.etiqueta,
-      afectados: resultados.length,
-      exitosos: resultados.filter((resultado) => resultado.estado === "aplicado").length,
-      omitidos: resultados.filter((resultado) => resultado.estado === "omitido").length,
-      bloqueados: resultados.filter((resultado) => resultado.estado === "bloqueado").length,
-      timestamp: new Date().toISOString(),
-      detalle: resultados.map((resultado) => `${resultado.folio}: ${resultado.detalle}`).join(" | "),
-      folios: resultados.map((resultado) => resultado.folio)
-    };
-    setAuditoriaMasiva((actual) => [entrada, ...actual].slice(0, 20));
     if (!tieneSupabaseConfigurado()) return;
     try {
       const cliente = crearClienteNavegador();
@@ -722,9 +699,8 @@ export default function PaginaViajesAdmin() {
         detalle: resultado.detalle,
         folio: resultado.folio
       })));
+      setAuditoriaMasiva(await listarAuditoriaOperativaTraslados(cliente).catch(() => []));
     } catch {
-      // Fail-fast: si la auditoría remota falla, revertir la presentación optimista
-      setAuditoriaMasiva((actual) => actual.filter((item) => item.id !== entrada.id));
       throw new Error("No se pudo registrar la auditoría remota. La operación no se completó.");
     }
   }
@@ -793,12 +769,6 @@ export default function PaginaViajesAdmin() {
           </button>
         )}
       />
-
-      {esDemo && (
-        <div className="mt-4">
-          <Aviso tono="info">Estás viendo datos de ejemplo, no traslados reales.</Aviso>
-        </div>
-      )}
 
       <div className="mt-6 flex gap-1 border-b border-ink/10">
         {PESTANAS.map((p) => (

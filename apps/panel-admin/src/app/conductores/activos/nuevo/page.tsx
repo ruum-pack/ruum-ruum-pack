@@ -6,15 +6,13 @@ import { Aviso, Button } from "@ruum/ui";
 import { crearClienteNavegador } from "../../../../lib/supabase-browser";
 import { crearConductorAdmin, type ConductorCrearAdmin } from "@ruum/api/services";
 
-type EstadoConductor = "activo" | "suspendido" | "baja";
-
 export default function PaginaNuevoConductor() {
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState(false);
 
   const [datos, setDatos] = useState<ConductorCrearAdmin>({
-    auth_user_id: "",
+    correo: "",
     nombre: "",
     telefono: "",
     curp: "",
@@ -33,7 +31,7 @@ export default function PaginaNuevoConductor() {
   });
 
   async function crear() {
-    if (!datos.auth_user_id.trim() || !datos.nombre.trim() || !datos.telefono.trim() ||
+    if (!datos.correo.trim() || !datos.nombre.trim() || !datos.telefono.trim() ||
         !datos.curp.trim() || !datos.licencia_numero.trim() || !datos.licencia_tipo.trim() ||
         !datos.licencia_vigencia.trim() || !datos.contacto_emergencia_nombre.trim() ||
         !datos.contacto_emergencia_telefono.trim()) {
@@ -66,14 +64,14 @@ export default function PaginaNuevoConductor() {
     setError(null);
   }
 
-  if (exito) return <main className="mx-auto max-w-2xl px-6 py-8"><p className="font-body text-status-success">Conductor creado. Redirigiendo…</p></main>;
+    if (exito) return <main className="mx-auto max-w-2xl px-6 py-8"><p className="font-body text-status-success">Invitación enviada y conductor creado. Redirigiendo...</p></main>;
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-8 sm:px-8 sm:py-10">
       <Link href="/conductores/activos" className="font-body text-sm text-text-tertiary hover:text-ink">&larr; Volver a conductores</Link>
 
       <h1 className="mt-6 font-display text-2xl font-semibold">Nuevo conductor</h1>
-      <p className="mt-1 font-body text-sm text-text-secondary">Crea una cuenta de conductor activa. Requiere auth_user_id (UUID de Supabase Auth).</p>
+      <p className="mt-1 font-body text-sm text-text-secondary">Invita al conductor por correo y crea su expediente operativo sin capturar UUID manual.</p>
 
       {error && <div className="mt-4"><Aviso tono="danger">{error}</Aviso></div>}
 
@@ -81,7 +79,7 @@ export default function PaginaNuevoConductor() {
         <fieldset>
           <legend className="font-display text-lg font-semibold">Datos de autenticación</legend>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <CampoObligatorio label="auth_user_id (UUID)" value={datos.auth_user_id} onChange={(v) => cambio("auth_user_id", v)} placeholder="00000000-0000-0000-0000-000000000000" />
+            <CampoObligatorio label="Correo de invitación *" value={datos.correo} onChange={(v) => cambio("correo", v)} placeholder="conductor@empresa.mx" type="email" />
             <CampoObligatorio label="Nombre completo *" value={datos.nombre} onChange={(v) => cambio("nombre", v)} placeholder="Juan Pérez López" />
           </div>
         </fieldset>
@@ -121,7 +119,7 @@ export default function PaginaNuevoConductor() {
         <div className="flex gap-2 justify-end">
           <Link href="/conductores/activos" className="rounded-lg border border-ink/20 px-4 py-2 font-body text-sm font-medium hover:bg-ink/5">Cancelar</Link>
           <Button type="submit" disabled={procesando} className="rounded-lg bg-ink px-4 py-2 font-body text-sm font-semibold text-surface-primary hover:bg-ink/90 disabled:opacity-50">
-            {procesando ? "Creando…" : "Crear conductor"}
+            {procesando ? "Enviando..." : "Invitar y crear conductor"}
           </Button>
         </div>
       </form>

@@ -68,3 +68,31 @@ test("fallo de auditoría durante exportación no entrega CSV", () => {
   assert.match(route, /admin_completar_exportacion/);
   assert.match(route, /status: ?500/);
 });
+
+test("invitaciones y revocacion Auth usan backend privilegiado", () => {
+  const serviceRole = read("apps/panel-admin/src/lib/supabase-service-role.ts");
+  const invitarUsuario = read("apps/panel-admin/src/app/api/admin-auth/invitar-usuario/route.ts");
+  const invitarConductor = read("apps/panel-admin/src/app/api/admin-auth/invitar-conductor/route.ts");
+  const acceso = read("apps/panel-admin/src/app/api/admin-auth/estado-acceso/route.ts");
+  const adminService = read("packages/api/src/services/admin.ts");
+
+  assert.match(serviceRole, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(invitarUsuario, /auth\.admin\.inviteUserByEmail/);
+  assert.match(invitarConductor, /auth\.admin\.inviteUserByEmail/);
+  assert.match(acceso, /auth\.admin\.updateUserById/);
+  assert.match(acceso, /ban_duration/);
+  assert.match(adminService, /\/api\/admin-auth\/invitar-usuario/);
+  assert.match(adminService, /\/api\/admin-auth\/estado-acceso/);
+  assert.doesNotMatch(adminService, /admin_invitar_usuario/);
+  assert.doesNotMatch(adminService, /revocarAccesoAuthConductor/);
+});
+
+test("alta de conductor no acepta UUID Auth manual", () => {
+  const page = read("apps/panel-admin/src/app/conductores/activos/nuevo/page.tsx");
+  const service = read("packages/api/src/services/admin.ts");
+  assert.match(page, /Correo de invitación/);
+  assert.match(page, /Invitar y crear conductor/);
+  assert.doesNotMatch(page, /auth_user_id \(UUID\)|00000000-0000-0000-0000-000000000000/);
+  assert.match(service, /correo: string/);
+  assert.doesNotMatch(service, /ConductorCrearAdmin = \{\s*auth_user_id/s);
+});

@@ -8,6 +8,7 @@ export type PermisoAdmin =
   | "dashboard:leer" | "viajes:leer" | "viajes:gestionar" | "masivos:gestionar"
   | "conductores:leer" | "conductores:validar" | "usuarios:leer" | "usuarios:validar"
   | "empresas:leer" | "empresas:gestionar" | "pagos:leer" | "tarifas:leer"
+  | "vehiculos:leer" | "vehiculos:gestionar"
   | "tarifas:editar" | "incidencias:leer" | "disputas:leer" | "disputas:resolver"
   | "reclamos_seguro:leer" | "reclamos_seguro:gestionar"
   | "pagos:ejecutar" | "pagos:exportar" | "conductores:sancionar" | "aprobaciones:aprobar"
@@ -15,11 +16,11 @@ export type PermisoAdmin =
   | "configuracion:leer" | "configuracion:editar";
 
 const PERMISOS_POR_ROL: Record<RolAdminOperativo, ReadonlySet<PermisoAdmin>> = {
-  operador: new Set(["dashboard:leer", "viajes:leer", "viajes:gestionar", "masivos:gestionar", "conductores:leer", "incidencias:leer"]),
-  supervisor: new Set(["dashboard:leer", "viajes:leer", "viajes:gestionar", "masivos:gestionar", "conductores:leer", "conductores:validar", "incidencias:leer", "disputas:leer", "disputas:resolver", "conductores:sancionar", "aprobaciones:aprobar", "auditoria:leer", "configuracion:leer"]),
-  finanzas: new Set(["dashboard:leer", "viajes:leer", "pagos:leer", "pagos:exportar", "tarifas:leer", "tarifas:editar", "disputas:leer", "disputas:resolver", "reclamos_seguro:leer", "reclamos_seguro:gestionar", "pagos:ejecutar", "exportaciones:crear", "configuracion:leer"]),
-  compliance: new Set(["dashboard:leer", "conductores:leer", "conductores:validar", "usuarios:leer", "usuarios:validar", "empresas:leer", "empresas:gestionar", "incidencias:leer", "reclamos_seguro:leer", "reclamos_seguro:gestionar", "conductores:sancionar", "aprobaciones:aprobar", "auditoria:leer", "exportaciones:crear", "configuracion:leer"]),
-  direccion: new Set(["dashboard:leer", "viajes:leer", "viajes:gestionar", "masivos:gestionar", "conductores:leer", "conductores:validar", "conductores:sancionar", "usuarios:leer", "usuarios:validar", "empresas:leer", "empresas:gestionar", "pagos:leer", "pagos:ejecutar", "pagos:exportar", "tarifas:leer", "tarifas:editar", "incidencias:leer", "disputas:leer", "disputas:resolver", "reclamos_seguro:leer", "reclamos_seguro:gestionar", "aprobaciones:aprobar", "auditoria:leer", "exportaciones:crear", "capacidades:administrar", "configuracion:leer", "configuracion:editar"])
+  operador: new Set(["dashboard:leer", "viajes:leer", "viajes:gestionar", "masivos:gestionar", "conductores:leer", "vehiculos:leer", "incidencias:leer"]),
+  supervisor: new Set(["dashboard:leer", "viajes:leer", "viajes:gestionar", "masivos:gestionar", "conductores:leer", "conductores:validar", "vehiculos:leer", "vehiculos:gestionar", "incidencias:leer", "disputas:leer", "disputas:resolver", "conductores:sancionar", "aprobaciones:aprobar", "auditoria:leer", "configuracion:leer"]),
+  finanzas: new Set(["dashboard:leer", "viajes:leer", "pagos:leer", "pagos:exportar", "tarifas:leer", "tarifas:editar", "vehiculos:leer", "disputas:leer", "disputas:resolver", "reclamos_seguro:leer", "reclamos_seguro:gestionar", "pagos:ejecutar", "exportaciones:crear", "configuracion:leer"]),
+  compliance: new Set(["dashboard:leer", "conductores:leer", "conductores:validar", "usuarios:leer", "usuarios:validar", "empresas:leer", "empresas:gestionar", "vehiculos:leer", "vehiculos:gestionar", "incidencias:leer", "reclamos_seguro:leer", "reclamos_seguro:gestionar", "conductores:sancionar", "aprobaciones:aprobar", "auditoria:leer", "exportaciones:crear", "configuracion:leer"]),
+  direccion: new Set(["dashboard:leer", "viajes:leer", "viajes:gestionar", "masivos:gestionar", "conductores:leer", "conductores:validar", "conductores:sancionar", "usuarios:leer", "usuarios:validar", "empresas:leer", "empresas:gestionar", "vehiculos:leer", "vehiculos:gestionar", "pagos:leer", "pagos:ejecutar", "pagos:exportar", "tarifas:leer", "tarifas:editar", "incidencias:leer", "disputas:leer", "disputas:resolver", "reclamos_seguro:leer", "reclamos_seguro:gestionar", "aprobaciones:aprobar", "auditoria:leer", "exportaciones:crear", "capacidades:administrar", "configuracion:leer", "configuracion:editar"])
 };
 
 export class AdminAuthorizationError extends Error {

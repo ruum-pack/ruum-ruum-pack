@@ -243,6 +243,28 @@ export interface TrazabilidadMasivaTraslado {
   fila: FilaCargaTrasladosMasivosAdmin;
 }
 
+export interface AuditoriaOperacionMasivaAdmin {
+  id: string;
+  accion: string;
+  afectados: number;
+  exitosos: number;
+  omitidos: number;
+  bloqueados: number;
+  timestamp: string;
+  detalle: string;
+  folios: string[];
+}
+
+export interface FinanzasTrasladoAdmin {
+  precioOperativo: number;
+  ingresosCobrados: number;
+  gastosOperativos: number;
+  pagoConductor: number;
+  margenEstimado: number;
+  margenContraPrecio: number;
+  corteEn: string;
+}
+
 export interface SolicitudConductorBandejaAdmin {
   solicitud: SolicitudConductorRow;
   nombre: string;
@@ -892,9 +914,36 @@ export async function listarUsuariosAdmin(cliente: Cliente): Promise<UsuarioRow[
   return data ?? [];
 }
 
+export interface PaginacionSolicitudesConductorAdmin {
+  data: SolicitudConductorBandejaAdmin[];
+  paginacion: { pagina: number; tamano: number; total: number; total_paginas: number };
+}
+
+export async function listarSolicitudesConductorAdminPaginadas(
+  cliente: Cliente,
+  pagina: number,
+  tamano: number,
+  filtro = "todas",
+  busqueda?: string
+): Promise<PaginacionSolicitudesConductorAdmin> {
+  await assertAdminPermission(cliente, "conductores:leer");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_listar_solicitudes_conductor_paginadas",
+    args: { p_pagina: number; p_tamano: number; p_filtro: string; p_busqueda: string | null }
+  ) => Promise<{ data: PaginacionSolicitudesConductorAdmin | null; error: unknown }>;
+  const { data, error } = await rpc("admin_listar_solicitudes_conductor_paginadas", {
+    p_pagina: pagina,
+    p_tamano: tamano,
+    p_filtro: filtro,
+    p_busqueda: busqueda?.trim() || null
+  });
+  if (error) throw error;
+  return data ?? { data: [], paginacion: { pagina: 1, tamano, total: 0, total_paginas: 0 } };
+}
+
 /** Torre de Control — inventario operativo de vehículos registrados por usuarios. */
 export async function listarVehiculosAdmin(cliente: Cliente): Promise<DatosVehiculosAdmin> {
-  await assertAdminPermission(cliente, "conductores:leer");
+  await assertAdminPermission(cliente, "vehiculos:leer");
   const [vehiculos, usuarios] = await Promise.all([
     cliente.from("vehiculos").select("*").order("creado_en", { ascending: false }),
     cliente.from("usuarios").select("*").order("creado_en", { ascending: false })
@@ -1138,6 +1187,52 @@ export async function crearTrasladosMasivosAdmin(
   return data;
 }
 
+export async function obtenerFinanzasTrasladoAdmin(cliente: Cliente, trasladoId: string): Promise<FinanzasTrasladoAdmin> {
+  await assertAdminPermission(cliente, "pagos:leer");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_finanzas_traslado",
+    args: { p_traslado_id: string }
+  ) => Promise<{ data: unknown; error: unknown }>;
+  const { data, error } = await rpc("admin_finanzas_traslado", { p_traslado_id: trasladoId });
+  if (error) throw error;
+  const fila = objetoMetrica(data);
+  return {
+    precioOperativo: numeroMetrica(fila.precio_operativo),
+    ingresosCobrados: numeroMetrica(fila.ingresos_cobrados),
+    gastosOperativos: numeroMetrica(fila.gastos_operativos),
+    pagoConductor: numeroMetrica(fila.pago_conductor),
+    margenEstimado: numeroMetrica(fila.margen_estimado),
+    margenContraPrecio: numeroMetrica(fila.margen_contra_precio),
+    corteEn: String(fila.corte_en ?? "")
+  };
+}
+
+export async function listarAuditoriaOperativaTraslados(cliente: Cliente): Promise<AuditoriaOperacionMasivaAdmin[]> {
+  await assertAdminPermission(cliente, "auditoria:leer");
+  const { data, error } = await cliente
+    .from("registro_auditoria")
+    .select("id, evento, datos, timestamp")
+    .eq("evento", "modificacion_masiva_traslados" as never)
+    .order("timestamp", { ascending: false })
+    .limit(20);
+  if (error) throw error;
+  return (data ?? []).map((fila) => {
+    const datos = objetoMetrica(fila.datos);
+    const resultados = Array.isArray(datos.resultados) ? datos.resultados.map(objetoMetrica) : [];
+    return {
+      id: fila.id,
+      accion: String(datos.accion ?? fila.evento),
+      afectados: numeroMetrica(datos.total ?? datos.afectados),
+      exitosos: numeroMetrica(datos.aplicados ?? datos.exitosos),
+      omitidos: numeroMetrica(datos.omitidos),
+      bloqueados: numeroMetrica(datos.bloqueados),
+      timestamp: fila.timestamp,
+      detalle: resultados.map((resultado) => `${String(resultado.traslado_id ?? "").slice(0, 8).toUpperCase()}: ${String(resultado.detalle ?? "")}`).join(" | "),
+      folios: resultados.map((resultado) => String(resultado.traslado_id ?? "").slice(0, 8).toUpperCase()).filter(Boolean)
+    };
+  });
+}
+
 export async function procesarCargaTrasladosMasivosAdmin(
   cliente: Cliente,
   cargaId: string,
@@ -1207,30 +1302,46 @@ export type UsuarioActualizableAdmin = Pick<
 
 export async function actualizarUsuarioAdmin(cliente: Cliente, usuarioId: string, datos: UsuarioActualizableAdmin): Promise<UsuarioRow> {
   await assertAdminPermission(cliente, "usuarios:validar");
-  const { data, error } = await cliente.from("usuarios").update(datos).eq("id", usuarioId).select("*").single();
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_actualizar_usuario_atomic",
+    args: { p_usuario_id: string; p_datos: UsuarioActualizableAdmin }
+  ) => Promise<{ error: unknown }>;
+  const { error } = await rpc("admin_actualizar_usuario_atomic", { p_usuario_id: usuarioId, p_datos: datos });
   if (error) throw error;
+  const { data, error: errorLectura } = await cliente.from("usuarios").select("*").eq("id", usuarioId).single();
+  if (errorLectura) throw errorLectura;
   return data;
+}
+
+async function cambiarAccesoAuthAdmin(
+  recurso: "usuario" | "conductor",
+  id: string,
+  accion: "suspender" | "reactivar" | "baja",
+  motivo: string
+) {
+  const respuesta = await fetch("/api/admin-auth/estado-acceso", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ recurso, id, accion, motivo })
+  });
+  if (respuesta.ok) return;
+  const payload = await respuesta.json().catch(() => ({})) as { mensaje?: string; error?: string };
+  throw new Error(payload.mensaje ?? payload.error ?? "No se pudo actualizar el acceso Auth.");
 }
 
 export async function suspenderUsuarioAdmin(cliente: Cliente, usuarioId: string, motivo: string): Promise<void> {
   await assertAdminPermission(cliente, "usuarios:validar");
-  const { error } = await cliente.from("usuarios").update({ estado_cuenta: "suspendida" }).eq("id", usuarioId);
-  if (error) throw error;
-  await registrarEvento(cliente, "usuario_suspendido" as never, "admin", usuarioId, { motivo });
+  await cambiarAccesoAuthAdmin("usuario", usuarioId, "suspender", motivo);
 }
 
 export async function reactivarUsuarioAdmin(cliente: Cliente, usuarioId: string, motivo: string): Promise<void> {
   await assertAdminPermission(cliente, "usuarios:validar");
-  const { error } = await cliente.from("usuarios").update({ estado_cuenta: "activa" }).eq("id", usuarioId);
-  if (error) throw error;
-  await registrarEvento(cliente, "usuario_reactivado" as never, "admin", usuarioId, { motivo });
+  await cambiarAccesoAuthAdmin("usuario", usuarioId, "reactivar", motivo);
 }
 
 export async function cerrarCuentaUsuarioAdmin(cliente: Cliente, usuarioId: string, motivo: string): Promise<void> {
   await assertAdminPermission(cliente, "usuarios:validar");
-  const { error } = await cliente.from("usuarios").update({ estado_cuenta: "cerrada" }).eq("id", usuarioId);
-  if (error) throw error;
-  await registrarEvento(cliente, "usuario_cuenta_cerrada" as never, "admin", usuarioId, { motivo });
+  await cambiarAccesoAuthAdmin("usuario", usuarioId, "baja", motivo);
 }
 
 export async function listarSesionesUsuario(cliente: Cliente, usuarioId: string): Promise<Array<{ id: string; creada_en: string; ultimo_acceso: string | null; agente_usuario: string | null; direccion_ip: string | null; activa: boolean }>> {
@@ -1249,8 +1360,7 @@ export async function listarSesionesUsuario(cliente: Cliente, usuarioId: string)
 
 export async function revocarSesionUsuario(cliente: Cliente, sesionId: string): Promise<void> {
   await assertAdminPermission(cliente, "usuarios:validar");
-  const { error } = await cliente.from("sesiones_usuario").update({ activa: false }).eq("id", sesionId);
-  if (error) throw error;
+  throw new Error(`La revocacion individual de sesion ${sesionId} no se puede confirmar contra Supabase Auth. Suspende la cuenta para revocar el acceso real.`);
 }
 
 export async function listarPagosDeUsuario(cliente: Cliente, usuarioId: string): Promise<PagoRow[]> {
@@ -1324,13 +1434,16 @@ export async function invitarUsuarioAdmin(
   datos: { correo: string; nombre?: string | null; tipoCuenta: "personal" | "empresa" }
 ): Promise<string> {
   await assertAdminPermission(cliente, "usuarios:validar");
-  const { data, error } = await cliente.rpc("admin_invitar_usuario", {
-    p_correo: datos.correo,
-    p_nombre: datos.nombre ?? null,
-    p_tipo_cuenta: datos.tipoCuenta
+  const respuesta = await fetch("/api/admin-auth/invitar-usuario", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(datos)
   });
-  if (error) throw error;
-  return data;
+  const payload = await respuesta.json().catch(() => ({})) as { usuarioId?: string; mensaje?: string; error?: string };
+  if (!respuesta.ok || !payload.usuarioId) {
+    throw new Error(payload.mensaje ?? payload.error ?? "No se pudo enviar la invitacion real.");
+  }
+  return payload.usuarioId;
 }
 
 export async function validarDocumentoConductor(cliente: Cliente, conductorId: string, aprobado: boolean) {
@@ -1397,9 +1510,14 @@ export async function actualizarConductorAdmin(
   datos: ConductorActualizableAdmin
 ): Promise<ConductorRow> {
   await assertAdminPermission(cliente, "conductores:validar");
-  const { data, error } = await cliente.from("conductores").update(datos).eq("id", conductorId).select("*").single();
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_actualizar_conductor_atomic",
+    args: { p_conductor_id: string; p_datos: ConductorActualizableAdmin }
+  ) => Promise<{ error: unknown }>;
+  const { error } = await rpc("admin_actualizar_conductor_atomic", { p_conductor_id: conductorId, p_datos: datos });
   if (error) throw error;
-  await registrarEvento(cliente, "actualizacion_conductor" as never, "admin", conductorId, { accion: "edicion" });
+  const { data, error: errorLectura } = await cliente.from("conductores").select("*").eq("id", conductorId).single();
+  if (errorLectura) throw errorLectura;
   return data;
 }
 
@@ -1423,7 +1541,7 @@ export async function suspenderConductorAdmin(
   if (error) throw error;
   if (!data?.ejecutado) throw new Error("No se pudo suspender al conductor.");
   await registrarEvento(cliente, "suspension_conductor" as never, "admin", conductorId, { motivo });
-  await revocarAccesoAuthConductor(cliente, conductorId);
+  await cambiarAccesoAuthAdmin("conductor", conductorId, "suspender", motivo);
 }
 
 export async function reactivarConductorAdmin(
@@ -1446,6 +1564,7 @@ export async function reactivarConductorAdmin(
   if (error) throw error;
   if (!data?.ejecutado) throw new Error("No se pudo reactivar al conductor.");
   await registrarEvento(cliente, "reactivacion_conductor" as never, "admin", conductorId, { motivo });
+  await cambiarAccesoAuthAdmin("conductor", conductorId, "reactivar", motivo);
 }
 
 export async function darBajaConductorAdmin(
@@ -1468,31 +1587,11 @@ export async function darBajaConductorAdmin(
   if (error) throw error;
   if (!data?.ejecutado) throw new Error("No se pudo dar de baja al conductor.");
   await registrarEvento(cliente, "baja_conductor" as never, "admin", conductorId, { motivo });
-  await revocarAccesoAuthConductor(cliente, conductorId);
-}
-
-/**
- * Revoca la sesión de Auth del conductor (requiere service role key en edge function).
- * Se llama al suspender/bajar conductor.
- */
-export async function revocarAccesoAuthConductor(
-  cliente: Cliente,
-  conductorId: string
-): Promise<void> {
-  const { data: conductor, error } = await cliente
-    .from("conductores")
-    .select("auth_user_id")
-    .eq("id", conductorId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!conductor?.auth_user_id) return;
-  await registrarEvento(cliente, "revocacion_auth_conductor" as never, "admin", conductorId, {
-    auth_user_id: conductor.auth_user_id
-  });
+  await cambiarAccesoAuthAdmin("conductor", conductorId, "baja", motivo);
 }
 
 export type ConductorCrearAdmin = {
-  auth_user_id: string;
+  correo: string;
   nombre: string;
   telefono: string;
   curp: string;
@@ -1515,17 +1614,16 @@ export async function crearConductorAdmin(
   datos: ConductorCrearAdmin
 ): Promise<ConductorRow> {
   await assertAdminPermission(cliente, "conductores:validar");
-  const { data, error } = await cliente
-    .from("conductores")
-    .insert({ ...datos, estado: "activo" as EstadoConductor })
-    .select("*")
-    .single();
-  if (error) {
-    if (error.code === "23505") throw new Error("Ya existe un conductor con esa CURP o licencia.");
-    throw error;
+  const respuesta = await fetch("/api/admin-auth/invitar-conductor", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(datos)
+  });
+  const payload = await respuesta.json().catch(() => ({})) as { conductor?: ConductorRow; mensaje?: string; error?: string };
+  if (!respuesta.ok || !payload.conductor) {
+    throw new Error(payload.mensaje ?? payload.error ?? "No se pudo invitar y crear al conductor.");
   }
-  await registrarEvento(cliente, "creacion_conductor" as never, "admin", data.id, { accion: "alta_manual" });
-  return data;
+  return payload.conductor;
 }
 
 export interface PaginacionConductores {
@@ -1673,7 +1771,7 @@ export async function obtenerVehiculoAdmin(
   cliente: Cliente,
   vehiculoId: string
 ): Promise<Database["public"]["Tables"]["vehiculos"]["Row"] | null> {
-  await assertAdminPermission(cliente, "conductores:leer");
+  await assertAdminPermission(cliente, "vehiculos:leer");
   const { data, error } = await cliente.from("vehiculos").select("*").eq("id", vehiculoId).maybeSingle();
   if (error) throw error;
   return data;
@@ -1727,7 +1825,7 @@ export async function crearVehiculoAdmin(
   cliente: Cliente,
   datos: VehiculoCrearAdmin
 ): Promise<Database["public"]["Tables"]["vehiculos"]["Row"]> {
-  await assertAdminPermission(cliente, "conductores:validar");
+  await assertAdminPermission(cliente, "vehiculos:gestionar");
 
   if (datos.vin) {
     const valido = validarFormatoVin(datos.vin);
@@ -1765,7 +1863,7 @@ export async function actualizarVehiculoAdmin(
   datos: VehiculoActualizarAdmin,
   versionEsperada?: number
 ): Promise<Database["public"]["Tables"]["vehiculos"]["Row"]> {
-  await assertAdminPermission(cliente, "conductores:validar");
+  await assertAdminPermission(cliente, "vehiculos:gestionar");
 
   if (datos.vin) {
     const valido = validarFormatoVin(datos.vin);
@@ -1797,10 +1895,9 @@ export async function actualizarVehiculoAdmin(
     throw new Error("No se pudo recuperar el vehículo actualizado.");
   }
 
-  const { data, error } = await cliente.from("vehiculos").update(datos).eq("id", vehiculoId).select("*").single();
-  if (error) throw error;
-  await registrarEvento(cliente, "actualizacion_vehiculo" as never, "admin", vehiculoId, { accion: "edicion" });
-  return data;
+  const { data: actual, error: errorActual } = await cliente.from("vehiculos").select("version").eq("id", vehiculoId).single();
+  if (errorActual) throw errorActual;
+  return actualizarVehiculoAdmin(cliente, vehiculoId, datos, (actual as { version?: number }).version ?? 0);
 }
 
 /**
@@ -1810,7 +1907,7 @@ export async function obtenerDocumentosVehiculoAdmin(
   cliente: Cliente,
   vehiculoId: string
 ): Promise<Database["public"]["Tables"]["documentos_vehiculo"]["Row"][]> {
-  await assertAdminPermission(cliente, "conductores:leer");
+  await assertAdminPermission(cliente, "vehiculos:leer");
   const { data, error } = await cliente
     .from("documentos_vehiculo")
     .select("*")
@@ -1826,7 +1923,7 @@ export async function subirDocumentoVehiculoAdmin(
   tipo: "tarjeta_circulacion" | "seguro" | "verificacion" | "permiso_especial",
   archivo: File
 ): Promise<Database["public"]["Tables"]["documentos_vehiculo"]["Row"]> {
-  await assertAdminPermission(cliente, "conductores:validar");
+  await assertAdminPermission(cliente, "vehiculos:gestionar");
   // Validaciones de archivo
   if (archivo.size > 10 * 1024 * 1024) throw new Error("El archivo debe pesar máximo 10 MB.");
   const ext = archivo.name.split(".").pop()?.toLowerCase();
@@ -1855,7 +1952,7 @@ export async function eliminarDocumentoVehiculoAdmin(
   cliente: Cliente,
   documentoId: string
 ): Promise<void> {
-  await assertAdminPermission(cliente, "conductores:validar");
+  await assertAdminPermission(cliente, "vehiculos:gestionar");
   const { data: doc, error: errDoc } = await cliente.from("documentos_vehiculo").select("url, vehiculo_id").eq("id", documentoId).single();
   if (errDoc) throw errDoc;
   if (doc?.url) {
@@ -1875,10 +1972,7 @@ export async function asociarConductorVehiculoAdmin(
   vehiculoId: string,
   conductorId: string | null
 ): Promise<void> {
-  await assertAdminPermission(cliente, "conductores:validar");
-  const { error } = await cliente.from("vehiculos").update({ conductor_id: conductorId }).eq("id", vehiculoId);
-  if (error) throw error;
-  await registrarEvento(cliente, "asociacion_conductor_vehiculo" as never, "admin", vehiculoId, { conductor_id: conductorId });
+  await actualizarVehiculoAdmin(cliente, vehiculoId, { conductor_id: conductorId });
 }
 
 export async function asociarEmpresaVehiculoAdmin(
@@ -1886,10 +1980,7 @@ export async function asociarEmpresaVehiculoAdmin(
   vehiculoId: string,
   empresaId: string | null
 ): Promise<void> {
-  await assertAdminPermission(cliente, "conductores:validar");
-  const { error } = await cliente.from("vehiculos").update({ empresa_id: empresaId }).eq("id", vehiculoId);
-  if (error) throw error;
-  await registrarEvento(cliente, "asociacion_empresa_vehiculo" as never, "admin", vehiculoId, { empresa_id: empresaId });
+  await actualizarVehiculoAdmin(cliente, vehiculoId, { empresa_id: empresaId });
 }
 
 /**
@@ -1900,10 +1991,7 @@ export async function suspenderVehiculoAdmin(
   vehiculoId: string,
   motivo: string
 ): Promise<void> {
-  await assertAdminPermission(cliente, "conductores:validar");
-  const { error } = await cliente.from("vehiculos").update({ puede_circular_rodando: false }).eq("id", vehiculoId);
-  if (error) throw error;
-  await registrarEvento(cliente, "suspension_vehiculo" as never, "admin", vehiculoId, { motivo });
+  await actualizarVehiculoAdmin(cliente, vehiculoId, { puede_circular_rodando: false, estado_general_declarado: motivo });
 }
 
 /**
@@ -1914,10 +2002,7 @@ export async function reactivarVehiculoAdmin(
   vehiculoId: string,
   motivo: string
 ): Promise<void> {
-  await assertAdminPermission(cliente, "conductores:validar");
-  const { error } = await cliente.from("vehiculos").update({ puede_circular_rodando: true }).eq("id", vehiculoId);
-  if (error) throw error;
-  await registrarEvento(cliente, "reactivacion_vehiculo" as never, "admin", vehiculoId, { motivo });
+  await actualizarVehiculoAdmin(cliente, vehiculoId, { puede_circular_rodando: true, estado_general_declarado: motivo });
 }
 
 /**
@@ -1938,7 +2023,7 @@ export async function obtenerHistorialVehiculoAdmin(
   cliente: Cliente,
   vehiculoId: string
 ): Promise<HistorialAsignacionVehiculo[]> {
-  await assertAdminPermission(cliente, "conductores:leer");
+  await assertAdminPermission(cliente, "vehiculos:leer");
   const { data, error } = await cliente
     .from("historial_vehiculos")
     .select("*")
@@ -1990,7 +2075,7 @@ export async function obtenerVehiculosDeConductorAdmin(
   cliente: Cliente,
   conductorId: string
 ): Promise<Database["public"]["Tables"]["vehiculos"]["Row"][]> {
-  await assertAdminPermission(cliente, "conductores:leer");
+  await assertAdminPermission(cliente, "vehiculos:leer");
   const { data, error } = await cliente
     .from("vehiculos")
     .select("*")

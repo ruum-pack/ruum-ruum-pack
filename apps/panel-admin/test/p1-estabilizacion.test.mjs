@@ -10,6 +10,11 @@ test('trazabilidad administrativa no usa localStorage',()=>{
   const page=read('apps/panel-admin/src/app/viajes/page.tsx');
   assert.match(page,/guardarPreferenciaAdmin/); assert.doesNotMatch(page,/STORAGE_AUDITORIA_MASIVA|localStorage\.setItem\([^\n]*auditoria/);
 });
+test('traslados no conserva ramas demo',()=>{
+  const list=read('apps/panel-admin/src/app/viajes/page.tsx');
+  const detail=read('apps/panel-admin/src/app/viajes/[id]/page.tsx');
+  assert.doesNotMatch(`${list}\n${detail}`,/puedeUsarDatosDemo|esDemo|Modo demo|modo demo|datos de ejemplo|demo-\$\{Date\.now\(\)\}|Tarifa normativa aplicada en modo demo|Traslado marcado como fallido en modo demo/);
+});
 test('no quedan alert confirm ni innerHTML en panel admin',()=>{
   const root=new URL('../src/',import.meta.url);
   const walk=(dir)=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(new URL(`${e.name}/`,dir)):[new URL(e.name,dir)]);
