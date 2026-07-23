@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Aviso } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
-import { listarVehiculosAdmin, obtenerEvidenciaVehiculo, actualizarVehiculoAdmin, resolverUrlEvidencia, type DatosVehiculosAdmin, type EvidenciaVehiculoTraslado, type VehiculoActualizarAdmin } from "@ruum/api/services";
+import { listarVehiculosAdminPaginados, obtenerEvidenciaVehiculo, actualizarVehiculoAdmin, resolverUrlEvidencia, type DatosVehiculosAdmin, type EvidenciaVehiculoTraslado, type VehiculoActualizarAdmin } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { AdminPageHeader, AdminPanel } from "../admin-ui";
 import { AdminButton, AdminEmptyState, AdminErrorState, AdminLoadingState } from "../admin-components";
@@ -64,14 +64,19 @@ function fechaHora(fechaIso: string | null | undefined) {
   return fechaIso ? new Date(fechaIso).toLocaleString("es-MX") : "—";
 }
 
-type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "sin_conexion";
+type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "sin_conexion" | "desactualizado";
+const TAMANO_PAGINA = 25;
 
 export default function PaginaVehiculosAdmin() {
   const [datos, setDatos] = useState<DatosVehiculosAdmin>({ vehiculos: [], usuarios: [] });
   const [cargando, setCargando] = useState(true);
   const [actualizandoManual, setActualizandoManual] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [busquedaInput, setBusquedaInput] = useState("");
   const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [totalResultados, setTotalResultados] = useState(0);
+  const [totalPaginas, setTotalPaginas] = useState(0);
   const [estadoConexion, setEstadoConexion] = useState<EstadoConexionVista>("actualizando");
   const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
 
@@ -88,7 +93,7 @@ export default function PaginaVehiculosAdmin() {
   const [errorEdicion, setErrorEdicion] = useState<string | null>(null);
   const [avisoGuardado, setAvisoGuardado] = useState<string | null>(null);
 
-  const cargar = useCallback(async (manual = false) => {
+  const cargar = useCallback(async (manual = false, paginaSolicitada = pagina) => {
     if (manual) setActualizandoManual(true);
     else setCargando(true);
 
@@ -104,39 +109,36 @@ export default function PaginaVehiculosAdmin() {
 
     try {
       setError(null);
-      setDatos(await listarVehiculosAdmin(crearClienteNavegador()));
+      const respuesta = await listarVehiculosAdminPaginados(crearClienteNavegador(), paginaSolicitada, TAMANO_PAGINA, busqueda);
+      setDatos({ vehiculos: respuesta.vehiculos, usuarios: respuesta.usuarios });
+      setPagina(respuesta.paginacion.pagina);
+      setTotalResultados(respuesta.paginacion.total);
+      setTotalPaginas(respuesta.paginacion.total_paginas);
       setEstadoConexion("datos_en_vivo");
       setUltimaActualizacion(new Date());
     } catch {
-      setDatos({ vehiculos: [], usuarios: [] });
       setError("No pudimos cargar el inventario de vehículos.");
-      setEstadoConexion("sin_conexion");
+      setEstadoConexion((estadoAnterior) => estadoAnterior === "datos_en_vivo" ? "desactualizado" : "sin_conexion");
     } finally {
       setCargando(false);
       setActualizandoManual(false);
     }
-  }, []);
+  }, [busqueda, pagina]);
 
   useEffect(() => {
     void cargar();
   }, [cargar]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setPagina(1);
+      setBusqueda(busquedaInput.trim());
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [busquedaInput]);
+
   const usuarioPorId = useMemo(() => new Map(datos.usuarios.map((usuario) => [usuario.id, usuario])), [datos.usuarios]);
-  const vehiculosFiltrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
-    if (!q) return datos.vehiculos;
-    return datos.vehiculos.filter((vehiculo) => {
-      const propietario = usuarioPorId.get(vehiculo.usuario_id);
-      return [
-        vehiculo.marca,
-        vehiculo.modelo,
-        vehiculo.placas,
-        vehiculo.vin,
-        propietario?.nombre,
-        propietario?.correo_facturacion
-      ].some((valor) => valor?.toLowerCase().includes(q));
-    });
-  }, [busqueda, datos.vehiculos, usuarioPorId]);
+  const vehiculosFiltrados = datos.vehiculos;
 
   async function abrirDetalle(vehiculoId: string) {
     setDetalleVehiculoId(vehiculoId);
@@ -215,7 +217,7 @@ export default function PaginaVehiculosAdmin() {
       await actualizarVehiculoAdmin(cliente, editando, datosLimpios, versionEditando)
       setAvisoGuardado("Vehículo actualizado correctamente.");
       setEditando(null);
-      void cargar(true);
+      void cargar(true, pagina);
     } catch (err) {
       setErrorEdicion(err instanceof Error ? err.message : "Error al guardar los cambios.");
     } finally {
@@ -227,6 +229,7 @@ export default function PaginaVehiculosAdmin() {
     () => vehiculosFiltrados.find((v) => v.id === detalleVehiculoId) ?? null,
     [detalleVehiculoId, vehiculosFiltrados]
   );
+  const exportHref = `/api/exportaciones/vehiculos${busqueda ? `?busqueda=${encodeURIComponent(busqueda)}` : ""}`;
 
   return (
     <main className="admin-page-shell">
@@ -237,11 +240,16 @@ export default function PaginaVehiculosAdmin() {
         estadoConexion={estadoConexion}
         ultimaActualizacion={ultimaActualizacion}
         tipoDatos="administrativos"
-        contadorResultados={vehiculosFiltrados.length}
+        contadorResultados={totalResultados}
         accion={(
-          <AdminButton variant="secondary" loading={actualizandoManual} onClick={() => void cargar(true)}>
-            Actualizar
-          </AdminButton>
+          <div className="flex flex-wrap gap-2">
+            <a className="inline-flex items-center rounded-lg border border-ink/20 px-4 py-2 font-body text-sm font-semibold text-ink transition hover:bg-surface-secondary" href={exportHref}>
+              Exportar CSV
+            </a>
+            <AdminButton variant="secondary" loading={actualizandoManual} onClick={() => void cargar(true, pagina)}>
+              Actualizar
+            </AdminButton>
+          </div>
         )}
       />
 
@@ -263,13 +271,13 @@ export default function PaginaVehiculosAdmin() {
         <input
           id="buscar-vehiculos"
           type="search"
-          value={busqueda}
-          onChange={(event) => setBusqueda(event.target.value)}
+          value={busquedaInput}
+          onChange={(event) => setBusquedaInput(event.target.value)}
           placeholder="Buscar por marca, modelo, placas, VIN o usuario..."
           className="flex-1 rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-text-tertiary focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
         />
-        {busqueda && (
-          <AdminButton variant="quiet" onClick={() => setBusqueda("")} aria-label="Limpiar búsqueda">
+        {(busquedaInput || busqueda) && (
+          <AdminButton variant="quiet" onClick={() => { setBusquedaInput(""); setBusqueda(""); setPagina(1); }} aria-label="Limpiar búsqueda">
             Limpiar
           </AdminButton>
         )}
@@ -285,7 +293,7 @@ export default function PaginaVehiculosAdmin() {
             title={busqueda.trim() ? "Sin resultados" : "Sin vehículos"}
             description={busqueda.trim() ? "No encontramos vehículos con esa búsqueda." : "No hay vehículos registrados."}
             action={busqueda.trim() ? (
-              <AdminButton variant="secondary" onClick={() => setBusqueda("")}>
+              <AdminButton variant="secondary" onClick={() => { setBusquedaInput(""); setBusqueda(""); setPagina(1); }}>
                 Limpiar búsqueda
               </AdminButton>
             ) : undefined}
@@ -349,6 +357,33 @@ export default function PaginaVehiculosAdmin() {
               })}
             </tbody>
           </table>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-default px-4 py-3">
+            <p className="font-body text-sm text-text-secondary">
+              Página {totalPaginas === 0 ? 0 : pagina} de {totalPaginas} · {totalResultados} vehículos
+            </p>
+            <div className="flex gap-2">
+              <AdminButton
+                variant="secondary"
+                disabled={pagina <= 1 || actualizandoManual}
+                onClick={() => {
+                  const anterior = Math.max(1, pagina - 1);
+                  setPagina(anterior);
+                }}
+              >
+                Anterior
+              </AdminButton>
+              <AdminButton
+                variant="secondary"
+                disabled={pagina >= totalPaginas || actualizandoManual}
+                onClick={() => {
+                  const siguiente = Math.min(totalPaginas, pagina + 1);
+                  setPagina(siguiente);
+                }}
+              >
+                Siguiente
+              </AdminButton>
+            </div>
+          </div>
         </AdminPanel>
       )}
 

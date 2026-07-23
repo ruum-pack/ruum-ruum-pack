@@ -14,25 +14,25 @@ const ROLES: RolPrueba[] = [
   {
     rol: "operador",
     archivoSesion: "storageState-operador.json",
-    rutasPermitidas: ["/", "/viajes", "/masivos", "/mapa", "/alertas-sla", "/conductores", "/incidencias"],
+    rutasPermitidas: ["/", "/viajes", "/masivos", "/mapa", "/alertas-sla", "/conductores", "/vehiculos", "/incidencias"],
     rutasDenegadas: ["/auditoria", "/aprobaciones", "/pagos", "/tarifas", "/reportes", "/disputas", "/capacidades", "/usuarios", "/empresas", "/configuracion", "/metricas-registro"]
   },
   {
     rol: "supervisor",
     archivoSesion: "storageState-supervisor.json",
-    rutasPermitidas: ["/", "/viajes", "/masivos", "/mapa", "/alertas-sla", "/conductores", "/metricas-registro", "/incidencias", "/disputas", "/documentos", "/reportes", "/auditoria", "/aprobaciones"],
+    rutasPermitidas: ["/", "/viajes", "/masivos", "/mapa", "/alertas-sla", "/conductores", "/vehiculos", "/metricas-registro", "/incidencias", "/disputas", "/documentos", "/reportes", "/auditoria", "/aprobaciones"],
     rutasDenegadas: ["/pagos", "/tarifas", "/capacidades", "/configuracion", "/usuarios", "/empresas", "/reclamos-seguro"]
   },
   {
     rol: "finanzas",
     archivoSesion: "storageState-finanzas.json",
-    rutasPermitidas: ["/", "/viajes", "/pagos", "/tarifas", "/reportes", "/disputas", "/reclamos-seguro"],
-    rutasDenegadas: ["/auditoria", "/aprobaciones", "/capaciades", "/masivos", "/conductores", "/incidencias", "/alertas-sla", "/documentos", "/empresas", "/usuarios", "/metricas-registro", "/configuracion"]
+    rutasPermitidas: ["/", "/viajes", "/pagos", "/tarifas", "/reportes", "/vehiculos", "/disputas", "/reclamos-seguro"],
+    rutasDenegadas: ["/auditoria", "/aprobaciones", "/capacidades", "/masivos", "/conductores", "/incidencias", "/alertas-sla", "/documentos", "/empresas", "/usuarios", "/metricas-registro", "/configuracion"]
   },
   {
     rol: "compliance",
     archivoSesion: "storageState-compliance.json",
-    rutasPermitidas: ["/", "/alertas-sla", "/documentos", "/incidencias", "/usuarios", "/conductores", "/empresas", "/reclamos-seguro", "/reportes", "/auditoria", "/aprobaciones"],
+    rutasPermitidas: ["/", "/alertas-sla", "/documentos", "/incidencias", "/usuarios", "/conductores", "/vehiculos", "/empresas", "/reclamos-seguro", "/reportes", "/auditoria", "/aprobaciones"],
     rutasDenegadas: ["/pagos", "/tarifas", "/capacidades", "/configuracion", "/masivos", "/viajes", "/disputas"]
   },
   {

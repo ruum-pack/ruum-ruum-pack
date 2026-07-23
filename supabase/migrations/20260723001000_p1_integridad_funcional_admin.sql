@@ -75,7 +75,7 @@ begin
   if not found then raise exception using errcode='22023', message='USUARIO_NO_ENCONTRADO'; end if;
 
   for v_key in select jsonb_object_keys(coalesce(p_datos,'{}'::jsonb)) loop
-    if v_key in ('nombre','telefono','correo_facturacion','pais','estado','ciudad','codigo_postal','colonia','calle','numero','direccion_principal') then
+    if v_key in ('nombre','telefono','correo_facturacion','pais','estado','ciudad','codigo_postal','colonia','calle','numero','direccion_principal','foto_url') then
       v_campos := array_append(v_campos, v_key);
     end if;
   end loop;
@@ -124,6 +124,30 @@ begin
   values(auth.uid(),v_admin_id,'mutacion','conductores','actualizar',jsonb_build_object('conductor_id',p_conductor_id,'campos',to_jsonb(v_campos)));
 
   return jsonb_build_object('ejecutado',true,'conductor_id',p_conductor_id);
+end $$;
+
+create or replace function public.admin_actualizar_estado_cuenta_usuario(
+  p_usuario_id uuid,
+  p_estado text,
+  p_motivo text default null
+) returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
+declare
+  v_admin_id uuid;
+begin
+  if not public.admin_tiene_permiso('usuarios:validar') then
+    raise exception using errcode='42501', message='PERMISO_INSUFICIENTE';
+  end if;
+  if p_estado not in ('activa','suspendida','cerrada') then
+    raise exception using errcode='22023', message='ESTADO_CUENTA_INVALIDO';
+  end if;
+  select id into strict v_admin_id from public.admins where auth_user_id=auth.uid();
+  update public.usuarios set estado_cuenta = p_estado where id = p_usuario_id;
+  if not found then raise exception using errcode='22023', message='USUARIO_NO_ENCONTRADO'; end if;
+  insert into public.registro_auditoria(evento,actor,actor_id,datos)
+  values('actualizacion_usuario','admin',v_admin_id,jsonb_build_object('entidad_afectada','usuario','usuario_id',p_usuario_id,'estado_cuenta',p_estado,'motivo',nullif(trim(coalesce(p_motivo,'')),'')));
+  insert into public.auditoria_admin_seguridad(auth_user_id,admin_id,tipo,recurso,accion,motivo,datos)
+  values(auth.uid(),v_admin_id,'mutacion','usuarios','estado_cuenta',nullif(trim(coalesce(p_motivo,'')),''),jsonb_build_object('usuario_id',p_usuario_id,'estado_cuenta',p_estado));
+  return jsonb_build_object('ejecutado',true,'usuario_id',p_usuario_id,'estado_cuenta',p_estado);
 end $$;
 
 create or replace function public.admin_actualizar_vehiculo(
@@ -270,11 +294,13 @@ end $$;
 
 revoke all on function public.admin_actualizar_usuario_atomic(uuid,jsonb) from public;
 revoke all on function public.admin_actualizar_conductor_atomic(uuid,jsonb) from public;
+revoke all on function public.admin_actualizar_estado_cuenta_usuario(uuid,text,text) from public;
 revoke all on function public.admin_actualizar_vehiculo(uuid,jsonb,bigint) from public;
 revoke all on function public.admin_listar_solicitudes_conductor_paginadas(int,int,text,text) from public;
 revoke all on function public.admin_finanzas_traslado(uuid) from public;
 grant execute on function public.admin_actualizar_usuario_atomic(uuid,jsonb) to authenticated;
 grant execute on function public.admin_actualizar_conductor_atomic(uuid,jsonb) to authenticated;
+grant execute on function public.admin_actualizar_estado_cuenta_usuario(uuid,text,text) to authenticated;
 grant execute on function public.admin_actualizar_vehiculo(uuid,jsonb,bigint) to authenticated;
 grant execute on function public.admin_listar_solicitudes_conductor_paginadas(int,int,text,text) to authenticated;
 grant execute on function public.admin_finanzas_traslado(uuid) to authenticated;

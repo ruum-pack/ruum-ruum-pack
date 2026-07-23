@@ -47,7 +47,11 @@ export async function POST(request: Request) {
 
     if (recurso === "usuario") {
       const estado = accion === "reactivar" ? "activa" : accion === "baja" ? "cerrada" : "suspendida";
-      const { error } = await serviceRole.from("usuarios").update({ estado_cuenta: estado }).eq("id", id);
+      const { error } = await cliente.rpc("admin_actualizar_estado_cuenta_usuario" as never, {
+        p_usuario_id: id,
+        p_estado: estado,
+        p_motivo: motivo || null
+      } as never);
       if (error) throw error;
     }
 

@@ -51,6 +51,17 @@ export interface DatosVehiculosAdmin {
   usuarios: UsuarioRow[];
 }
 
+export interface PaginacionAdmin {
+  pagina: number;
+  tamano: number;
+  total: number;
+  total_paginas: number;
+}
+
+export interface DatosVehiculosAdminPaginados extends DatosVehiculosAdmin {
+  paginacion: PaginacionAdmin;
+}
+
 export interface DatosEmpresasAdmin {
   empresas: EmpresaRow[];
   usuarios: UsuarioRow[];
@@ -959,6 +970,30 @@ export async function listarVehiculosAdmin(cliente: Cliente): Promise<DatosVehic
   };
 }
 
+export async function listarVehiculosAdminPaginados(
+  cliente: Cliente,
+  pagina: number,
+  tamano: number,
+  busqueda?: string
+): Promise<DatosVehiculosAdminPaginados> {
+  await assertAdminPermission(cliente, "vehiculos:leer");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_listar_vehiculos_paginados",
+    args: { p_pagina: number; p_tamano: number; p_busqueda: string | null }
+  ) => Promise<{ data: DatosVehiculosAdminPaginados | null; error: unknown }>;
+  const { data, error } = await rpc("admin_listar_vehiculos_paginados", {
+    p_pagina: pagina,
+    p_tamano: tamano,
+    p_busqueda: busqueda?.trim() || null
+  });
+  if (error) throw error;
+  return data ?? {
+    vehiculos: [],
+    usuarios: [],
+    paginacion: { pagina: 1, tamano, total: 0, total_paginas: 0 }
+  };
+}
+
 export interface EvidenciaVehiculoTraslado {
   traslado_id: string;
   traslado_estado: string;
@@ -1297,7 +1332,7 @@ export async function obtenerUsuarioAdmin(cliente: Cliente, usuarioId: string): 
 
 export type UsuarioActualizableAdmin = Pick<
   Database["public"]["Tables"]["usuarios"]["Update"],
-  "nombre" | "telefono" | "correo_facturacion" | "pais" | "estado" | "ciudad" | "codigo_postal" | "colonia" | "calle" | "numero" | "direccion_principal"
+  "nombre" | "telefono" | "correo_facturacion" | "pais" | "estado" | "ciudad" | "codigo_postal" | "colonia" | "calle" | "numero" | "direccion_principal" | "foto_url"
 >;
 
 export async function actualizarUsuarioAdmin(cliente: Cliente, usuarioId: string, datos: UsuarioActualizableAdmin): Promise<UsuarioRow> {
@@ -1857,6 +1892,67 @@ export type VehiculoActualizarAdmin = Pick<
   "usuario_id" | "conductor_id" | "empresa_id"
 >;
 
+function normalizarTextoVehiculo(valor: unknown): string | null | undefined {
+  if (valor === undefined) return undefined;
+  if (valor === null) return null;
+  const texto = String(valor).trim();
+  return texto.length > 0 ? texto : null;
+}
+
+function normalizarIdentificadorVehiculo(valor: unknown): string | null | undefined {
+  const texto = normalizarTextoVehiculo(valor);
+  return typeof texto === "string" ? texto.toUpperCase().replace(/[\s-]/g, "") : texto;
+}
+
+export function validarDominioVehiculoAdmin(datos: VehiculoActualizarAdmin): VehiculoActualizarAdmin {
+  const normalizados = { ...datos };
+
+  if ("vin" in normalizados) normalizados.vin = normalizarIdentificadorVehiculo(normalizados.vin) as VehiculoActualizarAdmin["vin"];
+  if ("placas" in normalizados) normalizados.placas = normalizarIdentificadorVehiculo(normalizados.placas) as VehiculoActualizarAdmin["placas"];
+  for (const campo of ["marca", "modelo", "color", "alias", "estado_general_declarado"] as const) {
+    if (campo in normalizados) normalizados[campo] = normalizarTextoVehiculo(normalizados[campo]) as never;
+  }
+
+  if (normalizados.anio !== undefined && normalizados.anio !== null) {
+    const anio = Number(normalizados.anio);
+    const maximo = new Date().getFullYear() + 1;
+    if (!Number.isInteger(anio) || anio < 1980 || anio > maximo) {
+      throw new Error(`Año inválido: debe estar entre 1980 y ${maximo}.`);
+    }
+    normalizados.anio = anio as VehiculoActualizarAdmin["anio"];
+  }
+
+  if (normalizados.marca === null) throw new Error("Marca obligatoria.");
+  if (normalizados.modelo === null) throw new Error("Modelo obligatorio.");
+
+  const tarifa = [normalizados.categoria_tarifa, normalizados.gama, normalizados.condicion];
+  const tieneClasificacionParcial = tarifa.some((valor) => valor !== undefined && valor !== null);
+  const tieneClasificacionCompleta = tarifa.every((valor) => valor !== undefined && valor !== null);
+  if (tieneClasificacionParcial && !tieneClasificacionCompleta) {
+    throw new Error("Clasificación tarifaria incompleta: categoría, gama y condición deben capturarse juntas.");
+  }
+
+  if (normalizados.puede_circular_rodando === true && Boolean(normalizados.permiso_especial_vigente) !== true) {
+    const camposRequeridos = [
+      ["tiene_placas", "placas"],
+      ["tiene_tarjeta_circulacion", "tarjeta de circulación"],
+      ["tiene_verificacion", "verificación"]
+    ] as const;
+    const faltantes = camposRequeridos
+      .filter(([campo]) => normalizados[campo] === false)
+      .map(([, etiqueta]) => etiqueta);
+    if (faltantes.length > 0) {
+      throw new Error(`No puede circular rodando sin ${faltantes.join(", ")} o permiso especial vigente.`);
+    }
+  }
+
+  if (normalizados.tiene_placas === true && !normalizados.placas && "placas" in normalizados) {
+    throw new Error("Placas obligatorias cuando el vehículo está marcado con placas.");
+  }
+
+  return normalizados;
+}
+
 export async function actualizarVehiculoAdmin(
   cliente: Cliente,
   vehiculoId: string,
@@ -1864,24 +1960,25 @@ export async function actualizarVehiculoAdmin(
   versionEsperada?: number
 ): Promise<Database["public"]["Tables"]["vehiculos"]["Row"]> {
   await assertAdminPermission(cliente, "vehiculos:gestionar");
+  const datosValidados = validarDominioVehiculoAdmin(datos);
 
-  if (datos.vin) {
-    const valido = validarFormatoVin(datos.vin);
+  if (datosValidados.vin) {
+    const valido = validarFormatoVin(datosValidados.vin);
     if (!valido) throw new Error("VIN inválido: debe tener 17 caracteres alfanuméricos (ISO 3779).");
-    const unicos = await validarVinYPlacasUnicos(cliente, datos.vin, datos.placas, vehiculoId);
+    const unicos = await validarVinYPlacasUnicos(cliente, datosValidados.vin, datosValidados.placas, vehiculoId);
     if (!unicos.vinUnico) throw new Error("El VIN ya está registrado en otro vehículo.");
   }
-  if (datos.placas) {
-    const valido = validarFormatoPlacas(datos.placas);
+  if (datosValidados.placas) {
+    const valido = validarFormatoPlacas(datosValidados.placas);
     if (!valido) throw new Error("Placas inválidas: 3-7 caracteres alfanuméricos.");
-    const unicos = await validarVinYPlacasUnicos(cliente, datos.vin, datos.placas, vehiculoId);
+    const unicos = await validarVinYPlacasUnicos(cliente, datosValidados.vin, datosValidados.placas, vehiculoId);
     if (!unicos.placasUnicas) throw new Error("Las placas ya están registradas en otro vehículo.");
   }
 
   if (versionEsperada !== undefined) {
     const { data: rpcData, error: rpcError } = await cliente.rpc("admin_actualizar_vehiculo", {
       p_vehiculo_id: vehiculoId,
-      p_datos: datos as any,
+      p_datos: datosValidados as any,
       p_version_esperada: versionEsperada
     });
     if (rpcError) {
@@ -1897,7 +1994,7 @@ export async function actualizarVehiculoAdmin(
 
   const { data: actual, error: errorActual } = await cliente.from("vehiculos").select("version").eq("id", vehiculoId).single();
   if (errorActual) throw errorActual;
-  return actualizarVehiculoAdmin(cliente, vehiculoId, datos, (actual as { version?: number }).version ?? 0);
+  return actualizarVehiculoAdmin(cliente, vehiculoId, datosValidados, (actual as { version?: number }).version ?? 0);
 }
 
 /**

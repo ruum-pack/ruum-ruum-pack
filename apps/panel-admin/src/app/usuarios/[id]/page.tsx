@@ -354,13 +354,13 @@ function TabPrivacidad({ usuario, onActualizado }: { usuario: UsuarioRow; onActu
     setAviso(null);
     try {
       const cliente = crearClienteNavegador();
-      await cliente.from("usuarios").update({
+      await actualizarUsuarioAdmin(cliente, usuario.id, {
         nombre: "[anonimizado]",
         telefono: null,
         correo_facturacion: null,
         calle: null, numero: null, colonia: null, ciudad: null, estado: null, pais: null, codigo_postal: null,
         direccion_principal: null, foto_url: null
-      }).eq("id", usuario.id);
+      });
       setAviso("Datos anonimizados correctamente.");
       onActualizado();
     } catch (err) {

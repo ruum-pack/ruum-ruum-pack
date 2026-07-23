@@ -10,6 +10,29 @@ test('trazabilidad administrativa no usa localStorage',()=>{
   const page=read('apps/panel-admin/src/app/viajes/page.tsx');
   assert.match(page,/guardarPreferenciaAdmin/); assert.doesNotMatch(page,/STORAGE_AUDITORIA_MASIVA|localStorage\.setItem\([^\n]*auditoria/);
 });
+test('historial masivo de traslados se lee de auditoria persistente',()=>{
+  const page=read('apps/panel-admin/src/app/viajes/page.tsx');
+  const service=read('packages/api/src/services/admin.ts');
+  assert.doesNotMatch(page,/PREF_AUDITORIA_MASIVA|viajes\.auditoria_masiva/);
+  assert.match(page,/listarAuditoriaOperativaTraslados/);
+  assert.match(service,/registro_auditoria/);
+  assert.match(service,/modificacion_masiva_traslados/);
+});
+test('P1 integridad funcional usa RPCs y permisos propios',()=>{
+  const service=read('packages/api/src/services/admin.ts');
+  const permisos=read('packages/api/src/services/permisos-admin.ts');
+  const sql=read('supabase/migrations/20260723001000_p1_integridad_funcional_admin.sql');
+  assert.match(service,/admin_actualizar_usuario_atomic/);
+  assert.match(service,/admin_actualizar_conductor_atomic/);
+  assert.match(service,/admin_listar_solicitudes_conductor_paginadas/);
+  assert.match(service,/admin_finanzas_traslado/);
+  assert.match(permisos,/vehiculos:leer/);
+  assert.match(permisos,/vehiculos:gestionar/);
+  assert.match(sql,/entidad_afectada','usuario/);
+  assert.match(sql,/entidad_afectada','conductor/);
+  assert.match(sql,/gastos_traslado/);
+  assert.match(sql,/margen_estimado/);
+});
 test('traslados no conserva ramas demo',()=>{
   const list=read('apps/panel-admin/src/app/viajes/page.tsx');
   const detail=read('apps/panel-admin/src/app/viajes/[id]/page.tsx');
