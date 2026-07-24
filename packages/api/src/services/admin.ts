@@ -1584,14 +1584,18 @@ export async function actualizarUsuarioAdmin(cliente: Cliente, usuarioId: string
 }
 
 async function cambiarAccesoAuthAdmin(
+  cliente: Cliente,
   recurso: "usuario" | "conductor",
   id: string,
   accion: "suspender" | "reactivar" | "baja",
   motivo: string
 ) {
+  const { data: sesion } = await cliente.auth.getSession();
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (sesion.session?.access_token) headers.authorization = `Bearer ${sesion.session.access_token}`;
   const respuesta = await fetch("/api/admin-auth/estado-acceso", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify({ recurso, id, accion, motivo })
   });
   if (respuesta.ok) return;
@@ -1601,17 +1605,17 @@ async function cambiarAccesoAuthAdmin(
 
 export async function suspenderUsuarioAdmin(cliente: Cliente, usuarioId: string, motivo: string): Promise<void> {
   await assertAdminPermission(cliente, "usuarios:validar");
-  await cambiarAccesoAuthAdmin("usuario", usuarioId, "suspender", motivo);
+  await cambiarAccesoAuthAdmin(cliente, "usuario", usuarioId, "suspender", motivo);
 }
 
 export async function reactivarUsuarioAdmin(cliente: Cliente, usuarioId: string, motivo: string): Promise<void> {
   await assertAdminPermission(cliente, "usuarios:validar");
-  await cambiarAccesoAuthAdmin("usuario", usuarioId, "reactivar", motivo);
+  await cambiarAccesoAuthAdmin(cliente, "usuario", usuarioId, "reactivar", motivo);
 }
 
 export async function cerrarCuentaUsuarioAdmin(cliente: Cliente, usuarioId: string, motivo: string): Promise<void> {
   await assertAdminPermission(cliente, "usuarios:validar");
-  await cambiarAccesoAuthAdmin("usuario", usuarioId, "baja", motivo);
+  await cambiarAccesoAuthAdmin(cliente, "usuario", usuarioId, "baja", motivo);
 }
 
 export async function listarSesionesUsuario(cliente: Cliente, usuarioId: string): Promise<Array<{ id: string; creada_en: string; ultimo_acceso: string | null; agente_usuario: string | null; direccion_ip: string | null; activa: boolean }>> {
@@ -1811,7 +1815,7 @@ export async function suspenderConductorAdmin(
   if (error) throw error;
   if (!data?.ejecutado) throw new Error("No se pudo suspender al conductor.");
   await registrarEvento(cliente, "suspension_conductor" as never, "admin", conductorId, { motivo });
-  await cambiarAccesoAuthAdmin("conductor", conductorId, "suspender", motivo);
+  await cambiarAccesoAuthAdmin(cliente, "conductor", conductorId, "suspender", motivo);
 }
 
 export async function reactivarConductorAdmin(
@@ -1834,7 +1838,7 @@ export async function reactivarConductorAdmin(
   if (error) throw error;
   if (!data?.ejecutado) throw new Error("No se pudo reactivar al conductor.");
   await registrarEvento(cliente, "reactivacion_conductor" as never, "admin", conductorId, { motivo });
-  await cambiarAccesoAuthAdmin("conductor", conductorId, "reactivar", motivo);
+  await cambiarAccesoAuthAdmin(cliente, "conductor", conductorId, "reactivar", motivo);
 }
 
 export async function darBajaConductorAdmin(
@@ -1857,7 +1861,7 @@ export async function darBajaConductorAdmin(
   if (error) throw error;
   if (!data?.ejecutado) throw new Error("No se pudo dar de baja al conductor.");
   await registrarEvento(cliente, "baja_conductor" as never, "admin", conductorId, { motivo });
-  await cambiarAccesoAuthAdmin("conductor", conductorId, "baja", motivo);
+  await cambiarAccesoAuthAdmin(cliente, "conductor", conductorId, "baja", motivo);
 }
 
 export type ConductorCrearAdmin = {

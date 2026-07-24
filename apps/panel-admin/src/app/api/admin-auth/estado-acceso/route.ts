@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@ruum/shared/types";
 import { crearClienteServidor } from "../../../../lib/supabase-server";
 import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
 import { normalizarError, registrarEvento } from "@ruum/api/services";
@@ -21,9 +23,25 @@ async function obtenerAuthUserId(serviceRole: ReturnType<typeof crearClienteServ
   return data?.auth_user_id ?? null;
 }
 
+async function crearClientePermisos(request: Request) {
+  const authorization = request.headers.get("authorization");
+  if (!authorization?.startsWith("Bearer ")) return crearClienteServidor();
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    throw new Error("Supabase no está configurado: define NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en .env.local");
+  }
+
+  return createClient<Database>(url, anonKey, {
+    global: { headers: { Authorization: authorization } },
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+}
+
 export async function POST(request: Request) {
   try {
-    const cliente = await crearClienteServidor();
+    const cliente = await crearClientePermisos(request);
     const serviceRole = crearClienteServiceRole();
     const body = await request.json() as Record<string, unknown>;
     const recurso = body.recurso;

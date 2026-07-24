@@ -13,6 +13,7 @@ import {
   obtenerDetalleSolicitudConductorAdmin,
   rechazarSolicitudConductorAdmin,
   revisarDocumentoConductorAdmin,
+  solicitarAprobacionAdmin,
   suspenderConductorAdmin,
   type DetalleSolicitudConductorAdmin,
   type EstadoDocumentoConductor
@@ -504,12 +505,23 @@ function AccionesCriticasPasaporte({
     if (accion === "baja" && confirmacion !== "BAJA") return;
     setProcesando(true);
     setError(null);
+    let aprobacionCreada = false;
     try {
       const cliente = crearClienteNavegador();
+      const nuevoEstado = accion === "suspender" ? "suspendido" : "baja";
+      const aprobacionId = await solicitarAprobacionAdmin(cliente, {
+        tipo: "sancion",
+        capacidad: "conductores:sancionar",
+        recurso: "conductores",
+        recursoId: conductor.id,
+        accion: "suspender",
+        payload: { nuevo_estado: nuevoEstado, motivo: motivo.trim() } as Json
+      });
+      aprobacionCreada = true;
       if (accion === "suspender") {
-        await suspenderConductorAdmin(cliente, conductor.id, motivo.trim());
+        await suspenderConductorAdmin(cliente, conductor.id, motivo.trim(), aprobacionId);
       } else {
-        await darBajaConductorAdmin(cliente, conductor.id, motivo.trim());
+        await darBajaConductorAdmin(cliente, conductor.id, motivo.trim(), aprobacionId);
       }
       await onActualizado();
       onAviso({
@@ -518,7 +530,16 @@ function AccionesCriticasPasaporte({
       });
       cerrar();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo completar la acción.");
+      const mensaje = err instanceof Error ? err.message : "No se pudo completar la acción.";
+      if (aprobacionCreada && /APROBACION_NO_APROBADA|APROBACION_REQUERIDA|PERMISO_INSUFICIENTE|42501/i.test(mensaje)) {
+        onAviso({
+          tono: "info",
+          texto: "Solicitud de aprobación creada. Un administrador con permiso de aprobación debe autorizarla en Aprobaciones duales antes de ejecutar la sanción."
+        });
+        cerrar();
+      } else {
+        setError(mensaje);
+      }
     } finally {
       setProcesando(false);
     }

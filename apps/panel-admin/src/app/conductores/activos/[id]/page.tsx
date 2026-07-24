@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
-import type { Database } from "@ruum/shared/types";
+import type { Database, Json } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
 import {
   obtenerConductorAdmin,
@@ -15,7 +15,8 @@ import {
   obtenerVehiculosDeConductorAdmin,
   obtenerEmpresaDeConductorAdmin,
   obtenerHistorialEstatusConductorAdmin,
-  verificarVigenciasDocumentosConductor
+  verificarVigenciasDocumentosConductor,
+  solicitarAprobacionAdmin
 } from "@ruum/api/services";
 
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
@@ -517,13 +518,34 @@ function SuspenderConductor({ conductor, onCompletado, compacto = false }: { con
   const [abierto, setAbierto] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [procesando, setProcesando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
   if (!abierto) return <button onClick={() => setAbierto(true)} className={`${compacto ? "rounded-lg px-4 py-2" : "rounded-lg px-4 py-2"} inline-flex min-h-10 items-center justify-center gap-2 border border-ink/20 bg-surface-primary font-body text-sm font-semibold text-ink hover:bg-ink/5`}><IconoPausa />Suspender</button>;
   async function ejecutar() {
     if (!motivo.trim()) return;
-    setProcesando(true); setError(null);
-    try { const cliente = crearClienteNavegador(); await suspenderConductorAdmin(cliente, conductor.id, motivo.trim()); setAbierto(false); onCompletado(); }
-    catch (err) { setError(err instanceof Error ? err.message : "No se pudo suspender."); }
+    setProcesando(true); setAviso(null);
+    let aprobacionCreada = false;
+    try {
+      const cliente = crearClienteNavegador();
+      const aprobacionId = await solicitarAprobacionAdmin(cliente, {
+        tipo: "sancion",
+        capacidad: "conductores:sancionar",
+        recurso: "conductores",
+        recursoId: conductor.id,
+        accion: "suspender",
+        payload: { nuevo_estado: "suspendido", motivo: motivo.trim() } as Json
+      });
+      aprobacionCreada = true;
+      await suspenderConductorAdmin(cliente, conductor.id, motivo.trim(), aprobacionId);
+      setAbierto(false); onCompletado();
+    }
+    catch (err) {
+      const mensaje = err instanceof Error ? err.message : "No se pudo suspender.";
+      if (aprobacionCreada && /APROBACION_NO_APROBADA|APROBACION_REQUERIDA|PERMISO_INSUFICIENTE|42501/i.test(mensaje)) {
+        setAviso({ tono: "info", texto: "Solicitud de aprobación creada. Autorízala en Aprobaciones duales para ejecutar la suspensión." });
+      } else {
+        setAviso({ tono: "danger", texto: mensaje });
+      }
+    }
     finally { setProcesando(false); }
   }
   return (
@@ -534,7 +556,7 @@ function SuspenderConductor({ conductor, onCompletado, compacto = false }: { con
         <p><span className="font-semibold text-ink">Estado actual:</span> {textoEstado(conductor.estado)}</p>
         <p><span className="font-semibold text-ink">Efecto:</span> El conductor no podrá recibir nuevos traslados hasta que se reactive.</p>
       </div>
-      {error && <div className="mt-2"><Aviso tono="danger">{error}</Aviso></div>}
+      {aviso && <div className="mt-2"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
       <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo de la suspensión" className="mt-3 w-full rounded-lg border border-ink/20 px-3 py-2 font-body text-sm" rows={2} />
       <div className="mt-3 flex gap-2">
         <button onClick={ejecutar} disabled={procesando || !motivo.trim()} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-status-warning px-4 py-2 font-body text-sm font-semibold text-surface-primary disabled:opacity-50"><IconoPausa />{procesando ? "Suspendiendo…" : "Confirmar suspensión"}</button>
@@ -548,17 +570,41 @@ function ReactivarConductor({ conductorId, onCompletado, compacto = false }: { c
   const [abierto, setAbierto] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [procesando, setProcesando] = useState(false);
+  const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
   if (!abierto) return <button onClick={() => setAbierto(true)} className={`${compacto ? "rounded-lg px-4 py-2" : "rounded-lg px-4 py-2"} border border-status-success/40 bg-status-success/10 font-body text-sm font-medium text-status-success hover:bg-status-success/20`}>Reactivar</button>;
   async function ejecutar() {
     if (!motivo.trim()) return; setProcesando(true);
-    try { const cliente = crearClienteNavegador(); await reactivarConductorAdmin(cliente, conductorId, motivo.trim()); setAbierto(false); onCompletado(); }
-    catch { /* error handled by parent */ }
+    setAviso(null);
+    let aprobacionCreada = false;
+    try {
+      const cliente = crearClienteNavegador();
+      const aprobacionId = await solicitarAprobacionAdmin(cliente, {
+        tipo: "sancion",
+        capacidad: "conductores:sancionar",
+        recurso: "conductores",
+        recursoId: conductorId,
+        accion: "suspender",
+        payload: { nuevo_estado: "activo", motivo: motivo.trim() } as Json
+      });
+      aprobacionCreada = true;
+      await reactivarConductorAdmin(cliente, conductorId, motivo.trim(), aprobacionId);
+      setAbierto(false); onCompletado();
+    }
+    catch (err) {
+      const mensaje = err instanceof Error ? err.message : "No se pudo reactivar.";
+      if (aprobacionCreada && /APROBACION_NO_APROBADA|APROBACION_REQUERIDA|PERMISO_INSUFICIENTE|42501/i.test(mensaje)) {
+        setAviso({ tono: "info", texto: "Solicitud de aprobación creada. Autorízala en Aprobaciones duales para ejecutar la reactivación." });
+      } else {
+        setAviso({ tono: "danger", texto: mensaje });
+      }
+    }
     finally { setProcesando(false); }
   }
   return (
     <div className="rounded-lg border border-status-success/30 bg-status-success-soft/20 p-4">
       <p className="font-body text-sm font-semibold text-status-success">Reactivar conductor</p>
       <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo de la reactivación" className="mt-3 w-full rounded-lg border border-ink/20 px-3 py-2 font-body text-sm" rows={2} />
+      {aviso && <div className="mt-2"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
       <div className="mt-3 flex gap-2">
         <button onClick={ejecutar} disabled={procesando || !motivo.trim()} className="rounded-lg bg-status-success px-4 py-2 font-body text-sm font-semibold text-surface-primary disabled:opacity-50">{procesando ? "Reactivando…" : "Confirmar reactivación"}</button>
         <button onClick={() => setAbierto(false)} disabled={procesando} className="rounded-lg border border-ink/20 px-4 py-2 font-body text-sm font-medium">Cancelar</button>
@@ -572,11 +618,34 @@ function DarBajaConductor({ conductor, onCompletado }: { conductor: ConductorRow
   const [motivo, setMotivo] = useState("");
   const [confirmacion, setConfirmacion] = useState("");
   const [procesando, setProcesando] = useState(false);
+  const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
   if (!abierto) return <button onClick={() => setAbierto(true)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-status-error/40 bg-status-error/10 px-4 py-2 font-body text-sm font-semibold text-status-error hover:bg-status-error/20"><IconoBaja />Baja definitiva</button>;
   async function ejecutar() {
     if (!motivo.trim() || confirmacion !== "BAJA") return; setProcesando(true);
-    try { const cliente = crearClienteNavegador(); await darBajaConductorAdmin(cliente, conductor.id, motivo.trim()); setAbierto(false); onCompletado(); }
-    catch { /* error handled by parent */ }
+    setAviso(null);
+    let aprobacionCreada = false;
+    try {
+      const cliente = crearClienteNavegador();
+      const aprobacionId = await solicitarAprobacionAdmin(cliente, {
+        tipo: "sancion",
+        capacidad: "conductores:sancionar",
+        recurso: "conductores",
+        recursoId: conductor.id,
+        accion: "suspender",
+        payload: { nuevo_estado: "baja", motivo: motivo.trim() } as Json
+      });
+      aprobacionCreada = true;
+      await darBajaConductorAdmin(cliente, conductor.id, motivo.trim(), aprobacionId);
+      setAbierto(false); onCompletado();
+    }
+    catch (err) {
+      const mensaje = err instanceof Error ? err.message : "No se pudo dar de baja.";
+      if (aprobacionCreada && /APROBACION_NO_APROBADA|APROBACION_REQUERIDA|PERMISO_INSUFICIENTE|42501/i.test(mensaje)) {
+        setAviso({ tono: "info", texto: "Solicitud de aprobación creada. Autorízala en Aprobaciones duales para ejecutar la baja definitiva." });
+      } else {
+        setAviso({ tono: "danger", texto: mensaje });
+      }
+    }
     finally { setProcesando(false); }
   }
   return (
@@ -588,6 +657,7 @@ function DarBajaConductor({ conductor, onCompletado }: { conductor: ConductorRow
         <p><span className="font-semibold text-ink">Efecto:</span> La cuenta queda bloqueada permanentemente y no podrá operar traslados.</p>
       </div>
       <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo de la baja" className="mt-3 w-full rounded-lg border border-ink/20 px-3 py-2 font-body text-sm" rows={2} />
+      {aviso && <div className="mt-2"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
       <label className="mt-3 flex flex-col gap-1">
         <span className="font-body text-xs font-medium text-text-secondary">Escribe BAJA para confirmar</span>
         <input type="text" value={confirmacion} onChange={(e) => setConfirmacion(e.target.value)} className="rounded-lg border border-ink/20 px-3 py-2 font-body text-sm" />
