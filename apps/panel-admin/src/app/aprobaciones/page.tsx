@@ -6,6 +6,7 @@ import {
   darBajaConductorAdmin,
   decidirAprobacionAdmin,
   listarAprobacionesPendientes,
+  obtenerAdminActual,
   reactivarConductorAdmin,
   suspenderConductorAdmin,
   type SolicitudAprobacionAdmin
@@ -54,6 +55,7 @@ export default function PaginaAprobaciones() {
   const [decision, setDecision] = useState<DecisionAccion>(null);
   const [motivo, setMotivo] = useState("");
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [adminActualId, setAdminActualId] = useState<string | null>(null);
   const [pendiente, startTransition] = useTransition();
 
   async function cargar() {
@@ -65,7 +67,12 @@ export default function PaginaAprobaciones() {
     }
     try {
       const cliente = crearClienteNavegador();
-      setSolicitudes(await listarAprobacionesPendientes(cliente));
+      const [admin, pendientes] = await Promise.all([
+        obtenerAdminActual(cliente),
+        listarAprobacionesPendientes(cliente)
+      ]);
+      setAdminActualId(admin?.id ?? null);
+      setSolicitudes(pendientes);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudieron cargar las aprobaciones.");
     } finally {
@@ -95,7 +102,14 @@ export default function PaginaAprobaciones() {
         setMotivo("");
         cargar();
       } catch (e) {
-        setMensaje(e instanceof Error ? e.message : "No se pudo procesar la decisión.");
+        const texto = e instanceof Error ? e.message : "No se pudo procesar la decisión.";
+        if (/APROBADOR_DEBE_SER_DISTINTO/i.test(texto)) {
+          setMensaje("Aprobación dual requiere otro administrador: no puedes aprobar una solicitud que tú mismo creaste.");
+        } else if (/PERMISO_INSUFICIENTE|42501/i.test(texto)) {
+          setMensaje("Tu cuenta no tiene la capacidad requerida para aprobar o ejecutar esta solicitud.");
+        } else {
+          setMensaje(texto);
+        }
       }
     });
   }
@@ -134,6 +148,7 @@ export default function PaginaAprobaciones() {
         <section className="mt-6 grid gap-4">
           {solicitudes.map((s) => {
             const payloadStr = typeof s.payload === "string" ? s.payload : JSON.stringify(s.payload);
+            const esSolicitudPropia = Boolean(adminActualId && s.solicitada_por === adminActualId);
             return (
               <article key={s.id} className="rounded-card border border-border-default bg-surface-primary p-5 shadow-[var(--ruum-shadow-1)]">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -158,8 +173,23 @@ export default function PaginaAprobaciones() {
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2 border-t border-ink/10 pt-4">
-                  <Button variant="quiet" onClick={() => { setDecision({ solicitud: s, aprobar: true }); setMotivo(""); }}>Aprobar</Button>
-                  <Button variant="quiet" onClick={() => { setDecision({ solicitud: s, aprobar: false }); setMotivo(""); }}>Rechazar</Button>
+                  <Button
+                    variant="quiet"
+                    disabled={esSolicitudPropia}
+                    onClick={() => { setDecision({ solicitud: s, aprobar: true }); setMotivo(""); }}
+                  >
+                    Aprobar
+                  </Button>
+                  <Button
+                    variant="quiet"
+                    disabled={esSolicitudPropia}
+                    onClick={() => { setDecision({ solicitud: s, aprobar: false }); setMotivo(""); }}
+                  >
+                    Rechazar
+                  </Button>
+                  {esSolicitudPropia && (
+                    <p className="font-body text-xs text-text-tertiary">Requiere aprobación de otro administrador.</p>
+                  )}
                 </div>
               </article>
             );
