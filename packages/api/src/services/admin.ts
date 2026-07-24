@@ -1800,13 +1800,13 @@ export async function suspenderConductorAdmin(
   await assertAdminPermission(cliente, "conductores:sancionar");
   const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_suspender_conductor",
-    args: { p_aprobacion_id?: string; p_conductor_id: string; p_nuevo_estado: string; p_motivo?: string }
+    args: { p_aprobacion_id: string | null; p_conductor_id: string; p_nuevo_estado: string; p_motivo: string | null }
   ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
   const { data, error } = await rpc("admin_suspender_conductor", {
-    p_aprobacion_id: aprobacionId,
+    p_aprobacion_id: aprobacionId ?? null,
     p_conductor_id: conductorId,
     p_nuevo_estado: "suspendido",
-    p_motivo: motivo
+    p_motivo: motivo || null
   });
   if (error) throw error;
   if (!data?.ejecutado) throw new Error("No se pudo suspender al conductor.");
@@ -1823,13 +1823,13 @@ export async function reactivarConductorAdmin(
   await assertAdminPermission(cliente, "conductores:sancionar");
   const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_suspender_conductor",
-    args: { p_aprobacion_id?: string; p_conductor_id: string; p_nuevo_estado: string; p_motivo?: string }
+    args: { p_aprobacion_id: string | null; p_conductor_id: string; p_nuevo_estado: string; p_motivo: string | null }
   ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
   const { data, error } = await rpc("admin_suspender_conductor", {
-    p_aprobacion_id: aprobacionId,
+    p_aprobacion_id: aprobacionId ?? null,
     p_conductor_id: conductorId,
     p_nuevo_estado: "activo",
-    p_motivo: motivo
+    p_motivo: motivo || null
   });
   if (error) throw error;
   if (!data?.ejecutado) throw new Error("No se pudo reactivar al conductor.");
@@ -1846,13 +1846,13 @@ export async function darBajaConductorAdmin(
   await assertAdminPermission(cliente, "conductores:sancionar");
   const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_suspender_conductor",
-    args: { p_aprobacion_id?: string; p_conductor_id: string; p_nuevo_estado: string; p_motivo?: string }
+    args: { p_aprobacion_id: string | null; p_conductor_id: string; p_nuevo_estado: string; p_motivo: string | null }
   ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
   const { data, error } = await rpc("admin_suspender_conductor", {
-    p_aprobacion_id: aprobacionId,
+    p_aprobacion_id: aprobacionId ?? null,
     p_conductor_id: conductorId,
     p_nuevo_estado: "baja",
-    p_motivo: motivo
+    p_motivo: motivo || null
   });
   if (error) throw error;
   if (!data?.ejecutado) throw new Error("No se pudo dar de baja al conductor.");
@@ -3331,13 +3331,13 @@ export async function cambiarEstadoConductorAdmin(
 
   const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_suspender_conductor",
-    args: { p_aprobacion_id: string; p_conductor_id: string; p_nuevo_estado: string; p_motivo?: string }
+    args: { p_aprobacion_id: string; p_conductor_id: string; p_nuevo_estado: string; p_motivo: string | null }
   ) => Promise<{ data: { ejecutado?: boolean } | null; error: unknown }>;
   const { data, error } = await rpc("admin_suspender_conductor", {
     p_aprobacion_id: aprobacionId,
     p_conductor_id: conductorId,
     p_nuevo_estado: nuevoEstado,
-    p_motivo: motivo
+    p_motivo: motivo || null
   });
   if (error) throw error;
   if (!data?.ejecutado) throw new Error("No se pudo suspender al conductor.");

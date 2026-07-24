@@ -15,7 +15,7 @@ ext {
     cordovaAndroidVersion = '14.0.1'
     
     // Testing libraries
-    mockitoVersion = '5.15.0'
+    mockitoVersion = '5.15.2'
     mockitoKotlinVersion = '5.4.0'
     coroutinesTestVersion = '1.9.0'
     androidxTestCoreVersion = '1.6.1'

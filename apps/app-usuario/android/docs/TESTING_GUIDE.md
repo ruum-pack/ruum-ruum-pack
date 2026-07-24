@@ -92,7 +92,7 @@ androidxTestRunnerVersion = '1.6.2'
 androidxTestRulesVersion = '1.6.1'
 
 // Mocking
-mockitoVersion = '5.15.0'
+mockitoVersion = '5.15.2'
 mockitoKotlinVersion = '5.4.0'
 
 // Coroutines para pruebas
