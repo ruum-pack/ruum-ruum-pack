@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
@@ -74,12 +74,15 @@ function fecha(valor: string | null) {
 
 export default function PaginaDetalleConductorAdmin() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const solicitudParam = searchParams.get("solicitud");
 
   const [conductor, setConductor] = useState<ConductorRow | null>(null);
   const [documentos, setDocumentos] = useState<DocumentoRow[]>([]);
   const [vehiculos, setVehiculos] = useState<VehiculoRow[]>([]);
   const [empresa, setEmpresa] = useState<EmpresaRow | null>(null);
   const [historial, setHistorial] = useState<HistorialEstatus[]>([]);
+  const [pasaporteHref, setPasaporteHref] = useState<string | null>(solicitudParam ? `/conductores/${solicitudParam}` : null);
   const [cargando, setCargando] = useState(true);
   const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
 
@@ -87,23 +90,28 @@ export default function PaginaDetalleConductorAdmin() {
     if (!tieneSupabaseConfigurado()) { setCargando(false); return; }
     try {
       const cliente = crearClienteNavegador();
-      const [c, d, v, e, h, a] = await Promise.all([
-        obtenerConductorAdmin(cliente, id),
-        cliente.from("documentos_conductor").select("*").eq("conductor_id", id).order("creado_en", { ascending: false }),
-        obtenerVehiculosDeConductorAdmin(cliente, id),
-        obtenerEmpresaDeConductorAdmin(cliente, id),
-        obtenerHistorialEstatusConductorAdmin(cliente, id),
-        verificarVigenciasDocumentosConductor(cliente, id)
-      ]);
+      const c = await obtenerConductorAdmin(cliente, id);
       setConductor(c);
+      const consultarDocumentos = async () => cliente.from("documentos_conductor").select("*").eq("conductor_id", id).order("creado_en", { ascending: false });
+      const consultarSolicitud = async () => cliente.from("solicitudes_conductor").select("id").eq("conductor_id", id).order("actualizado_en", { ascending: false }).limit(1).maybeSingle();
+      const [d, v, e, h, solicitud] = await Promise.all([
+        consultarDocumentos().catch(() => ({ data: [], error: null })),
+        obtenerVehiculosDeConductorAdmin(cliente, id).catch(() => []),
+        obtenerEmpresaDeConductorAdmin(cliente, id).catch(() => null),
+        obtenerHistorialEstatusConductorAdmin(cliente, id).catch(() => []),
+        solicitudParam
+          ? Promise.resolve({ data: { id: solicitudParam }, error: null })
+          : consultarSolicitud().catch(() => ({ data: null, error: null }))
+      ]);
+      void verificarVigenciasDocumentosConductor(cliente, id).catch(() => undefined);
       if (!d.error) setDocumentos(d.data ?? []);
       setVehiculos(v);
       setEmpresa(e);
       setHistorial(h);
-      void a;
+      if (solicitud.data?.id) setPasaporteHref(`/conductores/${solicitud.data.id}`);
     } catch { setConductor(null); }
     finally { setCargando(false); }
-  }, [id]);
+  }, [id, solicitudParam]);
 
   useEffect(() => { void cargar(); }, [cargar]);
 
@@ -111,7 +119,7 @@ export default function PaginaDetalleConductorAdmin() {
   if (!conductor) return (
     <main className="mx-auto max-w-3xl px-6 py-8">
       <Aviso tono="danger">No se encontró el conductor.</Aviso>
-      <Link href="/conductores/activos" className="mt-4 inline-block font-body text-sm text-focus-default hover:underline">Volver</Link>
+      <Link href={pasaporteHref ?? "/conductores"} className="mt-4 inline-block font-body text-sm text-focus-default hover:underline">Volver</Link>
     </main>
   );
 
@@ -125,7 +133,8 @@ export default function PaginaDetalleConductorAdmin() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-8 sm:px-8 sm:py-10">
       <div className="flex items-center gap-3">
-        <Link href="/conductores/activos" className="font-body text-sm text-text-tertiary hover:text-ink">&larr; Conductores</Link>
+        <Link href={pasaporteHref ?? "/conductores/activos"} className="font-body text-sm text-text-tertiary hover:text-ink">&larr; Volver</Link>
+        <Link href="/conductores/activos" className="font-body text-sm text-status-info hover:underline">Conductores activos</Link>
       </div>
 
       {aviso && <div className="mt-4"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}

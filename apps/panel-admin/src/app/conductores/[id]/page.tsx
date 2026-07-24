@@ -388,8 +388,7 @@ function DesempenoScore({
           tono={conductor && conductor.suspensiones_activas > 0 ? "danger" : "success"}
         />
       </div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border-default pt-4">
-        <p className="font-body text-admin-secundario text-text-tertiary">Ajustes de sanción y estatus se controlan desde el expediente operativo activo.</p>
+      <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t border-border-default pt-4">
         {hrefEstatus ? (
           <Link href={hrefEstatus} className="inline-flex h-9 items-center rounded-md border border-status-info bg-status-info px-3 font-body text-admin-secundario font-semibold text-surface-primary shadow-sm hover:bg-status-info/90">
             Ajustar estatus
@@ -851,28 +850,33 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
   const documentosLote = documentosRequeridos.filter((documento) => documento.estado === "en_revision");
   const anomalíasVisibles = documentosRequeridos.some((documento) => documento.estado === "rechazado" || documento.estado === "vencido" || Boolean(documento.motivo_rechazo));
   const puedeAprobarLote = solicitud.estado === "en_revision" && documentosRequeridos.length === DOCUMENTOS_REQUERIDOS.length && documentosLote.length > 0 && !anomalíasVisibles;
-  const hrefEstatus = conductor?.id ? `/conductores/activos/${conductor.id}` : null;
+  const hrefEstatus = conductor?.id ? `/conductores/activos/${conductor.id}?solicitud=${solicitud.id}` : null;
   const ciudadSede = textoJson(solicitud.domicilio, "ciudad_municipio", "ciudad") ?? conductor?.ciudad_municipio ?? "-";
+  const datosHeader = `Folio ${solicitud.id.slice(0, 8)} · ${solicitud.curp_normalizada ?? conductor?.curp ?? "CURP no registrada"} · ${telefonoContacto ?? "Sin teléfono"} · ${correo}`;
 
   return (
     <main className="admin-page-shell pb-24">
       <AdminPageHeader
         etiqueta="Pasaporte digital CONCER"
         titulo={nombre}
-        descripcion={`Folio ${solicitud.id.slice(0, 8)} · revisión de datos, consentimientos y documentos.`}
-        breadcrumb={[{ label: "Conductores", href: "/conductores" }, { label: "Pasaporte digital CONCER" }]}
+        descripcion={datosHeader}
         tipoDatos="administrativos"
         accion={(
-          <AdminButton
-            variant="secondary"
-            className={puedeAprobarLote ? "border-status-success bg-status-success text-surface-primary hover:bg-status-success/90" : "border-border-default bg-surface-primary text-text-secondary"}
-            loading={procesando && !accion}
-            disabled={!puedeAprobarLote || procesando}
-            onClick={() => void aprobarTodosDocumentos(documentosLote)}
-            title={!puedeAprobarLote ? "Disponible cuando los documentos requeridos están en revisión y no hay anomalías visibles." : undefined}
-          >
-            Aprobar todos los documentos
-          </AdminButton>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Link href="/conductores/activos" className="inline-flex min-h-10 items-center rounded-lg border border-status-info bg-status-info px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-status-info/90">
+              Conductores activos
+            </Link>
+            <AdminButton
+              variant="secondary"
+              className={puedeAprobarLote ? "border-status-success bg-status-success text-surface-primary hover:bg-status-success/90" : "border-border-default bg-surface-primary text-text-secondary"}
+              loading={procesando && !accion}
+              disabled={!puedeAprobarLote || procesando}
+              onClick={() => void aprobarTodosDocumentos(documentosLote)}
+              title={!puedeAprobarLote ? "Disponible cuando los documentos requeridos están en revisión y no hay anomalías visibles." : undefined}
+            >
+              Aprobar todos los documentos
+            </AdminButton>
+          </div>
         )}
       />
 
@@ -885,9 +889,6 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="font-body text-admin-secundario font-semibold uppercase tracking-[0.14em] text-text-tertiary">Ficha rápida</p>
-                <h2 className="mt-1 font-display text-xl font-semibold text-ink">{nombre}</h2>
-                <p className="mt-1 font-body text-sm text-text-secondary">{solicitud.curp_normalizada ?? conductor?.curp ?? "CURP no registrada"} · {telefonoContacto ?? "Sin teléfono"}</p>
-                <p className="mt-0.5 font-body text-sm text-text-secondary">{correo}</p>
                 <QuickActionsBar
                   nombre={nombre}
                   telefono={telefonoContacto}

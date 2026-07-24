@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import { AdminDataTable, type AdminDataTableColumn } from "../AdminDataTable";
 import { AdminFiltroActivo, AdminPageHeader, limpiarParamsFiltroUrl } from "../admin-ui";
@@ -314,6 +315,11 @@ export default function PaginaConductoresAdmin() {
         ultimaActualizacion={ultimaActualizacion}
         tipoDatos="administrativos"
         contadorResultados={totalResultados}
+        accion={(
+          <Link href="/conductores/activos" className="inline-flex min-h-10 items-center rounded-lg border border-status-info bg-status-info px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-status-info/90">
+            Conductores activos
+          </Link>
+        )}
       />
 
       {avisoAccion && (
