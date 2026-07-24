@@ -92,6 +92,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
           version: (documentoDe(tipo)?.version ?? 0) + 1,
           documento_anterior_id: documentoAnteriorId ?? null,
           es_actual: true,
+          expira_en: null,
           reemplazado_en: null,
           revisado_por: null,
           revisado_en: null,

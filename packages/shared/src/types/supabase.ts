@@ -1775,6 +1775,45 @@ export type Database = {
           },
         ]
       }
+      notas_internas_solicitud_conductor: {
+        Row: {
+          admin_id: string | null
+          creado_en: string
+          id: string
+          mensaje: string
+          solicitud_id: string
+        }
+        Insert: {
+          admin_id?: string | null
+          creado_en?: string
+          id?: string
+          mensaje: string
+          solicitud_id: string
+        }
+        Update: {
+          admin_id?: string | null
+          creado_en?: string
+          id?: string
+          mensaje?: string
+          solicitud_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_internas_solicitud_conductor_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_internas_solicitud_conductor_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "solicitudes_conductor"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidencias: {
         Row: {
           creada_en: string

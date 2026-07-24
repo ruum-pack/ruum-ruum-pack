@@ -13,6 +13,7 @@ type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
 type SolicitudConductorRow = Database["public"]["Tables"]["solicitudes_conductor"]["Row"];
 type ConsentimientoUsuarioRow = Database["public"]["Tables"]["consentimientos_usuario"]["Row"];
 type HistorialSolicitudRow = Database["public"]["Tables"]["historial_estados_solicitud_conductor"]["Row"];
+type NotaInternaSolicitudConductorRow = Database["public"]["Tables"]["notas_internas_solicitud_conductor"]["Row"];
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 type VehiculoRow = Database["public"]["Tables"]["vehiculos"]["Row"];
 type EmpresaRow = Database["public"]["Tables"]["empresas"]["Row"];
@@ -303,12 +304,17 @@ export interface HistorialSolicitudConRevisor extends HistorialSolicitudRow {
   revisor_nombre: string | null;
 }
 
+export interface NotaInternaSolicitudConAdmin extends NotaInternaSolicitudConductorRow {
+  admin_nombre: string | null;
+}
+
 export interface DetalleSolicitudConductorAdmin {
   solicitud: SolicitudConductorRow;
   conductor: ConductorRow | null;
   documentos: DocumentoConductorRow[];
   consentimientos: ConsentimientoUsuarioRow[];
   historial: HistorialSolicitudConRevisor[];
+  notasInternas: NotaInternaSolicitudConAdmin[];
 }
 
 /** Admin asociado a la sesión de Supabase Auth actual, si existe (mismo patrón que obtenerUsuarioActual/obtenerConductorActual). */
@@ -2611,7 +2617,7 @@ export async function obtenerDetalleSolicitudConductorAdmin(
   const filtroDocumentos = solicitud.data.conductor_id
     ? `solicitud_id.eq.${solicitudId},conductor_id.eq.${solicitud.data.conductor_id}`
     : `solicitud_id.eq.${solicitudId}`;
-  const [documentos, consentimientos, historial, admins, conductor] = await Promise.all([
+  const [documentos, consentimientos, historial, admins, conductor, notasInternas] = await Promise.all([
     cliente
       .from("documentos_conductor")
       .select("*")
@@ -2631,13 +2637,20 @@ export async function obtenerDetalleSolicitudConductorAdmin(
     cliente.from("admins").select("id,nombre"),
     solicitud.data.conductor_id
       ? cliente.from("conductores").select("*").eq("id", solicitud.data.conductor_id).maybeSingle()
-      : Promise.resolve({ data: null, error: null })
+      : Promise.resolve({ data: null, error: null }),
+    cliente
+      .from("notas_internas_solicitud_conductor")
+      .select("*")
+      .eq("solicitud_id", solicitudId)
+      .order("creado_en", { ascending: true })
   ]);
 
   for (const resultado of [documentos, consentimientos, historial, admins, conductor]) {
     if (resultado.error) throw resultado.error;
   }
   const nombreAdmin = new Map((admins.data ?? []).map((admin) => [admin.id, admin.nombre]));
+  const errorNotas = notasInternas.error as { code?: string; message?: string } | null;
+  if (errorNotas && !["42P01", "PGRST205"].includes(errorNotas.code ?? "")) throw notasInternas.error;
 
   return {
     solicitud: solicitud.data,
@@ -2647,7 +2660,36 @@ export async function obtenerDetalleSolicitudConductorAdmin(
     historial: (historial.data ?? []).map((evento) => ({
       ...evento,
       revisor_nombre: evento.revisado_por ? nombreAdmin.get(evento.revisado_por) ?? "Administrador" : null
+    })),
+    notasInternas: ((notasInternas.data ?? []) as NotaInternaSolicitudConductorRow[]).map((nota) => ({
+      ...nota,
+      admin_nombre: nota.admin_id ? nombreAdmin.get(nota.admin_id) ?? "Administrador" : null
     }))
+  };
+}
+
+export async function crearNotaInternaSolicitudConductorAdmin(
+  cliente: Cliente,
+  solicitudId: string,
+  mensaje: string
+): Promise<NotaInternaSolicitudConAdmin> {
+  await assertAdminPermission(cliente, "conductores:leer");
+  const limpio = mensaje.trim();
+  if (!limpio) throw new Error("Escribe un mensaje para el chat interno.");
+  if (limpio.length > 1000) throw new Error("El mensaje no puede superar 1000 caracteres.");
+  const adminId = await obtenerAdminIdParaAuditoria(cliente);
+
+  const { data, error } = await cliente
+    .from("notas_internas_solicitud_conductor")
+    .insert({ solicitud_id: solicitudId, admin_id: adminId, mensaje: limpio })
+    .select("*")
+    .single();
+  if (error) throw error;
+  const admin = await cliente.from("admins").select("nombre").eq("id", adminId).maybeSingle();
+
+  return {
+    ...data,
+    admin_nombre: admin.data?.nombre ?? "Administrador"
   };
 }
 

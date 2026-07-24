@@ -336,6 +336,7 @@ export default function PaginaRegistroConductor() {
         nombre: nombreCompleto,
         nombres: limpiarTexto(nombre),
         apellidos: limpiarTexto(apellidos),
+        email: email.trim().toLowerCase(),
         telefono: telefonoE164Mx(telefono),
         curp: curp.trim().toUpperCase(),
         autoriza_verificacion_antecedentes: autorizaVerificacion,
@@ -366,7 +367,7 @@ export default function PaginaRegistroConductor() {
         telefono: soloDigitos(contactoEmergenciaTelefono)
       }
     };
-  },[nombreCompleto,nombre,apellidos,telefono,curp,autorizaVerificacion,declaraSinSuspensiones,aceptaTerminos,confirmaPrivacidad,codigoPostal,estado,ciudad,colonia,calle,numero,referencias,numeroLicencia,tipoLicencia,vigenciaLicencia,contactoEmergenciaNombre,contactoEmergenciaTelefono]);
+  },[nombreCompleto,nombre,apellidos,email,telefono,curp,autorizaVerificacion,declaraSinSuspensiones,aceptaTerminos,confirmaPrivacidad,codigoPostal,estado,ciudad,colonia,calle,numero,referencias,numeroLicencia,tipoLicencia,vigenciaLicencia,contactoEmergenciaNombre,contactoEmergenciaTelefono]);
 
   async function prepararSolicitudBorrador(cliente: ReturnType<typeof crearClienteNavegador>) {
     const inicio = await iniciarSolicitudConductor(cliente);
