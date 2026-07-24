@@ -107,6 +107,42 @@ function diasParaVencer(fechaIso: string | null) {
   return Math.ceil((fechaValor.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+function estadoVigencia(dias: number | null) {
+  if (dias === null) {
+    return {
+      clase: "border-ink/15 bg-ink/[0.04] text-text-secondary",
+      punto: "bg-text-tertiary",
+      etiqueta: "Sin fecha"
+    };
+  }
+  if (dias < 0) {
+    return {
+      clase: "border-status-error/30 bg-status-error-soft text-status-error",
+      punto: "bg-status-error",
+      etiqueta: "Vencida"
+    };
+  }
+  if (dias <= 30) {
+    return {
+      clase: "border-status-warning/35 bg-status-warning-soft text-status-warning",
+      punto: "bg-status-warning",
+      etiqueta: "Por vencer"
+    };
+  }
+  if (dias > 180) {
+    return {
+      clase: "border-status-success/30 bg-status-success-soft text-status-success",
+      punto: "bg-status-success",
+      etiqueta: "Vigente"
+    };
+  }
+  return {
+    clase: "border-status-info/30 bg-status-info-soft text-status-info",
+    punto: "bg-status-info",
+    etiqueta: "Vigente"
+  };
+}
+
 function esDocumentoVisible(documento: DocumentoRow) {
   return /\.(png|jpe?g|webp|gif|pdf)$/i.test(documento.nombre_archivo) || /\.(png|jpe?g|webp|gif|pdf)$/i.test(documento.url);
 }
@@ -137,6 +173,17 @@ function IndicadorChecklist({ etiqueta, valor, completo }: { etiqueta: string; v
         {valor}
       </span>
     </div>
+  );
+}
+
+function VigenciaLicencia({ fechaIso, dias }: { fechaIso: string | null; dias: number | null }) {
+  const estado = estadoVigencia(dias);
+  return (
+    <span className={`inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border px-2.5 py-1 font-body text-sm font-semibold ${estado.clase}`}>
+      <span className={`size-2 rounded-full ${estado.punto}`} aria-hidden="true" />
+      <span>{fechaIso ?? "-"}</span>
+      <span className="text-admin-secundario">{estado.etiqueta}</span>
+    </span>
   );
 }
 
@@ -407,8 +454,6 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
   const correo = textoJson(solicitud.datos_personales, "email", "correo", "correo_electronico") ?? "-";
   const vigenciaLicencia = textoJson(solicitud.licencia, "vigencia") ?? conductor?.licencia_vigencia ?? null;
   const diasVigencia = diasParaVencer(vigenciaLicencia);
-  const licenciaPorVencer = diasVigencia !== null && diasVigencia >= 0 && diasVigencia <= 30;
-  const licenciaVencida = diasVigencia !== null && diasVigencia < 0;
   const documentosRequeridos = documentos.filter((documento) => DOCUMENTOS_REQUERIDOS.includes(documento.tipo as typeof DOCUMENTOS_REQUERIDOS[number]));
   const documentosAprobadosCount = DOCUMENTOS_REQUERIDOS.filter((tipo) => documentos.some((documento) => documento.tipo === tipo && documento.estado === "aprobado")).length;
   const documentosAprobados = documentosAprobadosCount === DOCUMENTOS_REQUERIDOS.length;
@@ -436,6 +481,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
         accion={(
           <AdminButton
             variant="secondary"
+            className={puedeAprobarLote ? "border-status-success bg-status-success text-surface-primary hover:bg-status-success/90" : "border-border-default bg-surface-primary text-text-secondary"}
             loading={procesando && !accion}
             disabled={!puedeAprobarLote || procesando}
             onClick={() => void aprobarTodosDocumentos(documentosLote)}
@@ -461,13 +507,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
           <Dato etiqueta="Licencia" valor={solicitud.licencia_normalizada ?? conductor?.licencia_numero ?? "-"} destacado />
           <Dato
             etiqueta="Vigencia"
-            valor={(
-              <span className={licenciaVencida ? "text-status-error" : licenciaPorVencer ? "text-status-warning" : ""}>
-                {vigenciaLicencia ?? "-"}
-                {licenciaVencida && <span className="ml-2 rounded-full bg-status-error-soft px-2 py-0.5 text-admin-secundario font-semibold text-status-error">Vencida</span>}
-                {licenciaPorVencer && <span className="ml-2 rounded-full bg-status-warning-soft px-2 py-0.5 text-admin-secundario font-semibold text-status-warning">Por vencer</span>}
-              </span>
-            )}
+            valor={<VigenciaLicencia fechaIso={vigenciaLicencia} dias={diasVigencia} />}
             destacado
           />
           <Dato etiqueta="Domicilio" valor={[textoJson(solicitud.domicilio, "colonia") ?? conductor?.colonia, textoJson(solicitud.domicilio, "ciudad_municipio", "ciudad") ?? conductor?.ciudad_municipio, textoJson(solicitud.domicilio, "estado") ?? conductor?.estado_residencia].filter(Boolean).join(", ")} />
@@ -547,28 +587,30 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
           </section>
         </aside>
 
-        <section className="min-w-0 space-y-5">
-          <PassportCard>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-display text-lg font-semibold">Documentos vigentes</h2>
-              <p className="font-body text-admin-secundario text-text-tertiary">{documentos.length} documento(s)</p>
-            </div>
-            <div className="mt-4 grid gap-3 lg:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
-              {documentos.length === 0 ? <p className="font-body text-sm text-text-tertiary">No hay documentos vigentes.</p> : documentos.map((documento) => (
-                <FilaDocumento
-                  key={documento.id}
-                  documento={documento}
-                  seleccionado={documentoSeleccionado?.id === documento.id}
-                  onSeleccionar={seleccionarDocumento}
-                  onRevisado={revisarDocumento}
-                />
-              ))}
-            </div>
-          </PassportCard>
+        <section className="min-w-0">
+          <div className="space-y-5 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
+            <PassportCard>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="font-display text-lg font-semibold">Documentos vigentes</h2>
+                <p className="font-body text-admin-secundario text-text-tertiary">{documentos.length} documento(s)</p>
+              </div>
+              <div className="mt-4 grid gap-3 lg:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+                {documentos.length === 0 ? <p className="font-body text-sm text-text-tertiary">No hay documentos vigentes.</p> : documentos.map((documento) => (
+                  <FilaDocumento
+                    key={documento.id}
+                    documento={documento}
+                    seleccionado={documentoSeleccionado?.id === documento.id}
+                    onSeleccionar={seleccionarDocumento}
+                    onRevisado={revisarDocumento}
+                  />
+                ))}
+              </div>
+            </PassportCard>
 
-          <VisorDocumento documento={documentoSeleccionado} url={documentoSeleccionado ? urlsDocumento[documentoSeleccionado.id] ?? null : null} />
+            <VisorDocumento documento={documentoSeleccionado} url={documentoSeleccionado ? urlsDocumento[documentoSeleccionado.id] ?? null : null} />
+          </div>
 
-          <PassportCard>
+          <PassportCard className="mt-5">
             <h2 className="font-display text-lg font-semibold">Historial de estados y decisiones</h2>
             <ol className="mt-4 space-y-4">
               {historial.map((evento) => (
