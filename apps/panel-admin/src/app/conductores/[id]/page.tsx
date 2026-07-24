@@ -18,6 +18,7 @@ import { AdminPageHeader } from "../../admin-ui";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 
 type DocumentoRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
+type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
 type EstadoSolicitud = Database["public"]["Enums"]["estado_expediente_conductor"];
 
 const DOCUMENTOS_REQUERIDOS = ["licencia_frente", "licencia_reverso", "identificacion_oficial"] as const;
@@ -143,6 +144,62 @@ function estadoVigencia(dias: number | null) {
   };
 }
 
+function limpiarTelefono(valor: string | null) {
+  if (!valor) return null;
+  const digitos = valor.replace(/\D/g, "");
+  return digitos.length >= 10 ? digitos : null;
+}
+
+function telefonoWhatsapp(valor: string | null) {
+  const digitos = limpiarTelefono(valor);
+  if (!digitos) return null;
+  if (digitos.startsWith("52")) return digitos;
+  return digitos.length === 10 ? `52${digitos}` : digitos;
+}
+
+function formatoPorcentaje(valor: number | null) {
+  if (valor === null || Number.isNaN(valor)) return "Sin historial";
+  return `${Math.round(valor)}%`;
+}
+
+function etiquetaNivel(valor: string | null | undefined) {
+  if (!valor) return "Por asignar";
+  return valor.replace(/_/g, " ");
+}
+
+function evaluarElegibilidad({
+  conductor,
+  documentosAprobados,
+  diasVigencia
+}: {
+  conductor: ConductorRow | null;
+  documentosAprobados: boolean;
+  diasVigencia: number | null;
+}) {
+  if (!conductor) {
+    return { elegible: false, tono: "warning" as const, texto: "En revisión", detalle: "Pendiente de aprobación administrativa." };
+  }
+  if (conductor.suspensiones_activas > 0) {
+    return { elegible: false, tono: "danger" as const, texto: "No elegible", detalle: `Bloqueado por ${conductor.suspensiones_activas} penalización(es) activa(s).` };
+  }
+  if (conductor.estado !== "activo" && conductor.estado !== "modo_prueba_supervisada") {
+    return { elegible: false, tono: "danger" as const, texto: "No elegible", detalle: `Estatus operativo: ${conductor.estado.replace(/_/g, " ")}.` };
+  }
+  if (!documentosAprobados || !conductor.documentos_vigentes) {
+    return { elegible: false, tono: "warning" as const, texto: "No elegible", detalle: "Documentos requeridos incompletos o no vigentes." };
+  }
+  if (diasVigencia !== null && diasVigencia < 0) {
+    return { elegible: false, tono: "danger" as const, texto: "No elegible", detalle: "Licencia vencida." };
+  }
+  if (diasVigencia !== null && diasVigencia <= 30) {
+    return { elegible: false, tono: "warning" as const, texto: "No elegible", detalle: `Licencia por vencer en ${diasVigencia} día(s).` };
+  }
+  if (!conductor.nivel_operativo_vigente) {
+    return { elegible: false, tono: "warning" as const, texto: "No elegible", detalle: "Nivel operativo CONCER pendiente." };
+  }
+  return { elegible: true, tono: "success" as const, texto: "Elegible para asignación", detalle: `Nivel ${etiquetaNivel(conductor.nivel_operativo_vigente)} vigente.` };
+}
+
 function esDocumentoVisible(documento: DocumentoRow) {
   return /\.(png|jpe?g|webp|gif|pdf)$/i.test(documento.nombre_archivo) || /\.(png|jpe?g|webp|gif|pdf)$/i.test(documento.url);
 }
@@ -184,6 +241,185 @@ function VigenciaLicencia({ fechaIso, dias }: { fechaIso: string | null; dias: n
       <span>{fechaIso ?? "-"}</span>
       <span className="text-admin-secundario">{estado.etiqueta}</span>
     </span>
+  );
+}
+
+function QuickActionsBar({
+  nombre,
+  telefono,
+  correo,
+  onChat
+}: {
+  nombre: string;
+  telefono: string | null;
+  correo: string | null;
+  onChat: () => void;
+}) {
+  const telefonoLimpio = limpiarTelefono(telefono);
+  const whatsapp = telefonoWhatsapp(telefono);
+  const correoValido = correo && correo !== "-" ? correo : null;
+  const mensaje = encodeURIComponent(`Hola ${nombre}, te contactamos de ruumruum sobre tu Pasaporte digital CONCER.`);
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <a
+        href={telefonoLimpio ? `tel:${telefonoLimpio}` : undefined}
+        aria-disabled={!telefonoLimpio}
+        className={`inline-flex h-9 items-center justify-center rounded-md border px-3 font-body text-admin-secundario font-semibold transition ${telefonoLimpio ? "border-border-default bg-surface-primary text-text-secondary hover:bg-surface-secondary" : "pointer-events-none border-border-default bg-ink/[0.04] text-text-disabled"}`}
+        title={telefonoLimpio ? "Llamar al conductor" : "Teléfono no registrado"}
+      >
+        Tel
+      </a>
+      <a
+        href={whatsapp ? `https://wa.me/${whatsapp}?text=${mensaje}` : undefined}
+        target="_blank"
+        rel="noreferrer"
+        aria-disabled={!whatsapp}
+        className={`inline-flex h-9 items-center justify-center rounded-md border px-3 font-body text-admin-secundario font-semibold transition ${whatsapp ? "border-status-success/30 bg-status-success-soft text-status-success hover:bg-status-success-soft/80" : "pointer-events-none border-border-default bg-ink/[0.04] text-text-disabled"}`}
+        title={whatsapp ? "Abrir WhatsApp con plantilla" : "Teléfono no disponible para WhatsApp"}
+      >
+        WhatsApp
+      </a>
+      <a
+        href={correoValido ? `mailto:${correoValido}?subject=${encodeURIComponent("Pasaporte digital CONCER")}` : undefined}
+        aria-disabled={!correoValido}
+        className={`inline-flex h-9 items-center justify-center rounded-md border px-3 font-body text-admin-secundario font-semibold transition ${correoValido ? "border-border-default bg-surface-primary text-text-secondary hover:bg-surface-secondary" : "pointer-events-none border-border-default bg-ink/[0.04] text-text-disabled"}`}
+        title={correoValido ? "Enviar correo" : "Correo no registrado"}
+      >
+        Email
+      </a>
+      <button
+        type="button"
+        onClick={onChat}
+        className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-status-info/25 bg-status-info-soft px-3 font-body text-admin-secundario font-semibold text-status-info hover:bg-status-info-soft/80"
+        title="Abrir chat interno del expediente"
+      >
+        Chat interno
+        <span className="rounded-full bg-surface-primary px-1.5 py-0.5 font-mono-ruum text-[10px]">0</span>
+      </button>
+    </div>
+  );
+}
+
+function KpiCard({ etiqueta, valor, detalle, tono = "neutral" }: { etiqueta: string; valor: ReactNode; detalle: string; tono?: "neutral" | "success" | "warning" | "danger" }) {
+  const tonoClase = {
+    neutral: "border-border-default bg-surface-primary",
+    success: "border-status-success/25 bg-status-success-soft/40",
+    warning: "border-status-warning/30 bg-status-warning-soft/45",
+    danger: "border-status-error/25 bg-status-error-soft/45"
+  }[tono];
+  return (
+    <div className={`min-w-0 rounded-lg border px-3 py-3 ${tonoClase}`}>
+      <p className="font-body text-admin-secundario font-semibold uppercase tracking-[0.08em] text-text-tertiary">{etiqueta}</p>
+      <div className="mt-2 font-display text-xl font-semibold text-ink">{valor}</div>
+      <p className="mt-1 line-clamp-2 font-body text-admin-secundario text-text-secondary" title={detalle}>{detalle}</p>
+    </div>
+  );
+}
+
+function DesempenoScore({
+  conductor,
+  documentosAprobados,
+  diasVigencia,
+  hrefEstatus
+}: {
+  conductor: ConductorRow | null;
+  documentosAprobados: boolean;
+  diasVigencia: number | null;
+  hrefEstatus: string | null;
+}) {
+  const elegibilidad = evaluarElegibilidad({ conductor, documentosAprobados, diasVigencia });
+  const totalEventosOperativos = conductor
+    ? conductor.traslados_completados + conductor.cancelaciones_sin_justificacion_count + conductor.no_presentaciones_6m
+    : 0;
+  const efectividad = conductor && totalEventosOperativos > 0
+    ? (conductor.traslados_completados / totalEventosOperativos) * 100
+    : null;
+  const tonoElegibilidad = elegibilidad.tono === "success"
+    ? "border-status-success/30 bg-status-success-soft text-status-success"
+    : elegibilidad.tono === "danger"
+      ? "border-status-error/30 bg-status-error-soft text-status-error"
+      : "border-status-warning/35 bg-status-warning-soft text-status-warning";
+
+  return (
+    <details open className="rounded-lg border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-1)]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+        <h2 className="font-display text-lg font-semibold">Desempeño y Score</h2>
+        <span className={`rounded-full border px-3 py-1 font-body text-admin-secundario font-semibold ${tonoElegibilidad}`}>{elegibilidad.texto}</span>
+      </summary>
+      <div className={`mt-4 rounded-lg border px-3 py-3 ${tonoElegibilidad}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="font-body text-sm font-semibold">{elegibilidad.texto}</p>
+            <p className="mt-1 font-body text-admin-secundario">{elegibilidad.detalle}</p>
+          </div>
+          <span className="rounded-full border border-current/20 px-2.5 py-1 font-body text-admin-secundario font-semibold">
+            {conductor ? conductor.estado.replace(/_/g, " ") : "sin alta operativa"}
+          </span>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <KpiCard
+          etiqueta="Calificación"
+          valor={conductor ? `${conductor.calificacion_promedio.toFixed(2)} / 5.0` : "Sin alta"}
+          detalle={conductor ? "Promedio acumulado del conductor." : "Se activará cuando exista conductor asociado."}
+          tono={conductor && conductor.calificacion_promedio >= 4.5 ? "success" : "neutral"}
+        />
+        <KpiCard
+          etiqueta="Rendimiento"
+          valor={formatoPorcentaje(efectividad)}
+          detalle={conductor ? `Cancelaciones: ${conductor.cancelaciones_sin_justificacion_count} · No presentaciones 6m: ${conductor.no_presentaciones_6m}` : "Sin historial operativo."}
+          tono={efectividad !== null && efectividad >= 90 ? "success" : "neutral"}
+        />
+        <KpiCard
+          etiqueta="Historial"
+          valor={conductor ? `${conductor.traslados_completados} traslados` : "Sin historial"}
+          detalle={`Nivel CONCER: ${etiquetaNivel(conductor?.nivel_operativo_vigente ?? conductor?.nivel_por_experiencia)}`}
+        />
+        <KpiCard
+          etiqueta="Penalizaciones"
+          valor={conductor ? `${conductor.suspensiones_activas} activas` : "Sin conductor"}
+          detalle={conductor ? `Incidencias graves: ${conductor.incidencias_graves_6m} en 6m · ${conductor.incidencias_graves_12m} en 12m` : "Sin expediente operativo."}
+          tono={conductor && conductor.suspensiones_activas > 0 ? "danger" : "success"}
+        />
+      </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border-default pt-4">
+        <p className="font-body text-admin-secundario text-text-tertiary">Ajustes de sanción y estatus se controlan desde el expediente operativo activo.</p>
+        {hrefEstatus ? (
+          <Link href={hrefEstatus} className="inline-flex h-9 items-center rounded-md border border-border-default bg-surface-primary px-3 font-body text-admin-secundario font-semibold text-text-secondary hover:bg-surface-secondary">
+            Ajustar estatus
+          </Link>
+        ) : (
+          <span className="inline-flex h-9 items-center rounded-md border border-border-default bg-ink/[0.04] px-3 font-body text-admin-secundario font-semibold text-text-disabled">
+            Disponible tras aprobación
+          </span>
+        )}
+      </div>
+    </details>
+  );
+}
+
+function ChatInternoDrawer({ nombre, onClose }: { nombre: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-ink/30" role="dialog" aria-modal="true" aria-label="Chat interno">
+      <div className="ml-auto flex h-full w-full max-w-md flex-col border-l border-border-default bg-surface-primary shadow-[var(--ruum-shadow-3)]">
+        <div className="flex items-start justify-between gap-3 border-b border-border-default px-5 py-4">
+          <div>
+            <p className="font-body text-admin-secundario font-semibold uppercase tracking-[0.12em] text-text-tertiary">Chat interno</p>
+            <h2 className="mt-1 font-display text-lg font-semibold text-ink">{nombre}</h2>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-md border border-border-default px-2 py-1 font-body text-admin-secundario font-semibold text-text-secondary hover:bg-surface-secondary">
+            Cerrar
+          </button>
+        </div>
+        <div className="flex flex-1 items-center justify-center px-6 text-center">
+          <div>
+            <p className="font-body text-sm font-semibold text-ink">Sin hilo interno conectado</p>
+            <p className="mt-2 font-body text-sm text-text-tertiary">El panel queda listo para abrir conversaciones del expediente cuando exista el servicio de mensajería interna.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -440,6 +676,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
   const [documentoSeleccionadoId, setDocumentoSeleccionadoId] = useState<string | null>(null);
   const [urlsDocumento, setUrlsDocumento] = useState<Record<string, string>>({});
   const [visorCerrado, setVisorCerrado] = useState(false);
+  const [chatInternoAbierto, setChatInternoAbierto] = useState(false);
 
   const cargar = useCallback(async () => {
     if (!tieneSupabaseConfigurado()) { setCargando(false); return; }
@@ -547,7 +784,9 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
 
   const { solicitud, conductor, documentos, historial } = detalle;
   const nombre = textoJson(solicitud.datos_personales, "nombre") ?? conductor?.nombre ?? "Conductor sin nombre";
-  const correo = textoJson(solicitud.datos_personales, "email", "correo", "correo_electronico") ?? "-";
+  const correoContacto = textoJson(solicitud.datos_personales, "email", "correo", "correo_electronico");
+  const correo = correoContacto ?? "-";
+  const telefonoContacto = solicitud.telefono_normalizado ?? conductor?.telefono ?? null;
   const vigenciaLicencia = textoJson(solicitud.licencia, "vigencia") ?? conductor?.licencia_vigencia ?? null;
   const diasVigencia = diasParaVencer(vigenciaLicencia);
   const documentosRequeridos = documentos.filter((documento) => DOCUMENTOS_REQUERIDOS.includes(documento.tipo as typeof DOCUMENTOS_REQUERIDOS[number]));
@@ -565,6 +804,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
       ? `${conductor.suspensiones_activas} suspensión(es) activa(s)`
       : "Sin sanciones activas"
     : "Sin conductor asociado";
+  const hrefEstatus = conductor?.id ? `/conductores/activos/${conductor.id}` : null;
 
   return (
     <main className="admin-page-shell pb-24">
@@ -589,6 +829,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
       />
 
       {aviso && <div className="mt-4"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
+      {chatInternoAbierto && <ChatInternoDrawer nombre={nombre} onClose={() => setChatInternoAbierto(false)} />}
 
       <div className="mt-5 grid gap-6 xl:h-[calc(100vh-10rem)] xl:grid-cols-[minmax(340px,0.35fr)_minmax(560px,0.65fr)] xl:overflow-hidden">
         <aside className="space-y-5 xl:min-h-0 xl:overflow-y-auto xl:pr-1">
@@ -597,7 +838,13 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
               <div className="min-w-0">
                 <p className="font-body text-admin-secundario font-semibold uppercase tracking-[0.14em] text-text-tertiary">Ficha rápida del conductor</p>
                 <h2 className="mt-1 font-display text-xl font-semibold text-ink">{nombre}</h2>
-                <p className="mt-1 font-body text-sm text-text-secondary">{solicitud.curp_normalizada ?? conductor?.curp ?? "CURP no registrada"} · {solicitud.telefono_normalizado ?? conductor?.telefono ?? "Sin teléfono"}</p>
+                <p className="mt-1 font-body text-sm text-text-secondary">{solicitud.curp_normalizada ?? conductor?.curp ?? "CURP no registrada"} · {telefonoContacto ?? "Sin teléfono"}</p>
+                <QuickActionsBar
+                  nombre={nombre}
+                  telefono={telefonoContacto}
+                  correo={correoContacto}
+                  onChat={() => setChatInternoAbierto(true)}
+                />
               </div>
               <BadgeEstadoSolicitud estado={solicitud.estado} />
             </div>
@@ -612,6 +859,13 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
               <Dato etiqueta="Nivel CONCER" valor={conductor?.nivel_operativo_vigente ?? conductor?.nivel_por_experiencia ?? "Por asignar"} destacado />
             </dl>
           </section>
+
+          <DesempenoScore
+            conductor={conductor}
+            documentosAprobados={documentosAprobados}
+            diasVigencia={diasVigencia}
+            hrefEstatus={hrefEstatus}
+          />
 
           <PassportCard>
             <h2 className="font-display text-lg font-semibold">Datos del conductor</h2>
