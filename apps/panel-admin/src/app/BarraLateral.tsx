@@ -107,7 +107,7 @@ export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
     ],
   },
   {
-    titulo: "GESTIÓN",
+    titulo: "GESTIÓN DE",
     secciones: [
       { href: "/conductores?filtro=en_revision", etiqueta: "Conductores", icono: "conductor", contador: "conductoresRevision" },
       { href: "/usuarios", etiqueta: "Usuarios", icono: "usuario" },

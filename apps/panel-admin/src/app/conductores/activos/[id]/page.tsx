@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
@@ -131,101 +131,141 @@ export default function PaginaDetalleConductorAdmin() {
   ).map(([, doc]) => doc);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-8 sm:px-8 sm:py-10">
-      <div className="flex items-center gap-3">
-        <Link href={pasaporteHref ?? "/conductores/activos"} className="font-body text-sm text-text-tertiary hover:text-ink">&larr; Volver</Link>
-        <Link href="/conductores/activos" className="font-body text-sm text-status-info hover:underline">Conductores activos</Link>
+    <main className="mx-auto max-w-7xl px-6 py-8 sm:px-8 sm:py-10">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Link href={pasaporteHref ?? "/conductores/activos"} className="font-body text-sm text-text-tertiary hover:text-ink">&larr; Volver</Link>
+          <Link href="/conductores/activos" className="font-body text-sm text-status-info hover:underline">Conductores activos</Link>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a href="#editar-datos" className="rounded-lg border border-ink/20 bg-surface-primary px-4 py-2 font-body text-sm font-semibold text-ink hover:bg-ink/5">Editar datos</a>
+          {conductor.estado === "activo" && (
+            <SuspenderConductor conductorId={conductor.id} onCompletado={() => { void cargar(); setAviso({ tono: "info", texto: "Conductor suspendido." }); }} compacto />
+          )}
+          {(conductor.estado === "suspendido_7d" || conductor.estado === "suspendido_14d" || conductor.estado === "suspendido_30d" || conductor.estado === "suspendido_indefinido") && (
+            <ReactivarConductor conductorId={conductor.id} onCompletado={() => { void cargar(); setAviso({ tono: "info", texto: "Conductor reactivado." }); }} compacto />
+          )}
+        </div>
       </div>
 
       {aviso && <div className="mt-4"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
 
-      <div className="mt-6">
-        <h1 className="font-display text-2xl font-semibold">{conductor.nombre}</h1>
-        <p className="mt-1 font-body text-sm text-text-secondary">{conductor.curp ?? "Sin CURP"} · {conductor.telefono ?? "Sin teléfono"}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className={`rounded-full border px-3 py-1 font-body text-xs font-medium ${ESTADO_CLASE[conductor.estado] ?? ""}`}>{ETIQUETA_ESTADO[conductor.estado] ?? conductor.estado}</span>
-          <span className="rounded-full bg-ink/10 px-3 py-1 font-body text-xs">Licencia: {conductor.licencia_numero ?? "—"}</span>
+      <header className="mt-6 rounded-card border border-ink/10 bg-surface-primary p-5 shadow-[var(--ruum-shadow-1)]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl font-semibold">{conductor.nombre}</h1>
+            <p className="mt-1 font-body text-sm text-text-secondary">{conductor.curp ?? "Sin CURP"} · {conductor.telefono ?? "Sin teléfono"}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className={`rounded-full border px-3 py-1 font-body text-xs font-medium ${ESTADO_CLASE[conductor.estado] ?? ""}`}>{ETIQUETA_ESTADO[conductor.estado] ?? conductor.estado}</span>
+            <span className="rounded-full bg-ink/10 px-3 py-1 font-body text-xs">Licencia: {conductor.licencia_numero ?? "—"}</span>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="mt-8 grid gap-6 sm:grid-cols-2">
-        <Seccion titulo="Datos personales">
-          <Dato etiqueta="Nombre" valor={conductor.nombre} />
-          <Dato etiqueta="Teléfono" valor={conductor.telefono} />
-          <Dato etiqueta="CURP" valor={conductor.curp} />
-          <Dato etiqueta="Licencia" valor={conductor.licencia_numero} />
-          <Dato etiqueta="Tipo licencia" valor={conductor.licencia_tipo} />
-          <Dato etiqueta="Vigencia" valor={conductor.licencia_vigencia} />
-          <Dato etiqueta="Contacto emergencia" valor={conductor.contacto_emergencia_nombre} />
-          <Dato etiqueta="Tel. emergencia" valor={conductor.contacto_emergencia_telefono} />
-        </Seccion>
+      <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.15fr_0.95fr]">
+        <aside className="space-y-6">
+          <Seccion titulo="Resumen del conductor">
+            <Dato etiqueta="Nombre" valor={conductor.nombre} />
+            <Dato etiqueta="Estado" valor={ETIQUETA_ESTADO[conductor.estado] ?? conductor.estado} />
+            <Dato etiqueta="Teléfono" valor={conductor.telefono} copiar />
+            <Dato etiqueta="CURP" valor={conductor.curp} copiar />
+            <Dato etiqueta="Licencia" valor={conductor.licencia_numero} copiar />
+          </Seccion>
 
-        <Seccion titulo="Domicilio">
-          <Dato etiqueta="Calle" valor={conductor.calle} />
-          <Dato etiqueta="Número" valor={conductor.numero} />
-          <Dato etiqueta="Colonia" valor={conductor.colonia} />
-          <Dato etiqueta="Ciudad/Municipio" valor={conductor.ciudad_municipio} />
-          <Dato etiqueta="Estado" valor={conductor.estado_residencia} />
-          <Dato etiqueta="Código postal" valor={conductor.codigo_postal} />
-        </Seccion>
+          <Seccion titulo="Acciones rápidas">
+            <div className="grid gap-2">
+              {conductor.telefono ? (
+                <a href={`tel:${conductor.telefono.replace(/\D/g, "")}`} className="rounded-lg border border-ink/20 px-4 py-2 text-center font-body text-sm font-semibold text-ink hover:bg-ink/5">Llamar</a>
+              ) : (
+                <span className="rounded-lg border border-ink/10 px-4 py-2 text-center font-body text-sm text-text-tertiary">Sin teléfono</span>
+              )}
+              {conductor.estado === "activo" && (
+                <SuspenderConductor conductorId={conductor.id} onCompletado={() => { void cargar(); setAviso({ tono: "info", texto: "Conductor suspendido." }); }} />
+              )}
+              {(conductor.estado === "suspendido_7d" || conductor.estado === "suspendido_14d" || conductor.estado === "suspendido_30d" || conductor.estado === "suspendido_indefinido") && (
+                <ReactivarConductor conductorId={conductor.id} onCompletado={() => { void cargar(); setAviso({ tono: "info", texto: "Conductor reactivado." }); }} />
+              )}
+              {conductor.estado !== "bloqueado_permanente" && (
+                <DarBajaConductor conductorId={conductor.id} onCompletado={() => { void cargar(); setAviso({ tono: "info", texto: "Conductor dado de baja." }); }} />
+              )}
+            </div>
+          </Seccion>
+        </aside>
 
-        <Seccion titulo="Estados y fechas">
-          <Dato etiqueta="Estado actual" valor={ETIQUETA_ESTADO[conductor.estado] ?? conductor.estado} />
-          <Dato etiqueta="Registrado" valor={fecha(conductor.creado_en)} />
-          <Dato etiqueta="Actualizado" valor={fecha(conductor.actualizado_en)} />
-        </Seccion>
-      </div>
+        <section className="space-y-6">
+          <Seccion titulo="Datos personales">
+            <Dato etiqueta="Tipo licencia" valor={conductor.licencia_tipo} />
+            <Dato etiqueta="Vigencia" valor={conductor.licencia_vigencia} />
+            <Dato etiqueta="Contacto emergencia" valor={conductor.contacto_emergencia_nombre} />
+            <Dato etiqueta="Tel. emergencia" valor={conductor.contacto_emergencia_telefono} copiar />
+          </Seccion>
 
-      <div className="mt-10">
-        <EditarConductor conductor={conductor} onActualizado={(c) => { setConductor(c); setAviso({ tono: "info", texto: "Conductor actualizado." }); }} />
-      </div>
+          <Seccion titulo="Domicilio">
+            <Dato etiqueta="Calle" valor={conductor.calle} />
+            <Dato etiqueta="Número" valor={conductor.numero} />
+            <Dato etiqueta="Colonia" valor={conductor.colonia} />
+            <Dato etiqueta="Ciudad/Municipio" valor={conductor.ciudad_municipio} />
+            <Dato etiqueta="Estado" valor={conductor.estado_residencia} />
+            <Dato etiqueta="Código postal" valor={conductor.codigo_postal} />
+          </Seccion>
 
-      <div className="mt-10">
-        <h2 className="font-display text-lg font-semibold">Documentos</h2>
-        <div className="mt-3 rounded-card border border-ink/10 bg-surface-primary p-4">
+          <Seccion titulo="Fechas">
+            <Dato etiqueta="Registrado" valor={fecha(conductor.creado_en)} />
+            <Dato etiqueta="Actualizado" valor={fecha(conductor.actualizado_en)} />
+          </Seccion>
+
+          <section id="editar-datos" className="scroll-mt-8 rounded-card border border-ink/10 bg-surface-primary p-4">
+            <EditarConductor conductor={conductor} onActualizado={(c) => { setConductor(c); setAviso({ tono: "info", texto: "Conductor actualizado." }); }} />
+          </section>
+        </section>
+
+        <section className="space-y-6">
+          <div className="rounded-card border border-ink/10 bg-surface-primary p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-display text-lg font-semibold">Documentos</h2>
+              <span className="font-body text-admin-secundario text-text-tertiary">{documentosActuales.length} vigente(s)</span>
+            </div>
           {documentosActuales.length === 0 ? <p className="font-body text-sm text-text-tertiary">Sin documentos registrados.</p> : (
-            <div className="space-y-3">
+            <div className="mt-3 space-y-3">
               {documentosActuales.map((doc) => (
                 <FilaDocumento key={doc.id} documento={doc} />
               ))}
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="mt-10 border-t border-ink/10 pt-8">
-        <h2 className="font-display text-lg font-semibold text-status-error">Zona de riesgo</h2>
-        <p className="mt-1 font-body text-sm text-text-secondary">Estas acciones afectan la cuenta del conductor.</p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          {conductor.estado === "activo" && (
-            <SuspenderConductor conductorId={conductor.id} onCompletado={() => { void cargar(); setAviso({ tono: "info", texto: "Conductor suspendido." }); }} />
-          )}
-          {(conductor.estado === "suspendido_7d" || conductor.estado === "suspendido_14d" || conductor.estado === "suspendido_30d" || conductor.estado === "suspendido_indefinido") && (
-            <ReactivarConductor conductorId={conductor.id} onCompletado={() => { void cargar(); setAviso({ tono: "info", texto: "Conductor reactivado." }); }} />
-          )}
-          {conductor.estado !== "bloqueado_permanente" && (
-            <DarBajaConductor conductorId={conductor.id} onCompletado={() => { void cargar(); setAviso({ tono: "info", texto: "Conductor dado de baja." }); }} />
-          )}
-        </div>
+          </div>
+        </section>
       </div>
     </main>
   );
 }
 
-function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
     <div className="rounded-card border border-ink/10 bg-surface-primary p-4">
       <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-text-tertiary">{titulo}</h3>
-      <div className="mt-3 space-y-2">{children}</div>
+      <div className="mt-3 divide-y divide-ink/5">{children}</div>
     </div>
   );
 }
 
-function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null | undefined }) {
+function Dato({ etiqueta, valor, copiar = false }: { etiqueta: string; valor: string | null | undefined; copiar?: boolean }) {
+  const [copiado, setCopiado] = useState(false);
+  async function copiarValor() {
+    if (!valor) return;
+    await navigator.clipboard.writeText(valor);
+    setCopiado(true);
+    window.setTimeout(() => setCopiado(false), 1200);
+  }
   return (
-    <div className="flex justify-between gap-2 font-body text-sm">
+    <div className="group grid grid-cols-[9rem_minmax(0,1fr)_4.5rem] items-center gap-3 py-2 font-body text-sm">
       <span className="text-text-secondary">{etiqueta}</span>
-      <span className="text-right font-medium text-ink">{valor ?? <span className="text-text-tertiary">—</span>}</span>
+      <span className="min-w-0 break-words text-left font-medium text-ink">{valor ?? <span className="text-text-tertiary">—</span>}</span>
+      {copiar && valor ? (
+        <button type="button" onClick={copiarValor} className="justify-self-end rounded-md border border-ink/10 px-1.5 py-1 text-admin-secundario font-semibold text-text-tertiary opacity-0 transition group-hover:opacity-100 hover:bg-ink/5 hover:text-ink" title={`Copiar ${etiqueta}`}>
+          {copiado ? "OK" : "Copiar"}
+        </button>
+      ) : <span aria-hidden="true" />}
     </div>
   );
 }
@@ -249,7 +289,7 @@ function FilaDocumento({ documento }: { documento: DocumentoRow }) {
   }
 
   return (
-    <div className="rounded-lg border border-ink/10 p-4">
+    <div className="rounded-lg border border-ink/10 p-4 transition hover:border-ink/20 hover:bg-ink/[0.015]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-body text-sm font-semibold">{ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}</p>
@@ -263,6 +303,18 @@ function FilaDocumento({ documento }: { documento: DocumentoRow }) {
       <div className="mt-3 flex flex-wrap gap-2">
         {url ? <a href={url} target="_blank" rel="noopener noreferrer" className="font-body text-sm text-status-info hover:underline">Abrir documento</a> : <Button variant="quiet" onClick={ver} disabled={procesando}>{procesando ? "Cargando…" : "Ver documento"}</Button>}
       </div>
+      {url && (
+        <div className="mt-3 overflow-hidden rounded-lg border border-ink/10 bg-surface-secondary">
+          {/\.(png|jpe?g|webp|gif)$/i.test(documento.nombre_archivo) || /\.(png|jpe?g|webp|gif)$/i.test(documento.url) ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={url} alt="" className="max-h-48 w-full object-contain" />
+          ) : /\.(pdf)$/i.test(documento.nombre_archivo) || /\.(pdf)$/i.test(documento.url) ? (
+            <iframe title={`Vista previa ${ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}`} src={url} className="h-48 w-full" />
+          ) : (
+            <p className="px-3 py-4 font-body text-sm text-text-tertiary">Vista previa no disponible para este formato.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -352,12 +404,12 @@ function Campo({ label, value, onChange }: { label: string; value: string; onCha
   );
 }
 
-function SuspenderConductor({ conductorId, onCompletado }: { conductorId: string; onCompletado: () => void }) {
+function SuspenderConductor({ conductorId, onCompletado, compacto = false }: { conductorId: string; onCompletado: () => void; compacto?: boolean }) {
   const [abierto, setAbierto] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (!abierto) return <button onClick={() => setAbierto(true)} className="rounded-lg border border-status-error/40 bg-status-error/10 px-4 py-2 font-body text-sm font-medium text-status-error hover:bg-status-error/20">Suspender</button>;
+  if (!abierto) return <button onClick={() => setAbierto(true)} className={`${compacto ? "rounded-lg px-4 py-2" : "rounded-lg px-4 py-2"} border border-status-error/40 bg-status-error/10 font-body text-sm font-medium text-status-error hover:bg-status-error/20`}>Suspender</button>;
   async function ejecutar() {
     if (!motivo.trim()) return;
     setProcesando(true); setError(null);
@@ -379,11 +431,11 @@ function SuspenderConductor({ conductorId, onCompletado }: { conductorId: string
   );
 }
 
-function ReactivarConductor({ conductorId, onCompletado }: { conductorId: string; onCompletado: () => void }) {
+function ReactivarConductor({ conductorId, onCompletado, compacto = false }: { conductorId: string; onCompletado: () => void; compacto?: boolean }) {
   const [abierto, setAbierto] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [procesando, setProcesando] = useState(false);
-  if (!abierto) return <button onClick={() => setAbierto(true)} className="rounded-lg border border-status-success/40 bg-status-success/10 px-4 py-2 font-body text-sm font-medium text-status-success hover:bg-status-success/20">Reactivar</button>;
+  if (!abierto) return <button onClick={() => setAbierto(true)} className={`${compacto ? "rounded-lg px-4 py-2" : "rounded-lg px-4 py-2"} border border-status-success/40 bg-status-success/10 font-body text-sm font-medium text-status-success hover:bg-status-success/20`}>Reactivar</button>;
   async function ejecutar() {
     if (!motivo.trim()) return; setProcesando(true);
     try { const cliente = crearClienteNavegador(); await reactivarConductorAdmin(cliente, conductorId, motivo.trim()); setAbierto(false); onCompletado(); }

@@ -325,16 +325,31 @@ function BadgeNeutro({ children }: { children: ReactNode }) {
   );
 }
 
+function SeccionAcordeon({ titulo, distintivo, children }: { titulo: string; distintivo?: ReactNode; children: ReactNode }) {
+  return (
+    <details className="rounded-lg border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-1)]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-status-info/25 bg-status-info-soft font-body text-xs font-bold text-status-info" aria-hidden="true">⌄</span>
+          <h2 className="font-display text-lg font-semibold">{titulo}</h2>
+        </span>
+        {distintivo && <span className="shrink-0">{distintivo}</span>}
+      </summary>
+      <div className="mt-4 border-t border-border-default pt-4">
+        {children}
+      </div>
+    </details>
+  );
+}
+
 function DesempenoScore({
   conductor,
   documentosAprobados,
-  diasVigencia,
-  hrefEstatus
+  diasVigencia
 }: {
   conductor: ConductorRow | null;
   documentosAprobados: boolean;
   diasVigencia: number | null;
-  hrefEstatus: string | null;
 }) {
   const elegibilidad = evaluarElegibilidad({ conductor, documentosAprobados, diasVigencia });
   const totalEventosOperativos = conductor
@@ -350,11 +365,7 @@ function DesempenoScore({
       : "border-status-warning/35 bg-status-warning-soft text-status-warning";
 
   return (
-    <details open className="rounded-lg border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-1)]">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-semibold">Desempeño y Score</h2>
-        <span className="font-body text-admin-secundario text-text-tertiary">Ver métricas</span>
-      </summary>
+    <SeccionAcordeon titulo="Desempeño y Score" distintivo={<span className={`rounded-full border px-3 py-1 font-body text-admin-secundario font-semibold ${tonoElegibilidad}`}>{elegibilidad.texto}</span>}>
       <div className={`mt-4 rounded-lg border px-3 py-3 ${tonoElegibilidad}`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="font-body text-sm font-semibold">{elegibilidad.texto} · {elegibilidad.detalle}</p>
@@ -388,18 +399,7 @@ function DesempenoScore({
           tono={conductor && conductor.suspensiones_activas > 0 ? "danger" : "success"}
         />
       </div>
-      <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t border-border-default pt-4">
-        {hrefEstatus ? (
-          <Link href={hrefEstatus} className="inline-flex h-9 items-center rounded-md border border-status-info bg-status-info px-3 font-body text-admin-secundario font-semibold text-surface-primary shadow-sm hover:bg-status-info/90">
-            Ajustar estatus
-          </Link>
-        ) : (
-          <span className="inline-flex h-9 items-center rounded-md border border-border-default bg-ink/[0.04] px-3 font-body text-admin-secundario font-semibold text-text-disabled">
-            Disponible tras aprobación
-          </span>
-        )}
-      </div>
-    </details>
+    </SeccionAcordeon>
   );
 }
 
@@ -863,8 +863,8 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
         tipoDatos="administrativos"
         accion={(
           <div className="flex flex-wrap justify-end gap-2">
-            <Link href="/conductores/activos" className="inline-flex min-h-10 items-center rounded-lg border border-status-info bg-status-info px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-status-info/90">
-              Conductores activos
+            <Link href="/conductores" className="inline-flex min-h-10 items-center rounded-lg border border-status-info bg-status-info px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-status-info/90">
+              Regresar a conductores
             </Link>
             <AdminButton
               variant="secondary"
@@ -914,11 +914,9 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
             conductor={conductor}
             documentosAprobados={documentosAprobados}
             diasVigencia={diasVigencia}
-            hrefEstatus={hrefEstatus}
           />
 
-          <PassportCard>
-            <h2 className="font-display text-lg font-semibold">Domicilio y contacto de emergencia</h2>
+          <SeccionAcordeon titulo="Domicilio y contacto de emergencia" distintivo={<span className="font-body text-admin-secundario text-text-tertiary">Ver datos</span>}>
             <dl className="mt-4 grid gap-3">
               <Dato etiqueta="Código postal" valor={textoJson(solicitud.domicilio, "codigo_postal") ?? conductor?.codigo_postal ?? "-"} />
               <Dato etiqueta="Estado" valor={textoJson(solicitud.domicilio, "estado") ?? conductor?.estado_residencia ?? "-"} />
@@ -929,7 +927,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
               <Dato etiqueta="Correo electrónico" valor={correo} />
               <Dato etiqueta="Contacto de emergencia" valor={[textoJson(solicitud.contacto_emergencia, "nombre") ?? conductor?.contacto_emergencia_nombre, textoJson(solicitud.contacto_emergencia, "telefono") ?? conductor?.contacto_emergencia_telefono].filter(Boolean).join(" · ") || "-"} />
             </dl>
-          </PassportCard>
+          </SeccionAcordeon>
 
           <PassportCard>
             <h2 className="font-display text-lg font-semibold">Checklist de requisitos</h2>
@@ -942,11 +940,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
             </div>
           </PassportCard>
 
-          <PassportCard>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-display text-lg font-semibold">Documentos vigentes</h2>
-              <p className="font-body text-admin-secundario text-text-tertiary">{documentos.length} documento(s)</p>
-            </div>
+          <SeccionAcordeon titulo="Documentos vigentes" distintivo={<span className="font-body text-admin-secundario text-text-tertiary">{documentos.length} documento(s)</span>}>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
               {documentos.length === 0 ? <p className="font-body text-sm text-text-tertiary">No hay documentos vigentes.</p> : documentos.map((documento) => (
                 <FilaDocumento
@@ -958,7 +952,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
                 />
               ))}
             </div>
-          </PassportCard>
+          </SeccionAcordeon>
 
           <section className="sticky bottom-4 z-20 rounded-lg border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-3)]">
             <h2 className="font-display text-lg font-semibold">Decisión administrativa</h2>
@@ -1001,6 +995,18 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
           </section>
 
           <HistorialAcordeon historial={historial} />
+
+          <div className="flex justify-end">
+            {hrefEstatus ? (
+              <Link href={hrefEstatus} className="inline-flex min-h-10 items-center rounded-lg border border-status-info bg-status-info px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-status-info/90">
+                Ajustes
+              </Link>
+            ) : (
+              <span className="inline-flex min-h-10 items-center rounded-lg border border-border-default bg-ink/[0.04] px-4 py-2 font-body text-sm font-semibold text-text-disabled">
+                Disponible tras aprobación
+              </span>
+            )}
+          </div>
         </aside>
 
         <section className="flex min-w-0 flex-col xl:min-h-0">

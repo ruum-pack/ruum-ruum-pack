@@ -308,16 +308,16 @@ export default function PaginaConductoresAdmin() {
   return (
     <main className="admin-page-shell">
       <AdminPageHeader
-        etiqueta="Gestión"
-        titulo="Solicitudes de conductor"
-        descripcion="Bandeja basada en expedientes, documentos vigentes, consentimientos y decisiones registradas."
+        etiqueta="Gestión de"
+        titulo="Conductores"
+        descripcion="Expedientes, documentos vigentes, consentimientos y decisiones registradas."
         estadoConexion={estadoConexion}
         ultimaActualizacion={ultimaActualizacion}
         tipoDatos="administrativos"
         contadorResultados={totalResultados}
         accion={(
           <Link href="/conductores/activos" className="inline-flex min-h-10 items-center rounded-lg border border-status-info bg-status-info px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-status-info/90">
-            Conductores activos
+            Gestión conductores
           </Link>
         )}
       />
@@ -392,7 +392,7 @@ export default function PaginaConductoresAdmin() {
         partialError={null}
         selectedIds={seleccionados}
         onSelectionChange={setSeleccionados}
-        rowActions={[{ label: "Revisar", href: (fila) => `/conductores/${fila.solicitud.id}` }]}
+        rowActions={[{ label: "Pasaporte", href: (fila) => `/conductores/${fila.solicitud.id}` }]}
         bulkActions={[
           { label: "Revisar selección", onClick: revisarSeleccion },
           { label: "Exportar selección", onClick: exportarSeleccion }
