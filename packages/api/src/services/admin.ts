@@ -1913,9 +1913,59 @@ export async function listarConductoresAdminPaginados(
     p_busqueda: busqueda?.trim() || undefined,
     p_estado: estado && estado !== "todos" ? estado : undefined
   });
+  if (error && esRpcPaginacionNoDisponible(error)) {
+    return listarConductoresAdminPaginadosFallback(cliente, pagina, tamano, busqueda, estado);
+  }
   if (error) throw error;
   if (!data) return { data: [], paginacion: { pagina: 1, tamano: 25, total: 0, total_paginas: 0 } };
   return data;
+}
+
+async function listarConductoresAdminPaginadosFallback(
+  cliente: Cliente,
+  pagina: number,
+  tamano: number,
+  busqueda?: string,
+  estado?: EstadoConductor | "todos"
+): Promise<PaginacionConductores> {
+  const paginaNormalizada = Math.max(pagina, 1);
+  const tamanoNormalizado = Math.min(Math.max(tamano, 1), 100);
+  const desde = (paginaNormalizada - 1) * tamanoNormalizado;
+  const hasta = desde + tamanoNormalizado - 1;
+
+  let query = cliente
+    .from("conductores")
+    .select("*", { count: "exact" })
+    .order("creado_en", { ascending: false })
+    .range(desde, hasta);
+
+  if (estado && estado !== "todos") {
+    query = query.eq("estado", estado);
+  }
+
+  const termino = busqueda?.trim();
+  if (termino) {
+    const patron = termino.replace(/%/g, "\\%").replace(/,/g, "\\,");
+    query = query.or([
+      `nombre.ilike.%${patron}%`,
+      `telefono.ilike.%${patron}%`,
+      `curp.ilike.%${patron}%`,
+      `licencia_numero.ilike.%${patron}%`
+    ].join(","));
+  }
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+  const total = count ?? data?.length ?? 0;
+  return {
+    data: data ?? [],
+    paginacion: {
+      pagina: paginaNormalizada,
+      tamano: tamanoNormalizado,
+      total,
+      total_paginas: total === 0 ? 0 : Math.ceil(total / tamanoNormalizado)
+    }
+  };
 }
 
 /**

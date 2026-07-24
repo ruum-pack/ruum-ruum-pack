@@ -59,11 +59,18 @@ export default function PaginaConductoresActivos() {
     try {
       const cliente = crearClienteNavegador();
       const resultado = await listarConductoresAdminPaginados(cliente, p, tamanoPagina, busqueda || undefined, estadoFiltro);
-      setConductores(resultado.data);
-      paginaRef.current = resultado.paginacion.pagina;
-      setPagina(resultado.paginacion.pagina);
-      setTotal(resultado.paginacion.total);
-      setTotalPaginas(resultado.paginacion.total_paginas);
+      const conductoresResultado = Array.isArray(resultado.data) ? resultado.data : [];
+      const paginacionResultado = resultado.paginacion ?? {
+        pagina: p,
+        tamano: tamanoPagina,
+        total: conductoresResultado.length,
+        total_paginas: conductoresResultado.length > 0 ? 1 : 0
+      };
+      setConductores(conductoresResultado);
+      paginaRef.current = paginacionResultado.pagina;
+      setPagina(paginacionResultado.pagina);
+      setTotal(paginacionResultado.total);
+      setTotalPaginas(paginacionResultado.total_paginas);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al cargar conductores.");
     } finally {
@@ -117,8 +124,12 @@ export default function PaginaConductoresActivos() {
         >
           <option value="todos">Todos los estados</option>
           <option value="activo">Activo</option>
-          <option value="suspendido">Suspendido</option>
-          <option value="baja">Baja</option>
+          <option value="suspendido_7d">Suspendido 7 días</option>
+          <option value="suspendido_14d">Suspendido 14 días</option>
+          <option value="suspendido_30d">Suspendido 30 días</option>
+          <option value="suspendido_indefinido">Suspendido indefinido</option>
+          <option value="bloqueado_permanente">Baja permanente</option>
+          <option value="modo_prueba_supervisada">Modo prueba</option>
         </select>
       </div>
 

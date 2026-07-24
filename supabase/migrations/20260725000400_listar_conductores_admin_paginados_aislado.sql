@@ -1,6 +1,6 @@
 -- =============================================================================
--- Migration: listar_conductores_admin_paginados
--- Descripcion: RPC paginado para listar conductores activos en el panel admin
+-- Migration: listar_conductores_admin_paginados aislado
+-- Descripcion: RPC paginado idempotente para conductores activos en panel admin.
 -- =============================================================================
 
 create or replace function public.listar_conductores_admin_paginados(
@@ -24,8 +24,8 @@ begin
     raise exception using errcode='42501', message='PERMISO_INSUFICIENTE';
   end if;
 
-  v_limit := least(greatest(p_tamano, 1), 100);
-  v_offset := (greatest(p_pagina, 1) - 1) * v_limit;
+  v_limit := least(greatest(coalesce(p_tamano, 25), 1), 100);
+  v_offset := (greatest(coalesce(p_pagina, 1), 1) - 1) * v_limit;
 
   if p_estado is not null and p_estado <> 'todos' then
     v_where := v_where || ' AND c.estado = ' || quote_literal(p_estado) || '::public.estado_conductor';
@@ -42,27 +42,33 @@ begin
   end if;
 
   execute format(
-    'SELECT count(*) FROM public.conductores c WHERE %s', v_where
+    'SELECT count(*) FROM public.conductores c WHERE %s',
+    v_where
   ) into v_total;
 
   execute format(
     'SELECT coalesce(jsonb_agg(to_jsonb(sub)), ''[]''::jsonb) FROM (
       SELECT c.* FROM public.conductores c WHERE %s ORDER BY c.creado_en DESC LIMIT %L OFFSET %L
-    ) sub', v_where, v_limit, v_offset
+    ) sub',
+    v_where,
+    v_limit,
+    v_offset
   ) into v_filas;
 
   return jsonb_build_object(
     'data', coalesce(v_filas, '[]'::jsonb),
     'paginacion', jsonb_build_object(
-      'pagina', p_pagina,
+      'pagina', greatest(coalesce(p_pagina, 1), 1),
       'tamano', v_limit,
-      'total', v_total,
-      'total_paginas', ceil(v_total::numeric / v_limit)::int
+      'total', coalesce(v_total, 0),
+      'total_paginas', case when coalesce(v_total, 0) = 0 then 0 else ceil(v_total::numeric / v_limit)::int end
     )
   );
 end;
 $$;
 
--- Grants
 revoke all on function public.listar_conductores_admin_paginados(int, int, text, text) from public;
 grant execute on function public.listar_conductores_admin_paginados(int, int, text, text) to authenticated;
+
+comment on function public.listar_conductores_admin_paginados(int, int, text, text) is
+  'Lista conductores para panel admin con paginacion y filtros; aislada para despliegues con migraciones parciales.';
