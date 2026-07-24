@@ -35,8 +35,33 @@ export function rolAdminTienePermiso(rol: RolAdminOperativo, permiso: PermisoAdm
   return PERMISOS_POR_ROL[rol].has(permiso);
 }
 
+function esClienteSinAuthDisponible(error: unknown) {
+  return error instanceof Error
+    && error.message.includes("Supabase Client is configured with the accessToken option");
+}
+
+async function verificarPermisoPorRpc(cliente: Cliente, permiso: PermisoAdmin) {
+  const { data: comprobacionPermiso, error: errorPermiso } = await cliente.rpc("admin_tiene_permiso", { p_permiso: permiso });
+  if (errorPermiso) throw errorPermiso;
+  if (comprobacionPermiso !== true) {
+    throw new AdminAuthorizationError(permiso);
+  }
+}
+
 export async function assertAdminPermission(cliente: Cliente, permiso: PermisoAdmin) {
-  const { data: autenticacion, error: errorAutenticacion } = await cliente.auth.getUser();
+  let autenticacion;
+  let errorAutenticacion;
+  try {
+    const resultado = await cliente.auth.getUser();
+    autenticacion = resultado.data;
+    errorAutenticacion = resultado.error;
+  } catch (error) {
+    if (esClienteSinAuthDisponible(error)) {
+      await verificarPermisoPorRpc(cliente, permiso);
+      return null;
+    }
+    throw error;
+  }
   if (errorAutenticacion || !autenticacion.user) throw new Error("No hay una sesión administrativa válida.");
 
   const { data: admin, error } = await cliente.from("admins").select("id,rol_operativo").eq("auth_user_id", autenticacion.user.id).maybeSingle();
