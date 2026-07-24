@@ -259,7 +259,7 @@ function FilaDocumento({
   }
 
   return (
-    <article className={`rounded-lg border p-4 transition ${seleccionado ? "border-status-info bg-status-info-soft/30" : "border-border-default bg-surface-primary"}`}>
+    <article className={`rounded-lg border p-4 transition ${seleccionado ? "border-2 border-status-info bg-status-info-soft/40 shadow-[var(--ruum-shadow-2)]" : "border-border-default bg-surface-primary"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button type="button" onClick={seleccionar} className="min-w-0 text-left" disabled={procesando}>
           <p className="font-body text-sm font-semibold text-ink">{ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}</p>
@@ -301,37 +301,130 @@ function FilaDocumento({
   );
 }
 
-function VisorDocumento({ documento, url }: { documento: DocumentoRow | null; url: string | null }) {
+function VisorDocumento({
+  documento,
+  url,
+  onCerrar,
+  onRevisado
+}: {
+  documento: DocumentoRow | null;
+  url: string | null;
+  onCerrar: () => void;
+  onRevisado: (id: string, estado: EstadoDocumentoConductor, notas?: string) => Promise<void>;
+}) {
+  const [zoom, setZoom] = useState(1);
+  const [rotacion, setRotacion] = useState(0);
+  const [procesando, setProcesando] = useState(false);
+  const [rechazando, setRechazando] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setZoom(1);
+    setRotacion(0);
+    setRechazando(false);
+    setMotivo("");
+    setError(null);
+  }, [documento?.id]);
+
+  async function decidir(estado: EstadoDocumentoConductor, notas?: string) {
+    if (!documento) return;
+    setProcesando(true);
+    setError(null);
+    try {
+      await onRevisado(documento.id, estado, notas);
+      setRechazando(false);
+      setMotivo("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No pudimos registrar la decisión.");
+    } finally {
+      setProcesando(false);
+    }
+  }
+
   if (!documento) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center rounded-lg border border-dashed border-border-default bg-surface-secondary px-6 text-center">
+      <div className="flex min-h-[420px] flex-1 items-center justify-center rounded-lg border border-dashed border-border-default bg-surface-secondary px-6 text-center xl:min-h-0">
         <p className="font-body text-sm text-text-tertiary">Selecciona un documento para validarlo.</p>
       </div>
     );
   }
 
+  const esImagen = /\.(png|jpe?g|webp|gif)$/i.test(documento.nombre_archivo) || /\.(png|jpe?g|webp|gif)$/i.test(documento.url);
+  const transformacion = `scale(${zoom}) rotate(${rotacion}deg)`;
+
   return (
-    <div className="overflow-hidden rounded-lg border border-border-default bg-surface-primary">
+    <div className="flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-lg border border-border-default bg-surface-primary xl:min-h-0">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-default px-4 py-3">
         <div className="min-w-0">
           <p className="font-body text-sm font-semibold text-ink">{ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}</p>
           <p className="truncate font-body text-admin-secundario text-text-tertiary">{documento.nombre_archivo}</p>
         </div>
-        {url && <a href={url} target="_blank" rel="noreferrer" className="font-body text-admin-secundario font-semibold text-status-info hover:underline">Abrir externo</a>}
-      </div>
-      {url ? (
-        esDocumentoVisible(documento) ? (
-          <iframe title={`Visor de ${ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}`} src={url} className="h-[72vh] min-h-[520px] w-full bg-surface-secondary" />
-        ) : (
-          <div className="flex min-h-[420px] items-center justify-center px-6 text-center">
-            <p className="font-body text-sm text-text-tertiary">Este formato no se puede previsualizar aquí. Usa “Abrir externo” para revisarlo.</p>
-          </div>
-        )
-      ) : (
-        <div className="flex min-h-[420px] items-center justify-center px-6 text-center">
-          <p className="font-body text-sm text-text-tertiary">Generando URL segura de lectura...</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setZoom((valor) => Math.min(2.5, Number((valor + 0.15).toFixed(2))))} className="rounded-lg border border-border-default px-3 py-1.5 font-body text-admin-secundario font-semibold text-text-secondary hover:bg-surface-secondary">Zoom +</button>
+          <button type="button" onClick={() => setZoom((valor) => Math.max(0.5, Number((valor - 0.15).toFixed(2))))} className="rounded-lg border border-border-default px-3 py-1.5 font-body text-admin-secundario font-semibold text-text-secondary hover:bg-surface-secondary">Zoom -</button>
+          <button type="button" onClick={() => setRotacion((valor) => (valor + 90) % 360)} className="rounded-lg border border-border-default px-3 py-1.5 font-body text-admin-secundario font-semibold text-text-secondary hover:bg-surface-secondary">Rotar</button>
+          {url && <a href={url} target="_blank" rel="noreferrer" className="rounded-lg border border-border-default px-3 py-1.5 font-body text-admin-secundario font-semibold text-status-info hover:bg-surface-secondary">Abrir</a>}
+          <button type="button" onClick={onCerrar} className="rounded-lg border border-border-default px-3 py-1.5 font-body text-admin-secundario font-semibold text-text-secondary hover:bg-surface-secondary">Cerrar</button>
         </div>
-      )}
+      </div>
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-surface-secondary p-4">
+        {url ? (
+          esDocumentoVisible(documento) ? (
+            esImagen ? (
+              <div
+                aria-label={`Vista previa de ${ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}`}
+                role="img"
+                className="h-full min-h-[420px] w-full origin-center bg-contain bg-center bg-no-repeat transition-transform xl:min-h-0"
+                style={{ backgroundImage: `url("${url}")`, transform: transformacion }}
+              />
+            ) : (
+              <iframe
+                title={`Visor de ${ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}`}
+                src={url}
+                className="h-full min-h-[420px] w-full origin-center bg-surface-secondary transition-transform xl:min-h-0"
+                style={{ transform: transformacion }}
+              />
+            )
+          ) : (
+            <div className="flex min-h-[320px] items-center justify-center px-6 text-center">
+              <p className="font-body text-sm text-text-tertiary">Este formato no se puede previsualizar aquí. Usa “Abrir” para revisarlo.</p>
+            </div>
+          )
+        ) : (
+          <div className="flex min-h-[320px] items-center justify-center px-6 text-center">
+            <p className="font-body text-sm text-text-tertiary">Generando URL segura de lectura...</p>
+          </div>
+        )}
+      </div>
+      <div className="border-t border-border-default bg-surface-primary px-4 py-3">
+        {error && <div className="mb-3"><Aviso tono="danger">{error}</Aviso></div>}
+        {documento.estado === "en_revision" ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <AdminButton onClick={() => void decidir("aprobado")} loading={procesando}>Aprobar documento</AdminButton>
+            <AdminButton variant="danger" onClick={() => setRechazando(true)} disabled={procesando}>Solicitar corrección</AdminButton>
+          </div>
+        ) : (
+          <p className="font-body text-sm text-text-tertiary">Este documento ya tiene decisión administrativa.</p>
+        )}
+        {rechazando && (
+          <div className="mt-3 rounded-lg border border-status-warning/30 bg-status-warning-soft/40 p-3">
+            <label className="font-body text-admin-secundario font-semibold text-ink" htmlFor={`motivo-visor-${documento.id}`}>Motivo para el conductor</label>
+            <textarea
+              id={`motivo-visor-${documento.id}`}
+              value={motivo}
+              onChange={(event) => setMotivo(event.target.value)}
+              maxLength={500}
+              className="mt-2 min-h-20 w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none"
+              placeholder="Indica exactamente qué debe corregir."
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <AdminButton variant="danger" onClick={() => void decidir("rechazado", motivo)} disabled={procesando || motivo.trim().length < 5}>Confirmar corrección</AdminButton>
+              <AdminButton variant="quiet" onClick={() => { setRechazando(false); setMotivo(""); }} disabled={procesando}>Cancelar</AdminButton>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -346,6 +439,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
   const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
   const [documentoSeleccionadoId, setDocumentoSeleccionadoId] = useState<string | null>(null);
   const [urlsDocumento, setUrlsDocumento] = useState<Record<string, string>>({});
+  const [visorCerrado, setVisorCerrado] = useState(false);
 
   const cargar = useCallback(async () => {
     if (!tieneSupabaseConfigurado()) { setCargando(false); return; }
@@ -372,9 +466,10 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
   }, [detalle]);
 
   const documentoSeleccionado = useMemo(() => {
+    if (visorCerrado) return null;
     if (!detalle?.documentos.length) return null;
     return detalle.documentos.find((documento) => documento.id === documentoSeleccionadoId) ?? detalle.documentos[0] ?? null;
-  }, [detalle?.documentos, documentoSeleccionadoId]);
+  }, [detalle?.documentos, documentoSeleccionadoId, visorCerrado]);
 
   useEffect(() => {
     if (!documentoSeleccionado) return;
@@ -384,6 +479,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
   }, [documentoSeleccionado?.id]);
 
   async function seleccionarDocumento(documento: DocumentoRow) {
+    setVisorCerrado(false);
     setDocumentoSeleccionadoId(documento.id);
     if (urlsDocumento[documento.id]) return;
     const { data, error } = await crearClienteNavegador().storage
@@ -494,29 +590,29 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
 
       {aviso && <div className="mt-4"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
 
-      <section className="mt-5 rounded-lg border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-1)]">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="font-body text-admin-secundario font-semibold uppercase tracking-[0.14em] text-text-tertiary">Ficha rápida del conductor</p>
-            <h2 className="mt-1 font-display text-xl font-semibold text-ink">{nombre}</h2>
-            <p className="mt-1 font-body text-sm text-text-secondary">{solicitud.curp_normalizada ?? conductor?.curp ?? "CURP no registrada"} · {solicitud.telefono_normalizado ?? conductor?.telefono ?? "Sin teléfono"}</p>
-          </div>
-          <BadgeEstadoSolicitud estado={solicitud.estado} />
-        </div>
-        <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Dato etiqueta="Licencia" valor={solicitud.licencia_normalizada ?? conductor?.licencia_numero ?? "-"} destacado />
-          <Dato
-            etiqueta="Vigencia"
-            valor={<VigenciaLicencia fechaIso={vigenciaLicencia} dias={diasVigencia} />}
-            destacado
-          />
-          <Dato etiqueta="Domicilio" valor={[textoJson(solicitud.domicilio, "colonia") ?? conductor?.colonia, textoJson(solicitud.domicilio, "ciudad_municipio", "ciudad") ?? conductor?.ciudad_municipio, textoJson(solicitud.domicilio, "estado") ?? conductor?.estado_residencia].filter(Boolean).join(", ")} />
-          <Dato etiqueta="Nivel CONCER" valor={conductor?.nivel_operativo_vigente ?? conductor?.nivel_por_experiencia ?? "Por asignar"} destacado />
-        </dl>
-      </section>
+      <div className="mt-5 grid gap-6 xl:h-[calc(100vh-10rem)] xl:grid-cols-[minmax(340px,0.35fr)_minmax(560px,0.65fr)] xl:overflow-hidden">
+        <aside className="space-y-5 xl:min-h-0 xl:overflow-y-auto xl:pr-1">
+          <section className="rounded-lg border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-1)]">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="font-body text-admin-secundario font-semibold uppercase tracking-[0.14em] text-text-tertiary">Ficha rápida del conductor</p>
+                <h2 className="mt-1 font-display text-xl font-semibold text-ink">{nombre}</h2>
+                <p className="mt-1 font-body text-sm text-text-secondary">{solicitud.curp_normalizada ?? conductor?.curp ?? "CURP no registrada"} · {solicitud.telefono_normalizado ?? conductor?.telefono ?? "Sin teléfono"}</p>
+              </div>
+              <BadgeEstadoSolicitud estado={solicitud.estado} />
+            </div>
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+              <Dato etiqueta="Licencia" valor={solicitud.licencia_normalizada ?? conductor?.licencia_numero ?? "-"} destacado />
+              <Dato
+                etiqueta="Vigencia"
+                valor={<VigenciaLicencia fechaIso={vigenciaLicencia} dias={diasVigencia} />}
+                destacado
+              />
+              <Dato etiqueta="Domicilio" valor={[textoJson(solicitud.domicilio, "colonia") ?? conductor?.colonia, textoJson(solicitud.domicilio, "ciudad_municipio", "ciudad") ?? conductor?.ciudad_municipio, textoJson(solicitud.domicilio, "estado") ?? conductor?.estado_residencia].filter(Boolean).join(", ")} />
+              <Dato etiqueta="Nivel CONCER" valor={conductor?.nivel_operativo_vigente ?? conductor?.nivel_por_experiencia ?? "Por asignar"} destacado />
+            </dl>
+          </section>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(320px,0.35fr)_minmax(520px,0.65fr)]">
-        <aside className="space-y-5">
           <PassportCard>
             <h2 className="font-display text-lg font-semibold">Datos del conductor</h2>
             <dl className="mt-4 grid gap-3">
@@ -542,6 +638,24 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
             <div className="mt-5 space-y-2">
               {consentimientosActuales.length === 0 ? <p className="font-body text-sm text-text-tertiary">Sin consentimientos registrados.</p> : consentimientosActuales.map((consentimiento) => (
                 <ConsentimientoItem key={consentimiento.id} consentimiento={consentimiento} />
+              ))}
+            </div>
+          </PassportCard>
+
+          <PassportCard>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-display text-lg font-semibold">Documentos vigentes</h2>
+              <p className="font-body text-admin-secundario text-text-tertiary">{documentos.length} documento(s)</p>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              {documentos.length === 0 ? <p className="font-body text-sm text-text-tertiary">No hay documentos vigentes.</p> : documentos.map((documento) => (
+                <FilaDocumento
+                  key={documento.id}
+                  documento={documento}
+                  seleccionado={documentoSeleccionado?.id === documento.id}
+                  onSeleccionar={seleccionarDocumento}
+                  onRevisado={revisarDocumento}
+                />
               ))}
             </div>
           </PassportCard>
@@ -585,32 +699,8 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
               </div>
             )}
           </section>
-        </aside>
 
-        <section className="min-w-0">
-          <div className="space-y-5 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
-            <PassportCard>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="font-display text-lg font-semibold">Documentos vigentes</h2>
-                <p className="font-body text-admin-secundario text-text-tertiary">{documentos.length} documento(s)</p>
-              </div>
-              <div className="mt-4 grid gap-3 lg:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
-                {documentos.length === 0 ? <p className="font-body text-sm text-text-tertiary">No hay documentos vigentes.</p> : documentos.map((documento) => (
-                  <FilaDocumento
-                    key={documento.id}
-                    documento={documento}
-                    seleccionado={documentoSeleccionado?.id === documento.id}
-                    onSeleccionar={seleccionarDocumento}
-                    onRevisado={revisarDocumento}
-                  />
-                ))}
-              </div>
-            </PassportCard>
-
-            <VisorDocumento documento={documentoSeleccionado} url={documentoSeleccionado ? urlsDocumento[documentoSeleccionado.id] ?? null : null} />
-          </div>
-
-          <PassportCard className="mt-5">
+          <PassportCard>
             <h2 className="font-display text-lg font-semibold">Historial de estados y decisiones</h2>
             <ol className="mt-4 space-y-4">
               {historial.map((evento) => (
@@ -625,6 +715,18 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
               ))}
             </ol>
           </PassportCard>
+        </aside>
+
+        <section className="flex min-w-0 flex-col xl:min-h-0">
+          <VisorDocumento
+            documento={documentoSeleccionado}
+            url={documentoSeleccionado ? urlsDocumento[documentoSeleccionado.id] ?? null : null}
+            onCerrar={() => {
+              setVisorCerrado(true);
+              setDocumentoSeleccionadoId(null);
+            }}
+            onRevisado={revisarDocumento}
+          />
         </section>
       </div>
     </main>
