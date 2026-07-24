@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Aviso, Button, PassportCard } from "@ruum/ui";
+import { Aviso } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
 import {
@@ -182,6 +182,11 @@ export default function PaginaDetalleConductorAdmin() {
         </div>
         <div className="flex flex-wrap gap-2">
           <a href="#editar-datos" onClick={() => setEditandoDatos(true)} className="inline-flex min-h-10 items-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2 font-body text-sm font-semibold text-ink hover:bg-ink/5">Editar datos</a>
+          {pasaporteHref && (
+            <Link href={pasaporteHref} className="inline-flex min-h-10 items-center rounded-lg border border-status-info/30 bg-status-info-soft px-4 py-2 font-body text-sm font-semibold text-status-info hover:bg-status-info-soft/70">
+              Abrir Pasaporte Digital
+            </Link>
+          )}
           <a href={telefonoPrincipal ?? undefined} aria-disabled={!telefonoPrincipal} className="inline-flex min-h-10 items-center rounded-lg bg-status-info px-4 py-2 font-body text-sm font-semibold text-surface-primary hover:bg-status-info/90 aria-disabled:pointer-events-none aria-disabled:opacity-50">Llamar</a>
           {(conductor.estado === "suspendido_7d" || conductor.estado === "suspendido_14d" || conductor.estado === "suspendido_30d" || conductor.estado === "suspendido_indefinido") && (
             <ReactivarConductor conductorId={conductor.id} onCompletado={() => { void cargar(); setAviso({ tono: "info", texto: "Conductor reactivado." }); }} compacto />
@@ -196,6 +201,9 @@ export default function PaginaDetalleConductorAdmin() {
           <div className="min-w-0">
             <h1 className="font-display text-2xl font-semibold">{conductor.nombre}</h1>
             <p className="mt-1 font-body text-sm font-medium text-text-secondary">{subtituloConductor(conductor)}</p>
+            <p className="mt-2 max-w-2xl font-body text-sm text-text-tertiary">
+              Ficha ejecutiva para operar la cuenta del conductor. El expediente documental y la trazabilidad viven en el Pasaporte Digital.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <span className={`rounded-full border px-3 py-1 font-body text-xs font-medium ${ESTADO_CLASE[conductor.estado] ?? ""}`}>{textoEstado(conductor.estado)}</span>
@@ -279,6 +287,9 @@ export default function PaginaDetalleConductorAdmin() {
               <h2 className="font-display text-lg font-semibold">Documentos</h2>
               <span className={`rounded-full border px-3 py-1 font-body text-xs font-semibold ${cumplimientoDocumentos.clase}`}>{cumplimientoDocumentos.texto}</span>
             </div>
+            <p className="mt-2 font-body text-sm text-text-secondary">
+              Resumen operativo de cumplimiento. Revisa archivos, validaciones e historial en el Pasaporte Digital.
+            </p>
           {documentosActuales.length === 0 ? <p className="font-body text-sm text-text-tertiary">Sin documentos registrados.</p> : (
             <div className="mt-3 space-y-3">
               {documentosActuales.map((doc) => (
@@ -286,6 +297,15 @@ export default function PaginaDetalleConductorAdmin() {
               ))}
             </div>
           )}
+            {pasaporteHref ? (
+              <Link href={pasaporteHref} className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-ink px-4 py-2 font-body text-sm font-semibold text-surface-primary hover:bg-ink/90">
+                Abrir expediente completo
+              </Link>
+            ) : (
+              <p className="mt-4 rounded-lg border border-status-warning/30 bg-status-warning-soft px-3 py-2 font-body text-sm text-status-warning">
+                No encontramos una solicitud vinculada para abrir el Pasaporte Digital.
+              </p>
+            )}
           </div>
         </section>
       </div>
@@ -360,56 +380,20 @@ function Dato({
 }
 
 function FilaDocumento({ documento }: { documento: DocumentoRow }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [procesando, setProcesando] = useState(false);
   const estado = ESTADO_DOCUMENTO[documento.estado] ?? ESTADO_DOCUMENTO.en_revision;
-
-  async function ver() {
-    setProcesando(true);
-    try {
-      const { data, error } = await crearClienteNavegador().storage.from("documentos-conductor").createSignedUrl(documento.url, 60 * 30);
-      if (error) throw error;
-      setUrl(data.signedUrl);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setProcesando(false);
-    }
-  }
 
   return (
     <div className="rounded-lg border border-ink/10 bg-surface-primary p-3 transition hover:border-ink/20 hover:bg-ink/[0.015]">
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
         <div className="min-w-0">
           <p className="truncate font-body text-sm font-semibold">{ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}</p>
           <p className="mt-0.5 font-body text-xs text-text-tertiary">Versión {documento.version} · {fecha(documento.creado_en)}</p>
           <p className="mt-0.5 truncate font-body text-xs text-text-tertiary">{documento.nombre_archivo}</p>
         </div>
         <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-medium ${estado.clase}`}>{estado.texto}</span>
-        {url ? (
-          <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center justify-center rounded-lg border border-status-info/30 px-3 py-1.5 font-body text-xs font-semibold text-status-info hover:bg-status-info-soft">
-            Ver documento
-          </a>
-        ) : (
-          <Button variant="quiet" onClick={ver} disabled={procesando} className="min-h-9 px-3 py-1.5 text-xs">
-            {procesando ? "Cargando…" : "Ver documento"}
-          </Button>
-        )}
       </div>
       {(documento.motivo_rechazo || documento.notas_admin) && (
         <p className="mt-3 rounded-lg bg-status-warning-soft px-3 py-2 font-body text-xs text-status-warning">{documento.motivo_rechazo ?? documento.notas_admin}</p>
-      )}
-      {url && (
-        <div className="mt-3 overflow-hidden rounded-lg border border-ink/10 bg-surface-secondary">
-          {/\.(png|jpe?g|webp|gif)$/i.test(documento.nombre_archivo) || /\.(png|jpe?g|webp|gif)$/i.test(documento.url) ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={url} alt="" className="max-h-48 w-full object-contain" />
-          ) : /\.(pdf)$/i.test(documento.nombre_archivo) || /\.(pdf)$/i.test(documento.url) ? (
-            <iframe title={`Vista previa ${ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}`} src={url} className="h-48 w-full" />
-          ) : (
-            <p className="px-3 py-4 font-body text-sm text-text-tertiary">Vista previa no disponible para este formato.</p>
-          )}
-        </div>
       )}
     </div>
   );

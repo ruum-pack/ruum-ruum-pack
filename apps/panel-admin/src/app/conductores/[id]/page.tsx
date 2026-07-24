@@ -6,10 +6,13 @@ import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import type { Database, Json } from "@ruum/shared/types";
 import {
+  actualizarConductorAdmin,
   aprobarSolicitudConductorAdmin,
+  darBajaConductorAdmin,
   obtenerDetalleSolicitudConductorAdmin,
   rechazarSolicitudConductorAdmin,
   revisarDocumentoConductorAdmin,
+  suspenderConductorAdmin,
   type DetalleSolicitudConductorAdmin,
   type EstadoDocumentoConductor
 } from "@ruum/api/services";
@@ -148,6 +151,34 @@ function limpiarTelefono(valor: string | null) {
   if (!valor) return null;
   const digitos = valor.replace(/\D/g, "");
   return digitos.length >= 10 ? digitos : null;
+}
+
+function telefonoLlamada(valor: string | null | undefined) {
+  const digitos = limpiarTelefono(valor ?? null);
+  return digitos ? `tel:${digitos}` : null;
+}
+
+function textoEstadoConductor(valor: string | null | undefined) {
+  return valor ? valor.replace(/_/g, " ") : "sin alta operativa";
+}
+
+function urlMapaDomicilio(datos: {
+  calle: string;
+  numero: string;
+  colonia: string;
+  codigo_postal: string;
+  ciudad_municipio: string;
+  estado_residencia: string;
+}) {
+  const calleNumero = [datos.calle, datos.numero].filter(Boolean).join(" ");
+  const direccion = [
+    calleNumero,
+    datos.colonia,
+    datos.codigo_postal,
+    datos.ciudad_municipio,
+    datos.estado_residencia
+  ].filter(Boolean).join(", ");
+  return direccion ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}` : null;
 }
 
 function telefonoWhatsapp(valor: string | null) {
@@ -345,11 +376,15 @@ function SeccionAcordeon({ titulo, distintivo, children }: { titulo: string; dis
 function DesempenoScore({
   conductor,
   documentosAprobados,
-  diasVigencia
+  diasVigencia,
+  onActualizado,
+  onAviso
 }: {
   conductor: ConductorRow | null;
   documentosAprobados: boolean;
   diasVigencia: number | null;
+  onActualizado: () => Promise<void> | void;
+  onAviso: (aviso: { tono: "info" | "danger"; texto: string }) => void;
 }) {
   const elegibilidad = evaluarElegibilidad({ conductor, documentosAprobados, diasVigencia });
   const totalEventosOperativos = conductor
@@ -370,7 +405,7 @@ function DesempenoScore({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="font-body text-sm font-semibold">{elegibilidad.texto} · {elegibilidad.detalle}</p>
           <span className="rounded-full border border-current/20 px-2.5 py-1 font-body text-admin-secundario font-semibold">
-            {conductor ? conductor.estado.replace(/_/g, " ") : "sin alta operativa"}
+            {textoEstadoConductor(conductor?.estado)}
           </span>
         </div>
       </div>
@@ -398,6 +433,315 @@ function DesempenoScore({
           detalle={conductor ? `Incidencias graves: ${conductor.incidencias_graves_6m} en 6m · ${conductor.incidencias_graves_12m} en 12m` : "Sin expediente operativo."}
           tono={conductor && conductor.suspensiones_activas > 0 ? "danger" : "success"}
         />
+      </div>
+      <AccionesCriticasPasaporte conductor={conductor} onActualizado={onActualizado} onAviso={onAviso} />
+    </SeccionAcordeon>
+  );
+}
+
+function IconoPausa() {
+  return (
+    <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M8 5v14" />
+      <path d="M16 5v14" />
+    </svg>
+  );
+}
+
+function IconoBaja() {
+  return (
+    <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v5" />
+      <path d="M14 11v5" />
+    </svg>
+  );
+}
+
+function AccionesCriticasPasaporte({
+  conductor,
+  onActualizado,
+  onAviso
+}: {
+  conductor: ConductorRow | null;
+  onActualizado: () => Promise<void> | void;
+  onAviso: (aviso: { tono: "info" | "danger"; texto: string }) => void;
+}) {
+  const [accion, setAccion] = useState<"suspender" | "baja" | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [confirmacion, setConfirmacion] = useState("");
+  const [procesando, setProcesando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function cerrar() {
+    if (procesando) return;
+    setAccion(null);
+    setMotivo("");
+    setConfirmacion("");
+    setError(null);
+  }
+
+  async function ejecutar() {
+    if (!conductor || !accion || !motivo.trim()) return;
+    if (accion === "baja" && confirmacion !== "BAJA") return;
+    setProcesando(true);
+    setError(null);
+    try {
+      const cliente = crearClienteNavegador();
+      if (accion === "suspender") {
+        await suspenderConductorAdmin(cliente, conductor.id, motivo.trim());
+      } else {
+        await darBajaConductorAdmin(cliente, conductor.id, motivo.trim());
+      }
+      await onActualizado();
+      onAviso({
+        tono: "info",
+        texto: accion === "suspender" ? "Conductor suspendido correctamente." : "Baja definitiva aplicada correctamente."
+      });
+      cerrar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo completar la acción.");
+    } finally {
+      setProcesando(false);
+    }
+  }
+
+  const titulo = accion === "baja" ? "Baja definitiva" : "Suspender conductor";
+  const efecto = accion === "baja"
+    ? "La cuenta queda bloqueada permanentemente y no podrá operar traslados."
+    : "El conductor no podrá recibir nuevos traslados hasta que se reactive.";
+
+  return (
+    <div className="mt-4 rounded-lg border border-border-default bg-surface-secondary p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-body text-sm font-semibold text-ink">Acciones operativas</h3>
+          <p className="mt-1 font-body text-sm text-text-secondary">Suspender impide nuevos viajes hasta reactivación; baja definitiva bloquea la cuenta operativa.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setAccion("suspender")}
+            disabled={!conductor || procesando}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-ink/20 bg-surface-primary px-4 py-2 font-body text-sm font-semibold text-ink hover:bg-ink/5 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <IconoPausa /> Suspender
+          </button>
+          <button
+            type="button"
+            onClick={() => setAccion("baja")}
+            disabled={!conductor || procesando}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-status-error/40 bg-status-error/10 px-4 py-2 font-body text-sm font-semibold text-status-error hover:bg-status-error/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <IconoBaja /> Baja definitiva
+          </button>
+        </div>
+      </div>
+      {!conductor && <p className="mt-3 font-body text-sm text-text-tertiary">Disponible cuando la solicitud tenga conductor asociado.</p>}
+      {accion && conductor && (
+        <div role="dialog" aria-modal="true" aria-labelledby="accion-critica-pasaporte" className="mt-4 rounded-lg border border-border-default bg-surface-primary p-4">
+          <p id="accion-critica-pasaporte" className={`flex items-center gap-2 font-body text-sm font-semibold ${accion === "baja" ? "text-status-error" : "text-status-warning"}`}>
+            {accion === "baja" ? <IconoBaja /> : <IconoPausa />} {titulo}
+          </p>
+          <div className="mt-3 rounded-lg border border-ink/10 bg-surface-secondary px-3 py-2 font-body text-sm text-text-secondary">
+            <p><span className="font-semibold text-ink">Conductor:</span> {conductor.nombre}</p>
+            <p><span className="font-semibold text-ink">Estado actual:</span> {textoEstadoConductor(conductor.estado)}</p>
+            <p><span className="font-semibold text-ink">Efecto:</span> {efecto}</p>
+          </div>
+          {error && <div className="mt-3"><Aviso tono="danger">{error}</Aviso></div>}
+          <label className="mt-3 flex flex-col gap-1">
+            <span className="font-body text-xs font-medium text-text-secondary">Motivo</span>
+            <textarea
+              value={motivo}
+              onChange={(event) => setMotivo(event.target.value)}
+              className="min-h-[88px] rounded-lg border border-ink/20 px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
+              placeholder={accion === "baja" ? "Motivo de la baja definitiva" : "Motivo de la suspensión"}
+            />
+          </label>
+          {accion === "baja" && (
+            <label className="mt-3 flex flex-col gap-1">
+              <span className="font-body text-xs font-medium text-text-secondary">Escribe BAJA para confirmar</span>
+              <input
+                type="text"
+                value={confirmacion}
+                onChange={(event) => setConfirmacion(event.target.value)}
+                className="min-h-11 rounded-lg border border-ink/20 px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
+              />
+            </label>
+          )}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void ejecutar()}
+              disabled={procesando || !motivo.trim() || (accion === "baja" && confirmacion !== "BAJA")}
+              className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 font-body text-sm font-semibold text-surface-primary disabled:cursor-not-allowed disabled:opacity-50 ${accion === "baja" ? "bg-status-error hover:bg-status-error/90" : "bg-status-warning hover:bg-status-warning/90"}`}
+            >
+              {accion === "baja" ? <IconoBaja /> : <IconoPausa />}
+              {procesando ? "Procesando..." : accion === "baja" ? "Confirmar baja" : "Confirmar suspensión"}
+            </button>
+            <button type="button" onClick={cerrar} disabled={procesando} className="min-h-11 rounded-lg border border-ink/20 px-4 py-2 font-body text-sm font-medium hover:bg-ink/5 disabled:opacity-50">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CampoEditable({
+  label,
+  value,
+  onChange,
+  inputMode = "text",
+  readOnly = false
+}: {
+  label: string;
+  value: string;
+  onChange: (valor: string) => void;
+  inputMode?: "text" | "tel" | "numeric";
+  readOnly?: boolean;
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="font-body text-xs font-medium text-text-secondary">{label}</span>
+      <input
+        type="text"
+        inputMode={inputMode}
+        value={value}
+        readOnly={readOnly}
+        onChange={(event) => onChange(event.target.value)}
+        className={`min-h-11 rounded-lg border border-ink/20 px-3 py-2 font-body text-sm text-ink focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20 ${readOnly ? "bg-ink/[0.04] text-text-tertiary" : "bg-surface-primary"}`}
+      />
+    </label>
+  );
+}
+
+function DomicilioContactoEditable({
+  solicitud,
+  conductor,
+  correo,
+  onGuardado
+}: {
+  solicitud: DetalleSolicitudConductorAdmin["solicitud"];
+  conductor: ConductorRow | null;
+  correo: string;
+  onGuardado: () => Promise<void> | void;
+}) {
+  const valoresIniciales = useMemo(() => ({
+    codigo_postal: textoJson(solicitud.domicilio, "codigo_postal") ?? conductor?.codigo_postal ?? "",
+    estado_residencia: textoJson(solicitud.domicilio, "estado") ?? conductor?.estado_residencia ?? "",
+    ciudad_municipio: textoJson(solicitud.domicilio, "ciudad_municipio", "ciudad") ?? conductor?.ciudad_municipio ?? "",
+    colonia: textoJson(solicitud.domicilio, "colonia") ?? conductor?.colonia ?? "",
+    calle: textoJson(solicitud.domicilio, "calle") ?? conductor?.calle ?? "",
+    numero: textoJson(solicitud.domicilio, "numero") ?? conductor?.numero ?? "",
+    referencias: textoJson(solicitud.domicilio, "referencias") ?? conductor?.referencias ?? "",
+    contacto_emergencia_nombre: textoJson(solicitud.contacto_emergencia, "nombre") ?? conductor?.contacto_emergencia_nombre ?? "",
+    contacto_emergencia_telefono: textoJson(solicitud.contacto_emergencia, "telefono") ?? conductor?.contacto_emergencia_telefono ?? ""
+  }), [solicitud, conductor]);
+  const [datos, setDatos] = useState(valoresIniciales);
+  const [procesando, setProcesando] = useState(false);
+  const [avisoLocal, setAvisoLocal] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
+  const mapa = urlMapaDomicilio(datos);
+  const llamadaEmergencia = telefonoLlamada(datos.contacto_emergencia_telefono);
+
+  useEffect(() => {
+    setDatos(valoresIniciales);
+  }, [valoresIniciales]);
+
+  function actualizar<K extends keyof typeof datos>(campo: K, valor: string) {
+    setDatos((actuales) => ({ ...actuales, [campo]: valor }));
+  }
+
+  async function guardar() {
+    if (!conductor) {
+      setAvisoLocal({ tono: "danger", texto: "Disponible cuando la solicitud tenga conductor asociado." });
+      return;
+    }
+    setProcesando(true);
+    setAvisoLocal(null);
+    try {
+      const cliente = crearClienteNavegador();
+      await actualizarConductorAdmin(cliente, conductor.id, {
+        nombre: conductor.nombre ?? "",
+        telefono: conductor.telefono ?? "",
+        curp: conductor.curp ?? "",
+        licencia_numero: conductor.licencia_numero ?? "",
+        licencia_tipo: conductor.licencia_tipo ?? "",
+        licencia_vigencia: conductor.licencia_vigencia ?? "",
+        foto_perfil_url: conductor.foto_perfil_url ?? null,
+        ...datos
+      });
+      await onGuardado();
+      setAvisoLocal({ tono: "info", texto: "Domicilio y contacto de emergencia actualizados." });
+    } catch (err) {
+      setAvisoLocal({ tono: "danger", texto: err instanceof Error ? err.message : "No se pudo guardar la información." });
+    } finally {
+      setProcesando(false);
+    }
+  }
+
+  return (
+    <SeccionAcordeon
+      titulo="Domicilio y contacto de emergencia"
+      distintivo={<span className="font-body text-admin-secundario text-text-tertiary">Editable</span>}
+    >
+      <div className="space-y-4">
+        {avisoLocal && <Aviso tono={avisoLocal.tono}>{avisoLocal.texto}</Aviso>}
+        <div className="rounded-lg border border-border-default bg-surface-secondary p-3">
+          <p className="font-body text-sm font-semibold text-ink">Domicilio formateado</p>
+          <p className="mt-1 font-body text-sm text-text-secondary">
+            {[
+              [datos.calle, datos.numero].filter(Boolean).join(" "),
+              datos.colonia,
+              datos.codigo_postal,
+              datos.ciudad_municipio,
+              datos.estado_residencia
+            ].filter(Boolean).join(", ") || "Sin domicilio registrado."}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a
+              href={mapa ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+              aria-disabled={!mapa}
+              className={`inline-flex min-h-11 items-center justify-center rounded-lg border px-4 py-2 font-body text-sm font-semibold ${mapa ? "border-status-info/40 bg-status-info/10 text-status-info hover:bg-status-info/20" : "pointer-events-none border-border-default bg-ink/[0.04] text-text-disabled"}`}
+            >
+              Ver mapa
+            </a>
+            <a
+              href={llamadaEmergencia ?? undefined}
+              aria-disabled={!llamadaEmergencia}
+              className={`inline-flex min-h-11 items-center justify-center rounded-lg border px-4 py-2 font-body text-sm font-semibold ${llamadaEmergencia ? "border-status-success/40 bg-status-success/10 text-status-success hover:bg-status-success/20" : "pointer-events-none border-border-default bg-ink/[0.04] text-text-disabled"}`}
+            >
+              Llamar emergencia
+            </a>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <CampoEditable label="Código postal" value={datos.codigo_postal} inputMode="numeric" onChange={(valor) => actualizar("codigo_postal", valor)} />
+          <CampoEditable label="Estado" value={datos.estado_residencia} onChange={(valor) => actualizar("estado_residencia", valor)} />
+          <CampoEditable label="Municipio o ciudad" value={datos.ciudad_municipio} onChange={(valor) => actualizar("ciudad_municipio", valor)} />
+          <CampoEditable label="Colonia" value={datos.colonia} onChange={(valor) => actualizar("colonia", valor)} />
+          <CampoEditable label="Calle" value={datos.calle} onChange={(valor) => actualizar("calle", valor)} />
+          <CampoEditable label="Número" value={datos.numero} onChange={(valor) => actualizar("numero", valor)} />
+          <CampoEditable label="Referencias" value={datos.referencias} onChange={(valor) => actualizar("referencias", valor)} />
+          <CampoEditable label="Correo electrónico" value={correo} onChange={() => undefined} readOnly />
+          <CampoEditable label="Contacto de emergencia" value={datos.contacto_emergencia_nombre} onChange={(valor) => actualizar("contacto_emergencia_nombre", valor)} />
+          <CampoEditable label="Teléfono de emergencia" value={datos.contacto_emergencia_telefono} inputMode="tel" onChange={(valor) => actualizar("contacto_emergencia_telefono", valor)} />
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => void guardar()}
+            disabled={procesando || !conductor}
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-ink px-4 py-2 font-body text-sm font-semibold text-surface-primary hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {procesando ? "Guardando..." : "Guardar datos"}
+          </button>
+        </div>
       </div>
     </SeccionAcordeon>
   );
@@ -852,6 +1196,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
   const puedeAprobarLote = solicitud.estado === "en_revision" && documentosRequeridos.length === DOCUMENTOS_REQUERIDOS.length && documentosLote.length > 0 && !anomalíasVisibles;
   const hrefEstatus = conductor?.id ? `/conductores/activos/${conductor.id}?solicitud=${solicitud.id}` : null;
   const ciudadSede = textoJson(solicitud.domicilio, "ciudad_municipio", "ciudad") ?? conductor?.ciudad_municipio ?? "-";
+  const tipoLicencia = textoJson(solicitud.licencia, "tipo", "tipo_licencia") ?? conductor?.licencia_tipo ?? "-";
   const datosHeader = `Folio ${solicitud.id.slice(0, 8)} · ${solicitud.curp_normalizada ?? conductor?.curp ?? "CURP no registrada"} · ${telefonoContacto ?? "Sin teléfono"} · ${correo}`;
 
   return (
@@ -864,7 +1209,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
         accion={(
           <div className="flex flex-wrap justify-end gap-2">
             <Link href="/conductores" className="inline-flex min-h-10 items-center rounded-lg border border-status-info bg-status-info px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-status-info/90">
-              Regresar a conductores
+              Regresar
             </Link>
             <AdminButton
               variant="secondary"
@@ -905,8 +1250,8 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
                 valor={<VigenciaLicencia fechaIso={vigenciaLicencia} dias={diasVigencia} />}
                 destacado
               />
+              <Dato etiqueta="Tipo" valor={tipoLicencia} destacado />
               <Dato etiqueta="Ciudad sede" valor={ciudadSede} />
-              <Dato etiqueta="Nivel CONCER" valor={conductor?.nivel_operativo_vigente ?? conductor?.nivel_por_experiencia ?? "Por asignar"} destacado />
             </dl>
           </section>
 
@@ -914,20 +1259,11 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
             conductor={conductor}
             documentosAprobados={documentosAprobados}
             diasVigencia={diasVigencia}
+            onActualizado={cargar}
+            onAviso={setAviso}
           />
 
-          <SeccionAcordeon titulo="Domicilio y contacto de emergencia" distintivo={<span className="font-body text-admin-secundario text-text-tertiary">Ver datos</span>}>
-            <dl className="mt-4 grid gap-3">
-              <Dato etiqueta="Código postal" valor={textoJson(solicitud.domicilio, "codigo_postal") ?? conductor?.codigo_postal ?? "-"} />
-              <Dato etiqueta="Estado" valor={textoJson(solicitud.domicilio, "estado") ?? conductor?.estado_residencia ?? "-"} />
-              <Dato etiqueta="Municipio o ciudad" valor={textoJson(solicitud.domicilio, "ciudad_municipio", "ciudad") ?? conductor?.ciudad_municipio ?? "-"} />
-              <Dato etiqueta="Colonia" valor={textoJson(solicitud.domicilio, "colonia") ?? conductor?.colonia ?? "-"} />
-              <Dato etiqueta="Calle y número" valor={[textoJson(solicitud.domicilio, "calle") ?? conductor?.calle, textoJson(solicitud.domicilio, "numero") ?? conductor?.numero].filter(Boolean).join(" ") || "-"} />
-              <Dato etiqueta="Referencias" valor={textoJson(solicitud.domicilio, "referencias") ?? conductor?.referencias ?? "-"} />
-              <Dato etiqueta="Correo electrónico" valor={correo} />
-              <Dato etiqueta="Contacto de emergencia" valor={[textoJson(solicitud.contacto_emergencia, "nombre") ?? conductor?.contacto_emergencia_nombre, textoJson(solicitud.contacto_emergencia, "telefono") ?? conductor?.contacto_emergencia_telefono].filter(Boolean).join(" · ") || "-"} />
-            </dl>
-          </SeccionAcordeon>
+          <DomicilioContactoEditable solicitud={solicitud} conductor={conductor} correo={correo} onGuardado={cargar} />
 
           <PassportCard>
             <h2 className="font-display text-lg font-semibold">Checklist de requisitos</h2>

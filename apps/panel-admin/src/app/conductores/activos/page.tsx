@@ -95,9 +95,9 @@ export default function PaginaConductoresActivos() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-8 sm:px-8 sm:py-10">
       <AdminPageHeader
-        etiqueta="Gestión"
-        titulo="Conductores activos"
-        descripcion="Listado de conductores con cuenta aprobada y gestión de estado."
+        etiqueta="ESTATUS DE"
+        titulo="Conductores"
+        descripcion="Monitoreo por estatus"
         estadoConexion={conductores.length > 0 ? "datos_en_vivo" : "sin_conexion"}
         contadorResultados={conductores.length}
         accion={(
