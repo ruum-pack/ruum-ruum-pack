@@ -156,23 +156,6 @@ export function AdminDataTable<T>({
           {loading ? "Cargando resultados" : `${sortedRows.length.toLocaleString("es-MX")} resultados · ${selectedIds.size} seleccionados`}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {bulkActions.map((action) => (
-            <button
-              key={action.label}
-              type="button"
-              disabled={selectedRows.length === 0}
-              onClick={() => action.onClick(selectedRows)}
-              className={[
-                "rounded-lg border px-3 py-2 font-body text-admin-boton font-semibold disabled:opacity-50",
-                action.destructive || action.requiresConfirmation
-                  ? "border-status-warning/35 text-status-warning hover:bg-status-warning-soft"
-                  : "border-ink/20 text-text-secondary hover:border-signal/40"
-              ].join(" ")}
-              title={`${action.label}: afectará ${selectedRows.length.toLocaleString("es-MX")} registro${selectedRows.length === 1 ? "" : "s"}.`}
-            >
-              {action.label}
-            </button>
-          ))}
           <details className="relative">
             <summary className="cursor-pointer rounded-lg border border-ink/20 px-3 py-2 font-body text-admin-boton font-semibold text-text-secondary">
               Columnas
@@ -262,6 +245,32 @@ export function AdminDataTable<T>({
           <button type="button" className="rounded-lg border border-ink/20 px-3 py-1.5 text-sm" disabled={pageSafe >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>Siguiente</button>
         </div>
       </div>
+      {bulkActions.length > 0 && selectedRows.length > 0 && (
+        <div className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-lg border border-border-default bg-surface-primary px-4 py-3 shadow-[var(--ruum-shadow-4)] lg:left-[calc(var(--admin-sidebar-width,18rem)+1rem)]">
+          <p className="font-body text-sm font-semibold text-ink">{selectedRows.length.toLocaleString("es-MX")} seleccionado{selectedRows.length === 1 ? "" : "s"}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {bulkActions.map((action) => (
+              <button
+                key={action.label}
+                type="button"
+                onClick={() => action.onClick(selectedRows)}
+                className={[
+                  "rounded-lg border px-3 py-2 font-body text-admin-boton font-semibold",
+                  action.destructive || action.requiresConfirmation
+                    ? "border-status-warning/35 text-status-warning hover:bg-status-warning-soft"
+                    : "border-ink/20 text-text-secondary hover:border-signal/40 hover:bg-surface-secondary"
+                ].join(" ")}
+                title={`${action.label}: afectará ${selectedRows.length.toLocaleString("es-MX")} registro${selectedRows.length === 1 ? "" : "s"}.`}
+              >
+                {action.label}
+              </button>
+            ))}
+            <button type="button" onClick={() => onSelectionChange(new Set())} className="rounded-lg border border-transparent px-3 py-2 font-body text-admin-boton font-semibold text-text-tertiary hover:bg-surface-secondary">
+              Limpiar
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
@@ -13,73 +13,188 @@ import {
   type DetalleSolicitudConductorAdmin,
   type EstadoDocumentoConductor
 } from "@ruum/api/services";
+import { AdminBadge, AdminButton } from "../../admin-components";
+import { AdminPageHeader } from "../../admin-ui";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 
 type DocumentoRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
 type EstadoSolicitud = Database["public"]["Enums"]["estado_expediente_conductor"];
 
-const DOCUMENTOS_REQUERIDOS = ["licencia_frente", "licencia_reverso", "identificacion_oficial"];
+const DOCUMENTOS_REQUERIDOS = ["licencia_frente", "licencia_reverso", "identificacion_oficial"] as const;
+const CONSENTIMIENTOS_REQUERIDOS = ["terminos_servicio", "aviso_privacidad", "autorizacion_antecedentes", "declaracion_suspensiones"] as const;
+
 const ETIQUETA_DOCUMENTO: Record<string, string> = {
-  licencia_frente: "Licencia · frente",
-  licencia_reverso: "Licencia · reverso",
+  licencia_frente: "Licencia frente",
+  licencia_reverso: "Licencia reverso",
   identificacion_oficial: "Identificación oficial",
   documento_operativo: "Documento operativo adicional"
 };
+
 const ETIQUETA_CONSENTIMIENTO: Record<string, string> = {
   terminos_servicio: "Términos de servicio",
   aviso_privacidad: "Aviso de privacidad",
   autorizacion_antecedentes: "Autorización de antecedentes",
   declaracion_suspensiones: "Declaración de no suspensión"
 };
+
 const ETIQUETA_ESTADO: Record<EstadoSolicitud, string> = {
-  borrador: "Borrador", correo_pendiente: "Correo pendiente", datos_incompletos: "Datos incompletos",
-  documentos_pendientes: "Documentos pendientes", listo_para_enviar: "Lista para enviar", en_revision: "En revisión",
-  requiere_correccion: "Requiere corrección", aprobado: "Aprobada", rechazado: "Rechazada", suspendido: "Suspendida"
+  borrador: "Borrador",
+  correo_pendiente: "Correo pendiente",
+  datos_incompletos: "Datos incompletos",
+  documentos_pendientes: "Documentos pendientes",
+  listo_para_enviar: "Lista para enviar",
+  en_revision: "En revisión",
+  requiere_correccion: "Requiere corrección",
+  aprobado: "Aprobada",
+  rechazado: "Rechazada",
+  suspendido: "Suspendida"
 };
+
 const ETIQUETA_DECISION: Record<string, string> = {
-  registro_inicial: "Estado inicial", cambio_estado: "Cambio de estado", aprobar_documento: "Documento aprobado",
-  rechazar_documento: "Documento rechazado", vencer_documento: "Documento vencido",
-  solicitar_correccion: "Corrección solicitada", aprobar_solicitud: "Solicitud aprobada", rechazar_solicitud: "Solicitud rechazada"
+  registro_inicial: "Estado inicial",
+  cambio_estado: "Cambio de estado",
+  aprobar_documento: "Documento aprobado",
+  rechazar_documento: "Documento rechazado",
+  vencer_documento: "Documento vencido",
+  solicitar_correccion: "Corrección solicitada",
+  aprobar_solicitud: "Solicitud aprobada",
+  rechazar_solicitud: "Solicitud rechazada"
 };
+
 const ESTADO_DOCUMENTO: Record<string, { texto: string; clase: string }> = {
-  en_revision: { texto: "En revisión", clase: "border-status-info/30 bg-status-info-soft text-status-info" },
+  en_revision: { texto: "En revisión", clase: "border-status-warning/35 bg-status-warning-soft text-status-warning" },
   aprobado: { texto: "Aprobado", clase: "border-status-success/30 bg-status-success-soft text-status-success" },
-  rechazado: { texto: "Rechazado", clase: "border-status-error/25 bg-status-error-soft text-status-error" },
+  rechazado: { texto: "Solicitar corrección", clase: "border-status-error/25 bg-status-error-soft text-status-error" },
   vencido: { texto: "Vencido", clase: "border-status-error/25 bg-status-error-soft text-status-error" }
 };
 
-function textoJson(valor: Json, llave: string) {
+const ESTADO_SOLICITUD_CLASE: Record<EstadoSolicitud, string> = {
+  borrador: "border-ink/15 bg-ink/[0.04] text-text-secondary",
+  correo_pendiente: "border-status-warning/35 bg-status-warning-soft text-status-warning",
+  datos_incompletos: "border-status-warning/35 bg-status-warning-soft text-status-warning",
+  documentos_pendientes: "border-status-warning/35 bg-status-warning-soft text-status-warning",
+  listo_para_enviar: "border-status-info/30 bg-status-info-soft text-status-info",
+  en_revision: "border-status-warning/35 bg-status-warning-soft text-status-warning",
+  requiere_correccion: "border-status-error/25 bg-status-error-soft text-status-error",
+  aprobado: "border-status-success/30 bg-status-success-soft text-status-success",
+  rechazado: "border-status-error/25 bg-status-error-soft text-status-error",
+  suspendido: "border-ink/30 bg-ink/10 text-text-tertiary"
+};
+
+function textoJson(valor: Json, ...llaves: string[]) {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) return null;
-  const dato = valor[llave];
-  return typeof dato === "string" && dato.trim() ? dato.trim() : null;
+  for (const llave of llaves) {
+    const dato = valor[llave];
+    if (typeof dato === "string" && dato.trim()) return dato.trim();
+    if (typeof dato === "number") return String(dato);
+  }
+  return null;
 }
 
 function fecha(valor: string | null) {
-  return valor ? new Date(valor).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" }) : "—";
+  return valor ? new Date(valor).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" }) : "-";
 }
 
-function FilaDocumento({ documento, onRevisado }: {
+function truncarHash(hash: string) {
+  return hash.length <= 14 ? hash : `${hash.slice(0, 6)}...${hash.slice(-4)}`;
+}
+
+function diasParaVencer(fechaIso: string | null) {
+  if (!fechaIso) return null;
+  const fechaValor = new Date(fechaIso);
+  if (Number.isNaN(fechaValor.getTime())) return null;
+  const hoy = new Date();
+  return Math.ceil((fechaValor.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function esDocumentoVisible(documento: DocumentoRow) {
+  return /\.(png|jpe?g|webp|gif|pdf)$/i.test(documento.nombre_archivo) || /\.(png|jpe?g|webp|gif|pdf)$/i.test(documento.url);
+}
+
+function BadgeEstadoSolicitud({ estado }: { estado: EstadoSolicitud }) {
+  return (
+    <span className={`rounded-full border px-3 py-1 font-body text-admin-secundario font-semibold ${ESTADO_SOLICITUD_CLASE[estado]}`}>
+      {ETIQUETA_ESTADO[estado]}
+    </span>
+  );
+}
+
+function Dato({ etiqueta, valor, destacado = false }: { etiqueta: string; valor: ReactNode; destacado?: boolean }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-border-default bg-surface-primary px-3 py-2.5">
+      <dt className="font-body text-admin-secundario text-text-tertiary">{etiqueta}</dt>
+      <dd className={`mt-1 break-words font-body text-sm ${destacado ? "font-semibold text-ink" : "font-medium text-text-secondary"}`}>{valor || <span className="text-text-tertiary">-</span>}</dd>
+    </div>
+  );
+}
+
+function IndicadorChecklist({ etiqueta, valor, completo }: { etiqueta: string; valor: string; completo: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border-default bg-surface-primary px-3 py-2">
+      <span className="font-body text-sm text-text-secondary">{etiqueta}</span>
+      <span className={`inline-flex items-center gap-1.5 font-body text-sm font-semibold ${completo ? "text-status-success" : "text-status-error"}`}>
+        <span className={`size-2 rounded-full ${completo ? "bg-status-success" : "bg-status-error"}`} aria-hidden="true" />
+        {valor}
+      </span>
+    </div>
+  );
+}
+
+function ConsentimientoItem({ consentimiento }: { consentimiento: DetalleSolicitudConductorAdmin["consentimientos"][number] }) {
+  const [copiado, setCopiado] = useState(false);
+
+  async function copiarHash() {
+    await navigator.clipboard.writeText(consentimiento.hash_documento);
+    setCopiado(true);
+    window.setTimeout(() => setCopiado(false), 1600);
+  }
+
+  return (
+    <details className="rounded-lg border border-border-default bg-surface-primary px-3 py-2 font-body text-sm">
+      <summary className="cursor-pointer list-none">
+        <span className="flex items-center justify-between gap-3">
+          <span className="font-medium text-ink">{ETIQUETA_CONSENTIMIENTO[consentimiento.tipo_documento] ?? consentimiento.tipo_documento}</span>
+          <AdminBadge tone="success">Consentido</AdminBadge>
+        </span>
+        <span className="mt-1 block text-admin-secundario text-text-tertiary">Versión {consentimiento.version} · {fecha(consentimiento.aceptado_en)} · {consentimiento.canal}</span>
+      </summary>
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border-default pt-3">
+        <span className="font-mono-ruum text-admin-secundario text-text-tertiary">Hash {truncarHash(consentimiento.hash_documento)}</span>
+        <button type="button" onClick={copiarHash} className="rounded-md border border-border-default px-2 py-1 font-body text-admin-secundario font-semibold text-text-secondary hover:bg-surface-secondary">
+          {copiado ? "Copiado" : "Copiar"}
+        </button>
+      </div>
+    </details>
+  );
+}
+
+function FilaDocumento({
+  documento,
+  seleccionado,
+  onSeleccionar,
+  onRevisado
+}: {
   documento: DocumentoRow;
+  seleccionado: boolean;
+  onSeleccionar: (documento: DocumentoRow) => Promise<void>;
   onRevisado: (id: string, estado: EstadoDocumentoConductor, notas?: string) => Promise<void>;
 }) {
   const [procesando, setProcesando] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [rechazando, setRechazando] = useState(false);
-  const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const estado = ESTADO_DOCUMENTO[documento.estado] ?? ESTADO_DOCUMENTO.en_revision;
 
-  async function ver() {
+  async function seleccionar() {
     setProcesando(true);
     setError(null);
     try {
-      const { data, error: errorUrl } = await crearClienteNavegador().storage
-        .from("documentos-conductor").createSignedUrl(documento.url, 60 * 30);
-      if (errorUrl) throw errorUrl;
-      setUrl(data.signedUrl);
+      await onSeleccionar(documento);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No pudimos abrir el documento.");
-    } finally { setProcesando(false); }
+    } finally {
+      setProcesando(false);
+    }
   }
 
   async function decidir(nuevoEstado: EstadoDocumentoConductor, notas?: string) {
@@ -91,25 +206,26 @@ function FilaDocumento({ documento, onRevisado }: {
       setMotivo("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No pudimos registrar la decisión.");
-    } finally { setProcesando(false); }
+    } finally {
+      setProcesando(false);
+    }
   }
 
   return (
-    <div className="rounded-lg border border-ink/10 p-4">
+    <article className={`rounded-lg border p-4 transition ${seleccionado ? "border-status-info bg-status-info-soft/30" : "border-border-default bg-surface-primary"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="font-body text-sm font-semibold">{ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}</p>
-          <p className="mt-0.5 font-body text-xs text-text-tertiary">Versión {documento.version} · {documento.nombre_archivo}</p>
-        </div>
-        <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-medium ${estado.clase}`}>{estado.texto}</span>
+        <button type="button" onClick={seleccionar} className="min-w-0 text-left" disabled={procesando}>
+          <p className="font-body text-sm font-semibold text-ink">{ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}</p>
+          <p className="mt-0.5 truncate font-body text-admin-secundario text-text-tertiary">Versión {documento.version} · {documento.nombre_archivo}</p>
+        </button>
+        <span className={`rounded-full border px-2.5 py-1 font-body text-admin-secundario font-semibold ${estado.clase}`}>{estado.texto}</span>
       </div>
       {(documento.motivo_rechazo || documento.notas_admin) && (
-        <p className="mt-3 rounded-lg bg-status-warning-soft px-3 py-2 font-body text-xs text-status-warning">{documento.motivo_rechazo ?? documento.notas_admin}</p>
+        <p className="mt-3 rounded-lg bg-status-warning-soft px-3 py-2 font-body text-admin-secundario text-status-warning">{documento.motivo_rechazo ?? documento.notas_admin}</p>
       )}
       {error && <div className="mt-3"><Aviso tono="danger">{error}</Aviso></div>}
       <div className="mt-3 flex flex-wrap gap-2">
-        {url ? <a href={url} target="_blank" rel="noreferrer" className="font-body text-sm text-status-info hover:underline">Abrir documento</a>
-          : <Button variant="quiet" onClick={ver} disabled={procesando}>Ver documento</Button>}
+        <Button variant="quiet" onClick={seleccionar} disabled={procesando}>{procesando ? "Cargando..." : "Abrir en visor"}</Button>
         {documento.estado === "en_revision" && !rechazando && (
           <>
             <Button onClick={() => decidir("aprobado")} disabled={procesando}>Aprobar</Button>
@@ -119,14 +235,54 @@ function FilaDocumento({ documento, onRevisado }: {
       </div>
       {rechazando && (
         <div className="mt-3 rounded-lg border border-status-warning/30 bg-status-warning-soft/40 p-3">
-          <label className="font-body text-xs font-medium">Motivo para el conductor</label>
-          <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={500}
+          <label className="font-body text-admin-secundario font-semibold text-ink" htmlFor={`motivo-${documento.id}`}>Motivo para el conductor</label>
+          <textarea
+            id={`motivo-${documento.id}`}
+            value={motivo}
+            onChange={(event) => setMotivo(event.target.value)}
+            maxLength={500}
             className="mt-2 min-h-20 w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none"
-            placeholder="Indica exactamente qué debe corregir." />
+            placeholder="Indica exactamente qué debe corregir."
+          />
           <div className="mt-2 flex gap-2">
             <Button variant="danger" onClick={() => decidir("rechazado", motivo)} disabled={procesando || motivo.trim().length < 5}>Confirmar</Button>
             <Button variant="quiet" onClick={() => { setRechazando(false); setMotivo(""); }} disabled={procesando}>Cancelar</Button>
           </div>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function VisorDocumento({ documento, url }: { documento: DocumentoRow | null; url: string | null }) {
+  if (!documento) {
+    return (
+      <div className="flex min-h-[420px] items-center justify-center rounded-lg border border-dashed border-border-default bg-surface-secondary px-6 text-center">
+        <p className="font-body text-sm text-text-tertiary">Selecciona un documento para validarlo.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border-default bg-surface-primary">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-default px-4 py-3">
+        <div className="min-w-0">
+          <p className="font-body text-sm font-semibold text-ink">{ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}</p>
+          <p className="truncate font-body text-admin-secundario text-text-tertiary">{documento.nombre_archivo}</p>
+        </div>
+        {url && <a href={url} target="_blank" rel="noreferrer" className="font-body text-admin-secundario font-semibold text-status-info hover:underline">Abrir externo</a>}
+      </div>
+      {url ? (
+        esDocumentoVisible(documento) ? (
+          <iframe title={`Visor de ${ETIQUETA_DOCUMENTO[documento.tipo] ?? documento.tipo}`} src={url} className="h-[72vh] min-h-[520px] w-full bg-surface-secondary" />
+        ) : (
+          <div className="flex min-h-[420px] items-center justify-center px-6 text-center">
+            <p className="font-body text-sm text-text-tertiary">Este formato no se puede previsualizar aquí. Usa “Abrir externo” para revisarlo.</p>
+          </div>
+        )
+      ) : (
+        <div className="flex min-h-[420px] items-center justify-center px-6 text-center">
+          <p className="font-body text-sm text-text-tertiary">Generando URL segura de lectura...</p>
         </div>
       )}
     </div>
@@ -141,14 +297,18 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
   const [accion, setAccion] = useState<"aprobar" | "rechazar" | null>(null);
   const [motivo, setMotivo] = useState("");
   const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
+  const [documentoSeleccionadoId, setDocumentoSeleccionadoId] = useState<string | null>(null);
+  const [urlsDocumento, setUrlsDocumento] = useState<Record<string, string>>({});
 
   const cargar = useCallback(async () => {
     if (!tieneSupabaseConfigurado()) { setCargando(false); return; }
     try {
       setDetalle(await obtenerDetalleSolicitudConductorAdmin(crearClienteNavegador(), id));
     } catch (err) {
-      setAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos cargar el expediente." });
-    } finally { setCargando(false); }
+      setAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos cargar el Pasaporte digital CONCER." });
+    } finally {
+      setCargando(false);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -164,9 +324,47 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
     return [...porTipo.values()];
   }, [detalle]);
 
+  const documentoSeleccionado = useMemo(() => {
+    if (!detalle?.documentos.length) return null;
+    return detalle.documentos.find((documento) => documento.id === documentoSeleccionadoId) ?? detalle.documentos[0] ?? null;
+  }, [detalle?.documentos, documentoSeleccionadoId]);
+
+  useEffect(() => {
+    if (!documentoSeleccionado) return;
+    if (urlsDocumento[documentoSeleccionado.id]) return;
+    void seleccionarDocumento(documentoSeleccionado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentoSeleccionado?.id]);
+
+  async function seleccionarDocumento(documento: DocumentoRow) {
+    setDocumentoSeleccionadoId(documento.id);
+    if (urlsDocumento[documento.id]) return;
+    const { data, error } = await crearClienteNavegador().storage
+      .from("documentos-conductor")
+      .createSignedUrl(documento.url, 60 * 30);
+    if (error) throw error;
+    setUrlsDocumento((actuales) => ({ ...actuales, [documento.id]: data.signedUrl }));
+  }
+
   async function revisarDocumento(documentoId: string, estado: EstadoDocumentoConductor, notas?: string) {
     await revisarDocumentoConductorAdmin(crearClienteNavegador(), documentoId, estado, notas);
     await cargar();
+  }
+
+  async function aprobarTodosDocumentos(documentos: DocumentoRow[]) {
+    setProcesando(true);
+    setAviso(null);
+    try {
+      for (const documento of documentos) {
+        await revisarDocumentoConductorAdmin(crearClienteNavegador(), documento.id, "aprobado");
+      }
+      setAviso({ tono: "info", texto: "Documentos requeridos aprobados por lote." });
+      await cargar();
+    } catch (err) {
+      setAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos aprobar los documentos por lote." });
+    } finally {
+      setProcesando(false);
+    }
   }
 
   async function decidir() {
@@ -186,112 +384,207 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
       await cargar();
     } catch (err) {
       setAviso({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos registrar la decisión." });
-    } finally { setProcesando(false); }
+    } finally {
+      setProcesando(false);
+    }
   }
 
-  if (cargando) return <main className="mx-auto max-w-4xl px-8 py-10"><p className="font-body text-sm text-text-tertiary">Cargando…</p></main>;
+  if (cargando) return <main className="admin-page-shell"><p className="font-body text-sm text-text-tertiary">Cargando...</p></main>;
   if (!detalle) return (
-    <main className="mx-auto max-w-4xl px-8 py-10 text-center">
-      <h1 className="font-display text-xl font-semibold">No encontramos esa solicitud</h1>
+    <main className="admin-page-shell">
+      <AdminPageHeader
+        titulo="No encontramos esa solicitud"
+        descripcion="La solicitud no está disponible o tu sesión no tiene permisos para revisarla."
+        breadcrumb={[{ label: "Conductores", href: "/conductores" }, { label: "Revisión" }]}
+      />
       {aviso && <div className="mt-4"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
-      <Link href="/conductores" className="mt-4 inline-block font-body text-sm text-status-info hover:underline">← Volver a la bandeja</Link>
+      <Link href="/conductores" className="mt-4 inline-block font-body text-sm text-status-info hover:underline">Volver a la bandeja</Link>
     </main>
   );
 
-  const { solicitud, documentos, historial } = detalle;
-  const nombre = textoJson(solicitud.datos_personales, "nombre") ?? "Conductor sin nombre";
-  const documentosAprobados = DOCUMENTOS_REQUERIDOS.every((tipo) => documentos.some((d) => d.tipo === tipo && d.estado === "aprobado"));
-  const puedeAprobar = solicitud.estado === "en_revision" && documentosAprobados && consentimientosActuales.length === 4;
+  const { solicitud, conductor, documentos, historial } = detalle;
+  const nombre = textoJson(solicitud.datos_personales, "nombre") ?? conductor?.nombre ?? "Conductor sin nombre";
+  const correo = textoJson(solicitud.datos_personales, "email", "correo", "correo_electronico") ?? "-";
+  const vigenciaLicencia = textoJson(solicitud.licencia, "vigencia") ?? conductor?.licencia_vigencia ?? null;
+  const diasVigencia = diasParaVencer(vigenciaLicencia);
+  const licenciaPorVencer = diasVigencia !== null && diasVigencia >= 0 && diasVigencia <= 30;
+  const licenciaVencida = diasVigencia !== null && diasVigencia < 0;
+  const documentosRequeridos = documentos.filter((documento) => DOCUMENTOS_REQUERIDOS.includes(documento.tipo as typeof DOCUMENTOS_REQUERIDOS[number]));
+  const documentosAprobadosCount = DOCUMENTOS_REQUERIDOS.filter((tipo) => documentos.some((documento) => documento.tipo === tipo && documento.estado === "aprobado")).length;
+  const documentosAprobados = documentosAprobadosCount === DOCUMENTOS_REQUERIDOS.length;
+  const tiposConsentidos = new Set(consentimientosActuales.map((consentimiento) => consentimiento.tipo_documento));
+  const consentimientosRegistradosCount = CONSENTIMIENTOS_REQUERIDOS.filter((tipo) => tiposConsentidos.has(tipo)).length;
+  const consentimientosCompletos = consentimientosRegistradosCount === CONSENTIMIENTOS_REQUERIDOS.length;
+  const puedeAprobar = solicitud.estado === "en_revision" && documentosAprobados && consentimientosCompletos;
+  const documentosLote = documentosRequeridos.filter((documento) => documento.estado === "en_revision");
+  const anomalíasVisibles = documentosRequeridos.some((documento) => documento.estado === "rechazado" || documento.estado === "vencido" || Boolean(documento.motivo_rechazo));
+  const puedeAprobarLote = solicitud.estado === "en_revision" && documentosRequeridos.length === DOCUMENTOS_REQUERIDOS.length && documentosLote.length > 0 && !anomalíasVisibles;
+  const sanciones = conductor
+    ? conductor.suspensiones_activas > 0
+      ? `${conductor.suspensiones_activas} suspensión(es) activa(s)`
+      : "Sin sanciones activas"
+    : "Sin conductor asociado";
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-8 sm:px-8 sm:py-10">
-      <Link href="/conductores" className="font-body text-sm text-text-secondary hover:text-ink">← Solicitudes</Link>
+    <main className="admin-page-shell pb-24">
+      <AdminPageHeader
+        etiqueta="Pasaporte digital CONCER"
+        titulo={nombre}
+        descripcion={`Folio ${solicitud.id.slice(0, 8)} · revisión de datos, consentimientos y documentos sin cambiar de contexto.`}
+        breadcrumb={[{ label: "Conductores", href: "/conductores" }, { label: "Pasaporte digital CONCER" }]}
+        tipoDatos="administrativos"
+        accion={(
+          <AdminButton
+            variant="secondary"
+            loading={procesando && !accion}
+            disabled={!puedeAprobarLote || procesando}
+            onClick={() => void aprobarTodosDocumentos(documentosLote)}
+            title={!puedeAprobarLote ? "Disponible cuando los documentos requeridos están en revisión y no hay anomalías visibles." : undefined}
+          >
+            Aprobar todos los documentos
+          </AdminButton>
+        )}
+      />
+
       {aviso && <div className="mt-4"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
 
-      <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Expediente {solicitud.id.slice(0, 8)}</p>
-          <h1 className="mt-1 font-display text-2xl font-semibold">{nombre}</h1>
-          <p className="mt-1 font-body text-sm text-text-tertiary">{solicitud.curp_normalizada ?? "CURP no registrada"} · {solicitud.telefono_normalizado ?? "Sin teléfono"}</p>
-        </div>
-        <span className="rounded-full border border-ink/15 bg-ink/[0.04] px-3 py-1 font-body text-xs font-medium">{ETIQUETA_ESTADO[solicitud.estado]}</span>
-      </div>
-
-      <div className="mt-6 grid gap-5 md:grid-cols-2">
-        <PassportCard>
-          <h2 className="font-display text-lg font-semibold">Datos del expediente</h2>
-          <dl className="mt-3 space-y-2 font-body text-sm">
-            <div className="flex justify-between gap-4"><dt className="text-text-tertiary">Paso actual</dt><dd>{solicitud.paso_actual}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-text-tertiary">Enviado</dt><dd>{fecha(solicitud.enviado_en)}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-text-tertiary">Licencia</dt><dd>{solicitud.licencia_normalizada ?? "—"}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-text-tertiary">Vigencia</dt><dd>{textoJson(solicitud.licencia, "vigencia") ?? "—"}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-text-tertiary">Domicilio</dt><dd className="text-right">{[textoJson(solicitud.domicilio, "colonia"), textoJson(solicitud.domicilio, "ciudad_municipio"), textoJson(solicitud.domicilio, "estado")].filter(Boolean).join(", ") || "—"}</dd></div>
-          </dl>
-        </PassportCard>
-        <PassportCard>
-          <h2 className="font-display text-lg font-semibold">Consentimientos</h2>
-          <div className="mt-3 space-y-2">
-            {consentimientosActuales.length === 0 ? <p className="font-body text-sm text-text-tertiary">Sin consentimientos registrados.</p> : consentimientosActuales.map((c) => (
-              <div key={c.id} className="rounded-lg border border-ink/10 px-3 py-2 font-body text-sm">
-                <p className="font-medium">{ETIQUETA_CONSENTIMIENTO[c.tipo_documento]}</p>
-                <p className="mt-0.5 text-xs text-text-tertiary">Versión {c.version} · {fecha(c.aceptado_en)} · {c.canal}</p>
-                <p className="mt-1 break-all font-mono-ruum text-admin-secundario text-text-tertiary">Hash {c.hash_documento}</p>
-              </div>
-            ))}
+      <section className="mt-5 rounded-lg border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-1)]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-body text-admin-secundario font-semibold uppercase tracking-[0.14em] text-text-tertiary">Ficha rápida del conductor</p>
+            <h2 className="mt-1 font-display text-xl font-semibold text-ink">{nombre}</h2>
+            <p className="mt-1 font-body text-sm text-text-secondary">{solicitud.curp_normalizada ?? conductor?.curp ?? "CURP no registrada"} · {solicitud.telefono_normalizado ?? conductor?.telefono ?? "Sin teléfono"}</p>
           </div>
-        </PassportCard>
-      </div>
-
-      <div className="mt-6"><PassportCard>
-        <h2 className="font-display text-lg font-semibold">Documentos vigentes</h2>
-        <div className="mt-4 space-y-3">
-          {documentos.length === 0 ? <p className="font-body text-sm text-text-tertiary">No hay documentos vigentes.</p>
-            : documentos.map((documento) => <FilaDocumento key={documento.id} documento={documento} onRevisado={revisarDocumento} />)}
+          <BadgeEstadoSolicitud estado={solicitud.estado} />
         </div>
-      </PassportCard></div>
+        <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Dato etiqueta="Licencia" valor={solicitud.licencia_normalizada ?? conductor?.licencia_numero ?? "-"} destacado />
+          <Dato
+            etiqueta="Vigencia"
+            valor={(
+              <span className={licenciaVencida ? "text-status-error" : licenciaPorVencer ? "text-status-warning" : ""}>
+                {vigenciaLicencia ?? "-"}
+                {licenciaVencida && <span className="ml-2 rounded-full bg-status-error-soft px-2 py-0.5 text-admin-secundario font-semibold text-status-error">Vencida</span>}
+                {licenciaPorVencer && <span className="ml-2 rounded-full bg-status-warning-soft px-2 py-0.5 text-admin-secundario font-semibold text-status-warning">Por vencer</span>}
+              </span>
+            )}
+            destacado
+          />
+          <Dato etiqueta="Domicilio" valor={[textoJson(solicitud.domicilio, "colonia") ?? conductor?.colonia, textoJson(solicitud.domicilio, "ciudad_municipio", "ciudad") ?? conductor?.ciudad_municipio, textoJson(solicitud.domicilio, "estado") ?? conductor?.estado_residencia].filter(Boolean).join(", ")} />
+          <Dato etiqueta="Nivel CONCER" valor={conductor?.nivel_operativo_vigente ?? conductor?.nivel_por_experiencia ?? "Por asignar"} destacado />
+        </dl>
+      </section>
 
-      <div className="mt-6"><PassportCard>
-        <h2 className="font-display text-lg font-semibold">Decisión administrativa</h2>
-        {solicitud.estado === "en_revision" ? (
-          <>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={() => setAccion("aprobar")} disabled={!puedeAprobar || procesando}>Aprobar solicitud</Button>
-              <Button variant="danger" onClick={() => setAccion("rechazar")} disabled={procesando}>Rechazar solicitud</Button>
-            </div>
-            {!puedeAprobar && <p className="mt-2 font-body text-xs text-text-tertiary">Para aprobar se requieren los 3 documentos aprobados y los 4 consentimientos registrados.</p>}
-          </>
-        ) : <p className="mt-3 font-body text-sm text-text-tertiary">La solicitud no admite una decisión final en su estado actual.</p>}
-        {accion && (
-          <div className="mt-4 rounded-lg border border-ink/10 bg-ink/[0.02] p-4">
-            <label className="font-body text-sm font-medium">Motivo de la decisión {accion === "rechazar" && <span className="text-status-error">*</span>}</label>
-            <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={800}
-              placeholder={accion === "aprobar" ? "Opcional: observaciones de la aprobación." : "Explica el motivo del rechazo."}
-              className="mt-2 min-h-24 w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none" />
-            <div className="mt-3 flex gap-2">
-              <Button variant={accion === "rechazar" ? "danger" : "primary"} onClick={decidir} disabled={procesando || (accion === "rechazar" && motivo.trim().length < 5)}>
-                {procesando ? "Registrando…" : "Confirmar decisión"}
-              </Button>
-              <Button variant="quiet" onClick={() => { setAccion(null); setMotivo(""); }} disabled={procesando}>Cancelar</Button>
-            </div>
-          </div>
-        )}
-      </PassportCard></div>
+      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(320px,0.35fr)_minmax(520px,0.65fr)]">
+        <aside className="space-y-5">
+          <PassportCard>
+            <h2 className="font-display text-lg font-semibold">Datos del conductor</h2>
+            <dl className="mt-4 grid gap-3">
+              <Dato etiqueta="Código postal" valor={textoJson(solicitud.domicilio, "codigo_postal") ?? conductor?.codigo_postal ?? "-"} />
+              <Dato etiqueta="Estado" valor={textoJson(solicitud.domicilio, "estado") ?? conductor?.estado_residencia ?? "-"} />
+              <Dato etiqueta="Municipio o ciudad" valor={textoJson(solicitud.domicilio, "ciudad_municipio", "ciudad") ?? conductor?.ciudad_municipio ?? "-"} />
+              <Dato etiqueta="Colonia" valor={textoJson(solicitud.domicilio, "colonia") ?? conductor?.colonia ?? "-"} />
+              <Dato etiqueta="Calle y número" valor={[textoJson(solicitud.domicilio, "calle") ?? conductor?.calle, textoJson(solicitud.domicilio, "numero") ?? conductor?.numero].filter(Boolean).join(" ") || "-"} />
+              <Dato etiqueta="Referencias" valor={textoJson(solicitud.domicilio, "referencias") ?? conductor?.referencias ?? "-"} />
+              <Dato etiqueta="Correo electrónico" valor={correo} />
+              <Dato etiqueta="Contacto de emergencia" valor={[textoJson(solicitud.contacto_emergencia, "nombre") ?? conductor?.contacto_emergencia_nombre, textoJson(solicitud.contacto_emergencia, "telefono") ?? conductor?.contacto_emergencia_telefono].filter(Boolean).join(" · ") || "-"} />
+              <Dato etiqueta="Nivel de conductor" valor={conductor?.nivel_operativo_vigente ?? conductor?.nivel_por_calificacion ?? conductor?.nivel_por_experiencia ?? "Por asignar"} />
+              <Dato etiqueta="Sanciones aplicadas" valor={sanciones} />
+            </dl>
+          </PassportCard>
 
-      <div className="mt-6"><PassportCard>
-        <h2 className="font-display text-lg font-semibold">Historial de estados y decisiones</h2>
-        <ol className="mt-4 space-y-4">
-          {historial.map((evento) => (
-            <li key={evento.id} className="border-l-2 border-status-info/25 pl-4 font-body text-sm">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-semibold">{ETIQUETA_DECISION[evento.decision] ?? evento.decision}</p>
-                <time className="text-xs text-text-tertiary">{fecha(evento.revisado_en)}</time>
+          <PassportCard>
+            <h2 className="font-display text-lg font-semibold">Checklist de requisitos</h2>
+            <div className="mt-4 space-y-3">
+              <IndicadorChecklist etiqueta="Documentos aprobados" valor={`${documentosAprobadosCount}/3`} completo={documentosAprobados} />
+              <IndicadorChecklist etiqueta="Consentimientos registrados" valor={`${consentimientosRegistradosCount}/4`} completo={consentimientosCompletos} />
+            </div>
+            <div className="mt-5 space-y-2">
+              {consentimientosActuales.length === 0 ? <p className="font-body text-sm text-text-tertiary">Sin consentimientos registrados.</p> : consentimientosActuales.map((consentimiento) => (
+                <ConsentimientoItem key={consentimiento.id} consentimiento={consentimiento} />
+              ))}
+            </div>
+          </PassportCard>
+
+          <section className="sticky bottom-4 z-20 rounded-lg border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-3)]">
+            <h2 className="font-display text-lg font-semibold">Decisión administrativa</h2>
+            {solicitud.estado === "en_revision" ? (
+              <>
+                <div className="mt-4 grid gap-2">
+                  <AdminButton onClick={() => setAccion("aprobar")} disabled={!puedeAprobar || procesando}>Aprobar solicitud</AdminButton>
+                  <AdminButton variant="danger" onClick={() => setAccion("rechazar")} disabled={procesando}>Rechazar solicitud</AdminButton>
+                </div>
+                {!puedeAprobar && (
+                  <div className="mt-3 space-y-2">
+                    <IndicadorChecklist etiqueta="Documentos aprobados" valor={`${documentosAprobadosCount}/3`} completo={documentosAprobados} />
+                    <IndicadorChecklist etiqueta="Consentimientos registrados" valor={`${consentimientosRegistradosCount}/4`} completo={consentimientosCompletos} />
+                    <p className="font-body text-admin-secundario text-text-tertiary">Aprobar solicitud se habilita cuando los documentos requeridos y consentimientos estén completos.</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="mt-3 font-body text-sm text-text-tertiary">La solicitud no admite una decisión final en su estado actual.</p>
+            )}
+            {accion && (
+              <div className="mt-4 rounded-lg border border-border-default bg-surface-secondary p-4">
+                <label className="font-body text-sm font-medium" htmlFor="motivo-decision">Motivo de la decisión {accion === "rechazar" && <span className="text-status-error">*</span>}</label>
+                <textarea
+                  id="motivo-decision"
+                  value={motivo}
+                  onChange={(event) => setMotivo(event.target.value)}
+                  maxLength={800}
+                  placeholder={accion === "aprobar" ? "Opcional: observaciones de la aprobación." : "Explica el motivo del rechazo."}
+                  className="mt-2 min-h-24 w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none"
+                />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <AdminButton variant={accion === "rechazar" ? "danger" : "primary"} onClick={decidir} loading={procesando} disabled={accion === "rechazar" && motivo.trim().length < 5}>
+                    Confirmar decisión
+                  </AdminButton>
+                  <AdminButton variant="quiet" onClick={() => { setAccion(null); setMotivo(""); }} disabled={procesando}>Cancelar</AdminButton>
+                </div>
               </div>
-              <p className="mt-1 text-xs text-text-tertiary">{ETIQUETA_ESTADO[evento.estado_anterior]} → {ETIQUETA_ESTADO[evento.estado_nuevo]} · {evento.revisor_nombre ?? "Sistema/conductor"}</p>
-              {evento.motivo && <p className="mt-1 text-text-secondary">{evento.motivo}</p>}
-            </li>
-          ))}
-        </ol>
-      </PassportCard></div>
+            )}
+          </section>
+        </aside>
+
+        <section className="min-w-0 space-y-5">
+          <PassportCard>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-display text-lg font-semibold">Documentos vigentes</h2>
+              <p className="font-body text-admin-secundario text-text-tertiary">{documentos.length} documento(s)</p>
+            </div>
+            <div className="mt-4 grid gap-3 lg:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+              {documentos.length === 0 ? <p className="font-body text-sm text-text-tertiary">No hay documentos vigentes.</p> : documentos.map((documento) => (
+                <FilaDocumento
+                  key={documento.id}
+                  documento={documento}
+                  seleccionado={documentoSeleccionado?.id === documento.id}
+                  onSeleccionar={seleccionarDocumento}
+                  onRevisado={revisarDocumento}
+                />
+              ))}
+            </div>
+          </PassportCard>
+
+          <VisorDocumento documento={documentoSeleccionado} url={documentoSeleccionado ? urlsDocumento[documentoSeleccionado.id] ?? null : null} />
+
+          <PassportCard>
+            <h2 className="font-display text-lg font-semibold">Historial de estados y decisiones</h2>
+            <ol className="mt-4 space-y-4">
+              {historial.map((evento) => (
+                <li key={evento.id} className="border-l-2 border-status-info/25 pl-4 font-body text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold">{ETIQUETA_DECISION[evento.decision] ?? evento.decision}</p>
+                    <time className="text-admin-secundario text-text-tertiary">{fecha(evento.revisado_en)}</time>
+                  </div>
+                  <p className="mt-1 text-admin-secundario text-text-tertiary">{ETIQUETA_ESTADO[evento.estado_anterior]} - {ETIQUETA_ESTADO[evento.estado_nuevo]} · {evento.revisor_nombre ?? "Sistema/conductor"}</p>
+                  {evento.motivo && <p className="mt-1 text-text-secondary">{evento.motivo}</p>}
+                </li>
+              ))}
+            </ol>
+          </PassportCard>
+        </section>
+      </div>
     </main>
   );
 }

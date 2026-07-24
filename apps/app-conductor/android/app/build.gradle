@@ -7,6 +7,9 @@ if (!ruumRemoteUrl.startsWith('https://')) throw new GradleException('RUUM_REMOT
 android {
     namespace = "com.moviliax.ruumruum.conductor"
     compileSdk = rootProject.ext.compileSdkVersion
+    buildFeatures {
+        buildConfig = true
+    }
     defaultConfig {
         applicationId "com.moviliax.ruumruum.conductor"
         minSdkVersion rootProject.ext.minSdkVersion

@@ -284,10 +284,19 @@ export interface SolicitudConductorBandejaAdmin {
   nombre: string;
   telefono: string | null;
   curp: string | null;
+  documentos: DocumentoConductorResumenAdmin[];
   documentosVigentes: number;
   documentosRechazados: number;
   consentimientosRegistrados: number;
   ultimaDecision: HistorialSolicitudRow | null;
+}
+
+export interface DocumentoConductorResumenAdmin {
+  id: string;
+  tipo: string;
+  estado: string;
+  nombre_archivo: string;
+  expira_en: string | null;
 }
 
 export interface HistorialSolicitudConRevisor extends HistorialSolicitudRow {
@@ -296,6 +305,7 @@ export interface HistorialSolicitudConRevisor extends HistorialSolicitudRow {
 
 export interface DetalleSolicitudConductorAdmin {
   solicitud: SolicitudConductorRow;
+  conductor: ConductorRow | null;
   documentos: DocumentoConductorRow[];
   consentimientos: ConsentimientoUsuarioRow[];
   historial: HistorialSolicitudConRevisor[];
@@ -1024,6 +1034,13 @@ export async function listarSolicitudesConductorAdmin(cliente: Cliente): Promise
       nombre: valorTextoJson(solicitud.datos_personales, "nombre") ?? "Conductor sin nombre",
       telefono: valorTextoJson(solicitud.datos_personales, "telefono") ?? solicitud.telefono_normalizado,
       curp: solicitud.curp_normalizada,
+      documentos: documentosActuales.map((documento) => ({
+        id: documento.id,
+        tipo: documento.tipo,
+        estado: documento.estado,
+        nombre_archivo: documento.nombre_archivo,
+        expira_en: documento.expira_en
+      })),
       documentosVigentes: documentosActuales.length,
       documentosRechazados: documentosActuales.filter((d) => d.estado === "rechazado").length,
       consentimientosRegistrados: consentimientosPorSolicitud.get(solicitud.id)?.size ?? 0,
@@ -1064,7 +1081,58 @@ export async function listarSolicitudesConductorAdminPaginadas(
     p_busqueda: busqueda?.trim() || null
   });
   if (error) throw error;
-  return data ?? { data: [], paginacion: { pagina: 1, tamano, total: 0, total_paginas: 0 } };
+  const resultado = data ?? { data: [], paginacion: { pagina: 1, tamano, total: 0, total_paginas: 0 } };
+  if (resultado.data.length === 0) return resultado;
+
+  const solicitudIds = resultado.data.map((fila) => fila.solicitud.id);
+  const conductorIds = resultado.data.map((fila) => fila.solicitud.conductor_id).filter(Boolean) as string[];
+  const filtroDocumentos = [
+    solicitudIds.length ? `solicitud_id.in.(${solicitudIds.join(",")})` : null,
+    conductorIds.length ? `conductor_id.in.(${conductorIds.join(",")})` : null
+  ].filter(Boolean).join(",");
+
+  if (!filtroDocumentos) return resultado;
+
+  const { data: documentos, error: errorDocumentos } = await cliente
+    .from("documentos_conductor")
+    .select("id,tipo,estado,nombre_archivo,expira_en,solicitud_id,conductor_id")
+    .or(filtroDocumentos)
+    .eq("es_actual", true)
+    .order("creado_en", { ascending: false });
+  if (errorDocumentos) throw errorDocumentos;
+
+  const solicitudPorConductor = new Map(
+    resultado.data
+      .filter((fila) => fila.solicitud.conductor_id)
+      .map((fila) => [fila.solicitud.conductor_id as string, fila.solicitud.id])
+  );
+  const documentosPorSolicitud = new Map<string, DocumentoConductorResumenAdmin[]>();
+  for (const documento of documentos ?? []) {
+    const solicitudId = documento.solicitud_id ?? (documento.conductor_id ? solicitudPorConductor.get(documento.conductor_id) : null);
+    if (!solicitudId) continue;
+    const actuales = documentosPorSolicitud.get(solicitudId) ?? [];
+    actuales.push({
+      id: documento.id,
+      tipo: documento.tipo,
+      estado: documento.estado,
+      nombre_archivo: documento.nombre_archivo,
+      expira_en: documento.expira_en
+    });
+    documentosPorSolicitud.set(solicitudId, actuales);
+  }
+
+  return {
+    ...resultado,
+    data: resultado.data.map((fila) => {
+      const resumen = documentosPorSolicitud.get(fila.solicitud.id) ?? fila.documentos ?? [];
+      return {
+        ...fila,
+        documentos: resumen,
+        documentosVigentes: resumen.length || fila.documentosVigentes,
+        documentosRechazados: resumen.filter((documento) => documento.estado === "rechazado").length || fila.documentosRechazados
+      };
+    })
+  };
 }
 
 /** Torre de Control — inventario operativo de vehículos registrados por usuarios. */
@@ -2493,7 +2561,7 @@ export async function obtenerDetalleSolicitudConductorAdmin(
   const filtroDocumentos = solicitud.data.conductor_id
     ? `solicitud_id.eq.${solicitudId},conductor_id.eq.${solicitud.data.conductor_id}`
     : `solicitud_id.eq.${solicitudId}`;
-  const [documentos, consentimientos, historial, admins] = await Promise.all([
+  const [documentos, consentimientos, historial, admins, conductor] = await Promise.all([
     cliente
       .from("documentos_conductor")
       .select("*")
@@ -2510,16 +2578,20 @@ export async function obtenerDetalleSolicitudConductorAdmin(
       .select("*")
       .eq("solicitud_id", solicitudId)
       .order("revisado_en", { ascending: false }),
-    cliente.from("admins").select("id,nombre")
+    cliente.from("admins").select("id,nombre"),
+    solicitud.data.conductor_id
+      ? cliente.from("conductores").select("*").eq("id", solicitud.data.conductor_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null })
   ]);
 
-  for (const resultado of [documentos, consentimientos, historial, admins]) {
+  for (const resultado of [documentos, consentimientos, historial, admins, conductor]) {
     if (resultado.error) throw resultado.error;
   }
   const nombreAdmin = new Map((admins.data ?? []).map((admin) => [admin.id, admin.nombre]));
 
   return {
     solicitud: solicitud.data,
+    conductor: conductor.data ?? null,
     documentos: documentos.data ?? [],
     consentimientos: consentimientos.data ?? [],
     historial: (historial.data ?? []).map((evento) => ({
