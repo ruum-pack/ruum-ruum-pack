@@ -9,12 +9,10 @@ import {
   actualizarConductorAdmin,
   aprobarSolicitudConductorAdmin,
   crearNotaInternaSolicitudConductorAdmin,
-  darBajaConductorAdmin,
   obtenerDetalleSolicitudConductorAdmin,
   rechazarSolicitudConductorAdmin,
   revisarDocumentoConductorAdmin,
   solicitarAprobacionAdmin,
-  suspenderConductorAdmin,
   type DetalleSolicitudConductorAdmin,
   type EstadoDocumentoConductor
 } from "@ruum/api/services";
@@ -505,7 +503,6 @@ function AccionesCriticasPasaporte({
     if (accion === "baja" && confirmacion !== "BAJA") return;
     setProcesando(true);
     setError(null);
-    let aprobacionCreada = false;
     try {
       const cliente = crearClienteNavegador();
       const nuevoEstado = accion === "suspender" ? "suspendido" : "baja";
@@ -517,29 +514,15 @@ function AccionesCriticasPasaporte({
         accion: "suspender",
         payload: { nuevo_estado: nuevoEstado, motivo: motivo.trim() } as Json
       });
-      aprobacionCreada = true;
-      if (accion === "suspender") {
-        await suspenderConductorAdmin(cliente, conductor.id, motivo.trim(), aprobacionId);
-      } else {
-        await darBajaConductorAdmin(cliente, conductor.id, motivo.trim(), aprobacionId);
-      }
       await onActualizado();
       onAviso({
         tono: "info",
-        texto: accion === "suspender" ? "Conductor suspendido correctamente." : "Baja definitiva aplicada correctamente."
+        texto: `Solicitud de aprobación #${aprobacionId.slice(0, 8).toUpperCase()} creada. Autorízala en Aprobaciones duales para ejecutar la ${accion === "suspender" ? "suspensión" : "baja definitiva"}.`
       });
       cerrar();
     } catch (err) {
       const mensaje = err instanceof Error ? err.message : "No se pudo completar la acción.";
-      if (aprobacionCreada && /APROBACION_NO_APROBADA|APROBACION_REQUERIDA|PERMISO_INSUFICIENTE|42501/i.test(mensaje)) {
-        onAviso({
-          tono: "info",
-          texto: "Solicitud de aprobación creada. Un administrador con permiso de aprobación debe autorizarla en Aprobaciones duales antes de ejecutar la sanción."
-        });
-        cerrar();
-      } else {
-        setError(mensaje);
-      }
+      setError(mensaje);
     } finally {
       setProcesando(false);
     }

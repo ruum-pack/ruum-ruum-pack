@@ -2,7 +2,14 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@ruum/ui";
-import { listarAprobacionesPendientes, decidirAprobacionAdmin, type SolicitudAprobacionAdmin } from "@ruum/api/services";
+import {
+  darBajaConductorAdmin,
+  decidirAprobacionAdmin,
+  listarAprobacionesPendientes,
+  reactivarConductorAdmin,
+  suspenderConductorAdmin,
+  type SolicitudAprobacionAdmin
+} from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { AdminPageHeader } from "../admin-ui";
 import { AdminLoadingState, AdminEmptyState, AdminErrorState, AdminDialog, AdminBadge } from "../admin-components";
@@ -11,6 +18,33 @@ type DecisionAccion = { solicitud: SolicitudAprobacionAdmin; aprobar: boolean } 
 
 function fecha(fechaIso: string) {
   return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(fechaIso));
+}
+
+function payloadAprobacion(solicitud: SolicitudAprobacionAdmin) {
+  return solicitud.payload && typeof solicitud.payload === "object" && !Array.isArray(solicitud.payload)
+    ? solicitud.payload as { nuevo_estado?: unknown; motivo?: unknown }
+    : {};
+}
+
+async function ejecutarSancionConductorAprobada(cliente: ReturnType<typeof crearClienteNavegador>, solicitud: SolicitudAprobacionAdmin) {
+  if (solicitud.tipo !== "sancion" || solicitud.recurso !== "conductores" || solicitud.accion !== "suspender" || !solicitud.recurso_id) return false;
+  const payload = payloadAprobacion(solicitud);
+  const nuevoEstado = typeof payload.nuevo_estado === "string" ? payload.nuevo_estado : "";
+  const motivo = typeof payload.motivo === "string" ? payload.motivo : "Aprobación dual de sanción.";
+
+  if (nuevoEstado === "suspendido") {
+    await suspenderConductorAdmin(cliente, solicitud.recurso_id, motivo, solicitud.id);
+    return true;
+  }
+  if (nuevoEstado === "baja") {
+    await darBajaConductorAdmin(cliente, solicitud.recurso_id, motivo, solicitud.id);
+    return true;
+  }
+  if (nuevoEstado === "activo") {
+    await reactivarConductorAdmin(cliente, solicitud.recurso_id, motivo, solicitud.id);
+    return true;
+  }
+  return false;
 }
 
 export default function PaginaAprobaciones() {
@@ -51,7 +85,12 @@ export default function PaginaAprobaciones() {
       try {
         const cliente = crearClienteNavegador();
         await decidirAprobacionAdmin(cliente, decision.solicitud.id, decision.aprobar, motivo, decision.solicitud.version);
-        setMensaje(decision.aprobar ? "Solicitud aprobada." : "Solicitud rechazada.");
+        const ejecutada = decision.aprobar
+          ? await ejecutarSancionConductorAprobada(cliente, decision.solicitud)
+          : false;
+        setMensaje(decision.aprobar
+          ? ejecutada ? "Solicitud aprobada y sanción ejecutada." : "Solicitud aprobada."
+          : "Solicitud rechazada.");
         setDecision(null);
         setMotivo("");
         cargar();

@@ -1691,12 +1691,12 @@ export async function listarUsuariosAdminPaginados(
   await assertAdminPermission(cliente, "usuarios:leer");
   const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "listar_usuarios_admin_paginados",
-    args: { p_pagina: number; p_tamano: number; p_busqueda?: string }
+    args: { p_pagina: number; p_tamano: number; p_busqueda: string | null }
   ) => Promise<{ data: PaginacionUsuarios | null; error: unknown }>;
   const { data, error } = await rpc("listar_usuarios_admin_paginados", {
     p_pagina: pagina,
     p_tamano: tamano,
-    p_busqueda: busqueda?.trim() || undefined
+    p_busqueda: busqueda?.trim() || null
   });
   if (error) throw error;
   if (!data) return { data: [], paginacion: { pagina: 1, tamano: 25, total: 0, total_paginas: 0 } };

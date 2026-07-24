@@ -9,9 +9,6 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib
 import {
   obtenerConductorAdmin,
   actualizarConductorAdmin,
-  suspenderConductorAdmin,
-  reactivarConductorAdmin,
-  darBajaConductorAdmin,
   obtenerVehiculosDeConductorAdmin,
   obtenerEmpresaDeConductorAdmin,
   obtenerHistorialEstatusConductorAdmin,
@@ -523,7 +520,6 @@ function SuspenderConductor({ conductor, onCompletado, compacto = false }: { con
   async function ejecutar() {
     if (!motivo.trim()) return;
     setProcesando(true); setAviso(null);
-    let aprobacionCreada = false;
     try {
       const cliente = crearClienteNavegador();
       const aprobacionId = await solicitarAprobacionAdmin(cliente, {
@@ -534,17 +530,11 @@ function SuspenderConductor({ conductor, onCompletado, compacto = false }: { con
         accion: "suspender",
         payload: { nuevo_estado: "suspendido", motivo: motivo.trim() } as Json
       });
-      aprobacionCreada = true;
-      await suspenderConductorAdmin(cliente, conductor.id, motivo.trim(), aprobacionId);
-      setAbierto(false); onCompletado();
+      setAviso({ tono: "info", texto: `Solicitud de aprobación #${aprobacionId.slice(0, 8).toUpperCase()} creada. Autorízala en Aprobaciones duales para ejecutar la suspensión.` });
     }
     catch (err) {
       const mensaje = err instanceof Error ? err.message : "No se pudo suspender.";
-      if (aprobacionCreada && /APROBACION_NO_APROBADA|APROBACION_REQUERIDA|PERMISO_INSUFICIENTE|42501/i.test(mensaje)) {
-        setAviso({ tono: "info", texto: "Solicitud de aprobación creada. Autorízala en Aprobaciones duales para ejecutar la suspensión." });
-      } else {
-        setAviso({ tono: "danger", texto: mensaje });
-      }
+      setAviso({ tono: "danger", texto: mensaje });
     }
     finally { setProcesando(false); }
   }
@@ -575,7 +565,6 @@ function ReactivarConductor({ conductorId, onCompletado, compacto = false }: { c
   async function ejecutar() {
     if (!motivo.trim()) return; setProcesando(true);
     setAviso(null);
-    let aprobacionCreada = false;
     try {
       const cliente = crearClienteNavegador();
       const aprobacionId = await solicitarAprobacionAdmin(cliente, {
@@ -586,17 +575,11 @@ function ReactivarConductor({ conductorId, onCompletado, compacto = false }: { c
         accion: "suspender",
         payload: { nuevo_estado: "activo", motivo: motivo.trim() } as Json
       });
-      aprobacionCreada = true;
-      await reactivarConductorAdmin(cliente, conductorId, motivo.trim(), aprobacionId);
-      setAbierto(false); onCompletado();
+      setAviso({ tono: "info", texto: `Solicitud de aprobación #${aprobacionId.slice(0, 8).toUpperCase()} creada. Autorízala en Aprobaciones duales para ejecutar la reactivación.` });
     }
     catch (err) {
       const mensaje = err instanceof Error ? err.message : "No se pudo reactivar.";
-      if (aprobacionCreada && /APROBACION_NO_APROBADA|APROBACION_REQUERIDA|PERMISO_INSUFICIENTE|42501/i.test(mensaje)) {
-        setAviso({ tono: "info", texto: "Solicitud de aprobación creada. Autorízala en Aprobaciones duales para ejecutar la reactivación." });
-      } else {
-        setAviso({ tono: "danger", texto: mensaje });
-      }
+      setAviso({ tono: "danger", texto: mensaje });
     }
     finally { setProcesando(false); }
   }
@@ -623,7 +606,6 @@ function DarBajaConductor({ conductor, onCompletado }: { conductor: ConductorRow
   async function ejecutar() {
     if (!motivo.trim() || confirmacion !== "BAJA") return; setProcesando(true);
     setAviso(null);
-    let aprobacionCreada = false;
     try {
       const cliente = crearClienteNavegador();
       const aprobacionId = await solicitarAprobacionAdmin(cliente, {
@@ -634,17 +616,11 @@ function DarBajaConductor({ conductor, onCompletado }: { conductor: ConductorRow
         accion: "suspender",
         payload: { nuevo_estado: "baja", motivo: motivo.trim() } as Json
       });
-      aprobacionCreada = true;
-      await darBajaConductorAdmin(cliente, conductor.id, motivo.trim(), aprobacionId);
-      setAbierto(false); onCompletado();
+      setAviso({ tono: "info", texto: `Solicitud de aprobación #${aprobacionId.slice(0, 8).toUpperCase()} creada. Autorízala en Aprobaciones duales para ejecutar la baja definitiva.` });
     }
     catch (err) {
       const mensaje = err instanceof Error ? err.message : "No se pudo dar de baja.";
-      if (aprobacionCreada && /APROBACION_NO_APROBADA|APROBACION_REQUERIDA|PERMISO_INSUFICIENTE|42501/i.test(mensaje)) {
-        setAviso({ tono: "info", texto: "Solicitud de aprobación creada. Autorízala en Aprobaciones duales para ejecutar la baja definitiva." });
-      } else {
-        setAviso({ tono: "danger", texto: mensaje });
-      }
+      setAviso({ tono: "danger", texto: mensaje });
     }
     finally { setProcesando(false); }
   }
