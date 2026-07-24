@@ -157,6 +157,7 @@ function InvitarUsuarioDialog({ onCerrar, onCreado }: { onCerrar: () => void; on
   const [correo, setCorreo] = useState("");
   const [nombre, setNombre] = useState("");
   const [tipoCuenta, setTipoCuenta] = useState<"personal" | "empresa">("personal");
+  const [perfilEmpresa, setPerfilEmpresa] = useState<"administrador_flota" | "usuario_final" | "finanzas">("usuario_final");
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -169,15 +170,16 @@ function InvitarUsuarioDialog({ onCerrar, onCreado }: { onCerrar: () => void; on
       await invitarUsuarioAdmin(cliente, {
         correo: correo.trim(),
         nombre: nombre.trim() || null,
-        tipoCuenta
+        tipoCuenta,
+        perfilEmpresa: tipoCuenta === "empresa" ? perfilEmpresa : undefined
       });
       onCreado();
     } catch (err) {
       const mensaje = err instanceof Error ? err.message : "No se pudo invitar al usuario.";
       if (mensaje.includes("CORREO_YA_REGISTRADO") || mensaje.includes("duplicate")) {
-        setError("El correo ya esta registrado.");
+        setError("El correo ya está registrado.");
       } else if (mensaje.includes("CORREO_INVALIDO")) {
-        setError("Ingresa un correo electronico valido.");
+        setError("Ingresa un correo electrónico válido.");
       } else {
         setError(mensaje);
       }
@@ -188,15 +190,19 @@ function InvitarUsuarioDialog({ onCerrar, onCreado }: { onCerrar: () => void; on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40">
-      <div className="w-full max-w-md rounded-card bg-surface-primary p-6 shadow-xl">
-        <h2 className="font-display text-lg font-semibold">Invitar usuario</h2>
-        <p className="mt-1 font-body text-sm text-text-secondary">Se registrara una cuenta pendiente para seguimiento operativo.</p>
+      <div role="dialog" aria-modal="true" aria-labelledby="invitar-usuario-titulo" className="relative w-full max-w-md rounded-card bg-surface-primary p-6 shadow-xl">
+        <button type="button" onClick={onCerrar} disabled={procesando} className="absolute right-4 top-4 grid size-8 place-items-center rounded-full border border-ink/15 font-body text-sm font-semibold text-text-secondary hover:bg-surface-secondary hover:text-ink disabled:opacity-50" aria-label="Cerrar invitación">X</button>
+        <h2 id="invitar-usuario-titulo" className="font-display text-lg font-semibold">Invitar usuario</h2>
+        <p className="mt-1 pr-8 font-body text-sm text-text-secondary">Se registrará una cuenta pendiente para seguimiento operativo.</p>
+        <p className="mt-3 rounded-lg border border-status-info/25 bg-status-info-soft px-3 py-2 font-body text-xs text-status-info">
+          Se enviará un correo con la invitación y enlace de activación al destinatario.
+        </p>
 
         {error && <div className="mt-3"><Aviso tono="danger">{error}</Aviso></div>}
 
         <div className="mt-4 flex flex-col gap-3">
           <label className="flex flex-col gap-1">
-            <span className="font-body text-xs font-medium text-text-secondary">Correo electronico <span className="text-status-error">*</span></span>
+            <span className="font-body text-xs font-medium text-text-secondary">Correo electrónico <span className="text-status-error">*</span></span>
             <input type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="usuario@ejemplo.com" className="rounded-lg border border-ink/20 px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20" />
           </label>
           <label className="flex flex-col gap-1">
@@ -210,11 +216,23 @@ function InvitarUsuarioDialog({ onCerrar, onCreado }: { onCerrar: () => void; on
               <option value="empresa">Empresa</option>
             </select>
           </label>
+          {tipoCuenta === "empresa" && (
+            <label className="flex flex-col gap-1">
+              <span className="font-body text-xs font-medium text-text-secondary">Rol / permisos iniciales</span>
+              <select value={perfilEmpresa} onChange={(e) => setPerfilEmpresa(e.target.value as "administrador_flota" | "usuario_final" | "finanzas")} className="rounded-lg border border-ink/20 px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20">
+                <option value="administrador_flota">Administrador de flota</option>
+                <option value="usuario_final">Usuario final</option>
+                <option value="finanzas">Finanzas</option>
+              </select>
+              <span className="font-body text-xs text-text-tertiary">El perfil se registra con la invitación; los permisos finos se gestionan desde Capacidades.</span>
+            </label>
+          )}
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
           <button onClick={onCerrar} disabled={procesando} className="rounded-lg border border-ink/20 px-4 py-2 font-body text-sm font-medium hover:bg-ink/5">Cancelar</button>
-          <button onClick={invitar} disabled={procesando || !correo.trim()} className="rounded-lg bg-ink px-4 py-2 font-body text-sm font-semibold text-surface-primary hover:bg-ink/90 disabled:opacity-50">
+          <button onClick={invitar} disabled={procesando || !correo.trim()} className="inline-flex min-w-24 items-center justify-center gap-2 rounded-lg bg-focus-default px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-focus-default/90 disabled:opacity-50">
+            {procesando && <span className="size-3 rounded-full border-2 border-surface-primary/40 border-t-surface-primary animate-spin" aria-hidden="true" />}
             {procesando ? "Enviando..." : "Invitar"}
           </button>
         </div>

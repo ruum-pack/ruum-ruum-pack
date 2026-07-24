@@ -20,12 +20,20 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
   /* Ítem 10 — confirmación inline reemplaza acciones directas sin contexto */
   const [confirmando, setConfirmando] = useState<"aprobar" | "rechazar" | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
+  const terminosAceptados = Boolean(usuario.terminos_aceptados_en);
 
   if (usuario.estado_verificacion === "verificado" || usuario.estado_verificacion === "rechazado") {
     return (
-      <p className="mt-2 font-body text-xs text-text-tertiary">
-        Estado final: {usuario.estado_verificacion === "verificado" ? "Verificado" : "Rechazado"}. Sin acciones pendientes.
-      </p>
+      <div className="mt-2 space-y-2">
+        {usuario.estado_verificacion === "verificado" && !terminosAceptados && (
+          <Aviso tono="danger">
+            Inconsistencia del sistema: la cuenta aparece verificada sin aceptación de términos. No se permiten nuevas verificaciones hasta regularizar la aceptación.
+          </Aviso>
+        )}
+        <p className="font-body text-xs text-text-tertiary">
+          Estado final: {usuario.estado_verificacion === "verificado" ? "Verificado" : "Rechazado"}. Sin acciones pendientes.
+        </p>
+      </div>
     );
   }
 
@@ -48,6 +56,10 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
   }
 
   async function cambiarEstado(nuevoEstado: "en_revision" | "verificado" | "rechazado", motivo?: string) {
+    if (nuevoEstado === "verificado" && !terminosAceptados) {
+      setError("No se puede verificar la cuenta hasta que el usuario acepte los términos vigentes.");
+      return;
+    }
     setProcesando(true);
     setError(null);
     try {
@@ -69,6 +81,12 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
         <div role="status" aria-live="polite" aria-atomic="true">
           <Aviso tono="danger">{error}</Aviso>
         </div>
+      )}
+
+      {!terminosAceptados && (
+        <Aviso tono="danger">
+          Aceptación de términos pendiente. La aprobación queda bloqueada para evitar una cuenta verificada sin consentimiento vigente.
+        </Aviso>
       )}
 
       {/* Ver documento */}
@@ -151,7 +169,7 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
           )}
           <Button
             onClick={() => setConfirmando("aprobar")}
-            disabled={procesando || !usuario.doc_identidad_url}
+            disabled={procesando || !usuario.doc_identidad_url || !terminosAceptados}
           >
             Aprobar cuenta
           </Button>
@@ -165,9 +183,9 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
         </div>
       )}
 
-      {!usuario.doc_identidad_url && (
+      {(!usuario.doc_identidad_url || !terminosAceptados) && (
         <p className="font-body text-xs text-text-tertiary">
-          El botón &quot;Aprobar cuenta&quot; permanece deshabilitado hasta que el usuario suba su identificación.
+          El botón &quot;Aprobar cuenta&quot; permanece deshabilitado hasta que el usuario suba su identificación y acepte los términos vigentes.
         </p>
       )}
     </div>

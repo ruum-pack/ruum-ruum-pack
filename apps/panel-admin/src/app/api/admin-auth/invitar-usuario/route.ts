@@ -4,6 +4,7 @@ import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
 import { normalizarError, registrarEvento } from "@ruum/api/services";
 
 type TipoCuenta = "personal" | "empresa";
+type PerfilEmpresa = "administrador_flota" | "usuario_final" | "finanzas";
 
 function normalizarCorreo(valor: unknown) {
   return typeof valor === "string" ? valor.trim().toLowerCase() : "";
@@ -17,6 +18,11 @@ function tipoCuenta(valor: unknown): TipoCuenta {
   return valor === "empresa" ? "empresa" : "personal";
 }
 
+function perfilEmpresa(valor: unknown): PerfilEmpresa {
+  if (valor === "administrador_flota" || valor === "finanzas") return valor;
+  return "usuario_final";
+}
+
 export async function POST(request: Request) {
   try {
     const cliente = await crearClienteServidor();
@@ -25,6 +31,8 @@ export async function POST(request: Request) {
     const correo = normalizarCorreo(body.correo);
     const nombre = normalizarTexto(body.nombre);
     const cuenta = tipoCuenta(body.tipoCuenta);
+    const perfil = cuenta === "empresa" ? perfilEmpresa(body.perfilEmpresa) : null;
+    const rolUsuario = cuenta === "empresa" && perfil === "administrador_flota" ? "titular_empresa" : cuenta === "empresa" ? "usuario_autorizado" : "personal";
 
     const { data: tienePermiso, error: errorPermiso } = await cliente.rpc("admin_tiene_permiso", { p_permiso: "usuarios:validar" });
     if (errorPermiso) throw errorPermiso;
@@ -43,7 +51,8 @@ export async function POST(request: Request) {
     const { data: invitacion, error: errorInvitacion } = await serviceRole.auth.admin.inviteUserByEmail(correo, {
       data: {
         tipo_cuenta: cuenta,
-        rol: cuenta === "empresa" ? "titular_empresa" : "personal",
+        rol: rolUsuario,
+        perfil_empresa: perfil,
         nombre
       }
     });
@@ -55,7 +64,7 @@ export async function POST(request: Request) {
       .upsert({
         auth_user_id: invitacion.user.id,
         tipo_cuenta: cuenta,
-        rol: cuenta === "empresa" ? "titular_empresa" : "personal",
+        rol: rolUsuario,
         estado_verificacion: "pendiente",
         nombre,
         correo_facturacion: correo,
@@ -68,6 +77,8 @@ export async function POST(request: Request) {
     await registrarEvento(cliente, "creacion_cuenta" as never, "admin", usuario.id, {
       tipo: "invitacion_auth_usuario",
       tipo_cuenta: cuenta,
+      perfil_empresa: perfil,
+      rol_usuario: rolUsuario,
       auth_user_id: "[REDACTED]"
     });
 

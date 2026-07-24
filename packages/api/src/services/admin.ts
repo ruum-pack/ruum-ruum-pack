@@ -1705,7 +1705,7 @@ export async function listarUsuariosAdminPaginados(
 
 export async function invitarUsuarioAdmin(
   cliente: Cliente,
-  datos: { correo: string; nombre?: string | null; tipoCuenta: "personal" | "empresa" }
+  datos: { correo: string; nombre?: string | null; tipoCuenta: "personal" | "empresa"; perfilEmpresa?: "administrador_flota" | "usuario_final" | "finanzas" }
 ): Promise<string> {
   await assertAdminPermission(cliente, "usuarios:validar");
   const respuesta = await fetch("/api/admin-auth/invitar-usuario", {
