@@ -310,7 +310,7 @@ export function BarraLateral() {
       aria-label="Navegación principal"
     >
       {/* Logo */}
-      <div className={colapsada ? "px-3 py-5" : "px-3 py-5 lg:px-5"}>
+      <div className={colapsada ? "px-3 py-3.5" : "px-3 py-3.5 lg:px-5"}>
         <span className="flex items-center gap-2.5">
           <LogoMarca tamano={28} color="signal" />
           <span className={`font-display text-base font-bold tracking-tight text-mist ${colapsada ? "hidden" : "hidden lg:inline"}`}>
@@ -323,14 +323,14 @@ export function BarraLateral() {
         <button
           type="button"
           onClick={alternarColapso}
-          className="mt-4 hidden rounded-md border border-mist/15 px-2.5 py-1.5 font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary transition-colors hover:bg-surface-primary/5 hover:text-text-secondary lg:block"
+          className="mt-3 hidden rounded-md border border-mist/15 px-2.5 py-1 font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary transition-colors hover:bg-surface-primary/5 hover:text-text-secondary lg:block"
           aria-label={colapsada ? "Expandir navegación" : "Colapsar navegación"}
         >
           {colapsada ? ">>" : "<<"}
         </button>
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto px-2 pb-3 lg:px-3" aria-label="Secciones del panel">
+      <nav className="flex-1 space-y-3 overflow-y-auto px-2 pb-3 lg:px-3" aria-label="Secciones del panel">
         {gruposVisibles.map((grupo) => (
           <section key={grupo.titulo} aria-label={grupo.titulo}>
             <p className={`mb-1.5 px-2 font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary ${colapsada ? "sr-only" : "hidden lg:block"}`}>
@@ -349,12 +349,12 @@ export function BarraLateral() {
                     aria-label={s.etiqueta}
                     aria-current={activo ? "page" : undefined}
                     className={[
-                      "relative flex items-center gap-2.5 rounded-lg px-2 py-2 font-body text-sm font-medium transition-colors",
+                      "relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 font-body text-sm font-medium transition-colors",
                       activo ? "bg-signal text-ink" : "text-text-secondary hover:bg-white/8 hover:text-mist",
                     ].join(" ")}
                   >
                     <span className={[
-                      "flex size-7 shrink-0 items-center justify-center rounded-md",
+                      "flex size-6 shrink-0 items-center justify-center rounded-md",
                       activo ? "bg-black/15 text-ink" : "bg-white/8 text-current",
                     ].join(" ")}>
                       <Icono nombre={s.icono} />

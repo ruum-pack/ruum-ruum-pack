@@ -317,6 +317,14 @@ function KpiCard({ etiqueta, valor, detalle, tono = "neutral" }: { etiqueta: str
   );
 }
 
+function BadgeNeutro({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex rounded-full border border-ink/15 bg-ink/[0.04] px-2.5 py-1 font-body text-admin-secundario font-semibold text-text-secondary">
+      {children}
+    </span>
+  );
+}
+
 function DesempenoScore({
   conductor,
   documentosAprobados,
@@ -345,14 +353,11 @@ function DesempenoScore({
     <details open className="rounded-lg border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-1)]">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <h2 className="font-display text-lg font-semibold">Desempeño y Score</h2>
-        <span className={`rounded-full border px-3 py-1 font-body text-admin-secundario font-semibold ${tonoElegibilidad}`}>{elegibilidad.texto}</span>
+        <span className="font-body text-admin-secundario text-text-tertiary">Ver métricas</span>
       </summary>
       <div className={`mt-4 rounded-lg border px-3 py-3 ${tonoElegibilidad}`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="font-body text-sm font-semibold">{elegibilidad.texto}</p>
-            <p className="mt-1 font-body text-admin-secundario">{elegibilidad.detalle}</p>
-          </div>
+          <p className="font-body text-sm font-semibold">{elegibilidad.texto} · {elegibilidad.detalle}</p>
           <span className="rounded-full border border-current/20 px-2.5 py-1 font-body text-admin-secundario font-semibold">
             {conductor ? conductor.estado.replace(/_/g, " ") : "sin alta operativa"}
           </span>
@@ -361,13 +366,13 @@ function DesempenoScore({
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <KpiCard
           etiqueta="Calificación"
-          valor={conductor ? `${conductor.calificacion_promedio.toFixed(2)} / 5.0` : "Sin alta"}
+          valor={conductor ? <span className="inline-flex items-center gap-2"><span aria-hidden="true">⭐</span>{conductor.calificacion_promedio.toFixed(2)} / 5.0</span> : "Sin alta"}
           detalle={conductor ? "Promedio acumulado del conductor." : "Se activará cuando exista conductor asociado."}
           tono={conductor && conductor.calificacion_promedio >= 4.5 ? "success" : "neutral"}
         />
         <KpiCard
           etiqueta="Rendimiento"
-          valor={formatoPorcentaje(efectividad)}
+          valor={efectividad === null ? <BadgeNeutro>Sin actividad previa</BadgeNeutro> : formatoPorcentaje(efectividad)}
           detalle={conductor ? `Cancelaciones: ${conductor.cancelaciones_sin_justificacion_count} · No presentaciones 6m: ${conductor.no_presentaciones_6m}` : "Sin historial operativo."}
           tono={efectividad !== null && efectividad >= 90 ? "success" : "neutral"}
         />
@@ -386,7 +391,7 @@ function DesempenoScore({
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border-default pt-4">
         <p className="font-body text-admin-secundario text-text-tertiary">Ajustes de sanción y estatus se controlan desde el expediente operativo activo.</p>
         {hrefEstatus ? (
-          <Link href={hrefEstatus} className="inline-flex h-9 items-center rounded-md border border-border-default bg-surface-primary px-3 font-body text-admin-secundario font-semibold text-text-secondary hover:bg-surface-secondary">
+          <Link href={hrefEstatus} className="inline-flex h-9 items-center rounded-md border border-status-info bg-status-info px-3 font-body text-admin-secundario font-semibold text-surface-primary shadow-sm hover:bg-status-info/90">
             Ajustar estatus
           </Link>
         ) : (
@@ -395,6 +400,53 @@ function DesempenoScore({
           </span>
         )}
       </div>
+    </details>
+  );
+}
+
+function ConsentimientosAcordeon({ consentimientos }: { consentimientos: DetalleSolicitudConductorAdmin["consentimientos"] }) {
+  return (
+    <details className="rounded-lg border border-border-default bg-surface-primary px-3 py-2">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+        <span className="font-body text-sm font-semibold text-ink">Términos, privacidad y declaraciones</span>
+        <span className="font-body text-admin-secundario text-text-tertiary">{consentimientos.length}/4</span>
+      </summary>
+      <div className="mt-3 space-y-2 border-t border-border-default pt-3">
+        {consentimientos.length === 0 ? <p className="font-body text-sm text-text-tertiary">Sin consentimientos registrados.</p> : consentimientos.map((consentimiento) => (
+          <ConsentimientoItem key={consentimiento.id} consentimiento={consentimiento} />
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function HistorialAcordeon({ historial }: { historial: DetalleSolicitudConductorAdmin["historial"] }) {
+  const ultimo = historial[0] ?? null;
+  return (
+    <details className="rounded-lg border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-1)]">
+      <summary className="cursor-pointer list-none">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-semibold">Historial de estados y decisiones</h2>
+          {ultimo && <span className="rounded-full border border-status-info/30 bg-status-info-soft px-3 py-1 font-body text-admin-secundario font-semibold text-status-info">{ETIQUETA_DECISION[ultimo.decision] ?? ultimo.decision}</span>}
+        </div>
+        {ultimo ? (
+          <p className="mt-2 font-body text-sm text-text-secondary">{ETIQUETA_ESTADO[ultimo.estado_anterior]} - {ETIQUETA_ESTADO[ultimo.estado_nuevo]} · {fecha(ultimo.revisado_en)}</p>
+        ) : (
+          <p className="mt-2 font-body text-sm text-text-tertiary">Sin pasos registrados.</p>
+        )}
+      </summary>
+      <ol className="mt-4 space-y-4 border-t border-border-default pt-4">
+        {historial.map((evento) => (
+          <li key={evento.id} className="border-l-2 border-status-info/25 pl-4 font-body text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-semibold">{ETIQUETA_DECISION[evento.decision] ?? evento.decision}</p>
+              <time className="text-admin-secundario text-text-tertiary">{fecha(evento.revisado_en)}</time>
+            </div>
+            <p className="mt-1 text-admin-secundario text-text-tertiary">{ETIQUETA_ESTADO[evento.estado_anterior]} - {ETIQUETA_ESTADO[evento.estado_nuevo]} · {evento.revisor_nombre ?? "Sistema/conductor"}</p>
+            {evento.motivo && <p className="mt-1 text-text-secondary">{evento.motivo}</p>}
+          </li>
+        ))}
+      </ol>
     </details>
   );
 }
@@ -799,19 +851,15 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
   const documentosLote = documentosRequeridos.filter((documento) => documento.estado === "en_revision");
   const anomalíasVisibles = documentosRequeridos.some((documento) => documento.estado === "rechazado" || documento.estado === "vencido" || Boolean(documento.motivo_rechazo));
   const puedeAprobarLote = solicitud.estado === "en_revision" && documentosRequeridos.length === DOCUMENTOS_REQUERIDOS.length && documentosLote.length > 0 && !anomalíasVisibles;
-  const sanciones = conductor
-    ? conductor.suspensiones_activas > 0
-      ? `${conductor.suspensiones_activas} suspensión(es) activa(s)`
-      : "Sin sanciones activas"
-    : "Sin conductor asociado";
   const hrefEstatus = conductor?.id ? `/conductores/activos/${conductor.id}` : null;
+  const ciudadSede = textoJson(solicitud.domicilio, "ciudad_municipio", "ciudad") ?? conductor?.ciudad_municipio ?? "-";
 
   return (
     <main className="admin-page-shell pb-24">
       <AdminPageHeader
         etiqueta="Pasaporte digital CONCER"
         titulo={nombre}
-        descripcion={`Folio ${solicitud.id.slice(0, 8)} · revisión de datos, consentimientos y documentos sin cambiar de contexto.`}
+        descripcion={`Folio ${solicitud.id.slice(0, 8)} · revisión de datos, consentimientos y documentos.`}
         breadcrumb={[{ label: "Conductores", href: "/conductores" }, { label: "Pasaporte digital CONCER" }]}
         tipoDatos="administrativos"
         accion={(
@@ -836,9 +884,10 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
           <section className="rounded-lg border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-1)]">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="font-body text-admin-secundario font-semibold uppercase tracking-[0.14em] text-text-tertiary">Ficha rápida del conductor</p>
+                <p className="font-body text-admin-secundario font-semibold uppercase tracking-[0.14em] text-text-tertiary">Ficha rápida</p>
                 <h2 className="mt-1 font-display text-xl font-semibold text-ink">{nombre}</h2>
                 <p className="mt-1 font-body text-sm text-text-secondary">{solicitud.curp_normalizada ?? conductor?.curp ?? "CURP no registrada"} · {telefonoContacto ?? "Sin teléfono"}</p>
+                <p className="mt-0.5 font-body text-sm text-text-secondary">{correo}</p>
                 <QuickActionsBar
                   nombre={nombre}
                   telefono={telefonoContacto}
@@ -855,7 +904,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
                 valor={<VigenciaLicencia fechaIso={vigenciaLicencia} dias={diasVigencia} />}
                 destacado
               />
-              <Dato etiqueta="Domicilio" valor={[textoJson(solicitud.domicilio, "colonia") ?? conductor?.colonia, textoJson(solicitud.domicilio, "ciudad_municipio", "ciudad") ?? conductor?.ciudad_municipio, textoJson(solicitud.domicilio, "estado") ?? conductor?.estado_residencia].filter(Boolean).join(", ")} />
+              <Dato etiqueta="Ciudad sede" valor={ciudadSede} />
               <Dato etiqueta="Nivel CONCER" valor={conductor?.nivel_operativo_vigente ?? conductor?.nivel_por_experiencia ?? "Por asignar"} destacado />
             </dl>
           </section>
@@ -868,7 +917,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
           />
 
           <PassportCard>
-            <h2 className="font-display text-lg font-semibold">Datos del conductor</h2>
+            <h2 className="font-display text-lg font-semibold">Domicilio y contacto de emergencia</h2>
             <dl className="mt-4 grid gap-3">
               <Dato etiqueta="Código postal" valor={textoJson(solicitud.domicilio, "codigo_postal") ?? conductor?.codigo_postal ?? "-"} />
               <Dato etiqueta="Estado" valor={textoJson(solicitud.domicilio, "estado") ?? conductor?.estado_residencia ?? "-"} />
@@ -878,8 +927,6 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
               <Dato etiqueta="Referencias" valor={textoJson(solicitud.domicilio, "referencias") ?? conductor?.referencias ?? "-"} />
               <Dato etiqueta="Correo electrónico" valor={correo} />
               <Dato etiqueta="Contacto de emergencia" valor={[textoJson(solicitud.contacto_emergencia, "nombre") ?? conductor?.contacto_emergencia_nombre, textoJson(solicitud.contacto_emergencia, "telefono") ?? conductor?.contacto_emergencia_telefono].filter(Boolean).join(" · ") || "-"} />
-              <Dato etiqueta="Nivel de conductor" valor={conductor?.nivel_operativo_vigente ?? conductor?.nivel_por_calificacion ?? conductor?.nivel_por_experiencia ?? "Por asignar"} />
-              <Dato etiqueta="Sanciones aplicadas" valor={sanciones} />
             </dl>
           </PassportCard>
 
@@ -889,10 +936,8 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
               <IndicadorChecklist etiqueta="Documentos aprobados" valor={`${documentosAprobadosCount}/3`} completo={documentosAprobados} />
               <IndicadorChecklist etiqueta="Consentimientos registrados" valor={`${consentimientosRegistradosCount}/4`} completo={consentimientosCompletos} />
             </div>
-            <div className="mt-5 space-y-2">
-              {consentimientosActuales.length === 0 ? <p className="font-body text-sm text-text-tertiary">Sin consentimientos registrados.</p> : consentimientosActuales.map((consentimiento) => (
-                <ConsentimientoItem key={consentimiento.id} consentimiento={consentimiento} />
-              ))}
+            <div className="mt-5">
+              <ConsentimientosAcordeon consentimientos={consentimientosActuales} />
             </div>
           </PassportCard>
 
@@ -954,21 +999,7 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
             )}
           </section>
 
-          <PassportCard>
-            <h2 className="font-display text-lg font-semibold">Historial de estados y decisiones</h2>
-            <ol className="mt-4 space-y-4">
-              {historial.map((evento) => (
-                <li key={evento.id} className="border-l-2 border-status-info/25 pl-4 font-body text-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-semibold">{ETIQUETA_DECISION[evento.decision] ?? evento.decision}</p>
-                    <time className="text-admin-secundario text-text-tertiary">{fecha(evento.revisado_en)}</time>
-                  </div>
-                  <p className="mt-1 text-admin-secundario text-text-tertiary">{ETIQUETA_ESTADO[evento.estado_anterior]} - {ETIQUETA_ESTADO[evento.estado_nuevo]} · {evento.revisor_nombre ?? "Sistema/conductor"}</p>
-                  {evento.motivo && <p className="mt-1 text-text-secondary">{evento.motivo}</p>}
-                </li>
-              ))}
-            </ol>
-          </PassportCard>
+          <HistorialAcordeon historial={historial} />
         </aside>
 
         <section className="flex min-w-0 flex-col xl:min-h-0">

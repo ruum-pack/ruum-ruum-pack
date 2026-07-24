@@ -90,7 +90,7 @@ export function NavegacionAdminMovil() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-surface-primary/95 backdrop-blur supports-[backdrop-filter]:bg-surface-primary/85 lg:hidden">
-      <div className="ruum-container flex min-h-16 items-center justify-between gap-3 py-2.5">
+      <div className="ruum-container flex min-h-14 items-center justify-between gap-3 py-2">
         <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-lg" aria-label="Ir a la Torre de Control">
           <LogoMarca tamano={28} color="signal" />
           <span className="font-display text-sm font-extrabold tracking-tight text-ink">
@@ -101,7 +101,7 @@ export function NavegacionAdminMovil() {
         <button
           type="button"
           onClick={() => setAbierto(true)}
-          className="inline-flex min-h-10 items-center rounded-lg border border-ink/15 bg-surface-primary px-3 py-2 font-body text-admin-boton font-bold text-ink shadow-sm"
+          className="inline-flex min-h-9 items-center rounded-lg border border-ink/15 bg-surface-primary px-3 py-1.5 font-body text-admin-boton font-bold text-ink shadow-sm"
           aria-haspopup="dialog"
           aria-expanded={abierto}
         >
@@ -109,7 +109,7 @@ export function NavegacionAdminMovil() {
         </button>
       </div>
 
-      <nav aria-label="Accesos móviles prioritarios" className="ruum-container grid grid-cols-4 gap-1 pb-2.5">
+      <nav aria-label="Accesos móviles prioritarios" className="ruum-container grid grid-cols-4 gap-1 pb-2">
         {prioritarios.map((destino) => {
           const activo = esActivo(pathname, destino.href);
           const contador = destino.contador ? contadores[destino.contador] : undefined;
@@ -120,7 +120,7 @@ export function NavegacionAdminMovil() {
               aria-current={activo ? "page" : undefined}
               aria-label={destino.etiqueta}
               className={[
-                "relative inline-flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 font-body text-[11px] font-semibold",
+                "relative inline-flex min-h-10 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 font-body text-[11px] font-semibold",
                 activo ? "bg-signal text-ink" : "border border-ink/10 bg-surface-primary text-text-secondary"
               ].join(" ")}
             >
