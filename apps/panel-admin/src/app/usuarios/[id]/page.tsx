@@ -40,6 +40,14 @@ const TAB_ETIQUETAS: Record<Tab, string> = {
 
 type ConteosTabs = Partial<Record<Tab, number | null>>;
 
+const TARJETAS_RESUMEN: Array<{ tab: Tab; etiqueta: string; icono: string }> = [
+  { tab: "viajes", etiqueta: "Viajes", icono: "↗" },
+  { tab: "pagos", etiqueta: "Pagos", icono: "$" },
+  { tab: "incidencias", etiqueta: "Incidencias", icono: "!" },
+  { tab: "sesiones", etiqueta: "Sesiones", icono: "◎" },
+  { tab: "auditoria", etiqueta: "Auditoría", icono: "✓" }
+];
+
 export default function PaginaDetalleUsuario() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>("datos");
@@ -111,20 +119,28 @@ export default function PaginaDetalleUsuario() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8 sm:px-8 sm:py-10">
-      <div className="flex items-center gap-3">
-        <Link href="/usuarios" className="font-body text-sm text-text-tertiary hover:text-ink">&larr; Usuarios</Link>
+      <div className="sticky top-0 z-20 -mx-6 border-b border-border-default bg-background-main/95 px-6 py-3 backdrop-blur sm:-mx-8 sm:px-8">
+        <Link href="/usuarios" className="inline-flex items-center gap-2 rounded-lg border border-ink/15 bg-surface-primary px-3 py-2 font-body text-sm font-semibold text-ink hover:bg-surface-secondary">
+          <span aria-hidden="true">&larr;</span>
+          Volver a lista de usuarios
+        </Link>
       </div>
 
       {aviso && <ToastAviso aviso={aviso} onCerrar={() => setAviso(null)} />}
 
-      <div className="mt-6">
-        <h1 className="font-display text-2xl font-semibold">{aTitleCase(usuario.nombre) || "Sin nombre"}</h1>
-        <p className="mt-1 font-body text-sm text-text-secondary">{usuario.correo_facturacion ?? "Sin correo registrado"}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <AdminBadge>{aTitleCase(usuario.tipo_cuenta)}</AdminBadge>
-          <AdminBadge>{aTitleCase(usuario.rol.replaceAll("_", " "))}</AdminBadge>
-          <BadgeVerificacion estado={usuario.estado_verificacion} />
-          <BadgeCuenta estado={usuario.estado_cuenta ?? "activa"} />
+      <div className="mt-6 rounded-card border border-ink/10 bg-surface-primary p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h1 className="font-display text-2xl font-semibold text-text-main">{aTitleCase(usuario.nombre) || "Sin nombre"}</h1>
+            <p className="mt-1 font-body text-sm text-text-secondary">{usuario.correo_facturacion ?? "Sin correo registrado"}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <AdminBadge>{`Cuenta ${aTitleCase(usuario.tipo_cuenta) ?? "sin tipo"}`}</AdminBadge>
+              <AdminBadge>{aTitleCase(usuario.rol.replaceAll("_", " "))}</AdminBadge>
+              <BadgeVerificacion estado={usuario.estado_verificacion} />
+              <BadgeCuenta estado={usuario.estado_cuenta ?? "activa"} />
+            </div>
+          </div>
+          <ResumenActividad conteos={conteosTabs} />
         </div>
       </div>
 
@@ -136,11 +152,6 @@ export default function PaginaDetalleUsuario() {
             }`}
           >
             {TAB_ETIQUETAS[t]}
-            {conteosTabs[t] !== undefined && (
-              <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${conteosTabs[t] === 0 ? "opacity-35" : ""} ${tab === t ? "bg-signal text-ink" : "bg-ink/10 text-text-secondary"}`}>
-                {conteosTabs[t] ?? "..."}
-              </span>
-            )}
           </button>
         ))}
       </div>
@@ -167,7 +178,7 @@ function TabDatos({ usuario, onActualizado, onAviso }: { usuario: UsuarioRow; on
         <Seccion
           titulo="Datos personales"
           consistente
-          action={!editando && <button onClick={() => setEditando(true)} className="rounded-lg border border-signal bg-signal px-3 py-1.5 font-body text-xs font-semibold text-ink hover:bg-signal/90">Editar</button>}
+          action={!editando && <button onClick={() => setEditando(true)} className="rounded-lg border border-signal bg-signal px-3 py-1.5 font-body text-xs font-semibold text-ink hover:bg-signal/90">Editar datos</button>}
         >
           <Dato etiqueta="Nombre" valor={aTitleCase(usuario.nombre)} />
           <Dato etiqueta="Teléfono" valor={formatearTelefono(usuario.telefono)} />
@@ -177,8 +188,11 @@ function TabDatos({ usuario, onActualizado, onAviso }: { usuario: UsuarioRow; on
           <Dato etiqueta="RFC" valor={usuario.rfc} />
           <Dato etiqueta="Razón social" valor={aTitleCase(usuario.razon_social)} />
         </Seccion>
-        <Seccion titulo="Dirección" consistente>
-          {direccionVacia && <a href="#editar-datos-usuario" className="mb-2 inline-flex font-body text-sm font-semibold text-focus-default hover:underline">+ Agregar dirección</a>}
+        <Seccion
+          titulo="Dirección"
+          consistente
+          action={!editando && <button onClick={() => setEditando(true)} className="rounded-lg border border-ink/20 px-3 py-1.5 font-body text-xs font-semibold text-text-secondary hover:bg-surface-secondary hover:text-ink">{direccionVacia ? "+ Agregar dirección" : "Editar dirección"}</button>}
+        >
           <Dato etiqueta="Calle" valor={usuario.calle} />
           <Dato etiqueta="Número" valor={usuario.numero} />
           <Dato etiqueta="Colonia" valor={usuario.colonia} />
@@ -194,11 +208,13 @@ function TabDatos({ usuario, onActualizado, onAviso }: { usuario: UsuarioRow; on
           <Dato etiqueta="Traslados sin incidencia" valor={String(usuario.traslados_completados_sin_incidencia)} />
         </Seccion>
         <Seccion titulo="Fechas" consistente>
-          <Dato etiqueta="Registrado" valor={new Date(usuario.creado_en).toLocaleString("es-MX")} />
-          <Dato etiqueta="Actualizado" valor={usuario.actualizado_en ? new Date(usuario.actualizado_en).toLocaleString("es-MX") : null} />
-          <Dato etiqueta="Términos aceptados" valor={usuario.terminos_aceptados_en ? new Date(usuario.terminos_aceptados_en).toLocaleString("es-MX") : "No aceptados"} />
+          <Dato etiqueta="Registrado" valor={formatearFechaCompacta(usuario.creado_en)} />
+          <Dato etiqueta="Actualizado" valor={formatearFechaCompacta(usuario.actualizado_en)} />
+          <Dato etiqueta="Términos aceptados" valor={formatearFechaCompacta(usuario.terminos_aceptados_en) ?? "No aceptados"} />
         </Seccion>
       </div>
+
+      <ActividadReciente usuarioId={usuario.id} />
 
       {editando && (
         <div className="mt-6">
@@ -208,7 +224,7 @@ function TabDatos({ usuario, onActualizado, onAviso }: { usuario: UsuarioRow; on
             onActualizado={(u) => {
               onActualizado(u);
               setEditando(false);
-              onAviso({ tono: "info", texto: "Usuario actualizado." });
+              onAviso({ tono: "info", texto: "Datos personales actualizados correctamente." });
             }}
           />
         </div>
@@ -224,7 +240,7 @@ function TabDatos({ usuario, onActualizado, onAviso }: { usuario: UsuarioRow; on
       <div className="mt-10 rounded-card border border-status-error/35 bg-status-error-soft/25 p-5">
         <h2 className="font-display text-lg font-semibold text-status-error">Zona de riesgo</h2>
         <p className="mt-1 font-body text-sm text-text-secondary">Estas acciones afectan la cuenta del usuario de forma permanente o temporal.</p>
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {(usuario.estado_cuenta ?? "activa") !== "suspendida" && (
             <SuspenderCuenta usuarioId={usuario.id} onCompletado={() => { window.location.reload(); }} />
           )}
@@ -237,6 +253,81 @@ function TabDatos({ usuario, onActualizado, onAviso }: { usuario: UsuarioRow; on
         </div>
       </div>
     </>
+  );
+}
+
+function ResumenActividad({ conteos }: { conteos: ConteosTabs }) {
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 lg:min-w-[520px]">
+      {TARJETAS_RESUMEN.map((tarjeta) => {
+        const valor = conteos[tarjeta.tab];
+        return (
+          <div key={tarjeta.tab} className={`rounded-lg border border-ink/10 bg-surface-secondary px-3 py-2 ${valor === 0 ? "opacity-65" : ""}`}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="grid size-6 place-items-center rounded-full bg-ink/10 font-body text-xs font-bold text-text-secondary" aria-hidden="true">{tarjeta.icono}</span>
+              <span className="font-mono-ruum text-base font-semibold text-text-main">{valor ?? "..."}</span>
+            </div>
+            <p className="mt-1 font-body text-xs text-text-secondary">{tarjeta.etiqueta}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ActividadReciente({ usuarioId }: { usuarioId: string }) {
+  const [actividad, setActividad] = useState<Array<{ etiqueta: string; valor: string | null }>>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    async function cargarActividad() {
+      try {
+        const cliente = crearClienteNavegador();
+        const [sesiones, viajes] = await Promise.all([
+          listarSesionesUsuario(cliente, usuarioId).catch(() => []),
+          listarTrasladosDeUsuario(cliente, usuarioId).catch(() => [])
+        ]);
+        if (cancelado) return;
+        const ultimaSesion = sesiones
+          .map((sesion) => sesion.ultimo_acceso ?? sesion.creada_en)
+          .filter((fecha): fecha is string => Boolean(fecha))
+          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null;
+        const ultimoViaje = viajes
+          .map((viaje) => viaje.creado_en)
+          .filter((fecha): fecha is string => Boolean(fecha))
+          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null;
+        setActividad([
+          { etiqueta: "Último inicio de sesión", valor: formatearFechaCompacta(ultimaSesion) },
+          { etiqueta: "Último viaje", valor: formatearFechaCompacta(ultimoViaje) }
+        ]);
+      } finally {
+        if (!cancelado) setCargando(false);
+      }
+    }
+    void cargarActividad();
+    return () => { cancelado = true; };
+  }, [usuarioId]);
+
+  const conActividad = actividad.some((item) => item.valor);
+  return (
+    <div className="mt-6 rounded-card border border-ink/10 bg-surface-primary p-4">
+      <h3 className="font-display text-base font-semibold text-text-main">Actividad reciente</h3>
+      {cargando ? (
+        <p className="mt-2 font-body text-sm text-text-tertiary">Cargando actividad...</p>
+      ) : conActividad ? (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {actividad.map((item) => (
+            <div key={item.etiqueta} className="rounded-lg border border-border-default px-3 py-2">
+              <p className="font-body text-xs text-text-tertiary">{item.etiqueta}</p>
+              <p className="mt-1 font-body text-sm font-semibold text-text-main">{item.valor ?? <ValorVacio />}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2 font-body text-sm text-text-tertiary">Sin actividad registrada.</p>
+      )}
+    </div>
   );
 }
 
@@ -883,7 +974,7 @@ function Seccion({ titulo, children, action, consistente = false }: { titulo: st
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null | undefined }) {
   return (
-    <div className="flex justify-between gap-4 py-2 font-body text-sm">
+    <div className="grid grid-cols-[minmax(120px,0.8fr)_minmax(0,1fr)] gap-4 py-2 font-body text-sm">
       <span className="font-normal text-text-tertiary">{etiqueta}</span>
       <span className="text-right font-semibold text-text-main">{valor || <ValorVacio />}</span>
     </div>
@@ -891,7 +982,7 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null | un
 }
 
 function ValorVacio({ texto = "Sin dato" }: { texto?: string }) {
-  return <span className="font-normal text-text-tertiary">{texto}</span>;
+  return <span className="inline-flex items-center justify-end gap-1 font-normal text-text-tertiary"><span aria-hidden="true">!</span>{texto}</span>;
 }
 
 function BadgeVerificacion({ estado }: { estado: string }) {
@@ -910,6 +1001,13 @@ function formatearTelefono(valor: string | null | undefined) {
   const nacional = digitos.length === 12 && digitos.startsWith("52") ? digitos.slice(2) : digitos;
   if (nacional.length !== 10) return valor;
   return `(${nacional.slice(0, 3)}) ${nacional.slice(3, 6)}-${nacional.slice(6)}`;
+}
+
+function formatearFechaCompacta(fecha: string | null | undefined) {
+  if (!fecha) return null;
+  const valor = new Date(fecha);
+  if (Number.isNaN(valor.getTime())) return null;
+  return `${valor.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" })} ${valor.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 function aTitleCase(valor: string | null | undefined) {
@@ -1017,7 +1115,11 @@ function SuspenderCuenta({ usuarioId, onCompletado }: { usuarioId: string; onCom
   }
   return (
     <>
-      <button onClick={() => setAbierto(true)} className="rounded-lg border border-status-error bg-status-error-soft px-4 py-2 font-body text-sm font-semibold text-status-error shadow-sm hover:bg-status-error hover:text-surface-primary">Suspender cuenta</button>
+      <div className="rounded-lg border border-status-warning/35 bg-status-warning-soft/40 p-4">
+        <p className="font-body text-sm font-semibold text-status-warning">Suspender cuenta</p>
+        <p className="mt-1 font-body text-xs text-text-secondary">Pausa el acceso sin cerrar el expediente del usuario.</p>
+        <button onClick={() => setAbierto(true)} className="mt-3 rounded-lg border border-status-warning bg-status-warning px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-status-warning/90">Suspender cuenta</button>
+      </div>
       <AdminDialog
         open={abierto}
         title="Suspender cuenta"
@@ -1030,6 +1132,10 @@ function SuspenderCuenta({ usuarioId, onCompletado }: { usuarioId: string; onCom
       >
         <div className="space-y-3">
           {error && <Aviso tono="danger">{error}</Aviso>}
+          <div className="rounded-lg border border-status-warning/25 bg-status-warning-soft/35 p-3 font-body text-sm text-text-secondary">
+            <p className="font-semibold text-status-warning">Impacto de la suspensión</p>
+            <p className="mt-1">Se bloquea el acceso. Los traslados, pagos e historial se conservan para seguimiento operativo.</p>
+          </div>
           <label className="flex flex-col gap-1">
             <span className="font-body text-xs font-medium text-text-secondary">Motivo de la suspensión</span>
             <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} className="min-h-[88px] rounded-lg border border-ink/20 px-3 py-2 font-body text-sm" rows={3} />
@@ -1078,7 +1184,11 @@ function CerrarCuenta({ usuarioId, onCompletado }: { usuarioId: string; onComple
   }
   return (
     <>
-      <button onClick={() => setAbierto(true)} className="rounded-lg border border-status-error bg-status-error px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-status-error/90">Cerrar cuenta</button>
+      <div className="rounded-lg border border-status-error/35 bg-status-error-soft/40 p-4">
+        <p className="font-body text-sm font-semibold text-status-error">Cerrar cuenta</p>
+        <p className="mt-1 font-body text-xs text-text-secondary">Cierre definitivo con confirmación escrita obligatoria.</p>
+        <button onClick={() => setAbierto(true)} className="mt-3 rounded-lg border border-status-error bg-status-error px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-status-error/90">Cerrar cuenta</button>
+      </div>
       <AdminDialog
         open={abierto}
         title="Cerrar cuenta permanentemente"
@@ -1090,6 +1200,10 @@ function CerrarCuenta({ usuarioId, onCompletado }: { usuarioId: string; onComple
         </>}
       >
         <div className="space-y-3">
+          <div className="rounded-lg border border-status-error/25 bg-status-error-soft/40 p-3 font-body text-sm text-text-secondary">
+            <p className="font-semibold text-status-error">Impacto del cierre</p>
+            <p className="mt-1">Se bloquea el acceso de forma definitiva. Traslados, pagos y auditoría se conservan para trazabilidad.</p>
+          </div>
           <label className="flex flex-col gap-1">
             <span className="font-body text-xs font-medium text-text-secondary">Motivo del cierre</span>
             <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} className="min-h-[88px] rounded-lg border border-ink/20 px-3 py-2 font-body text-sm" rows={3} />

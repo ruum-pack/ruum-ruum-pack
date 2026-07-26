@@ -31,7 +31,9 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
           </Aviso>
         )}
         <p className="font-body text-xs text-text-tertiary">
-          Estado final: {usuario.estado_verificacion === "verificado" ? "Verificado" : "Rechazado"}. Sin acciones pendientes.
+          {usuario.estado_verificacion === "verificado"
+            ? "Todos los documentos fueron verificados. No hay tareas pendientes para este usuario."
+            : "La documentación fue rechazada. El usuario deberá corregirla antes de una nueva revisión."}
         </p>
       </div>
     );
