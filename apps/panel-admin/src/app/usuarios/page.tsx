@@ -1,17 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Aviso } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { invitarUsuarioAdmin, listarUsuariosAdminPaginados } from "@ruum/api/services";
 import Link from "next/link";
+import { AdminBadge, AdminButton, AdminEmptyState, AdminTooltip } from "../admin-components";
 
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 
 const ETIQUETA_VERIFICACION: Record<UsuarioRow["estado_verificacion"], string> = {
   pendiente: "Pendiente",
-  en_revision: "En revision",
+  en_revision: "En revisión",
   verificado: "Verificado",
   rechazado: "Rechazado"
 };
@@ -31,6 +32,9 @@ export default function PaginaUsuariosAdmin() {
   const [totalResultados, setTotalResultados] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [mostrarInvitar, setMostrarInvitar] = useState(false);
+  const [filtroCuenta, setFiltroCuenta] = useState("todos");
+  const [filtroRol, setFiltroRol] = useState("todos");
+  const [filtroVerificacion, setFiltroVerificacion] = useState("todos");
   const [error, setError] = useState<string | null>(null);
   const paginaRef = useRef(1);
 
@@ -73,71 +77,134 @@ export default function PaginaUsuariosAdmin() {
     void cargar(p);
   }
 
+  const usuariosFiltrados = useMemo(() => {
+    return usuarios.filter((usuario) => {
+      const cuentaActiva = (usuario.estado_cuenta ?? "activa") === "activa";
+      const coincideCuenta = filtroCuenta === "todos"
+        || (filtroCuenta === "activa" && cuentaActiva)
+        || (filtroCuenta === "inactiva" && !cuentaActiva);
+      const coincideRol = filtroRol === "todos" || usuario.rol === filtroRol;
+      const verificado = usuario.estado_verificacion === "verificado";
+      const coincideVerificacion = filtroVerificacion === "todos"
+        || (filtroVerificacion === "verificado" && verificado)
+        || (filtroVerificacion === "pendiente" && !verificado);
+      return coincideCuenta && coincideRol && coincideVerificacion;
+    });
+  }, [filtroCuenta, filtroRol, filtroVerificacion, usuarios]);
+
+  const hayFiltrosLocales = filtroCuenta !== "todos" || filtroRol !== "todos" || filtroVerificacion !== "todos";
+
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8 sm:px-8 sm:py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-semibold">Usuarios</h1>
-        <button onClick={() => setMostrarInvitar(true)} className="rounded-lg bg-ink px-4 py-2 font-body text-sm font-semibold text-surface-primary hover:bg-ink/90">Invitar usuario</button>
+    <main className="mx-auto max-w-6xl px-6 py-8 sm:px-8 sm:py-10">
+      <div className="flex flex-col gap-4 border-b border-border-default pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <nav className="font-body text-admin-secundario text-text-tertiary" aria-label="Breadcrumb">
+            <Link href="/" className="hover:text-ink">Dashboard</Link>
+            <span className="mx-2">/</span>
+            <span className="text-text-secondary">Usuarios</span>
+          </nav>
+          <h1 className="mt-2 font-display text-2xl font-semibold text-ink">Usuarios</h1>
+          <p className="mt-1 font-body text-sm text-text-secondary">Gestión de cuentas y permisos de la torre de control.</p>
+        </div>
+        <AdminButton onClick={() => setMostrarInvitar(true)} className="sticky top-3 z-10 self-start shadow-sm sm:static sm:self-auto">
+          <span aria-hidden="true" className="text-base leading-none">+</span>
+          Invitar usuario
+        </AdminButton>
       </div>
 
-      <div className="mt-6 flex items-center gap-3">
-        <label className="sr-only" htmlFor="buscar-usuarios">Buscar usuarios</label>
-        <input id="buscar-usuarios" type="search" value={busqueda} onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }} placeholder="Buscar por nombre o correo…" className="flex-1 rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-text-tertiary focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20" />
-        {busqueda && <button onClick={() => { setBusqueda(""); setPagina(1); }} className="font-body text-sm text-text-tertiary hover:text-ink" aria-label="Limpiar busqueda">Limpiar</button>}
+      <div className="mt-6 rounded-card border border-ink/10 bg-surface-primary p-4">
+        <div className="grid gap-3 lg:grid-cols-[minmax(240px,1fr)_180px_200px_180px_auto]">
+          <label className="flex flex-col gap-1">
+            <span className="font-body text-xs font-semibold text-text-secondary">Buscar usuarios</span>
+            <input id="buscar-usuarios" type="search" value={busqueda} onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }} placeholder="Buscar por nombre, correo o rol" className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-text-tertiary focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20" />
+          </label>
+          <FiltroSelect label="Estado de cuenta" value={filtroCuenta} onChange={setFiltroCuenta} options={[["todos", "Todas"], ["activa", "Activa"], ["inactiva", "Inactiva"]]} />
+          <FiltroSelect label="Rol" value={filtroRol} onChange={setFiltroRol} options={[["todos", "Todos"], ["personal", "Personal"], ["titular_empresa", "Titular empresa / Admin"], ["usuario_autorizado", "Usuario autorizado"]]} />
+          <FiltroSelect label="Verificación" value={filtroVerificacion} onChange={setFiltroVerificacion} options={[["todos", "Todas"], ["verificado", "Verificado"], ["pendiente", "Pendiente"]]} />
+          <div className="flex items-end">
+            {(busqueda || hayFiltrosLocales) && <AdminButton variant="quiet" onClick={() => { setBusqueda(""); setFiltroCuenta("todos"); setFiltroRol("todos"); setFiltroVerificacion("todos"); setPagina(1); }} aria-label="Limpiar búsqueda">Limpiar</AdminButton>}
+          </div>
+        </div>
+        <p className="mt-3 font-body text-sm text-text-secondary">{usuariosFiltrados.length} usuario{usuariosFiltrados.length === 1 ? "" : "s"} encontrado{usuariosFiltrados.length === 1 ? "" : "s"}</p>
       </div>
 
       {error && <div className="mt-3"><Aviso tono="danger">{error}</Aviso></div>}
 
-      <div className="mt-3 overflow-hidden rounded-card border border-ink/10 bg-surface-primary">
-        <table className="w-full font-body text-sm">
+      <div className="admin-table-card mt-4">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[980px] font-body text-sm">
           <caption className="sr-only">Lista de usuarios registrados</caption>
           <thead>
             <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-text-tertiary">
-              <th className="px-4 py-3">Nombre</th>
-              <th className="px-4 py-3">Cuenta</th>
+              <th className="left-0 z-10 bg-surface-primary px-4 py-3 sm:sticky">Nombre</th>
+              <th className="px-4 py-3">Tipo de cuenta</th>
               <th className="px-4 py-3">Rol</th>
-              <th className="px-4 py-3">Verificacion</th>
-              <th className="px-4 py-3">Traslados</th>
-              <th className="px-4 py-3">Pago</th>
-              <th className="px-4 py-3">Registrado</th>
-              <th className="px-4 py-3">Accion</th>
+              <th className="px-4 py-3">Estado verificación</th>
+              <th className="px-4 py-3 text-right">Traslados realizados</th>
+              <th className="px-4 py-3 text-center">Estado de pago</th>
+              <th className="px-4 py-3">Fecha de registro</th>
+              <th className="px-4 py-3 text-right">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {cargando ? (
               <tr><td colSpan={8} className="px-4 py-6 text-center text-text-tertiary">Cargando…</td></tr>
-            ) : usuarios.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-6 text-center text-text-tertiary">Sin resultados{busqueda ? ` para "${busqueda}"` : ""}.</td></tr>
+            ) : usuariosFiltrados.length === 0 ? (
+              <tr><td colSpan={8} className="px-4 py-8">
+                <AdminEmptyState
+                  title={usuarios.length === 0 && !busqueda && !hayFiltrosLocales ? "Aún no has invitado usuarios." : "No se encontraron usuarios para tu búsqueda."}
+                  description={usuarios.length === 0 && !busqueda && !hayFiltrosLocales ? "Usa el botón 'Invitar usuario' para comenzar." : "Ajusta el texto de búsqueda o limpia los filtros rápidos."}
+                  action={usuarios.length === 0 && !busqueda && !hayFiltrosLocales ? <AdminButton onClick={() => setMostrarInvitar(true)}>Invitar usuario</AdminButton> : undefined}
+                />
+              </td></tr>
             ) : (
-              usuarios.map((u) => (
-                <tr key={u.id} className="border-b border-ink/5 last:border-0">
-                  <td className="px-4 py-3 font-medium">
+              usuariosFiltrados.map((u, indice) => (
+                <tr key={u.id} className={`border-b border-ink/5 last:border-0 ${indice % 2 === 1 ? "bg-surface-secondary/45" : "bg-surface-primary"}`}>
+                  <td data-label="Nombre" className={`left-0 z-[1] px-4 py-4 font-medium sm:sticky ${indice % 2 === 1 ? "bg-surface-secondary" : "bg-surface-primary"}`}>
                     <Link href={`/usuarios/${u.id}`} className="hover:text-focus-default hover:underline">{u.nombre ?? <span className="text-text-tertiary">Sin nombre</span>}</Link>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="capitalize">{u.tipo_cuenta}</span>
-                    <span className="ml-2 rounded-full bg-ink/10 px-2 py-0.5 text-xs text-text-secondary">{ETIQUETA_ESTADO_CUENTA[u.estado_cuenta ?? "activa"] ?? u.estado_cuenta}</span>
+                  <td data-label="Tipo de cuenta" className="px-4 py-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="capitalize">{u.tipo_cuenta}</span>
+                      <BadgeCuenta estado={u.estado_cuenta ?? "activa"} />
+                    </div>
                   </td>
-                  <td className="px-4 py-3 capitalize">{u.rol.replaceAll("_", " ")}</td>
-                  <td className="px-4 py-3">{ETIQUETA_VERIFICACION[u.estado_verificacion]}</td>
-                  <td className="px-4 py-3 font-mono-ruum">{u.traslados_completados_sin_incidencia}</td>
-                  <td className="px-4 py-3">{u.metodo_pago_registrado ? <span className="text-status-success">Registrado</span> : <span className="text-text-tertiary">Sin registrar</span>}</td>
-                  <td className="px-4 py-3 text-text-secondary">{new Date(u.creado_en).toLocaleDateString("es-MX")}</td>
-                  <td className="px-4 py-3">
-                    <Link href={`/usuarios/${u.id}`} className="rounded-md border border-ink/20 px-3 py-1.5 font-body text-xs font-medium text-ink hover:bg-ink/5">Gestionar</Link>
+                  <td data-label="Rol" className="px-4 py-4 capitalize">{etiquetaRol(u.rol)}</td>
+                  <td data-label="Estado verificación" className="px-4 py-4"><BadgeVerificacion estado={u.estado_verificacion} /></td>
+                  <td data-label="Traslados realizados" className="px-4 py-4 text-right font-mono-ruum">
+                    <AdminTooltip label={u.traslados_completados_sin_incidencia === 0 ? "Aún no ha completado un traslado." : "Traslados completados sin incidencia."}>
+                      <span tabIndex={0} className="inline-flex rounded-md px-2 py-1 outline-none focus:ring-2 focus:ring-focus-default/30">{u.traslados_completados_sin_incidencia}</span>
+                    </AdminTooltip>
+                  </td>
+                  <td data-label="Estado de pago" className="px-4 py-4 text-center">
+                    <AdminTooltip label={u.metodo_pago_registrado ? "Método de pago registrado para la cuenta." : "Sin método de pago registrado."}>
+                      <span tabIndex={0}>
+                        <AdminBadge tone={u.metodo_pago_registrado ? "success" : "warning"}>{u.metodo_pago_registrado ? "Registrado" : "Sin registrar"}</AdminBadge>
+                      </span>
+                    </AdminTooltip>
+                  </td>
+                  <td data-label="Fecha de registro" className="px-4 py-4 text-text-secondary">{new Date(u.creado_en).toLocaleDateString("es-MX")}</td>
+                  <td data-label="Acciones" className="px-4 py-4">
+                    <div className="flex justify-end gap-2">
+                      <Link href={`/usuarios/${u.id}`} className="inline-flex items-center gap-1 rounded-md border border-ink/20 px-3 py-1.5 font-body text-xs font-semibold text-ink hover:bg-ink/5"><span aria-hidden="true">✎</span> Gestionar</Link>
+                      <AdminTooltip label="Próximamente: reset contraseña, desactivar usuario, reenviar verificación.">
+                        <button type="button" className="rounded-md border border-ink/20 px-2.5 py-1.5 font-body text-xs font-semibold text-text-secondary hover:bg-ink/5" aria-label={`Acciones rápidas para ${u.nombre ?? "usuario"}`}>...</button>
+                      </AdminTooltip>
+                    </div>
                   </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {totalPaginas > 1 && (
         <div className="mt-4 flex items-center justify-between font-body text-sm text-text-secondary">
           <span>{totalResultados} resultado{(totalResultados !== 1) ? "s" : ""}</span>
           <div className="flex items-center gap-3">
-            <span>Pagina {pagina} de {totalPaginas}</span>
+            <span>Página {pagina} de {totalPaginas}</span>
             <div className="flex gap-1">
               <button onClick={() => irAPagina(pagina - 1)} disabled={pagina <= 1} className="rounded-md border border-ink/20 px-3 py-1.5 text-xs disabled:opacity-30">&larr; Anterior</button>
               <button onClick={() => irAPagina(pagina + 1)} disabled={pagina >= totalPaginas} className="rounded-md border border-ink/20 px-3 py-1.5 text-xs disabled:opacity-30">Siguiente &rarr;</button>
@@ -151,6 +218,38 @@ export default function PaginaUsuariosAdmin() {
       )}
     </main>
   );
+}
+
+function FiltroSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: Array<[string, string]> }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="font-body text-xs font-semibold text-text-secondary">{label}</span>
+      <select value={value} onChange={(evento) => onChange(evento.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20">
+        {options.map(([opcion, etiqueta]) => <option key={opcion} value={opcion}>{etiqueta}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function BadgeCuenta({ estado }: { estado: string }) {
+  if (estado === "activa") return <AdminBadge tone="success">Activa</AdminBadge>;
+  if (estado === "suspendida") return <AdminBadge tone="danger">Suspendida</AdminBadge>;
+  if (estado === "cerrada") return <AdminBadge tone="neutral">Inactiva</AdminBadge>;
+  return <AdminBadge tone="neutral">{ETIQUETA_ESTADO_CUENTA[estado] ?? estado}</AdminBadge>;
+}
+
+function BadgeVerificacion({ estado }: { estado: UsuarioRow["estado_verificacion"] }) {
+  const tone = estado === "verificado" ? "success" : estado === "rechazado" ? "danger" : "warning";
+  return <AdminBadge tone={tone}>{ETIQUETA_VERIFICACION[estado]}</AdminBadge>;
+}
+
+function etiquetaRol(rol: UsuarioRow["rol"]) {
+  const etiquetas: Record<UsuarioRow["rol"], string> = {
+    personal: "Personal",
+    titular_empresa: "Titular empresa",
+    usuario_autorizado: "Usuario autorizado"
+  };
+  return etiquetas[rol] ?? rol.replaceAll("_", " ");
 }
 
 function InvitarUsuarioDialog({ onCerrar, onCreado }: { onCerrar: () => void; onCreado: () => void }) {
