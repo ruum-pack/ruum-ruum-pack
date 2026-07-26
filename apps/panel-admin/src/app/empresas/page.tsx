@@ -15,12 +15,13 @@ import {
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { AdminPageHeader, AdminPanel } from "../admin-ui";
-import { AdminButton, AdminEmptyState, AdminErrorState, AdminLoadingState } from "../admin-components";
+import { AdminButton, AdminDialog, AdminEmptyState, AdminErrorState, AdminLoadingState } from "../admin-components";
 
 type Empresa = Database["public"]["Tables"]["empresas"]["Row"];
 type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 type EstadoVerificacion = Database["public"]["Enums"]["estado_verificacion"];
 type CambioSensible = Database["public"]["Tables"]["empresas_cambios_sensibles"]["Row"];
+type TabEmpresa = "resumen" | "fiscal" | "usuarios" | "documentos" | "riesgo";
 
 const DATOS_DEMO: DatosEmpresasAdmin = {
   empresas: [],
@@ -86,6 +87,14 @@ const ETIQUETA_ESTADO: Record<EstadoVerificacion, string> = {
   rechazado: "Rechazado"
 };
 
+const TABS_EMPRESA: Array<{ id: TabEmpresa; etiqueta: string }> = [
+  { id: "resumen", etiqueta: "Resumen y KPIs" },
+  { id: "fiscal", etiqueta: "Fiscal y facturación" },
+  { id: "usuarios", etiqueta: "Usuarios y permisos" },
+  { id: "documentos", etiqueta: "Contratos y documentos" },
+  { id: "riesgo", etiqueta: "Configuración de riesgo" }
+];
+
 const RFC_MEXICO = /^([A-Z&Ñ]{3}|[A-Z&Ñ]{4})\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[A-Z0-9]{3}$/;
 const CORREO_BASICO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -110,9 +119,52 @@ function Badge({ estado, texto }: { estado: EstadoVerificacion | string; texto?:
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | number | null | undefined }) {
   return (
-    <div>
-      <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">{etiqueta}</dt>
-      <dd className="mt-1 font-body text-sm font-medium text-ink">{valor || "Pendiente"}</dd>
+    <div className="rounded-lg border border-border-default bg-surface-secondary/55 px-3 py-3">
+      <dt className="font-body text-xs font-medium text-text-tertiary">{etiqueta}</dt>
+      <dd className="mt-1 truncate font-body text-sm font-semibold text-ink" title={typeof valor === "string" ? valor : undefined}>{valor || "No registrado"}</dd>
+    </div>
+  );
+}
+
+function CampoTexto({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  min
+}: {
+  label: string;
+  value: string;
+  onChange: (valor: string) => void;
+  placeholder?: string;
+  type?: "text" | "email" | "number" | "date";
+  min?: string;
+}) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="font-body text-xs font-semibold text-text-secondary">{label}</span>
+      <input
+        type={type}
+        min={min}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm text-ink focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
+        placeholder={placeholder}
+      />
+    </label>
+  );
+}
+
+function KpiEmpresa({ icono, etiqueta, valor, detalle }: { icono: string; etiqueta: string; valor: string; detalle?: string }) {
+  return (
+    <div className="rounded-lg border border-ink/10 bg-surface-secondary/70 px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="grid size-8 place-items-center rounded-full bg-ink/10 font-body text-sm font-bold text-text-secondary" aria-hidden="true">{icono}</span>
+        <span className="font-mono-ruum text-xl font-semibold text-ink">{valor}</span>
+      </div>
+      <p className="mt-2 font-body text-xs font-semibold text-text-secondary">{etiqueta}</p>
+      {detalle && <p className="mt-1 truncate font-body text-[11px] text-text-tertiary">{detalle}</p>}
     </div>
   );
 }
@@ -130,13 +182,28 @@ type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "sin_conexion" | "
 
 function AccionesEmpresa({
   empresa,
+  usuarios,
+  vehiculos,
+  conductores,
+  documentos,
+  viajes,
+  versionesFiscales,
+  versionesCondiciones,
   cambiosPendientes,
   onActualizado
 }: {
   empresa: Empresa;
+  usuarios: Usuario[];
+  vehiculos: DatosEmpresasAdmin["vehiculos"];
+  conductores: DatosEmpresasAdmin["conductores"];
+  documentos: DatosEmpresasAdmin["documentos"];
+  viajes: DatosEmpresasAdmin["traslados"];
+  versionesFiscales: DatosEmpresasAdmin["versionesFiscales"];
+  versionesCondiciones: DatosEmpresasAdmin["versionesCondiciones"];
   cambiosPendientes: CambioSensible[];
   onActualizado: () => void;
 }) {
+  const [tab, setTab] = useState<TabEmpresa>("resumen");
   const [form, setForm] = useState({
     nombre: empresa.nombre,
     rfc: empresa.rfc ?? "",
@@ -155,6 +222,7 @@ function AccionesEmpresa({
   const [usuario, setUsuario] = useState(USUARIO_INICIAL);
   const [documento, setDocumento] = useState(DOCUMENTO_INICIAL);
   const [motivoEstado, setMotivoEstado] = useState("");
+  const [accionRiesgo, setAccionRiesgo] = useState<"suspender" | "reactivar" | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [pendiente, startTransition] = useTransition();
 
@@ -172,120 +240,231 @@ function AccionesEmpresa({
   }
 
   const rfcValido = RFC_MEXICO.test(form.rfc.trim().toUpperCase());
+  const titular = usuarios.find((item) => item.rol === "titular_empresa");
+  const autorizado = usuarios.find((item) => item.rol === "usuario_autorizado");
+
+  function ejecutarCambioEstado() {
+    if (!accionRiesgo || !motivoEstado.trim()) return;
+    const estado = accionRiesgo === "suspender" ? "suspendida" : "activa";
+    ejecutar(
+      () => cambiarEstadoEmpresaAdmin(crearClienteNavegador(), empresa.id, estado, motivoEstado).then(() => undefined),
+      accionRiesgo === "suspender" ? "Empresa suspendida." : "Empresa reactivada."
+    );
+    setAccionRiesgo(null);
+  }
 
   return (
-    <div className="mt-5 grid gap-4 border-t border-ink/10 pt-5">
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Edición y cambios sensibles</p>
-            <Badge estado={rfcValido ? "verificado" : "rechazado"} texto={rfcValido ? "RFC formal válido" : "RFC inválido"} />
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Nombre comercial" />
-            <input value={form.rfc} onChange={(e) => setForm({ ...form, rfc: e.target.value.toUpperCase() })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="RFC" />
-            <input value={form.razon_social} onChange={(e) => setForm({ ...form, razon_social: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Razón social" />
-            <input value={form.correo_facturacion} onChange={(e) => setForm({ ...form, correo_facturacion: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Correo facturación" />
-            <input value={form.regimen_fiscal} onChange={(e) => setForm({ ...form, regimen_fiscal: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Régimen fiscal" />
-            <input value={form.codigo_postal_fiscal} onChange={(e) => setForm({ ...form, codigo_postal_fiscal: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="CP fiscal" />
-            <input value={form.uso_cfdi} onChange={(e) => setForm({ ...form, uso_cfdi: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Uso CFDI" />
-            <input value={form.condiciones_pago} onChange={(e) => setForm({ ...form, condiciones_pago: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Condiciones de pago" />
-            <input type="number" min="0" value={form.limite_credito_mxn} onChange={(e) => setForm({ ...form, limite_credito_mxn: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Límite crédito" />
-            <input type="number" min="0" value={form.dias_credito} onChange={(e) => setForm({ ...form, dias_credito: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Días crédito" />
-          </div>
-          <label className="flex items-center gap-2 font-body text-sm">
-            <input type="checkbox" checked={form.requiere_orden_compra} onChange={(e) => setForm({ ...form, requiere_orden_compra: e.target.checked })} className="size-4 rounded border-ink/30" />
-            Requiere orden de compra
-          </label>
-          <input value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Motivo del cambio" />
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="quiet"
-              disabled={pendiente || !rfcValido}
-              onClick={() => ejecutar(
-                () => actualizarEmpresaCorporativaAdmin(crearClienteNavegador(), empresa.id, {
-                  nombre: form.nombre,
-                  rfc: form.rfc,
-                  razon_social: form.razon_social,
-                  regimen_fiscal: form.regimen_fiscal,
-                  codigo_postal_fiscal: form.codigo_postal_fiscal,
-                  uso_cfdi: form.uso_cfdi,
-                  correo_facturacion: form.correo_facturacion,
-                  condiciones_pago: form.condiciones_pago,
-                  limite_credito_mxn: Number(form.limite_credito_mxn || 0),
-                  credito_disponible_mxn: Number(form.credito_disponible_mxn || form.limite_credito_mxn || 0),
-                  dias_credito: Number(form.dias_credito || 0),
-                  requiere_orden_compra: form.requiere_orden_compra
-                }, form.motivo).then(() => undefined),
-                "Actualización enviada. Los cambios sensibles quedan pendientes de aprobación."
-              )}
-            >
-              Guardar / solicitar aprobación
-            </Button>
-            <Button variant="quiet" disabled={pendiente} onClick={() => ejecutar(() => validarDocumentoEmpresa(crearClienteNavegador(), empresa.id, "verificado", "").then(() => undefined), "Empresa aprobada.")}>Aprobar RFC / CFDI</Button>
-            <Button variant="quiet" disabled={pendiente} onClick={() => ejecutar(() => validarDocumentoEmpresa(crearClienteNavegador(), empresa.id, "rechazado", "").then(() => undefined), "Empresa rechazada.")}>Rechazar</Button>
-          </div>
-        </div>
-
-        <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
-          <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Suspensión y reactivación</p>
-          <textarea value={motivoEstado} onChange={(e) => setMotivoEstado(e.target.value)} className="min-h-20 rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Motivo obligatorio" />
-          <div className="flex flex-wrap gap-2">
-            <Button variant="quiet" disabled={pendiente} onClick={() => ejecutar(() => cambiarEstadoEmpresaAdmin(crearClienteNavegador(), empresa.id, "suspendida", motivoEstado).then(() => undefined), "Empresa suspendida.")}>Suspender</Button>
-            <Button variant="quiet" disabled={pendiente} onClick={() => ejecutar(() => cambiarEstadoEmpresaAdmin(crearClienteNavegador(), empresa.id, "activa", motivoEstado).then(() => undefined), "Empresa reactivada.")}>Reactivar</Button>
-          </div>
-        </div>
+    <div className="mt-5 border-t border-ink/10 pt-5">
+      <div className="flex gap-1 overflow-x-auto border-b border-ink/10">
+        {TABS_EMPRESA.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setTab(item.id)}
+            className={`shrink-0 rounded-t-lg px-4 py-2.5 font-body text-sm font-semibold transition-colors ${tab === item.id ? "border-b-2 border-signal bg-surface-primary text-ink shadow-sm" : "text-text-tertiary hover:bg-surface-primary/70 hover:text-ink"}`}
+          >
+            {item.etiqueta}
+          </button>
+        ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
-          <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Usuarios, titulares y permisos</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <select value={usuario.rol} onChange={(e) => setUsuario({ ...usuario, rol: e.target.value as "titular_empresa" | "usuario_autorizado" })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm">
-              <option value="titular_empresa">Titular</option>
-              <option value="usuario_autorizado">Usuario autorizado</option>
-            </select>
-            <input value={usuario.nombre} onChange={(e) => setUsuario({ ...usuario, nombre: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Nombre" />
-            <input value={usuario.correo_facturacion} onChange={(e) => setUsuario({ ...usuario, correo_facturacion: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Correo" />
-            <input value={usuario.telefono} onChange={(e) => setUsuario({ ...usuario, telefono: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Teléfono" />
-          </div>
-          <label className="flex items-center gap-2 font-body text-sm">
-            <input type="checkbox" checked={usuario.metodo_pago_registrado} onChange={(e) => setUsuario({ ...usuario, metodo_pago_registrado: e.target.checked })} className="size-4 rounded border-ink/30" />
-            Puede operar pago corporativo
-          </label>
-          <Button variant="quiet" disabled={pendiente} onClick={() => ejecutar(() => guardarUsuarioEmpresaAdmin(crearClienteNavegador(), empresa.id, usuario).then(() => undefined), "Usuario empresarial guardado.")}>Guardar usuario</Button>
-        </div>
-
-        <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
-          <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Contratos y documentos con vigencia</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input value={documento.tipo} onChange={(e) => setDocumento({ ...documento, tipo: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Tipo" />
-            <input value={documento.nombre} onChange={(e) => setDocumento({ ...documento, nombre: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Nombre" />
-            <input value={documento.folio} onChange={(e) => setDocumento({ ...documento, folio: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Folio" />
-            <input value={documento.url} onChange={(e) => setDocumento({ ...documento, url: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="URL privada" />
-            <input type="date" value={documento.vigente_desde} onChange={(e) => setDocumento({ ...documento, vigente_desde: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
-            <input type="date" value={documento.vigente_hasta} onChange={(e) => setDocumento({ ...documento, vigente_hasta: e.target.value })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
-          </div>
-          <Button variant="quiet" disabled={pendiente} onClick={() => ejecutar(() => guardarDocumentoEmpresaAdmin(crearClienteNavegador(), empresa.id, documento).then(() => undefined), "Documento registrado.")}>Registrar documento</Button>
-        </div>
-      </div>
-
-      {cambiosPendientes.length > 0 && (
-        <div className="rounded-lg border border-status-warning/30 bg-status-warning-soft p-4">
-          <p className="font-body text-xs font-semibold uppercase tracking-wide text-status-warning">Aprobaciones pendientes</p>
-          <div className="mt-3 grid gap-2">
-            {cambiosPendientes.map((cambio) => (
-              <div key={cambio.id} className="flex flex-col gap-2 rounded-lg bg-surface-primary p-3 font-body text-sm sm:flex-row sm:items-center sm:justify-between">
-                <span>{cambio.tipo.replaceAll("_", " ")} · {cambio.motivo}</span>
-                <span className="flex flex-wrap gap-2">
-                  <Button variant="quiet" disabled={pendiente} onClick={() => ejecutar(() => resolverCambioEmpresaAdmin(crearClienteNavegador(), cambio.id, true, "Aprobado desde Empresas").then(() => undefined), "Cambio sensible aprobado.")}>Aprobar</Button>
-                  <Button variant="quiet" disabled={pendiente} onClick={() => ejecutar(() => resolverCambioEmpresaAdmin(crearClienteNavegador(), cambio.id, false, "Rechazado desde Empresas").then(() => undefined), "Cambio sensible rechazado.")}>Rechazar</Button>
-                </span>
+      <div className="mt-5">
+        {tab === "resumen" && (
+          <div className="grid gap-4">
+            {cambiosPendientes.length > 0 && (
+              <div className="rounded-lg border border-status-warning/35 bg-status-warning-soft p-4">
+                <p className="font-body text-sm font-semibold text-status-warning">Cambios pendientes de aprobación</p>
+                <p className="mt-1 font-body text-sm text-text-secondary">La empresa está activa, pero tiene ajustes fiscales o comerciales esperando revisión.</p>
               </div>
-            ))}
+            )}
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <KpiEmpresa icono="T" etiqueta="Titular" valor={titular?.nombre ?? "No registrado"} detalle={titular?.correo_facturacion ?? undefined} />
+              <KpiEmpresa icono="V" etiqueta="Flota" valor={String(vehiculos.length)} detalle="vehículos" />
+              <KpiEmpresa icono="C" etiqueta="Conductores" valor={String(conductores.length)} detalle="asignados" />
+              <KpiEmpresa icono="R" etiqueta="Traslados" valor={String(viajes.length)} detalle="histórico corporativo" />
+              <KpiEmpresa icono="$" etiqueta="Límite crédito" valor={moneda(empresa.limite_credito_mxn)} detalle={`${empresa.dias_credito ?? 0} días`} />
+            </div>
+            <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <Dato etiqueta="Nombre comercial" valor={empresa.nombre} />
+              <Dato etiqueta="Razón social" valor={empresa.razon_social} />
+              <Dato etiqueta="RFC" valor={empresa.rfc} />
+              <Dato etiqueta="Correo de facturación" valor={empresa.correo_facturacion} />
+              <Dato etiqueta="Crédito disponible" valor={moneda(empresa.credito_disponible_mxn)} />
+              <Dato etiqueta="Condiciones" valor={empresa.condiciones_pago} />
+            </dl>
           </div>
+        )}
+
+        {tab === "fiscal" && (
+          <div className="grid gap-4">
+            {cambiosPendientes.length > 0 && (
+              <div className="rounded-lg border border-status-warning/30 bg-status-warning-soft p-4">
+                <p className="font-body text-xs font-semibold uppercase tracking-wide text-status-warning">Revisión fiscal pendiente</p>
+                <div className="mt-3 grid gap-2">
+                  {cambiosPendientes.map((cambio) => (
+                    <div key={cambio.id} className="flex flex-col gap-2 rounded-lg bg-surface-primary p-3 font-body text-sm sm:flex-row sm:items-center sm:justify-between">
+                      <span>{cambio.tipo.replaceAll("_", " ")} · {cambio.motivo}</span>
+                      <span className="flex flex-wrap gap-2">
+                        <Button variant="quiet" disabled={pendiente} onClick={() => ejecutar(() => resolverCambioEmpresaAdmin(crearClienteNavegador(), cambio.id, true, "Aprobado desde Empresas").then(() => undefined), "Cambio sensible aprobado.")}>Aprobar</Button>
+                        <Button variant="quiet" disabled={pendiente} onClick={() => ejecutar(() => resolverCambioEmpresaAdmin(crearClienteNavegador(), cambio.id, false, "Rechazado desde Empresas").then(() => undefined), "Cambio sensible rechazado.")}>Rechazar</Button>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Edición fiscal y facturación</p>
+                <Badge estado={rfcValido ? "verificado" : "rechazado"} texto={rfcValido ? "RFC formal válido" : "RFC inválido"} />
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <CampoTexto label="Nombre comercial" value={form.nombre} onChange={(valor) => setForm({ ...form, nombre: valor })} placeholder="Nombre visible" />
+                <CampoTexto label="RFC" value={form.rfc} onChange={(valor) => setForm({ ...form, rfc: valor.toUpperCase() })} placeholder="RFC de la empresa" />
+                <CampoTexto label="Razón social" value={form.razon_social} onChange={(valor) => setForm({ ...form, razon_social: valor })} placeholder="Razón social completa" />
+                <CampoTexto label="Correo de facturación" value={form.correo_facturacion} onChange={(valor) => setForm({ ...form, correo_facturacion: valor })} placeholder="facturacion@empresa.com" type="email" />
+                <CampoTexto label="Régimen fiscal" value={form.regimen_fiscal} onChange={(valor) => setForm({ ...form, regimen_fiscal: valor })} placeholder="Ej. 601" />
+                <CampoTexto label="Código postal fiscal" value={form.codigo_postal_fiscal} onChange={(valor) => setForm({ ...form, codigo_postal_fiscal: valor })} placeholder="5 dígitos" />
+                <CampoTexto label="Uso CFDI" value={form.uso_cfdi} onChange={(valor) => setForm({ ...form, uso_cfdi: valor })} placeholder="Ej. G03" />
+                <CampoTexto label="Condiciones de pago" value={form.condiciones_pago} onChange={(valor) => setForm({ ...form, condiciones_pago: valor })} placeholder="Crédito / contado / OC" />
+                <CampoTexto label="Límite de crédito" value={form.limite_credito_mxn} onChange={(valor) => setForm({ ...form, limite_credito_mxn: valor })} type="number" min="0" />
+                <CampoTexto label="Crédito disponible" value={form.credito_disponible_mxn} onChange={(valor) => setForm({ ...form, credito_disponible_mxn: valor })} type="number" min="0" />
+                <CampoTexto label="Días de crédito" value={form.dias_credito} onChange={(valor) => setForm({ ...form, dias_credito: valor })} type="number" min="0" />
+              </div>
+              <label className="flex items-center gap-2 font-body text-sm">
+                <input type="checkbox" checked={form.requiere_orden_compra} onChange={(e) => setForm({ ...form, requiere_orden_compra: e.target.checked })} className="size-4 rounded border-ink/30" />
+                Requiere orden de compra
+              </label>
+              <CampoTexto label="Motivo del cambio" value={form.motivo} onChange={(valor) => setForm({ ...form, motivo: valor })} placeholder="Justificación para auditoría" />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  disabled={pendiente || !rfcValido}
+                  onClick={() => ejecutar(
+                    () => actualizarEmpresaCorporativaAdmin(crearClienteNavegador(), empresa.id, {
+                      nombre: form.nombre,
+                      rfc: form.rfc,
+                      razon_social: form.razon_social,
+                      regimen_fiscal: form.regimen_fiscal,
+                      codigo_postal_fiscal: form.codigo_postal_fiscal,
+                      uso_cfdi: form.uso_cfdi,
+                      correo_facturacion: form.correo_facturacion,
+                      condiciones_pago: form.condiciones_pago,
+                      limite_credito_mxn: Number(form.limite_credito_mxn || 0),
+                      credito_disponible_mxn: Number(form.credito_disponible_mxn || form.limite_credito_mxn || 0),
+                      dias_credito: Number(form.dias_credito || 0),
+                      requiere_orden_compra: form.requiere_orden_compra
+                    }, form.motivo).then(() => undefined),
+                    "Actualización enviada. Los cambios sensibles quedan pendientes de aprobación."
+                  )}
+                >
+                  Guardar / solicitar aprobación
+                </Button>
+                <Button variant="quiet" disabled={pendiente} onClick={() => ejecutar(() => validarDocumentoEmpresa(crearClienteNavegador(), empresa.id, "verificado", "").then(() => undefined), "Empresa aprobada.")}>Aprobar RFC / CFDI</Button>
+                <Button variant="quiet" disabled={pendiente} onClick={() => ejecutar(() => validarDocumentoEmpresa(crearClienteNavegador(), empresa.id, "rechazado", "").then(() => undefined), "Empresa rechazada.")}>Rechazar</Button>
+              </div>
+            </div>
+            <div className="rounded-lg border border-ink/10 p-4">
+              <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Versiones fiscales</p>
+              <div className="mt-3 grid gap-2 font-body text-sm">
+                {versionesFiscales.length === 0 ? <span className="text-text-secondary">Sin versiones registradas</span> : versionesFiscales.map((version) => (
+                  <span key={version.id}>v{version.version} · {version.rfc} · desde {fecha(version.vigente_desde)}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "usuarios" && (
+          <div className="grid gap-4">
+            <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {usuarios.length === 0 ? (
+                <Dato etiqueta="Usuarios" valor="No registrados" />
+              ) : usuarios.map((item) => (
+                <Dato key={item.id} etiqueta={item.rol === "titular_empresa" ? "Titular" : "Usuario autorizado"} valor={item.nombre ?? item.correo_facturacion} />
+              ))}
+            </dl>
+            <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
+              <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Agregar o actualizar usuario empresarial</p>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <label className="flex flex-col gap-1.5">
+                  <span className="font-body text-xs font-semibold text-text-secondary">Rol</span>
+                  <select value={usuario.rol} onChange={(e) => setUsuario({ ...usuario, rol: e.target.value as "titular_empresa" | "usuario_autorizado" })} className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm">
+                    <option value="titular_empresa">Titular empresa</option>
+                    <option value="usuario_autorizado">Usuario autorizado</option>
+                  </select>
+                </label>
+                <CampoTexto label="Nombre completo" value={usuario.nombre} onChange={(valor) => setUsuario({ ...usuario, nombre: valor })} placeholder="Nombre y apellidos" />
+                <CampoTexto label="Correo" value={usuario.correo_facturacion} onChange={(valor) => setUsuario({ ...usuario, correo_facturacion: valor })} placeholder="correo@empresa.com" type="email" />
+                <CampoTexto label="Teléfono" value={usuario.telefono} onChange={(valor) => setUsuario({ ...usuario, telefono: valor })} placeholder="10 dígitos" />
+              </div>
+              <label className="flex items-center gap-2 font-body text-sm">
+                <input type="checkbox" checked={usuario.metodo_pago_registrado} onChange={(e) => setUsuario({ ...usuario, metodo_pago_registrado: e.target.checked })} className="size-4 rounded border-ink/30" />
+                Puede operar pago corporativo
+              </label>
+              <Button disabled={pendiente} onClick={() => ejecutar(() => guardarUsuarioEmpresaAdmin(crearClienteNavegador(), empresa.id, usuario).then(() => undefined), "Usuario empresarial guardado.")}>Guardar usuario</Button>
+            </div>
+          </div>
+        )}
+
+        {tab === "documentos" && (
+          <div className="grid gap-4">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {documentos.length === 0 ? (
+                <Dato etiqueta="Documentos" valor="No registrados" />
+              ) : documentos.map((doc) => (
+                <Dato key={doc.id} etiqueta={doc.tipo} valor={`${doc.nombre} · vence ${fecha(doc.vigente_hasta)}`} />
+              ))}
+            </div>
+            <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
+              <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Registrar contrato o documento</p>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <CampoTexto label="Tipo de documento" value={documento.tipo} onChange={(valor) => setDocumento({ ...documento, tipo: valor })} placeholder="Contrato, NDA, anexo" />
+                <CampoTexto label="Nombre del documento" value={documento.nombre} onChange={(valor) => setDocumento({ ...documento, nombre: valor })} placeholder="Contrato marco" />
+                <CampoTexto label="Folio del contrato" value={documento.folio} onChange={(valor) => setDocumento({ ...documento, folio: valor })} placeholder="Folio interno" />
+                <CampoTexto label="URL privada" value={documento.url} onChange={(valor) => setDocumento({ ...documento, url: valor })} placeholder="Ruta segura del archivo" />
+                <CampoTexto label="Fecha de inicio" value={documento.vigente_desde} onChange={(valor) => setDocumento({ ...documento, vigente_desde: valor })} type="date" />
+                <CampoTexto label="Fecha de vencimiento" value={documento.vigente_hasta} onChange={(valor) => setDocumento({ ...documento, vigente_hasta: valor })} type="date" />
+              </div>
+              <Button disabled={pendiente} onClick={() => ejecutar(() => guardarDocumentoEmpresaAdmin(crearClienteNavegador(), empresa.id, documento).then(() => undefined), "Documento registrado.")}>Registrar documento</Button>
+            </div>
+          </div>
+        )}
+
+        {tab === "riesgo" && (
+          <div className="rounded-lg border border-status-error/35 bg-status-error-soft/25 p-4">
+            <p className="font-body text-xs font-semibold uppercase tracking-wide text-status-error">Suspensión y reactivación</p>
+            <p className="mt-1 font-body text-sm text-text-secondary">Acciones críticas para detener o reactivar la operación corporativa. Requieren motivo y confirmación.</p>
+            <label className="mt-4 flex flex-col gap-1.5">
+              <span className="font-body text-xs font-semibold text-text-secondary">Motivo obligatorio</span>
+              <textarea value={motivoEstado} onChange={(e) => setMotivoEstado(e.target.value)} className="min-h-24 rounded-lg border border-status-error/25 bg-surface-primary px-3 py-2 font-body text-sm" placeholder="Describe la razón operativa o de cumplimiento." />
+            </label>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant="quiet" disabled={pendiente || !motivoEstado.trim()} onClick={() => setAccionRiesgo("suspender")}>Suspender empresa</Button>
+              <Button variant="quiet" disabled={pendiente || !motivoEstado.trim()} onClick={() => setAccionRiesgo("reactivar")}>Reactivar empresa</Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <AdminDialog
+        open={Boolean(accionRiesgo)}
+        title={accionRiesgo === "suspender" ? "Confirmar suspensión" : "Confirmar reactivación"}
+        description="Esta acción modifica el estado operativo de la cuenta empresarial y quedará registrada para auditoría."
+        onOpenChange={(open) => { if (!pendiente && !open) setAccionRiesgo(null); }}
+        footer={
+          <>
+            <Button variant="quiet" disabled={pendiente} onClick={() => setAccionRiesgo(null)}>Cancelar</Button>
+            <Button disabled={pendiente || !motivoEstado.trim()} onClick={ejecutarCambioEstado}>
+              {accionRiesgo === "suspender" ? "Confirmar suspensión" : "Confirmar reactivación"}
+            </Button>
+          </>
+        }
+      >
+        <div className="rounded-lg border border-status-error/25 bg-status-error-soft/35 p-3 font-body text-sm text-text-secondary">
+          <p className="font-semibold text-status-error">Motivo registrado</p>
+          <p className="mt-1">{motivoEstado || "Sin motivo capturado."}</p>
         </div>
-      )}
+      </AdminDialog>
 
       {mensaje && <p className="font-body text-sm text-text-secondary">{mensaje}</p>}
     </div>
@@ -576,53 +755,30 @@ export default function PaginaEmpresasAdmin() {
                       <p className="mt-1 font-body text-sm text-text-secondary">{empresa.razon_social ?? empresa.nombre} · RFC {empresa.rfc ?? "pendiente"}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Badge estado={empresa.estado_verificacion} />
                       <Badge estado={empresa.estado_operativo} texto={empresa.estado_operativo === "suspendida" ? "Suspendida" : "Activa"} />
-                      {cambiosPendientes.length > 0 && <Badge estado="pendiente" texto={`${cambiosPendientes.length} por aprobar`} />}
+                      {empresa.estado_verificacion !== "verificado" && cambiosPendientes.length === 0 && <Badge estado={empresa.estado_verificacion} />}
                     </div>
                   </div>
 
-                  <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                    <Dato etiqueta="Titular" valor={titular?.nombre ?? titular?.correo_facturacion} />
-                    <Dato etiqueta="Usuario autorizado" valor={autorizado?.nombre ?? autorizado?.correo_facturacion} />
-                    <Dato etiqueta="Flota" valor={`${vehiculos.length} vehículos`} />
-                    <Dato etiqueta="Conductores" valor={`${conductores.length} conductores`} />
-                    <Dato etiqueta="Traslados" valor={`${viajes.length} traslados`} />
-                    <Dato etiqueta="Límite crédito" valor={moneda(empresa.limite_credito_mxn)} />
-                    <Dato etiqueta="Crédito disponible" valor={moneda(empresa.credito_disponible_mxn)} />
-                    <Dato etiqueta="Pago real" valor={`${empresa.dias_credito ?? 0} días · ${empresa.requiere_orden_compra ? "con OC" : "sin OC"}`} />
-                    <Dato etiqueta="Tarifas" valor={versionesCondiciones.length > 0 ? "Condiciones versionadas" : "Tarifa normativa"} />
-                    <Dato etiqueta="Facturación" valor={empresa.correo_facturacion ?? titular?.correo_facturacion} />
-                  </dl>
+                  {cambiosPendientes.length > 0 && (
+                    <div className="mt-4 rounded-lg border border-status-warning/35 bg-status-warning-soft px-4 py-3">
+                      <p className="font-body text-sm font-semibold text-status-warning">Cambios pendientes de aprobación</p>
+                      <p className="mt-1 font-body text-sm text-text-secondary">Estado operativo principal: {empresa.estado_operativo === "suspendida" ? "Suspendida" : "Activa"}. Los cambios fiscales se revisan en la pestaña Fiscal y facturación.</p>
+                    </div>
+                  )}
 
-                  <div className="mt-5 grid gap-4 lg:grid-cols-3">
-                    <div className="rounded-lg border border-ink/10 p-4">
-                      <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Documentos vigentes</p>
-                      <div className="mt-3 grid gap-2 font-body text-sm">
-                        {documentos.length === 0 ? <span className="text-text-secondary">Sin documentos registrados</span> : documentos.slice(0, 3).map((doc) => (
-                          <span key={doc.id}>{doc.nombre} · vence {fecha(doc.vigente_hasta)}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-ink/10 p-4">
-                      <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Versiones fiscales</p>
-                      <div className="mt-3 grid gap-2 font-body text-sm">
-                        {versionesFiscales.length === 0 ? <span className="text-text-secondary">Sin versiones</span> : versionesFiscales.slice(0, 3).map((version) => (
-                          <span key={version.id}>v{version.version} · {version.rfc} · desde {fecha(version.vigente_desde)}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-ink/10 p-4">
-                      <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Historial sensible</p>
-                      <div className="mt-3 grid gap-2 font-body text-sm">
-                        {cambios.length === 0 ? <span className="text-text-secondary">Sin cambios sensibles</span> : cambios.slice(0, 3).map((cambio) => (
-                          <span key={cambio.id}>{cambio.tipo.replaceAll("_", " ")} · {cambio.estado} · {fecha(cambio.solicitado_en)}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <AccionesEmpresa empresa={empresa} cambiosPendientes={cambiosPendientes} onActualizado={() => void cargar(true)} />
+                  <AccionesEmpresa
+                    empresa={empresa}
+                    usuarios={usuarios}
+                    vehiculos={vehiculos}
+                    conductores={conductores}
+                    documentos={documentos}
+                    viajes={viajes}
+                    versionesFiscales={versionesFiscales}
+                    versionesCondiciones={versionesCondiciones}
+                    cambiosPendientes={cambiosPendientes}
+                    onActualizado={() => void cargar(true)}
+                  />
                 </AdminPanel>
               );
             })
