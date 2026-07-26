@@ -60,6 +60,12 @@ export default function PaginaDetalleUsuario() {
   useEffect(() => { void cargar(); }, [cargar]);
 
   useEffect(() => {
+    if (!aviso) return;
+    const timer = window.setTimeout(() => setAviso(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [aviso]);
+
+  useEffect(() => {
     if (!usuario || !tieneSupabaseConfigurado()) return;
     const usuarioActual = usuario;
     let cancelado = false;
@@ -109,7 +115,7 @@ export default function PaginaDetalleUsuario() {
         <Link href="/usuarios" className="font-body text-sm text-text-tertiary hover:text-ink">&larr; Usuarios</Link>
       </div>
 
-      {aviso && <div className="mt-4"><Aviso tono={aviso.tono}>{aviso.texto}</Aviso></div>}
+      {aviso && <ToastAviso aviso={aviso} onCerrar={() => setAviso(null)} />}
 
       <div className="mt-6">
         <h1 className="font-display text-2xl font-semibold">{aTitleCase(usuario.nombre) || "Sin nombre"}</h1>
@@ -125,13 +131,13 @@ export default function PaginaDetalleUsuario() {
       <div className="mt-6 flex gap-1 border-b border-ink/10">
         {(Object.keys(TAB_ETIQUETAS) as Tab[]).map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 font-body text-sm font-medium transition-colors ${
-              tab === t ? "border-b-2 border-ink text-ink" : "text-text-tertiary hover:text-ink"
+            className={`rounded-t-lg px-4 py-2.5 font-body text-sm font-semibold transition-colors ${
+              tab === t ? "border-b-2 border-signal bg-surface-primary text-ink shadow-sm" : "text-text-tertiary hover:bg-surface-primary/70 hover:text-ink"
             }`}
           >
             {TAB_ETIQUETAS[t]}
             {conteosTabs[t] !== undefined && (
-              <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${tab === t ? "bg-ink text-surface-primary" : "bg-ink/10 text-text-secondary"}`}>
+              <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${conteosTabs[t] === 0 ? "opacity-35" : ""} ${tab === t ? "bg-signal text-ink" : "bg-ink/10 text-text-secondary"}`}>
                 {conteosTabs[t] ?? "..."}
               </span>
             )}
@@ -153,11 +159,16 @@ export default function PaginaDetalleUsuario() {
 }
 
 function TabDatos({ usuario, onActualizado, onAviso }: { usuario: UsuarioRow; onActualizado: (u: UsuarioRow) => void; onAviso: (a: { tono: "info" | "danger"; texto: string }) => void }) {
+  const [editando, setEditando] = useState(false);
   const direccionVacia = !usuario.calle && !usuario.numero && !usuario.colonia && !usuario.ciudad && !usuario.estado && !usuario.pais && !usuario.codigo_postal;
   return (
     <>
-      <div className="grid gap-6 sm:grid-cols-2">
-        <Seccion titulo="Datos personales">
+      <div className="grid items-stretch gap-6 lg:grid-cols-2">
+        <Seccion
+          titulo="Datos personales"
+          consistente
+          action={!editando && <button onClick={() => setEditando(true)} className="rounded-lg border border-signal bg-signal px-3 py-1.5 font-body text-xs font-semibold text-ink hover:bg-signal/90">Editar</button>}
+        >
           <Dato etiqueta="Nombre" valor={aTitleCase(usuario.nombre)} />
           <Dato etiqueta="Teléfono" valor={formatearTelefono(usuario.telefono)} />
           <Dato etiqueta="Correo de facturación" valor={usuario.correo_facturacion} />
@@ -166,7 +177,7 @@ function TabDatos({ usuario, onActualizado, onAviso }: { usuario: UsuarioRow; on
           <Dato etiqueta="RFC" valor={usuario.rfc} />
           <Dato etiqueta="Razón social" valor={aTitleCase(usuario.razon_social)} />
         </Seccion>
-        <Seccion titulo="Dirección">
+        <Seccion titulo="Dirección" consistente>
           {direccionVacia && <a href="#editar-datos-usuario" className="mb-2 inline-flex font-body text-sm font-semibold text-focus-default hover:underline">+ Agregar dirección</a>}
           <Dato etiqueta="Calle" valor={usuario.calle} />
           <Dato etiqueta="Número" valor={usuario.numero} />
@@ -176,31 +187,41 @@ function TabDatos({ usuario, onActualizado, onAviso }: { usuario: UsuarioRow; on
           <Dato etiqueta="País" valor={usuario.pais} />
           <Dato etiqueta="Código postal" valor={usuario.codigo_postal} />
         </Seccion>
-        <Seccion titulo="Estados">
+        <Seccion titulo="Estados" consistente>
           <Dato etiqueta="Verificación" valor={ETIQUETA_VERIFICACION[usuario.estado_verificacion]} />
           <Dato etiqueta="Estado de cuenta" valor={ETIQUETA_ESTADO_CUENTA[usuario.estado_cuenta ?? "activa"]} />
           <Dato etiqueta="Método de pago" valor={usuario.metodo_pago_registrado ? "Registrado" : "Sin registrar"} />
           <Dato etiqueta="Traslados sin incidencia" valor={String(usuario.traslados_completados_sin_incidencia)} />
         </Seccion>
-        <Seccion titulo="Fechas">
+        <Seccion titulo="Fechas" consistente>
           <Dato etiqueta="Registrado" valor={new Date(usuario.creado_en).toLocaleString("es-MX")} />
           <Dato etiqueta="Actualizado" valor={usuario.actualizado_en ? new Date(usuario.actualizado_en).toLocaleString("es-MX") : null} />
           <Dato etiqueta="Términos aceptados" valor={usuario.terminos_aceptados_en ? new Date(usuario.terminos_aceptados_en).toLocaleString("es-MX") : "No aceptados"} />
         </Seccion>
       </div>
 
-      <div className="mt-10">
-        <EditarUsuario usuario={usuario} onActualizado={(u) => { onActualizado(u); onAviso({ tono: "info", texto: "Usuario actualizado." }); }} />
-      </div>
+      {editando && (
+        <div className="mt-6">
+          <EditarUsuario
+            usuario={usuario}
+            onCancelar={() => setEditando(false)}
+            onActualizado={(u) => {
+              onActualizado(u);
+              setEditando(false);
+              onAviso({ tono: "info", texto: "Usuario actualizado." });
+            }}
+          />
+        </div>
+      )}
 
       <div className="mt-10">
-        <h2 className="font-display text-lg font-semibold">Verificación y documentos</h2>
+        <h2 className="font-display text-lg font-semibold text-text-main">Verificación y documentos</h2>
         <div className="mt-3 rounded-card border border-ink/10 bg-surface-primary p-4">
           <AccionesVerificacion usuario={usuario} onActualizado={() => window.location.reload()} />
         </div>
       </div>
 
-      <div className="mt-10 border-t border-ink/10 pt-8">
+      <div className="mt-10 rounded-card border border-status-error/35 bg-status-error-soft/25 p-5">
         <h2 className="font-display text-lg font-semibold text-status-error">Zona de riesgo</h2>
         <p className="mt-1 font-body text-sm text-text-secondary">Estas acciones afectan la cuenta del usuario de forma permanente o temporal.</p>
         <div className="mt-4 flex flex-wrap gap-3">
@@ -834,20 +855,37 @@ function TabAuditoria({ usuarioId }: { usuarioId: string }) {
   );
 }
 
-function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+function ToastAviso({ aviso, onCerrar }: { aviso: { tono: "info" | "danger"; texto: string }; onCerrar: () => void }) {
+  const estilos = aviso.tono === "danger"
+    ? "border-status-error/35 bg-status-error-soft text-status-error"
+    : "border-status-success/35 bg-status-success-soft text-status-success";
   return (
-    <div className="rounded-card border border-ink/10 bg-surface-primary p-4">
-      <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-text-tertiary">{titulo}</h3>
-      <div className="mt-3 space-y-2">{children}</div>
+    <div className="fixed right-5 top-5 z-50 w-[min(360px,calc(100vw-2.5rem))]">
+      <div role="status" aria-live="polite" className={`flex items-start justify-between gap-3 rounded-card border px-4 py-3 shadow-[var(--ruum-shadow-3)] ${estilos}`}>
+        <p className="font-body text-sm font-semibold">{aviso.texto}</p>
+        <button type="button" onClick={onCerrar} className="grid size-6 shrink-0 place-items-center rounded-full border border-current/25 font-body text-xs font-bold hover:bg-surface-primary/20" aria-label="Cerrar notificación">X</button>
+      </div>
+    </div>
+  );
+}
+
+function Seccion({ titulo, children, action, consistente = false }: { titulo: string; children: React.ReactNode; action?: React.ReactNode; consistente?: boolean }) {
+  return (
+    <div className={`flex h-full flex-col rounded-card border border-ink/10 bg-surface-primary p-4 ${consistente ? "min-h-[248px]" : ""}`}>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-text-main">{titulo}</h3>
+        {action}
+      </div>
+      <div className="mt-3 divide-y divide-border-default/70">{children}</div>
     </div>
   );
 }
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null | undefined }) {
   return (
-    <div className="flex justify-between gap-2 font-body text-sm">
-      <span className="text-text-secondary">{etiqueta}</span>
-      <span className="text-right font-medium text-ink">{valor || <ValorVacio />}</span>
+    <div className="flex justify-between gap-4 py-2 font-body text-sm">
+      <span className="font-normal text-text-tertiary">{etiqueta}</span>
+      <span className="text-right font-semibold text-text-main">{valor || <ValorVacio />}</span>
     </div>
   );
 }
@@ -890,8 +928,7 @@ function aTitleCase(valor: string | null | undefined) {
     .join("");
 }
 
-function EditarUsuario({ usuario, onActualizado }: { usuario: UsuarioRow; onActualizado: (u: UsuarioRow) => void }) {
-  const [editando, setEditando] = useState(false);
+function EditarUsuario({ usuario, onActualizado, onCancelar }: { usuario: UsuarioRow; onActualizado: (u: UsuarioRow) => void; onCancelar: () => void }) {
   const [nombre, setNombre] = useState(usuario.nombre ?? "");
   const [telefono, setTelefono] = useState(usuario.telefono ?? "");
   const [correoFacturacion, setCorreoFacturacion] = useState(usuario.correo_facturacion ?? "");
@@ -904,16 +941,6 @@ function EditarUsuario({ usuario, onActualizado }: { usuario: UsuarioRow; onActu
   const [codigoPostal, setCodigoPostal] = useState(usuario.codigo_postal ?? "");
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (!editando) {
-    return (
-      <div id="editar-datos-usuario">
-        <h2 className="font-display text-lg font-semibold">Editar datos</h2>
-        <p className="mt-1 font-body text-sm text-text-secondary">Modifica la información del usuario.</p>
-        <button onClick={() => setEditando(true)} className="mt-3 rounded-lg border border-ink/20 px-4 py-2 font-body text-sm font-medium hover:bg-ink/5">Editar</button>
-      </div>
-    );
-  }
 
   async function guardar() {
     setProcesando(true);
@@ -933,7 +960,6 @@ function EditarUsuario({ usuario, onActualizado }: { usuario: UsuarioRow; onActu
         codigo_postal: codigoPostal.trim() || null
       });
       onActualizado(actualizado);
-      setEditando(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo actualizar.");
     } finally {
@@ -942,8 +968,8 @@ function EditarUsuario({ usuario, onActualizado }: { usuario: UsuarioRow; onActu
   }
 
   return (
-    <div id="editar-datos-usuario">
-      <h2 className="font-display text-lg font-semibold">Editar datos</h2>
+    <div id="editar-datos-usuario" className="rounded-card border border-ink/10 bg-surface-primary p-5">
+      <h2 className="font-display text-lg font-semibold text-text-main">Editar datos</h2>
       {error && <div className="mt-2"><Aviso tono="danger">{error}</Aviso></div>}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <Campo label="Nombre" value={nombre} onChange={setNombre} />
@@ -961,7 +987,7 @@ function EditarUsuario({ usuario, onActualizado }: { usuario: UsuarioRow; onActu
         <button onClick={guardar} disabled={procesando} className="rounded-lg bg-ink px-4 py-2 font-body text-sm font-semibold text-surface-primary hover:bg-ink/90 disabled:opacity-50">
           {procesando ? "Guardando..." : "Guardar cambios"}
         </button>
-        <button onClick={() => setEditando(false)} disabled={procesando} className="rounded-lg border border-ink/20 px-4 py-2 font-body text-sm font-medium hover:bg-ink/5">Cancelar</button>
+        <button onClick={onCancelar} disabled={procesando} className="rounded-lg border border-ink/20 px-4 py-2 font-body text-sm font-medium hover:bg-ink/5">Cancelar</button>
       </div>
     </div>
   );
