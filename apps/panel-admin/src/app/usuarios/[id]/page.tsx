@@ -118,7 +118,7 @@ export default function PaginaDetalleUsuario() {
   );
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8 sm:px-8 sm:py-10">
+    <main className="mx-auto max-w-7xl px-6 py-8 sm:px-8 sm:py-10">
       <div className="sticky top-0 z-20 -mx-6 border-b border-border-default bg-background-main/95 px-6 py-3 backdrop-blur sm:-mx-8 sm:px-8">
         <Link href="/usuarios" className="inline-flex items-center gap-2 rounded-lg border border-ink/15 bg-surface-primary px-3 py-2 font-body text-sm font-semibold text-ink hover:bg-surface-secondary">
           <span aria-hidden="true">&larr;</span>
@@ -128,42 +128,44 @@ export default function PaginaDetalleUsuario() {
 
       {aviso && <ToastAviso aviso={aviso} onCerrar={() => setAviso(null)} />}
 
-      <div className="mt-6 rounded-card border border-ink/10 bg-surface-primary p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-text-main">{aTitleCase(usuario.nombre) || "Sin nombre"}</h1>
-            <p className="mt-1 font-body text-sm text-text-secondary">{usuario.correo_facturacion ?? "Sin correo registrado"}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <AdminBadge>{`Cuenta ${aTitleCase(usuario.tipo_cuenta) ?? "sin tipo"}`}</AdminBadge>
-              <AdminBadge>{aTitleCase(usuario.rol.replaceAll("_", " "))}</AdminBadge>
-              <BadgeVerificacion estado={usuario.estado_verificacion} />
-              <BadgeCuenta estado={usuario.estado_cuenta ?? "activa"} />
+      <div className="mt-6 grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
+        <ResumenUsuarioSticky usuario={usuario} />
+
+        <div className="min-w-0">
+          <div className="rounded-card border border-ink/10 bg-surface-primary p-5">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+              <div>
+                <p className="font-body text-xs font-semibold uppercase tracking-[0.16em] text-text-tertiary">Perfil de usuario</p>
+                <h1 className="mt-1 font-display text-2xl font-semibold text-text-main">{aTitleCase(usuario.nombre) || "Usuario sin nombre"}</h1>
+                <p className="mt-1 font-body text-sm text-text-secondary">{usuario.correo_facturacion ?? "Sin correo registrado"}</p>
+              </div>
+              <ResumenActividad conteos={conteosTabs} onSeleccionarTab={setTab} />
             </div>
           </div>
-          <ResumenActividad conteos={conteosTabs} />
+
+          <div className="mt-6 flex gap-1 overflow-x-auto border-b border-ink/10">
+            {(Object.keys(TAB_ETIQUETAS) as Tab[]).map((t) => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`inline-flex shrink-0 items-center gap-2 rounded-t-lg px-4 py-2.5 font-body text-sm font-semibold transition-colors ${
+                  tab === t ? "border-b-2 border-signal bg-surface-primary text-ink shadow-sm" : "text-text-tertiary hover:bg-surface-primary/70 hover:text-ink"
+                }`}
+              >
+                <span>{TAB_ETIQUETAS[t]}</span>
+                <ContadorTab valor={conteosTabs[t]} />
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6">
+            {tab === "datos" && <TabDatos usuario={usuario} onActualizado={(u) => setUsuario(u)} onAviso={setAviso} />}
+            {tab === "viajes" && <TabViajes usuarioId={usuario.id} />}
+            {tab === "pagos" && <TabPagos usuarioId={usuario.id} />}
+            {tab === "incidencias" && <TabIncidencias usuarioId={usuario.id} />}
+            {tab === "sesiones" && <TabSesiones usuarioId={usuario.id} />}
+            {tab === "privacidad" && <TabPrivacidad usuario={usuario} onActualizado={() => void cargar()} />}
+            {tab === "auditoria" && <TabAuditoria usuarioId={usuario.id} />}
+          </div>
         </div>
-      </div>
-
-      <div className="mt-6 flex gap-1 border-b border-ink/10">
-        {(Object.keys(TAB_ETIQUETAS) as Tab[]).map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`rounded-t-lg px-4 py-2.5 font-body text-sm font-semibold transition-colors ${
-              tab === t ? "border-b-2 border-signal bg-surface-primary text-ink shadow-sm" : "text-text-tertiary hover:bg-surface-primary/70 hover:text-ink"
-            }`}
-          >
-            {TAB_ETIQUETAS[t]}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-6">
-        {tab === "datos" && <TabDatos usuario={usuario} onActualizado={(u) => setUsuario(u)} onAviso={setAviso} />}
-        {tab === "viajes" && <TabViajes usuarioId={usuario.id} />}
-        {tab === "pagos" && <TabPagos usuarioId={usuario.id} />}
-        {tab === "incidencias" && <TabIncidencias usuarioId={usuario.id} />}
-        {tab === "sesiones" && <TabSesiones usuarioId={usuario.id} />}
-        {tab === "privacidad" && <TabPrivacidad usuario={usuario} onActualizado={() => void cargar()} />}
-        {tab === "auditoria" && <TabAuditoria usuarioId={usuario.id} />}
       </div>
     </main>
   );
@@ -172,8 +174,32 @@ export default function PaginaDetalleUsuario() {
 function TabDatos({ usuario, onActualizado, onAviso }: { usuario: UsuarioRow; onActualizado: (u: UsuarioRow) => void; onAviso: (a: { tono: "info" | "danger"; texto: string }) => void }) {
   const [editando, setEditando] = useState(false);
   const direccionVacia = !usuario.calle && !usuario.numero && !usuario.colonia && !usuario.ciudad && !usuario.estado && !usuario.pais && !usuario.codigo_postal;
+  const inconsistenciaTerminos = usuario.estado_verificacion === "verificado" && !usuario.terminos_aceptados_en;
   return (
     <>
+      {inconsistenciaTerminos && (
+        <div className="mb-6 rounded-card border border-status-warning/40 bg-status-warning-soft p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-status-warning/15 font-body text-base font-bold text-status-warning" aria-hidden="true">!</span>
+              <div>
+                <h2 className="font-display text-base font-semibold text-status-warning">Inconsistencia de verificación</h2>
+                <p className="mt-1 font-body text-sm leading-6 text-text-secondary">
+                  La cuenta aparece verificada sin aceptación de términos. Regulariza el estado antes de aprobar nuevas acciones sensibles.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => document.getElementById("verificacion-documentos")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="rounded-lg border border-status-warning/45 bg-surface-primary px-3 py-2 font-body text-sm font-semibold text-status-warning hover:bg-status-warning-soft/70"
+            >
+              Ver detalles
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="grid items-stretch gap-6 lg:grid-cols-2">
         <Seccion
           titulo="Datos personales"
@@ -230,7 +256,7 @@ function TabDatos({ usuario, onActualizado, onAviso }: { usuario: UsuarioRow; on
         </div>
       )}
 
-      <div className="mt-10">
+      <div id="verificacion-documentos" className="mt-10 scroll-mt-24">
         <h2 className="font-display text-lg font-semibold text-text-main">Verificación y documentos</h2>
         <div className="mt-3 rounded-card border border-ink/10 bg-surface-primary p-4">
           <AccionesVerificacion usuario={usuario} onActualizado={() => window.location.reload()} />
@@ -256,19 +282,79 @@ function TabDatos({ usuario, onActualizado, onAviso }: { usuario: UsuarioRow; on
   );
 }
 
-function ResumenActividad({ conteos }: { conteos: ConteosTabs }) {
+function ResumenUsuarioSticky({ usuario }: { usuario: UsuarioRow }) {
+  const iniciales = (aTitleCase(usuario.nombre) ?? "Usuario")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((parte) => parte[0])
+    .join("")
+    .toLocaleUpperCase("es-MX");
+
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 lg:min-w-[520px]">
+    <aside className="lg:sticky lg:top-20">
+      <div className="rounded-card border border-ink/10 bg-surface-primary p-5 shadow-[var(--ruum-shadow-1)]">
+        <div className="flex items-start gap-3">
+          <div className="grid size-14 shrink-0 place-items-center rounded-full bg-ink text-lg font-display font-semibold text-surface-primary">
+            {iniciales || "U"}
+          </div>
+          <div className="min-w-0">
+            <h2 className="truncate font-display text-lg font-semibold text-text-main">{aTitleCase(usuario.nombre) || "Usuario sin nombre"}</h2>
+            <p className="mt-1 truncate font-body text-sm text-text-secondary">{usuario.correo_facturacion ?? "No registrado"}</p>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <BadgeCuenta estado={usuario.estado_cuenta ?? "activa"} />
+          <BadgeVerificacion estado={usuario.estado_verificacion} />
+        </div>
+        <div className="mt-5 grid gap-3">
+          <ResumenStickyDato etiqueta="Tipo de cuenta" valor={aTitleCase(usuario.tipo_cuenta)} />
+          <ResumenStickyDato etiqueta="Rol" valor={aTitleCase(usuario.rol.replaceAll("_", " "))} />
+          <ResumenStickyDato etiqueta="RFC" valor={usuario.rfc} />
+          <ResumenStickyDato etiqueta="Teléfono" valor={formatearTelefono(usuario.telefono)} />
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function ResumenStickyDato({ etiqueta, valor }: { etiqueta: string; valor: string | null | undefined }) {
+  return (
+    <div className="rounded-lg border border-border-default bg-surface-secondary/70 px-3 py-2">
+      <p className="font-body text-xs font-medium text-text-tertiary">{etiqueta}</p>
+      <p className="mt-1 truncate font-body text-sm font-semibold text-text-main">{valor || "No registrado"}</p>
+    </div>
+  );
+}
+
+function ContadorTab({ valor }: { valor: number | null | undefined }) {
+  if (valor == null) return null;
+  return (
+    <span className={`rounded-full border px-2 py-0.5 font-mono-ruum text-[11px] ${valor === 0 ? "border-ink/10 text-text-tertiary opacity-55" : "border-signal/40 bg-signal/10 text-ink"}`}>
+      {valor}
+    </span>
+  );
+}
+
+function ResumenActividad({ conteos, onSeleccionarTab }: { conteos: ConteosTabs; onSeleccionarTab: (tab: Tab) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:min-w-[520px] xl:grid-cols-5">
       {TARJETAS_RESUMEN.map((tarjeta) => {
         const valor = conteos[tarjeta.tab];
         return (
-          <div key={tarjeta.tab} className={`rounded-lg border border-ink/10 bg-surface-secondary px-3 py-2 ${valor === 0 ? "opacity-65" : ""}`}>
+          <button
+            key={tarjeta.tab}
+            type="button"
+            onClick={() => onSeleccionarTab(tarjeta.tab)}
+            className={`rounded-lg border border-ink/10 bg-surface-secondary px-3 py-3 text-left transition hover:border-focus-default/35 hover:bg-surface-primary hover:shadow-[var(--ruum-shadow-1)] ${valor === 0 ? "opacity-65" : ""}`}
+          >
             <div className="flex items-center justify-between gap-2">
               <span className="grid size-6 place-items-center rounded-full bg-ink/10 font-body text-xs font-bold text-text-secondary" aria-hidden="true">{tarjeta.icono}</span>
-              <span className="font-mono-ruum text-base font-semibold text-text-main">{valor ?? "..."}</span>
+              <span className="font-mono-ruum text-2xl font-semibold text-text-main">{valor ?? "..."}</span>
             </div>
             <p className="mt-1 font-body text-xs text-text-secondary">{tarjeta.etiqueta}</p>
-          </div>
+            <p className="mt-1 font-body text-[11px] font-medium text-focus-default">Ver módulo</p>
+          </button>
         );
       })}
     </div>
@@ -967,22 +1053,22 @@ function Seccion({ titulo, children, action, consistente = false }: { titulo: st
         <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-text-main">{titulo}</h3>
         {action}
       </div>
-      <div className="mt-3 divide-y divide-border-default/70">{children}</div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">{children}</div>
     </div>
   );
 }
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null | undefined }) {
   return (
-    <div className="grid grid-cols-[minmax(120px,0.8fr)_minmax(0,1fr)] gap-4 py-2 font-body text-sm">
-      <span className="font-normal text-text-tertiary">{etiqueta}</span>
-      <span className="text-right font-semibold text-text-main">{valor || <ValorVacio />}</span>
+    <div className="min-w-0 rounded-lg border border-border-default bg-surface-secondary/55 px-3 py-2.5 font-body text-sm">
+      <span className="block text-xs font-normal text-text-tertiary">{etiqueta}</span>
+      <span className="mt-1 block truncate font-semibold text-text-main" title={typeof valor === "string" ? valor : undefined}>{valor || <ValorVacio />}</span>
     </div>
   );
 }
 
 function ValorVacio({ texto = "Sin dato" }: { texto?: string }) {
-  return <span className="inline-flex items-center justify-end gap-1 font-normal text-text-tertiary"><span aria-hidden="true">!</span>{texto}</span>;
+  return <span className="font-normal text-text-tertiary">{texto}</span>;
 }
 
 function BadgeVerificacion({ estado }: { estado: string }) {
