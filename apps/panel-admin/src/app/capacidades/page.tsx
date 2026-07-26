@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { Button } from "@ruum/ui";
 import { listarCatalogoCapacidades, listarCapacidadesAdmin, concederCapacidadAdmin, type CapacidadAdmin } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
@@ -24,7 +24,7 @@ export default function PaginaCapacidades() {
   const [formConceder, setFormConceder] = useState(true);
   const [formMotivo, setFormMotivo] = useState("");
 
-  async function cargarDatos() {
+  const cargarDatos = useCallback(async () => {
     setError(null);
     if (!tieneSupabaseConfigurado()) {
       setError("Supabase no está configurado en este entorno.");
@@ -40,33 +40,33 @@ export default function PaginaCapacidades() {
       if (adminsData.error) throw adminsData.error;
       setAdmins(adminsData.data ?? []);
       setCatalogo(catalogoData);
-      if (adminsData.data && adminsData.data.length > 0 && !adminSeleccionado) {
-        setAdminSeleccionado(adminsData.data[0].id);
+      if (adminsData.data && adminsData.data.length > 0) {
+        setAdminSeleccionado((actual) => actual || adminsData.data[0].id);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudieron cargar los datos.");
     } finally {
       setCargando(false);
     }
-  }
+  }, []);
 
-  async function cargarCapacidades(adminId: string) {
+  const cargarCapacidades = useCallback(async (adminId: string) => {
     try {
       const cliente = crearClienteNavegador();
       setCapacidades(await listarCapacidadesAdmin(cliente, adminId));
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudieron cargar las capacidades.");
     }
-  }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => void cargarDatos(), 0);
     return () => clearTimeout(timer);
-  }, []);
+  }, [cargarDatos]);
 
   useEffect(() => {
     if (adminSeleccionado) cargarCapacidades(adminSeleccionado);
-  }, [adminSeleccionado]);
+  }, [adminSeleccionado, cargarCapacidades]);
 
   function ejecutarConcesion() {
     if (!adminSeleccionado || !formCapacidad || formMotivo.trim().length < 10) return;

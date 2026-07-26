@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { Aviso } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
@@ -441,9 +442,12 @@ export default function PaginaVehiculosAdmin() {
                             <div key={foto.id} className="group relative rounded-lg border border-border-default bg-surface-primary p-2">
                               {url ? (
                                 <a href={url} target="_blank" rel="noopener noreferrer">
-                                  <img
+                                  <Image
                                     src={url}
                                     alt={`${ETIQUETA_TIPO_EVIDENCIA[foto.tipo] ?? foto.tipo} - ${ETIQUETA_ANGULO[foto.angulo] ?? foto.angulo}`}
+                                    width={320}
+                                    height={180}
+                                    unoptimized
                                     className="h-24 w-full rounded object-cover"
                                   />
                                 </a>
