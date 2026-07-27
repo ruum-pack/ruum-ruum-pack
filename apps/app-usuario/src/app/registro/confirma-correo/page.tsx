@@ -6,14 +6,20 @@ import { Aviso } from "@ruum/ui";
 import { traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { botonAzul, botonContorno, LogoRuum, PantallaPublica } from "../../experiencia-publica";
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from "next/navigation";
+import {
+  CLAVE_CORREO_CONFIRMACION,
+  CLAVE_REENVIO_CONFIRMACION_HASTA,
+  crearRedirectConfirmacion,
+  normalizarCorreoRegistro
+} from "../../../lib/registro-usuario";
 
 const COOLDOWN_SEGUNDOS = 60;
 
 function correoInicial(): string {
   if (typeof window === "undefined") return "";
   try {
-    return window.sessionStorage.getItem("ruum:correo-confirmacion") ?? "";
+    return normalizarCorreoRegistro(window.sessionStorage.getItem(CLAVE_CORREO_CONFIRMACION) ?? "");
   } catch {
     return "";
   }
@@ -22,7 +28,7 @@ function correoInicial(): string {
 function restanteInicial(): number {
   if (typeof window === "undefined") return 0;
   try {
-    const hasta = Number(window.sessionStorage.getItem("ruum:reenvio-confirmacion-hasta") ?? 0);
+    const hasta = Number(window.localStorage.getItem(CLAVE_REENVIO_CONFIRMACION_HASTA) ?? 0);
     return Math.max(0, Math.ceil((hasta - Date.now()) / 1000));
   } catch {
     return 0;
@@ -35,12 +41,12 @@ function ContenidoConfirmaCorreo() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
-  const emailFromUrl = searchParams.get("email") || "";
+  const emailFromUrl = normalizarCorreoRegistro(searchParams.get("email") || "");
   const hayCooldown = restante > 0;
   const [correo] = useState(() => {
     if (typeof window === "undefined") return "";
     try {
-      return emailFromUrl || (window.sessionStorage.getItem("ruum:correo-confirmacion") ?? "");
+      return emailFromUrl || correoInicial();
     } catch {
       return emailFromUrl || "";
     }
@@ -63,11 +69,14 @@ function ContenidoConfirmaCorreo() {
       const { error: errorAuth } = await cliente.auth.resend({
         type: "signup",
         email: correo,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding?nuevo=1` }
+        options: { emailRedirectTo: crearRedirectConfirmacion(window.location.origin) }
       });
       if (errorAuth) throw errorAuth;
       const hasta = Date.now() + COOLDOWN_SEGUNDOS * 1000;
-      localStorage.setItem("ruum:reenvio-confirmacion-hasta", String(hasta));
+      window.localStorage.setItem(CLAVE_REENVIO_CONFIRMACION_HASTA, String(hasta));
+      try {
+        window.sessionStorage.setItem(CLAVE_CORREO_CONFIRMACION, correo);
+      } catch { /* El query param mantiene disponible el correo si sessionStorage falla. */ }
       setRestante(COOLDOWN_SEGUNDOS);
       setMensaje("Si el correo corresponde a una cuenta pendiente, enviamos un nuevo enlace de confirmación.");
     } catch (err) {
@@ -75,7 +84,6 @@ function ContenidoConfirmaCorreo() {
     } finally {
       setReenviando(false);
     }
-     const hasta = Number(localStorage.getItem("ruum:reenvio-confirmacion-hasta") ?? 0);
   }
 // Dentro del componente, antes del return
 if (!correo) {

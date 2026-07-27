@@ -9,36 +9,21 @@ import { fortalezaPassword, traducirErrorAuth } from "@ruum/shared/utils";
 import { registrarEventoUx } from "../../lib/analytics";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import {
+  CLAVE_CORREO_CONFIRMACION,
+  crearRedirectConfirmacion,
+  nombreCompleto,
+  normalizarCorreoRegistro,
+  soloDigitos,
+  telefonoLocalMx,
+  telefonoMx
+} from "../../lib/registro-usuario";
+import {
   botonAzul,
   botonContorno,
   CampoOscuro,
   LogoRuum,
   PantallaPublica,
 } from "../experiencia-publica";
-
-/* ─────────────────────────────────────────
-   Helpers
-───────────────────────────────────────── */
-function soloDigitos(valor: string, maximo?: number) {
-  const limpio = valor.replace(/\D/g, "");
-  return maximo ? limpio.slice(0, maximo) : limpio;
-}
-
-function telefonoLocalMx(valor: string) {
-  const limpio = soloDigitos(valor);
-  const sinCodigoPais =
-    limpio.length > 10 && limpio.startsWith("52") ? limpio.slice(2) : limpio;
-  return sinCodigoPais.slice(0, 10);
-}
-
-function telefonoMx(diezDigitos: string) {
-  const telefono = soloDigitos(diezDigitos, 10);
-  return telefono ? `+52${telefono}` : "";
-}
-
-function nombreCompleto(nombre: string, apellido: string) {
-  return [nombre.trim(), apellido.trim()].filter(Boolean).join(" ");
-}
 
 /* Barra de progreso visual */
 function BarraProgreso({ paso }: { paso: 1 | 2 }) {
@@ -105,8 +90,9 @@ export default function PaginaRegistro() {
 
   /* ── Validación paso 2 ── */
   function validarPaso2(): string | null {
-    if (!email.trim()) return "Escribe tu correo electrónico.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    const correo = normalizarCorreoRegistro(email);
+    if (!correo) return "Escribe tu correo electrónico.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo))
       return "El formato del correo no es válido.";
     if (password.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
     if (password !== confirmarPassword) return "Las contraseñas no coinciden.";
@@ -133,13 +119,14 @@ export default function PaginaRegistro() {
 
     try {
       const cliente = crearClienteNavegador();
+      const correo = normalizarCorreoRegistro(email);
 
       /* tipo_registro='usuario' activa el trigger manejar_nuevo_usuario_auth.
          El mismo trigger persiste y audita la aceptación de términos, incluso
          cuando la confirmación de correo hace que signUp devuelva session=null. */
       const ahora = new Date().toISOString();
       const { data, error: errorAuth } = await cliente.auth.signUp({
-        email: email.trim(),
+        email: correo,
         password,
         options: {
           data: {
@@ -151,7 +138,7 @@ export default function PaginaRegistro() {
             version_terminos_aceptada: VERSION_TERMINOS_VIGENTE,
             terminos_aceptados_en: ahora,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding?nuevo=1`,
+          emailRedirectTo: crearRedirectConfirmacion(window.location.origin),
         },
       });
 
@@ -163,11 +150,10 @@ export default function PaginaRegistro() {
         router.push("/onboarding?nuevo=1");
       } else {
         try {
-          window.sessionStorage.setItem("ruum:correo-confirmacion", email.trim().toLowerCase());
+          window.sessionStorage.setItem(CLAVE_CORREO_CONFIRMACION, correo);
         } catch { /* La pantalla también funciona si el navegador bloquea storage. */ }
         registrarEventoUx("registro_exitoso", { tipo_cuenta: tipoCuenta, requiere_confirmacion: true });
-        // DESPUÉS
-        const emailParam = encodeURIComponent(email.trim().toLowerCase());
+        const emailParam = encodeURIComponent(correo);
         router.push(`/registro/confirma-correo?email=${emailParam}`);
       }
     } catch (err: unknown) {
