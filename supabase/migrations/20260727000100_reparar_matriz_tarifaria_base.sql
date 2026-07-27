@@ -14,11 +14,11 @@ insert into public.tarifas_vehiculo (categoria, rango, base, por_km) values
 on conflict (categoria, rango) do nothing;
 
 insert into public.tarifas_gama (gama, factor) values
-  ('entrada', 1.00), ('media', 1.15), ('premium', 1.35), ('lujo', 1.60)
+  ('entrada', 1.00), ('media', 1.15), ('alta', 1.40), ('premium', 1.80)
 on conflict (gama) do nothing;
 
 insert into public.tarifas_condicion (condicion, factor) values
-  ('nueva', 1.00), ('seminueva', 1.05), ('rescate_mecanico', 1.30)
+  ('nueva', 1.10), ('seminueva', 1.00), ('rescate_mecanico', 1.25)
 on conflict (condicion) do nothing;
 
 insert into public.tarifas_horario (horario, factor) values
@@ -26,7 +26,7 @@ insert into public.tarifas_horario (horario, factor) values
 on conflict (horario) do nothing;
 
 insert into public.tarifas_dia (dia, factor) values
-  ('entre_semana', 1.00), ('fin_semana', 1.10), ('festivo', 1.20)
+  ('entre_semana', 1.00), ('fin_semana', 1.10)
 on conflict (dia) do nothing;
 
 insert into public.tarifas_config (id, tarifa_hora, tope_factor_variable)
