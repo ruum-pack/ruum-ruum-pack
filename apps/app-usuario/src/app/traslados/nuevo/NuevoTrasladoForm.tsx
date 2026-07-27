@@ -213,6 +213,9 @@ const PATRON_MENSAJE_DE_NEGOCIO = /vehículo|precio cotizado|usuario autenticado
 
 function mensajeAmigableErrorCreacion(err: unknown): string {
   if (err instanceof Error) {
+    if (/No hay tarifa configurada/i.test(err.message)) {
+      return "No pudimos calcular la tarifa automática porque falta una regla tarifaria. Torre de Control debe completar la política de tarifas para esta ruta.";
+    }
     if (PATRON_MENSAJE_DE_NEGOCIO.test(err.message)) return err.message;
     console.error("[traslados/nuevo] Error inesperado al crear la solicitud:", err);
     return "No pudimos crear la solicitud por un problema técnico. Intenta de nuevo en unos segundos; si sigue fallando, contáctanos por soporte.";
