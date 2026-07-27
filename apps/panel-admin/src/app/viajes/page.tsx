@@ -124,6 +124,8 @@ const FILTROS_INICIALES: FiltrosAvanzados = {
   proximos: false
 };
 
+const CLASE_CONTROL_FILTRO = "w-full rounded-lg border border-border-default bg-surface-secondary px-3 py-2 font-body text-sm text-ink placeholder:text-text-tertiary transition-colors focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20";
+
 const COLUMNAS_OPERATIVAS_INICIALES = [
   "folio",
   "inicio_programado",
@@ -203,6 +205,7 @@ export default function PaginaViajesAdmin() {
   const [actualizandoManual, setActualizandoManual] = useState(false);
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [filtros, setFiltros] = useState<FiltrosAvanzados>(FILTROS_INICIALES);
+  const [filtrosAvanzadosAbiertos, setFiltrosAvanzadosAbiertos] = useState(false);
   const [columnasVisibles, setColumnasVisibles] = useState<Set<string>>(() => new Set(COLUMNAS_OPERATIVAS_INICIALES));
   const [ordenTabla, setOrdenTabla] = useState<AdminDataTableSortState>({ columnId: "sla", direction: "desc" });
   const [accionMasiva, setAccionMasiva] = useState<AccionMasivaConfig | null>(null);
@@ -427,6 +430,28 @@ export default function PaginaViajesAdmin() {
     };
   }, [traslados, trazabilidadPorTraslado]);
 
+  const sugerenciasBusqueda = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (q.length < 2) return [];
+    const sugerencias = new Set<string>();
+    for (const traslado of traslados) {
+      const candidatos = [
+        traslado.traslado_id?.slice(0, 8).toUpperCase(),
+        traslado.vehiculo_placas,
+        [traslado.vehiculo_marca, traslado.vehiculo_modelo].filter(Boolean).join(" "),
+        traslado.conductor_nombre,
+        traslado.origen_ciudad,
+        traslado.destino_ciudad
+      ].filter((valor): valor is string => Boolean(valor));
+      for (const candidato of candidatos) {
+        if (candidato.toLowerCase().includes(q)) sugerencias.add(candidato);
+        if (sugerencias.size >= 6) break;
+      }
+      if (sugerencias.size >= 6) break;
+    }
+    return Array.from(sugerencias);
+  }, [busqueda, traslados]);
+
   const trasladosFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     return trasladosPorKpi.filter((v) => {
@@ -478,6 +503,8 @@ export default function PaginaViajesAdmin() {
     return activos;
   }, [busqueda, filtros, opcionesFiltros.empresas]);
 
+  const hayFiltrosActivos = chips.length > 0 || Boolean(filtroKpi) || Boolean(accionOperativa);
+
   const trasladosSeleccionados = useMemo(
     () => trasladosFiltrados.filter((traslado) => seleccionados.has(idTrasladoOperativo(traslado))),
     [seleccionados, trasladosFiltrados]
@@ -498,6 +525,15 @@ export default function PaginaViajesAdmin() {
     }));
     return [...predefinidas, ...vistasGuardadas];
   }, [ordenTabla, vistasGuardadas]);
+
+  function limpiarFiltrosVista() {
+    setBusqueda("");
+    setFiltroKpi(null);
+    setAccionOperativa(null);
+    setPestana("todos");
+    setFiltros(FILTROS_INICIALES);
+    limpiarParamsFiltroUrl();
+  }
 
   const columnasTraslados = useMemo<AdminDataTableColumn<PasaporteRow>[]>(() => [
     {
@@ -765,8 +801,9 @@ export default function PaginaViajesAdmin() {
             type="button"
             onClick={() => void cargar(true)}
             disabled={actualizandoManual}
-            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2 font-body text-admin-boton font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink disabled:cursor-wait disabled:opacity-70"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-signal bg-signal px-4 py-2 font-body text-admin-boton font-semibold text-ink shadow-[var(--ruum-shadow-1)] transition-colors hover:bg-signal/90 disabled:cursor-wait disabled:opacity-70"
           >
+            <span aria-hidden="true">↻</span>
             {actualizandoManual ? "Reconectando" : "Actualizar"}
           </button>
         )}
@@ -812,94 +849,114 @@ export default function PaginaViajesAdmin() {
         </div>
       )}
 
-      <section className="mt-4 rounded-card border border-border-default bg-surface-primary p-4" aria-label="Filtros avanzados de traslados">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <CampoFiltro etiqueta="Buscar">
-            <input
-              id="buscar-traslados"
-              type="search"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Folio, vehículo, placa..."
-              className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm text-ink placeholder:text-text-tertiary"
-            />
-          </CampoFiltro>
-          <CampoFiltro etiqueta="Estado">
-            <select value={filtros.estado} onChange={(e) => actualizarEstadoFiltro(e.target.value as EstadoTraslado | "todos", setFiltros, setPestana)} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm">
-              {PESTANAS.map((item) => <option key={item.id} value={item.filtro}>{item.etiqueta}</option>)}
-            </select>
-          </CampoFiltro>
-          <CampoFiltro etiqueta="SLA">
-            <select value={filtros.sla} onChange={(e) => setFiltros((actual) => ({ ...actual, sla: e.target.value as FiltroSla }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm">
-              <option value="todos">Todos</option>
-              <option value="en_riesgo">En riesgo</option>
-              <option value="vencido">Vencido</option>
-            </select>
-          </CampoFiltro>
-          <CampoFiltro etiqueta="Fecha">
-            <select value={filtros.fecha} onChange={(e) => setFiltros((actual) => ({ ...actual, fecha: e.target.value as FiltroFecha }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm">
-              <option value="todos">Todas</option>
-              <option value="hoy">Hoy</option>
-              <option value="7d">Últimos 7 días</option>
-              <option value="30d">Últimos 30 días</option>
-            </select>
-          </CampoFiltro>
-          <CampoFiltro etiqueta="Empresa">
-            <select value={filtros.empresa} onChange={(e) => setFiltros((actual) => ({ ...actual, empresa: e.target.value }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm">
-              <option value="">Todas</option>
-              {opcionesFiltros.empresas.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-            </select>
-          </CampoFiltro>
-          <CampoFiltro etiqueta="Conductor">
-            <select value={filtros.conductor} onChange={(e) => setFiltros((actual) => ({ ...actual, conductor: e.target.value }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm">
-              <option value="">Todos</option>
-              {opcionesFiltros.conductores.map((nombre) => <option key={nombre} value={nombre}>{nombre}</option>)}
-            </select>
-          </CampoFiltro>
-          <CampoFiltro etiqueta="Tipo de vehículo">
-            <select value={filtros.vehiculo} onChange={(e) => setFiltros((actual) => ({ ...actual, vehiculo: e.target.value }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm">
-              <option value="">Todos</option>
-              {opcionesFiltros.vehiculos.map((tipo) => <option key={tipo} value={tipo}>{ETIQUETA_TIPO_VEHICULO[tipo as keyof typeof ETIQUETA_TIPO_VEHICULO] ?? tipo}</option>)}
-            </select>
-          </CampoFiltro>
-          <CampoFiltro etiqueta="Origen">
-            <input value={filtros.origen} onChange={(e) => setFiltros((actual) => ({ ...actual, origen: e.target.value }))} placeholder="Ciudad o dirección" className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
-          </CampoFiltro>
-          <CampoFiltro etiqueta="Destino">
-            <input value={filtros.destino} onChange={(e) => setFiltros((actual) => ({ ...actual, destino: e.target.value }))} placeholder="Ciudad o dirección" className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
-          </CampoFiltro>
-        </div>
+      <section className="mt-4 rounded-card border border-border-default bg-surface-primary/95 p-3 shadow-[var(--ruum-shadow-1)]" aria-label="Filtros de traslados">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
+          <div className="min-w-72 flex-1">
+            <CampoFiltro etiqueta="Buscar traslado">
+              <input
+                id="buscar-traslados"
+                type="search"
+                list="sugerencias-busqueda-traslados"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Folio, vehículo, placa, origen o destino"
+                className={CLASE_CONTROL_FILTRO}
+              />
+            </CampoFiltro>
+            {sugerenciasBusqueda.length > 0 && (
+              <datalist id="sugerencias-busqueda-traslados">
+                {sugerenciasBusqueda.map((sugerencia) => <option key={sugerencia} value={sugerencia} />)}
+              </datalist>
+            )}
+          </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          <FiltroToggle activo={filtros.incidencia} onClick={() => setFiltros((actual) => ({ ...actual, incidencia: !actual.incidencia }))}>Con incidencia</FiltroToggle>
-          <FiltroToggle activo={filtros.sinAsignacion} onClick={() => setFiltros((actual) => ({ ...actual, sinAsignacion: !actual.sinAsignacion }))}>Sin asignación</FiltroToggle>
-          <FiltroToggle activo={filtros.sinCoordenadas} onClick={() => setFiltros((actual) => ({ ...actual, sinCoordenadas: !actual.sinCoordenadas }))}>Sin coordenadas</FiltroToggle>
-          <FiltroToggle activo={filtros.proximos} onClick={() => setFiltros((actual) => ({ ...actual, proximos: !actual.proximos }))}>Próximos a iniciar</FiltroToggle>
-          <button
-            type="button"
-            onClick={() => void navigator.clipboard?.writeText(window.location.href)}
-            className="rounded-full border border-status-info/30 px-3 py-1.5 font-body text-sm font-semibold text-status-info hover:bg-status-info-soft"
-          >
-            Copiar enlace
-          </button>
-          {(chips.length > 0 || filtroKpi || accionOperativa) && (
+          <div className="flex flex-1 flex-wrap items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="mb-1 font-body text-admin-secundario font-semibold uppercase tracking-wide text-text-tertiary">Filtros de alerta / accesos directos</p>
+              <div className="flex flex-wrap gap-2">
+                <FiltroToggle activo={filtros.sla === "en_riesgo"} onClick={() => setFiltros((actual) => ({ ...actual, sla: actual.sla === "en_riesgo" ? "todos" : "en_riesgo" }))}>En riesgo</FiltroToggle>
+                <FiltroToggle activo={filtros.sinAsignacion} onClick={() => setFiltros((actual) => ({ ...actual, sinAsignacion: !actual.sinAsignacion }))}>Sin conductor</FiltroToggle>
+                <FiltroToggle activo={filtros.proximos} onClick={() => setFiltros((actual) => ({ ...actual, proximos: !actual.proximos }))}>Inician 60 min</FiltroToggle>
+                <FiltroToggle activo={filtros.incidencia} onClick={() => setFiltros((actual) => ({ ...actual, incidencia: !actual.incidencia }))}>Con incidencia</FiltroToggle>
+                <FiltroToggle activo={filtros.sinCoordenadas} onClick={() => setFiltros((actual) => ({ ...actual, sinCoordenadas: !actual.sinCoordenadas }))}>Sin ubicación</FiltroToggle>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => {
-                setBusqueda("");
-                setFiltroKpi(null);
-                setAccionOperativa(null);
-                setPestana("todos");
-                setFiltros(FILTROS_INICIALES);
-              }}
-              className="rounded-full border border-ink/20 px-3 py-1.5 font-body text-sm font-semibold text-text-secondary hover:border-status-error/40 hover:text-status-error"
+              onClick={() => setFiltrosAvanzadosAbiertos((abierto) => !abierto)}
+              className="rounded-full border border-border-default bg-surface-secondary px-3 py-2 font-body text-sm font-semibold text-ink hover:border-signal/40"
+              aria-expanded={filtrosAvanzadosAbiertos}
+              aria-controls="filtros-avanzados-viajes"
             >
-              Limpiar todos
+              {filtrosAvanzadosAbiertos ? "Ocultar filtros" : "Más filtros"}
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => void navigator.clipboard?.writeText(window.location.href)}
+              className="rounded-full border border-status-info/30 px-3 py-1.5 font-body text-sm font-semibold text-status-info hover:bg-status-info-soft"
+            >
+              Copiar enlace
+            </button>
+            {hayFiltrosActivos && (
+              <button
+                type="button"
+                onClick={limpiarFiltrosVista}
+                className="rounded-full border border-ink/20 px-3 py-1.5 font-body text-sm font-semibold text-text-secondary hover:border-status-error/40 hover:text-status-error"
+              >
+                Limpiar todos
+              </button>
+            )}
+          </div>
         </div>
 
-        {(chips.length > 0 || filtroKpi || accionOperativa) && (
+        {filtrosAvanzadosAbiertos && (
+          <div id="filtros-avanzados-viajes" className="mt-3 grid gap-3 border-t border-border-default pt-3 md:grid-cols-2 xl:grid-cols-4">
+            <CampoFiltro etiqueta="SLA">
+              <select value={filtros.sla} onChange={(e) => setFiltros((actual) => ({ ...actual, sla: e.target.value as FiltroSla }))} className={CLASE_CONTROL_FILTRO}>
+                <option value="todos">Todos</option>
+                <option value="en_riesgo">En riesgo</option>
+                <option value="vencido">Vencido</option>
+              </select>
+            </CampoFiltro>
+            <CampoFiltro etiqueta="Fecha">
+              <select value={filtros.fecha} onChange={(e) => setFiltros((actual) => ({ ...actual, fecha: e.target.value as FiltroFecha }))} className={CLASE_CONTROL_FILTRO}>
+                <option value="todos">Todas</option>
+                <option value="hoy">Hoy</option>
+                <option value="7d">Últimos 7 días</option>
+                <option value="30d">Últimos 30 días</option>
+              </select>
+            </CampoFiltro>
+            <CampoFiltro etiqueta="Empresa">
+              <select value={filtros.empresa} onChange={(e) => setFiltros((actual) => ({ ...actual, empresa: e.target.value }))} className={CLASE_CONTROL_FILTRO}>
+                <option value="">Todas</option>
+                {opcionesFiltros.empresas.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              </select>
+            </CampoFiltro>
+            <CampoFiltro etiqueta="Conductor">
+              <select value={filtros.conductor} onChange={(e) => setFiltros((actual) => ({ ...actual, conductor: e.target.value }))} className={CLASE_CONTROL_FILTRO}>
+                <option value="">Todos</option>
+                {opcionesFiltros.conductores.map((nombre) => <option key={nombre} value={nombre}>{nombre}</option>)}
+              </select>
+            </CampoFiltro>
+            <CampoFiltro etiqueta="Tipo de vehículo">
+              <select value={filtros.vehiculo} onChange={(e) => setFiltros((actual) => ({ ...actual, vehiculo: e.target.value }))} className={CLASE_CONTROL_FILTRO}>
+                <option value="">Todos</option>
+                {opcionesFiltros.vehiculos.map((tipo) => <option key={tipo} value={tipo}>{ETIQUETA_TIPO_VEHICULO[tipo as keyof typeof ETIQUETA_TIPO_VEHICULO] ?? tipo}</option>)}
+              </select>
+            </CampoFiltro>
+            <CampoFiltro etiqueta="Origen">
+              <input value={filtros.origen} onChange={(e) => setFiltros((actual) => ({ ...actual, origen: e.target.value }))} placeholder="Ciudad o dirección" className={CLASE_CONTROL_FILTRO} />
+            </CampoFiltro>
+            <CampoFiltro etiqueta="Destino">
+              <input value={filtros.destino} onChange={(e) => setFiltros((actual) => ({ ...actual, destino: e.target.value }))} placeholder="Ciudad o dirección" className={CLASE_CONTROL_FILTRO} />
+            </CampoFiltro>
+          </div>
+        )}
+
+        {hayFiltrosActivos && (
           <div className="mt-3 flex flex-wrap gap-2" aria-label="Filtros activos">
             {filtroKpi && <ChipFiltro etiqueta={`Indicador: ${ETIQUETA_FILTRO_KPI[filtroKpi]}`} onRemove={() => setFiltroKpi(null)} />}
             {accionOperativa && <ChipFiltro etiqueta={`Acción: ${ETIQUETA_ACCION_OPERATIVA[accionOperativa]}`} onRemove={() => setAccionOperativa(null)} />}
@@ -956,7 +1013,16 @@ export default function PaginaViajesAdmin() {
         columns={columnasTraslados}
         getRowId={(v) => v.traslado_id ?? `sin-folio-${v.creado_en ?? ""}-${v.vehiculo_modelo ?? ""}`}
         loading={cargando}
-        emptyMessage={busqueda.trim() ? "No encontramos traslados con esa búsqueda." : "No hay traslados en esta vista."}
+        emptyMessage="No se encontraron traslados con los filtros aplicados."
+        emptyAction={(
+          <button
+            type="button"
+            onClick={limpiarFiltrosVista}
+            className="mx-auto rounded-lg border border-status-info/35 px-3 py-2 font-body text-admin-boton font-semibold text-status-info hover:bg-status-info-soft"
+          >
+            Limpiar filtros
+          </button>
+        )}
         partialError={seccionesDesactualizadas.length > 0 ? `Error parcial: ${seccionesDesactualizadas.join(", ")}.` : null}
         selectedIds={seleccionados}
         onSelectionChange={setSeleccionados}
@@ -976,13 +1042,14 @@ export default function PaginaViajesAdmin() {
           requiresConfirmation: accion.requiereConfirmacion,
           onClick: () => abrirAccionMasiva(accion)
         }))}
+        hidePagination
       />
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3 px-1">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-card border border-border-default bg-surface-primary px-4 py-3">
         <label className="font-body text-sm text-text-secondary">
           Filas por página
           <select
-            className="ml-2 rounded-lg border border-ink/20 bg-surface-primary px-2 py-1"
+            className="ml-2 rounded-lg border border-border-default bg-surface-secondary px-2 py-1 text-ink"
             value={tamanoPagina}
             onChange={(e) => {
               setTamanoPagina(Number(e.target.value));
@@ -999,7 +1066,7 @@ export default function PaginaViajesAdmin() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="rounded-lg border border-ink/20 px-3 py-1.5 text-sm disabled:opacity-50"
+            className="rounded-lg border border-border-default bg-surface-secondary px-3 py-1.5 text-sm text-ink disabled:opacity-50"
             disabled={pagina <= 1 || cargando}
             onClick={() => {
               const sig = Math.max(1, pagina - 1);
@@ -1011,12 +1078,12 @@ export default function PaginaViajesAdmin() {
             Anterior
           </button>
           <span className="font-body text-sm text-text-secondary">
-            Página {totalPaginas > 0 ? pagina : 0} de {totalPaginas} ({totalResultados} resultados)
+            Página {totalResultados > 0 ? pagina : 1} de {Math.max(1, totalPaginas)} · {totalResultados.toLocaleString("es-MX")} resultados
           </span>
           <button
             type="button"
-            className="rounded-lg border border-ink/20 px-3 py-1.5 text-sm disabled:opacity-50"
-            disabled={pagina >= totalPaginas || cargando}
+            className="rounded-lg border border-border-default bg-surface-secondary px-3 py-1.5 text-sm text-ink disabled:opacity-50"
+            disabled={totalPaginas <= 1 || pagina >= totalPaginas || cargando}
             onClick={() => {
               const sig = Math.min(totalPaginas, pagina + 1);
               paginaRef.current = sig;
