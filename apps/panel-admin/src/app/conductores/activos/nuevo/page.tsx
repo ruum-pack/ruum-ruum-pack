@@ -42,7 +42,7 @@ export default function PaginaNuevoConductor() {
     setError(null);
     try {
       const cliente = crearClienteNavegador();
-      const conductor = await crearConductorAdmin(cliente, {
+      await crearConductorAdmin(cliente, {
         ...datos,
         curp: datos.curp.toUpperCase(),
         telefono: datos.telefono.startsWith("+") ? datos.telefono : `+${datos.telefono}`,
@@ -51,7 +51,7 @@ export default function PaginaNuevoConductor() {
           : `+${datos.contacto_emergencia_telefono}`
       });
       setExito(true);
-      setTimeout(() => window.location.href = `/conductores/activos/${conductor.id}`, 1500);
+      setTimeout(() => window.location.href = "/conductores/activos", 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo crear el conductor.");
     } finally {
@@ -64,7 +64,7 @@ export default function PaginaNuevoConductor() {
     setError(null);
   }
 
-    if (exito) return <main className="mx-auto max-w-2xl px-6 py-8"><p className="font-body text-status-success">Invitación enviada y conductor creado. Redirigiendo...</p></main>;
+    if (exito) return <main className="mx-auto max-w-2xl px-6 py-8"><p className="font-body text-status-success">Invitación enviada y conductor creado. Redirigiendo al monitoreo...</p></main>;
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-8 sm:px-8 sm:py-10">

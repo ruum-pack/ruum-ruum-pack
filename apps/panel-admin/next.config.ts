@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@ruum/shared", "@ruum/ui"],
+  outputFileTracingIncludes: {
+    "/api/plantillas/traslados-masivos": ["../app-usuario/public/data/codigos-postales/**/*.json"]
+  },
   // Nunca configuramos ESLint en este proyecto (la validación real se apoya
   // en tsc, no en linting — ver README, "Por qué este repo no repite los
   // errores de la sesión anterior"). Sin esto, `next build` intenta abrir un

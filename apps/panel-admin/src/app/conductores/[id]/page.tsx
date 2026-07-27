@@ -1326,7 +1326,6 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
   const documentosLote = documentosRequeridos.filter((documento) => documento.estado === "en_revision");
   const anomalíasVisibles = documentosRequeridos.some((documento) => documento.estado === "rechazado" || documento.estado === "vencido" || Boolean(documento.motivo_rechazo));
   const puedeAprobarLote = solicitud.estado === "en_revision" && documentosRequeridos.length === DOCUMENTOS_REQUERIDOS.length && documentosLote.length > 0 && !anomalíasVisibles;
-  const hrefEstatus = conductor?.id ? `/conductores/activos/${conductor.id}?solicitud=${solicitud.id}` : null;
   const ciudadSede = textoJson(solicitud.domicilio, "ciudad_municipio", "ciudad") ?? conductor?.ciudad_municipio ?? "-";
   const tipoLicencia = textoJson(solicitud.licencia, "tipo", "tipo_licencia") ?? conductor?.licencia_tipo ?? "-";
   const datosHeader = `Folio ${solicitud.id.slice(0, 8)} · ${solicitud.curp_normalizada ?? conductor?.curp ?? "CURP no registrada"} · ${telefonoContacto ?? "Sin teléfono"} · ${correo}`;
@@ -1472,15 +1471,9 @@ export default function PaginaDetalleSolicitudConductorAdmin() {
           <HistorialAcordeon historial={historial} />
 
           <div className="flex justify-end">
-            {hrefEstatus ? (
-              <Link href={hrefEstatus} className="inline-flex min-h-10 items-center rounded-lg border border-status-info bg-status-info px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-status-info/90">
-                Ajustes
-              </Link>
-            ) : (
-              <span className="inline-flex min-h-10 items-center rounded-lg border border-border-default bg-ink/[0.04] px-4 py-2 font-body text-sm font-semibold text-text-disabled">
-                Disponible tras aprobación
-              </span>
-            )}
+            <span className="inline-flex min-h-10 items-center rounded-lg border border-border-default bg-ink/[0.04] px-4 py-2 font-body text-sm font-semibold text-text-disabled">
+              Detalle operativo centralizado en este expediente
+            </span>
           </div>
         </aside>
 

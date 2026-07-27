@@ -143,25 +143,22 @@ export default function PaginaConductoresActivos() {
               <th className="px-4 py-3">Teléfono</th>
               <th className="px-4 py-3">Estado</th>
               <th className="px-4 py-3">Registrado</th>
-              <th className="px-4 py-3">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {cargando ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-text-tertiary">Cargando…</td>
+                <td colSpan={6} className="px-4 py-8 text-center text-text-tertiary">Cargando…</td>
               </tr>
             ) : conductores.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-text-tertiary">Sin conductores.</td>
+                <td colSpan={6} className="px-4 py-8 text-center text-text-tertiary">Sin conductores.</td>
               </tr>
             ) : (
               conductores.map((c) => (
                 <tr key={c.id} className="border-b border-ink/5 last:border-0">
                   <td className="px-4 py-3 font-medium">
-                    <Link href={`/conductores/activos/${c.id}`} className="hover:text-focus-default hover:underline">
-                      {c.nombre ?? <span className="text-text-tertiary">Sin nombre</span>}
-                    </Link>
+                    {c.nombre ?? <span className="text-text-tertiary">Sin nombre</span>}
                   </td>
                   <td className="px-4 py-3 font-mono-ruum text-xs">{c.curp ?? "—"}</td>
                   <td className="px-4 py-3 font-mono-ruum text-xs">{c.licencia_numero ?? "—"}</td>
@@ -172,14 +169,6 @@ export default function PaginaConductoresActivos() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-text-secondary">{new Date(c.creado_en).toLocaleDateString("es-MX")}</td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/conductores/activos/${c.id}`}
-                      className="rounded-md border border-ink/20 px-3 py-1.5 font-body text-xs font-medium text-ink hover:bg-ink/5"
-                    >
-                      Gestionar
-                    </Link>
-                  </td>
                 </tr>
               ))
             )}

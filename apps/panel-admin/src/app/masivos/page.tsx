@@ -73,12 +73,18 @@ const COLUMNAS_PLANTILLA = [
   "contacto_entrega_telefono",
   "contacto_recepcion_nombre",
   "contacto_recepcion_telefono",
-  "origen_direccion",
+  "origen_codigo_postal",
+  "origen_estado",
   "origen_ciudad",
+  "origen_colonia",
+  "origen_direccion",
   "origen_lat",
   "origen_lng",
-  "destino_direccion",
+  "destino_codigo_postal",
+  "destino_estado",
   "destino_ciudad",
+  "destino_colonia",
+  "destino_direccion",
   "destino_lat",
   "destino_lng",
   "modalidad_programacion",
@@ -110,12 +116,18 @@ const EJEMPLO_CSV = [
     "+525500000000",
     "Recepcion",
     "+525500000001",
-    "Av. Reforma 100",
+    "06700",
+    "Ciudad de México",
     "CDMX",
+    "Roma Norte",
+    "Av. Reforma 100",
     "19.4326",
     "-99.1332",
-    "Av. Universidad 300",
+    "04360",
+    "Ciudad de México",
     "CDMX",
+    "Copilco Universidad",
+    "Av. Universidad 300",
     "19.3670",
     "-99.1660",
     "programado",
@@ -498,15 +510,24 @@ export default function PaginaTrasladosMasivosAdmin() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="font-body text-sm font-semibold text-ink">Archivo CSV</p>
-                <p className="mt-1 font-body text-sm text-ink/55">Máximo según rol y 5 MB. No incluyas precio, tarifa ni descuento.</p>
+                <p className="mt-1 font-body text-sm text-ink/55">Máximo según rol y 5 MB. Descarga el XLSX asistido, captura datos y expórtalo como CSV para cargarlo.</p>
               </div>
-              <a
-                href={`data:text/csv;charset=utf-8,${encodeURIComponent(EJEMPLO_CSV)}`}
-                download="plantilla-traslados-masivos-ruum.csv"
-                className="rounded-lg border border-ink/15 px-3 py-2 font-body text-sm font-semibold text-text-secondary transition-colors hover:border-status-info/40 hover:text-status-info"
-              >
-                Descargar plantilla
-              </a>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href="/api/plantillas/traslados-masivos"
+                  download="plantilla-traslados-masivos-ruum.xlsx"
+                  className="rounded-lg border border-status-info bg-status-info px-3 py-2 font-body text-sm font-semibold text-surface-primary transition-colors hover:bg-status-info/90"
+                >
+                  Descargar plantilla XLSX
+                </a>
+                <a
+                  href={`data:text/csv;charset=utf-8,${encodeURIComponent(EJEMPLO_CSV)}`}
+                  download="plantilla-traslados-masivos-ruum.csv"
+                  className="rounded-lg border border-ink/15 px-3 py-2 font-body text-sm font-semibold text-text-secondary transition-colors hover:border-status-info/40 hover:text-status-info"
+                >
+                  CSV básico
+                </a>
+              </div>
             </div>
             <input
               type="file"
