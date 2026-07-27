@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState, useTransition, type InputHTMLAttributes, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useState, useTransition, type InputHTMLAttributes, type ReactNode } from "react";
 import { Aviso, Button } from "@ruum/ui";
 import {
   actualizarEmpresaCorporativaAdmin,
@@ -858,58 +858,127 @@ export default function PaginaEmpresasAdmin() {
       {cargando ? (
         <div className="mt-6"><AdminLoadingState label="Cargando empresas" /></div>
       ) : (
-        <section className="mt-6 grid gap-4">
+        <section className="mt-6">
           {datos.empresas.length === 0 ? (
             <AdminEmptyState title="Sin empresas" description="No hay empresas registradas en la fuente real." action={<AdminButton onClick={() => setMostrarFormulario(true)}>Crear empresa</AdminButton>} />
           ) : (
-            datos.empresas.map((empresa) => {
-              const usuarios = usuariosPorEmpresa.get(empresa.id) ?? [];
-              const vehiculos = vehiculosPorEmpresa.get(empresa.id) ?? [];
-              const conductores = conductoresPorEmpresa.get(empresa.id) ?? [];
-              const documentos = documentosPorEmpresa.get(empresa.id) ?? [];
-              const viajes = viajesPorEmpresa.get(empresa.id) ?? [];
-              const versionesFiscales = fiscalPorEmpresa.get(empresa.id) ?? [];
-              const versionesCondiciones = condicionesPorEmpresa.get(empresa.id) ?? [];
-              const cambios = cambiosPorEmpresa.get(empresa.id) ?? [];
-              const cambiosPendientes = cambios.filter((cambio) => cambio.estado === "pendiente");
-              const titular = usuarios.find((usuario) => usuario.rol === "titular_empresa");
-              const autorizado = usuarios.find((usuario) => usuario.rol === "usuario_autorizado");
-              return (
-                <AdminPanel key={empresa.id} className="p-5 sm:p-6">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                      <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Cuenta empresarial</p>
-                      <h2 className="mt-1 font-display text-xl font-semibold">{empresa.nombre}</h2>
-                      <p className="mt-1 font-body text-sm text-text-secondary">{empresa.razon_social ?? empresa.nombre} · RFC {empresa.rfc ?? "pendiente"}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge estado={empresa.estado_operativo} texto={empresa.estado_operativo === "suspendida" ? "Suspendida" : "Activa"} />
-                      {empresa.estado_verificacion !== "verificado" && cambiosPendientes.length === 0 && <Badge estado={empresa.estado_verificacion} />}
-                    </div>
-                  </div>
-
-                  {cambiosPendientes.length > 0 && (
-                    <div className="mt-4 rounded-lg border border-status-warning/35 bg-status-warning-soft px-4 py-3">
-                      <p className="font-body text-sm font-semibold text-status-warning">Cambios pendientes de aprobación</p>
-                      <p className="mt-1 font-body text-sm text-text-secondary">Estado operativo principal: {empresa.estado_operativo === "suspendida" ? "Suspendida" : "Activa"}. Los cambios fiscales se revisan en la pestaña Fiscal y facturación.</p>
-                    </div>
-                  )}
-
-                  <AccionesEmpresa
-                    empresa={empresa}
-                    usuarios={usuarios}
-                    vehiculos={vehiculos}
-                    conductores={conductores}
-                    documentos={documentos}
-                    viajes={viajes}
-                    versionesFiscales={versionesFiscales}
-                    versionesCondiciones={versionesCondiciones}
-                    cambiosPendientes={cambiosPendientes}
-                    onActualizado={() => void cargar(true)}
-                  />
-                </AdminPanel>
-              );
-            })
+            <div className="admin-table-card">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1120px] font-body text-sm">
+                  <caption className="sr-only">Lista de empresas registradas</caption>
+                  <thead>
+                    <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-text-tertiary">
+                      <th className="left-0 z-10 bg-surface-primary px-4 py-3 sm:sticky">Empresa</th>
+                      <th className="px-4 py-3">RFC</th>
+                      <th className="px-4 py-3">Estado</th>
+                      <th className="px-4 py-3">Titular</th>
+                      <th className="px-4 py-3 text-center">Usuarios</th>
+                      <th className="px-4 py-3 text-center">Flota</th>
+                      <th className="px-4 py-3 text-center">Conductores</th>
+                      <th className="px-4 py-3 text-right">Traslados</th>
+                      <th className="px-4 py-3 text-right">Crédito</th>
+                      <th className="px-4 py-3 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {datos.empresas.map((empresa, indice) => {
+                      const usuarios = usuariosPorEmpresa.get(empresa.id) ?? [];
+                      const vehiculos = vehiculosPorEmpresa.get(empresa.id) ?? [];
+                      const conductores = conductoresPorEmpresa.get(empresa.id) ?? [];
+                      const documentos = documentosPorEmpresa.get(empresa.id) ?? [];
+                      const viajes = viajesPorEmpresa.get(empresa.id) ?? [];
+                      const versionesFiscales = fiscalPorEmpresa.get(empresa.id) ?? [];
+                      const versionesCondiciones = condicionesPorEmpresa.get(empresa.id) ?? [];
+                      const cambios = cambiosPorEmpresa.get(empresa.id) ?? [];
+                      const cambiosPendientes = cambios.filter((cambio) => cambio.estado === "pendiente");
+                      const titular = usuarios.find((usuario) => usuario.rol === "titular_empresa");
+                      const abierta = empresaAbiertaId === empresa.id;
+                      const fondoFila = indice % 2 === 1 ? "bg-surface-secondary/45" : "bg-surface-primary";
+                      const fondoSticky = indice % 2 === 1 ? "bg-surface-secondary" : "bg-surface-primary";
+                      return (
+                        <Fragment key={empresa.id}>
+                          <tr className={`border-b border-ink/5 ${fondoFila}`}>
+                            <td data-label="Empresa" className={`left-0 z-[1] px-4 py-4 sm:sticky ${fondoSticky}`}>
+                              <button
+                                type="button"
+                                onClick={() => setEmpresaAbiertaId((actual) => actual === empresa.id ? null : empresa.id)}
+                                className="text-left font-semibold text-ink hover:text-focus-default hover:underline"
+                              >
+                                {empresa.nombre}
+                              </button>
+                              <p className="mt-1 max-w-[280px] truncate text-xs text-text-secondary" title={empresa.razon_social ?? empresa.nombre}>{empresa.razon_social ?? "Sin razón social"}</p>
+                            </td>
+                            <td data-label="RFC" className="px-4 py-4 font-mono-ruum text-xs text-text-secondary">{empresa.rfc ?? "Pendiente"}</td>
+                            <td data-label="Estado" className="px-4 py-4">
+                              <div className="flex flex-wrap gap-2">
+                                <Badge estado={empresa.estado_operativo} texto={textoEstadoOperativo(empresa.estado_operativo)} />
+                                {cambiosPendientes.length > 0 ? (
+                                  <Badge estado="pendiente" texto="Cambios pendientes" />
+                                ) : (
+                                  <Badge estado={empresa.estado_verificacion} />
+                                )}
+                              </div>
+                            </td>
+                            <td data-label="Titular" className="px-4 py-4">
+                              <p className="font-medium text-ink">{titular?.nombre ?? "No registrado"}</p>
+                              <p className="mt-1 max-w-[220px] truncate text-xs text-text-secondary" title={titular?.correo_facturacion ?? undefined}>{titular?.correo_facturacion ?? "Sin correo"}</p>
+                            </td>
+                            <td data-label="Usuarios" className="px-4 py-4 text-center font-mono-ruum">{usuarios.length}</td>
+                            <td data-label="Flota" className="px-4 py-4 text-center font-mono-ruum">{vehiculos.length}</td>
+                            <td data-label="Conductores" className="px-4 py-4 text-center font-mono-ruum">{conductores.length}</td>
+                            <td data-label="Traslados" className="px-4 py-4 text-right font-mono-ruum">{viajes.length}</td>
+                            <td data-label="Crédito" className="px-4 py-4 text-right">
+                              <p className="font-mono-ruum font-semibold">{moneda(empresa.limite_credito_mxn)}</p>
+                              <p className="mt-1 text-xs text-text-tertiary">{empresa.dias_credito ?? 0} días</p>
+                            </td>
+                            <td data-label="Acciones" className="px-4 py-4">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setEmpresaAbiertaId((actual) => actual === empresa.id ? null : empresa.id)}
+                                  className="inline-flex items-center gap-1 rounded-md border border-ink/20 px-3 py-1.5 font-body text-xs font-semibold text-ink hover:bg-ink/5"
+                                  aria-expanded={abierta}
+                                  aria-controls={`detalle-empresa-${empresa.id}`}
+                                >
+                                  <span aria-hidden="true">✎</span> {abierta ? "Ocultar" : "Gestionar"}
+                                </button>
+                                <button type="button" className="rounded-md border border-ink/20 px-2.5 py-1.5 font-body text-xs font-semibold text-text-secondary opacity-60" aria-label={`Acciones rápidas para ${empresa.nombre}`}>...</button>
+                              </div>
+                            </td>
+                          </tr>
+                          {abierta && (
+                            <tr className="border-b border-ink/10 bg-surface-primary">
+                              <td colSpan={10} className="px-4 py-5">
+                                <div id={`detalle-empresa-${empresa.id}`} className="rounded-lg border border-border-default bg-surface-primary p-5">
+                                  {cambiosPendientes.length > 0 && (
+                                    <div className="mb-4 rounded-lg border border-status-warning/35 bg-status-warning-soft px-4 py-3">
+                                      <p className="font-body text-sm font-semibold text-status-warning">Cambios pendientes de aprobación</p>
+                                      <p className="mt-1 font-body text-sm text-text-secondary">Estado operativo principal: {textoEstadoOperativo(empresa.estado_operativo)}. Los cambios fiscales se revisan en la pestaña Fiscal y facturación.</p>
+                                    </div>
+                                  )}
+                                  <AccionesEmpresa
+                                    empresa={empresa}
+                                    usuarios={usuarios}
+                                    vehiculos={vehiculos}
+                                    conductores={conductores}
+                                    documentos={documentos}
+                                    viajes={viajes}
+                                    versionesFiscales={versionesFiscales}
+                                    versionesCondiciones={versionesCondiciones}
+                                    cambiosPendientes={cambiosPendientes}
+                                    onActualizado={() => void cargar(true)}
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </section>
       )}
