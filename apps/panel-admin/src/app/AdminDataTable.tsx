@@ -34,6 +34,7 @@ export function AdminDataTable<T>({
   getRowId,
   loading = false,
   emptyMessage,
+  emptyAction,
   partialError,
   rowActions = [],
   bulkActions = [],
@@ -43,14 +44,16 @@ export function AdminDataTable<T>({
   onSortChange,
   visibleColumnIds,
   onVisibleColumnIdsChange,
-  pageSizeOptions = [10, 25, 50]
+  pageSizeOptions = [10, 25, 50],
+  hidePagination = false
 }: {
   caption: string;
   rows: T[];
   columns: AdminDataTableColumn<T>[];
   getRowId: (row: T) => string;
   loading?: boolean;
-  emptyMessage: string;
+  emptyMessage: ReactNode;
+  emptyAction?: ReactNode;
   partialError?: string | null;
   rowActions?: AdminDataTableRowAction<T>[];
   bulkActions?: AdminDataTableBulkAction<T>[];
@@ -61,6 +64,7 @@ export function AdminDataTable<T>({
   visibleColumnIds?: Set<string>;
   onVisibleColumnIdsChange?: (ids: Set<string>) => void;
   pageSizeOptions?: number[];
+  hidePagination?: boolean;
 }) {
   const [internalSort, setInternalSort] = useState<AdminDataTableSortState>(null);
   const [page, setPage] = useState(1);
@@ -199,7 +203,17 @@ export function AdminDataTable<T>({
           {loading ? (
             <tr><td colSpan={columnasVisibles.length + 2} className="px-4 py-8 text-center text-text-tertiary">Cargando...</td></tr>
           ) : pageRows.length === 0 ? (
-            <tr><td colSpan={columnasVisibles.length + 2} className="px-4 py-8 text-center text-text-tertiary">{emptyMessage}</td></tr>
+            <tr>
+              <td colSpan={columnasVisibles.length + 2} className="px-4 py-10 text-center text-text-tertiary">
+                <div className="mx-auto grid max-w-md gap-3">
+                  <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-status-info/25 bg-status-info-soft font-display text-lg font-semibold text-status-info" aria-hidden="true">
+                    0
+                  </div>
+                  <div className="font-body text-sm text-text-secondary">{emptyMessage}</div>
+                  {emptyAction}
+                </div>
+              </td>
+            </tr>
           ) : pageRows.map((row) => {
             const rowId = getRowId(row);
             return (
@@ -232,6 +246,7 @@ export function AdminDataTable<T>({
           })}
         </tbody>
       </table>
+      {!hidePagination && (
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink/10 px-4 py-3">
         <label className="font-body text-sm text-text-secondary">
           Filas
@@ -245,6 +260,7 @@ export function AdminDataTable<T>({
           <button type="button" className="rounded-lg border border-ink/20 px-3 py-1.5 text-sm" disabled={pageSafe >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>Siguiente</button>
         </div>
       </div>
+      )}
       {bulkActions.length > 0 && selectedRows.length > 0 && (
         <div className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-lg border border-border-default bg-surface-primary px-4 py-3 shadow-[var(--ruum-shadow-4)] lg:left-[calc(var(--admin-sidebar-width,18rem)+1rem)]">
           <p className="font-body text-sm font-semibold text-ink">{selectedRows.length.toLocaleString("es-MX")} seleccionado{selectedRows.length === 1 ? "" : "s"}</p>
