@@ -17,7 +17,7 @@ import { obtenerAdminActual } from "@ruum/api/services";
 import { normalizarRolAdmin, puedeVerRuta, type RolAdminOperativo } from "../lib/roles-admin";
 
 const PRIORITARIOS_POR_ROL: Partial<Record<RolAdminOperativo, readonly string[]>> = {
-  operador: ["/", "/viajes", "/conductores?filtro=en_revision", "/alertas-sla?filtro=vencidas"],
+  operador: ["/", "/viajes", "/conductores", "/alertas-sla?filtro=vencidas"],
   supervisor: ["/", "/viajes", "/alertas-sla?filtro=vencidas", "/incidencias?filtro=abiertas"],
   finanzas: ["/", "/viajes", "/pagos?filtro=pendientes", "/tarifas"],
   compliance: ["/", "/documentos?filtro=por_vencer", "/incidencias?filtro=abiertas", "/alertas-sla?filtro=vencidas"],

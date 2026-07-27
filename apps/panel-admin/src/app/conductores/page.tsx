@@ -317,7 +317,7 @@ export default function PaginaConductoresAdmin() {
         contadorResultados={totalResultados}
         accion={(
           <Link href="/conductores/activos" className="inline-flex min-h-10 items-center rounded-lg border border-status-info bg-status-info px-4 py-2 font-body text-sm font-semibold text-surface-primary shadow-sm hover:bg-status-info/90">
-            Gestión conductores
+            Fichas operativas
           </Link>
         )}
       />
