@@ -14,7 +14,7 @@ import { esNativo } from "../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../lib/codigos-postales";
 import { registrarEventoUx } from "../../../lib/analytics";
-import { sugerirDireccionesPorCodigoPostal, tieneMapboxConfigurado } from "../../../lib/mapbox";
+import { esErrorConfiguracionMapbox, mensajeErrorMapbox, sugerirDireccionesPorCodigoPostal, tieneMapboxConfigurado } from "../../../lib/mapbox";
 import { MARCAS_CATALOGO, clasificacionesPorVehiculo, modelosPorMarca, resumenClasificacionVehiculo, tipoSugeridoParaVehiculo } from "../../../lib/catalogo-vehiculos";
 import {
   guardarBorradorTrasladoLocal,
@@ -605,10 +605,10 @@ export function NuevoTrasladoForm() {
         } else if (coordenadas.distanciaKm === undefined || coordenadas.tiempoEstimadoHoras === undefined) {
           setRutaAviso("Mapbox resolvió las direcciones, pero no devolvió una ruta con distancia y tiempo.");
         }
-      } catch {
+      } catch (error) {
         if (!cancelado) {
           setRutaEstimacion(null);
-          setRutaAviso("No pudimos calcular distancia y tiempo en este momento.");
+          setRutaAviso(mensajeErrorMapbox(error));
         }
       } finally {
         if (!cancelado) setRutaCalculando(false);
@@ -1204,11 +1204,20 @@ export function NuevoTrasladoForm() {
       // para ambos. Si ya hay coordenadas de GPS real para origen (más
       // precisas que geocodificar el texto de la dirección), esas ganan y
       // no se pisan.
-      const coordenadas = rutaEstimacion ?? await geocodificarRuta(
-        origenDireccion,
-        destinoDireccion,
-        datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined
-      );
+      let coordenadas = rutaEstimacion;
+      if (!coordenadas) {
+        try {
+          coordenadas = await geocodificarRuta(
+            origenDireccion,
+            destinoDireccion,
+            datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined
+          );
+        } catch (error) {
+          if (!esErrorConfiguracionMapbox(error)) throw error;
+          setRutaAviso(mensajeErrorMapbox(error));
+          coordenadas = { incompletas: true };
+        }
+      }
 
       // No bloqueamos la solicitud por esto — operaciones puede ubicar la
       // dirección a mano igual que hacía antes de que existiera geocodificación
