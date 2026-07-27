@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition, type InputHTMLAttributes, type ReactNode } from "react";
 import { Aviso, Button } from "@ruum/ui";
 import {
   actualizarEmpresaCorporativaAdmin,
@@ -97,6 +97,44 @@ const TABS_EMPRESA: Array<{ id: TabEmpresa; etiqueta: string }> = [
 
 const RFC_MEXICO = /^([A-Z&Ñ]{3}|[A-Z&Ñ]{4})\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[A-Z0-9]{3}$/;
 const CORREO_BASICO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const REGIMENES_FISCALES = [
+  "601 - General de Ley Personas Morales",
+  "603 - Personas Morales con Fines no Lucrativos",
+  "605 - Sueldos y Salarios e Ingresos Asimilados",
+  "606 - Arrendamiento",
+  "612 - Personas Físicas con Actividades Empresariales",
+  "616 - Sin obligaciones fiscales",
+  "626 - Régimen Simplificado de Confianza"
+];
+const USOS_CFDI = [
+  "G01 - Adquisición de mercancías",
+  "G03 - Gastos en general",
+  "I03 - Equipo de transporte",
+  "P01 - Por definir"
+];
+const CONDICIONES_PAGO = [
+  "Contado",
+  "Crédito 7 días",
+  "Crédito 15 días",
+  "Crédito 30 días",
+  "Orden de compra"
+];
+
+function soloNumeros(valor: string, max?: number) {
+  const limpio = valor.replace(/\D/g, "");
+  return typeof max === "number" ? limpio.slice(0, max) : limpio;
+}
+
+function normalizarRfc(valor: string) {
+  return valor.toUpperCase().replace(/[^A-Z0-9&Ñ]/g, "").slice(0, 13);
+}
+
+function formatearTelefono(valor: string) {
+  const digitos = soloNumeros(valor, 10);
+  if (digitos.length <= 3) return digitos;
+  if (digitos.length <= 6) return `(${digitos.slice(0, 3)}) ${digitos.slice(3)}`;
+  return `(${digitos.slice(0, 3)}) ${digitos.slice(3, 6)}-${digitos.slice(6)}`;
+}
 
 function fecha(fechaIso: string | null | undefined) {
   if (!fechaIso) return "Sin fecha";
@@ -115,6 +153,10 @@ function badgeEstado(estado: EstadoVerificacion | string) {
 
 function Badge({ estado, texto }: { estado: EstadoVerificacion | string; texto?: string }) {
   return <span className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold ${badgeEstado(estado)}`}>{texto ?? ETIQUETA_ESTADO[estado as EstadoVerificacion] ?? estado}</span>;
+}
+
+function textoEstadoOperativo(estado: string | null | undefined) {
+  return estado === "suspendida" ? "Suspendida" : "Activa";
 }
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | number | null | undefined }) {
@@ -152,6 +194,58 @@ function CampoTexto({
         className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm text-ink focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
         placeholder={placeholder}
       />
+    </label>
+  );
+}
+
+function SeccionAlta({ titulo, children }: { titulo: string; children: ReactNode }) {
+  return (
+    <section className="rounded-lg border border-border-default bg-surface-secondary/35 p-4">
+      <h3 className="font-body text-xs font-semibold uppercase tracking-wide text-text-secondary">{titulo}</h3>
+      <div className="mt-3 grid gap-3 md:grid-cols-6">{children}</div>
+    </section>
+  );
+}
+
+function CampoAlta({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  className = "md:col-span-3",
+  inputMode,
+  autoComplete,
+  list,
+  ayuda,
+  error
+}: {
+  label: string;
+  value: string;
+  onChange: (valor: string) => void;
+  placeholder?: string;
+  type?: "text" | "email" | "number" | "tel";
+  className?: string;
+  inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"];
+  autoComplete?: string;
+  list?: string;
+  ayuda?: string;
+  error?: string | null;
+}) {
+  return (
+    <label className={`flex flex-col gap-1.5 ${className}`}>
+      <span className="font-body text-xs font-semibold text-text-secondary">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        inputMode={inputMode}
+        autoComplete={autoComplete}
+        list={list}
+        placeholder={placeholder}
+        className="h-10 rounded-lg border border-ink/30 bg-surface-primary px-3 font-body text-sm text-ink placeholder:text-text-secondary/80 focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/35"
+      />
+      {(error || ayuda) && <span className={`font-body text-[11px] ${error ? "text-status-error" : "text-text-tertiary"}`}>{error ?? ayuda}</span>}
     </label>
   );
 }
@@ -478,6 +572,7 @@ export default function PaginaEmpresasAdmin() {
   const [actualizandoManual, setActualizandoManual] = useState(false);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [empresaAbiertaId, setEmpresaAbiertaId] = useState<string | null>(null);
   const [formulario, setFormulario] = useState(FORM_INICIAL);
   const [mensaje, setMensaje] = useState<{ tono: "info" | "danger" | "atencion"; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -668,6 +763,7 @@ export default function PaginaEmpresasAdmin() {
               Actualizar
             </AdminButton>
             <AdminButton
+              variant={mostrarFormulario ? "secondary" : undefined}
               disabled={!puedeGestionarEmpresas}
               onClick={() => setMostrarFormulario((actual) => !actual)}
             >
@@ -689,29 +785,60 @@ export default function PaginaEmpresasAdmin() {
       {mostrarFormulario && (
         <AdminPanel className="mt-6 p-5 sm:p-6">
           <div className="grid gap-5">
-            <div>
-              <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Alta corporativa</p>
-              <h2 className="mt-1 font-display text-lg font-semibold text-ink">Datos fiscales, titular y crédito real</h2>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Alta corporativa</p>
+                <h2 className="mt-1 font-display text-lg font-semibold text-ink">Crear empresa</h2>
+                <p className="mt-1 max-w-3xl font-body text-sm text-text-secondary">
+                  Captura fiscal controlada para evitar errores administrativos antes de solicitar aprobación.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <AdminButton variant="quiet" onClick={() => setFormulario(FORM_INICIAL)} disabled={guardando}>Limpiar</AdminButton>
+                <AdminButton variant="secondary" onClick={() => setMostrarFormulario(false)} disabled={guardando}>Cerrar alta</AdminButton>
+                <AdminButton onClick={crearEmpresa} loading={guardando} disabled={rfcDuplicado || formularioIncompleto || esDemo || !puedeGestionarEmpresas}>Guardar empresa</AdminButton>
+              </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <input value={formulario.nombre} onChange={(e) => actualizarCampo("nombre", e.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="Nombre comercial" />
-              <input value={formulario.rfc} onChange={(e) => actualizarCampo("rfc", e.target.value.toUpperCase())} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="RFC" />
-              <input value={formulario.razon_social} onChange={(e) => actualizarCampo("razon_social", e.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="Razón social" />
-              <input type="email" value={formulario.correo_facturacion} onChange={(e) => actualizarCampo("correo_facturacion", e.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="Correo facturación" />
-              <input value={formulario.regimen_fiscal} onChange={(e) => actualizarCampo("regimen_fiscal", e.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="Régimen fiscal" />
-              <input value={formulario.codigo_postal_fiscal} onChange={(e) => actualizarCampo("codigo_postal_fiscal", e.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="CP fiscal" />
-              <input value={formulario.uso_cfdi} onChange={(e) => actualizarCampo("uso_cfdi", e.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="Uso CFDI" />
-              <input value={formulario.condiciones_pago} onChange={(e) => actualizarCampo("condiciones_pago", e.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="Condiciones de pago" />
-              <input type="number" min="0" value={formulario.limite_credito_mxn} onChange={(e) => actualizarCampo("limite_credito_mxn", e.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="Límite crédito" />
-              <input type="number" min="0" value={formulario.dias_credito} onChange={(e) => actualizarCampo("dias_credito", e.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="Días crédito" />
-            </div>
+            <datalist id="regimenes-fiscales-empresa">
+              {REGIMENES_FISCALES.map((opcion) => <option key={opcion} value={opcion} />)}
+            </datalist>
+            <datalist id="usos-cfdi-empresa">
+              {USOS_CFDI.map((opcion) => <option key={opcion} value={opcion} />)}
+            </datalist>
+            <datalist id="condiciones-pago-empresa">
+              {CONDICIONES_PAGO.map((opcion) => <option key={opcion} value={opcion} />)}
+            </datalist>
 
-            <div className="grid gap-4 border-t border-ink/10 pt-5 md:grid-cols-3">
-              <input value={formulario.titular_nombre} onChange={(e) => actualizarCampo("titular_nombre", e.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="Titular" />
-              <input type="email" value={formulario.titular_correo} onChange={(e) => actualizarCampo("titular_correo", e.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="Correo titular" />
-              <input value={formulario.titular_telefono} onChange={(e) => actualizarCampo("titular_telefono", e.target.value)} className="rounded-lg border border-ink/20 bg-surface-primary px-3.5 py-2.5 font-body text-sm text-ink" placeholder="Teléfono titular" />
-            </div>
+            <SeccionAlta titulo="Información de la empresa">
+              <CampoAlta label="Nombre comercial" value={formulario.nombre} onChange={(valor) => actualizarCampo("nombre", valor)} placeholder="Ruum corporativo" className="md:col-span-3" autoComplete="organization" />
+              <CampoAlta label="Razón social" value={formulario.razon_social} onChange={(valor) => actualizarCampo("razon_social", valor)} placeholder="Razón social completa" className="md:col-span-3" />
+            </SeccionAlta>
+
+            <SeccionAlta titulo="Datos fiscales">
+              <CampoAlta
+                label="RFC"
+                value={formulario.rfc}
+                onChange={(valor) => actualizarCampo("rfc", normalizarRfc(valor))}
+                placeholder="ABC010203AB1"
+                className="md:col-span-2"
+                ayuda={`${formulario.rfc.length}/13 caracteres`}
+                error={formulario.rfc && formulario.rfc.length !== 12 && formulario.rfc.length !== 13 ? "Debe tener 12 o 13 caracteres." : rfcDuplicado ? "Ya existe una empresa con este RFC." : null}
+              />
+              <CampoAlta label="Régimen fiscal" value={formulario.regimen_fiscal} onChange={(valor) => actualizarCampo("regimen_fiscal", valor)} placeholder="Buscar régimen" className="md:col-span-4" list="regimenes-fiscales-empresa" />
+              <CampoAlta label="CP fiscal" value={formulario.codigo_postal_fiscal} onChange={(valor) => actualizarCampo("codigo_postal_fiscal", soloNumeros(valor, 5))} placeholder="00000" className="md:col-span-2" inputMode="numeric" />
+              <CampoAlta label="Uso CFDI" value={formulario.uso_cfdi} onChange={(valor) => actualizarCampo("uso_cfdi", valor)} placeholder="Buscar uso CFDI" className="md:col-span-2" list="usos-cfdi-empresa" />
+              <CampoAlta label="Condiciones de pago" value={formulario.condiciones_pago} onChange={(valor) => actualizarCampo("condiciones_pago", valor)} placeholder="Seleccionar condición" className="md:col-span-2" list="condiciones-pago-empresa" />
+              <CampoAlta label="Límite de crédito" value={formulario.limite_credito_mxn} onChange={(valor) => actualizarCampo("limite_credito_mxn", soloNumeros(valor))} placeholder="0" className="md:col-span-2" inputMode="numeric" />
+              <CampoAlta label="Días de crédito" value={formulario.dias_credito} onChange={(valor) => actualizarCampo("dias_credito", soloNumeros(valor, 3))} placeholder="0" className="md:col-span-2" inputMode="numeric" />
+            </SeccionAlta>
+
+            <SeccionAlta titulo="Contacto y titular">
+              <CampoAlta label="Nombre del titular" value={formulario.titular_nombre} onChange={(valor) => actualizarCampo("titular_nombre", valor)} placeholder="Nombre completo" className="md:col-span-2" autoComplete="name" />
+              <CampoAlta label="Correo titular" type="email" value={formulario.titular_correo} onChange={(valor) => actualizarCampo("titular_correo", valor)} placeholder="titular@empresa.com" className="md:col-span-2" autoComplete="email" />
+              <CampoAlta label="Teléfono titular" type="tel" value={formulario.titular_telefono} onChange={(valor) => actualizarCampo("titular_telefono", formatearTelefono(valor))} placeholder="(123) 456-7890" className="md:col-span-2" inputMode="tel" autoComplete="tel" />
+              <CampoAlta label="Correo facturación" type="email" value={formulario.correo_facturacion} onChange={(valor) => actualizarCampo("correo_facturacion", valor)} placeholder="facturacion@empresa.com" className="md:col-span-3" autoComplete="email" ayuda="Si queda vacío se usará el correo del titular." />
+            </SeccionAlta>
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <label className="flex items-center gap-2 font-body text-sm text-ink">
@@ -720,6 +847,7 @@ export default function PaginaEmpresasAdmin() {
               </label>
               <div className="flex flex-wrap gap-2">
                 <AdminButton variant="quiet" onClick={() => setFormulario(FORM_INICIAL)} disabled={guardando}>Limpiar</AdminButton>
+                <AdminButton variant="secondary" onClick={() => setMostrarFormulario(false)} disabled={guardando}>Cerrar alta</AdminButton>
                 <AdminButton onClick={crearEmpresa} loading={guardando} disabled={rfcDuplicado || formularioIncompleto || esDemo || !puedeGestionarEmpresas}>Guardar empresa</AdminButton>
               </div>
             </div>
