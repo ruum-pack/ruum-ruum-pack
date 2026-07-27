@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { Aviso, PassportCard } from "@ruum/ui";
+import { Aviso } from "@ruum/ui";
 import { AdminPanel } from "./admin-ui";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../lib/supabase-browser";
 import {
@@ -34,17 +34,17 @@ export type DashboardInitialData = {
 const ACCIONES_FRECUENTES = [
   {
     etiqueta: "Programar traslado",
-    detalle: "Carga corporativa o masiva",
+    detalle: "Desde archivo corporativo",
     href: "/masivos"
   },
   {
     etiqueta: "Asignar conductor",
-    detalle: "Traslados sin conductor",
+    detalle: "En traslados sin conductor",
     href: "/viajes?filtro=sin_asignacion&accion=asignar_conductor"
   },
   {
     etiqueta: "Registrar incidencia",
-    detalle: "Traslado activo",
+    detalle: "En traslados activos",
     href: "/viajes?filtro=activos&accion=registrar_incidencia"
   }
 ] as const;
@@ -175,54 +175,66 @@ export default function DashboardCliente({ inicial }: { inicial: DashboardInitia
     { etiqueta: "SLA", href: "/alertas-sla?categoria=sla_en_riesgo" },
     { etiqueta: turno, href: `/viajes?turno=${encodeURIComponent(turno.toLowerCase())}` }
   ], [turno]);
+  const conexionGlobal = estadoConexionGlobal(estadoConexionDatos, actualizacionGlobal, ahora);
 
   return (
     <main className="admin-page-shell">
-      <section className="rounded-card border border-border-default bg-surface-primary/90 px-4 py-4 shadow-[var(--ruum-shadow-1)] sm:px-5" aria-label="Cabecera operativa">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <section className="rounded-card border border-border-default bg-surface-primary/90 px-4 py-5 shadow-[var(--ruum-shadow-1)] sm:px-5" aria-label="Cabecera operativa">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0">
             <p className="font-mono-ruum text-admin-secundario uppercase tracking-[0.16em] text-signal">Torre de Control</p>
-            <h1 className="mt-1 font-display text-xl font-semibold text-ink">Dashboard operativo</h1>
-            <p className="mt-1 font-body text-sm text-text-secondary">{configuracionRol.descripcion}</p>
+            <h1 className="mt-1 font-display text-2xl font-semibold text-ink sm:text-3xl">Dashboard operativo</h1>
+            <p className="mt-2 max-w-3xl font-body text-base text-text-secondary">{configuracionRol.descripcion}</p>
           </div>
-          <div className="flex shrink-0 flex-col gap-2 sm:items-end">
-            <div className="flex flex-wrap items-center gap-2">
-              {filtrosRapidos.map((filtro) => (
-                <Link
-                  key={filtro.href}
-                  href={filtro.href}
-                  className="inline-flex min-h-9 items-center rounded-full border border-border-default bg-surface-secondary px-3 py-1 font-body text-xs font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink"
-                >
-                  {filtro.etiqueta}
-                </Link>
-              ))}
+          <div className="w-full rounded-card border border-border-default bg-surface-secondary px-4 py-4 shadow-[var(--ruum-shadow-1)] xl:max-w-xl" aria-label="Estado global del día">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Estado global del día</p>
+                <div className={`mt-2 inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 font-body text-sm font-semibold ${estadoOperacion === "Operación estable" ? "border-status-success/30 bg-status-success-soft text-status-success" : estadoOperacion === "Emergencia activa" ? "border-status-error/30 bg-status-error-soft text-status-error" : "border-status-warning/35 bg-status-warning-soft text-status-warning"}`}>
+                  <span className={`inline-block size-2.5 rounded-full ${estadoOperacion === "Operación estable" ? "bg-status-success" : estadoOperacion === "Emergencia activa" ? "bg-status-error" : "bg-status-warning"}`} aria-hidden="true" />
+                  {estadoOperacion}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => void cargarDashboard(true, true)}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-signal bg-signal px-4 py-2 font-body text-admin-boton font-semibold text-ink transition-colors hover:bg-signal/90 focus:outline-none focus:ring-2 focus:ring-focus-default/30 disabled:cursor-wait disabled:opacity-70"
+                disabled={actualizandoManual}
+              >
+                <span aria-hidden="true">↻</span>
+                {actualizandoManual ? "Actualizando" : "Actualizar"}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => void cargarDashboard(true, true)}
-              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2 font-body text-admin-boton font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink"
-              disabled={actualizandoManual}
-            >
-              {actualizandoManual ? "Actualizando tablero" : "Actualizar tablero"}
-            </button>
+            <dl className="mt-4 grid gap-2 font-body text-sm text-text-secondary sm:grid-cols-2">
+              <DatoEstado etiqueta="Última actualización" valor={actualizacionGlobal ? formatoHoraCorta(actualizacionGlobal) : "Sin respuesta"} />
+              <DatoEstado etiqueta="Rol / turno" valor={`${configuracionRol.etiqueta} · ${turno}`} />
+              <DatoEstado etiqueta="Sincronización" valor={actualizacionGlobal ? textoActualizadoHace(actualizacionGlobal, ahora) : "Sin corte"} />
+              <div className={`rounded-lg border px-3 py-2 ${conexionGlobal.clase}`}>
+                <dt className="font-body text-xs font-semibold uppercase tracking-wide">Datos en vivo</dt>
+                <dd className="mt-1 flex items-center gap-2 font-body text-sm font-semibold">
+                  <span className={`inline-block size-2 rounded-full ${conexionGlobal.punto}`} aria-hidden="true" />
+                  {conexionGlobal.etiqueta} · Auto-refresco 3 min
+                </dd>
+              </div>
+            </dl>
           </div>
-        </div>
-        <div className="mt-4 grid gap-2 font-body text-sm text-text-secondary md:grid-cols-2 xl:grid-cols-4">
-          <span className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 font-semibold ${estadoOperacion === "Operación estable" ? "border-status-success/30 bg-status-success-soft text-status-success" : estadoOperacion === "Emergencia activa" ? "border-status-error/30 bg-status-error-soft text-status-error" : "border-status-warning/35 bg-status-warning-soft text-status-warning"}`}>
-            <span className={`inline-block size-2 rounded-full ${estadoOperacion === "Operación estable" ? "bg-status-success" : estadoOperacion === "Emergencia activa" ? "bg-status-error" : "bg-status-warning"}`} aria-hidden="true" />
-            {estadoOperacion}
-          </span>
-          <span className="inline-flex min-h-10 items-center rounded-lg border border-border-default bg-surface-secondary px-3 py-2">
-            Última actualización: {actualizacionGlobal ? formatoHoraCorta(actualizacionGlobal) : "sin respuesta"}
-          </span>
-          <span className="inline-flex min-h-10 items-center rounded-lg border border-border-default bg-surface-secondary px-3 py-2">
-            {textoEstadoConexion(estadoConexionDatos)} · {actualizacionGlobal ? textoActualizadoHace(actualizacionGlobal, ahora) : "sin corte"}
-          </span>
-          <span className="inline-flex min-h-10 items-center rounded-lg border border-border-default bg-surface-secondary px-3 py-2">
-            {configuracionRol.etiqueta} · {turno} · Auto-refresco 3 min
-          </span>
         </div>
       </section>
+
+      <nav className="sticky top-0 z-20 mt-4 rounded-card border border-border-default bg-surface-primary/95 px-3 py-3 shadow-[var(--ruum-shadow-1)] backdrop-blur" aria-label="Filtros rápidos del dashboard">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Filtros superiores</span>
+          {filtrosRapidos.map((filtro) => (
+            <Link
+              key={filtro.href}
+              href={filtro.href}
+              className="inline-flex min-h-11 items-center rounded-full border border-border-default bg-surface-secondary px-4 py-2 font-body text-sm font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink focus:outline-none focus:ring-2 focus:ring-focus-default/30"
+            >
+              {filtro.etiqueta}
+            </Link>
+          ))}
+        </div>
+      </nav>
 
       {errorOperacional && (
         <div className="mt-4">
@@ -297,11 +309,24 @@ function renderWidgetDashboard(
   }
 ) {
   if (widget === "indicadores") {
+    const indicadorSinAsignacion = contexto.indicadoresVisibles.find((indicador) => indicador.clave === "sin_asignacion");
     return (
-      <section key={widget} className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-label="Indicadores accionables">
-        {contexto.indicadoresVisibles.map((indicador) => (
-          <IndicadorAccionable key={indicador.clave} indicador={indicador} />
-        ))}
+      <section key={widget} className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]" aria-label="Indicadores y acciones operativas">
+        <div className="rounded-card border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-1)]">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Métricas clave</p>
+              <h2 className="mt-1 font-display text-lg font-semibold text-ink">Prioridad operativa</h2>
+            </div>
+            <p className="font-body text-sm text-text-secondary">{contexto.indicadoresVisibles.length} indicadores activos</p>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+            {contexto.indicadoresVisibles.map((indicador) => (
+              <IndicadorAccionable key={indicador.clave} indicador={indicador} />
+            ))}
+          </div>
+        </div>
+        <AccionesFrecuentes indicadorSinAsignacion={indicadorSinAsignacion} />
       </section>
     );
   }
@@ -344,8 +369,8 @@ function renderWidgetDashboard(
           <div className="mt-4 space-y-2">
             {sistemaLimpio && (
               <div className="rounded-lg border border-status-success/30 bg-status-success-soft px-4 py-4">
-                <p className="font-body text-sm font-semibold text-status-success">Sistema limpio: no hay alertas pendientes de atención.</p>
-                <p className="mt-1 font-body text-xs text-text-secondary">Las incidencias abiertas y documentos bloqueantes aparecerán aquí cuando requieran intervención.</p>
+                <p className="font-body text-sm font-semibold text-status-success">Sistema limpio: no hay alertas pendientes.</p>
+                <p className="mt-1 font-body text-xs text-text-secondary">Puedes concentrarte en programar nuevos traslados; las incidencias abiertas y documentos bloqueantes aparecerán aquí cuando requieran intervención.</p>
               </div>
             )}
             {contexto.incidencias.map((i) => (
@@ -364,31 +389,89 @@ function renderWidgetDashboard(
     );
   }
 
+  return null;
+}
+
+function AccionesFrecuentes({ indicadorSinAsignacion }: { indicadorSinAsignacion?: IndicadorAccionableDashboard }) {
+  const sinAsignacion = indicadorSinAsignacion?.valor ?? 0;
   return (
-    <section key={widget} className="mt-8">
-      <AdminPanel className="p-5 sm:p-6">
-        <h2 className="font-display text-base font-semibold">Acciones frecuentes</h2>
-        <div className="mt-3 grid gap-3">
-          {ACCIONES_FRECUENTES.map((accion) => (
-            <Link key={accion.href} href={accion.href}>
-              <PassportCard className="transition-shadow hover:border-signal/40 hover:shadow-md">
-                <p className="font-body text-sm font-semibold text-ink">{accion.etiqueta}</p>
-                <p className="mt-1 font-body text-xs text-text-tertiary">{accion.detalle}</p>
-              </PassportCard>
+    <aside className="rounded-card border border-border-default bg-surface-primary p-4 shadow-[var(--ruum-shadow-1)]" aria-label="Acciones frecuentes">
+      <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Flujo operativo</p>
+      <h2 className="mt-1 font-display text-lg font-semibold text-ink">Acciones frecuentes</h2>
+      <div className="mt-4 grid gap-3">
+        {ACCIONES_FRECUENTES.map((accion) => {
+          const esAsignacion = accion.etiqueta === "Asignar conductor";
+          const estaHabilitada = !esAsignacion || sinAsignacion > 0;
+          const estado = esAsignacion
+            ? sinAsignacion > 0
+              ? `${sinAsignacion} pendiente${sinAsignacion === 1 ? "" : "s"}`
+              : "Sin pendientes"
+            : "Disponible";
+          const clase = estaHabilitada
+            ? esAsignacion && sinAsignacion > 0
+              ? "border-status-warning/35 bg-status-warning-soft text-status-warning hover:border-status-warning/70"
+              : "border-border-default bg-surface-secondary text-ink hover:border-signal/40"
+            : "border-border-default bg-surface-secondary text-text-secondary";
+          const contenido = (
+            <span className="flex items-start justify-between gap-3">
+              <span>
+                <span className="block font-body text-sm font-semibold">{accion.etiqueta}</span>
+                <span className="mt-1 block font-body text-xs text-text-tertiary">{accion.detalle}</span>
+              </span>
+              <span className="rounded-full border border-current px-2 py-1 font-body text-[0.68rem] font-semibold uppercase tracking-wide">
+                {estado}
+              </span>
+            </span>
+          );
+          if (!estaHabilitada) {
+            return (
+              <span key={accion.href} aria-disabled="true" className={`block rounded-card border px-4 py-3 ${clase}`}>
+                {contenido}
+              </span>
+            );
+          }
+          return (
+            <Link key={accion.href} href={accion.href} className={`block rounded-card border px-4 py-3 transition-colors focus:outline-none focus:ring-2 focus:ring-focus-default/30 ${clase}`}>
+              {contenido}
             </Link>
-          ))}
-        </div>
-      </AdminPanel>
-    </section>
+          );
+        })}
+      </div>
+    </aside>
   );
 }
 
-function textoEstadoConexion(estado: EstadoConexionDashboard) {
-  if (estado === "datos_en_vivo") return "Datos en vivo";
-  if (estado === "actualizando") return "Actualizando";
-  if (estado === "reconectando") return "Reconectando";
-  if (estado === "desactualizado") return "Posiblemente desactualizados";
-  return "Sin conexión";
+function DatoEstado({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+  return (
+    <div className="rounded-lg border border-border-default bg-surface-primary px-3 py-2">
+      <dt className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">{etiqueta}</dt>
+      <dd className="mt-1 font-body text-sm font-semibold text-ink">{valor}</dd>
+    </div>
+  );
+}
+
+function estadoConexionGlobal(estado: EstadoConexionDashboard, actualizacion: Date | null, ahora: Date | null) {
+  const referencia = ahora ?? new Date();
+  const minutos = actualizacion ? Math.floor((referencia.getTime() - actualizacion.getTime()) / 60000) : Number.POSITIVE_INFINITY;
+  if (estado === "sin_conexion" || estado === "desactualizado" || minutos >= 5) {
+    return {
+      etiqueta: estado === "sin_conexion" ? "Sin conexión" : "Revisar conexión",
+      clase: "border-status-error/30 bg-status-error-soft text-status-error",
+      punto: "bg-status-error"
+    };
+  }
+  if (estado === "actualizando" || estado === "reconectando" || minutos >= 3) {
+    return {
+      etiqueta: estado === "reconectando" ? "Reconectando" : "Sincronizando",
+      clase: "border-status-warning/35 bg-status-warning-soft text-status-warning",
+      punto: "bg-status-warning"
+    };
+  }
+  return {
+    etiqueta: "Conectado",
+    clase: "border-status-success/30 bg-status-success-soft text-status-success",
+    punto: "bg-status-success"
+  };
 }
 
 function textoActualizadoHace(fecha: Date, ahora: Date | null) {
@@ -403,36 +486,31 @@ function textoActualizadoHace(fecha: Date, ahora: Date | null) {
 
 function IndicadorAccionable({ indicador }: { indicador: IndicadorAccionableDashboard }) {
   const estado = estadoKpi(indicador);
-  const clase = estado.clase;
-  const claseValor = indicador.severidad === "critico"
-    ? "text-status-error"
-    : indicador.severidad === "atencion"
-      ? "text-status-warning"
-      : indicador.valor === 0 && estado.positivoEnCero
-        ? "text-status-success"
-        : "text-ink";
 
   return (
     <Link
       href={indicador.href}
-      className={`block min-h-44 rounded-card border p-4 shadow-[var(--ruum-shadow-1)] transition-colors focus:outline-none focus:ring-2 focus:ring-focus-default/30 ${clase}`}
-      aria-label={`${indicador.titulo}: ${indicador.valor}. Abrir vista filtrada`}
+      className="block min-h-60 rounded-card border border-border-default bg-surface-secondary p-4 shadow-[var(--ruum-shadow-1)] transition-colors hover:border-signal/40 focus:outline-none focus:ring-2 focus:ring-focus-default/30"
+      aria-label={`${indicador.titulo}: ${indicador.valor}. Ver detalles`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">{indicador.titulo}</p>
-          <p className={`mt-2 font-display text-4xl font-bold leading-none ${claseValor}`}>{indicador.valor}</p>
+      <div className="flex h-full flex-col">
+        <p className="min-h-10 font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">{indicador.titulo}</p>
+        <div className="my-4 flex flex-1 flex-col items-center justify-center text-center">
+          <p className="font-display text-5xl font-bold leading-none text-ink">{indicador.valor}</p>
+          <span className={`mt-3 rounded-full border px-3 py-1.5 font-body text-xs font-semibold ${estado.badgeClase}`}>
+            {estado.etiqueta}
+          </span>
         </div>
-        <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-semibold ${estado.badgeClase}`}>
-          {estado.etiqueta}
-        </span>
-      </div>
-      <dl className="mt-4 grid gap-2 border-t border-ink/10 pt-3">
-        <DatoKpi etiqueta="Tendencia" valor={formatoVariacion(indicador.variacion)} />
+        <dl className="grid gap-2 border-t border-ink/10 pt-3">
+          <DatoKpi etiqueta="Tendencia" valor={formatoVariacion(indicador.variacion)} />
         <DatoKpi etiqueta="Umbral" valor={indicador.umbral} />
         <DatoKpi etiqueta="Clave operativa" valor={indicador.subgrupoCritico} />
-      </dl>
-      <p className="mt-3 font-body text-xs font-semibold text-status-info">Abrir vista filtrada</p>
+        </dl>
+        <span className="mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-status-info/35 bg-surface-primary px-3 py-2 font-body text-admin-boton font-semibold text-status-info">
+          <span aria-hidden="true">▦</span>
+          Ver detalles
+        </span>
+      </div>
     </Link>
   );
 }
@@ -443,7 +521,6 @@ function estadoKpi(indicador: IndicadorAccionableDashboard) {
     return {
       positivoEnCero,
       etiqueta: indicador.clave === "sin_asignacion" ? "Todo asignado" : "Sin riesgo",
-      clase: "border-status-success/30 bg-status-success-soft hover:border-status-success/70",
       badgeClase: "border-status-success/30 bg-surface-primary text-status-success"
     };
   }
@@ -451,7 +528,6 @@ function estadoKpi(indicador: IndicadorAccionableDashboard) {
     return {
       positivoEnCero,
       etiqueta: "Crítico",
-      clase: "border-status-error/35 bg-status-error-soft hover:border-status-error/70",
       badgeClase: "border-status-error/30 bg-surface-primary text-status-error"
     };
   }
@@ -459,14 +535,12 @@ function estadoKpi(indicador: IndicadorAccionableDashboard) {
     return {
       positivoEnCero,
       etiqueta: "Atención",
-      clase: "border-status-warning/35 bg-status-warning-soft hover:border-status-warning/70",
       badgeClase: "border-status-warning/35 bg-surface-primary text-status-warning"
     };
   }
   return {
     positivoEnCero,
     etiqueta: "Normal",
-    clase: "border-border-default bg-surface-primary hover:border-signal/35",
     badgeClase: "border-ink/10 bg-surface-secondary text-text-secondary"
   };
 }
