@@ -3,6 +3,10 @@ import { crearClienteServidor } from "../../../../lib/supabase-server";
 import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
 import { normalizarError, registrarEvento } from "@ruum/api/services";
 
+const LOGIN_CONDUCTOR_URL = process.env.NEXT_PUBLIC_APP_CONDUCTOR_URL ?? "https://conductor.ruumruum.mx/login";
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM = process.env.RESEND_FROM ?? "Ruum Ruum <onboarding@ruumruum.mx>";
+
 function texto(valor: unknown) {
   return typeof valor === "string" ? valor.trim() : "";
 }
@@ -14,6 +18,58 @@ function textoONull(valor: unknown) {
 
 function correo(valor: unknown) {
   return texto(valor).toLowerCase();
+}
+
+function booleano(valor: unknown) {
+  return valor === true;
+}
+
+function generarPasswordTemporal() {
+  const bytes = new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  const base = Buffer.from(bytes).toString("base64url").slice(0, 18);
+  return `${base}A7!`;
+}
+
+async function enviarCorreoPasswordTemporal(parametros: {
+  email: string;
+  nombre: string;
+  passwordTemporal: string;
+}) {
+  if (!RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY no esta configurado para enviar la contraseña temporal.");
+  }
+
+  const respuesta = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${RESEND_API_KEY}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      from: RESEND_FROM,
+      to: parametros.email,
+      subject: "Tu acceso temporal a Ruum Ruum Conductor",
+      text: [
+        `Hola ${parametros.nombre},`,
+        "",
+        "Creamos tu cuenta operativa de Ruum Ruum Conductor.",
+        "",
+        `Correo: ${parametros.email}`,
+        `Contraseña temporal: ${parametros.passwordTemporal}`,
+        `Acceso: ${LOGIN_CONDUCTOR_URL}`,
+        "",
+        "Por seguridad, entra con esta contraseña temporal y cámbiala desde tu cuenta lo antes posible.",
+        "",
+        "Si no esperabas este correo, contacta al equipo operativo de Ruum Ruum."
+      ].join("\n")
+    })
+  });
+
+  if (!respuesta.ok) {
+    const detalle = await respuesta.json().catch(() => ({})) as { message?: string; error?: string };
+    throw new Error(detalle.message ?? detalle.error ?? "No se pudo enviar el correo de acceso temporal.");
+  }
 }
 
 export async function POST(request: Request) {
@@ -32,29 +88,39 @@ export async function POST(request: Request) {
     }
 
     const nombre = texto(body.nombre);
+    const apellidos = texto(body.apellidos);
+    const nombreCompleto = [nombre, apellidos].filter(Boolean).join(" ");
     const telefono = texto(body.telefono);
     const curp = texto(body.curp).toUpperCase();
     const licenciaNumero = texto(body.licencia_numero);
-    if (!nombre || !telefono || !curp || !licenciaNumero) {
+    const autorizaVerificacion = booleano(body.autoriza_verificacion_antecedentes);
+    const declaraSinSuspensiones = booleano(body.declara_sin_suspensiones);
+    if (!nombre || !apellidos || !telefono || !curp || !licenciaNumero || !autorizaVerificacion || !declaraSinSuspensiones) {
       return NextResponse.json({ error: "DATOS_CONDUCTOR_INCOMPLETOS" }, { status: 400 });
     }
 
-    const { data: invitacion, error: errorInvitacion } = await serviceRole.auth.admin.inviteUserByEmail(email, {
-      data: {
+    const passwordTemporal = generarPasswordTemporal();
+    const { data: cuenta, error: errorCuenta } = await serviceRole.auth.admin.createUser({
+      email,
+      password: passwordTemporal,
+      email_confirm: true,
+      user_metadata: {
+        tipo_registro: "conductor",
+        version_registro: 2,
         tipo_cuenta: "conductor",
-        nombre,
+        nombre: nombreCompleto,
         telefono
       }
     });
-    if (errorInvitacion) throw errorInvitacion;
-    if (!invitacion.user?.id) throw new Error("Auth no devolvio el usuario invitado.");
+    if (errorCuenta) throw errorCuenta;
+    if (!cuenta.user?.id) throw new Error("Auth no devolvio el usuario creado.");
 
     const { data: conductor, error: errorConductor } = await serviceRole
       .from("conductores")
       .insert({
-        auth_user_id: invitacion.user.id,
+        auth_user_id: cuenta.user.id,
         estado: "activo",
-        nombre,
+        nombre: nombreCompleto,
         telefono,
         curp,
         licencia_numero: licenciaNumero,
@@ -68,24 +134,37 @@ export async function POST(request: Request) {
         numero: textoONull(body.numero),
         referencias: textoONull(body.referencias),
         contacto_emergencia_nombre: texto(body.contacto_emergencia_nombre),
-        contacto_emergencia_telefono: texto(body.contacto_emergencia_telefono)
+        contacto_emergencia_telefono: texto(body.contacto_emergencia_telefono),
+        autoriza_verificacion_antecedentes: autorizaVerificacion,
+        declara_sin_suspensiones: declaraSinSuspensiones,
+        version_terminos_aceptada: 1,
+        terminos_aceptados_en: new Date().toISOString(),
+        marca_terminos: "alta_admin_password_temporal"
       })
       .select("*")
       .single();
     if (errorConductor) {
-      await serviceRole.auth.admin.deleteUser(invitacion.user.id);
+      await serviceRole.auth.admin.deleteUser(cuenta.user.id);
       if (errorConductor.code === "23505") {
         return NextResponse.json({ error: "CONDUCTOR_DUPLICADO" }, { status: 409 });
       }
       throw errorConductor;
     }
 
+    try {
+      await enviarCorreoPasswordTemporal({ email, nombre: nombreCompleto, passwordTemporal });
+    } catch (errorCorreo) {
+      await serviceRole.from("conductores").delete().eq("id", conductor.id);
+      await serviceRole.auth.admin.deleteUser(cuenta.user.id);
+      throw errorCorreo;
+    }
+
     await registrarEvento(cliente, "creacion_conductor" as never, "admin", conductor.id, {
-      accion: "invitacion_auth_segura",
+      accion: "password_temporal_enviado",
       auth_user_id: "[REDACTED]"
     });
 
-    return NextResponse.json({ conductor, authUserId: invitacion.user.id }, { status: 201 });
+    return NextResponse.json({ conductor, authUserId: cuenta.user.id }, { status: 201 });
   } catch (e) {
     const normalizado = normalizarError(e);
     return NextResponse.json({ error: normalizado.codigo, mensaje: normalizado.message }, { status: 500 });

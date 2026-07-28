@@ -1867,6 +1867,7 @@ export async function darBajaConductorAdmin(
 export type ConductorCrearAdmin = {
   correo: string;
   nombre: string;
+  apellidos: string;
   telefono: string;
   curp: string;
   licencia_numero: string;
@@ -1881,6 +1882,8 @@ export type ConductorCrearAdmin = {
   referencias?: string;
   contacto_emergencia_nombre: string;
   contacto_emergencia_telefono: string;
+  autoriza_verificacion_antecedentes: boolean;
+  declara_sin_suspensiones: boolean;
 };
 
 export async function crearConductorAdmin(
@@ -1915,13 +1918,13 @@ export async function listarConductoresAdminPaginados(
   await assertAdminPermission(cliente, "conductores:leer");
   const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "listar_conductores_admin_paginados",
-    args: { p_pagina: number; p_tamano: number; p_busqueda?: string; p_estado?: string }
+    args: { p_pagina: number; p_tamano: number; p_busqueda: string | null; p_estado: string | null }
   ) => Promise<{ data: PaginacionConductores | null; error: unknown }>;
   const { data, error } = await rpc("listar_conductores_admin_paginados", {
     p_pagina: pagina,
     p_tamano: tamano,
-    p_busqueda: busqueda?.trim() || undefined,
-    p_estado: estado && estado !== "todos" ? estado : undefined
+    p_busqueda: busqueda?.trim() || null,
+    p_estado: estado && estado !== "todos" ? estado : null
   });
   if (error && esRpcPaginacionNoDisponible(error)) {
     return listarConductoresAdminPaginadosFallback(cliente, pagina, tamano, busqueda, estado);

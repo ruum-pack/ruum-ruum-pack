@@ -78,7 +78,9 @@ test("invitaciones y revocacion Auth usan backend privilegiado", () => {
 
   assert.match(serviceRole, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(invitarUsuario, /auth\.admin\.inviteUserByEmail/);
-  assert.match(invitarConductor, /auth\.admin\.inviteUserByEmail/);
+  assert.match(invitarConductor, /auth\.admin\.createUser/);
+  assert.match(invitarConductor, /passwordTemporal/);
+  assert.match(invitarConductor, /RESEND_API_KEY/);
   assert.match(acceso, /auth\.admin\.updateUserById/);
   assert.match(acceso, /ban_duration/);
   assert.match(adminService, /\/api\/admin-auth\/invitar-usuario/);
@@ -90,8 +92,9 @@ test("invitaciones y revocacion Auth usan backend privilegiado", () => {
 test("alta de conductor no acepta UUID Auth manual", () => {
   const page = read("apps/panel-admin/src/app/conductores/activos/nuevo/page.tsx");
   const service = read("packages/api/src/services/admin.ts");
-  assert.match(page, /Correo de invitación/);
-  assert.match(page, /Invitar y crear conductor/);
+  assert.match(page, /Correo electrónico/);
+  assert.match(page, /contraseña temporal/);
+  assert.match(page, /Tipo de licencia/);
   assert.doesNotMatch(page, /auth_user_id \(UUID\)|00000000-0000-0000-0000-000000000000/);
   assert.match(service, /correo: string/);
   assert.doesNotMatch(service, /ConductorCrearAdmin = \{\s*auth_user_id/s);
