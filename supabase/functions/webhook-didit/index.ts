@@ -1,108 +1,118 @@
 /// <reference lib="deno.ns" />
 /// <reference lib="dom" />
 
-// Crea una sesión de verificación de identidad en Didit (OCR + prueba de
-// vida + coincidencia facial) para una solicitud de conductor que ya está
-// en revisión, y devuelve la URL para que el conductor la complete desde
-// la app (WebView / navegador in-app).
-//
-// Se llama desde la app del conductor cuando su solicitud llega a
-// `en_revision`, en vez de esperar a que un admin revise manualmente los
-// documentos de identidad.
+// Recibe los webhooks de Didit (status.updated / decision.updated) y
+// resuelve automáticamente la solicitud del conductor.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-signature, x-timestamp",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function json(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 }
 
+async function firmaValida(payloadCrudo: string, firmaHeader: string | null, timestampHeader: string | null, secreto: string): Promise<boolean> {
+  if (!firmaHeader || !timestampHeader || !secreto) return false;
+
+  const ahora = Math.floor(Date.now() / 1000);
+  const ts = Number(timestampHeader);
+  if (!Number.isFinite(ts) || Math.abs(ahora - ts) > 300) return false;
+
+  const clave = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secreto),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const firmaCalculada = await crypto.subtle.sign("HMAC", clave, new TextEncoder().encode(payloadCrudo));
+  const hex = Array.from(new Uint8Array(firmaCalculada), (b) => b.toString(16).padStart(2, "0")).join("");
+
+  if (hex.length !== firmaHeader.length) return false;
+  let diff = 0;
+  for (let i = 0; i < hex.length; i += 1) diff |= hex.charCodeAt(i) ^ firmaHeader.charCodeAt(i);
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "POST") return json({ error: "Método no permitido" }, 405);
 
-  const authorization = req.headers.get("Authorization");
-  if (!authorization) return json({ error: "Inicia sesión para continuar." }, 401);
-
   const url = Deno.env.get("SUPABASE_URL") ?? "";
-  const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const diditApiKey = Deno.env.get("DIDIT_API_KEY") ?? "";
-  const diditWorkflowId = Deno.env.get("DIDIT_WORKFLOW_ID") ?? "";
-  const callbackUrl = Deno.env.get("DIDIT_CALLBACK_URL") ?? "";
-  if (!url || !anon || !serviceKey || !diditApiKey || !diditWorkflowId) {
-    return json({ error: "El servicio de verificación no está configurado." }, 500);
+  const webhookSecret = Deno.env.get("DIDIT_WEBHOOK_SECRET") ?? "";
+  if (!url || !serviceKey || !webhookSecret) {
+    console.error("webhook-didit sin configurar");
+    return json({ error: "Servicio no configurado." }, 500);
   }
 
-  let body: Record<string, unknown>;
-  try { body = await req.json(); } catch { return json({ error: "Cuerpo inválido." }, 400); }
-  const solicitudId = String(body.solicitud_id ?? "");
-  if (!UUID.test(solicitudId)) return json({ error: "solicitud_id inválido." }, 400);
+  const payloadCrudo = await req.text();
+  const firma = req.headers.get("x-signature") ?? req.headers.get("X-Signature");
+  const timestamp = req.headers.get("x-timestamp") ?? req.headers.get("X-Timestamp");
+  if (!(await firmaValida(payloadCrudo, firma, timestamp, webhookSecret))) {
+    console.error("Firma de webhook Didit inválida");
+    return json({ error: "Firma inválida." }, 401);
+  }
 
-  const usuario = createClient(url, anon, { global: { headers: { Authorization: authorization } } });
+  let evento: {
+    session_id?: string;
+    status?: string;
+    vendor_data?: string;
+    decision?: unknown;
+  };
+  try {
+    evento = JSON.parse(payloadCrudo);
+  } catch {
+    return json({ error: "JSON inválido." }, 400);
+  }
+
+  const sessionId = evento.session_id;
+  const estadoDidit = (evento.status ?? "").toString();
+  const solicitudId = evento.vendor_data;
+  if (!sessionId || !solicitudId) return json({ error: "Payload incompleto." }, 400);
+
+  if (!["Approved", "Declined", "In Review"].includes(estadoDidit)) {
+    return json({ recibido: true, ignorado: estadoDidit }, 200);
+  }
+
   const servicio = createClient(url, serviceKey);
+  const estadoInterno = estadoDidit === "Approved" ? "aprobado" : estadoDidit === "Declined" ? "rechazado" : "en_revision";
 
-  const { data: sesion, error: errorSesion } = await usuario.auth.getUser();
-  if (errorSesion || !sesion.user) return json({ error: "La sesión no es válida." }, 401);
-
-  // Sólo el dueño de la solicitud puede iniciar su propia verificación, y
-  // sólo si ya está en_revision (documentos y consentimientos completos).
-  const { data: solicitud, error: errorSolicitud } = await usuario
-    .from("solicitudes_conductor")
-    .select("id,estado")
-    .eq("id", solicitudId)
-    .eq("auth_user_id", sesion.user.id)
-    .maybeSingle();
-  if (errorSolicitud) return json({ error: "No fue posible validar la solicitud." }, 500);
-  if (!solicitud) return json({ error: "Solicitud no encontrada." }, 404);
-  if (solicitud.estado !== "en_revision") {
-    return json({ error: "La solicitud debe estar en revisión para iniciar la verificación automática." }, 409);
-  }
-
-  // Evita crear sesiones duplicadas mientras una ya está pendiente.
-  const { data: pendiente } = await servicio
+  const { data: verificacion, error: errorUpdate } = await servicio
     .from("verificaciones_identidad_didit")
-    .select("session_id")
-    .eq("solicitud_id", solicitudId)
-    .in("estado", ["pendiente", "en_revision"])
-    .order("creado_en", { ascending: false })
+    .update({ estado: estadoInterno, decision: evento.decision ?? evento })
+    .eq("session_id", sessionId)
+    .select("id,solicitud_id,estado")
     .maybeSingle();
-  if (pendiente) {
-    return json({ session_id: pendiente.session_id, reutilizada: true }, 200);
+  if (errorUpdate || !verificacion) {
+    console.error("No se encontró la verificación para session_id", sessionId, errorUpdate?.message);
+    return json({ error: "Verificación no encontrada." }, 404);
   }
 
-  const respuestaDidit = await fetch("https://verification.didit.me/v2/session/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": diditApiKey },
-    body: JSON.stringify({
-      workflow_id: diditWorkflowId,
-      vendor_data: solicitudId,
-      ...(callbackUrl ? { callback: callbackUrl } : {}),
-    }),
-  });
-  if (!respuestaDidit.ok) {
-    const detalle = await respuestaDidit.text().catch(() => "");
-    console.error("Error creando sesión Didit", respuestaDidit.status, detalle);
-    return json({ error: "No fue posible iniciar la verificación de identidad." }, 502);
-  }
-  const datosDidit = await respuestaDidit.json() as { session_id: string; url: string; session_token?: string };
-
-  const { error: errorInsert } = await servicio.from("verificaciones_identidad_didit").insert({
-    solicitud_id: solicitudId,
-    session_id: datosDidit.session_id,
-    workflow_id: diditWorkflowId,
-    estado: "pendiente",
-  });
-  if (errorInsert) {
-    console.error("Error registrando verificación Didit", errorInsert.message);
-    return json({ error: "No fue posible registrar la verificación." }, 500);
+  try {
+    if (estadoDidit === "Approved") {
+      const { error } = await servicio.rpc("aprobar_solicitud_conductor_sistema", {
+        p_solicitud_id: verificacion.solicitud_id,
+        p_verificacion_id: verificacion.id,
+      });
+      if (error) throw error;
+    } else if (estadoDidit === "Declined") {
+      const { error } = await servicio.rpc("rechazar_solicitud_por_verificacion_sistema", {
+        p_solicitud_id: verificacion.solicitud_id,
+        p_verificacion_id: verificacion.id,
+      });
+      if (error) throw error;
+    }
+  } catch (error) {
+    console.error("Error aplicando decisión Didit", error instanceof Error ? error.message : error);
+    await servicio.from("verificaciones_identidad_didit").update({ estado: "error" }).eq("id", verificacion.id);
+    return json({ recibido: true, error_procesando: true }, 200);
   }
 
-  return json({ session_id: datosDidit.session_id, url: datosDidit.url }, 201);
+  return json({ recibido: true, estado: estadoInterno }, 200);
 });

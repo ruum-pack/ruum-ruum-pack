@@ -81,6 +81,21 @@ test('traslados masivos usa orden operativa simple y enriquecimiento automatico'
   assert.doesNotMatch(sql,/coordenadas de origen requeridas|coordenadas de destino requeridas/);
   assert.match(sql,/nullif\(v_datos->>'origen_lat', ''\).*::numeric/);
 });
+test('didit separa inicio con CORS y webhook firmado',()=>{
+  const iniciar=read('supabase/functions/iniciar-verificacion-didit/index.ts');
+  const webhook=read('supabase/functions/webhook-didit/index.ts');
+  const conductores=read('packages/api/src/services/conductores.ts');
+  assert.match(conductores,/functions\.invoke\("iniciar-verificacion-didit"/);
+  assert.match(iniciar,/Access-Control-Allow-Origin/);
+  assert.match(iniciar,/req\.method === "OPTIONS"/);
+  assert.match(iniciar,/verification\.didit\.me\/v2\/session/);
+  assert.match(iniciar,/DIDIT_CALLBACK_URL/);
+  assert.doesNotMatch(iniciar,/DIDIT_WEBHOOK_SECRET|firmaValida|aprobar_solicitud_conductor_sistema/);
+  assert.match(webhook,/DIDIT_WEBHOOK_SECRET/);
+  assert.match(webhook,/firmaValida/);
+  assert.match(webhook,/aprobar_solicitud_conductor_sistema/);
+  assert.doesNotMatch(webhook,/verification\.didit\.me\/v2\/session/);
+});
 test('no quedan alert confirm ni innerHTML en panel admin',()=>{
   const root=new URL('../src/',import.meta.url);
   const walk=(dir)=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(new URL(`${e.name}/`,dir)):[new URL(e.name,dir)]);
