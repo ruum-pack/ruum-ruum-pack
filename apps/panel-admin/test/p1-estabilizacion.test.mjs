@@ -163,6 +163,21 @@ test('mapa operativo no usa demo ni inventa GPS por ruta',()=>{
   assert.match(page,/El pin de vehículo solo aparece con GPS real/);
   assert.match(page,/puntoConductor\(t\)/);
 });
+test('mapa operativo usa layout map-first con filtros, clusters y jerarquia secundaria',()=>{
+  const page=read('apps/panel-admin/src/app/mapa/page.tsx');
+  const rutas=read('apps/panel-admin/src/lib/mapbox-rutas.ts');
+  assert.match(page,/Toolbar de busqueda y filtros del mapa operativo/);
+  assert.match(page,/filtrosMapa/);
+  assert.match(page,/Configurar jerarquía de alertas/);
+  assert.match(page,/panelActivosAbierto/);
+  assert.match(page,/vehiculos-operativos-cluster/);
+  assert.match(page,/clusters-vehiculos-conteo/);
+  assert.match(page,/htmlPopoverVehiculo/);
+  assert.match(page,/"line-dasharray": degradada \? \[1\.2, 1\.2\] : \[1, 0\]/);
+  assert.match(page,/Ruta aproximada/);
+  assert.match(page,/Llamar conductor/);
+  assert.match(rutas,/degradada: true/);
+});
 test('servicio de mapa consume tracking real y audita acceso a ubicación',()=>{
   const service=read('packages/api/src/services/admin.ts');
   assert.match(service,/tracking_salud_traslado/);

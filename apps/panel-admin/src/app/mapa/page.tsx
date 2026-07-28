@@ -38,8 +38,8 @@ const ETIQUETA_ESTADO: Partial<Record<string, string>> = {
 
 type EstadoConexionMapa = "datos_en_vivo" | "actualizando" | "reconectando" | "sin_conexion" | "desactualizado";
 type VistaMapaMovil = "mapa" | "lista" | "alertas";
-type FiltroMapa = "todos" | "en_ruta" | "incidencias" | "sin_coordenadas" | "sin_senal" | "ubicacion_antigua";
-type SimboloMapa = "origen" | "destino" | "vehiculo" | "incidencia" | "emergencia" | "sin_senal";
+type FiltroMapa = "todos" | "en_ruta" | "incidencias" | "sin_senal" | "ubicacion_antigua";
+type SimboloMapa = "origen" | "destino" | "vehiculo" | "incidencia" | "emergencia" | "sin_senal" | "ruta_real" | "ruta_aproximada";
 type EstadoSenalMapa = "confirmada" | "estimada" | "antigua" | "sin_senal" | "sin_ubicacion";
 type CategoriaPrioridadMapa = "emergencia" | "incidencia_critica" | "sla_vencido" | "sin_senal" | "desviacion" | "en_riesgo" | "normal";
 
@@ -75,12 +75,12 @@ const DESCRIPCION_PRIORIDAD_MAPA: Record<CategoriaPrioridadMapa, string> = {
   normal: "Traslados sin alerta prioritaria."
 };
 const COLOR_MAPA = {
-  origen: "var(--ruum-status-info)",
-  destino: "var(--ruum-action-primary)",
+  origen: "var(--ruum-status-success)",
+  destino: "var(--ruum-status-info)",
   incidencia: "var(--ruum-status-error)",
   emergencia: "var(--ruum-status-error)",
   vehiculo: "var(--ruum-status-success)",
-  sinSenal: "var(--ruum-status-warning)",
+  sinSenal: "var(--ruum-text-tertiary)",
   pinBordeClaro: "var(--ruum-text-main)",
   pinBordeOscuro: "var(--ruum-surface-strong)",
   pinSombra: "var(--ruum-shadow-2)"
@@ -90,12 +90,12 @@ function obtenerColoresMapa() {
   const estilos = window.getComputedStyle(document.documentElement);
   const leer = (token: string) => estilos.getPropertyValue(token).trim();
   return {
-    origen: leer("--ruum-status-info"),
-    destino: leer("--ruum-action-primary"),
+    origen: leer("--ruum-status-success"),
+    destino: leer("--ruum-status-info"),
     incidencia: leer("--ruum-status-error"),
     emergencia: leer("--ruum-status-error"),
     vehiculo: leer("--ruum-status-success"),
-    sinSenal: leer("--ruum-status-warning"),
+    sinSenal: leer("--ruum-text-tertiary"),
     pinBordeClaro: leer("--ruum-text-main"),
     pinBordeOscuro: leer("--ruum-surface-strong")
   };
@@ -194,6 +194,8 @@ export default function PaginaMapaOperativo() {
   const [busqueda, setBusqueda] = useState("");
   const [detalleColapsado, setDetalleColapsado] = useState(false);
   const [ordenPrioridad, setOrdenPrioridad] = useState<CategoriaPrioridadMapa[]>(ORDEN_PRIORIDAD_MAPA);
+  const [panelActivosAbierto, setPanelActivosAbierto] = useState(false);
+  const [panelPrioridadAbierto, setPanelPrioridadAbierto] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<MapboxMap | null>(null);
   const marcadoresRef = useRef<MapboxMarker[]>([]);
@@ -204,6 +206,7 @@ export default function PaginaMapaOperativo() {
   const seleccionarTraslado = useCallback((trasladoId: string) => {
     focoPrevioPanelRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSeleccionado(trasladoId);
+    setPanelActivosAbierto(true);
   }, []);
 
   const cerrarPanelSeleccionado = useCallback(() => {
@@ -287,7 +290,6 @@ export default function PaginaMapaOperativo() {
         const calidad = calidadUbicacion(t, ahora);
         if (filtroMapa === "en_ruta" && t.estado !== "traslado_en_curso") return false;
         if (filtroMapa === "incidencias" && !t.tiene_incidencia_abierta) return false;
-        if (filtroMapa === "sin_coordenadas" && !trasladoSinCoordenadas(t)) return false;
         if (filtroMapa === "sin_senal" && calidad.estadoSenal !== "sin_senal") return false;
         if (filtroMapa === "ubicacion_antigua" && calidad.estadoSenal !== "antigua" && calidad.estadoSenal !== "sin_senal") return false;
         if (!q) return true;
@@ -340,19 +342,98 @@ export default function PaginaMapaOperativo() {
 
         const bounds = new mapboxgl.LngLatBounds();
         const completos = trasladosVisibles.filter((t) => !trasladoSinCoordenadas(t));
+        const vehiculosGps = completos
+          .map((t) => {
+            const punto = puntoConductor(t);
+            if (!punto) return null;
+            const calidad = calidadUbicacion(t, ahora);
+            return {
+              type: "Feature" as const,
+              properties: {
+                trasladoId: t.traslado_id,
+                estadoSenal: calidad.estadoSenal,
+                popupHtml: htmlPopoverVehiculo(t, calidad)
+              },
+              geometry: { type: "Point" as const, coordinates: punto }
+            };
+          })
+          .filter((feature): feature is NonNullable<typeof feature> => Boolean(feature));
+        if (vehiculosGps.length > 0) {
+          mapa.addSource("vehiculos-operativos-cluster", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: vehiculosGps },
+            cluster: true,
+            clusterMaxZoom: 12,
+            clusterRadius: 44
+          });
+          mapa.addLayer({
+            id: "clusters-vehiculos",
+            type: "circle",
+            source: "vehiculos-operativos-cluster",
+            filter: ["has", "point_count"],
+            paint: {
+              "circle-color": coloresMapa.vehiculo,
+              "circle-radius": ["step", ["get", "point_count"], 18, 10, 23, 25, 29],
+              "circle-stroke-color": coloresMapa.pinBordeClaro,
+              "circle-stroke-width": 2
+            }
+          });
+          mapa.addLayer({
+            id: "clusters-vehiculos-conteo",
+            type: "symbol",
+            source: "vehiculos-operativos-cluster",
+            filter: ["has", "point_count"],
+            layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 12 },
+            paint: { "text-color": coloresMapa.pinBordeClaro }
+          });
+          mapa.addLayer({
+            id: "vehiculos-no-agrupados",
+            type: "circle",
+            source: "vehiculos-operativos-cluster",
+            filter: ["!", ["has", "point_count"]],
+            paint: {
+              "circle-color": ["case", ["==", ["get", "estadoSenal"], "confirmada"], coloresMapa.vehiculo, coloresMapa.sinSenal],
+              "circle-radius": 9,
+              "circle-stroke-color": coloresMapa.pinBordeClaro,
+              "circle-stroke-width": 3
+            }
+          });
+          mapa.on("click", "clusters-vehiculos", (evento) => {
+            const features = mapa.queryRenderedFeatures(evento.point, { layers: ["clusters-vehiculos"] });
+            const clusterId = features[0]?.properties?.cluster_id;
+            const source = mapa.getSource("vehiculos-operativos-cluster") as { getClusterExpansionZoom: (id: number, callback: (error: Error | null, zoom: number) => void) => void };
+            if (typeof clusterId !== "number") return;
+            source.getClusterExpansionZoom(clusterId, (error, zoom) => {
+              if (error) return;
+              const coordinates = (features[0]?.geometry as { coordinates?: [number, number] } | undefined)?.coordinates;
+              if (coordinates) mapa.easeTo({ center: coordinates, zoom });
+            });
+          });
+          mapa.on("click", "vehiculos-no-agrupados", (evento) => {
+            const feature = evento.features?.[0];
+            const coordinates = (feature?.geometry as { coordinates?: [number, number] } | undefined)?.coordinates;
+            const popupHtml = typeof feature?.properties?.popupHtml === "string" ? feature.properties.popupHtml : null;
+            const trasladoId = typeof feature?.properties?.trasladoId === "string" ? feature.properties.trasladoId : null;
+            if (trasladoId) seleccionarTraslado(trasladoId);
+            if (coordinates && popupHtml) new mapboxgl.Popup({ offset: 18, maxWidth: "320px" }).setLngLat(coordinates).setHTML(popupHtml).addTo(mapa);
+          });
+        }
         await Promise.all(completos.map(async (t, indice) => {
           const origen: [number, number] = [t.origen_lng!, t.origen_lat!];
           const destino: [number, number] = [t.destino_lng!, t.destino_lat!];
           const emergencia = esEmergenciaMapa(t);
           const calidad = calidadUbicacion(t, ahora);
-          const sinSenal = calidad.estadoSenal === "sin_senal";
-          const ubicacionAntigua = calidad.estadoSenal === "antigua";
           const color = t.tiene_incidencia_abierta ? coloresMapa.incidencia : coloresMapa.origen;
-          const { geometry: geometria } = await obtenerRutaMapbox(origen, destino);
+          const { geometry: geometria, degradada } = await obtenerRutaMapbox(origen, destino);
           if (cancelado) return;
           const sourceId = `ruta-${indice}`;
           mapa.addSource(sourceId, { type: "geojson", data: { type: "Feature", properties: {}, geometry: geometria } });
-          mapa.addLayer({ id: sourceId, type: "line", source: sourceId, paint: { "line-color": color, "line-width": 3, "line-opacity": .65 } });
+          mapa.addLayer({
+            id: sourceId,
+            type: "line",
+            source: sourceId,
+            paint: { "line-color": color, "line-width": 3, "line-opacity": .65, "line-dasharray": degradada ? [1.2, 1.2] : [1, 0] }
+          });
 
           const etiquetaTraslado = `${t.vehiculo_marca ?? "Vehículo"} ${t.vehiculo_modelo ?? ""}`.trim();
           const origenEl = crearPin("origen", coloresMapa.origen, coloresMapa.pinBordeClaro, `Origen de ${etiquetaTraslado}: ${t.origen_ciudad}. Seleccionar traslado.`);
@@ -364,18 +445,7 @@ export default function PaginaMapaOperativo() {
           const destinoMarker = new mapboxgl.Marker({ element: destinoEl }).setLngLat(destino)
             .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`Destino: ${t.destino_ciudad}`)).addTo(mapa);
           const puntoVehiculo = puntoConductor(t);
-          if (puntoVehiculo) {
-            const vehiculoEl = crearPin(
-              sinSenal ? "sin_senal" : "vehiculo",
-              sinSenal || ubicacionAntigua ? coloresMapa.sinSenal : coloresMapa.vehiculo,
-              coloresMapa.pinBordeClaro,
-              `${calidad.estadoTexto} de ${etiquetaTraslado}. ${calidad.tiempoTexto}. Punto ${calidad.tipoPunto}. Seleccionar traslado.`
-            );
-            vehiculoEl.onclick = () => seleccionarTraslado(t.traslado_id);
-            const vehiculoMarker = new mapboxgl.Marker({ element: vehiculoEl }).setLngLat(puntoVehiculo)
-              .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`${calidad.estadoTexto}: ${etiquetaTraslado}. ${calidad.tiempoTexto}`)).addTo(mapa);
-            marcadoresRef.current.push(vehiculoMarker);
-          }
+          if (puntoVehiculo) bounds.extend(puntoVehiculo);
           marcadoresRef.current.push(origenMarker, destinoMarker);
           if (t.tiene_incidencia_abierta) {
             const puntoAlerta = puntoVehiculo ?? puntoMedio(origen, destino);
@@ -421,6 +491,14 @@ export default function PaginaMapaOperativo() {
   }).length;
   const alertasMapa = traslados.filter((t) => t.tiene_incidencia_abierta || trasladoSinCoordenadas(t) || calidadUbicacion(t, ahora).estadoSenal === "sin_senal" || calidadUbicacion(t, ahora).estadoSenal === "antigua");
   const calidadSeleccionada = sel ? calidadUbicacion(sel, ahora) : null;
+  const estadoGpsGlobal = estadoGpsMapa(estadoConexionGps, sinSenal + pendientesGeocodificacion, ubicacionAntigua);
+  const filtrosMapa = [
+    { id: "todos" as const, label: "Todos", total: traslados.length },
+    { id: "en_ruta" as const, label: "En ruta", total: enRuta },
+    { id: "incidencias" as const, label: "Con incidencia", total: conInc },
+    { id: "sin_senal" as const, label: "Sin señal", total: sinSenal + pendientesGeocodificacion },
+    { id: "ubicacion_antigua" as const, label: "Ubicación antigua", total: ubicacionAntigua }
+  ];
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden">
@@ -431,6 +509,10 @@ export default function PaginaMapaOperativo() {
             <p className="font-mono-ruum text-xs text-text-tertiary">Torre de control · datos GPS y traslados activos</p>
             <span className={`rounded-full border px-2.5 py-1 font-body text-admin-secundario font-semibold ${claseEstadoConexion(estadoConexionGps)}`}>
               {textoEstadoConexionMapa(estadoConexionGps)}
+            </span>
+            <span className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 font-body text-admin-secundario font-semibold ${estadoGpsGlobal.clase}`}>
+              <span className="size-2 rounded-full bg-current" aria-hidden="true" />
+              {estadoGpsGlobal.etiqueta}
             </span>
             <span className="font-body text-admin-secundario text-text-tertiary">GPS cada {FRECUENCIA_GPS_ESPERADA_SEG}s · expira en {UMBRAL_SIN_SENAL_MIN} min</span>
             {ultimaRespuestaExitosa && (
@@ -448,57 +530,45 @@ export default function PaginaMapaOperativo() {
             <div className="mt-3 max-w-3xl"><Aviso tono="danger">{errorOperacional}</Aviso></div>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => void cargar(true)}
-          disabled={actualizandoManual}
-          className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-4 py-2 font-body text-admin-boton font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink disabled:cursor-wait disabled:opacity-70"
-        >
-          {actualizandoManual ? "Reconectando" : "Actualizar"}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 border-b border-border-default px-4 py-3 sm:px-6 lg:grid-cols-6">
-        <div className="rounded-lg bg-status-info-soft px-3 py-2">
-          <p className="font-mono-ruum text-xs text-status-info/70">Activos</p>
-          <p className="font-display text-xl font-semibold text-status-info">{traslados.length}</p>
-        </div>
-        <div className="rounded-lg bg-signal-soft px-3 py-2">
-          <p className="font-mono-ruum text-xs text-text-secondary">En ruta</p>
-          <p className="font-display text-xl font-semibold text-ink">{enRuta}</p>
-        </div>
-        <div className={`rounded-lg px-3 py-2 ${conInc > 0 ? "bg-status-error-soft" : "bg-surface-secondary"}`}>
-          <p className={`font-mono-ruum text-xs ${conInc > 0 ? "text-status-error/70" : "text-text-tertiary"}`}>Con incidencia</p>
-          <p className={`font-display text-xl font-semibold ${conInc > 0 ? "text-status-error" : "text-text-tertiary"}`}>{conInc}</p>
-        </div>
-        <div className={`rounded-lg px-3 py-2 ${ubicacionAntigua > 0 ? "bg-status-warning-soft" : "bg-surface-secondary"}`}>
-          <p className="font-mono-ruum text-xs text-text-secondary">Ubicación antigua</p>
-          <p className="font-display text-xl font-semibold text-ink">{ubicacionAntigua}</p>
-        </div>
-        <div className={`rounded-lg px-3 py-2 ${sinSenal > 0 || pendientesGeocodificacion > 0 ? "bg-status-warning-soft" : "bg-surface-secondary"}`}>
-          <p className="font-mono-ruum text-xs text-text-secondary">Sin señal</p>
-          <p className="font-display text-xl font-semibold text-ink">{sinSenal + pendientesGeocodificacion}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPanelPrioridadAbierto((actual) => !actual)}
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-admin-boton font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink"
+          >
+            Configurar jerarquía
+          </button>
+          <button
+            type="button"
+            onClick={() => setPanelActivosAbierto((actual) => !actual)}
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-admin-boton font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink"
+          >
+            Activos ({trasladosVisibles.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => void cargar(true)}
+            disabled={actualizandoManual}
+            className="relative inline-flex min-h-10 items-center justify-center overflow-hidden rounded-lg border border-ink/20 bg-surface-primary px-4 py-2 font-body text-admin-boton font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink disabled:cursor-wait disabled:opacity-70"
+          >
+            <span className={`absolute inset-x-0 bottom-0 h-0.5 bg-signal transition-transform ${actualizandoManual ? "animate-pulse" : ""}`} aria-hidden="true" />
+            {actualizandoManual ? "Reconectando" : "Actualizar"}
+          </button>
         </div>
       </div>
 
-      <section className="grid gap-3 border-b border-border-default px-4 py-3 sm:px-6 lg:grid-cols-[minmax(220px,1fr)_auto]" aria-label="Filtros del mapa operativo">
+      <section className="grid gap-3 border-b border-border-default px-4 py-3 sm:px-6 lg:grid-cols-[minmax(220px,1fr)_auto]" aria-label="Toolbar de busqueda y filtros del mapa operativo">
         <div className="flex min-w-0 flex-wrap gap-2">
-          {[
-            ["todos", "Todos"],
-            ["en_ruta", "En ruta"],
-            ["incidencias", "Incidencias"],
-            ["sin_coordenadas", "Sin coordenadas"],
-            ["sin_senal", "Sin señal"],
-            ["ubicacion_antigua", "Ubicación antigua"]
-          ].map(([id, label]) => (
+          {filtrosMapa.map(({ id, label, total }) => (
             <button
               key={id}
               type="button"
               aria-pressed={filtroMapa === id}
-              onClick={() => setFiltroMapa(id as FiltroMapa)}
-              className={`rounded-full border px-3 py-1.5 font-body text-sm font-semibold ${filtroMapa === id ? "border-signal bg-signal text-ink" : "border-ink/20 text-text-secondary hover:border-signal/40"}`}
+              onClick={() => setFiltroMapa(id)}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-3 py-1.5 font-body text-sm font-semibold transition-colors ${filtroMapa === id ? "border-signal bg-signal-soft text-ink shadow-[inset_0_0_0_1px_rgba(216,167,74,0.18)]" : "border-ink/20 text-text-secondary hover:border-signal/40"}`}
             >
-              {label}
+              <span>{label}</span>
+              <span className="rounded-full bg-ink/10 px-2 py-0.5 font-mono-ruum text-[11px] text-ink">{total}</span>
             </button>
           ))}
         </div>
@@ -512,50 +582,59 @@ export default function PaginaMapaOperativo() {
         />
       </section>
 
-      <section className="border-b border-border-default px-4 py-3 sm:px-6" aria-label="Orden de prioridad del mapa">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary">Orden de prioridad</p>
-            <p className="mt-1 font-body text-sm text-text-secondary">
-              La lista y el mapa se ordenan con esta jerarquía. Las prioridades se recalculan al cambiar estado, incidencia o calidad de ubicación.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={restablecerPrioridad}
-            className="w-fit rounded-lg border border-ink/20 px-3 py-2 font-body text-sm font-semibold text-text-secondary hover:border-signal/40"
-          >
-            Orden recomendado
-          </button>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {ordenPrioridad.map((categoria, indice) => (
-            <div key={categoria} className="flex max-w-full items-center gap-2 rounded-full border border-ink/15 bg-surface-secondary px-3 py-1.5">
-              <span className="font-mono-ruum text-admin-secundario text-text-tertiary">{indice + 1}</span>
-              <span className="font-body text-sm font-semibold text-ink">{ETIQUETA_PRIORIDAD_MAPA[categoria]}</span>
-              <span className="hidden max-w-52 truncate font-body text-xs text-text-tertiary md:inline">{DESCRIPCION_PRIORIDAD_MAPA[categoria]}</span>
-              <button
-                type="button"
-                onClick={() => moverPrioridad(categoria, -1)}
-                disabled={indice === 0}
-                className="rounded border border-ink/20 px-1.5 font-mono-ruum text-xs text-text-secondary disabled:opacity-40"
-                aria-label={`Subir prioridad ${ETIQUETA_PRIORIDAD_MAPA[categoria]}`}
-              >
-                ↑
-              </button>
-              <button
-                type="button"
-                onClick={() => moverPrioridad(categoria, 1)}
-                disabled={indice === ordenPrioridad.length - 1}
-                className="rounded border border-ink/20 px-1.5 font-mono-ruum text-xs text-text-secondary disabled:opacity-40"
-                aria-label={`Bajar prioridad ${ETIQUETA_PRIORIDAD_MAPA[categoria]}`}
-              >
-                ↓
-              </button>
+      {panelPrioridadAbierto && (
+        <section className="border-b border-border-default bg-surface-secondary/45 px-4 py-4 sm:px-6" aria-label="Configurar jerarquía de alertas">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary">Configurar jerarquía de alertas</p>
+              <p className="mt-1 font-body text-sm text-text-secondary">
+                La lista y el mapa se ordenan con esta jerarquía. Las prioridades se recalculan al cambiar estado, incidencia o calidad de ubicación.
+              </p>
             </div>
-          ))}
-        </div>
-      </section>
+            <button
+              type="button"
+              onClick={restablecerPrioridad}
+              className="w-fit rounded-lg border border-ink/20 px-3 py-2 font-body text-sm font-semibold text-text-secondary hover:border-signal/40"
+            >
+              Orden recomendado
+            </button>
+          </div>
+          <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+            {ordenPrioridad.map((categoria, indice) => (
+              <div key={categoria} className={`rounded-lg border px-3 py-3 ${claseTarjetaPrioridadMapa(categoria)}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-mono-ruum text-xs text-text-tertiary">Nivel {indice + 1}</p>
+                    <p className="mt-1 font-body text-sm font-semibold text-ink">{ETIQUETA_PRIORIDAD_MAPA[categoria]}</p>
+                    <p className="mt-1 line-clamp-2 font-body text-xs text-text-secondary">{DESCRIPCION_PRIORIDAD_MAPA[categoria]}</p>
+                  </div>
+                  <SimboloPrioridad categoria={categoria} />
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => moverPrioridad(categoria, -1)}
+                    disabled={indice === 0}
+                    className="min-h-8 rounded border border-ink/20 px-2 font-mono-ruum text-xs text-text-secondary disabled:opacity-40"
+                    aria-label={`Subir prioridad ${ETIQUETA_PRIORIDAD_MAPA[categoria]}`}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moverPrioridad(categoria, 1)}
+                    disabled={indice === ordenPrioridad.length - 1}
+                    className="min-h-8 rounded border border-ink/20 px-2 font-mono-ruum text-xs text-text-secondary disabled:opacity-40"
+                    aria-label={`Bajar prioridad ${ETIQUETA_PRIORIDAD_MAPA[categoria]}`}
+                  >
+                    ↓
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <nav className="grid grid-cols-3 border-b border-border-default lg:hidden" aria-label="Vista móvil del mapa operativo">
         {[
@@ -574,7 +653,7 @@ export default function PaginaMapaOperativo() {
         ))}
       </nav>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(320px,28rem)]">
+      <div className={`grid min-h-0 flex-1 grid-cols-1 overflow-hidden ${panelActivosAbierto ? "lg:grid-cols-[minmax(0,1fr)_minmax(320px,24rem)]" : "lg:grid-cols-1"}`}>
         <div className={`relative min-h-[54vh] lg:block lg:min-h-0 ${vistaMovil === "mapa" ? "block" : "hidden"}`}>
           {cargando && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface-primary/80">
@@ -601,7 +680,9 @@ export default function PaginaMapaOperativo() {
                 ["vehiculo", "Vehículo"],
                 ["incidencia", "Incidencia"],
                 ["emergencia", "Emergencia"],
-                ["sin_senal", "Sin señal"]
+                ["sin_senal", "Sin señal"],
+                ["ruta_real", "Ruta real"],
+                ["ruta_aproximada", "Ruta aproximada"]
               ].map(([simbolo, label]) => (
                 <div key={label} className="flex items-center gap-2">
                   <SimboloLeyenda simbolo={simbolo as SimboloMapa} />
@@ -612,7 +693,7 @@ export default function PaginaMapaOperativo() {
           </div>
         </div>
 
-        <div className={`${vistaMovil === "lista" ? "flex" : "hidden"} min-w-0 flex-col overflow-y-auto border-l border-border-default lg:flex lg:w-auto lg:min-w-80 lg:max-w-[42rem] lg:resize-x`}>
+        <div className={`${vistaMovil === "lista" ? "flex" : "hidden"} min-w-0 flex-col overflow-y-auto border-l border-border-default ${panelActivosAbierto ? "lg:flex" : "lg:hidden"} lg:w-auto lg:min-w-80 lg:max-w-[24rem]`}>
           {sel && (
             <div className="border-b border-border-default bg-surface-secondary/40 p-4">
               <div className="mb-3 flex items-center justify-between">
@@ -681,11 +762,10 @@ export default function PaginaMapaOperativo() {
                 const calidad = calidadUbicacion(t, ahora);
                 const prioridad = prioridadMapa(t, ahora);
                 return (
-                  <button
+                  <div
                     id={`mapa-lista-${t.traslado_id}`}
                     key={t.traslado_id}
-                    onClick={() => seleccionarTraslado(t.traslado_id)}
-                    className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${
+                    className={`w-full rounded-xl border px-3 py-3 text-left transition-colors hover:-translate-y-0.5 ${
                       seleccionado === t.traslado_id
                         ? "border-status-info bg-status-info-soft"
                         : t.tiene_incidencia_abierta
@@ -695,26 +775,40 @@ export default function PaginaMapaOperativo() {
                         : "border-border-default bg-surface-primary hover:border-status-info/30"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-display text-sm font-semibold leading-tight">
-                          {t.vehiculo_marca} {t.vehiculo_modelo}
-                        </p>
-                        <p className="font-mono-ruum text-admin-secundario text-text-tertiary">{t.origen_ciudad} → {t.destino_ciudad}</p>
+                    <button type="button" onClick={() => seleccionarTraslado(t.traslado_id)} className="w-full text-left">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-display text-sm font-semibold leading-tight">
+                            {t.vehiculo_marca} {t.vehiculo_modelo}
+                          </p>
+                          <p className="font-mono-ruum text-admin-secundario text-text-tertiary">{t.origen_ciudad} → {t.destino_ciudad}</p>
+                        </div>
+                        <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                          <span className={`rounded-full px-2 py-0.5 font-mono-ruum text-admin-secundario ${clasePrioridadMapa(prioridad)}`}>{ETIQUETA_PRIORIDAD_MAPA[prioridad]} · {calidad.tiempoTexto.replace("Actualizada hace ", "")}</span>
+                          {t.tiene_incidencia_abierta && (
+                            <span className="rounded-full bg-status-error-soft px-2 py-0.5 font-mono-ruum text-admin-secundario text-status-error">INC</span>
+                          )}
+                          <span className={`rounded-full px-2 py-0.5 font-mono-ruum text-admin-secundario ${claseCalidadUbicacion(calidad.estadoSenal)}`}>{calidad.estadoCorto}</span>
+                        </div>
                       </div>
-                      <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                        <span className={`rounded-full px-2 py-0.5 font-mono-ruum text-admin-secundario ${clasePrioridadMapa(prioridad)}`}>{ETIQUETA_PRIORIDAD_MAPA[prioridad]}</span>
-                        {t.tiene_incidencia_abierta && (
-                          <span className="rounded-full bg-status-error-soft px-2 py-0.5 font-mono-ruum text-admin-secundario text-status-error">INC</span>
-                        )}
-                        <span className={`rounded-full px-2 py-0.5 font-mono-ruum text-admin-secundario ${claseCalidadUbicacion(calidad.estadoSenal)}`}>{calidad.estadoCorto}</span>
+                      <div className="mt-2 grid gap-1.5">
+                        <p className="font-body text-admin-secundario text-text-tertiary">{ETIQUETA_ESTADO[t.estado] ?? t.estado}</p>
+                        <p className="font-body text-admin-secundario text-text-secondary">Conductor: {t.conductor_nombre ?? "Sin conductor"}</p>
+                        <p className="font-mono-ruum text-admin-secundario text-text-tertiary">Última actualización: {calidad.tiempoTexto}</p>
                       </div>
+                    </button>
+                    <div className="mt-3 flex flex-wrap gap-2 border-t border-ink/10 pt-3">
+                      <Link href={`/viajes/${t.traslado_id}`} className="rounded-lg border border-status-info/30 px-3 py-1.5 font-body text-xs font-semibold text-status-info hover:bg-status-info-soft">
+                        Ver traslado
+                      </Link>
+                      <button type="button" disabled className="rounded-lg border border-ink/15 px-3 py-1.5 font-body text-xs font-semibold text-text-tertiary opacity-70">
+                        Llamar conductor
+                      </button>
+                      <button type="button" onClick={() => seleccionarTraslado(t.traslado_id)} className="rounded-lg border border-status-warning/35 px-3 py-1.5 font-body text-xs font-semibold text-status-warning hover:bg-status-warning-soft">
+                        Escalar
+                      </button>
                     </div>
-                    <div className="mt-1.5 flex items-center justify-between gap-2">
-                      <p className="font-body text-admin-secundario text-text-tertiary">{ETIQUETA_ESTADO[t.estado] ?? t.estado}</p>
-                      <p className="font-mono-ruum text-admin-secundario text-text-tertiary">{calidad.tiempoTexto}</p>
-                    </div>
-                  </button>
+                  </div>
                 );
               })}
               {trasladosVisibles.length === 0 && !cargando && (
@@ -782,11 +876,75 @@ function textoEstadoConexionMapa(estado: EstadoConexionMapa) {
   return "Sin conexión";
 }
 
+function estadoGpsMapa(estadoConexion: EstadoConexionMapa, sinSenal: number, ubicacionAntigua: number) {
+  if (estadoConexion === "sin_conexion" || sinSenal > 0) {
+    return { etiqueta: "GPS sin señal", clase: "border-status-error/30 bg-status-error-soft text-status-error" };
+  }
+  if (estadoConexion === "desactualizado" || ubicacionAntigua > 0) {
+    return { etiqueta: "GPS por expirar", clase: "border-status-warning/35 bg-status-warning-soft text-status-warning" };
+  }
+  return { etiqueta: "GPS activo", clase: "border-status-success/30 bg-status-success-soft text-status-success" };
+}
+
 function claseEstadoConexion(estado: EstadoConexionMapa) {
   if (estado === "datos_en_vivo") return "border-status-success/30 bg-status-success-soft text-status-success";
   if (estado === "actualizando" || estado === "reconectando") return "border-status-info/30 bg-status-info-soft text-status-info";
   if (estado === "desactualizado") return "border-status-warning/35 bg-status-warning-soft text-status-warning";
   return "border-status-error/30 bg-status-error-soft text-status-error";
+}
+
+function claseTarjetaPrioridadMapa(prioridad: CategoriaPrioridadMapa) {
+  if (prioridad === "emergencia" || prioridad === "incidencia_critica") return "border-status-error/25 bg-status-error-soft";
+  if (prioridad === "sla_vencido" || prioridad === "sin_senal" || prioridad === "desviacion" || prioridad === "en_riesgo") return "border-status-warning/30 bg-status-warning-soft";
+  return "border-status-success/25 bg-status-success-soft";
+}
+
+function SimboloPrioridad({ categoria }: { categoria: CategoriaPrioridadMapa }) {
+  const clase = categoria === "emergencia" || categoria === "incidencia_critica"
+    ? "border-status-error text-status-error"
+    : categoria === "normal"
+      ? "border-status-success text-status-success"
+      : "border-status-warning text-status-warning";
+  return <span aria-hidden="true" className={`grid size-8 shrink-0 place-items-center rounded-full border-2 ${clase}`}><span className="size-2 rounded-full bg-current" /></span>;
+}
+
+function escaparHtml(valor: string) {
+  return valor
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function progresoEstimado(traslado: TrasladoMapa) {
+  if (traslado.estado === "traslado_en_curso") return "50% estimado por etapa";
+  if (traslado.estado === "llegada_a_destino" || traslado.estado === "evidencia_final_en_proceso" || traslado.estado === "evidencia_final_completada") return "85% estimado por etapa";
+  if (traslado.estado === "entrega_confirmada" || traslado.estado === "pago_completado") return "100%";
+  return "Pendiente de avance GPS";
+}
+
+function htmlPopoverVehiculo(traslado: TrasladoMapa, calidad: ReturnType<typeof calidadUbicacion>) {
+  const vehiculo = escaparHtml(`${traslado.vehiculo_marca ?? "Vehículo"} ${traslado.vehiculo_modelo ?? ""}`.trim());
+  const conductor = escaparHtml(traslado.conductor_nombre ?? "Sin conductor asignado");
+  const ruta = escaparHtml(`${traslado.origen_ciudad} → ${traslado.destino_ciudad}`);
+  const gps = escaparHtml(`${calidad.estadoTexto}. ${calidad.tiempoTexto}`);
+  const progreso = escaparHtml(progresoEstimado(traslado));
+  return `
+    <div style="min-width:240px;font-family:Inter,system-ui,sans-serif;color:#121212">
+      <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280">Vehículo</p>
+      <p style="margin:0;font-weight:700;font-size:14px">${vehiculo}</p>
+      <p style="margin:8px 0 0;font-size:13px">${conductor}</p>
+      <p style="margin:6px 0 0;font-size:12px;color:#4b5563">${ruta}</p>
+      <p style="margin:6px 0 0;font-size:12px;color:#4b5563">Progreso: ${progreso}</p>
+      <p style="margin:6px 0 0;font-size:12px;color:#4b5563">GPS: ${gps}</p>
+      <p style="margin:6px 0 0;font-size:12px;color:#4b5563">La línea sólida indica ruta Mapbox; la punteada indica aproximación.</p>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <a href="/viajes/${encodeURIComponent(traslado.traslado_id)}" style="border:1px solid #2563eb;border-radius:8px;padding:7px 9px;font-size:12px;font-weight:700;text-decoration:none;color:#2563eb">Ver traslado</a>
+        <span title="El mapa aún no recibe teléfono del conductor" style="border:1px solid #d1d5db;border-radius:8px;padding:7px 9px;font-size:12px;font-weight:700;color:#6b7280">Contactar conductor</span>
+      </div>
+    </div>
+  `;
 }
 
 function trasladoSinCoordenadas(traslado: TrasladoMapa) {
@@ -904,8 +1062,14 @@ function puntoConOffset(punto: [number, number], offset: number): [number, numbe
 }
 
 function SimboloLeyenda({ simbolo }: { simbolo: SimboloMapa }) {
+  if (simbolo === "ruta_real") {
+    return <span aria-hidden="true" className="block h-0.5 w-6 rounded-full bg-status-info" />;
+  }
+  if (simbolo === "ruta_aproximada") {
+    return <span aria-hidden="true" className="block h-0.5 w-6 border-t-2 border-dashed border-status-warning" />;
+  }
   if (simbolo === "origen") {
-    return <span aria-hidden="true" className="size-4 rounded-full border-2 border-text-main bg-status-info" />;
+    return <span aria-hidden="true" className="size-4 rounded-full border-2 border-text-main bg-status-success" />;
   }
   if (simbolo === "destino") {
     return (
@@ -931,7 +1095,7 @@ function SimboloLeyenda({ simbolo }: { simbolo: SimboloMapa }) {
   if (simbolo === "emergencia") {
     return <span aria-hidden="true" className="grid size-5 place-items-center rounded-full border-2 border-status-error font-mono-ruum text-xs font-bold text-status-error">!</span>;
   }
-  return <span aria-hidden="true" className="size-5 rounded-full border-2 border-dashed border-status-warning" />;
+  return <span aria-hidden="true" className="size-5 rounded-full border-2 border-dashed border-text-tertiary bg-surface-secondary" />;
 }
 
 function DatoMapa({ etiqueta, valor }: { etiqueta: string; valor: string }) {

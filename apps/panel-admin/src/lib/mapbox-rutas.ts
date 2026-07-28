@@ -8,6 +8,7 @@ export interface RutaCalculada {
   geometry: LineaRuta;
   distanciaKm: number | null;
   tiempoHoras: number | null;
+  degradada: boolean;
 }
 
 export function tieneMapboxConfigurado(): boolean {
@@ -24,7 +25,7 @@ export async function obtenerRutaMapbox(
   destino: [number, number]
 ): Promise<RutaCalculada> {
   const lineaRecta: LineaRuta = { type: "LineString", coordinates: [origen, destino] };
-  if (!tokenMapbox) return { geometry: lineaRecta, distanciaKm: null, tiempoHoras: null };
+  if (!tokenMapbox) return { geometry: lineaRecta, distanciaKm: null, tiempoHoras: null, degradada: true };
 
   let ruta;
   try {
@@ -38,10 +39,11 @@ export async function obtenerRutaMapbox(
     }
     throw error;
   }
-  if (!ruta) return { geometry: lineaRecta, distanciaKm: null, tiempoHoras: null };
+  if (!ruta) return { geometry: lineaRecta, distanciaKm: null, tiempoHoras: null, degradada: true };
   return {
     geometry: ruta.geometry ?? lineaRecta,
     distanciaKm: ruta.distanciaKm,
-    tiempoHoras: ruta.tiempoHoras
+    tiempoHoras: ruta.tiempoHoras,
+    degradada: !ruta.geometry
   };
 }

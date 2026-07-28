@@ -24,11 +24,13 @@ import {
   AdminInput,
   AdminLoadingState,
   AdminSelect,
+  AdminTabs,
   AdminTextarea
 } from "../admin-components";
 
 type Resultado = { tipo: "success" | "error"; mensaje: string } | null;
 type AccionCapacidad = "conceder" | "revocar";
+type PestañaConfiguracion = "roles" | "normativa";
 type JsonObject = Record<string, unknown>;
 
 const CATEGORIAS: Record<string, string> = {
@@ -39,6 +41,7 @@ const CATEGORIAS: Record<string, string> = {
 };
 
 const ORDEN_CATEGORIAS = ["operacion", "finanzas", "comunicacion", "seguridad"] as const;
+const CATEGORIAS_CAPACIDAD = ["Operación", "Conductores", "Empresas", "Finanzas", "Seguridad", "Configuración"] as const;
 
 function formatearFecha(valor: string) {
   return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(valor));
@@ -74,6 +77,15 @@ export default function PaginaConfiguracionAdmin() {
   const [accionCapacidad, setAccionCapacidad] = useState<AccionCapacidad>("conceder");
   const [motivoCapacidad, setMotivoCapacidad] = useState("");
   const [guardandoCapacidad, setGuardandoCapacidad] = useState(false);
+  const [pestañaActiva, setPestañaActiva] = useState<PestañaConfiguracion>("roles");
+  const [busquedaCapacidad, setBusquedaCapacidad] = useState("");
+  const [categoriasNormativaAbiertas, setCategoriasNormativaAbiertas] = useState<Record<string, boolean>>({
+    operacion: true,
+    finanzas: true,
+    comunicacion: false,
+    seguridad: false
+  });
+  const [dialogoRol, setDialogoRol] = useState(false);
 
   const cargar = useCallback(async () => {
     setError(null);
@@ -152,6 +164,23 @@ export default function PaginaConfiguracionAdmin() {
   const colaboradorSeleccionado = colaboradores.find((item) => item.id === colaboradorId) ?? null;
   const rolBase = CONFIG_ROL_ADMIN[rolSeleccionado];
   const capacidadesCatalogoFiltradas = catalogoCapacidades.filter((capacidad) => capacidad !== "capacidades:administrar");
+  const capacidadesFiltradas = useMemo(() => {
+    const q = busquedaCapacidad.trim().toLowerCase();
+    if (!q) return capacidades;
+    return capacidades.filter((capacidad) => [
+      capacidad.capacidad,
+      capacidad.origen,
+      capacidad.motivo ?? "",
+      categoriaCapacidad(capacidad.capacidad)
+    ].join(" ").toLowerCase().includes(q));
+  }, [busquedaCapacidad, capacidades]);
+  const capacidadesPorCategoria = useMemo(() => {
+    return capacidadesFiltradas.reduce<Record<string, CapacidadAdmin[]>>((acc, capacidad) => {
+      const categoria = categoriaCapacidad(capacidad.capacidad);
+      (acc[categoria] ??= []).push(capacidad);
+      return acc;
+    }, {});
+  }, [capacidadesFiltradas]);
 
   function abrirEditor(registro: ConfiguracionAdmin) {
     setEditando(registro);
@@ -254,20 +283,34 @@ export default function PaginaConfiguracionAdmin() {
         </div>
       )}
 
-      <section className="mt-6 grid gap-4 md:grid-cols-2" aria-label="Gobierno de configuración">
-        <a href="#roles-capacidades-direccion" className="rounded-2xl border border-border-default bg-surface-primary p-5 transition hover:border-signal focus:outline-none focus:ring-2 focus:ring-focus-default">
-          <AdminBadge tone="warning">Acceso crítico</AdminBadge>
-          <h2 className="mt-3 font-display text-lg font-semibold text-ink">Roles y capacidades</h2>
-          <p className="mt-1 font-body text-sm text-text-secondary">Configura colaboradores, rol base y permisos efectivos con motivo obligatorio.</p>
-        </a>
-        <a href="#normativa-operativa" className="rounded-2xl border border-border-default bg-surface-primary p-5 transition hover:border-signal focus:outline-none focus:ring-2 focus:ring-focus-default">
-          <AdminBadge tone="success">Cerebro normativo</AdminBadge>
-          <h2 className="mt-3 font-display text-lg font-semibold text-ink">Operación, finanzas, comunicación y seguridad</h2>
-          <p className="mt-1 font-body text-sm text-text-secondary">Edita políticas reales de plataforma con formularios controlados, versionado y auditoría.</p>
-        </a>
+      <section className="mt-6 rounded-2xl border border-status-info/25 bg-status-info-soft p-5" aria-label="Contexto de configuración">
+        <div className="flex items-start gap-3">
+          <span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full border border-status-info/40 text-status-info" aria-hidden="true">
+            <span className="size-2 rounded-full bg-current" />
+          </span>
+          <div>
+            <h2 className="font-display text-lg font-semibold text-ink">Cerebro normativo de Ruum Ruum</h2>
+            <p className="mt-1 max-w-3xl font-body text-sm text-text-secondary">
+              Parámetros efectivos de operación, comunicación, finanzas y seguridad. Los cambios sensibles requieren motivo y quedan auditados.
+            </p>
+          </div>
+        </div>
       </section>
 
-      <section className="mt-8 rounded-2xl border border-border-default bg-surface-primary p-5" aria-labelledby="roles-capacidades-direccion">
+      <div className="mt-6">
+        <AdminTabs
+          label="Dominios de configuración"
+          value={pestañaActiva}
+          onValueChange={setPestañaActiva}
+          items={[
+            { value: "roles", label: "Roles y capacidades" },
+            { value: "normativa", label: "Normativa activa" }
+          ]}
+        />
+      </div>
+
+      {pestañaActiva === "roles" && (
+      <section className="mt-6 rounded-2xl border border-border-default bg-surface-primary p-5" aria-labelledby="roles-capacidades-direccion">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <AdminBadge tone="warning">Solo Dirección</AdminBadge>
@@ -328,19 +371,25 @@ export default function PaginaConfiguracionAdmin() {
 
               <AdminTextarea
                 label="Motivo del cambio de rol"
-                description="Mínimo 10 caracteres; queda en auditoría de seguridad."
+                description={`${motivoRol.trim().length}/10 caracteres mínimos.`}
                 value={motivoRol}
                 onChange={(e) => setMotivoRol(e.target.value)}
                 error={motivoRol.length > 0 && motivoRol.trim().length < 10 ? "Escribe al menos 10 caracteres." : undefined}
                 rows={3}
               />
+              <div className="flex items-center justify-between gap-3">
+                <AdminBadge tone="warning">Cambio crítico</AdminBadge>
+                <span className={`font-mono-ruum text-xs ${motivoRol.trim().length >= 10 ? "text-status-success" : "text-status-warning"}`}>
+                  {motivoRol.trim().length}/10
+                </span>
+              </div>
 
               <AdminButton
-                onClick={guardarRolColaborador}
-                loading={guardandoRol}
+                onClick={() => setDialogoRol(true)}
+                variant="danger"
                 disabled={!colaboradorSeleccionado || rolSeleccionado === colaboradorSeleccionado.rol_operativo || motivoRol.trim().length < 10}
               >
-                Guardar rol
+                Preparar cambio de rol
               </AdminButton>
 
               <div className="rounded-xl border border-border-default p-4">
