@@ -454,6 +454,41 @@ export async function subirDocumentoSolicitudConductor(
   return subirDocumentoValidado(cliente, solicitudId, tipo, archivo, documentoAnteriorId);
 }
 
+/**
+ * Inicia una sesión de verificación de identidad (Didit: OCR + liveness + face match)
+ * para una solicitud de conductor en estado `en_revision`. Devuelve la URL del flujo
+ * hospedado por Didit, que el frontend debe abrir (redirección de página completa).
+ */
+export async function iniciarVerificacionDidit(cliente: Cliente, solicitudId: string) {
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) throw new Error("Inicia sesión para continuar con la verificación.");
+  const { data: solicitud, error: errorSolicitud } = await cliente
+    .from("solicitudes_conductor")
+    .select("id")
+    .eq("id", solicitudId)
+    .eq("auth_user_id", sesion.user.id)
+    .maybeSingle();
+  if (errorSolicitud || !solicitud) throw new Error("No puedes iniciar la verificación de otra solicitud.");
+
+  const { data, error } = await cliente.functions.invoke("iniciar-verificacion-didit", {
+    body: { solicitud_id: solicitudId }
+  });
+  if (error) {
+    let mensaje = error.message;
+    const contexto = "context" in error ? error.context : null;
+    if (contexto instanceof Response) {
+      try {
+        const detalle = (await contexto.clone().json()) as { error?: string };
+        mensaje = detalle.error ?? mensaje;
+      } catch {
+        // Conserva el mensaje de transporte cuando el servidor no devolvió JSON.
+      }
+    }
+    throw new Error(mensaje);
+  }
+  return data as { url: string };
+}
+
 export type PerfilConductorActualizable = {
   nombre: string;
   telefono: string;

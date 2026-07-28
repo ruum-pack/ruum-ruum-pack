@@ -5,7 +5,12 @@ import { Button, Aviso, LogoMarca } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../lib/supabase-browser";
-import { subirDocumentoConductor, subirDocumentoSolicitudConductor, type TipoDocumentoConductor } from "@ruum/api/services";
+import {
+  iniciarVerificacionDidit,
+  subirDocumentoConductor,
+  subirDocumentoSolicitudConductor,
+  type TipoDocumentoConductor
+} from "@ruum/api/services";
 import { enmascararNombreArchivo } from "../cuenta/datos-sensibles";
 
 type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
@@ -56,6 +61,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
   const [documentos, setDocumentos] = useState(documentosIniciales);
   const [estadoActual,setEstadoActual]=useState(estadoExpediente);
   const [subiendo, setSubiendo] = useState<TipoDocumentoConductor | null>(null);
+  const [verificando, setVerificando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const inputsRef = useRef<Record<string, HTMLInputElement | null>>({});
@@ -109,6 +115,21 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
       setError(traducirErrorOperativo(err,"No pudimos registrar el documento corregido. Intenta nuevamente."));
     } finally {
       setSubiendo(null);
+    }
+  }
+
+  async function iniciarVerificacion() {
+    if (!solicitudId) return;
+    setVerificando(true);
+    setError(null);
+    setMensaje(null);
+    try {
+      const cliente = crearClienteNavegador();
+      const { url } = await iniciarVerificacionDidit(cliente, solicitudId);
+      window.location.href = url;
+    } catch (err) {
+      setError(traducirErrorOperativo(err, "No pudimos iniciar la verificación. Intenta de nuevo."));
+      setVerificando(false);
     }
   }
 
@@ -189,6 +210,18 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
           </div>
         </div>
         <div className="mt-4"><Aviso tono={rechazados > 0 ? "atencion" : "info"}>{motivoBloqueo}</Aviso></div>
+
+        {estadoActual === "en_revision" && solicitudId && (
+          <div className="mt-4 rounded-xl border border-signal bg-route-soft p-4">
+            <p className="font-body text-sm font-semibold text-text-primary">Verificación de identidad</p>
+            <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
+              Confirma tu identidad en unos minutos (foto de tu documento + selfie) para acelerar la revisión.
+            </p>
+            <Button className="mt-3" onClick={iniciarVerificacion} disabled={verificando}>
+              {verificando ? "Abriendo verificación…" : "Verificar identidad ahora"}
+            </Button>
+          </div>
+        )}
 
         {error && (
           <output className="mt-4" aria-live="polite" aria-atomic="true">
