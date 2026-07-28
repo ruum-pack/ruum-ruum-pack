@@ -174,9 +174,6 @@ begin
   if nullif(p_fila->>'categoria_tarifa', '') is null then v_errores := array_append(v_errores, 'categoria_tarifa es requerida'); end if;
   if nullif(p_fila->>'gama', '') is null then v_errores := array_append(v_errores, 'gama es requerida'); end if;
   if nullif(p_fila->>'condicion', '') is null then v_errores := array_append(v_errores, 'condicion es requerida'); end if;
-  if nullif(p_fila->>'origen_lat', '') is null or nullif(p_fila->>'origen_lng', '') is null then v_errores := array_append(v_errores, 'coordenadas de origen requeridas'); end if;
-  if nullif(p_fila->>'destino_lat', '') is null or nullif(p_fila->>'destino_lng', '') is null then v_errores := array_append(v_errores, 'coordenadas de destino requeridas'); end if;
-
   foreach v_key in array array['vehiculo_anio','origen_lat','origen_lng','destino_lat','destino_lng','distancia_km','tiempo_estimado_horas']
   loop
     begin
@@ -476,13 +473,13 @@ begin
         btrim(coalesce(nullif(v_datos->>'contacto_entrega_telefono', ''), '+520000000000')),
         btrim(coalesce(nullif(v_datos->>'contacto_recepcion_nombre', ''), 'Contacto destino')),
         btrim(coalesce(nullif(v_datos->>'contacto_recepcion_telefono', ''), '+520000000001')),
-        (v_datos->>'origen_lat')::numeric,
-        (v_datos->>'origen_lng')::numeric,
+        (nullif(v_datos->>'origen_lat', ''))::numeric,
+        (nullif(v_datos->>'origen_lng', ''))::numeric,
         btrim(coalesce(nullif(v_datos->>'origen_direccion', ''), 'Origen corporativo')),
         btrim(coalesce(nullif(v_datos->>'origen_ciudad', ''), 'Sin ciudad')),
         nullif(v_datos->>'origen_referencias', ''),
-        (v_datos->>'destino_lat')::numeric,
-        (v_datos->>'destino_lng')::numeric,
+        (nullif(v_datos->>'destino_lat', ''))::numeric,
+        (nullif(v_datos->>'destino_lng', ''))::numeric,
         btrim(coalesce(nullif(v_datos->>'destino_direccion', ''), 'Destino corporativo')),
         btrim(coalesce(nullif(v_datos->>'destino_ciudad', ''), 'Sin ciudad')),
         nullif(v_datos->>'destino_referencias', ''),

@@ -167,13 +167,13 @@ export interface FilaTrasladoMasivoNormalizada {
   contacto_recepcion_telefono?: string;
   origen_direccion?: string;
   origen_ciudad?: string;
-  origen_lat: string;
-  origen_lng: string;
+  origen_lat?: string;
+  origen_lng?: string;
   origen_referencias?: string;
   destino_direccion?: string;
   destino_ciudad?: string;
-  destino_lat: string;
-  destino_lng: string;
+  destino_lat?: string;
+  destino_lng?: string;
   destino_referencias?: string;
   instrucciones_especiales?: string;
   modalidad_programacion?: string;

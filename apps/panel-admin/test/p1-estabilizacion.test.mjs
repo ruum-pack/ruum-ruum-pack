@@ -63,6 +63,24 @@ test('viajes usa experiencia premium con acciones compactas y vistas operativas'
   assert.match(table,/selectedRows\.length\.toLocaleString/);
   assert.doesNotMatch(page,/Vista rápida", onClick:[\s\S]*"Abrir", href:[\s\S]*"Asignar", href/);
 });
+test('traslados masivos usa orden operativa simple y enriquecimiento automatico',()=>{
+  const page=read('apps/panel-admin/src/app/masivos/page.tsx');
+  const plantilla=read('apps/panel-admin/src/app/api/plantillas/traslados-masivos/route.ts');
+  const sql=read('supabase/migrations/20260723000600_traslados_masivos_endurecimiento.sql');
+  assert.match(page,/Orden operativa CSV/);
+  assert.match(page,/enriquecerFila/);
+  assert.match(page,/consultarCodigoPostalMx/);
+  assert.match(page,/geocodificarDireccionMasiva/);
+  assert.match(page,/tipoSugeridoParaVehiculo/);
+  assert.match(plantilla,/centro_costo/);
+  assert.match(plantilla,/origen_calle/);
+  assert.doesNotMatch(plantilla,/"categoria_tarifa"/);
+  assert.doesNotMatch(plantilla,/"origen_lat"/);
+  const requeridas=page.match(/const COLUMNAS_REQUERIDAS = \[[\s\S]*?\] as const;/)?.[0] ?? '';
+  assert.doesNotMatch(requeridas,/origen_lat|destino_lat|categoria_tarifa|gama/);
+  assert.doesNotMatch(sql,/coordenadas de origen requeridas|coordenadas de destino requeridas/);
+  assert.match(sql,/nullif\(v_datos->>'origen_lat', ''\).*::numeric/);
+});
 test('no quedan alert confirm ni innerHTML en panel admin',()=>{
   const root=new URL('../src/',import.meta.url);
   const walk=(dir)=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(new URL(`${e.name}/`,dir)):[new URL(e.name,dir)]);

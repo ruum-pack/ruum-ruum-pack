@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Aviso, Button } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
+import { consultarCodigoPostalMx } from "@ruum/shared/utils";
+import {
+  categoriaTarifaSugeridaParaVehiculo,
+  gamaSugeridaParaVehiculo,
+  tipoSugeridoParaVehiculo
+} from "@ruum/shared/catalogos";
 import {
   cancelarCargaTrasladosMasivosAdmin,
   crearTrasladosMasivosAdmin,
@@ -16,6 +22,7 @@ import {
   type ResultadoCargaTrasladosMasivos
 } from "@ruum/api/services";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { calcularRutaMasiva, geocodificarDireccionMasiva, tieneMapboxMasivosConfigurado } from "../../lib/mapbox-masivos";
 import { AdminPageHeader, AdminPanel } from "../admin-ui";
 
 type Empresa = Database["public"]["Tables"]["empresas"]["Row"];
@@ -26,6 +33,7 @@ type FilaPrevalidada = {
   numero: number;
   datos: FilaTrasladoMasivoNormalizada;
   errores: string[];
+  advertencias: string[];
 };
 type RevisionArchivo = {
   filas: FilaCsv[];
@@ -47,102 +55,96 @@ const COLUMNAS_REQUERIDAS = [
   "vehiculo_marca",
   "vehiculo_modelo",
   "vehiculo_anio",
-  "vehiculo_tipo",
-  "categoria_tarifa",
-  "gama",
   "condicion",
-  "origen_lat",
-  "origen_lng",
-  "destino_lat",
-  "destino_lng"
+  "origen_codigo_postal",
+  "origen_colonia",
+  "origen_calle",
+  "origen_numero",
+  "destino_codigo_postal",
+  "destino_colonia",
+  "destino_calle",
+  "destino_numero"
 ] as const;
 
 const COLUMNAS_PLANTILLA = [
   "referencia_externa",
+  "centro_costo",
+  "orden_compra",
+  "prioridad",
   "vehiculo_placas",
   "vehiculo_vin",
   "vehiculo_marca",
   "vehiculo_modelo",
   "vehiculo_anio",
-  "vehiculo_tipo",
   "vehiculo_color",
-  "categoria_tarifa",
-  "gama",
   "condicion",
   "contacto_entrega_nombre",
   "contacto_entrega_telefono",
   "contacto_recepcion_nombre",
   "contacto_recepcion_telefono",
   "origen_codigo_postal",
-  "origen_estado",
-  "origen_ciudad",
   "origen_colonia",
-  "origen_direccion",
-  "origen_lat",
-  "origen_lng",
+  "origen_calle",
+  "origen_numero",
+  "origen_referencias",
   "destino_codigo_postal",
-  "destino_estado",
-  "destino_ciudad",
   "destino_colonia",
-  "destino_direccion",
-  "destino_lat",
-  "destino_lng",
+  "destino_calle",
+  "destino_numero",
+  "destino_referencias",
   "modalidad_programacion",
   "fecha_hora_programada",
-  "tipo_pago",
-  "tipo_ruta",
-  "tipo_servicio",
-  "motivo_servicio",
-  "distancia_km",
-  "tiempo_estimado_horas",
+  "ventana_recoleccion",
+  "ventana_entrega",
   "instrucciones_especiales"
+] as const;
+
+const COLUMNAS_TECNICAS_OPCIONALES = [
+  "origen_lat",
+  "origen_lng",
+  "destino_lat",
+  "destino_lng",
+  "distancia_km",
+  "tiempo_estimado_horas"
 ] as const;
 
 const EJEMPLO_CSV = [
   COLUMNAS_PLANTILLA.join(","),
   [
     "FLOT-001",
+    "CC-NORTE",
+    "OC-45881",
+    "normal",
     "ABC123",
     "",
     "Nissan",
     "Versa",
     "2024",
-    "sedan",
     "Blanco",
-    "ligero_a",
-    "entrada",
     "seminueva",
     "Operaciones",
     "+525500000000",
     "Recepcion",
     "+525500000001",
     "06700",
-    "Ciudad de México",
-    "CDMX",
     "Roma Norte",
-    "Av. Reforma 100",
-    "19.4326",
-    "-99.1332",
+    "Av. Reforma",
+    "100",
+    "Acceso por estacionamiento",
     "04360",
-    "Ciudad de México",
-    "CDMX",
     "Copilco Universidad",
-    "Av. Universidad 300",
-    "19.3670",
-    "-99.1660",
+    "Av. Universidad",
+    "300",
+    "Entregar en recepción",
     "programado",
     "2026-07-20T12:00:00-06:00",
-    "al_cierre",
-    "local",
-    "flotilla",
-    "traslado_especial",
-    "12.4",
-    "0.7",
+    "2026-07-20T11:00:00-06:00",
+    "2026-07-20T14:00:00-06:00",
     "Unidad prioritaria"
   ].join(",")
 ].join("\n");
 
-const CAMPOS_PERMITIDOS = new Set<string>(COLUMNAS_PLANTILLA);
+const CAMPOS_PERMITIDOS = new Set<string>([...COLUMNAS_PLANTILLA, ...COLUMNAS_TECNICAS_OPCIONALES]);
 
 function normalizarEncabezado(valor: string) {
   return valor.trim().toLowerCase().replace(/\s+/g, "_");
@@ -200,8 +202,39 @@ function revisarCsv(contenido: string): RevisionArchivo {
   return { filas, errores };
 }
 
-function normalizarFila(fila: FilaCsv, numero: number): FilaPrevalidada {
+function limpiar(valor: string | undefined) {
+  return valor?.trim() ?? "";
+}
+
+function numeroTexto(valor: string | undefined) {
+  const limpio = limpiar(valor);
+  return limpio && !Number.isNaN(Number(limpio)) ? limpio : "";
+}
+
+function telefonoMx(valor: string | undefined) {
+  const limpio = limpiar(valor);
+  if (!limpio) return "";
+  const digitos = limpio.replace(/\D/g, "");
+  if (digitos.length === 10) return `+52${digitos}`;
+  if (digitos.length === 12 && digitos.startsWith("52")) return `+${digitos}`;
+  return limpio.startsWith("+") ? limpio : `+${digitos}`;
+}
+
+function construirDireccion(calle: string, numero: string, colonia: string, cp: string, ciudad: string, estado: string) {
+  return [calle, numero, colonia, cp, ciudad, estado, "México"].map((valor) => valor.trim()).filter(Boolean).join(", ");
+}
+
+function normalizarCategoria(categoria: string | null) {
+  return categoria ?? "ligero_a";
+}
+
+function normalizarGama(gama: string | null) {
+  return gama ?? "entrada";
+}
+
+async function enriquecerFila(fila: FilaCsv, numero: number): Promise<FilaPrevalidada> {
   const errores: string[] = [];
+  const advertencias: string[] = [];
   for (const columna of COLUMNAS_REQUERIDAS) {
     if (!fila[columna]?.trim()) errores.push(`${columna} requerido`);
   }
@@ -215,16 +248,120 @@ function normalizarFila(fila: FilaCsv, numero: number): FilaPrevalidada {
   if (modalidad === "programado" && !fila.fecha_hora_programada?.trim()) errores.push("fecha_hora_programada requerida para programado");
   if (modalidad === "lo_antes_posible" && fila.fecha_hora_programada?.trim()) errores.push("fecha_hora_programada no aplica para lo_antes_posible");
 
+  const origenCp = limpiar(fila.origen_codigo_postal);
+  const destinoCp = limpiar(fila.destino_codigo_postal);
+  const [origenCpDatos, destinoCpDatos] = await Promise.all([
+    consultarCodigoPostalMx(origenCp, { rutaBase: "/api/codigos-postales" }),
+    consultarCodigoPostalMx(destinoCp, { rutaBase: "/api/codigos-postales" })
+  ]);
+  if (origenCp && !origenCpDatos) advertencias.push("CP origen no encontrado en catálogo SEPOMEX");
+  if (destinoCp && !destinoCpDatos) advertencias.push("CP destino no encontrado en catálogo SEPOMEX");
+
+  const origenEstado = origenCpDatos?.estado ?? "";
+  const destinoEstado = destinoCpDatos?.estado ?? "";
+  const origenCiudad = origenCpDatos?.ciudades[0] ?? "";
+  const destinoCiudad = destinoCpDatos?.ciudades[0] ?? "";
+  const origenColonia = limpiar(fila.origen_colonia);
+  const destinoColonia = limpiar(fila.destino_colonia);
+  if (origenCpDatos && origenColonia && !origenCpDatos.colonias.some((colonia) => colonia.toLowerCase() === origenColonia.toLowerCase())) {
+    advertencias.push("Colonia origen no coincide exactamente con el CP");
+  }
+  if (destinoCpDatos && destinoColonia && !destinoCpDatos.colonias.some((colonia) => colonia.toLowerCase() === destinoColonia.toLowerCase())) {
+    advertencias.push("Colonia destino no coincide exactamente con el CP");
+  }
+
+  const origenDireccion = construirDireccion(limpiar(fila.origen_calle), limpiar(fila.origen_numero), origenColonia, origenCp, origenCiudad, origenEstado);
+  const destinoDireccion = construirDireccion(limpiar(fila.destino_calle), limpiar(fila.destino_numero), destinoColonia, destinoCp, destinoCiudad, destinoEstado);
+  let origenLat = numeroTexto(fila.origen_lat);
+  let origenLng = numeroTexto(fila.origen_lng);
+  let destinoLat = numeroTexto(fila.destino_lat);
+  let destinoLng = numeroTexto(fila.destino_lng);
+  let distanciaKm = numeroTexto(fila.distancia_km);
+  let tiempoEstimadoHoras = numeroTexto(fila.tiempo_estimado_horas);
+
+  const origenManual = origenLat && origenLng ? { lat: Number(origenLat), lng: Number(origenLng) } : null;
+  const destinoManual = destinoLat && destinoLng ? { lat: Number(destinoLat), lng: Number(destinoLng) } : null;
+  const [origenGeocodificado, destinoGeocodificado] = await Promise.all([
+    origenManual ? Promise.resolve(origenManual) : geocodificarDireccionMasiva(origenDireccion),
+    destinoManual ? Promise.resolve(destinoManual) : geocodificarDireccionMasiva(destinoDireccion)
+  ]);
+
+  if (!origenManual && origenGeocodificado) {
+    origenLat = String(origenGeocodificado.lat);
+    origenLng = String(origenGeocodificado.lng);
+  }
+  if (!destinoManual && destinoGeocodificado) {
+    destinoLat = String(destinoGeocodificado.lat);
+    destinoLng = String(destinoGeocodificado.lng);
+  }
+  if ((!origenLat || !origenLng || !destinoLat || !destinoLng) && tieneMapboxMasivosConfigurado()) {
+    advertencias.push("Mapbox no resolvió coordenadas completas; operaciones deberá revisar la ruta");
+  }
+  if (!tieneMapboxMasivosConfigurado()) {
+    advertencias.push("Mapbox no está configurado; se encolará sin coordenadas calculadas");
+  }
+
+  if (!distanciaKm || !tiempoEstimadoHoras) {
+    const ruta = await calcularRutaMasiva(origenGeocodificado, destinoGeocodificado);
+    if (ruta?.distanciaKm != null) distanciaKm = String(ruta.distanciaKm);
+    if (ruta?.tiempoEstimadoHoras != null) tiempoEstimadoHoras = String(ruta.tiempoEstimadoHoras);
+  }
+
+  const marca = limpiar(fila.vehiculo_marca);
+  const modelo = limpiar(fila.vehiculo_modelo);
+  const tipoVehiculo = tipoSugeridoParaVehiculo(marca, modelo) ?? "sedan";
+  const categoriaTarifa = normalizarCategoria(categoriaTarifaSugeridaParaVehiculo(marca, modelo));
+  const gama = normalizarGama(gamaSugeridaParaVehiculo(marca, modelo));
+  if (!tipoSugeridoParaVehiculo(marca, modelo)) advertencias.push("Clasificación vehicular sugerida por defecto; validar modelo si impacta tarifa");
+
+  const etiquetas = [
+    limpiar(fila.centro_costo) ? `Centro de costo: ${limpiar(fila.centro_costo)}` : "",
+    limpiar(fila.orden_compra) ? `Orden de compra: ${limpiar(fila.orden_compra)}` : "",
+    limpiar(fila.prioridad) && limpiar(fila.prioridad) !== "normal" ? `Prioridad: ${limpiar(fila.prioridad)}` : "",
+    limpiar(fila.instrucciones_especiales)
+  ].filter(Boolean).join(" | ");
+
   return {
     numero,
     errores,
+    advertencias,
     datos: {
-      ...fila,
+      referencia_externa: limpiar(fila.referencia_externa),
+      vehiculo_placas: limpiar(fila.vehiculo_placas).toUpperCase(),
+      vehiculo_vin: limpiar(fila.vehiculo_vin).toUpperCase(),
+      vehiculo_marca: marca,
+      vehiculo_modelo: modelo,
+      vehiculo_anio: limpiar(fila.vehiculo_anio),
+      vehiculo_tipo: tipoVehiculo,
+      vehiculo_color: limpiar(fila.vehiculo_color),
+      categoria_tarifa: categoriaTarifa,
+      gama,
+      condicion: limpiar(fila.condicion) || "seminueva",
+      contacto_entrega_nombre: limpiar(fila.contacto_entrega_nombre),
+      contacto_entrega_telefono: telefonoMx(fila.contacto_entrega_telefono),
+      contacto_recepcion_nombre: limpiar(fila.contacto_recepcion_nombre),
+      contacto_recepcion_telefono: telefonoMx(fila.contacto_recepcion_telefono),
+      origen_direccion: origenDireccion,
+      origen_ciudad: [origenCiudad, origenEstado].filter(Boolean).join(", "),
+      origen_lat: origenLat,
+      origen_lng: origenLng,
+      origen_referencias: limpiar(fila.origen_referencias),
+      destino_direccion: destinoDireccion,
+      destino_ciudad: [destinoCiudad, destinoEstado].filter(Boolean).join(", "),
+      destino_lat: destinoLat,
+      destino_lng: destinoLng,
+      destino_referencias: limpiar(fila.destino_referencias),
+      instrucciones_especiales: etiquetas,
       modalidad_programacion: modalidad,
-      tipo_pago: fila.tipo_pago?.trim() || "al_cierre",
-      tipo_ruta: fila.tipo_ruta?.trim() || "local",
+      fecha_hora_programada: limpiar(fila.fecha_hora_programada),
+      tipo_pago: "al_cierre",
+      tipo_ruta: origenEstado && destinoEstado && origenEstado !== destinoEstado ? "foraneo" : "local",
+      ventana_recoleccion: limpiar(fila.ventana_recoleccion),
+      ventana_entrega: limpiar(fila.ventana_entrega),
       tipo_servicio: fila.tipo_servicio?.trim() || "flotilla",
-      motivo_servicio: fila.motivo_servicio?.trim() || "traslado_especial"
+      motivo_servicio: "traslado_especial",
+      distancia_km: distanciaKm,
+      tiempo_estimado_horas: tiempoEstimadoHoras
     } as FilaTrasladoMasivoNormalizada
   };
 }
@@ -353,7 +490,8 @@ export default function PaginaTrasladosMasivosAdmin() {
     setMimeArchivo(archivo.type || "text/csv");
     const contenido = await archivo.text();
     const revision = revisarCsv(contenido);
-    const filasParseadas = revision.filas.map((fila, indice) => normalizarFila(fila, indice + 2));
+    setAviso({ tono: "info", texto: `Archivo leído: ${revision.filas.length} filas. Enriqueciendo CP, clasificación y ruta...` });
+    const filasParseadas = await Promise.all(revision.filas.map((fila, indice) => enriquecerFila(fila, indice + 2)));
     const hash = await sha256Archivo(archivo);
     setHashArchivo(hash);
     setErroresArchivo(revision.errores);
@@ -509,8 +647,8 @@ export default function PaginaTrasladosMasivosAdmin() {
           <div className="mt-5 grid gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="font-body text-sm font-semibold text-ink">Archivo CSV</p>
-                <p className="mt-1 font-body text-sm text-ink/55">Máximo según rol y 5 MB. Descarga el XLSX asistido, captura datos y expórtalo como CSV para cargarlo.</p>
+                <p className="font-body text-sm font-semibold text-ink">Orden operativa CSV</p>
+                <p className="mt-1 font-body text-sm text-ink/55">Máximo según rol y 5 MB. Captura vehículo, dirección humana, contactos y programación; Ruum completa CP, ruta y clasificación.</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <a
@@ -518,14 +656,14 @@ export default function PaginaTrasladosMasivosAdmin() {
                   download="plantilla-traslados-masivos-ruum.xlsx"
                   className="rounded-lg border border-status-info bg-status-info px-3 py-2 font-body text-sm font-semibold text-surface-primary transition-colors hover:bg-status-info/90"
                 >
-                  Descargar plantilla XLSX
+                  Descargar orden XLSX
                 </a>
                 <a
                   href={`data:text/csv;charset=utf-8,${encodeURIComponent(EJEMPLO_CSV)}`}
                   download="plantilla-traslados-masivos-ruum.csv"
                   className="rounded-lg border border-ink/15 px-3 py-2 font-body text-sm font-semibold text-text-secondary transition-colors hover:border-status-info/40 hover:text-status-info"
                 >
-                  CSV básico
+                  Orden CSV
                 </a>
               </div>
             </div>
@@ -567,9 +705,14 @@ export default function PaginaTrasladosMasivosAdmin() {
                       <td>{fila.datos.origen_ciudad || "Origen"} → {fila.datos.destino_ciudad || "Destino"}</td>
                       <td>
                         {fila.errores.length === 0 ? (
-                          <span className="rounded-full border border-status-success/30 bg-status-success-soft px-2.5 py-1 font-body text-xs font-semibold text-status-success">Lista</span>
+                          <span className="rounded-full border border-status-success/30 bg-status-success-soft px-2.5 py-1 font-body text-xs font-semibold text-status-success">
+                            {fila.advertencias.length > 0 ? `Lista con ${fila.advertencias.length} alerta(s)` : "Lista"}
+                          </span>
                         ) : (
                           <span className="font-body text-admin-secundario text-status-error">{fila.errores.join(", ")}</span>
+                        )}
+                        {fila.errores.length === 0 && fila.advertencias.length > 0 && (
+                          <p className="mt-1 max-w-md font-body text-xs text-text-tertiary">{fila.advertencias.slice(0, 2).join(" · ")}</p>
                         )}
                       </td>
                     </tr>

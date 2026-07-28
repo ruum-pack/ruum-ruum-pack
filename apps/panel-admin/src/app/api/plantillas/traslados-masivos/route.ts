@@ -9,95 +9,74 @@ const FILAS_PLANTILLA = 500;
 
 const COLUMNAS = [
   "referencia_externa",
+  "centro_costo",
+  "orden_compra",
+  "prioridad",
   "vehiculo_placas",
   "vehiculo_vin",
   "vehiculo_marca",
   "vehiculo_modelo",
   "vehiculo_anio",
-  "vehiculo_tipo",
   "vehiculo_color",
-  "categoria_tarifa",
-  "gama",
   "condicion",
   "contacto_entrega_nombre",
   "contacto_entrega_telefono",
   "contacto_recepcion_nombre",
   "contacto_recepcion_telefono",
   "origen_codigo_postal",
-  "origen_estado",
-  "origen_ciudad",
   "origen_colonia",
-  "origen_direccion",
-  "origen_lat",
-  "origen_lng",
+  "origen_calle",
+  "origen_numero",
+  "origen_referencias",
   "destino_codigo_postal",
-  "destino_estado",
-  "destino_ciudad",
   "destino_colonia",
-  "destino_direccion",
-  "destino_lat",
-  "destino_lng",
+  "destino_calle",
+  "destino_numero",
+  "destino_referencias",
   "modalidad_programacion",
   "fecha_hora_programada",
-  "tipo_pago",
-  "tipo_ruta",
-  "tipo_servicio",
-  "motivo_servicio",
-  "distancia_km",
-  "tiempo_estimado_horas",
+  "ventana_recoleccion",
+  "ventana_entrega",
   "instrucciones_especiales"
 ] as const;
 
 const EJEMPLO = [
   "FLOT-001",
+  "CC-NORTE",
+  "OC-45881",
+  "normal",
   "ABC123",
   "",
   "Nissan",
   "Versa",
   "2024",
-  "sedan",
   "Blanco",
-  "ligero_a",
-  "entrada",
   "seminueva",
   "Operaciones",
   "+525500000000",
   "Recepcion",
   "+525500000001",
   "06700",
-  null,
-  null,
-  null,
-  "Av. Reforma 100",
-  "19.4326",
-  "-99.1332",
+  "Roma Norte",
+  "Av. Reforma",
+  "100",
+  "Acceso por estacionamiento",
   "04360",
-  null,
-  null,
-  null,
-  "Av. Universidad 300",
-  "19.3670",
-  "-99.1660",
+  "Copilco Universidad",
+  "Av. Universidad",
+  "300",
+  "Entregar en recepción",
   "programado",
   "2026-07-20T12:00:00-06:00",
-  "al_cierre",
-  "local",
-  "flotilla",
-  "traslado_especial",
-  "12.4",
-  "0.7",
+  "2026-07-20T11:00:00-06:00",
+  "2026-07-20T14:00:00-06:00",
   "Unidad prioritaria"
 ] satisfies Celda[];
 
-const VEHICULO_TIPOS = ["sedan", "suv", "pick_up", "van", "luxury", "blindado", "coleccion"];
-const CATEGORIAS = ["ligero_a", "ligero_b", "mediano", "camion"];
-const GAMAS = ["entrada", "media", "alta", "premium"];
 const CONDICIONES = ["nueva", "seminueva", "rescate_mecanico"];
 const ANIOS = Array.from({ length: 31 }, (_, indice) => String(new Date().getFullYear() + 1 - indice));
+const PRIORIDADES = ["normal", "alta", "urgente"];
 const MODALIDADES = ["lo_antes_posible", "programado"];
-const TIPOS_PAGO = ["al_cierre", "anticipado", "credito_empresa"];
-const TIPOS_RUTA = ["local", "foraneo"];
-const TIPOS_SERVICIO = ["flotilla", "particular", "corporativo"];
 
 function xml(valor: Celda) {
   return String(valor ?? "")
@@ -120,10 +99,6 @@ function col(indice: number) {
 
 function celdaTexto(ref: string, valor: Celda) {
   return `<c r="${ref}" t="inlineStr"><is><t>${xml(valor)}</t></is></c>`;
-}
-
-function celdaFormula(ref: string, formula: string) {
-  return `<c r="${ref}"><f>${xml(formula)}</f></c>`;
 }
 
 function fila(numero: number, celdas: string[]) {
@@ -166,32 +141,21 @@ function sheetPrincipal() {
     const numero = filaIndice + 2;
     return fila(numero, COLUMNAS.map((columna, indice) => {
       const letra = col(indice);
-      if (columna === "origen_estado") return celdaFormula(`${letra}${numero}`, `IFERROR(VLOOKUP($P${numero},Catalogos!$H:$L,2,FALSE),"")`);
-      if (columna === "origen_ciudad") return celdaFormula(`${letra}${numero}`, `IFERROR(VLOOKUP($P${numero},Catalogos!$H:$L,3,FALSE),"")`);
-      if (columna === "origen_colonia") return celdaFormula(`${letra}${numero}`, `IFERROR(VLOOKUP($P${numero},Catalogos!$H:$L,4,FALSE),"")`);
-      if (columna === "destino_estado") return celdaFormula(`${letra}${numero}`, `IFERROR(VLOOKUP($W${numero},Catalogos!$H:$L,2,FALSE),"")`);
-      if (columna === "destino_ciudad") return celdaFormula(`${letra}${numero}`, `IFERROR(VLOOKUP($W${numero},Catalogos!$H:$L,3,FALSE),"")`);
-      if (columna === "destino_colonia") return celdaFormula(`${letra}${numero}`, `IFERROR(VLOOKUP($W${numero},Catalogos!$H:$L,4,FALSE),"")`);
       return celdaTexto(`${letra}${numero}`, filaIndice === 0 ? EJEMPLO[indice] : "");
     }));
   }).join("");
 
   const validaciones = [
-    dataValidation("D", "Marcas"),
-    dataValidation("E", "Modelos"),
-    dataValidation("F", "Anios"),
-    dataValidation("G", "TiposVehiculo"),
-    dataValidation("I", "CategoriasTarifa"),
-    dataValidation("J", "Gamas"),
+    dataValidation("D", "Prioridades"),
+    dataValidation("G", "Marcas"),
+    dataValidation("H", "Modelos"),
+    dataValidation("I", "Anios"),
     dataValidation("K", "Condiciones"),
     dataValidation("P", "CodigosPostales"),
-    dataValidation("S", "Colonias"),
-    dataValidation("W", "CodigosPostales"),
-    dataValidation("Z", "Colonias"),
-    dataValidation("AD", "Modalidades"),
-    dataValidation("AF", "TiposPago"),
-    dataValidation("AG", "TiposRuta"),
-    dataValidation("AH", "TiposServicio")
+    dataValidation("Q", "Colonias"),
+    dataValidation("U", "CodigosPostales"),
+    dataValidation("V", "Colonias"),
+    dataValidation("AB", "Modalidades")
   ].join("");
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -199,7 +163,7 @@ function sheetPrincipal() {
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
   <cols>${COLUMNAS.map((_, indice) => `<col min="${indice + 1}" max="${indice + 1}" width="${indice === 37 ? 28 : 18}" customWidth="1"/>`).join("")}</cols>
   <sheetData>${headers}${filasCaptura}</sheetData>
-  <dataValidations count="15">${validaciones}</dataValidations>
+  <dataValidations count="9">${validaciones}</dataValidations>
 </worksheet>`;
 }
 
@@ -209,8 +173,8 @@ function sheetCatalogos() {
   const modelos = valoresUnicos(catalogoVehiculos.map((vehiculo) => vehiculo.modelo));
   const cps = cargarCodigosPostales();
   const colonias = valoresUnicos(cps.map((filaCp) => filaCp[3]));
-  const maxFilas = Math.max(marcas.length, modelos.length, ANIOS.length, VEHICULO_TIPOS.length, CATEGORIAS.length, GAMAS.length, CONDICIONES.length, cps.length, colonias.length);
-  const header = ["marcas", "modelos", "anios", "vehiculo_tipos", "categorias_tarifa", "gamas", "condiciones", "codigo_postal", "estado", "ciudad_municipio", "colonia_principal", "colonias", "colonias_busqueda", "modalidades", "tipos_pago", "tipos_ruta", "tipos_servicio"];
+  const maxFilas = Math.max(marcas.length, modelos.length, ANIOS.length, PRIORIDADES.length, CONDICIONES.length, cps.length, colonias.length);
+  const header = ["marcas", "modelos", "anios", "prioridades", "condiciones", "codigo_postal", "estado", "ciudad_municipio", "colonia_principal", "colonias", "colonias_busqueda", "modalidades"];
   const filas = [fila(1, header.map((valor, indice) => celdaTexto(`${col(indice)}1`, valor)))];
   for (let i = 0; i < maxFilas; i += 1) {
     const cp = cps[i];
@@ -218,20 +182,15 @@ function sheetCatalogos() {
       celdaTexto(`A${i + 2}`, marcas[i]),
       celdaTexto(`B${i + 2}`, modelos[i]),
       celdaTexto(`C${i + 2}`, ANIOS[i]),
-      celdaTexto(`D${i + 2}`, VEHICULO_TIPOS[i]),
-      celdaTexto(`E${i + 2}`, CATEGORIAS[i]),
-      celdaTexto(`F${i + 2}`, GAMAS[i]),
-      celdaTexto(`G${i + 2}`, CONDICIONES[i]),
-      celdaTexto(`H${i + 2}`, cp?.[0]),
-      celdaTexto(`I${i + 2}`, cp?.[1]),
-      celdaTexto(`J${i + 2}`, cp?.[2]),
-      celdaTexto(`K${i + 2}`, cp?.[3]),
-      celdaTexto(`L${i + 2}`, cp?.[4]),
-      celdaTexto(`M${i + 2}`, colonias[i]),
-      celdaTexto(`N${i + 2}`, MODALIDADES[i]),
-      celdaTexto(`O${i + 2}`, TIPOS_PAGO[i]),
-      celdaTexto(`P${i + 2}`, TIPOS_RUTA[i]),
-      celdaTexto(`Q${i + 2}`, TIPOS_SERVICIO[i])
+      celdaTexto(`D${i + 2}`, PRIORIDADES[i]),
+      celdaTexto(`E${i + 2}`, CONDICIONES[i]),
+      celdaTexto(`F${i + 2}`, cp?.[0]),
+      celdaTexto(`G${i + 2}`, cp?.[1]),
+      celdaTexto(`H${i + 2}`, cp?.[2]),
+      celdaTexto(`I${i + 2}`, cp?.[3]),
+      celdaTexto(`J${i + 2}`, cp?.[4]),
+      celdaTexto(`K${i + 2}`, colonias[i]),
+      celdaTexto(`L${i + 2}`, MODALIDADES[i])
     ]));
   }
   return {
@@ -249,16 +208,11 @@ function workbook(counts: { marcas: number; modelos: number; cps: number; coloni
     rangoLista("Marcas", "A", counts.marcas),
     rangoLista("Modelos", "B", counts.modelos),
     rangoLista("Anios", "C", ANIOS.length),
-    rangoLista("TiposVehiculo", "D", VEHICULO_TIPOS.length),
-    rangoLista("CategoriasTarifa", "E", CATEGORIAS.length),
-    rangoLista("Gamas", "F", GAMAS.length),
-    rangoLista("Condiciones", "G", CONDICIONES.length),
-    rangoLista("CodigosPostales", "H", counts.cps),
-    rangoLista("Colonias", "M", counts.colonias),
-    rangoLista("Modalidades", "N", MODALIDADES.length),
-    rangoLista("TiposPago", "O", TIPOS_PAGO.length),
-    rangoLista("TiposRuta", "P", TIPOS_RUTA.length),
-    rangoLista("TiposServicio", "Q", TIPOS_SERVICIO.length)
+    rangoLista("Prioridades", "D", PRIORIDADES.length),
+    rangoLista("Condiciones", "E", CONDICIONES.length),
+    rangoLista("CodigosPostales", "F", counts.cps),
+    rangoLista("Colonias", "K", counts.colonias),
+    rangoLista("Modalidades", "L", MODALIDADES.length)
   ].join("");
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">

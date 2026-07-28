@@ -97,6 +97,23 @@ export function tipoSugeridoParaVehiculo(marca: string, modelo: string): TipoVeh
   return tipos.size === 1 ? [...tipos][0] ?? null : null;
 }
 
+export function categoriaTarifaSugeridaParaVehiculo(marca: string, modelo: string): "ligero_a" | "ligero_b" | null {
+  const coincidencias = clasificacionesPorVehiculo(marca, modelo);
+  const categorias = new Set(coincidencias.map((vehiculo) => vehiculo.categoria === "Ligero B" ? "ligero_b" : "ligero_a"));
+  return categorias.size === 1 ? [...categorias][0] ?? null : null;
+}
+
+export function gamaSugeridaParaVehiculo(marca: string, modelo: string): "entrada" | "media" | "alta" | "premium" | null {
+  const coincidencias = clasificacionesPorVehiculo(marca, modelo);
+  const gamas = new Set(coincidencias.map((vehiculo) => {
+    if (vehiculo.gama === "Premium") return "premium";
+    if (vehiculo.gama === "Alta") return "alta";
+    if (vehiculo.gama === "Media") return "media";
+    return "entrada";
+  }));
+  return gamas.size === 1 ? [...gamas][0] ?? null : null;
+}
+
 export function resumenClasificacionVehiculo(marca: string, modelo: string): string | null {
   const coincidencias = clasificacionesPorVehiculo(marca, modelo);
   if (coincidencias.length === 0) return null;
