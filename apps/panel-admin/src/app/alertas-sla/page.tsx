@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Aviso, Button } from "@ruum/ui";
 import { AdminPageHeader, AdminPanel } from "../admin-ui";
@@ -202,6 +202,7 @@ export default function PaginaExcepcionesCriticas() {
   const [aviso, setAviso] = useState<{ tono: "info" | "danger"; texto: string } | null>(null);
   const [estadoConexion, setEstadoConexion] = useState<EstadoConexionCritica>("actualizando");
   const [ultimaRespuestaExitosa, setUltimaRespuestaExitosa] = useState<Date | null>(null);
+  const ultimaRespuestaExitosaRef = useRef<Date | null>(null);
   const [seccionesDesactualizadas, setSeccionesDesactualizadas] = useState<string[]>([]);
   const [actualizandoManual, setActualizandoManual] = useState(false);
 
@@ -209,12 +210,12 @@ export default function PaginaExcepcionesCriticas() {
     if (!esRefresco) setCargando(true);
     if (esRefresco) {
       setActualizandoManual(true);
-      setEstadoConexion(ultimaRespuestaExitosa ? "reconectando" : "actualizando");
+      setEstadoConexion(ultimaRespuestaExitosaRef.current ? "reconectando" : "actualizando");
     }
     setAviso(null);
     if (!tieneSupabaseConfigurado()) {
-      if (!ultimaRespuestaExitosa) setExcepciones([]);
-      setEstadoConexion(ultimaRespuestaExitosa ? "desactualizado" : "sin_conexion");
+      if (!ultimaRespuestaExitosaRef.current) setExcepciones([]);
+      setEstadoConexion(ultimaRespuestaExitosaRef.current ? "desactualizado" : "sin_conexion");
       setSeccionesDesactualizadas(["alertas SLA reales", "historial operacional", "notificaciones"]);
       setAviso({ tono: "danger", texto: "Supabase no está configurado. Alertas y SLA no muestra excepciones demo." });
       setCargando(false);
@@ -224,11 +225,13 @@ export default function PaginaExcepcionesCriticas() {
     try {
       const cliente = crearClienteNavegador();
       setExcepciones(await listarExcepcionesCriticasAdmin(cliente));
+      const fecha = new Date();
+      ultimaRespuestaExitosaRef.current = fecha;
       setEstadoConexion("datos_en_vivo");
-      setUltimaRespuestaExitosa(new Date());
+      setUltimaRespuestaExitosa(fecha);
       setSeccionesDesactualizadas([]);
     } catch (error) {
-      const teniaRespuesta = Boolean(ultimaRespuestaExitosa);
+      const teniaRespuesta = Boolean(ultimaRespuestaExitosaRef.current);
       if (!teniaRespuesta) setExcepciones([]);
       setEstadoConexion(teniaRespuesta ? "desactualizado" : "sin_conexion");
       setSeccionesDesactualizadas(["emergencias", "SLA", "asignación", "incidencias"]);
@@ -237,10 +240,11 @@ export default function PaginaExcepcionesCriticas() {
       setCargando(false);
       setActualizandoManual(false);
     }
-  }, [setCargando, setActualizandoManual, setEstadoConexion, setAviso, setExcepciones, setSeccionesDesactualizadas, setUltimaRespuestaExitosa, ultimaRespuestaExitosa]);
+  }, [setCargando, setActualizandoManual, setEstadoConexion, setAviso, setExcepciones, setSeccionesDesactualizadas, setUltimaRespuestaExitosa]);
 
   useEffect(() => {
-    const categoriaParametro = new URLSearchParams(window.location.search).get("categoria");
+    const params = new URLSearchParams(window.location.search);
+    const categoriaParametro = params.get("categoria") ?? categoriaDesdeFiltroLegacy(params.get("filtro"));
     if (esCategoriaExcepcion(categoriaParametro) && categoriaParametro !== "emergencia") {
       setCategoria(categoriaParametro);
     }
@@ -392,4 +396,10 @@ function esCategoriaExcepcion(valor: string | null): valor is CategoriaExcepcion
     valor === "desviacion_ruta" ||
     valor === "incidencia_sin_responsable" ||
     valor === "documentacion_bloqueante";
+}
+
+function categoriaDesdeFiltroLegacy(valor: string | null): CategoriaExcepcionCritica | null {
+  if (valor === "vencidas") return "sla_vencido";
+  if (valor === "riesgo") return "sla_en_riesgo";
+  return null;
 }

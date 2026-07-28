@@ -80,3 +80,50 @@ export async function assertAdminPermission(cliente: Cliente, permiso: PermisoAd
   }
   return admin;
 }
+
+export async function assertAdminAnyPermission(cliente: Cliente, permisos: PermisoAdmin[]) {
+  if (permisos.length === 0) throw new Error("No se indicó ningún permiso administrativo.");
+  let autenticacion;
+  let errorAutenticacion;
+  try {
+    const resultado = await cliente.auth.getUser();
+    autenticacion = resultado.data;
+    errorAutenticacion = resultado.error;
+  } catch (error) {
+    if (esClienteSinAuthDisponible(error)) {
+      const resultados = await Promise.all(permisos.map(async (permiso) => {
+        const { data, error: errorPermiso } = await cliente.rpc("admin_tiene_permiso", { p_permiso: permiso });
+        if (errorPermiso) throw errorPermiso;
+        return data === true;
+      }));
+      if (resultados.some(Boolean)) return null;
+      throw new AdminAuthorizationError(permisos[0]!);
+    }
+    throw error;
+  }
+  if (errorAutenticacion || !autenticacion.user) throw new Error("No hay una sesión administrativa válida.");
+
+  const { data: admin, error } = await cliente.from("admins").select("id,rol_operativo").eq("auth_user_id", autenticacion.user.id).maybeSingle();
+  if (error) throw error;
+  if (!admin) {
+    console.warn("[security] permiso administrativo denegado", { userId: autenticacion.user.id, permisos, rol: null });
+    await cliente.rpc("registrar_permiso_admin_denegado", {
+      p_permiso: permisos[0]!,
+      p_motivo: "admin_inexistente"
+    });
+    throw new AdminAuthorizationError(permisos[0]!);
+  }
+
+  for (const permiso of permisos) {
+    const { data: comprobacionPermiso, error: errorPermiso } = await cliente.rpc("admin_tiene_permiso", { p_permiso: permiso });
+    if (errorPermiso) throw errorPermiso;
+    if (comprobacionPermiso === true) return admin;
+  }
+
+  console.warn("[security] permiso administrativo denegado", { userId: autenticacion.user.id, permisos, rol: admin.rol_operativo });
+  await cliente.rpc("registrar_permiso_admin_denegado", {
+    p_permiso: permisos[0]!,
+    p_motivo: "permiso_insuficiente"
+  });
+  throw new AdminAuthorizationError(permisos[0]!);
+}

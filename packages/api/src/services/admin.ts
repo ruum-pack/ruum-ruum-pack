@@ -5,7 +5,7 @@ import { evidenciaCompleta, esElegibleParaViaje } from "@ruum/shared/rules";
 import { consecuenciaCancelacionConductor, consecuenciaNoPresentacion, clasificarTrasladoFallido } from "@ruum/shared/rules";
 import type { FotoEvidencia, Conductor } from "@ruum/shared/types";
 import { registrarEvento, generarTraceId } from "./auditoria";
-import { assertAdminPermission } from "./permisos-admin";
+import { assertAdminAnyPermission, assertAdminPermission } from "./permisos-admin";
 
 type Cliente = SupabaseClient<Database>;
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -3691,7 +3691,7 @@ export async function listarTrasladosActivosMapa(cliente: Cliente): Promise<Tras
 }
 
 export async function listarExcepcionesCriticasAdmin(cliente: Cliente): Promise<ExcepcionCriticaAdmin[]> {
-  await assertAdminPermission(cliente, "incidencias:leer");
+  await assertAdminAnyPermission(cliente, ["incidencias:leer", "viajes:leer"]);
   const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_sincroniza_alertas_sla_operacionales",
     args?: Record<string, never>
@@ -3736,7 +3736,7 @@ export async function actualizarAlertaSlaAdmin(
   accion: "asignar" | "acuse" | "escalar" | "resolver" | "cerrar",
   parametros: { responsable?: string; comentario?: string } = {}
 ) {
-  await assertAdminPermission(cliente, accion === "escalar" || accion === "resolver" || accion === "cerrar" ? "viajes:gestionar" : "incidencias:leer");
+  await assertAdminAnyPermission(cliente, ["incidencias:leer", "viajes:gestionar"]);
   const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: "admin_actualiza_alerta_sla",
     args: { p_alerta_id: string; p_accion: string; p_responsable: string | null; p_comentario: string | null }
@@ -3776,7 +3776,7 @@ export interface AlertaSLA {
  * por public.admin_sincroniza_alertas_sla_operacionales().
  */
 export async function listarAlertasSLA(cliente: Cliente): Promise<AlertaSLA[]> {
-  await assertAdminPermission(cliente, "incidencias:leer");
+  await assertAdminAnyPermission(cliente, ["incidencias:leer", "viajes:leer"]);
   const filas = await listarExcepcionesCriticasAdmin(cliente);
   const tipos: TipoSLA[] = ["cuenta_nueva_usuario", "documentos_usuario", "conductor_primera_vez", "documentos_conductor"];
   return filas.flatMap((alerta) => {
