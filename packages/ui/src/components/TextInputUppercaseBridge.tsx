@@ -91,7 +91,8 @@ function debeNormalizarMayusculas(elemento: HTMLInputElement | HTMLTextAreaEleme
   if (PATRONES_EXCLUIDOS.some((patron) => descriptor.includes(patron))) return false;
   if (descriptor.split(/[^a-z0-9]+/).includes("id")) return false;
   if (elemento.inputMode && elemento.inputMode !== "text") return false;
-  if (elemento instanceof HTMLInputElement && elemento.pattern && /\\d|\[0-9\]|[0-9]/.test(elemento.pattern)) return false;
+  const pattern = elemento.getAttribute("pattern");
+  if (pattern && /\\d|\[0-9\]|[0-9]/.test(pattern)) return false;
 
   return true;
 }
