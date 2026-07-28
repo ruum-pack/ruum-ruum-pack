@@ -50,6 +50,19 @@ test('listas operativas no usan refresco automático que mueva tablas',()=>{
     assert.doesNotMatch(source,/visibilitychange/);
   }
 });
+test('viajes usa experiencia premium con acciones compactas y vistas operativas',()=>{
+  const page=read('apps/panel-admin/src/app/viajes/page.tsx');
+  const table=read('apps/panel-admin/src/app/AdminDataTable.tsx');
+  assert.match(page,/KpiOperativo/);
+  assert.match(page,/FiltroInteligente/);
+  assert.match(page,/ModoVistaOperativa = "lista" \| "kanban" \| "mapa"/);
+  assert.match(page,/VistaKanbanTraslados/);
+  assert.match(page,/VistaMapaTraslados/);
+  assert.match(page,/font-mono-ruum text-xs font-semibold text-status-info/);
+  assert.match(table,/⋮/);
+  assert.match(table,/selectedRows\.length\.toLocaleString/);
+  assert.doesNotMatch(page,/Vista rápida", onClick:[\s\S]*"Abrir", href:[\s\S]*"Asignar", href/);
+});
 test('no quedan alert confirm ni innerHTML en panel admin',()=>{
   const root=new URL('../src/',import.meta.url);
   const walk=(dir)=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(new URL(`${e.name}/`,dir)):[new URL(e.name,dir)]);

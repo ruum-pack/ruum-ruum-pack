@@ -228,17 +228,25 @@ export function AdminDataTable<T>({
                 ))}
                 {rowActions.length > 0 && (
                   <td className="px-4 py-3 text-right" data-label="Acciones">
-                    <div className="flex flex-wrap justify-end gap-2">
-                      {rowActions.map((action) => action.href ? (
-                        <Link key={action.label} href={action.href(row)} className="font-body text-sm font-semibold text-status-info hover:underline">
-                          {action.label}
-                        </Link>
-                      ) : (
-                        <button key={action.label} type="button" onClick={() => action.onClick?.(row)} className="font-body text-sm font-semibold text-status-info hover:underline">
-                          {action.label}
-                        </button>
-                      ))}
-                    </div>
+                    <details className="group relative inline-flex">
+                      <summary
+                        className="grid size-9 cursor-pointer list-none place-items-center rounded-full border border-ink/15 bg-surface-primary font-mono-ruum text-lg leading-none text-text-secondary transition hover:border-status-info/35 hover:bg-status-info-soft hover:text-status-info group-open:border-status-info/35 group-open:bg-status-info-soft group-open:text-status-info"
+                        aria-label={`Abrir acciones de ${rowId}`}
+                      >
+                        ⋮
+                      </summary>
+                      <div className="absolute right-0 top-10 z-30 min-w-44 overflow-hidden rounded-lg border border-border-default bg-surface-primary py-1 text-left shadow-[var(--ruum-shadow-3)]">
+                        {rowActions.map((action) => action.href ? (
+                          <Link key={action.label} href={action.href(row)} className="block px-3 py-2 font-body text-sm font-semibold text-text-secondary hover:bg-surface-secondary hover:text-ink">
+                            {action.label}
+                          </Link>
+                        ) : (
+                          <button key={action.label} type="button" onClick={() => action.onClick?.(row)} className="block w-full px-3 py-2 text-left font-body text-sm font-semibold text-text-secondary hover:bg-surface-secondary hover:text-ink">
+                            {action.label}
+                          </button>
+                        ))}
+                      </div>
+                    </details>
                   </td>
                 )}
               </tr>
@@ -262,8 +270,10 @@ export function AdminDataTable<T>({
       </div>
       )}
       {bulkActions.length > 0 && selectedRows.length > 0 && (
-        <div className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-lg border border-border-default bg-surface-primary px-4 py-3 shadow-[var(--ruum-shadow-4)] lg:left-[calc(var(--admin-sidebar-width,18rem)+1rem)]">
-          <p className="font-body text-sm font-semibold text-ink">{selectedRows.length.toLocaleString("es-MX")} seleccionado{selectedRows.length === 1 ? "" : "s"}</p>
+        <div className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 rounded-xl border border-ink/10 bg-surface-strong px-4 py-3 text-text-main shadow-[var(--ruum-shadow-4)] lg:left-[calc(var(--admin-sidebar-width,18rem)+1rem)]">
+          <p className="font-body text-sm font-semibold">
+            <span className="font-mono-ruum text-signal">{selectedRows.length.toLocaleString("es-MX")}</span> seleccionado{selectedRows.length === 1 ? "" : "s"}
+          </p>
           <div className="flex flex-wrap items-center gap-2">
             {bulkActions.map((action) => (
               <button
@@ -271,17 +281,17 @@ export function AdminDataTable<T>({
                 type="button"
                 onClick={() => action.onClick(selectedRows)}
                 className={[
-                  "rounded-lg border px-3 py-2 font-body text-admin-boton font-semibold",
+                  "rounded-lg border px-3 py-2 font-body text-admin-boton font-semibold transition-colors",
                   action.destructive || action.requiresConfirmation
-                    ? "border-status-warning/35 text-status-warning hover:bg-status-warning-soft"
-                    : "border-ink/20 text-text-secondary hover:border-signal/40 hover:bg-surface-secondary"
+                    ? "border-status-warning/50 text-status-warning hover:bg-status-warning-soft"
+                    : "border-text-main/15 text-text-main hover:border-signal/50 hover:bg-text-main/10"
                 ].join(" ")}
                 title={`${action.label}: afectará ${selectedRows.length.toLocaleString("es-MX")} registro${selectedRows.length === 1 ? "" : "s"}.`}
               >
                 {action.label}
               </button>
             ))}
-            <button type="button" onClick={() => onSelectionChange(new Set())} className="rounded-lg border border-transparent px-3 py-2 font-body text-admin-boton font-semibold text-text-tertiary hover:bg-surface-secondary">
+            <button type="button" onClick={() => onSelectionChange(new Set())} className="rounded-lg border border-transparent px-3 py-2 font-body text-admin-boton font-semibold text-text-main/70 hover:bg-text-main/10">
               Limpiar
             </button>
           </div>

@@ -19,6 +19,7 @@ type FiltroSla = "todos" | "en_riesgo" | "vencido";
 type FiltroFecha = "todos" | "hoy" | "7d" | "30d";
 type PrioridadOperativa = "baja" | "media" | "alta" | "critica";
 type AlcanceVistaGuardada = "privada" | "compartida";
+type ModoVistaOperativa = "lista" | "kanban" | "mapa";
 type AccionMasivaId =
   | "asignar_responsable"
   | "cambiar_prioridad"
@@ -217,6 +218,7 @@ export default function PaginaViajesAdmin() {
   const [etiquetaMasiva, setEtiquetaMasiva] = useState("Corporativo");
   const [auditoriaMasiva, setAuditoriaMasiva] = useState<AuditoriaOperacionMasiva[]>([]);
   const [detalleAbiertoId, setDetalleAbiertoId] = useState<string | null>(null);
+  const [modoVista, setModoVista] = useState<ModoVistaOperativa>("lista");
   const [vistasGuardadas, setVistasGuardadas] = useState<VistaGuardada[]>([]);
   const [nombreVista, setNombreVista] = useState("");
   const [alcanceVista, setAlcanceVista] = useState<AlcanceVistaGuardada>("privada");
@@ -509,6 +511,46 @@ export default function PaginaViajesAdmin() {
     () => trasladosFiltrados.filter((traslado) => seleccionados.has(idTrasladoOperativo(traslado))),
     [seleccionados, trasladosFiltrados]
   );
+
+  const metricasOperativas = useMemo(() => {
+    const fuente = trasladosPorKpi;
+    return {
+      total: fuente.length,
+      riesgo: fuente.filter((traslado) => coincideSla(traslado, "en_riesgo")).length,
+      vencidos: fuente.filter((traslado) => coincideSla(traslado, "vencido")).length,
+      sinConductor: fuente.filter((traslado) => traslado.estado === "pendiente_de_conductor" || !traslado.conductor_nombre).length,
+      inician60: fuente.filter((traslado) => iniciaEn60Min(obtenerInicioProgramado(traslado))).length,
+      incidencia: fuente.filter((traslado) => Boolean(traslado.tiene_incidencia_abierta) || Number(traslado.incidencias_abiertas ?? 0) > 0).length,
+      sinUbicacion: fuente.filter(sinCoordenadas).length
+    };
+  }, [trasladosPorKpi]);
+
+  const columnasKanban = useMemo(() => [
+    {
+      id: "riesgo",
+      titulo: "En riesgo",
+      descripcion: "SLA vencido o atención prioritaria",
+      filas: trasladosFiltrados.filter((traslado) => coincideSla(traslado, "en_riesgo"))
+    },
+    {
+      id: "sin_conductor",
+      titulo: "Sin conductor",
+      descripcion: "Pendientes de asignación",
+      filas: trasladosFiltrados.filter((traslado) => traslado.estado === "pendiente_de_conductor" || !traslado.conductor_nombre)
+    },
+    {
+      id: "en_curso",
+      titulo: "En curso",
+      descripcion: "Traslados activos",
+      filas: trasladosFiltrados.filter((traslado) => traslado.estado === "traslado_en_curso")
+    },
+    {
+      id: "cierre",
+      titulo: "Cierre",
+      descripcion: "Finalizados o por cerrar",
+      filas: trasladosFiltrados.filter((traslado) => traslado.estado === "servicio_cerrado" || traslado.estado === "servicio_cancelado" || traslado.estado === "traslado_fallido")
+    }
+  ], [trasladosFiltrados]);
 
   const trasladoDetalle = useMemo(
     () => traslados.find((traslado) => traslado.traslado_id === detalleAbiertoId) ?? null,
@@ -849,6 +891,13 @@ export default function PaginaViajesAdmin() {
         </div>
       )}
 
+      <section className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Resumen operativo de traslados">
+        <KpiOperativo etiqueta="En riesgo" valor={metricasOperativas.riesgo} detalle={`${metricasOperativas.vencidos} vencidos`} tono="riesgo" onClick={() => setFiltros((actual) => ({ ...actual, sla: "en_riesgo" }))} />
+        <KpiOperativo etiqueta="Sin conductor" valor={metricasOperativas.sinConductor} detalle="Requieren asignación" tono="atencion" onClick={() => setFiltros((actual) => ({ ...actual, sinAsignacion: true }))} />
+        <KpiOperativo etiqueta="Inician 60 min" valor={metricasOperativas.inician60} detalle="Ventana inmediata" tono="info" onClick={() => setFiltros((actual) => ({ ...actual, proximos: true }))} />
+        <KpiOperativo etiqueta="Con incidencia" valor={metricasOperativas.incidencia} detalle={`${metricasOperativas.sinUbicacion} sin ubicación completa`} tono="critico" onClick={() => setFiltros((actual) => ({ ...actual, incidencia: true }))} />
+      </section>
+
       <section className="mt-4 rounded-card border border-border-default bg-surface-primary/95 p-3 shadow-[var(--ruum-shadow-1)]" aria-label="Filtros de traslados">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
           <div className="min-w-72 flex-1">
@@ -870,16 +919,14 @@ export default function PaginaViajesAdmin() {
             )}
           </div>
 
-          <div className="flex flex-1 flex-wrap items-end gap-2">
-            <div className="min-w-0 flex-1">
-              <p className="mb-1 font-body text-admin-secundario font-semibold uppercase tracking-wide text-text-tertiary">Filtros de alerta / accesos directos</p>
-              <div className="flex flex-wrap gap-2">
-                <FiltroToggle activo={filtros.sla === "en_riesgo"} onClick={() => setFiltros((actual) => ({ ...actual, sla: actual.sla === "en_riesgo" ? "todos" : "en_riesgo" }))}>En riesgo</FiltroToggle>
-                <FiltroToggle activo={filtros.sinAsignacion} onClick={() => setFiltros((actual) => ({ ...actual, sinAsignacion: !actual.sinAsignacion }))}>Sin conductor</FiltroToggle>
-                <FiltroToggle activo={filtros.proximos} onClick={() => setFiltros((actual) => ({ ...actual, proximos: !actual.proximos }))}>Inician 60 min</FiltroToggle>
-                <FiltroToggle activo={filtros.incidencia} onClick={() => setFiltros((actual) => ({ ...actual, incidencia: !actual.incidencia }))}>Con incidencia</FiltroToggle>
-                <FiltroToggle activo={filtros.sinCoordenadas} onClick={() => setFiltros((actual) => ({ ...actual, sinCoordenadas: !actual.sinCoordenadas }))}>Sin ubicación</FiltroToggle>
-              </div>
+          <div className="min-w-0 flex-[1.4]">
+            <p className="mb-1 font-body text-admin-secundario font-semibold uppercase tracking-wide text-text-tertiary">Filtros inteligentes</p>
+            <div className="flex overflow-x-auto rounded-full border border-border-default bg-surface-secondary p-1">
+              <FiltroInteligente activo={filtros.sla === "en_riesgo"} etiqueta="En riesgo" conteo={metricasOperativas.riesgo} onClick={() => setFiltros((actual) => ({ ...actual, sla: actual.sla === "en_riesgo" ? "todos" : "en_riesgo" }))} />
+              <FiltroInteligente activo={filtros.sinAsignacion} etiqueta="Sin conductor" conteo={metricasOperativas.sinConductor} onClick={() => setFiltros((actual) => ({ ...actual, sinAsignacion: !actual.sinAsignacion }))} />
+              <FiltroInteligente activo={filtros.proximos} etiqueta="Inician 60" conteo={metricasOperativas.inician60} onClick={() => setFiltros((actual) => ({ ...actual, proximos: !actual.proximos }))} />
+              <FiltroInteligente activo={filtros.incidencia} etiqueta="Incidencia" conteo={metricasOperativas.incidencia} onClick={() => setFiltros((actual) => ({ ...actual, incidencia: !actual.incidencia }))} />
+              <FiltroInteligente activo={filtros.sinCoordenadas} etiqueta="Sin ubicación" conteo={metricasOperativas.sinUbicacion} onClick={() => setFiltros((actual) => ({ ...actual, sinCoordenadas: !actual.sinCoordenadas }))} />
             </div>
           </div>
 
@@ -1007,45 +1054,78 @@ export default function PaginaViajesAdmin() {
         </div>
       </section>
 
-      <AdminDataTable
-        caption="Lista de traslados operativos"
-        rows={trasladosFiltrados}
-        columns={columnasTraslados}
-        getRowId={(v) => v.traslado_id ?? `sin-folio-${v.creado_en ?? ""}-${v.vehiculo_modelo ?? ""}`}
-        loading={cargando}
-        emptyMessage="No se encontraron traslados con los filtros aplicados."
-        emptyAction={(
-          <button
-            type="button"
-            onClick={limpiarFiltrosVista}
-            className="mx-auto rounded-lg border border-status-info/35 px-3 py-2 font-body text-admin-boton font-semibold text-status-info hover:bg-status-info-soft"
-          >
-            Limpiar filtros
-          </button>
-        )}
-        partialError={seccionesDesactualizadas.length > 0 ? `Error parcial: ${seccionesDesactualizadas.join(", ")}.` : null}
-        selectedIds={seleccionados}
-        onSelectionChange={setSeleccionados}
-        sortState={ordenTabla}
-        onSortChange={setOrdenTabla}
-        visibleColumnIds={columnasVisibles}
-        onVisibleColumnIdsChange={setColumnasVisibles}
-        pageSizeOptions={[tamanoPagina]}
-        rowActions={[
-          { label: "Vista rápida", onClick: abrirDetalleRapido },
-          { label: "Abrir", href: (v) => v.traslado_id ? `/viajes/${v.traslado_id}` : "/viajes" },
-          { label: "Asignar", href: (v) => v.traslado_id ? `/viajes/${v.traslado_id}#asignar-conductor` : "/viajes?filtro=sin_asignacion" }
-        ]}
-        bulkActions={ACCIONES_MASIVAS.map((accion) => ({
-          label: accion.etiqueta,
-          destructive: accion.destructiva,
-          requiresConfirmation: accion.requiereConfirmacion,
-          onClick: () => abrirAccionMasiva(accion)
-        }))}
-        hidePagination
-      />
+      <section className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-border-default bg-surface-primary px-4 py-3" aria-label="Modo de visualización">
+        <div>
+          <p className="font-body text-admin-secundario font-semibold uppercase tracking-wide text-text-tertiary">Vista operativa</p>
+          <p className="mt-1 font-body text-sm text-text-secondary">Alterna entre tabla densa, tablero de atención y acceso al mapa operativo real.</p>
+        </div>
+        <div className="inline-flex rounded-full border border-border-default bg-surface-secondary p-1">
+          {([
+            ["lista", "Lista"],
+            ["kanban", "Kanban"],
+            ["mapa", "Mapa"]
+          ] as Array<[ModoVistaOperativa, string]>).map(([modo, etiqueta]) => (
+            <button
+              key={modo}
+              type="button"
+              onClick={() => setModoVista(modo)}
+              className={`rounded-full px-4 py-2 font-body text-sm font-semibold transition ${modoVista === modo ? "bg-surface-strong text-text-main shadow-[var(--ruum-shadow-1)]" : "text-text-secondary hover:text-ink"}`}
+            >
+              {etiqueta}
+            </button>
+          ))}
+        </div>
+      </section>
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-card border border-border-default bg-surface-primary px-4 py-3">
+      {modoVista === "lista" && (
+        <AdminDataTable
+          caption="Lista de traslados operativos"
+          rows={trasladosFiltrados}
+          columns={columnasTraslados}
+          getRowId={(v) => v.traslado_id ?? `sin-folio-${v.creado_en ?? ""}-${v.vehiculo_modelo ?? ""}`}
+          loading={cargando}
+          emptyMessage="No se encontraron traslados con los filtros aplicados."
+          emptyAction={(
+            <button
+              type="button"
+              onClick={limpiarFiltrosVista}
+              className="mx-auto rounded-lg border border-status-info/35 px-3 py-2 font-body text-admin-boton font-semibold text-status-info hover:bg-status-info-soft"
+            >
+              Limpiar filtros
+            </button>
+          )}
+          partialError={seccionesDesactualizadas.length > 0 ? `Error parcial: ${seccionesDesactualizadas.join(", ")}.` : null}
+          selectedIds={seleccionados}
+          onSelectionChange={setSeleccionados}
+          sortState={ordenTabla}
+          onSortChange={setOrdenTabla}
+          visibleColumnIds={columnasVisibles}
+          onVisibleColumnIdsChange={setColumnasVisibles}
+          pageSizeOptions={[tamanoPagina]}
+          rowActions={[
+            { label: "Vista rápida", onClick: abrirDetalleRapido },
+            { label: "Abrir expediente", href: (v) => v.traslado_id ? `/viajes/${v.traslado_id}` : "/viajes" },
+            { label: "Asignar conductor", href: (v) => v.traslado_id ? `/viajes/${v.traslado_id}#asignar-conductor` : "/viajes?filtro=sin_asignacion" }
+          ]}
+          bulkActions={ACCIONES_MASIVAS.map((accion) => ({
+            label: accion.etiqueta,
+            destructive: accion.destructiva,
+            requiresConfirmation: accion.requiereConfirmacion,
+            onClick: () => abrirAccionMasiva(accion)
+          }))}
+          hidePagination
+        />
+      )}
+
+      {modoVista === "kanban" && (
+        <VistaKanbanTraslados columnas={columnasKanban} onAbrirDetalle={abrirDetalleRapido} />
+      )}
+
+      {modoVista === "mapa" && (
+        <VistaMapaTraslados traslados={trasladosFiltrados} onAbrirDetalle={abrirDetalleRapido} />
+      )}
+
+      {modoVista === "lista" && <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-card border border-border-default bg-surface-primary px-4 py-3">
         <label className="font-body text-sm text-text-secondary">
           Filas por página
           <select
@@ -1094,7 +1174,7 @@ export default function PaginaViajesAdmin() {
             Siguiente
           </button>
         </div>
-      </div>
+      </div>}
 
       {auditoriaMasiva.length > 0 && (
         <section className="mt-4 rounded-card border border-border-default bg-surface-primary p-4" aria-label="Auditoría de acciones masivas">
@@ -1326,11 +1406,43 @@ function VehiculoOperativo({ traslado }: { traslado: PasaporteRow }) {
   );
 }
 
+function KpiOperativo({ etiqueta, valor, detalle, tono, onClick }: { etiqueta: string; valor: number; detalle: string; tono: "riesgo" | "atencion" | "info" | "critico"; onClick: () => void }) {
+  const clases = {
+    riesgo: "border-[#8F3D32]/25 bg-[#8F3D32]/10 text-[#B85C4D]",
+    atencion: "border-[#B9802A]/25 bg-[#B9802A]/10 text-[#B9802A]",
+    info: "border-status-info/25 bg-status-info-soft text-status-info",
+    critico: "border-[#B44545]/25 bg-[#B44545]/10 text-[#C45A5A]"
+  }[tono];
+  return (
+    <button type="button" onClick={onClick} className="rounded-lg border border-border-default bg-surface-primary p-4 text-left shadow-[var(--ruum-shadow-1)] transition hover:border-status-info/35 hover:bg-surface-secondary">
+      <div className="flex items-start justify-between gap-3">
+        <p className="font-body text-sm font-semibold text-text-secondary">{etiqueta}</p>
+        <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-semibold ${clases}`}>Activo</span>
+      </div>
+      <p className="mt-3 font-mono-ruum text-3xl font-semibold text-ink">{valor.toLocaleString("es-MX")}</p>
+      <p className="mt-1 font-body text-xs text-text-tertiary">{detalle}</p>
+    </button>
+  );
+}
+
+function FiltroInteligente({ activo, etiqueta, conteo, onClick }: { activo: boolean; etiqueta: string; conteo: number; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={activo}
+      onClick={onClick}
+      className={`whitespace-nowrap rounded-full px-3 py-1.5 font-body text-sm font-semibold transition ${activo ? "bg-surface-strong text-text-main shadow-[var(--ruum-shadow-1)]" : "text-text-secondary hover:bg-surface-primary hover:text-ink"}`}
+    >
+      {etiqueta} <span className="ml-1 font-mono-ruum text-xs opacity-75">({conteo.toLocaleString("es-MX")})</span>
+    </button>
+  );
+}
+
 function SlaOperativo({ traslado }: { traslado: PasaporteRow }) {
   const sla = estadoSla(traslado);
   return (
-    <span className={`inline-flex min-w-32 items-center gap-2 rounded-full border px-2.5 py-1 font-body text-xs font-semibold ${sla.clases}`}>
-      <span aria-hidden="true" className="font-mono-ruum">{sla.icono}</span>
+    <span className={`inline-flex min-w-32 items-center gap-2 rounded-full border px-2.5 py-1 font-body text-xs font-semibold shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] ${sla.clases}`}>
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
       <span className="grid leading-tight">
         <span>{sla.etiqueta}</span>
         <span className="font-normal opacity-80">{sla.detalle}</span>
@@ -1343,8 +1455,8 @@ function EstadoOperativo({ estado }: { estado: EstadoTraslado | null }) {
   if (!estado) return <span className="text-text-tertiary">Sin estado</span>;
   const critico = estado === "pendiente_de_conductor" || estado === "incidencia_reportada" || estado === "traslado_fallido" || estado === "servicio_cancelado";
   return (
-    <span className={critico ? "inline-flex items-center gap-2 rounded-full border border-status-error/30 bg-status-error-soft px-2 py-1 text-status-error" : "inline-flex items-center gap-2"}>
-      {critico && <span aria-hidden="true" className="font-mono-ruum text-xs font-bold">!</span>}
+    <span className={critico ? "inline-flex items-center gap-2 rounded-full border border-[#8F3D32]/25 bg-[#8F3D32]/10 px-2 py-1 text-[#B85C4D]" : "inline-flex items-center gap-2"}>
+      {critico && <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />}
       <EstadoBadge estado={estado} />
     </span>
   );
@@ -1356,16 +1468,81 @@ function IncidenciaOperativa({ traslado }: { traslado: PasaporteRow }) {
   if (!tieneIncidencia) {
     return (
       <span className="inline-flex items-center gap-2 rounded-full border border-status-success/30 bg-status-success-soft px-2.5 py-1 font-body text-xs font-semibold text-status-success">
-        <span aria-hidden="true" className="font-mono-ruum">OK</span>
+        <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
         Sin incidencia
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-status-error/35 bg-status-error-soft px-2.5 py-1 font-body text-xs font-semibold text-status-error">
-      <span aria-hidden="true" className="font-mono-ruum">!</span>
+    <span className="inline-flex items-center gap-2 rounded-full border border-[#8F3D32]/25 bg-[#8F3D32]/10 px-2.5 py-1 font-body text-xs font-semibold text-[#B85C4D]">
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
       {abiertas > 1 ? `${abiertas} abiertas` : "Abierta"}
     </span>
+  );
+}
+
+function VistaKanbanTraslados({ columnas, onAbrirDetalle }: { columnas: Array<{ id: string; titulo: string; descripcion: string; filas: PasaporteRow[] }>; onAbrirDetalle: (traslado: PasaporteRow) => void }) {
+  return (
+    <section className="mt-4 grid gap-4 xl:grid-cols-4" aria-label="Vista Kanban de traslados">
+      {columnas.map((columna) => (
+        <div key={columna.id} className="min-h-96 rounded-lg border border-border-default bg-surface-primary">
+          <header className="border-b border-ink/10 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-display text-base font-semibold text-ink">{columna.titulo}</h2>
+              <span className="rounded-full border border-ink/10 bg-surface-secondary px-2 py-0.5 font-mono-ruum text-xs text-text-secondary">{columna.filas.length}</span>
+            </div>
+            <p className="mt-1 font-body text-xs text-text-tertiary">{columna.descripcion}</p>
+          </header>
+          <div className="grid max-h-[68vh] gap-3 overflow-auto p-3">
+            {columna.filas.slice(0, 30).map((traslado) => (
+              <button key={idTrasladoOperativo(traslado)} type="button" onClick={() => onAbrirDetalle(traslado)} className="rounded-lg border border-ink/10 bg-surface-secondary p-3 text-left transition hover:border-status-info/35 hover:bg-status-info-soft">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-mono-ruum text-xs font-semibold text-status-info">{folioCorto(traslado)}</span>
+                  <SlaOperativo traslado={traslado} />
+                </div>
+                <p className="mt-2 font-body text-sm font-semibold text-ink">{traslado.origen_ciudad ?? "Origen"} → {traslado.destino_ciudad ?? "Destino"}</p>
+                <p className="mt-1 font-body text-xs text-text-secondary">{traslado.conductor_nombre ?? "Sin conductor"} · {responsableOperativo(traslado)}</p>
+              </button>
+            ))}
+            {columna.filas.length === 0 && <p className="px-2 py-6 text-center font-body text-sm text-text-tertiary">Sin traslados en esta columna.</p>}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function VistaMapaTraslados({ traslados, onAbrirDetalle }: { traslados: PasaporteRow[]; onAbrirDetalle: (traslado: PasaporteRow) => void }) {
+  const conCoordenadas = traslados.filter((traslado) => !sinCoordenadas(traslado));
+  const sinUbicacion = traslados.length - conCoordenadas.length;
+  return (
+    <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]" aria-label="Vista mapa de traslados">
+      <div className="grid min-h-[460px] place-items-center rounded-lg border border-border-default bg-surface-strong p-6 text-text-main">
+        <div className="max-w-xl text-center">
+          <p className="font-mono-ruum text-xs uppercase tracking-wide text-signal">Mapa operativo real</p>
+          <h2 className="mt-2 font-display text-2xl font-semibold">Usar módulo Mapa para GPS y tráfico</h2>
+          <p className="mt-2 font-body text-sm text-text-main/75">
+            Esta bandeja no inventa posiciones. {conCoordenadas.length.toLocaleString("es-MX")} traslados tienen coordenadas completas y {sinUbicacion.toLocaleString("es-MX")} requieren completar ubicación.
+          </p>
+          <Link href="/mapa" className="mt-5 inline-flex rounded-lg border border-signal bg-signal px-4 py-2 font-body text-sm font-semibold text-ink hover:bg-signal/90">
+            Abrir mapa operativo
+          </Link>
+        </div>
+      </div>
+      <aside className="rounded-lg border border-border-default bg-surface-primary p-4">
+        <h2 className="font-display text-base font-semibold text-ink">Traslados georreferenciables</h2>
+        <div className="mt-3 grid max-h-[430px] gap-2 overflow-auto">
+          {conCoordenadas.slice(0, 25).map((traslado) => (
+            <button key={idTrasladoOperativo(traslado)} type="button" onClick={() => onAbrirDetalle(traslado)} className="rounded-lg border border-ink/10 bg-surface-secondary p-3 text-left hover:border-status-info/35">
+              <p className="font-mono-ruum text-xs font-semibold text-status-info">{folioCorto(traslado)}</p>
+              <p className="mt-1 font-body text-sm text-ink">{traslado.origen_ciudad} → {traslado.destino_ciudad}</p>
+              <p className="mt-1 font-body text-xs text-text-secondary">{traslado.conductor_nombre ?? "Sin conductor"}</p>
+            </button>
+          ))}
+          {conCoordenadas.length === 0 && <p className="font-body text-sm text-text-tertiary">No hay traslados con coordenadas completas en esta selección.</p>}
+        </div>
+      </aside>
+    </section>
   );
 }
 
