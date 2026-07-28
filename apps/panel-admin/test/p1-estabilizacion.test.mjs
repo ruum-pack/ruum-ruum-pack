@@ -122,6 +122,35 @@ test('pasaporte empresarial consolida control real por empresa',()=>{
   assert.match(passport,/agruparLugares\(traslados, "destino"\)/);
   assert.match(passport,/Sin coordenadas/);
 });
+test('configuracion permite a direccion administrar roles y capacidades por RPC auditado',()=>{
+  const page=read('apps/panel-admin/src/app/configuracion/page.tsx');
+  const service=read('packages/api/src/services/admin-capacidades.ts');
+  const sql=read('supabase/migrations/20260728000200_admin_configura_roles_colaboradores.sql');
+  assert.match(page,/Roles y capacidades por colaborador/);
+  assert.match(page,/actualizarRolColaboradorAdmin/);
+  assert.match(page,/concederCapacidadAdmin/);
+  assert.match(service,/admin_actualizar_rol_colaborador/);
+  assert.match(service,/assertAdminPermission\(cliente, "capacidades:administrar"\)/);
+  assert.match(sql,/public.admin_tiene_permiso\('capacidades:administrar'\)/);
+  assert.match(sql,/NO_AUTO_DEGRADACION_DIRECCION/);
+  assert.match(sql,/auditoria_admin_seguridad/);
+});
+test('configuracion es cerebro normativo con editores y validacion por clave',()=>{
+  const page=read('apps/panel-admin/src/app/configuracion/page.tsx');
+  const sql=read('supabase/migrations/20260728000300_configuracion_cerebro_normativo.sql');
+  assert.doesNotMatch(page,/href="\/auditoria"|href="\/tarifas"|Bitácora de cambios|Política tarifaria/);
+  assert.match(page,/EditorNormativo/);
+  for (const clave of ['zonas_operacion','tipos_servicio_vehiculo','reglas_evidencia','estados_traslado','plantillas_notificacion','metodos_pago','datos_fiscales','seguridad']) {
+    assert.match(page,new RegExp(`registro\\.clave === "${clave}"`));
+  }
+  assert.match(page,/Datos fiscales de Ruum Ruum/);
+  assert.match(page,/Requisitos fiscales para clientes/);
+  assert.match(page,/Métodos aceptados/);
+  assert.match(sql,/admin_validar_configuracion_normativa/);
+  assert.match(sql,/METODOS_PAGO_INVALIDOS/);
+  assert.match(sql,/DATOS_FISCALES_INVALIDOS/);
+  assert.match(sql,/SEGURIDAD_INVALIDA/);
+});
 test('alertas SLA no usa demo ni preferencias como asignacion operacional',()=>{
   const page=read('apps/panel-admin/src/app/alertas-sla/page.tsx');
   assert.doesNotMatch(page,/EXCEPCIONES_DEMO|puedeUsarDatosDemo|Modo demo|alertas_sla\.responsables|guardarPreferenciaAdmin|obtenerPreferenciaAdmin/);

@@ -3,6 +3,7 @@ import type { Database } from "@ruum/shared/types";
 import { assertAdminPermission, type PermisoAdmin } from "./permisos-admin";
 
 type Cliente = SupabaseClient<Database>;
+export type AdminColaborador = Pick<Database["public"]["Tables"]["admins"]["Row"], "id" | "nombre" | "rol_operativo" | "creado_en">;
 
 export type CapacidadAdmin = {
   capacidad: string;
@@ -35,4 +36,33 @@ export async function concederCapacidadAdmin(cliente: Cliente, adminId: string, 
   ) => Promise<{ error: unknown }>;
   const { error } = await rpc("admin_conceder_capacidad", { p_admin_id: adminId, p_capacidad: capacidad, p_concedida: concedida, p_motivo: motivo });
   if (error) throw error;
+}
+
+export async function listarColaboradoresAdmin(cliente: Cliente): Promise<AdminColaborador[]> {
+  await assertAdminPermission(cliente, "capacidades:administrar");
+  const { data, error } = await cliente
+    .from("admins")
+    .select("id,nombre,rol_operativo,creado_en")
+    .order("nombre", { ascending: true })
+    .returns<AdminColaborador[]>();
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function actualizarRolColaboradorAdmin(
+  cliente: Cliente,
+  adminId: string,
+  rol: Database["public"]["Enums"]["rol_admin_operativo"],
+  motivo: string
+): Promise<AdminColaborador> {
+  await assertAdminPermission(cliente, "capacidades:administrar");
+  const rpc = cliente.rpc.bind(cliente) as unknown as (
+    fn: "admin_actualizar_rol_colaborador",
+    args: { p_admin_id: string; p_rol: Database["public"]["Enums"]["rol_admin_operativo"]; p_motivo: string }
+  ) => Promise<{ data: AdminColaborador[] | null; error: unknown }>;
+  const { data, error } = await rpc("admin_actualizar_rol_colaborador", { p_admin_id: adminId, p_rol: rol, p_motivo: motivo });
+  if (error) throw error;
+  const actualizado = data?.[0];
+  if (!actualizado) throw new Error("No se recibió el colaborador actualizado.");
+  return actualizado;
 }
