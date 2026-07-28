@@ -39,7 +39,6 @@ const PATRONES_EXCLUIDOS = [
   "filtro",
   "folio",
   "uuid",
-  "id",
   "rfc",
   "curp",
   "placa",
@@ -90,8 +89,9 @@ function debeNormalizarMayusculas(elemento: HTMLInputElement | HTMLTextAreaEleme
   const descriptor = descriptorCampo(elemento);
   if (PATRONES_ALFANUMERICOS_MAYUSCULAS.some((patron) => descriptor.includes(patron))) return true;
   if (PATRONES_EXCLUIDOS.some((patron) => descriptor.includes(patron))) return false;
+  if (descriptor.split(/[^a-z0-9]+/).includes("id")) return false;
   if (elemento.inputMode && elemento.inputMode !== "text") return false;
-  if (elemento.pattern && /\\d|\[0-9\]|[0-9]/.test(elemento.pattern)) return false;
+  if (elemento instanceof HTMLInputElement && elemento.pattern && /\\d|\[0-9\]|[0-9]/.test(elemento.pattern)) return false;
 
   return true;
 }

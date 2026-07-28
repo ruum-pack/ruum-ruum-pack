@@ -115,7 +115,7 @@ export function AdminInput({ label, description, error, className, controlClassN
   const describedBy = [description && descripcionId, error && errorId].filter(Boolean).join(" ") || undefined;
   return (
     <CampoMarco label={label} htmlFor={id} description={description} error={error} descriptionId={descripcionId} errorId={errorId} className={className}>
-      <input {...props} id={id} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} className={unir(campoClase, controlClassName)} />
+      <input {...props} id={id} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} data-ruum-label={label} className={unir(campoClase, controlClassName)} />
     </CampoMarco>
   );
 }
@@ -137,7 +137,7 @@ export function AdminTextarea({ label, description, error, className, controlCla
   const describedBy = [description && descripcionId, error && errorId].filter(Boolean).join(" ") || undefined;
   return (
     <CampoMarco label={label} htmlFor={id} description={description} error={error} descriptionId={descripcionId} errorId={errorId} className={className}>
-      <textarea {...props} id={id} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} className={unir(campoClase, "min-h-28 resize-y", controlClassName)} />
+      <textarea {...props} id={id} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} data-ruum-label={label} className={unir(campoClase, "min-h-28 resize-y", controlClassName)} />
     </CampoMarco>
   );
 }

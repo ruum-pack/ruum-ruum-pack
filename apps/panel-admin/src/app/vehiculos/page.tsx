@@ -507,22 +507,22 @@ export default function PaginaVehiculosAdmin() {
 
               <div className="grid grid-cols-2 gap-4">
                 <CampoEdicion label="Marca">
-                  <input value={editForm.marca ?? ""} onChange={(e) => setEditForm((prev) => ({ ...prev, marca: e.target.value }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
+                  <input data-ruum-label="Marca" value={editForm.marca ?? ""} onChange={(e) => setEditForm((prev) => ({ ...prev, marca: e.target.value }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
                 </CampoEdicion>
                 <CampoEdicion label="Modelo">
-                  <input value={editForm.modelo ?? ""} onChange={(e) => setEditForm((prev) => ({ ...prev, modelo: e.target.value }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
+                  <input data-ruum-label="Modelo" value={editForm.modelo ?? ""} onChange={(e) => setEditForm((prev) => ({ ...prev, modelo: e.target.value }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
                 </CampoEdicion>
                 <CampoEdicion label="Año">
                   <input type="number" value={editForm.anio ?? ""} onChange={(e) => setEditForm((prev) => ({ ...prev, anio: Number(e.target.value) }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
                 </CampoEdicion>
                 <CampoEdicion label="Color">
-                  <input value={editForm.color ?? ""} onChange={(e) => setEditForm((prev) => ({ ...prev, color: e.target.value }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
+                  <input data-ruum-label="Color" value={editForm.color ?? ""} onChange={(e) => setEditForm((prev) => ({ ...prev, color: e.target.value }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
                 </CampoEdicion>
                 <CampoEdicion label="Placas">
-                  <input value={editForm.placas ?? ""} onChange={(e) => setEditForm((prev) => ({ ...prev, placas: e.target.value }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
+                  <input data-ruum-label="Placas" data-ruum-uppercase="off" value={editForm.placas ?? ""} onChange={(e) => setEditForm((prev) => ({ ...prev, placas: e.target.value }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
                 </CampoEdicion>
                 <CampoEdicion label="VIN">
-                  <input value={editForm.vin ?? ""} onChange={(e) => setEditForm((prev) => ({ ...prev, vin: e.target.value }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
+                  <input data-ruum-label="VIN" data-ruum-uppercase="on" value={editForm.vin ?? ""} onChange={(e) => setEditForm((prev) => ({ ...prev, vin: e.target.value.toLocaleUpperCase("es-MX") }))} className="w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm" />
                 </CampoEdicion>
               </div>
 

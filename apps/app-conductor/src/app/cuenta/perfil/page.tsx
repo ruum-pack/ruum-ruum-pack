@@ -263,12 +263,14 @@ export default function PaginaPerfilCuenta() {
                           placeholder={esSensible ? placeholderSensible(clave) : undefined}
                           readOnly={esSoloLectura}
                           aria-readonly={esSoloLectura || undefined}
+                          data-ruum-label={campo.etiqueta}
                           onChange={(event) => {
                             if (esSoloLectura) return;
                             if (esSensible) {
                               setSensiblesEditados((actual) => new Set(actual).add(clave as CampoSensiblePerfil));
                             }
-                            setPerfil((actual) => ({ ...actual, [clave]: event.target.value }));
+                            const valor = clave === "licencia_numero" ? event.target.value.toLocaleUpperCase("es-MX") : event.target.value;
+                            setPerfil((actual) => ({ ...actual, [clave]: valor }));
                           }}
                           className={[
                             "rounded-lg border px-3 py-2 font-body text-base normal-case tracking-normal text-text-primary placeholder:text-text-tertiary",

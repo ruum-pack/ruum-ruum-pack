@@ -6,6 +6,10 @@ export function soloDigitos(valor: string, max = 10) {
   return valor.replace(/\D/g, "").slice(0, max);
 }
 
+export function soloAlfanumericoMayusculas(valor: string, max = 12) {
+  return valor.replace(/[^a-zA-Z0-9]/g, "").toLocaleUpperCase("es-MX").slice(0, max);
+}
+
 export function telefonoE164Mx(valor: string) {
   const nacional = soloDigitos(valor);
   return nacional ? `+52${nacional}` : "";
@@ -26,10 +30,10 @@ export function formatoTelefonoMask(valor: string) {
 }
 
 export function formatoLicenciaMask(valor: string) {
-  const digitos = soloDigitos(valor);
-  if (digitos.length <= 4) return digitos;
-  if (digitos.length <= 8) return `${digitos.slice(0, 4)} ${digitos.slice(4)}`;
-  return `${digitos.slice(0, 4)} ${digitos.slice(4, 8)} ${digitos.slice(8, 12)}`;
+  const licencia = soloAlfanumericoMayusculas(valor);
+  if (licencia.length <= 4) return licencia;
+  if (licencia.length <= 8) return `${licencia.slice(0, 4)} ${licencia.slice(4)}`;
+  return `${licencia.slice(0, 4)} ${licencia.slice(4, 8)} ${licencia.slice(8, 12)}`;
 }
 
 export function formatoFechaIsoParcial(valor: string) {

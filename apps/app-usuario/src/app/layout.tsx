@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
+import { TextInputUppercaseBridge } from "@ruum/ui";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a href="#contenido-principal" className="ruum-skip-link">
           Saltar al contenido
         </a>
+        <TextInputUppercaseBridge />
         <main id="contenido-principal">{children}</main>
       </body>
     </html>

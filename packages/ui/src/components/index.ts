@@ -2,6 +2,7 @@ export * from "./LogoMarca";
 export * from "./Button";
 export * from "./BannerDemo";
 export * from "./Field";
+export * from "./TextInputUppercaseBridge";
 export * from "./Aviso";
 export * from "./EstadoBadge";
 export * from "./EstatusBadgeEconomico";

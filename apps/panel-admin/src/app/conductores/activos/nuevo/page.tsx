@@ -89,7 +89,7 @@ export default function PaginaNuevoConductor() {
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <CampoObligatorio label="CURP *" value={datos.curp} onChange={(v) => cambio("curp", v.toUpperCase())} placeholder="PELJ800101HDFLRN09" maxLength={18} />
             <CampoObligatorio label="Teléfono *" value={datos.telefono} onChange={(v) => cambio("telefono", v)} placeholder="+52 55 1234 5678" />
-            <CampoObligatorio label="Licencia número *" value={datos.licencia_numero} onChange={(v) => cambio("licencia_numero", v)} placeholder="LIC12345678" />
+            <CampoObligatorio label="Licencia número *" value={datos.licencia_numero} onChange={(v) => cambio("licencia_numero", v.toLocaleUpperCase("es-MX"))} placeholder="LIC12345678" />
             <CampoObligatorio label="Tipo licencia *" value={datos.licencia_tipo} onChange={(v) => cambio("licencia_tipo", v)} placeholder="A, B, C, etc." />
             <CampoObligatorio label="Vigencia licencia *" value={datos.licencia_vigencia} onChange={(v) => cambio("licencia_vigencia", v)} placeholder="YYYY-MM-DD" type="date" />
             <CampoOpcional label="Código postal" value={datos.codigo_postal} onChange={(v) => cambio("codigo_postal", v)} placeholder="01000" />
@@ -137,6 +137,7 @@ function CampoObligatorio({ label, value, onChange, placeholder, type = "text", 
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
+        data-ruum-label={label}
         className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
       />
     </label>
@@ -152,6 +153,7 @@ function CampoOpcional({ label, value, onChange, placeholder, type = "text" }: {
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        data-ruum-label={label}
         className="rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20"
       />
     </label>

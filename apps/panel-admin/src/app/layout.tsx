@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
+import { TextInputUppercaseBridge } from "@ruum/ui";
 import "./globals.css";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { BarraLateral } from "./BarraLateral";
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link">Saltar al contenido principal</a>
+        <TextInputUppercaseBridge />
         <NavegacionAdminMovil />
         <div className="flex min-h-screen flex-col lg:flex-row">
           <BarraLateral />

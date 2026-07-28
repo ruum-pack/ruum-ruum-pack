@@ -2,7 +2,7 @@ import { Aviso, Field } from "@ruum/ui";
 import { DIAS_ADVERTENCIA_VIGENCIA_LICENCIA, diasParaVencerLicencia } from "@ruum/shared/validacion";
 import type { CampoRegistroConductor } from "@ruum/shared/validacion";
 import { DatosSensiblesTooltip } from "../cuenta/datos-sensibles";
-import { formatoFechaIsoParcial, formatoLicenciaMask, soloDigitos } from "./registration-validation";
+import { formatoFechaIsoParcial, formatoLicenciaMask, soloAlfanumericoMayusculas } from "./registration-validation";
 import { TIPOS_LICENCIA } from "./registration-types";
 import { SelectField } from "./SelectField";
 
@@ -47,8 +47,7 @@ export function LicenseStep({
           etiqueta="Número de licencia" 
           value={formatoLicenciaMask(numeroLicencia)} 
           onChange={(e) => { 
-            const digitos = soloDigitos(e.target.value);
-            setNumeroLicencia(digitos); 
+            setNumeroLicencia(soloAlfanumericoMayusculas(e.target.value)); 
             limpiarErrorCampo("numeroLicencia"); 
           }} 
           error={erroresCampos.numeroLicencia || undefined} 

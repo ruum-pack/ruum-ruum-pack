@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
+import { TextInputUppercaseBridge } from "@ruum/ui";
 import "./globals.css";
 import { SincronizadorEvidenciaOffline } from "./SincronizadorEvidenciaOffline";
 import { NavegacionConductor } from "./NavegacionConductor";
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <PushNotificationsBootstrap />
           <VersionGate />
           <OperationalAccessibilityBridge />
+          <TextInputUppercaseBridge />
           <OfflineShell />
           <main id="contenido-principal" className="conductor-page" role="main">
             {children}

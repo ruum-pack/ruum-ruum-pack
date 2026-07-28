@@ -460,7 +460,7 @@ function EditarConductor({
         <Campo label="Nombre" value={datos.nombre} onChange={(v) => setDatos({ ...datos, nombre: v })} />
         <Campo label="Teléfono" value={datos.telefono} onChange={(v) => setDatos({ ...datos, telefono: v })} />
         <Campo label="CURP" value={datos.curp} onChange={(v) => setDatos({ ...datos, curp: v })} />
-        <Campo label="Licencia" value={datos.licencia_numero} onChange={(v) => setDatos({ ...datos, licencia_numero: v })} />
+        <Campo label="Licencia" value={datos.licencia_numero} onChange={(v) => setDatos({ ...datos, licencia_numero: v.toLocaleUpperCase("es-MX") })} />
         <Campo label="Tipo licencia" value={datos.licencia_tipo} onChange={(v) => setDatos({ ...datos, licencia_tipo: v })} />
         <Campo label="Vigencia" value={datos.licencia_vigencia} onChange={(v) => setDatos({ ...datos, licencia_vigencia: v })} />
         <Campo label="Código postal" value={datos.codigo_postal} onChange={(v) => setDatos({ ...datos, codigo_postal: v })} />
@@ -485,7 +485,7 @@ function Campo({ label, value, onChange }: { label: string; value: string; onCha
   return (
     <label className="flex flex-col gap-1">
       <span className="font-body text-xs font-medium text-text-secondary">{label}</span>
-      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="rounded-lg border border-ink/20 px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20" />
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} data-ruum-label={label} className="rounded-lg border border-ink/20 px-3 py-2 font-body text-sm focus:border-focus-default focus:outline-none focus:ring-2 focus:ring-focus-default/20" />
     </label>
   );
 }

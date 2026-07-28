@@ -126,7 +126,7 @@ export function CampoOscuro({
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={inputId} className={etiquetaOscura}>{etiqueta}</label>
-      <input {...props} id={inputId} aria-describedby={ariaDescribedBy} className={`${campoOscuro} ${props.className ?? ""}`} />
+      <input {...props} id={inputId} aria-describedby={ariaDescribedBy} data-ruum-label={etiqueta} className={`${campoOscuro} ${props.className ?? ""}`} />
       {ayuda ? <span id={ayudaId} className={`font-body text-xs leading-5 ${textoFuncionalPublico}`}>{ayuda}</span> : null}
     </div>
   );

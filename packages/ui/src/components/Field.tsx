@@ -45,6 +45,7 @@ export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassNam
             className={inputClassName}
             aria-invalid={Boolean(error)}
             aria-describedby={describedBy}
+            data-ruum-label={etiqueta}
             {...props}
           />
           <button
@@ -75,6 +76,7 @@ export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassNam
           className={inputClassName}
           aria-invalid={Boolean(error)}
           aria-describedby={describedBy}
+          data-ruum-label={etiqueta}
           {...props}
         />
       )}
