@@ -109,6 +109,19 @@ test('servicio de mapa consume tracking real y audita acceso a ubicación',()=>{
   assert.match(service,/auditoria_admin_seguridad/);
   assert.match(service,/coordenadas_sensibles_protegidas/);
 });
+test('pasaporte empresarial consolida control real por empresa',()=>{
+  const list=read('apps/panel-admin/src/app/empresas/page.tsx');
+  const passport=read('apps/panel-admin/src/app/empresas/[id]/page.tsx');
+  assert.match(list,/href=\{`\/empresas\/\$\{empresa\.id\}`\}/);
+  assert.match(passport,/Pasaporte Empresarial/);
+  assert.match(passport,/listarEmpresasAdmin/);
+  assert.match(passport,/vehiculos\.filter/);
+  assert.match(passport,/conductores\.filter/);
+  assert.match(passport,/traslados\s*=\s*datos\.traslados/);
+  assert.match(passport,/agruparLugares\(traslados, "origen"\)/);
+  assert.match(passport,/agruparLugares\(traslados, "destino"\)/);
+  assert.match(passport,/Sin coordenadas/);
+});
 test('alertas SLA no usa demo ni preferencias como asignacion operacional',()=>{
   const page=read('apps/panel-admin/src/app/alertas-sla/page.tsx');
   assert.doesNotMatch(page,/EXCEPCIONES_DEMO|puedeUsarDatosDemo|Modo demo|alertas_sla\.responsables|guardarPreferenciaAdmin|obtenerPreferenciaAdmin/);

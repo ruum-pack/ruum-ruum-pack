@@ -1,5 +1,6 @@
 "use client";
 import { Fragment, useEffect, useMemo, useState, useTransition, type InputHTMLAttributes, type ReactNode } from "react";
+import Link from "next/link";
 import { Aviso, Button } from "@ruum/ui";
 import {
   actualizarEmpresaCorporativaAdmin,
@@ -933,6 +934,12 @@ export default function PaginaEmpresasAdmin() {
                             </td>
                             <td data-label="Acciones" className="px-4 py-4">
                               <div className="flex justify-end gap-2">
+                                <Link
+                                  href={`/empresas/${empresa.id}`}
+                                  className="inline-flex min-h-8 items-center rounded-md border border-focus-default/35 bg-status-info-soft px-3 py-1.5 font-body text-xs font-semibold text-status-info hover:bg-status-info hover:text-background-main"
+                                >
+                                  Pasaporte
+                                </Link>
                                 <button
                                   type="button"
                                   onClick={() => setEmpresaAbiertaId((actual) => actual === empresa.id ? null : empresa.id)}
