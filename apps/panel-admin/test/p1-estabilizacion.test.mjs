@@ -96,6 +96,21 @@ test('didit separa inicio con CORS y webhook firmado',()=>{
   assert.match(webhook,/aprobar_solicitud_conductor_sistema/);
   assert.doesNotMatch(webhook,/verification\.didit\.me\/v2\/session/);
 });
+test('documentos usa tarjetas operativas con badges tooltip y recordatorios',()=>{
+  const page=read('apps/panel-admin/src/app/documentos/page.tsx');
+  const acciones=read('apps/panel-admin/src/app/usuarios/AccionesVerificacion.tsx');
+  assert.match(page,/BadgeEstadoDocumento/);
+  assert.match(page,/ChipFiltro/);
+  assert.match(page,/Por vencer/);
+  assert.match(page,/Usuarios por validar/);
+  assert.match(page,/Enviar recordatorio a todos/);
+  assert.match(page,/No hay conductores con documentos pendientes/);
+  assert.match(page,/Ver todos los conductores/);
+  assert.match(page,/font-mono-ruum/);
+  assert.match(page,/border-white\/\[0\.08\]/);
+  assert.match(acciones,/AdminTooltip/);
+  assert.doesNotMatch(acciones,/El botón &quot;Aprobar cuenta&quot; permanece deshabilitado/);
+});
 test('no quedan alert confirm ni innerHTML en panel admin',()=>{
   const root=new URL('../src/',import.meta.url);
   const walk=(dir)=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(new URL(`${e.name}/`,dir)):[new URL(e.name,dir)]);
@@ -226,4 +241,22 @@ test('metricas registro conductor usa formulas oficiales, segmentos y exportacio
   assert.match(sql,/eventos_duplicados/);
   assert.match(route,/admin_registrar_exportacion/);
   assert.match(route,/x-content-sha256/);
+});
+test('incidencias usa bandeja operativa sin filtro duplicado',()=>{
+  const page=read('apps/panel-admin/src/app/incidencias/page.tsx');
+  const dashboard=read('apps/panel-admin/src/app/DashboardCliente.tsx');
+  assert.doesNotMatch(page,/AdminFiltroActivo|Filtro activo/);
+  assert.match(page,/ChipFiltroIncidencia/);
+  assert.match(page,/KpiIncidencia/);
+  assert.match(page,/Actualizado:/);
+  assert.match(page,/FILTROS_ORIGEN/);
+  assert.match(page,/FILTROS_RESPONSABLE/);
+  assert.match(page,/FILTROS_GRAVEDAD/);
+  assert.match(page,/No hay incidencias abiertas bajo este criterio/);
+  assert.match(page,/slaIncidencia/);
+  assert.match(page,/Vista previa evidencia/);
+  assert.match(page,/Ver origen/);
+  assert.match(dashboard,/Incidencias abiertas:/);
+  assert.match(dashboard,/incidenciasPorTipo/);
+  assert.match(dashboard,/href=\{`\/incidencias\?tipo=\$\{tipo\}`\}/);
 });

@@ -5,6 +5,7 @@ import { Button, Aviso } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { validarDocumentoUsuario } from "@ruum/api/services";
 import { crearClienteNavegador } from "../../lib/supabase-browser";
+import { AdminTooltip } from "../admin-components";
 
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 
@@ -21,6 +22,11 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
   const [confirmando, setConfirmando] = useState<"aprobar" | "rechazar" | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const terminosAceptados = Boolean(usuario.terminos_aceptados_en);
+  const razonBloqueoAprobacion = !usuario.doc_identidad_url
+    ? "El usuario aún no ha subido su identificación."
+    : !terminosAceptados
+      ? "El usuario debe aceptar los términos vigentes antes de aprobar la cuenta."
+      : "";
 
   if (usuario.estado_verificacion === "verificado" || usuario.estado_verificacion === "rechazado") {
     return (
@@ -83,12 +89,6 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
         <div role="status" aria-live="polite" aria-atomic="true">
           <Aviso tono="danger">{error}</Aviso>
         </div>
-      )}
-
-      {!terminosAceptados && (
-        <Aviso tono="danger">
-          Aceptación de términos pendiente. La aprobación queda bloqueada para evitar una cuenta verificada sin consentimiento vigente.
-        </Aviso>
       )}
 
       {/* Ver documento */}
@@ -169,12 +169,25 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
               Marcar en revisión
             </Button>
           )}
-          <Button
-            onClick={() => setConfirmando("aprobar")}
-            disabled={procesando || !usuario.doc_identidad_url || !terminosAceptados}
-          >
-            Aprobar cuenta
-          </Button>
+          {razonBloqueoAprobacion ? (
+            <AdminTooltip label={razonBloqueoAprobacion}>
+              <span>
+                <Button
+                  onClick={() => setConfirmando("aprobar")}
+                  disabled
+                >
+                  Aprobar cuenta
+                </Button>
+              </span>
+            </AdminTooltip>
+          ) : (
+            <Button
+              onClick={() => setConfirmando("aprobar")}
+              disabled={procesando}
+            >
+              Aprobar cuenta
+            </Button>
+          )}
           <Button
             variant="danger"
             onClick={() => setConfirmando("rechazar")}
@@ -185,11 +198,6 @@ export function AccionesVerificacion({ usuario, onActualizado }: Props) {
         </div>
       )}
 
-      {(!usuario.doc_identidad_url || !terminosAceptados) && (
-        <p className="font-body text-xs text-text-tertiary">
-          El botón &quot;Aprobar cuenta&quot; permanece deshabilitado hasta que el usuario suba su identificación y acepte los términos vigentes.
-        </p>
-      )}
     </div>
   );
 }

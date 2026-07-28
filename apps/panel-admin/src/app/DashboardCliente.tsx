@@ -49,6 +49,16 @@ const ACCIONES_FRECUENTES = [
   }
 ] as const;
 
+function etiquetaTipoIncidencia(tipo: string) {
+  return tipo.replaceAll("_", " ");
+}
+
+function gravedadDashboardIncidencia(tipo: string) {
+  if (tipo === "dano_previo_relevante" || tipo === "vehiculo_no_enciende") return "grave";
+  if (tipo === "contacto_no_localizado" || tipo === "documentacion_incompleta") return "media";
+  return "leve";
+}
+
 export default function DashboardCliente({ inicial }: { inicial: DashboardInitialData | null }) {
   const [indicadores, setIndicadores] = useState<IndicadorAccionableDashboard[]>(inicial?.indicadores ?? []);
   const [incidencias, setIncidencias] = useState<IncidenciaRow[]>(inicial?.incidencias ?? []);
@@ -354,6 +364,17 @@ function renderWidgetDashboard(
 
   if (widget === "alertas_operativas") {
     const sistemaLimpio = contexto.incidencias.length === 0 && contexto.conductoresDocVencido.length === 0;
+    const incidenciasPorTipo = Array.from(
+      contexto.incidencias.reduce((mapa, incidencia) => {
+        mapa.set(incidencia.tipo, (mapa.get(incidencia.tipo) ?? 0) + 1);
+        return mapa;
+      }, new Map<string, number>())
+    );
+    const incidenciasPorGravedad = contexto.incidencias.reduce((conteos, incidencia) => {
+      const gravedad = gravedadDashboardIncidencia(incidencia.tipo);
+      conteos[gravedad] += 1;
+      return conteos;
+    }, { grave: 0, media: 0, leve: 0 });
     return (
       <section key={widget} className="mt-8">
         <AdminPanel className="p-5 sm:p-6">
@@ -367,6 +388,26 @@ function renderWidgetDashboard(
             </Link>
           </div>
           <div className="mt-4 space-y-2">
+            <div className="flex flex-wrap gap-2" aria-label="Riesgos y cumplimiento">
+              <Link href="/incidencias?filtro=abiertas" className="inline-flex min-h-8 items-center rounded-full border border-status-warning/35 bg-status-warning-soft px-3 py-1 font-body text-xs font-semibold text-status-warning">
+                Incidencias abiertas: {contexto.incidencias.length}
+              </Link>
+              <Link href="/incidencias?gravedad=grave" className="inline-flex min-h-8 items-center rounded-full border border-status-error/30 bg-status-error-soft px-3 py-1 font-body text-xs font-semibold text-status-error">
+                Graves: {incidenciasPorGravedad.grave}
+              </Link>
+              <Link href="/incidencias?gravedad=media" className="inline-flex min-h-8 items-center rounded-full border border-status-warning/30 bg-status-warning-soft px-3 py-1 font-body text-xs font-semibold text-status-warning">
+                Medias: {incidenciasPorGravedad.media}
+              </Link>
+            </div>
+            {incidenciasPorTipo.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {incidenciasPorTipo.map(([tipo, total]) => (
+                  <Link key={tipo} href={`/incidencias?tipo=${tipo}`} className="inline-flex min-h-8 items-center rounded-full border border-border-default bg-surface-secondary px-3 py-1 font-body text-xs font-semibold capitalize text-text-secondary hover:border-signal/45 hover:text-ink">
+                    {etiquetaTipoIncidencia(tipo)} ({total})
+                  </Link>
+                ))}
+              </div>
+            )}
             {sistemaLimpio && (
               <div className="rounded-lg border border-status-success/30 bg-status-success-soft px-4 py-4">
                 <p className="font-body text-sm font-semibold text-status-success">Sistema limpio: no hay alertas pendientes.</p>
@@ -502,9 +543,10 @@ function IndicadorAccionable({ indicador }: { indicador: IndicadorAccionableDash
           </span>
         </div>
         <dl className="grid gap-2 border-t border-ink/10 pt-3">
+          <DatoKpi etiqueta="Corte" valor={formatoCorteIndicador(indicador.actualizadoEn)} />
           <DatoKpi etiqueta="Tendencia" valor={formatoVariacion(indicador.variacion)} />
-        <DatoKpi etiqueta="Umbral" valor={indicador.umbral} />
-        <DatoKpi etiqueta="Clave operativa" valor={indicador.subgrupoCritico} />
+          <DatoKpi etiqueta="Umbral" valor={indicador.umbral} />
+          <DatoKpi etiqueta="Clave operativa" valor={indicador.subgrupoCritico} />
         </dl>
         <span className="mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-status-info/35 bg-surface-primary px-3 py-2 font-body text-admin-boton font-semibold text-status-info">
           <span aria-hidden="true">▦</span>
@@ -552,6 +594,12 @@ function DatoKpi({ etiqueta, valor }: { etiqueta: string; valor: string }) {
       <dd className="min-w-0 font-body text-admin-secundario font-semibold text-ink">{valor}</dd>
     </div>
   );
+}
+
+function formatoCorteIndicador(fechaIso: string) {
+  const fecha = new Date(fechaIso);
+  if (!Number.isFinite(fecha.getTime())) return "Sin corte";
+  return fecha.toLocaleString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }).replace(",", " ·");
 }
 
 function formatoVariacion(valor: number) {
