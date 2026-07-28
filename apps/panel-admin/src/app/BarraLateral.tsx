@@ -97,17 +97,24 @@ export function Icono({ nombre }: { nombre: IconoNombre }) {
 
 export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
   {
-    titulo: "CONTROL OPERATIVO",
+    titulo: "RIESGOS Y CUMPLIMIENTO",
     secciones: [
       { href: "/", etiqueta: "Dashboard", icono: "dashboard" },
-      { href: "/viajes", etiqueta: "Traslados", icono: "viajes" },
-      { href: "/masivos", etiqueta: "Traslados masivos", icono: "masivos" },
-      { href: "/mapa", etiqueta: "Mapa", icono: "mapa" },
-      { href: "/alertas-sla?filtro=vencidas", etiqueta: "Alertas y SLA", icono: "sla", contador: "alertasCriticas" },
+      { href: "/alertas-sla?filtro=vencidas", etiqueta: "Alertas y SLA", icono: "sla", contador: "alertasCriticas"},
+      { href: "/incidencias?filtro=abiertas", etiqueta: "Incidencias", icono: "incidencia", contador: "incidenciasAbiertas" },
+      { href: "/documentos?filtro=por_vencer", etiqueta: "Validación documental", icono: "documentos", contador: "documentosPorVencer" },
     ],
   },
   {
-    titulo: "GESTIÓN DE",
+    titulo: "OPERACION",
+    secciones: [
+      { href: "/viajes", etiqueta: "Traslados", icono: "viajes"},
+      { href: "/masivos", etiqueta: "Traslados masivos", icono: "masivos" },
+      { href: "/mapa", etiqueta: "Mapa", icono: "mapa" },
+    ],
+  },
+  {
+      titulo: "GESTIÓN DE ACTIVOS",
     secciones: [
       { href: "/conductores", etiqueta: "Conductores", icono: "conductor", contador: "conductoresRevision" },
       { href: "/usuarios", etiqueta: "Usuarios", icono: "usuario" },
@@ -116,21 +123,13 @@ export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
     ],
   },
   {
-    titulo: "CASOS Y RIESGOS",
-    secciones: [
-      { href: "/incidencias?filtro=abiertas", etiqueta: "Incidencias", icono: "incidencia", contador: "incidenciasAbiertas" },
-      { href: "/disputas?filtro=pendientes", etiqueta: "Disputas", icono: "disputa", contador: "disputasPendientes" },
-      { href: "/reclamos-seguro", etiqueta: "Seguros", icono: "reclamo" },
-      { href: "/documentos?filtro=por_vencer", etiqueta: "Validación documental", icono: "documentos", contador: "documentosPorVencer" },
-    ],
-  },
-  {
     titulo: "FINANZAS Y GOBIERNO",
     secciones: [
       { href: "/pagos?filtro=pendientes", etiqueta: "Pagos", icono: "pagos", contador: "pagosPendientes" },
-      { href: "/tarifas", etiqueta: "Tarifas", icono: "tarifas" },
       { href: "/aprobaciones", etiqueta: "Aprobaciones duales", icono: "auditoria" },
-      { href: "/auditoria", etiqueta: "Auditoría", icono: "auditoria" },
+      { href: "/disputas?filtro=pendientes", etiqueta: "Disputas", icono: "disputa", contador: "disputasPendientes" },
+      { href: "/reclamos-seguro", etiqueta: "Seguros", icono: "reclamo" },
+      { href: "/tarifas", etiqueta: "Tarifas", icono: "tarifas" },
     ],
   },
    {
@@ -138,8 +137,8 @@ export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
     secciones: [
       { href: "/reportes", etiqueta: "Reportes operativos", icono: "reportes" },
       { href: "/metricas-registro", etiqueta: "Métricas de conductores", icono: "reportes" },
+      { href: "/auditoria", etiqueta: "Auditoría", icono: "auditoria" },
       { href: "/configuracion", etiqueta: "Configuración", icono: "configuracion" },
-      
     ],
   },
 ];
