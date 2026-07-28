@@ -61,6 +61,7 @@ const PATRONES_ALFANUMERICOS_MAYUSCULAS = ["vin", "licencia", "license"];
 export function TextInputUppercaseBridge() {
   useEffect(() => {
     function onInput(event: Event) {
+      if (event instanceof InputEvent && event.isTrusted === false) return;
       if (event instanceof InputEvent && event.isComposing) return;
       const objetivo = event.target;
       if (!(objetivo instanceof HTMLInputElement || objetivo instanceof HTMLTextAreaElement)) return;
@@ -103,7 +104,7 @@ function normalizarValor(elemento: HTMLInputElement | HTMLTextAreaElement) {
 
   const inicio = elemento.selectionStart;
   const fin = elemento.selectionEnd;
-  elemento.value = siguiente;
+  asignarValorNativo(elemento, siguiente);
   if (document.activeElement === elemento && inicio !== null && fin !== null) {
     try {
       elemento.setSelectionRange(inicio, fin);
@@ -111,6 +112,7 @@ function normalizarValor(elemento: HTMLInputElement | HTMLTextAreaElement) {
       // Algunos tipos de input no soportan selección; ya fueron excluidos arriba.
     }
   }
+  elemento.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 function descriptorCampo(elemento: HTMLInputElement | HTMLTextAreaElement) {
@@ -128,4 +130,10 @@ function descriptorCampo(elemento: HTMLInputElement | HTMLTextAreaElement) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+function asignarValorNativo(elemento: HTMLInputElement | HTMLTextAreaElement, valor: string) {
+  const prototipo = elemento instanceof HTMLInputElement ? HTMLInputElement.prototype : HTMLTextAreaElement.prototype;
+  const descriptor = Object.getOwnPropertyDescriptor(prototipo, "value");
+  descriptor?.set?.call(elemento, valor);
 }
