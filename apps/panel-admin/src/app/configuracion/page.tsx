@@ -310,6 +310,7 @@ export default function PaginaConfiguracionAdmin() {
       </div>
 
       {pestañaActiva === "roles" && (
+      <>
       <section className="mt-6 rounded-2xl border border-border-default bg-surface-primary p-5" aria-labelledby="roles-capacidades-direccion">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -409,98 +410,193 @@ export default function PaginaConfiguracionAdmin() {
                   Configurar capacidad
                 </AdminButton>
               </div>
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full min-w-[760px] font-body text-sm">
-                  <thead>
-                    <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-wide text-text-tertiary">
-                      <th className="px-3 py-3">Capacidad</th>
-                      <th className="px-3 py-3">Estado</th>
-                      <th className="px-3 py-3">Origen</th>
-                      <th className="px-3 py-3">Motivo</th>
-                      <th className="px-3 py-3 text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {capacidades.map((capacidad) => (
-                      <tr key={capacidad.capacidad} className="border-b border-ink/5 align-top">
-                        <td className="px-3 py-3 font-mono-ruum text-xs font-semibold text-ink">{capacidad.capacidad}</td>
-                        <td className="px-3 py-3"><AdminBadge tone={capacidad.concedida ? "success" : "danger"}>{capacidad.concedida ? "Concedida" : "Revocada"}</AdminBadge></td>
-                        <td className="px-3 py-3 text-text-secondary">{capacidad.origen === "override" ? "Override individual" : "Rol base"}</td>
-                        <td className="px-3 py-3 text-text-secondary">{capacidad.motivo ?? "Sin motivo individual"}</td>
-                        <td className="px-3 py-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => abrirDialogoCapacidad(capacidad.capacidad, capacidad.concedida ? "revocar" : "conceder")}
-                            className="font-body text-xs font-semibold text-status-info hover:underline"
-                          >
-                            {capacidad.concedida ? "Revocar" : "Conceder"}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {capacidades.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-3 py-8 text-center text-text-secondary">Selecciona un colaborador para revisar sus capacidades.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+              <div className="mt-4">
+                <AdminInput
+                  label="Buscar capacidad"
+                  type="search"
+                  placeholder="Ej. viajes, pagos, auditoria"
+                  value={busquedaCapacidad}
+                  onChange={(e) => setBusquedaCapacidad(e.target.value)}
+                />
+              </div>
+              <div className="mt-4 grid gap-4">
+                {CATEGORIAS_CAPACIDAD.map((categoria) => {
+                  const items = capacidadesPorCategoria[categoria] ?? [];
+                  if (items.length === 0) return null;
+                  return (
+                    <section key={categoria} className="rounded-xl border border-border-default bg-surface-secondary/40 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h4 className="font-body text-sm font-semibold text-ink">{categoria}</h4>
+                        <AdminBadge tone="neutral">{items.length}</AdminBadge>
+                      </div>
+                      <div className="mt-3 grid gap-2">
+                        {items.map((capacidad) => (
+                          <article key={capacidad.capacidad} className="rounded-lg border border-ink/10 bg-surface-primary px-3 py-3">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`grid size-7 place-items-center rounded-full border ${claseTipoCapacidad(capacidad.capacidad)}`} aria-hidden="true">
+                                    <span className="size-1.5 rounded-full bg-current" />
+                                  </span>
+                                  <p className="font-mono-ruum text-xs font-semibold text-ink">{capacidad.capacidad}</p>
+                                  <AdminBadge tone={capacidad.origen === "override" ? "warning" : "neutral"}>{capacidad.origen === "override" ? "Override individual" : "Rol base"}</AdminBadge>
+                                  <AdminBadge tone={capacidad.concedida ? "success" : "danger"}>{capacidad.concedida ? "Concedida" : "Revocada"}</AdminBadge>
+                                </div>
+                                <p className="mt-2 font-body text-xs text-text-secondary">{capacidad.motivo ?? "Sin motivo individual"}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => abrirDialogoCapacidad(capacidad.capacidad, capacidad.concedida ? "revocar" : "conceder")}
+                                className={`font-body text-xs font-semibold hover:underline ${capacidad.concedida ? "text-status-error" : "text-status-info"}`}
+                              >
+                                {capacidad.concedida ? "Revocar" : "Conceder"}
+                              </button>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+                {capacidades.length === 0 && (
+                  <p className="rounded-xl border border-dashed border-border-default px-4 py-8 text-center font-body text-sm text-text-secondary">Selecciona un colaborador para revisar sus capacidades.</p>
+                )}
+                {capacidades.length > 0 && capacidadesFiltradas.length === 0 && (
+                  <p className="rounded-xl border border-dashed border-border-default px-4 py-8 text-center font-body text-sm text-text-secondary">No hay capacidades que coincidan con la búsqueda.</p>
+                )}
               </div>
             </section>
           </div>
         )}
       </section>
-
-      <div id="normativa-operativa" className="scroll-mt-24">
-      {ORDEN_CATEGORIAS.filter((categoria) => agrupados[categoria]?.length).map((categoria) => (
-        <section key={categoria} className="mt-8" aria-labelledby={`categoria-${categoria}`}>
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary">Normativa activa</p>
-              <h2 id={`categoria-${categoria}`} className="font-display text-xl font-semibold text-ink">{CATEGORIAS[categoria] ?? categoria}</h2>
-            </div>
-            <AdminBadge tone="success">Operativo</AdminBadge>
-          </div>
-          <div className="mt-3 grid gap-4 lg:grid-cols-2">
-            {(agrupados[categoria] ?? []).map((registro) => (
-              <article key={registro.clave} className="rounded-2xl border border-border-default bg-surface-primary p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="font-display text-lg font-semibold text-ink">{registro.nombre}</h3>
-                    <p className="mt-1 font-body text-sm text-text-secondary">{registro.descripcion}</p>
-                  </div>
-                  <AdminBadge tone="neutral">v{registro.version}</AdminBadge>
-                </div>
-                <div className="mt-4 rounded-xl bg-surface-secondary px-4 py-3">
-                  <ResumenNormativo claveConfig={registro.clave} valor={registro.valor} />
-                  <p className="mt-1 font-body text-xs text-text-tertiary">Actualizado {formatearFecha(registro.actualizada_en)}</p>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <AdminButton variant="secondary" onClick={() => abrirEditor(registro)}>Editar norma</AdminButton>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      ))}
-      </div>
-
       <section className="mt-8 rounded-2xl border border-border-default bg-surface-primary p-5">
         <h2 className="font-display text-xl font-semibold text-ink">Matriz efectiva de roles</h2>
         <p className="mt-1 font-body text-sm text-text-secondary">Esta vista se genera desde la misma definición de roles que controla la navegación del panel.</p>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {Object.entries(CONFIG_ROL_ADMIN).map(([clave, rol]) => (
-            <article key={clave} className="rounded-xl border border-border-default p-4">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="font-body text-sm font-semibold text-ink">{rol.etiqueta}</h3>
-                <AdminBadge tone={clave === "direccion" ? "warning" : "neutral"}>{clave}</AdminBadge>
-              </div>
-              <p className="mt-2 font-body text-sm text-text-secondary">{rol.descripcion}</p>
-              <p className="mt-3 font-body text-xs text-text-tertiary">{rol.rutasPermitidas.length} rutas base habilitadas</p>
-            </article>
-          ))}
+        <div className="mt-5 grid gap-4">
+          {Object.entries(CONFIG_ROL_ADMIN).map(([clave, rol]) => {
+            const porcentaje = Math.max(8, Math.round((rol.rutasPermitidas.length / CONFIG_ROL_ADMIN.direccion.rutasPermitidas.length) * 100));
+            return (
+              <article key={clave} className="rounded-xl border border-border-default p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-body text-sm font-semibold text-ink">{rol.etiqueta}</h3>
+                      <AdminBadge tone={clave === "direccion" ? "warning" : "neutral"}>{clave}</AdminBadge>
+                    </div>
+                    <p className="mt-1 font-body text-xs text-text-secondary">{rol.descripcion}</p>
+                  </div>
+                  <p className="font-mono-ruum text-xs text-text-tertiary">{rol.rutasPermitidas.length} rutas base</p>
+                </div>
+                <div className="mt-3 h-2 rounded-full bg-surface-secondary" title={rol.descripcion}>
+                  <div className="h-2 rounded-full bg-signal" style={{ width: `${porcentaje}%` }} />
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
+      </>
+      )}
+
+      {pestañaActiva === "normativa" && (
+      <div id="normativa-operativa" className="scroll-mt-24">
+      {ORDEN_CATEGORIAS.filter((categoria) => agrupados[categoria]?.length).map((categoria) => {
+        const abierto = categoriasNormativaAbiertas[categoria] ?? false;
+        const registrosCategoria = agrupados[categoria] ?? [];
+        return (
+          <section key={categoria} className="mt-6 rounded-2xl border border-border-default bg-surface-primary" aria-labelledby={`categoria-${categoria}`}>
+            <button
+              type="button"
+              onClick={() => setCategoriasNormativaAbiertas((actual) => ({ ...actual, [categoria]: !abierto }))}
+              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+              aria-expanded={abierto}
+            >
+              <div>
+                <p className="font-mono-ruum text-admin-secundario uppercase tracking-wide text-text-tertiary">Normativa activa</p>
+                <h2 id={`categoria-${categoria}`} className="font-display text-xl font-semibold text-ink">{CATEGORIAS[categoria] ?? categoria}</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <AdminBadge tone="success">{registrosCategoria.length} vigente(s)</AdminBadge>
+                <span className="font-mono-ruum text-sm text-text-tertiary">{abierto ? "−" : "+"}</span>
+              </div>
+            </button>
+            {abierto && (
+              <div className="grid gap-4 border-t border-border-default p-5 lg:grid-cols-2">
+                {registrosCategoria.map((registro) => (
+                  <article key={registro.clave} className="rounded-xl border border-border-default bg-surface-secondary/45 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="font-display text-lg font-semibold text-ink">{registro.nombre}</h3>
+                        <p className="mt-1 font-body text-sm text-text-secondary">{registro.descripcion}</p>
+                      </div>
+                      <AdminBadge tone={estadoNorma(registro).tone}>{estadoNorma(registro).label}</AdminBadge>
+                    </div>
+                    <div className="mt-4 rounded-lg bg-surface-primary px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <ResumenNormativo claveConfig={registro.clave} valor={registro.valor} />
+                        <AdminBadge tone="neutral">v{registro.version}</AdminBadge>
+                      </div>
+                      <p className="mt-2 font-body text-xs text-text-tertiary">Actualizado {formatearFecha(registro.actualizada_en)}</p>
+                    </div>
+                    <div className="mt-4 rounded-lg border border-ink/10 bg-surface-primary px-3 py-3">
+                      <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Historial reciente</p>
+                      <p className="mt-1 font-body text-sm text-text-secondary">v{registro.version} · Actualización vigente · {formatearFecha(registro.actualizada_en)}</p>
+                      <p className="mt-1 font-body text-xs text-text-tertiary">Para últimos 3 cambios completos, consultar auditoría por clave normativa.</p>
+                    </div>
+                    <div className="mt-4 flex flex-wrap justify-end gap-2">
+                      <AdminButton variant="secondary" onClick={() => abrirEditor(registro)}>Editar norma</AdminButton>
+                      <a href={`/auditoria?recurso=configuracion_normativa&clave=${encodeURIComponent(registro.clave)}`} className="inline-flex min-h-10 items-center rounded-lg border border-border-default px-4 py-2 font-body text-admin-boton font-semibold text-text-secondary hover:border-signal/45 hover:text-ink">
+                        Ver auditoría
+                      </a>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })}
+      </div>
+      )}
+
+      <AdminDialog
+        open={dialogoRol}
+        title="Confirmar cambio crítico de rol"
+        description={`Cambiar el rol de ${colaboradorSeleccionado?.nombre ?? "este colaborador"} modifica accesos, navegación y capacidades base.`}
+        onOpenChange={(abierto) => { if (!abierto && !guardandoRol) setDialogoRol(false); }}
+        footer={<>
+          <AdminButton variant="secondary" onClick={() => setDialogoRol(false)} disabled={guardandoRol}>Cancelar</AdminButton>
+          <AdminButton
+            variant="danger"
+            onClick={async () => {
+              await guardarRolColaborador();
+              setDialogoRol(false);
+            }}
+            loading={guardandoRol}
+            disabled={!colaboradorSeleccionado || rolSeleccionado === colaboradorSeleccionado.rol_operativo || motivoRol.trim().length < 10}
+          >
+            Confirmar cambio de rol
+          </AdminButton>
+        </>}
+      >
+        <div className="space-y-4">
+          <div className="rounded-xl border border-status-warning/30 bg-status-warning-soft px-4 py-3">
+            <div className="flex items-center gap-2">
+              <AdminBadge tone="warning">Cambio crítico</AdminBadge>
+              <p className="font-body text-sm font-semibold text-ink">{colaboradorSeleccionado?.rol_operativo ?? "rol actual"} → {rolSeleccionado}</p>
+            </div>
+            <p className="mt-2 font-body text-sm text-text-secondary">La fricción intencional protege cambios de acceso y deja evidencia auditada.</p>
+          </div>
+          <AdminTextarea
+            label="Motivo obligatorio"
+            description={`${motivoRol.trim().length}/10 caracteres mínimos.`}
+            value={motivoRol}
+            onChange={(e) => setMotivoRol(e.target.value)}
+            error={motivoRol.length > 0 && motivoRol.trim().length < 10 ? "Escribe al menos 10 caracteres." : undefined}
+            rows={3}
+          />
+        </div>
+      </AdminDialog>
 
       <AdminDialog
         open={dialogoCapacidad}
@@ -616,6 +712,28 @@ function ResumenNormativo({ claveConfig, valor }: { claveConfig: string; valor: 
     return <p className="font-body text-sm font-semibold text-ink">Inicio {numero(inicio.fotos_minimas, 0)} fotos · Entrega {numero(entrega.fotos_minimas, 0)} fotos</p>;
   }
   return <p className="font-body text-sm font-semibold text-ink">{resumenValor(valor)}</p>;
+}
+
+function categoriaCapacidad(capacidad: string) {
+  if (/conductores|documentos/i.test(capacidad)) return "Conductores";
+  if (/empresas|usuarios/i.test(capacidad)) return "Empresas";
+  if (/pagos|tarifas|finanzas|reclamos|disputas/i.test(capacidad)) return "Finanzas";
+  if (/auditoria|aprobaciones|seguridad/i.test(capacidad)) return "Seguridad";
+  if (/configuracion|capacidades/i.test(capacidad)) return "Configuración";
+  return "Operación";
+}
+
+function claseTipoCapacidad(capacidad: string) {
+  if (/capacidades:administrar|configuracion:editar|auditoria|aprobaciones/i.test(capacidad)) return "border-status-error/35 text-status-error";
+  if (/pagos|tarifas|reclamos|disputas/i.test(capacidad)) return "border-status-warning/40 text-status-warning";
+  return "border-status-info/35 text-status-info";
+}
+
+function estadoNorma(registro: ConfiguracionAdmin): { label: string; tone: "success" | "warning" | "danger" | "neutral" } {
+  const dias = Math.floor((Date.now() - new Date(registro.actualizada_en).getTime()) / 86_400_000);
+  if (dias > 180) return { label: "Desactualizada", tone: "danger" };
+  if (dias > 90) return { label: "Pendiente de revisión", tone: "warning" };
+  return { label: "Vigente", tone: "success" };
 }
 
 function EditorNormativo({ registro, json, onChange, error }: {

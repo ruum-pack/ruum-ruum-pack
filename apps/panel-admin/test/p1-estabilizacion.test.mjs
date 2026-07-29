@@ -214,7 +214,7 @@ test('configuracion permite a direccion administrar roles y capacidades por RPC 
 test('configuracion es cerebro normativo con editores y validacion por clave',()=>{
   const page=read('apps/panel-admin/src/app/configuracion/page.tsx');
   const sql=read('supabase/migrations/20260728000300_configuracion_cerebro_normativo.sql');
-  assert.doesNotMatch(page,/href="\/auditoria"|href="\/tarifas"|Bitácora de cambios|Política tarifaria/);
+  assert.doesNotMatch(page,/href="\/tarifas"|Bitácora de cambios|Política tarifaria/);
   assert.match(page,/EditorNormativo/);
   for (const clave of ['zonas_operacion','tipos_servicio_vehiculo','reglas_evidencia','estados_traslado','plantillas_notificacion','metodos_pago','datos_fiscales','seguridad']) {
     assert.match(page,new RegExp(`registro\\.clave === "${clave}"`));
@@ -226,6 +226,23 @@ test('configuracion es cerebro normativo con editores y validacion por clave',()
   assert.match(sql,/METODOS_PAGO_INVALIDOS/);
   assert.match(sql,/DATOS_FISCALES_INVALIDOS/);
   assert.match(sql,/SEGURIDAD_INVALIDA/);
+});
+test('configuracion separa roles normativa y exige motivos criticos',()=>{
+  const page=read('apps/panel-admin/src/app/configuracion/page.tsx');
+  assert.match(page,/AdminTabs/);
+  assert.match(page,/Roles y capacidades/);
+  assert.match(page,/Normativa activa/);
+  assert.match(page,/busquedaCapacidad/);
+  assert.match(page,/CATEGORIAS_CAPACIDAD/);
+  assert.match(page,/Cambio crítico/);
+  assert.match(page,/Confirmar cambio crítico de rol/);
+  assert.match(page,/motivoRol\.trim\(\)\.length < 10/);
+  assert.match(page,/Override individual/);
+  assert.match(page,/Rol base/);
+  assert.match(page,/Historial reciente/);
+  assert.match(page,/Ver auditoría/);
+  assert.match(page,/Matriz efectiva de roles/);
+  assert.match(page,/style=\{\{ width: `\$\{porcentaje\}%` \}\}/);
 });
 test('alertas SLA no usa demo ni preferencias como asignacion operacional',()=>{
   const page=read('apps/panel-admin/src/app/alertas-sla/page.tsx');
