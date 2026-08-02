@@ -32,6 +32,12 @@ type Resultado = { tipo: "success" | "error"; mensaje: string } | null;
 type AccionCapacidad = "conceder" | "revocar";
 type PestañaConfiguracion = "roles" | "normativa";
 type JsonObject = Record<string, unknown>;
+type NuevoAdminPanel = {
+  nombre: string;
+  correo: string;
+  rol: RolAdminOperativo;
+  motivo: string;
+};
 
 const CATEGORIAS: Record<string, string> = {
   operacion: "Operación",
@@ -77,6 +83,14 @@ export default function PaginaConfiguracionAdmin() {
   const [accionCapacidad, setAccionCapacidad] = useState<AccionCapacidad>("conceder");
   const [motivoCapacidad, setMotivoCapacidad] = useState("");
   const [guardandoCapacidad, setGuardandoCapacidad] = useState(false);
+  const [dialogoAltaAdmin, setDialogoAltaAdmin] = useState(false);
+  const [guardandoAltaAdmin, setGuardandoAltaAdmin] = useState(false);
+  const [nuevoAdmin, setNuevoAdmin] = useState<NuevoAdminPanel>({
+    nombre: "",
+    correo: "",
+    rol: "operador",
+    motivo: ""
+  });
   const [pestañaActiva, setPestañaActiva] = useState<PestañaConfiguracion>("roles");
   const [busquedaCapacidad, setBusquedaCapacidad] = useState("");
   const [categoriasNormativaAbiertas, setCategoriasNormativaAbiertas] = useState<Record<string, boolean>>({
@@ -266,6 +280,43 @@ export default function PaginaConfiguracionAdmin() {
     }
   }
 
+  async function guardarAltaAdmin() {
+    const nombre = nuevoAdmin.nombre.trim();
+    const correo = nuevoAdmin.correo.trim().toLowerCase();
+    const motivoAlta = nuevoAdmin.motivo.trim();
+    if (nombre.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo) || motivoAlta.length < 10) return;
+
+    setGuardandoAltaAdmin(true);
+    setResultado(null);
+    try {
+      const respuesta = await fetch("/api/admin-auth/invitar-admin", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          nombre,
+          correo,
+          rol: nuevoAdmin.rol,
+          motivo: motivoAlta
+        })
+      });
+      const payload = await respuesta.json().catch(() => ({})) as { admin?: AdminColaborador; error?: string; mensaje?: string };
+      if (!respuesta.ok || !payload.admin) {
+        throw new Error(payload.mensaje ?? payload.error ?? "No se pudo dar de alta el usuario del panel.");
+      }
+      setColaboradores((actuales) => [...actuales.filter((item) => item.id !== payload.admin!.id), payload.admin!]
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")));
+      setColaboradorId(payload.admin.id);
+      setNuevoAdmin({ nombre: "", correo: "", rol: "operador", motivo: "" });
+      setDialogoAltaAdmin(false);
+      setResultado({ tipo: "success", mensaje: `${payload.admin.nombre} fue dado de alta e invitado al panel.` });
+      await cargarCapacidades(payload.admin.id);
+    } catch (e) {
+      setResultado({ tipo: "error", mensaje: e instanceof Error ? e.message : "No se pudo dar de alta el usuario del panel." });
+    } finally {
+      setGuardandoAltaAdmin(false);
+    }
+  }
+
   if (cargando) return <main className="admin-page-shell"><AdminLoadingState label="Cargando configuración operativa" /></main>;
   if (error) return <main className="admin-page-shell"><AdminErrorState title={error} action={<AdminButton onClick={cargar}>Reintentar</AdminButton>} /></main>;
 
@@ -320,9 +371,14 @@ export default function PaginaConfiguracionAdmin() {
               Configura el rol operativo base y los permisos efectivos de un colaborador de Torre de Control. Cada cambio exige motivo y se ejecuta por RPC auditado.
             </p>
           </div>
-          <AdminButton variant="secondary" onClick={() => void cargarRolesCapacidades()} disabled={cargandoRoles}>
-            Actualizar
-          </AdminButton>
+          <div className="flex flex-wrap gap-2">
+            <AdminButton variant="secondary" onClick={() => setDialogoAltaAdmin(true)}>
+              Dar de alta usuario
+            </AdminButton>
+            <AdminButton variant="secondary" onClick={() => void cargarRolesCapacidades()} disabled={cargandoRoles}>
+              Actualizar
+            </AdminButton>
+          </div>
         </div>
 
         {cargandoRoles ? (
@@ -558,6 +614,61 @@ export default function PaginaConfiguracionAdmin() {
       })}
       </div>
       )}
+
+      <AdminDialog
+        open={dialogoAltaAdmin}
+        title="Dar de alta usuario del panel"
+        description="Crea la identidad de acceso al panel, asigna rol operativo inicial y deja evidencia auditada."
+        onOpenChange={(abierto) => { if (!abierto && !guardandoAltaAdmin) setDialogoAltaAdmin(false); }}
+        footer={<>
+          <AdminButton variant="secondary" onClick={() => setDialogoAltaAdmin(false)} disabled={guardandoAltaAdmin}>Cancelar</AdminButton>
+          <AdminButton
+            onClick={guardarAltaAdmin}
+            loading={guardandoAltaAdmin}
+            disabled={
+              nuevoAdmin.nombre.trim().length < 3 ||
+              !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoAdmin.correo.trim()) ||
+              nuevoAdmin.motivo.trim().length < 10
+            }
+          >
+            Crear e invitar
+          </AdminButton>
+        </>}
+      >
+        <div className="space-y-4">
+          <AdminInput
+            label="Nombre"
+            value={nuevoAdmin.nombre}
+            onChange={(e) => setNuevoAdmin((actual) => ({ ...actual, nombre: e.target.value }))}
+            error={nuevoAdmin.nombre.length > 0 && nuevoAdmin.nombre.trim().length < 3 ? "Escribe el nombre completo." : undefined}
+          />
+          <AdminInput
+            label="Correo"
+            type="email"
+            value={nuevoAdmin.correo}
+            onChange={(e) => setNuevoAdmin((actual) => ({ ...actual, correo: e.target.value }))}
+            error={nuevoAdmin.correo.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoAdmin.correo.trim()) ? "Correo inválido." : undefined}
+          />
+          <AdminSelect
+            label="Rol operativo inicial"
+            description="Define navegación, dashboard y capacidades base desde el primer acceso."
+            value={nuevoAdmin.rol}
+            onChange={(e) => setNuevoAdmin((actual) => ({ ...actual, rol: e.target.value as RolAdminOperativo }))}
+          >
+            {Object.entries(CONFIG_ROL_ADMIN).map(([clave, rol]) => (
+              <option key={clave} value={clave}>{rol.etiqueta}</option>
+            ))}
+          </AdminSelect>
+          <AdminTextarea
+            label="Motivo del alta"
+            description="Mínimo 10 caracteres; se almacenará en auditoría de seguridad."
+            value={nuevoAdmin.motivo}
+            onChange={(e) => setNuevoAdmin((actual) => ({ ...actual, motivo: e.target.value }))}
+            error={nuevoAdmin.motivo.length > 0 && nuevoAdmin.motivo.trim().length < 10 ? "Escribe al menos 10 caracteres." : undefined}
+            rows={3}
+          />
+        </div>
+      </AdminDialog>
 
       <AdminDialog
         open={dialogoRol}

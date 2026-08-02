@@ -202,14 +202,22 @@ test('configuracion permite a direccion administrar roles y capacidades por RPC 
   const page=read('apps/panel-admin/src/app/configuracion/page.tsx');
   const service=read('packages/api/src/services/admin-capacidades.ts');
   const sql=read('supabase/migrations/20260728000200_admin_configura_roles_colaboradores.sql');
+  const route=read('apps/panel-admin/src/app/api/admin-auth/invitar-admin/route.ts');
   assert.match(page,/Roles y capacidades por colaborador/);
   assert.match(page,/actualizarRolColaboradorAdmin/);
   assert.match(page,/concederCapacidadAdmin/);
+  assert.match(page,/Dar de alta usuario del panel/);
+  assert.match(page,/\/api\/admin-auth\/invitar-admin/);
   assert.match(service,/admin_actualizar_rol_colaborador/);
   assert.match(service,/assertAdminPermission\(cliente, "capacidades:administrar"\)/);
   assert.match(sql,/public.admin_tiene_permiso\('capacidades:administrar'\)/);
   assert.match(sql,/NO_AUTO_DEGRADACION_DIRECCION/);
   assert.match(sql,/auditoria_admin_seguridad/);
+  assert.match(route,/inviteUserByEmail/);
+  assert.match(route,/p_permiso: "capacidades:administrar"/);
+  assert.match(route,/from\("admins"\)/);
+  assert.match(route,/auditoria_admin_seguridad/);
+  assert.match(route,/auth_user_id: "\[REDACTED\]"/);
 });
 test('configuracion es cerebro normativo con editores y validacion por clave',()=>{
   const page=read('apps/panel-admin/src/app/configuracion/page.tsx');
