@@ -7,6 +7,9 @@ import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
 type RolAdminOperativo = Database["public"]["Enums"]["rol_admin_operativo"];
 
 const ROLES_ADMIN: RolAdminOperativo[] = ["operador", "supervisor", "finanzas", "compliance", "direccion"];
+const LOGIN_ADMIN_URL = `${process.env.NEXT_PUBLIC_PANEL_ADMIN_URL ?? "https://admin.ruumruum.mx"}/login`;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM = process.env.RESEND_FROM ?? "Ruum Ruum <onboarding@ruumruum.mx>";
 
 function texto(valor: unknown) {
   return typeof valor === "string" ? valor.trim() : "";
@@ -18,6 +21,56 @@ function correo(valor: unknown) {
 
 function rolAdmin(valor: unknown): RolAdminOperativo {
   return ROLES_ADMIN.includes(valor as RolAdminOperativo) ? valor as RolAdminOperativo : "operador";
+}
+
+function generarPasswordTemporal() {
+  const bytes = new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  const base = Buffer.from(bytes).toString("base64url").slice(0, 18);
+  return `${base}A7!`;
+}
+
+async function enviarCorreoPasswordTemporal(parametros: {
+  email: string;
+  nombre: string;
+  rol: RolAdminOperativo;
+  passwordTemporal: string;
+}) {
+  if (!RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY no esta configurado para enviar la contraseña temporal.");
+  }
+
+  const respuesta = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${RESEND_API_KEY}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      from: RESEND_FROM,
+      to: parametros.email,
+      subject: "Tu acceso temporal al panel admin de Ruum Ruum",
+      text: [
+        `Hola ${parametros.nombre},`,
+        "",
+        "Creamos tu acceso operativo al panel admin de Ruum Ruum.",
+        "",
+        `Correo: ${parametros.email}`,
+        `Rol inicial: ${parametros.rol}`,
+        `Contraseña temporal: ${parametros.passwordTemporal}`,
+        `Acceso: ${LOGIN_ADMIN_URL}`,
+        "",
+        "Por seguridad, entra con esta contraseña temporal y cámbiala desde tu cuenta lo antes posible.",
+        "",
+        "Si no esperabas este correo, contacta al equipo de Dirección de Ruum Ruum."
+      ].join("\n")
+    })
+  });
+
+  if (!respuesta.ok) {
+    const detalle = await respuesta.json().catch(() => ({})) as { message?: string; error?: string };
+    throw new Error(detalle.message ?? detalle.error ?? "No se pudo enviar el correo de acceso temporal.");
+  }
 }
 
 export async function POST(request: Request) {
@@ -56,32 +109,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "CORREO_YA_REGISTRADO" }, { status: 409 });
     }
 
-    const { data: invitacion, error: errorInvitacion } = await serviceRole.auth.admin.inviteUserByEmail(email, {
-      data: {
+    const passwordTemporal = generarPasswordTemporal();
+    const { data: cuenta, error: errorCuenta } = await serviceRole.auth.admin.createUser({
+      email,
+      password: passwordTemporal,
+      email_confirm: true,
+      user_metadata: {
         tipo_cuenta: "admin",
         rol_operativo: rol,
         nombre
       }
     });
-    if (errorInvitacion) {
-      if (/already|registered|exists|existe|registrad/i.test(errorInvitacion.message)) {
+    if (errorCuenta) {
+      if (/already|registered|exists|existe|registrad/i.test(errorCuenta.message)) {
         return NextResponse.json({ error: "CORREO_YA_REGISTRADO" }, { status: 409 });
       }
-      throw errorInvitacion;
+      throw errorCuenta;
     }
-    if (!invitacion.user?.id) throw new Error("Auth no devolvio el usuario invitado.");
+    if (!cuenta.user?.id) throw new Error("Auth no devolvio el usuario creado.");
 
     const { data: admin, error: errorAdmin } = await serviceRole
       .from("admins")
       .insert({
-        auth_user_id: invitacion.user.id,
+        auth_user_id: cuenta.user.id,
         nombre,
         rol_operativo: rol
       })
       .select("id,nombre,rol_operativo,creado_en")
       .single();
     if (errorAdmin) {
-      await serviceRole.auth.admin.deleteUser(invitacion.user.id);
+      await serviceRole.auth.admin.deleteUser(cuenta.user.id);
       if (errorAdmin.code === "23505") {
         return NextResponse.json({ error: "ADMIN_DUPLICADO" }, { status: 409 });
       }
@@ -109,9 +166,21 @@ export async function POST(request: Request) {
         auth_user_id: "[REDACTED]"
       }
     });
-    if (errorAuditoria) throw errorAuditoria;
+    if (errorAuditoria) {
+      await serviceRole.from("admins").delete().eq("id", admin.id);
+      await serviceRole.auth.admin.deleteUser(cuenta.user.id);
+      throw errorAuditoria;
+    }
 
-    return NextResponse.json({ admin, authUserId: invitacion.user.id }, { status: 201 });
+    try {
+      await enviarCorreoPasswordTemporal({ email, nombre, rol, passwordTemporal });
+    } catch (errorCorreo) {
+      await serviceRole.from("admins").delete().eq("id", admin.id);
+      await serviceRole.auth.admin.deleteUser(cuenta.user.id);
+      throw errorCorreo;
+    }
+
+    return NextResponse.json({ admin }, { status: 201 });
   } catch (e) {
     const normalizado = normalizarError(e);
     return NextResponse.json({ error: normalizado.codigo, mensaje: normalizado.message }, { status: 500 });

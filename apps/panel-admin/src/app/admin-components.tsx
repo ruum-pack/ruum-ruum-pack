@@ -149,6 +149,12 @@ function obtenerControles(contenedor: HTMLElement | null) {
 
 function useCapaModal(abierto: boolean, onClose: () => void, ref: RefObject<HTMLElement | null>, finalFocusRef?: RefObject<HTMLElement | null>) {
   const focoPrevio = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!abierto) return;
     focoPrevio.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -157,7 +163,7 @@ function useCapaModal(abierto: boolean, onClose: () => void, ref: RefObject<HTML
     window.requestAnimationFrame(() => controles[0]?.focus());
 
     function keydown(evento: globalThis.KeyboardEvent) {
-      if (evento.key === "Escape") onClose();
+      if (evento.key === "Escape") onCloseRef.current();
       if (evento.key !== "Tab") return;
       const actuales = obtenerControles(ref.current);
       if (actuales.length === 0) return;
@@ -177,7 +183,7 @@ function useCapaModal(abierto: boolean, onClose: () => void, ref: RefObject<HTML
       document.removeEventListener("keydown", keydown);
       window.requestAnimationFrame(() => (focoFinal ?? focoPrevio.current)?.focus());
     };
-  }, [abierto, finalFocusRef, onClose, ref]);
+  }, [abierto, finalFocusRef, ref]);
 }
 
 type AdminDialogProps = {

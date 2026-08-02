@@ -631,7 +631,7 @@ export default function PaginaConfiguracionAdmin() {
               nuevoAdmin.motivo.trim().length < 10
             }
           >
-            Crear e invitar
+            Crear acceso temporal
           </AdminButton>
         </>}
       >
@@ -645,6 +645,7 @@ export default function PaginaConfiguracionAdmin() {
           <AdminInput
             label="Correo"
             type="email"
+            data-ruum-uppercase="off"
             value={nuevoAdmin.correo}
             onChange={(e) => setNuevoAdmin((actual) => ({ ...actual, correo: e.target.value }))}
             error={nuevoAdmin.correo.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoAdmin.correo.trim()) ? "Correo inválido." : undefined}
@@ -661,7 +662,7 @@ export default function PaginaConfiguracionAdmin() {
           </AdminSelect>
           <AdminTextarea
             label="Motivo del alta"
-            description="Mínimo 10 caracteres; se almacenará en auditoría de seguridad."
+            description="Mínimo 10 caracteres; se almacenará en auditoría de seguridad. La contraseña temporal se enviará por correo."
             value={nuevoAdmin.motivo}
             onChange={(e) => setNuevoAdmin((actual) => ({ ...actual, motivo: e.target.value }))}
             error={nuevoAdmin.motivo.length > 0 && nuevoAdmin.motivo.trim().length < 10 ? "Escribe al menos 10 caracteres." : undefined}

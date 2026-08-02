@@ -213,7 +213,9 @@ test('configuracion permite a direccion administrar roles y capacidades por RPC 
   assert.match(sql,/public.admin_tiene_permiso\('capacidades:administrar'\)/);
   assert.match(sql,/NO_AUTO_DEGRADACION_DIRECCION/);
   assert.match(sql,/auditoria_admin_seguridad/);
-  assert.match(route,/inviteUserByEmail/);
+  assert.match(route,/createUser/);
+  assert.match(route,/generarPasswordTemporal/);
+  assert.match(route,/enviarCorreoPasswordTemporal/);
   assert.match(route,/p_permiso: "capacidades:administrar"/);
   assert.match(route,/from\("admins"\)/);
   assert.match(route,/auditoria_admin_seguridad/);
