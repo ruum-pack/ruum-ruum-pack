@@ -371,7 +371,7 @@ export default function PaginaIncidenciasAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [estadoConexion, setEstadoConexion] = useState<EstadoConexionVista>("actualizando");
   const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
-  const ahora = useMemo(() => new Date(), [ultimaActualizacion, incidencias]);
+  const ahora = useMemo(() => ultimaActualizacion ?? new Date(), [ultimaActualizacion]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

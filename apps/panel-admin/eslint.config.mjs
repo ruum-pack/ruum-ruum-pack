@@ -8,6 +8,17 @@ const compat = new FlatCompat({
 })
 
 const eslintConfig = defineConfig([
+  {
+    ignores: [
+      '.next/**',
+      '.turbo/**',
+      'node_modules/**',
+      'next-env.d.ts',
+      'playwright-report/**',
+      'test-results/**',
+      'coverage/**'
+    ]
+  },
   ...compat.extends('next/core-web-vitals')
 ])
 
