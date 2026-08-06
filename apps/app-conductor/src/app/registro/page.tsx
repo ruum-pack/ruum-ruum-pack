@@ -159,6 +159,15 @@ export default function PaginaRegistroConductor() {
   const [reenviandoOtp, setReenviandoOtp] = useState(false);
   const [esperaReenvioOtp, setEsperaReenvioOtp] = useState(0);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("error") === "enlace_invalido") {
+        setError("El enlace de verificación ha expirado o ya fue utilizado. Si ya confirmaste tu cuenta, puedes iniciar sesión directamente.");
+      }
+    }
+  }, []);
+
   const nombreCompleto = useMemo(() => limpiarTexto(`${nombre} ${apellidos}`), [nombre, apellidos]);
   const fuerzaPassword = useMemo(() => fortalezaPassword(password), [password]);
   const borradorLocal = useMemo(() => ({

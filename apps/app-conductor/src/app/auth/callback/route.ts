@@ -3,25 +3,51 @@ import { cookies } from "next/headers";
 import { crearClienteServidor } from "@ruum/api/supabase";
 import { obtenerConductorActual, obtenerSolicitudConductorActual } from "@ruum/api/services";
 
+type TipoOtpSanitizado = "signup" | "recovery" | "magiclink" | "email";
+
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const tokenHash = searchParams.get("token_hash");
-  const type = searchParams.get("type") ?? "";
+  const tokenHash =
+    searchParams.get("token_hash") ||
+    searchParams.get("token") ||
+    searchParams.get("confirmation_token");
+  const rawType = (searchParams.get("type") || searchParams.get("event") || "").toLowerCase();
 
-  // H-5 — "signup" solía mandar siempre a /panel. Si alguien confirma su
-  // correo desde el enlace crudo del correo (en vez de escribir el código de
-  // 6 dígitos dentro de la app), la cuenta queda confirmada pero sin
-  // solicitud creada — porque iniciar_solicitud_conductor solo se llama
-  // desde el propio flujo de /registro. Mandarlo a /panel lo dejaba varado
-  // viendo un dashboard vacío. /registro ahora verifica si ya es conductor
-  // (y ahí sí manda a /panel) o, si no, crea la solicitud y continúa.
-  //
-  // El enlace PKCE a veces no trae `type`; en ese caso se decide por el
-  // estado real del usuario en lugar de asumir /panel.
+  // Mapear tipos de Supabase a los valores reconocidos por verifyOtp
+  let type: TipoOtpSanitizado = "signup";
+  if (rawType === "recovery") {
+    type = "recovery";
+  } else if (rawType === "magiclink") {
+    type = "magiclink";
+  } else if (rawType === "email" || rawType === "email_change") {
+    type = "email";
+  } else {
+    type = "signup"; // Cubre "signup", "email_confirmation" y valores por defecto de registro
+  }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return NextResponse.redirect(`${origin}/onboarding`);
+
+  const cookieStore = await cookies();
+  const supabase = crearClienteServidor(url, anonKey, {
+    getAll() {
+      return cookieStore.getAll();
+    },
+    setAll(cookiesToSet) {
+      try {
+        cookiesToSet.forEach(({ name, value, options }) =>
+          cookieStore.set(name, value, options)
+        );
+      } catch {
+        /* Route Handler puede escribir cookies */
+      }
+    },
+  });
+
   async function destinoComoConductor() {
     if (type === "recovery") return "/nueva-password";
-    if (type === "signup") return "/registro";
     try {
       const solicitud = await obtenerSolicitudConductorActual(supabase);
       if (solicitud) {
@@ -35,30 +61,68 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return NextResponse.redirect(`${origin}/onboarding`);
-
-  const cookieStore = await cookies();
-  const supabase = crearClienteServidor(url, anonKey, {
-    getAll() { return cookieStore.getAll(); },
-    setAll(cookiesToSet) {
-      try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); }
-      catch { /* Route Handler puede escribir cookies */ }
-    },
-  });
-
+  // 1. Flujo PKCE (autorización por código)
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${await destinoComoConductor()}`);
-  }
-  if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({
-      type: type as "signup" | "recovery" | "magiclink" | "email",
-      token_hash: tokenHash,
-    });
-    if (!error) return NextResponse.redirect(`${origin}${await destinoComoConductor()}`);
+    if (!error) {
+      const destino = await destinoComoConductor();
+      return NextResponse.redirect(`${origin}${destino}`);
+    }
   }
 
-  return NextResponse.redirect(`${origin}/recuperar-password?error=enlace_invalido`);
+  // 2. Flujo OTP / Hash (verificación de token por correo)
+  if (tokenHash) {
+    const { error } = await supabase.auth.verifyOtp({
+      type,
+      token_hash: tokenHash,
+    });
+    if (!error) {
+      const destino = await destinoComoConductor();
+      return NextResponse.redirect(`${origin}${destino}`);
+    }
+  }
+
+  // 3. Si no hay parámetros en la URL o fallaron en el servidor, procesar posible fragmento de hash cliente (#access_token=...) o derivar al destino de error contextual
+  const destinoErrorServer =
+    type === "recovery"
+      ? "/recuperar-password?error=enlace_invalido"
+      : "/registro?error=enlace_invalido";
+
+  // Respuesta HTML/JS ligera para capturar fragmentos de hash en el navegador antes de redirigir
+  const htmlFallback = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <title>Verificando cuenta...</title>
+      <style>
+        body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #0f172a; color: #f8fafc; }
+        .card { text-align: center; padding: 2rem; border-radius: 1rem; background: #1e293b; max-width: 400px; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <p>Verificando tu enlace...</p>
+      </div>
+      <script>
+        (function() {
+          const hash = window.location.hash || '';
+          const isRecovery = "${type}" === "recovery";
+          const fallback = "${origin}${destinoErrorServer}";
+
+          if (hash.includes("access_token=") || hash.includes("refresh_token=")) {
+            const target = isRecovery ? "${origin}/nueva-password" : "${origin}/registro";
+            window.location.replace(target + hash);
+          } else {
+            window.location.replace(fallback);
+          }
+        })();
+      </script>
+    </body>
+    </html>
+  `;
+
+  return new NextResponse(htmlFallback, {
+    headers: { "content-type": "text/html; charset=utf-8" },
+  });
 }
