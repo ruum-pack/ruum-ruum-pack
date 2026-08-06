@@ -41,7 +41,6 @@ export function LicenseStep({
 
   return (
     <fieldset className="grid gap-4">
-      <legend className="font-display text-xl font-bold text-text-primary">Licencia y experiencia</legend>
       <div className="flex items-center gap-2">
         <Field 
           etiqueta="Número de licencia" 

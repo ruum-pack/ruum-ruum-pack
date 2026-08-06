@@ -25,6 +25,7 @@ import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 import { limpiarBorradorRegistroLocal } from "../../lib/borrador-registro";
 import { AccountStep } from "./AccountStep";
 import { DocumentsStep } from "./DocumentsStep";
+import { DraftRecoveryModal } from "./DraftRecoveryModal";
 import { IdentityStep } from "./IdentityStep";
 import { LicenseStep } from "./LicenseStep";
 import { OtpVerification } from "./OtpVerification";
@@ -814,19 +815,12 @@ export default function PaginaRegistroConductor() {
             <h1 id="titulo-registro-conductor" className="mt-8 font-display text-2xl font-bold text-text-primary">Registro de conductor</h1>
         
 
-            {borradorDisponible && (
-              <div className="mt-5 rounded-xl border border-route-action bg-route-soft p-4">
-                <p className="font-body text-sm font-semibold text-text-primary">Encontramos un registro sin terminar</p>
-                <p className="mt-2 font-body text-xs leading-5 text-text-secondary">
-                  Guardado el {new Date(borradorDisponible.guardadoEn).toLocaleString("es-MX")} y disponible por 24 horas.
-                  Por seguridad no guardamos CURP, contraseña, domicilio preciso, licencia, contacto ni archivos.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button type="button" onClick={restaurarBorrador}>Continuar donde iba</Button>
-                  <Button type="button" variant="quiet" onClick={descartarBorrador}>Empezar de cero</Button>
-                </div>
-              </div>
-            )}
+            <DraftRecoveryModal
+              isOpen={Boolean(borradorDisponible)}
+              guardadoEn={borradorDisponible?.guardadoEn}
+              onRestore={restaurarBorrador}
+              onDiscard={descartarBorrador}
+            />
 
             <RegistrationProgress
               paso={paso}

@@ -79,7 +79,6 @@ export function IdentityStep({
 }) {
   return (
     <fieldset className="grid gap-4">
-      <legend className="font-display text-xl font-bold text-text-primary">Identidad</legend>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field etiqueta="Nombre (s)" value={nombre} onChange={(e) => { setNombre(e.target.value); limpiarErrorCampo("nombre"); }} onBlur={() => validarCampo("nombre", nombre)} error={erroresCampos.nombre || undefined} required autoComplete="given-name" aria-required="true" />
         <Field etiqueta="Apellido (s)" value={apellidos} onChange={(e) => { setApellidos(e.target.value); limpiarErrorCampo("apellidos"); }} onBlur={() => validarCampo("apellidos", apellidos)} error={erroresCampos.apellidos || undefined} required autoComplete="family-name" aria-required="true" />
@@ -179,6 +178,7 @@ export function IdentityStep({
             etiqueta="Teléfono del contacto"
             type="tel" 
             inputMode="numeric" 
+            placeholder="55-1234-5678"
             value={formatoTelefonoMask(contactoEmergenciaTelefono)} 
             onChange={(e) => { 
               const digitos = soloDigitos(e.target.value);

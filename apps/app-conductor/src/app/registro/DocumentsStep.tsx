@@ -19,7 +19,7 @@ export function DocumentsStep({
   return (
     <fieldset className="grid gap-4">
       <div className="flex items-center gap-2">
-        <legend className="font-display text-xl font-bold text-text-primary">Documentos</legend>
+        <span className="font-display text-sm font-semibold text-text-secondary">Archivos requeridos</span>
         <DatosSensiblesTooltip tipo="documentos" />
       </div>
       {!sesionAutenticada ? (

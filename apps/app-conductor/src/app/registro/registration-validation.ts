@@ -18,15 +18,12 @@ export function telefonoE164Mx(valor: string) {
 export function formatoTelefonoNacional(valor: string) {
   const digitos = soloDigitos(valor);
   if (digitos.length <= 2) return digitos;
-  if (digitos.length <= 6) return `${digitos.slice(0, 2)} ${digitos.slice(2)}`;
-  return `${digitos.slice(0, 2)} ${digitos.slice(2, 6)} ${digitos.slice(6)}`;
+  if (digitos.length <= 6) return `${digitos.slice(0, 2)}-${digitos.slice(2)}`;
+  return `${digitos.slice(0, 2)}-${digitos.slice(2, 6)}-${digitos.slice(6, 10)}`;
 }
 
 export function formatoTelefonoMask(valor: string) {
-  const digitos = soloDigitos(valor);
-  if (digitos.length <= 3) return digitos;
-  if (digitos.length <= 6) return `(${digitos.slice(0, 3)}) ${digitos.slice(3)}`;
-  return `(${digitos.slice(0, 3)}) ${digitos.slice(3, 6)}-${digitos.slice(6, 10)}`;
+  return formatoTelefonoNacional(valor);
 }
 
 export function formatoLicenciaMask(valor: string) {
