@@ -17,8 +17,10 @@ import {
   obtenerConductorActual,
   obtenerSolicitudConductorActual,
   registrarConsentimientosConductor,
+  type ExpedienteSolicitudConductorV2,
 } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import type { Json } from "@ruum/shared/types";
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 import { limpiarBorradorRegistroLocal } from "../../lib/borrador-registro";
 import { AccountStep } from "./AccountStep";
@@ -50,6 +52,51 @@ function canalRegistro(): "web" | "android" | "ios" {
   if (/android/i.test(navigator.userAgent)) return "android";
   if (/iPad|iPhone|iPod/i.test(navigator.userAgent)) return "ios";
   return "web";
+}
+
+// Fusiona un expediente local con el que ya existía en el servidor. Solamente
+// completa valores locales vacíos con los remotos y conserva cualquier
+// consentimiento (booleano) ya autorizado, para no borrar datos capturados
+// en otro dispositivo/pestaña al reanudar (p. ej. tras confirmar un OTP).
+function fusionarJsonExpediente(origen: Json, remoto: Json | null | undefined): Json {
+  if (origen == null) return remoto ?? null;
+  if (remoto == null) return origen;
+  if (typeof origen !== "object" || Array.isArray(origen)) return origen;
+  const local = origen as Record<string, unknown>;
+  const otro = typeof remoto === "object" && remoto && !Array.isArray(remoto) ? (remoto as Record<string, unknown>) : {};
+  const resultado: Record<string, Json> = {};
+  for (const clave of Object.keys(local)) {
+    const valorLocal = local[clave];
+    const valorRemoto = otro[clave];
+    if (typeof valorLocal === "string" && valorLocal.trim() === "") {
+      resultado[clave] = typeof valorRemoto === "string" ? valorRemoto : "";
+    } else if (typeof valorLocal === "boolean") {
+      resultado[clave] = Boolean(valorLocal || valorRemoto === true);
+    } else {
+      resultado[clave] = valorLocal as Json;
+    }
+  }
+  return resultado;
+}
+
+type SolicitudConductorResumen = {
+  datos_personales?: Json | null;
+  domicilio?: Json | null;
+  licencia?: Json | null;
+  contacto_emergencia?: Json | null;
+};
+
+function combinarExpedienteConRemoto(
+  expediente: ExpedienteSolicitudConductorV2,
+  remoto: SolicitudConductorResumen | null
+) {
+  if (!remoto) return expediente;
+  return {
+    datosPersonales: fusionarJsonExpediente(expediente.datosPersonales, remoto.datos_personales),
+    domicilio: fusionarJsonExpediente(expediente.domicilio, remoto.domicilio),
+    licencia: fusionarJsonExpediente(expediente.licencia, remoto.licencia),
+    contactoEmergencia: fusionarJsonExpediente(expediente.contactoEmergencia, remoto.contacto_emergencia)
+  };
 }
 
 
@@ -378,13 +425,24 @@ export default function PaginaRegistroConductor() {
           : "No pudimos iniciar la solicitud."
       );
     }
+    const { data: solicitudRemota, error: errorSolicitudRemota } = await cliente
+      .from("solicitudes_conductor")
+      .select("datos_personales, domicilio, licencia, contacto_emergencia, paso_actual")
+      .eq("id", inicio.solicitudId)
+      .maybeSingle();
+    if (errorSolicitudRemota) throw errorSolicitudRemota;
+
+    // Evita pisar el expediente capturado previamente (p. ej. en otro
+    // dispositivo) con un contrato local casi vacío al reanudar tras el OTP.
+    const expediente = combinarExpedienteConRemoto(contratoExpediente(), solicitudRemota);
+
     setSesionAutenticada(true);
     setSolicitudRemotaId(inicio.solicitudId);
     solicitudRemotaIdRef.current = inicio.solicitudId;
     hidratacionRemotaCompletaRef.current = true;
     omitirPrimerGuardadoRemotoRef.current = true;
     limpiarBorradorRegistroLocal();
-    await guardarBorradorConductor(cliente, contratoExpediente(), Math.max(paso + 1, 1));
+    await guardarBorradorConductor(cliente, expediente, Math.max(paso + 1, inicio.pasoActual, 1));
     setEstadoGuardadoRemoto("guardado");
     return inicio.solicitudId;
   }
@@ -468,7 +526,7 @@ export default function PaginaRegistroConductor() {
 
     setEnviando(true);
     setError(null);
-    let cuentaCreada=sesionAutenticada;
+    let cuentaCreada = sesionAutenticada;
 
     try {
       const cliente = crearClienteNavegador();
@@ -476,47 +534,14 @@ export default function PaginaRegistroConductor() {
         const cuentaLista = await crearCuentaParaContinuar();
         if (!cuentaLista) return;
         cuentaCreada = true;
-        setSesionActivaTrasRegistro(true);
-        await procesarSolicitudAutenticada(cliente);
-        limpiarBorradorRegistroLocal();
-        setEnviado(true);
-        return;
       }
-      if (sesionAutenticada) {
-        setSesionActivaTrasRegistro(true);
-        await procesarSolicitudAutenticada(cliente);
-        limpiarBorradorRegistroLocal();
-        setEnviado(true);
-        return;
-      }
-      const { data: datosAuth, error: errorAuth } = await cliente.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-        options: {
-          data: {
-            tipo_registro: "conductor",
-            version_registro: 2
-          }
-        }
-      });
-      if (errorAuth) throw errorAuth;
-      if (!datosAuth.user) throw new Error("No se pudo crear la cuenta. Intenta de nuevo.");
-      cuentaCreada=true;
+      setSesionActivaTrasRegistro(true);
+      await procesarSolicitudAutenticada(cliente);
       limpiarBorradorRegistroLocal();
-
-      if (datosAuth.session) {
-        setSesionActivaTrasRegistro(true);
-        await procesarSolicitudAutenticada(cliente);
-        limpiarBorradorRegistroLocal();
-        setEnviado(true);
-      } else {
-        
-        setEsperaReenvioOtp(ESPERA_REENVIO_OTP_SEGUNDOS);
-        setPendienteOtp(true);
-      }
+      setEnviado(true);
     } catch (err) {
-      if (cuentaCreada) registrarTelemetria("rpc_error",paso+1,"enviar_solicitud");
-      setError(cuentaCreada?traducirErrorOperativo(err,"No pudimos enviar tu solicitud. Tu cuenta quedó creada y puedes reintentar."):traducirErrorAuth(err));
+      if (cuentaCreada) registrarTelemetria("rpc_error", paso + 1, "enviar_solicitud");
+      setError(cuentaCreada ? traducirErrorOperativo(err, "No pudimos enviar tu solicitud. Tu cuenta quedó creada y puedes reintentar.") : traducirErrorAuth(err));
     } finally {
       setEnviando(false);
     }
@@ -772,7 +797,7 @@ export default function PaginaRegistroConductor() {
             {borradorDisponible && (
               <div className="mt-5 rounded-xl border border-route-action bg-route-soft p-4">
                 <p className="font-body text-sm font-semibold text-text-primary">Encontramos un registro sin terminar</p>
-                <p className="mt- Cuen -body text-xs leading-5 text-text-secondary">
+                <p className="mt-2 font-body text-xs leading-5 text-text-secondary">
                   Guardado el {new Date(borradorDisponible.guardadoEn).toLocaleString("es-MX")} y disponible por 24 horas.
                   Por seguridad no guardamos CURP, contraseña, domicilio preciso, licencia, contacto ni archivos.
                 </p>
