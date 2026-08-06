@@ -17,5 +17,9 @@ import type { Database } from "@ruum/shared/types";
  * tendría que pelear con ese desajuste por separado.
  */
 export function crearClienteNavegador(url: string, anonKey: string): SupabaseClient<Database> {
-  return createBrowserClient<Database>(url, anonKey) as unknown as SupabaseClient<Database>;
+  // flowType PKCE obligatorio: el enlace de confirmación de correo entrega el
+  // `code` en el query string (legible por el Route Handler /auth/callback).
+  // Con el default "implicit" las credenciales van en el fragmento `#...`,
+  // que el servidor no ve, y el enlace caería en enlace_invalido.
+  return createBrowserClient<Database>(url, anonKey, { auth: { flowType: "pkce" } }) as unknown as SupabaseClient<Database>;
 }

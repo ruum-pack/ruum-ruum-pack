@@ -15,5 +15,5 @@ import type { Database } from "@ruum/shared/types";
  * en runtime sí es idéntico.
  */
 export function crearClienteServidor(url: string, anonKey: string, cookies: CookieMethodsServer): SupabaseClient<Database> {
-  return createServerClient<Database>(url, anonKey, { cookies }) as unknown as SupabaseClient<Database>;
+  return createServerClient<Database>(url, anonKey, { cookies, auth: { flowType: "pkce" } }) as unknown as SupabaseClient<Database>;
 }
