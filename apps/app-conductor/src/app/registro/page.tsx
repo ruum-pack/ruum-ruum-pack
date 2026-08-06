@@ -359,6 +359,26 @@ export default function PaginaRegistroConductor() {
     );
   }
 
+  function camposFaltantes() {
+    const faltantes: string[] = [];
+    if (!nombre.trim() || !apellidos.trim()) faltantes.push("nombre y apellidos");
+    if (!curp.trim()) faltantes.push("tu CURP");
+    if (!telefono.trim()) faltantes.push("tu teléfono");
+    if (!email.trim()) faltantes.push("tu correo");
+    if (!sesionAutenticada && (!password || !confirmacionPassword)) faltantes.push("tu contraseña");
+    if (!codigoPostal.trim() || !estado.trim() || !ciudad.trim() || !colonia.trim() || !calle.trim() || !numero.trim() || !referencias.trim()) faltantes.push("tu domicilio");
+    if (!numeroLicencia.trim() || !tipoLicencia.trim() || !vigenciaLicencia) faltantes.push("los datos de tu licencia");
+    if (!documentoDisponible("licenciaFrente")) faltantes.push("la foto de la licencia (frente)");
+    if (!documentoDisponible("licenciaReverso")) faltantes.push("la foto de la licencia (reverso)");
+    if (!documentoDisponible("identificacionOficial")) faltantes.push("tu identificación oficial");
+    if (!autorizaVerificacion) faltantes.push("autorizar la verificación de antecedentes");
+    if (!declaraSinSuspensiones) faltantes.push("confirmar la declaración de suspensiones");
+    if (!contactoEmergenciaNombre.trim() || !contactoEmergenciaTelefono.trim()) faltantes.push("tu contacto de emergencia");
+    if (!aceptaTerminos) faltantes.push("aceptar los términos y condiciones");
+    if (!confirmaPrivacidad) faltantes.push("confirmar el aviso de privacidad");
+    return faltantes;
+  }
+
   async function avanzar() {
     setError(null);
     if (paso === 0 && !sesionAutenticada) {
@@ -947,6 +967,12 @@ export default function PaginaRegistroConductor() {
               )}
 
               {error && <Aviso tono="danger">{error}</Aviso>}
+
+              {paso === PASOS_REGISTRO.length - 1 && !puedeEnviar && (
+                <Aviso tono="atencion">
+                  Para enviar tu registro aún te falta: {camposFaltantes().join(", ")}.
+                </Aviso>
+              )}
 
               <div className="grid gap-3 sm:grid-cols-2">
                 {paso > 0 && <Button type="button" variant="secondary" onClick={volver}>Atrás</Button>}

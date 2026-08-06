@@ -53,8 +53,8 @@ export function DocumentUploadField({
         ref={inputRef}
         type="file"
         accept="image/*,.pdf"
-        capture="environment"
         className="hidden"
+        aria-label={etiqueta}
         onChange={(e) => {
           onSeleccionar(e.target.files?.[0] ?? null);
           e.target.value = "";
