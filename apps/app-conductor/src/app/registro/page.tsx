@@ -489,7 +489,11 @@ export default function PaginaRegistroConductor() {
           data: {
             tipo_registro: "conductor",
             version_registro: 2
-          }
+          },
+          // El camino principal es escribir el código de 6 dígitos dentro de la
+          // app; este redirect sólo enruta el enlace de respaldo del correo al
+          // handler correcto del conductor (/auth/callback -> /registro).
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
       if (errorAuth) throw errorAuth;
@@ -624,7 +628,10 @@ export default function PaginaRegistroConductor() {
       const cliente = crearClienteNavegador();
       const { error: errorReenvio } = await cliente.auth.resend({
         type: "signup",
-        email: email.trim().toLowerCase()
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
       });
       if (errorReenvio) throw errorReenvio;
       setEsperaReenvioOtp(ESPERA_REENVIO_OTP_SEGUNDOS);

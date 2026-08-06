@@ -17,58 +17,78 @@ export function RegistrationProgress({
 }) {
   return (
     <div className="mt-6 flex flex-col gap-4">
-      {/* Stepper visual con nombre de pasos e indicadores interactivos */}
+      {/* Stepper visual adaptativo con iconos descriptivos */}
       <nav aria-label="Pasos de registro" className="w-full">
-        {/* Vista móvil (Compact Stepper) */}
-        <div className="flex flex-col gap-2 sm:hidden">
-          <div className="flex items-center justify-between text-xs font-semibold text-text-secondary">
-            <span>
-              Paso {paso + 1} de {PASOS_REGISTRO.length}: <strong className="text-text-primary">{PASOS_REGISTRO[paso].titulo}</strong>
+        {/* Vista Móvil: Pipeline de Iconos descriptivos sin truncamiento de texto */}
+        <div className="flex flex-col gap-3 sm:hidden">
+          <div className="flex items-center justify-between font-body text-xs text-text-secondary">
+            <span className="font-medium">
+              Paso <strong className="font-bold text-text-primary">{paso + 1} de {PASOS_REGISTRO.length}</strong>
             </span>
-            <span className="rounded-full bg-surface-elevated px-2 py-0.5 text-text-tertiary">
+            <span className="rounded-full bg-surface-elevated px-2 py-0.5 font-semibold text-text-tertiary">
               ⏱ {PASOS_REGISTRO[paso].tiempo}
             </span>
           </div>
-          <div className="flex h-2.5 gap-1.5 overflow-hidden rounded-full bg-surface-elevated p-0.5">
-            {PASOS_REGISTRO.map((p, idx) => (
-              <div
-                key={p.titulo}
-                className={`h-full flex-1 rounded-full transition-all duration-300 ${
-                  idx < paso
-                    ? "bg-success"
-                    : idx === paso
-                    ? "bg-route-action"
-                    : "bg-transparent"
-                }`}
-              />
-            ))}
+
+          {/* Barra de 5 iconos descriptivos */}
+          <div className="grid grid-cols-5 gap-1.5 rounded-2xl border border-border bg-surface p-2 shadow-xs">
+            {PASOS_REGISTRO.map((pasoInfo, indice) => {
+              const completado = indice < paso;
+              const activo = indice === paso;
+
+              return (
+                <button
+                  key={pasoInfo.titulo}
+                  type="button"
+                  disabled={!completado}
+                  onClick={() => completado && onGoToStep(indice)}
+                  className={`flex flex-col items-center justify-center rounded-xl py-2 transition-all ${
+                    activo
+                      ? "bg-route-action/10 text-route-action ring-2 ring-route-action/40 shadow-xs"
+                      : completado
+                      ? "bg-success/10 text-success hover:bg-success/20 cursor-pointer"
+                      : "bg-surface-elevated/40 text-text-tertiary opacity-50 cursor-not-allowed"
+                  }`}
+                  aria-label={`Paso ${indice + 1}: ${pasoInfo.titulo}`}
+                  aria-current={activo ? "step" : undefined}
+                >
+                  <span className="text-base" aria-hidden="true">
+                    {completado ? "✓" : pasoInfo.icono}
+                  </span>
+                  <span className="mt-1 font-display text-[10px] font-bold">
+                    {indice + 1}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Vista Desktop y Tablet (Full Stepper Pipeline) */}
+        {/* Vista Tablet / Desktop: Stepper visual completo con iconos y títulos cortos */}
         <ol className="hidden sm:grid sm:grid-cols-5 sm:gap-2">
           {PASOS_REGISTRO.map((pasoInfo, indice) => {
             const completado = indice < paso;
             const activo = indice === paso;
 
             return (
-              <li key={pasoInfo.titulo} className="flex flex-col gap-1.5">
+              <li key={pasoInfo.titulo} className="flex flex-col gap-1">
                 <button
                   type="button"
                   disabled={!completado}
                   onClick={() => completado && onGoToStep(indice)}
-                  className={`group flex items-center gap-2 rounded-xl border p-2.5 text-left transition-all duration-150 ${
+                  className={`group flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-all duration-150 ${
                     activo
-                      ? "border-route-action bg-route-soft/30 shadow-sm"
+                      ? "border-route-action bg-route-soft/40 shadow-sm"
                       : completado
                       ? "border-success/30 bg-success/5 hover:border-success hover:bg-success/10 cursor-pointer"
                       : "border-border bg-surface opacity-60 cursor-not-allowed"
                   }`}
                   aria-label={`Paso ${indice + 1}: ${pasoInfo.titulo}`}
                   aria-current={activo ? "step" : undefined}
+                  title={pasoInfo.titulo}
                 >
-                  <span
-                    className={`flex size-7 shrink-0 items-center justify-center rounded-lg font-display text-xs font-bold transition-colors ${
+                  <div
+                    className={`flex size-8 shrink-0 items-center justify-center rounded-lg font-display text-sm font-bold transition-colors ${
                       completado
                         ? "bg-success text-white"
                         : activo
@@ -76,15 +96,15 @@ export function RegistrationProgress({
                         : "bg-surface-elevated text-text-tertiary"
                     }`}
                   >
-                    {completado ? "✓" : indice + 1}
-                  </span>
+                    {completado ? "✓" : pasoInfo.icono}
+                  </div>
                   <div className="flex flex-col min-w-0">
                     <span
-                      className={`truncate font-body text-xs font-bold ${
+                      className={`font-body text-xs font-bold whitespace-nowrap ${
                         activo ? "text-route-action" : completado ? "text-text-primary" : "text-text-tertiary"
                       }`}
                     >
-                      {pasoInfo.titulo}
+                      {pasoInfo.shortTitle}
                     </span>
                     <span className="text-[10px] text-text-tertiary">{pasoInfo.tiempo}</span>
                   </div>
@@ -96,16 +116,19 @@ export function RegistrationProgress({
       </nav>
 
       {/* Tarjeta descriptiva del paso activo */}
-      <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+      <div className="rounded-xl border border-border bg-surface p-4 shadow-xs">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-base font-bold text-text-primary">
-            {paso + 1}. {PASOS_REGISTRO[paso].titulo}
-          </h2>
+          <div className="flex items-center gap-2">
+            <span className="text-lg" aria-hidden="true">{PASOS_REGISTRO[paso].icono}</span>
+            <h2 className="font-display text-base font-bold text-text-primary">
+              {paso + 1}. {PASOS_REGISTRO[paso].titulo}
+            </h2>
+          </div>
           <span className="font-body text-xs text-text-tertiary sm:hidden">
             ⏱ {PASOS_REGISTRO[paso].tiempo}
           </span>
         </div>
-        <p className="mt-1 font-body text-sm leading-6 text-text-secondary">
+        <p className="mt-1.5 font-body text-sm leading-6 text-text-secondary">
           {PASOS_REGISTRO[paso].objetivo}
         </p>
       </div>

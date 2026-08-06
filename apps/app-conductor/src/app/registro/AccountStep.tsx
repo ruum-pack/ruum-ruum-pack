@@ -49,10 +49,10 @@ export function AccountStep({
     <fieldset className="grid gap-4">
       <Field
         etiqueta="Teléfono móvil"
-        ayuda="Formato 10 dígitos (ej. 55-1234-5678)."
+        ayuda="Formato estándar 10 dígitos (ej. (55) 1234-5678)."
         type="tel"
         inputMode="numeric"
-        placeholder="55-1234-5678"
+        placeholder="(55) 1234-5678"
         value={formatoTelefonoNacional(telefono)}
         onChange={(e) => {
           setTelefono(soloDigitos(e.target.value));
@@ -86,6 +86,7 @@ export function AccountStep({
             <Field
               etiqueta="Crea tu contraseña"
               type="password"
+              placeholder="Ingresa tu contraseña"
               value={password}
               onChange={(e) => {
                 const valor = e.target.value;
@@ -100,18 +101,20 @@ export function AccountStep({
               autoComplete="new-password"
             />
 
-            {/* Requisitos dinámicos interactivos en tiempo real */}
-            <ul className="flex flex-col gap-1 rounded-lg bg-surface-elevated/60 p-2.5 text-xs font-body" aria-label="Requisitos de contraseña">
+            {/* Requisitos dinámicos interactivos con cambio de color verde al cumplirse */}
+            <ul className="flex flex-col gap-1.5 rounded-xl border border-border bg-surface-elevated/70 p-3 text-xs font-body" aria-label="Requisitos de contraseña">
               {requisitosPassword.map((req, idx) => (
                 <li
                   key={idx}
-                  className={`flex items-center gap-2 transition-colors duration-150 ${
-                    req.cumplido ? "font-medium text-success" : "text-text-tertiary"
+                  className={`flex items-center gap-2 transition-all duration-150 ${
+                    req.cumplido ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-text-tertiary"
                   }`}
                 >
                   <span
-                    className={`flex size-4 items-center justify-center rounded-full text-[10px] font-bold ${
-                      req.cumplido ? "bg-success/15 text-success" : "bg-border text-text-tertiary"
+                    className={`flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all ${
+                      req.cumplido
+                        ? "bg-emerald-600 text-white dark:bg-emerald-500 shadow-xs"
+                        : "bg-surface-elevated border border-border text-text-tertiary"
                     }`}
                     aria-hidden
                   >
@@ -135,7 +138,7 @@ export function AccountStep({
                             ? "bg-danger"
                             : fuerzaPassword.nivel === 2
                               ? "bg-signal"
-                              : "bg-control"
+                              : "bg-emerald-500"
                           : "bg-surface-elevated"
                       ].join(" ")}
                     />
@@ -143,7 +146,7 @@ export function AccountStep({
                 </div>
                 {fuerzaPassword.etiqueta && (
                   <span className="font-body text-xs leading-4 text-text-secondary">
-                    Fuerza: {fuerzaPassword.etiqueta}
+                    Fuerza de la contraseña: <strong className="text-text-primary">{fuerzaPassword.etiqueta}</strong>
                   </span>
                 )}
               </div>
@@ -153,6 +156,7 @@ export function AccountStep({
           <Field
             etiqueta="Confirma tu contraseña"
             type="password"
+            placeholder="Repite tu contraseña"
             value={confirmacionPassword}
             onChange={(e) => {
               setConfirmacionPassword(e.target.value);

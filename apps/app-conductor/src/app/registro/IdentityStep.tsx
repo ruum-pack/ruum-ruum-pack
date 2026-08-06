@@ -178,7 +178,7 @@ export function IdentityStep({
             etiqueta="Teléfono del contacto"
             type="tel" 
             inputMode="numeric" 
-            placeholder="55-1234-5678"
+            placeholder="(55) 1234-5678"
             value={formatoTelefonoMask(contactoEmergenciaTelefono)} 
             onChange={(e) => { 
               const digitos = soloDigitos(e.target.value);
