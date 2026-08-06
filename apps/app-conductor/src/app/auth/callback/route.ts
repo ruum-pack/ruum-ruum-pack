@@ -26,9 +26,18 @@ export async function GET(request: NextRequest) {
     type = "signup"; // Cubre "signup", "email_confirmation" y valores por defecto de registro
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return NextResponse.redirect(`${origin}/onboarding`);
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+  const destinoErrorServer =
+    type === "recovery"
+      ? "/recuperar-password?error=enlace_invalido"
+      : "/registro?error=enlace_invalido";
+
+  // Si no hay configuración de Supabase, en lugar de redirigir a /onboarding, ir al fallback de error
+  if (!url || !anonKey) {
+    return NextResponse.redirect(`${origin}${destinoErrorServer}`);
+  }
 
   const cookieStore = await cookies();
   const supabase = crearClienteServidor(url, anonKey, {
@@ -53,11 +62,11 @@ export async function GET(request: NextRequest) {
       if (solicitud) {
         return ["listo_para_enviar", "en_revision", "requiere_correccion", "aprobado", "rechazado", "suspendido"].includes(solicitud.estado)
           ? "/panel"
-          : "/registro";
+          : "/registro?verificado=1";
       }
-      return (await obtenerConductorActual(supabase)) ? "/panel" : "/registro";
+      return (await obtenerConductorActual(supabase)) ? "/panel" : "/registro?verificado=1";
     } catch {
-      return "/registro";
+      return "/registro?verificado=1";
     }
   }
 
@@ -82,13 +91,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // 3. Si no hay parámetros en la URL o fallaron en el servidor, procesar posible fragmento de hash cliente (#access_token=...) o derivar al destino de error contextual
-  const destinoErrorServer =
-    type === "recovery"
-      ? "/recuperar-password?error=enlace_invalido"
-      : "/registro?error=enlace_invalido";
-
-  // Respuesta HTML/JS ligera para capturar fragmentos de hash en el navegador antes de redirigir
+  // 3. Respuesta HTML/JS ligera para capturar fragmentos de hash en el navegador (#access_token=...) antes de redirigir
   const htmlFallback = `
     <!DOCTYPE html>
     <html lang="es">
@@ -111,7 +114,7 @@ export async function GET(request: NextRequest) {
           const fallback = "${origin}${destinoErrorServer}";
 
           if (hash.includes("access_token=") || hash.includes("refresh_token=")) {
-            const target = isRecovery ? "${origin}/nueva-password" : "${origin}/registro";
+            const target = isRecovery ? "${origin}/nueva-password" : "${origin}/registro?verificado=1";
             window.location.replace(target + hash);
           } else {
             window.location.replace(fallback);
