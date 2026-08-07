@@ -37,7 +37,7 @@ create table public.verificaciones_identidad_didit (
   session_id      text not null unique,
   workflow_id     text,
   estado          text not null default 'pendiente'
-                  check (estado in ('pendiente', 'en_revision', 'aprobado', 'rechazado', 'error')),
+                  check (estado in ('pendiente', 'en_revision', 'aprobado', 'rechazado', 'error', 'expirado', 'cancelado')),
   decision        jsonb,
   procesado_en    timestamptz,
   creado_en       timestamptz not null default now(),

@@ -191,7 +191,10 @@ export type EventoRegistroConductor =
   | "otp_error"
   | "rpc_error"
   | "documento_fallo"
-  | "solicitud_enviada";
+  | "solicitud_enviada"
+  | "didit_iniciado"
+  | "didit_completado"
+  | "didit_error";
 
 export interface DatosEventoRegistroConductor {
   sesionId: string;

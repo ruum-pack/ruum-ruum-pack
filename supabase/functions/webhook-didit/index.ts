@@ -76,12 +76,25 @@ Deno.serve(async (req) => {
   const solicitudId = evento.vendor_data;
   if (!sessionId || !solicitudId) return json({ error: "Payload incompleto." }, 400);
 
-  if (!["Approved", "Declined", "In Review"].includes(estadoDidit)) {
+  // Estados que requieren acción automática (llamada a RPCs)
+  const estadosConDecision = ["Approved", "Declined", "In Review"];
+  // Estados terminales que no requieren RPC pero sí actualizan el registro
+  const estadosTerminales = ["Expired", "Cancelled", "Error"];
+
+  if (![...estadosConDecision, ...estadosTerminales].includes(estadoDidit)) {
     return json({ recibido: true, ignorado: estadoDidit }, 200);
   }
 
   const servicio = createClient(url, serviceKey);
-  const estadoInterno = estadoDidit === "Approved" ? "aprobado" : estadoDidit === "Declined" ? "rechazado" : "en_revision";
+  // Mapeo de estados Didit -> estados internos
+  let estadoInterno: string;
+  if (estadoDidit === "Approved") estadoInterno = "aprobado";
+  else if (estadoDidit === "Declined") estadoInterno = "rechazado";
+  else if (estadoDidit === "In Review") estadoInterno = "en_revision";
+  else if (estadoDidit === "Expired") estadoInterno = "expirado";
+  else if (estadoDidit === "Cancelled") estadoInterno = "cancelado";
+  else if (estadoDidit === "Error") estadoInterno = "error";
+  else estadoInterno = "pendiente";
 
   const { data: verificacion, error: errorUpdate } = await servicio
     .from("verificaciones_identidad_didit")
@@ -91,6 +104,39 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (errorUpdate || !verificacion) {
     console.error("No se encontró la verificación para session_id", sessionId, errorUpdate?.message);
+    return json({ error: "Verificación no encontrada." }, 404);
+  }
+
+  try {
+    if (estadoDidit === "Approved") {
+      const { error } = await servicio.rpc("aprobar_solicitud_conductor_sistema", {
+        p_solicitud_id: verificacion.solicitud_id,
+        p_verificacion_id: verificacion.id,
+      });
+      if (error) throw error;
+    } else if (estadoDidit === "Declined") {
+      const { error } = await servicio.rpc("rechazar_solicitud_por_verificacion_sistema", {
+        p_solicitud_id: verificacion.solicitud_id,
+        p_verificacion_id: verificacion.id,
+      });
+      if (error) throw error;
+    } else if (estadosTerminales.includes(estadoDidit)) {
+      // Para estados terminales (Expired, Cancelled, Error), marcamos la verificación
+      // como procesada pero NO llamamos a RPCs de aprobación/rechazo.
+      // El usuario podrá reintentar la verificación desde el panel.
+      await servicio
+        .from("verificaciones_identidad_didit")
+        .update({ procesado_en: new Date().toISOString() })
+        .eq("id", verificacion.id);
+      console.log(`Verificación Didit ${estadoDidit} registrada para sesión ${sessionId}, solicitud ${solicitudId}`);
+    }
+  } catch (error) {
+    console.error("Error aplicando decisión Didit", error instanceof Error ? error.message : error);
+    await servicio.from("verificaciones_identidad_didit").update({ estado: "error" }).eq("id", verificacion.id);
+    return json({ recibido: true, error_procesando: true }, 200);
+  }
+
+  return json({ recibido: true, estado: estadoInterno }, 200););
     return json({ error: "Verificación no encontrada." }, 404);
   }
 
