@@ -45,7 +45,7 @@ export function DocumentUploadField({
     };
   }, [previewUrl]);
 
-  const colorTexto = estado === "error" ? "text-danger-action" : estado === "subido" ? "text-success" : "text-text-secondary";
+  const colorTexto = estado === "error" ? "text-danger-action" : estado === "subido" ? "text-success" : "text-text-tertiary/80";
 
   const abrirSelectorArchivo = () => {
     inputRef.current?.click();
@@ -83,7 +83,7 @@ export function DocumentUploadField({
   const IconoCamera = () => (
     <svg
       viewBox="0 0 24 24"
-      className="size-5 shrink-0 text-text-secondary"
+      className="size-5 shrink-0 text-text-tertiary/80"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -101,7 +101,7 @@ export function DocumentUploadField({
   const IconoNube = () => (
     <svg
       viewBox="0 0 24 24"
-      className="size-5 shrink-0 text-text-secondary"
+      className="size-5 shrink-0 text-text-tertiary/80"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -138,7 +138,7 @@ export function DocumentUploadField({
       </label>
 
       {/* Especificaciones del archivo */}
-      <p className="font-body text-xs text-text-secondary">
+      <p className="font-body text-xs text-text-tertiary/80">
         Formatos: {FORMATOS_PERMITIDOS.join(", ")} · Máximo 5 MB
       </p>
 
@@ -158,7 +158,7 @@ export function DocumentUploadField({
             // eslint-disable-next-line @next/next/no-img-element -- preview local de un File antes de subir, next/image no soporta blob: directamente
             <img src={previewUrl} alt="" className="size-12 shrink-0 rounded-lg object-cover ring-1 ring-border" />
           ) : (
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-surface-elevated font-body text-xs font-semibold text-text-secondary" aria-hidden>
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-surface-elevated font-body text-xs font-semibold text-text-tertiary/80" aria-hidden>
               PDF
             </div>
           )}
@@ -180,7 +180,7 @@ export function DocumentUploadField({
             <button
               type="button"
               onClick={abrirSelectorArchivo}
-              className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 font-body text-xs font-semibold text-text-secondary hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
+              className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 font-body text-xs font-semibold text-text-tertiary/80 hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
               aria-label="Reemplazar documento"
             >
               Reemplazar
@@ -188,7 +188,7 @@ export function DocumentUploadField({
             <button
               type="button"
               onClick={handleEliminar}
-              className="inline-flex size-7 items-center justify-center rounded-lg text-text-secondary hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                className="inline-flex size-7 items-center justify-center rounded-lg text-text-tertiary/80 hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
               aria-label="Eliminar documento"
             >
               <svg
@@ -212,7 +212,7 @@ export function DocumentUploadField({
             <IconoCheck />
             <p className="font-body text-sm font-semibold text-success">Documento guardado en tu expediente</p>
           </div>
-          <p className="mt-1 font-body text-sm text-text-secondary">
+          <p className="mt-1 font-body text-sm text-text-tertiary/80">
             No necesitas volver a cargarlo en este dispositivo.
           </p>
         </div>
@@ -223,7 +223,7 @@ export function DocumentUploadField({
           className={[
             "flex w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] border-2 border-dashed",
             "border-border-strong bg-surface-elevated/30 px-4 py-3.5",
-            "font-body text-sm font-semibold text-text-secondary transition-all",
+            "font-body text-sm font-semibold text-text-tertiary/80 transition-all",
             "hover:border-route-action hover:bg-surface hover:text-route-action",
             "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
           ].join(" ")}

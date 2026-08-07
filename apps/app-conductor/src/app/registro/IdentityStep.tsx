@@ -116,10 +116,10 @@ export function IdentityStep({
     validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono);
   };
 
-  // Manejar input de CURP con formato automático y validación en tiempo real
+  // Manejar input de CURP con formato automático, mayúsculas y validación en tiempo real
   const manejarCambioCurp = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valor = e.target.value;
-    const valorFormateado = formatoCurpMask(valor);
+    const valorFormateado = formatoCurpMask(valor).toUpperCase();
     setCurp(valorFormateado);
     limpiarErrorCampo("curp");
 
@@ -139,32 +139,34 @@ export function IdentityStep({
         <Field etiqueta="Nombre (s)" value={nombre} onChange={(e) => { setNombre(e.target.value); limpiarErrorCampo("nombre"); }} onBlur={() => validarCampo("nombre", nombre)} error={erroresCampos.nombre || undefined} required autoComplete="given-name" aria-required="true" />
         <Field etiqueta="Apellido (s)" value={apellidos} onChange={(e) => { setApellidos(e.target.value); limpiarErrorCampo("apellidos"); }} onBlur={() => validarCampo("apellidos", apellidos)} error={erroresCampos.apellidos || undefined} required autoComplete="family-name" aria-required="true" />
       </div>
-      <div className="flex items-center gap-2">
-        <Field
-          etiqueta="CURP"
-          value={curp}
-          onChange={manejarCambioCurp}
-          onBlur={() => validarCurp()}
-          error={erroresCampos.curp || errorCurpTemp || undefined}
-          required
-          maxLength={18}
-          autoComplete="off"
-          aria-required="true"
-          ref={curpInputRef}
-        />
+      <div className="flex items-start gap-2">
+        <div className="relative flex-1">
+          <Field
+            etiqueta="CURP"
+            value={curp}
+            onChange={manejarCambioCurp}
+            onBlur={() => validarCurp()}
+            error={erroresCampos.curp || errorCurpTemp || undefined}
+            required
+            maxLength={18}
+            autoComplete="off"
+            aria-required="true"
+            ref={curpInputRef}
+          />
+        </div>
         <DatosSensiblesTooltip tipo="curp" />
       </div>
       <Field
         etiqueta="Código Postal"
         inputMode="numeric"
         value={codigoPostal}
-        ayuda={consultandoCp ? (
-          <span className="flex items-center gap-1.5 text-text-secondary">
+         ayuda={consultandoCp ? (
+          <span className="flex items-center gap-1.5 text-text-tertiary/80">
             <span className="size-3 animate-spin rounded-full border border-text-tertiary border-t-transparent" aria-hidden="true" />
             <span>Buscando domicilio...</span>
           </span>
         ) : (
-          <span className="text-text-secondary">Al capturar 5 dígitos se completa el domicilio.</span>
+          <span className="text-text-tertiary/80">Al capturar 5 dígitos se completa el domicilio.</span>
         )}
         onChange={(e) => {
           const cp = soloDigitos(e.target.value, 5);
@@ -198,12 +200,12 @@ export function IdentityStep({
           autoComplete="address-level1"
           disabled={codigoPostal.length < 5}
           aria-required="true"
-          ayuda={consultandoCp && codigoPostal.length >= 5 ? (
-            <span className="flex items-center gap-1.5 text-text-secondary">
-              <span className="size-3 animate-spin rounded-full border border-text-tertiary border-t-transparent" aria-hidden="true" />
-              <span>Validando...</span>
-            </span>
-          ) : undefined}
+         ayuda={consultandoCp && codigoPostal.length >= 5 ? (
+          <span className="flex items-center gap-1.5 text-text-tertiary/80">
+            <span className="size-3 animate-spin rounded-full border border-text-tertiary border-t-transparent" aria-hidden="true" />
+            <span>Validando...</span>
+          </span>
+        ) : undefined}
         />
         {ciudades.length > 0 ? (
           <SelectField
@@ -222,7 +224,7 @@ export function IdentityStep({
         ) : (
           <Field
             etiqueta="Ciudad o Municipio"
-            ayuda={colonias.length > 0 ? "Captura el municipio; este CP no lo devolvió automáticamente." : undefined}
+             ayuda={colonias.length > 0 ? <span className="text-text-tertiary/80">Captura el municipio; este CP no lo devolvió automáticamente.</span> : undefined}
             value={ciudad}
             onChange={(e) => {
               setCiudad(e.target.value);
@@ -276,21 +278,23 @@ export function IdentityStep({
           required
           aria-required="true"
         />
-        <div className="flex items-center gap-2">
-          <Field
-            etiqueta="Teléfono del contacto"
-            type="tel"
-            inputMode="numeric"
-            placeholder="(55) 1234-5678"
-            value={formatoTelefonoNacional(contactoEmergenciaTelefono)}
-            onChange={manejarCambioTelefonoContacto}
-            onBlur={manejarBlurTelefonoContacto}
-            error={erroresCampos.contactoEmergenciaTelefono || undefined}
-            required
-            autoComplete="tel-national"
-            aria-required="true"
-            ref={telefonoContactoRef}
-          />
+        <div className="flex items-start gap-2">
+          <div className="relative flex-1">
+            <Field
+              etiqueta="Teléfono del contacto"
+              type="tel"
+              inputMode="numeric"
+              placeholder="(55) 1234-5678"
+              value={formatoTelefonoNacional(contactoEmergenciaTelefono)}
+              onChange={manejarCambioTelefonoContacto}
+              onBlur={manejarBlurTelefonoContacto}
+              error={erroresCampos.contactoEmergenciaTelefono || undefined}
+              required
+              autoComplete="tel-national"
+              aria-required="true"
+              ref={telefonoContactoRef}
+            />
+          </div>
           <DatosSensiblesTooltip tipo="contacto_emergencia" />
         </div>
       </div>

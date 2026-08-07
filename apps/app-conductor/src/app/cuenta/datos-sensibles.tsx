@@ -57,7 +57,7 @@ export function DatosSensiblesInfo({ tipo, compacto = false }: { tipo: TipoDatoS
   return (
     <div className={`rounded-xl border border-border/22 bg-surface ${compacto ? "px-3 py-3" : "px-4 py-4"}`}>
       <p className="font-body text-sm font-semibold text-text-primary">{texto.titulo}</p>
-      <dl className="mt-2 grid gap-2 font-body text-sm leading-6 text-text-secondary">
+      <dl className="mt-2 grid gap-2 font-body text-sm leading-6 text-text-tertiary/80">
         <div><dt className="font-semibold text-text-primary"> qué lo pedimos?</dt><dd>{texto.finalidad}</dd></div>
         <div><dt className="font-semibold text-text-primary">¿Quién puede verlo?</dt><dd>{texto.acceso}</dd></div>
         <div><dt className="font-semibold text-text-primary">¿Cómo se protege?</dt><dd>{texto.proteccion}</dd></div>
@@ -104,8 +104,8 @@ export function DatosSensiblesTooltip({
         <span
           id={popoverId}
           role="tooltip"
-          className={[
-            "fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-50 max-h-[70vh] overflow-auto rounded-xl border border-border/28 bg-surface p-4 text-left font-body text-sm leading-6 text-text-secondary shadow-[0_18px_48px_rgba(0,0,0,0.48)]",
+           className={[
+             "fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-50 max-h-[70vh] overflow-auto rounded-xl border border-border/28 bg-surface p-4 text-left font-body text-sm leading-6 text-text-tertiary/80 shadow-[0_18px_48px_rgba(0,0,0,0.48)]",
             "sm:absolute sm:bottom-auto sm:inset-x-auto sm:top-full sm:mt-2 sm:w-80",
             align === "end" ? "sm:right-0" : "sm:left-0"
           ].join(" ")}

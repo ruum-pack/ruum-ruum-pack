@@ -270,7 +270,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
         <div className="mt-4"><Aviso tono={rechazados > 0 ? "atencion" : "info"}>{motivoBloqueo}</Aviso></div>
 
         {estadoActual === "en_revision" && solicitudId && (
-          <div className="mt-4 rounded-xl border border-signal bg-route-soft p-4">
+          <div className="mt-4 rounded-xl border border-signal bg-route-soft p-4 pb-5">
             <p className="font-body text-sm font-semibold text-text-primary">Verificación de identidad</p>
             <p className="mt-1 font-body text-xs leading-5 text-text-tertiary/80">
               Confirma tu identidad en unos minutos (foto de tu documento + selfie) para acelerar la revisión.
@@ -385,7 +385,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
            ))}
         </div>
 
-         <div className="mt-6 rounded-xl border border-route-action bg-route-soft p-4">
+          <div className="mt-6 rounded-xl border border-route-action bg-route-soft p-4 pb-5">
            <p className="font-body text-sm font-semibold text-text-primary">Te avisaremos cuando cambie el estado</p>
            <p className="mt-1 font-body text-xs leading-5 text-text-tertiary/80">
              Si actualizas un documento, volverá a aparecer como &quot;En revisión&quot;.

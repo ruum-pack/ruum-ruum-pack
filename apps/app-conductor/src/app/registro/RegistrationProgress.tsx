@@ -65,23 +65,23 @@ export function RegistrationProgress({
         </div>
 
         {/* Vista Tablet / Desktop: Stepper visual completo con iconos y títulos cortos - simplificado */}
-        <ol className="hidden sm:grid sm:grid-cols-5 sm:gap-1.5">
+        <ol className="hidden min-w-0 gap-1.5 sm:grid sm:min-w-full sm:grid-cols-5">
           {PASOS_REGISTRO.map((pasoInfo, indice) => {
             const completado = indice < paso;
             const activo = indice === paso;
 
             return (
-              <li key={pasoInfo.titulo} className="flex flex-col gap-1">
+              <li key={pasoInfo.titulo} className="flex flex-col gap-1 min-w-0">
                 <button
                   type="button"
                   disabled={!completado}
                   onClick={() => completado && onGoToStep(indice)}
-                  className={`group flex items-center gap-2 rounded-lg border p-2 text-left transition-all duration-150 ${
+                  className={`group flex w-full items-center gap-2 rounded-lg border p-2 text-left transition-all duration-150 ${
                     activo
                       ? "border-route-action bg-route-soft/40 shadow-sm"
                       : completado
-                      ? "border-success/30 bg-success/5 hover:border-success hover:bg-success/10 cursor-pointer"
-                      : "border-border bg-surface opacity-60 cursor-not-allowed"
+                        ? "border-success/30 bg-success/5 hover:border-success hover:bg-success/10 cursor-pointer"
+                        : "border-border bg-surface opacity-60 cursor-not-allowed"
                   }`}
                   aria-label={`Paso ${indice + 1}: ${pasoInfo.titulo}`}
                   aria-current={activo ? "step" : undefined}
@@ -92,21 +92,21 @@ export function RegistrationProgress({
                       completado
                         ? "bg-success text-white"
                         : activo
-                        ? "bg-route-action text-white"
-                        : "bg-surface-elevated text-text-tertiary"
+                          ? "bg-route-action text-white"
+                          : "bg-surface-elevated text-text-tertiary"
                     }`}
                   >
                     {completado ? "✓" : pasoInfo.icono}
                   </div>
-                  <div className="flex flex-col min-w-0">
+                  <div className="flex min-w-0 flex-col">
                     <span
-                      className={`font-body text-xs font-bold whitespace-nowrap ${
+                      className={`font-body text-xs font-bold truncate ${
                         activo ? "text-route-action" : completado ? "text-text-primary" : "text-text-tertiary"
                       }`}
                     >
                       {pasoInfo.shortTitle}
                     </span>
-                    <span className="text-[9px] text-text-secondary">{pasoInfo.tiempo}</span>
+                    <span className="truncate text-[9px] text-text-tertiary/80">{pasoInfo.tiempo}</span>
                   </div>
                 </button>
               </li>

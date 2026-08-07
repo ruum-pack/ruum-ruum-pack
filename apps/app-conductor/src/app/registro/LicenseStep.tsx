@@ -91,8 +91,8 @@ export function LicenseStep({
 
   return (
     <fieldset className="grid gap-4">
-      <div className="flex items-end gap-2">
-        <div className="flex-1">
+      <div className="flex items-start gap-2">
+        <div className="relative flex-1">
           <Field
             etiqueta="Número de licencia"
             value={formatoLicenciaMask(numeroLicencia)}
@@ -116,7 +116,7 @@ export function LicenseStep({
                   <span className="flex size-3.5 items-center justify-center rounded-full border border-text-tertiary text-text-tertiary" aria-hidden>
                     ○
                   </span>
-                  <span className="text-text-secondary">Formato inválido</span>
+                  <span className="text-text-tertiary/80">Formato inválido</span>
                 </>
               )}
             </div>
@@ -144,9 +144,9 @@ export function LicenseStep({
           value={vigenciaLicencia}
           ayuda={
             <span className="flex items-center justify-between">
-              <span className="text-text-secondary">Formato AAAA-MM-DD</span>
+              <span className="text-text-tertiary/80">Formato AAAA-MM-DD</span>
               {vigenciaLicencia && (
-                <span className="text-text-secondary font-medium">
+                <span className="text-text-tertiary/80 font-medium">
                   {diasVigencia !== null && diasVigencia >= 0 && `${diasVigencia} días restantes`}
                 </span>
               )}
@@ -173,7 +173,7 @@ export function LicenseStep({
         </Aviso>
       )}
 
-      <label className="flex items-start gap-3 rounded-xl border border-border bg-surface/50 p-4 font-body text-sm leading-6 text-text-secondary transition-all hover:border-route-action hover:bg-surface">
+      <label className="flex items-start gap-3 rounded-xl border border-border bg-surface/50 p-4 font-body text-sm leading-6 text-text-tertiary/80 transition-all hover:border-route-action hover:bg-surface">
         <input
           type="checkbox"
           checked={autorizaVerificacion}
@@ -191,7 +191,7 @@ export function LicenseStep({
       </label>
       {erroresCampos.autorizaVerificacion && <p className="font-body text-sm font-medium text-danger-action">{erroresCampos.autorizaVerificacion}</p>}
 
-      <label className="flex items-start gap-3 rounded-xl border border-border bg-surface/50 p-4 font-body text-sm leading-6 text-text-secondary transition-all hover:border-route-action hover:bg-surface">
+      <label className="flex items-start gap-3 rounded-xl border border-border bg-surface/50 p-4 font-body text-sm leading-6 text-text-tertiary/80 transition-all hover:border-route-action hover:bg-surface">
         <input
           type="checkbox"
           checked={declaraSinSuspensiones}
