@@ -15,6 +15,10 @@ export function telefonoE164Mx(valor: string) {
   return nacional ? `+52${nacional}` : "";
 }
 
+/**
+ * Formato para visualización (con paréntesis y guiones)
+ * Ej: (55) 1234-5678
+ */
 export function formatoTelefonoNacional(valor: string) {
   const digitos = soloDigitos(valor);
   if (!digitos) return "";
@@ -23,8 +27,33 @@ export function formatoTelefonoNacional(valor: string) {
   return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 6)}-${digitos.slice(6, 10)}`;
 }
 
+/**
+ * Formato para input mask - se aplica mientras el usuario escribe
+ * Mantiene el cursor en la posición correcta
+ */
 export function formatoTelefonoMask(valor: string) {
   return formatoTelefonoNacional(valor);
+}
+
+/**
+ * Calcula la posición del cursor después de aplicar la máscara
+ * para mantener una experiencia de escritura fluida
+ */
+export function calcularCursorTelefono(valorAnterior: string, valorNuevo: string, cursorPos: number): number {
+  const digitosAnteriores = soloDigitos(valorAnterior);
+  const digitosNuevos = soloDigitos(valorNuevo);
+  const diff = digitosNuevos.length - digitosAnteriores.length;
+  
+  // Si se borró, el cursor se mueve hacia atrás
+  if (diff < 0) {
+    return Math.max(0, cursorPos + diff);
+  }
+  
+  // Si se agregó, calcular nueva posición considerando los caracteres de formato
+  const formatoNuevo = formatoTelefonoNacional(digitosNuevos);
+  const formatoAnterior = formatoTelefonoNacional(digitosAnteriores);
+  
+  return Math.min(formatoNuevo.length, cursorPos + (formatoNuevo.length - formatoAnterior.length));
 }
 
 export function formatoLicenciaMask(valor: string) {

@@ -1056,11 +1056,22 @@ export default function PaginaRegistroConductor() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {paso > 0 && <Button type="button" variant="secondary" onClick={volver}>Atrás</Button>}
                 {paso < PASOS_REGISTRO.length - 1 ? (
-                  <Button type="button" className={paso === 0 ? "sm:col-start-2" : ""} onClick={avanzar} loading={enviando} disabled={enviando}>
+                  <Button
+                    type="button"
+                    className={[
+                      "min-h-12 min-w-12 px-6 py-3.5 font-display text-base font-bold leading-6",
+                      "shadow-sm hover:-translate-y-0.5 hover:shadow-md active:translate-y-0",
+                      "focus-visible:outline-route-action focus-visible:outline-[3px] focus-visible:outline-offset-2",
+                      paso === 0 ? "sm:col-start-2 w-full" : "w-full"
+                    ].join(" ")}
+                    onClick={avanzar}
+                    loading={enviando}
+                    disabled={enviando}
+                  >
                     {paso === 0 && !sesionAutenticada ? "Crear cuenta y continuar" : "Continuar"}
                   </Button>
                 ) : (
-                  <Button type="submit" disabled={!puedeEnviar || !tieneSupabaseConfigurado()} loading={enviando}>
+                  <Button type="submit" disabled={!puedeEnviar || !tieneSupabaseConfigurado()} loading={enviando} className="min-h-12 px-6 py-3.5 font-display text-base font-bold">
                     {enviando ? TEXTOS_CARGANDO.enviando : "Enviar registro"}
                   </Button>
                 )}

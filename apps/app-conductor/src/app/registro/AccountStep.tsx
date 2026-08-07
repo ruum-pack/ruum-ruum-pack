@@ -1,6 +1,7 @@
 import { Field } from "@ruum/ui";
 import type { fortalezaPassword } from "@ruum/shared/utils";
-import { formatoTelefonoNacional, soloDigitos } from "./registration-validation";
+import { formatoTelefonoNacional, soloDigitos, calcularCursorTelefono } from "./registration-validation";
+import { useRef, useEffect } from "react";
 
 type FortalezaPassword = ReturnType<typeof fortalezaPassword>;
 
@@ -45,6 +46,35 @@ export function AccountStep({
     { label: "Al menos una letra mayúscula (A-Z)", cumplido: /[A-Z]/.test(password) }
   ];
 
+  const telefonoInputRef = useRef<HTMLInputElement>(null);
+  const valorAnteriorRef = useRef("");
+
+  // Manejar input del teléfono con máscara fluida y cursor inteligente
+  const manejarCambioTelefono = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const valorNuevo = input.value;
+    const cursorPos = input.selectionStart ?? 0;
+    
+    // Calcular nueva posición del cursor
+    const nuevaPosicion = calcularCursorTelefono(valorAnteriorRef.current, valorNuevo, cursorPos);
+    
+    // Actualizar valor solo con dígitos
+    const soloNumeros = soloDigitos(valorNuevo);
+    setTelefono(soloNumeros);
+    limpiarErrorCampo("telefono");
+    
+    // Guardar valor para próxima comparación
+    valorAnteriorRef.current = valorNuevo;
+    
+    // Aplicar formato y restaurar cursor
+    requestAnimationFrame(() => {
+      if (telefonoInputRef.current) {
+        telefonoInputRef.current.value = formatoTelefonoNacional(soloNumeros);
+        telefonoInputRef.current.setSelectionRange(nuevaPosicion, nuevaPosicion);
+      }
+    });
+  };
+
   return (
     <fieldset className="grid gap-4">
       <Field
@@ -54,14 +84,12 @@ export function AccountStep({
         inputMode="numeric"
         placeholder="(55) 1234-5678"
         value={formatoTelefonoNacional(telefono)}
-        onChange={(e) => {
-          setTelefono(soloDigitos(e.target.value));
-          limpiarErrorCampo("telefono");
-        }}
+        onChange={manejarCambioTelefono}
         onBlur={() => validarTelefono("telefono", telefono, setTelefono)}
         error={erroresCampos.telefono || undefined}
         required
         autoComplete="tel-national"
+        ref={telefonoInputRef}
       />
 
       <Field
@@ -81,7 +109,7 @@ export function AccountStep({
       />
 
       {!sesionAutenticada && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4">
           <div className="flex flex-col gap-2">
             <Field
               etiqueta="Crea tu contraseña"
@@ -107,7 +135,7 @@ export function AccountStep({
                 <li
                   key={idx}
                   className={`flex items-center gap-2 transition-all duration-150 ${
-                    req.cumplido ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-text-tertiary"
+                    req.cumplido ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-text-secondary"
                   }`}
                 >
                   <span
@@ -171,7 +199,7 @@ export function AccountStep({
       )}
 
       {!sesionAutenticada && (
-        <p className="mt-1 font-body text-xs text-text-tertiary flex items-center gap-1.5">
+        <p className="mt-1 font-body text-xs text-text-secondary flex items-center gap-1.5">
           <span>🔒</span>
           <span>Tus datos personales y contraseña se transmiten y almacenan con cifrado de grado bancario (SSL/TLS).</span>
         </p>

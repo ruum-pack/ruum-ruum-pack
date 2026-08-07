@@ -25,13 +25,13 @@ export function RegistrationProgress({
             <span className="font-medium">
               Paso <strong className="font-bold text-text-primary">{paso + 1} de {PASOS_REGISTRO.length}</strong>
             </span>
-            <span className="rounded-full bg-surface-elevated px-2 py-0.5 font-semibold text-text-tertiary">
+            <span className="rounded-full bg-surface-elevated px-2 py-0.5 font-semibold text-text-secondary">
               ⏱ {PASOS_REGISTRO[paso].tiempo}
             </span>
           </div>
 
-          {/* Barra de 5 iconos descriptivos */}
-          <div className="grid grid-cols-5 gap-1.5 rounded-2xl border border-border bg-surface p-2 shadow-xs">
+          {/* Barra de 5 iconos descriptivos - simplificada */}
+          <div className="grid grid-cols-5 gap-1 rounded-xl border border-border bg-surface p-1.5 shadow-xs">
             {PASOS_REGISTRO.map((pasoInfo, indice) => {
               const completado = indice < paso;
               const activo = indice === paso;
@@ -42,7 +42,7 @@ export function RegistrationProgress({
                   type="button"
                   disabled={!completado}
                   onClick={() => completado && onGoToStep(indice)}
-                  className={`flex flex-col items-center justify-center rounded-xl py-2 transition-all ${
+                  className={`flex flex-col items-center justify-center rounded-lg py-1.5 transition-all ${
                     activo
                       ? "bg-route-action/10 text-route-action ring-2 ring-route-action/40 shadow-xs"
                       : completado
@@ -52,10 +52,10 @@ export function RegistrationProgress({
                   aria-label={`Paso ${indice + 1}: ${pasoInfo.titulo}`}
                   aria-current={activo ? "step" : undefined}
                 >
-                  <span className="text-base" aria-hidden="true">
+                  <span className="text-sm" aria-hidden="true">
                     {completado ? "✓" : pasoInfo.icono}
                   </span>
-                  <span className="mt-1 font-display text-[10px] font-bold">
+                  <span className="mt-0.5 font-display text-[9px] font-bold">
                     {indice + 1}
                   </span>
                 </button>
@@ -64,8 +64,8 @@ export function RegistrationProgress({
           </div>
         </div>
 
-        {/* Vista Tablet / Desktop: Stepper visual completo con iconos y títulos cortos */}
-        <ol className="hidden sm:grid sm:grid-cols-5 sm:gap-2">
+        {/* Vista Tablet / Desktop: Stepper visual completo con iconos y títulos cortos - simplificado */}
+        <ol className="hidden sm:grid sm:grid-cols-5 sm:gap-1.5">
           {PASOS_REGISTRO.map((pasoInfo, indice) => {
             const completado = indice < paso;
             const activo = indice === paso;
@@ -76,7 +76,7 @@ export function RegistrationProgress({
                   type="button"
                   disabled={!completado}
                   onClick={() => completado && onGoToStep(indice)}
-                  className={`group flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-all duration-150 ${
+                  className={`group flex items-center gap-2 rounded-lg border p-2 text-left transition-all duration-150 ${
                     activo
                       ? "border-route-action bg-route-soft/40 shadow-sm"
                       : completado
@@ -88,7 +88,7 @@ export function RegistrationProgress({
                   title={pasoInfo.titulo}
                 >
                   <div
-                    className={`flex size-8 shrink-0 items-center justify-center rounded-lg font-display text-sm font-bold transition-colors ${
+                    className={`flex size-7 shrink-0 items-center justify-center rounded-lg font-display text-sm font-bold transition-colors ${
                       completado
                         ? "bg-success text-white"
                         : activo
@@ -106,7 +106,7 @@ export function RegistrationProgress({
                     >
                       {pasoInfo.shortTitle}
                     </span>
-                    <span className="text-[10px] text-text-tertiary">{pasoInfo.tiempo}</span>
+                    <span className="text-[9px] text-text-secondary">{pasoInfo.tiempo}</span>
                   </div>
                 </button>
               </li>
@@ -124,7 +124,7 @@ export function RegistrationProgress({
               {paso + 1}. {PASOS_REGISTRO[paso].titulo}
             </h2>
           </div>
-          <span className="font-body text-xs text-text-tertiary sm:hidden">
+          <span className="font-body text-xs text-text-secondary sm:hidden">
             ⏱ {PASOS_REGISTRO[paso].tiempo}
           </span>
         </div>

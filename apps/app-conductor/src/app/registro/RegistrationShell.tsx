@@ -19,10 +19,10 @@ export function RegistrationShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-3">
           <LogoMarca tamano={34} color="signal" />
           <div>
-            <p className="font-display text-lg font-extrabold tracking-tight text-text-primary">
-              ruum<span className="text-signal">ruum</span>
+            <p className="font-display text-lg font-extrabold tracking-wide text-text-primary">
+              ruum<span className="text-signal tracking-normal">ruum</span>
             </p>
-            <p className="font-body text-xs font-semibold text-text-tertiary">ruum by Movilia</p>
+            <p className="font-body text-xs font-semibold text-text-secondary">ruum by Movilia</p>
           </div>
         </div>
 
