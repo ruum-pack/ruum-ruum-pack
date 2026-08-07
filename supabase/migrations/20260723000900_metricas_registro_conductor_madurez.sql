@@ -77,7 +77,7 @@ declare
   v_fuente text:=nullif(lower(btrim(p_fuente)), '');
 begin
   if p_sesion_id is null then raise exception 'La sesión de telemetría es obligatoria.'; end if;
-  if p_evento not in ('registro_iniciado','paso_visto','paso_completado','otp_error','rpc_error','documento_fallo','solicitud_enviada') then
+  if p_evento not in ('registro_iniciado','paso_visto','paso_completado','otp_error','rpc_error','documento_fallo','solicitud_enviada','didit_iniciado','didit_completado','didit_error') then
     raise exception 'Evento de registro no permitido.';
   end if;
   if p_paso is not null and p_paso not between 1 and 5 then raise exception 'Paso de registro no permitido.'; end if;

@@ -314,3 +314,36 @@ html[data-theme="dark"] input::placeholder,
 html[data-theme="dark"] textarea::placeholder {
   color: var(--ruum-text-disabled);
 }
+
+/* Mejorar visibilidad de campos en tarjeta de autenticación (tema oscuro) */
+html[data-theme="dark"] .conductor-auth-card input,
+html[data-theme="dark"] .conductor-auth-card select,
+html[data-theme="dark"] .conductor-auth-card textarea {
+  border-color: rgba(122, 162, 214, 0.4);
+  background-color: rgba(13, 22, 38, 0.8);
+}
+
+html[data-theme="dark"] .conductor-auth-card input:hover,
+html[data-theme="dark"] .conductor-auth-card select:hover,
+html[data-theme="dark"] .conductor-auth-card textarea:hover {
+  border-color: rgba(122, 162, 214, 0.6);
+}
+
+html[data-theme="dark"] .conductor-auth-card input:focus,
+html[data-theme="dark"] .conductor-auth-card select:focus,
+html[data-theme="dark"] .conductor-auth-card textarea:focus {
+  border-color: var(--ruum-route);
+  box-shadow: 0 0 0 3px var(--ruum-focus-ring);
+  outline: none;
+}
+
+/* Checkbox en tarjeta de autenticación */
+html[data-theme="dark"] .conductor-auth-card input[type="checkbox"] {
+  border-color: rgba(122, 162, 214, 0.5);
+  background-color: rgba(13, 22, 38, 0.8);
+}
+
+html[data-theme="dark"] .conductor-auth-card input[type="checkbox"]:focus-visible {
+  outline: 3px solid var(--ruum-focus);
+  outline-offset: 2px;
+}

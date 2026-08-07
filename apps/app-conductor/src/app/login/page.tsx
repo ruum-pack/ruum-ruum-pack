@@ -23,11 +23,41 @@ export default function PaginaLogin() {
   }, [router]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [recordar, setRecordar] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  const validarEmail = (value: string) => {
+    if (!value) {
+      setEmailError(null);
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      setEmailError("Formato de correo inválido");
+    } else {
+      setEmailError(null);
+    }
+  };
+
+  const manejarCambioEmail = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    validarEmail(value);
+  };
+
+  const manejarBlurEmail = () => {
+    if (email && !emailError) {
+      validarEmail(email);
+    }
+  };
 
   async function iniciarSesion(e: React.FormEvent) {
     e.preventDefault();
+    validarEmail(email);
+    if (emailError) return;
+
     setEnviando(true);
     setError(null);
 
@@ -50,7 +80,7 @@ export default function PaginaLogin() {
       style={{
         background:
           "radial-gradient(circle at 12% 8%, rgba(58,165,255,0.08), transparent 42%)," +
-          "radial-gradient(circle at 92% 88%, rgba(168,232,32,0.05), transparent 38%)," +
+          "radial-gradient(circle at 92% 88%, rgba(168,232,32,0.05), transparent 38%)" +
           "var(--ruum-canvas)"
       }}
     >
@@ -58,15 +88,15 @@ export default function PaginaLogin() {
         <div className="flex items-center gap-3">
           <LogoMarca tamano={34} color="signal" />
           <div>
-            <p className="font-display text-lg font-extrabold tracking-tight text-text-primary">
-              ruum<span className="text-signal">ruum</span>
+            <p className="font-display text-lg font-extrabold tracking-wide text-text-primary">
+              ruum<span className="text-signal tracking-normal">ruum</span>
             </p>
-            <p className="font-body text-xs font-semibold text-text-tertiary">Tu operación, tu control</p>
+            <p className="font-body text-xs font-semibold text-text-secondary">Tu operación, tu control</p>
           </div>
         </div>
 
         <h1 id="titulo-inicio-conductor" className="mt-8 font-display text-2xl font-bold text-text-primary">Iniciar sesión</h1>
-        <p className="mt-2 font-body text-sm leading-6 text-text-secondary">Accede a tus viajes, registro del vehículo y ganancias operativas.</p>
+        <p className="mt-2 font-body text-sm leading-6 text-text-secondary/90">Accede a tus viajes, registro del vehículo y ganancias operativas.</p>
 
         {!tieneSupabaseConfigurado() && (
           <div className="mt-6">
@@ -76,14 +106,16 @@ export default function PaginaLogin() {
           </div>
         )}
 
-        <form className="mt-7 grid gap-4" onSubmit={iniciarSesion}>
+        <form className="mt-7 grid gap-5" onSubmit={iniciarSesion}>
             <Field
               etiqueta="Correo"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={manejarCambioEmail}
+              onBlur={manejarBlurEmail}
               required
               autoComplete="email"
+              error={emailError || undefined}
             />
             <Field
               etiqueta="Contraseña"
@@ -100,27 +132,40 @@ export default function PaginaLogin() {
               </output>
             )}
 
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={recordar}
+                  onChange={(e) => setRecordar(e.target.checked)}
+                  className="size-4 rounded border-border-strong bg-surface text-route-action focus-visible:outline-route-action focus-visible:outline-[3px] focus-visible:outline-offset-2 transition-colors disabled:cursor-not-allowed disabled:border-border disabled:bg-surface-elevated"
+                  aria-label="Recordar sesión"
+                />
+                <span className="font-body text-sm text-text-secondary">Recordarme</span>
+              </label>
               <Link
                 href="/recuperar-password"
-                className="font-body text-xs text-route-action underline-offset-2 hover:underline"
+                className="font-body text-sm text-route-action underline-offset-2 hover:underline whitespace-nowrap"
                 aria-label="Recuperar contraseña"
               >
                 ¿Olvidaste tu contraseña?
               </Link>
             </div>
 
-            <Button type="submit" loading={enviando} disabled={!tieneSupabaseConfigurado()} className="mt-2 w-full">
+            <Button type="submit" loading={enviando} disabled={!tieneSupabaseConfigurado() || emailError} className="mt-3 w-full">
               Entrar
             </Button>
         </form>
 
-        <p className="mt-6 text-center font-body text-sm text-text-secondary">
-          ¿Todavía no eres conductor certificado?{" "}
-          <Link href="/registro" className="font-semibold text-route-action hover:underline" aria-label="Solicitar certificación como conductor">
+        <div className="mt-8">
+          <Link
+            href="/registro"
+            className="inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-xl px-5 py-3 w-full font-display text-sm font-bold leading-5 transition-[background-color,border-color,box-shadow,transform] duration-150 border border-border-strong bg-surface text-text-primary shadow-sm hover:-translate-y-0.5 hover:border-route-action hover:bg-surface-elevated hover:shadow-md active:translate-y-0 active:bg-surface-elevated focus-visible:outline-route-action focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:transform-none disabled:border-border disabled:bg-surface-elevated disabled:text-disabled disabled:shadow-none"
+            aria-label="Solicitar certificación como conductor"
+          >
             Solicitar certificación
           </Link>
-        </p>
+        </div>
       </section>
     </div>
   );
