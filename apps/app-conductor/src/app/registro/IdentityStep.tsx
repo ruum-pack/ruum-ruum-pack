@@ -50,6 +50,7 @@ export function IdentityStep({
 }: {
   nombre: string;
   setNombre: (valor: string) => void;
+  apellidos: string;
   setApellidos: (valor: string) => void;
   curp: string;
   setCurp: (valor: string) => void;
