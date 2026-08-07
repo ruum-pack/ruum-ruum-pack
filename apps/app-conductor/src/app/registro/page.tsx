@@ -14,6 +14,7 @@ import {
   enviarSolicitudConductor,
   guardarBorradorConductor,
   iniciarSolicitudConductor,
+  iniciarVerificacionDidit,
   obtenerConductorActual,
   obtenerSolicitudConductorActual,
   registrarConsentimientosConductor,
@@ -26,6 +27,7 @@ import { limpiarBorradorRegistroLocal } from "../../lib/borrador-registro";
 import { AccountStep } from "./AccountStep";
 import { DocumentsStep } from "./DocumentsStep";
 import { DraftRecoveryModal } from "./DraftRecoveryModal";
+import { DiditVerificationModal } from "./DiditVerificationModal";
 import { IdentityStep } from "./IdentityStep";
 import { LicenseStep } from "./LicenseStep";
 import { OtpVerification } from "./OtpVerification";
@@ -158,6 +160,12 @@ export default function PaginaRegistroConductor() {
   const [errorOtp, setErrorOtp] = useState<string | null>(null);
   const [reenviandoOtp, setReenviandoOtp] = useState(false);
   const [esperaReenvioOtp, setEsperaReenvioOtp] = useState(0);
+
+  // Verificación de identidad Didit (auto-iniciada tras envío exitoso)
+  const [mostrarVerificacionDidit, setMostrarVerificacionDidit] = useState(false);
+  const [urlVerificacionDidit, setUrlVerificacionDidit] = useState<string | null>(null);
+  const [iniciandoVerificacionDidit, setIniciandoVerificacionDidit] = useState(false);
+  const [errorVerificacionDidit, setErrorVerificacionDidit] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -540,8 +548,28 @@ export default function PaginaRegistroConductor() {
     );
     await guardarBorradorConductor(cliente, contratoExpediente(), PASOS_REGISTRO.length);
     await cargarDocumentos(cliente, solicitudId);
-    const resultado=await enviarSolicitudConductor(cliente);
-    registrarTelemetria("solicitud_enviada",PASOS_REGISTRO.length,"enviado");
+    const resultado = await enviarSolicitudConductor(cliente);
+    registrarTelemetria("solicitud_enviada", PASOS_REGISTRO.length, "enviado");
+
+    // Auto-iniciar verificación Didit tras envío exitoso (solicitud en_revision)
+    if (resultado.solicitudId) {
+      registrarTelemetria("didit_iniciado", PASOS_REGISTRO.length, "auto");
+      try {
+        setIniciandoVerificacionDidit(true);
+        setErrorVerificacionDidit(null);
+        const { url } = await iniciarVerificacionDidit(cliente, resultado.solicitudId);
+        setUrlVerificacionDidit(url);
+        setMostrarVerificacionDidit(true);
+      } catch (err) {
+        // No bloqueamos el flujo si Didit falla; el usuario puede iniciarlo desde el panel
+        const mensaje = traducirErrorOperativo(err, "No pudimos iniciar la verificación de identidad automáticamente. Podrás hacerlo desde tu panel.");
+        setErrorVerificacionDidit(mensaje);
+        registrarTelemetria("didit_error", PASOS_REGISTRO.length, "auto_inicio_fallido");
+      } finally {
+        setIniciandoVerificacionDidit(false);
+      }
+    }
+
     return resultado;
   }
 
@@ -794,8 +822,49 @@ export default function PaginaRegistroConductor() {
     return()=>clearTimeout(timer);
   },[sesionAutenticada,solicitudRemotaId,enviado,pendienteOtp,reintentoConexion,paso,contratoExpediente,autorizaVerificacion,declaraSinSuspensiones,aceptaTerminos,confirmaPrivacidad,registrarTelemetria]);
 
+  function cerrarVerificacionDidit() {
+    setMostrarVerificacionDidit(false);
+    setUrlVerificacionDidit(null);
+    setErrorVerificacionDidit(null);
+    router.push(sesionActivaTrasRegistro ? "/panel" : "/login");
+  }
+
+  function reintentarVerificacionDidit() {
+    setErrorVerificacionDidit(null);
+    setIniciandoVerificacionDidit(true);
+    (async () => {
+      try {
+        const cliente = crearClienteNavegador();
+        const { url } = await iniciarVerificacionDidit(cliente, solicitudRemotaIdRef.current ?? solicitudRemotaId ?? "");
+        setUrlVerificacionDidit(url);
+      } catch (err) {
+        setErrorVerificacionDidit(traducirErrorOperativo(err, "No pudimos reintentar la verificación."));
+      } finally {
+        setIniciandoVerificacionDidit(false);
+      }
+    })();
+  }
+
+  function finalizarVerificacionDidit() {
+    setMostrarVerificacionDidit(false);
+    setUrlVerificacionDidit(null);
+    registrarTelemetria("didit_completado", PASOS_REGISTRO.length, "auto");
+    router.push(sesionActivaTrasRegistro ? "/panel" : "/login");
+  }
+
   return (
     <RegistrationShell>
+        {mostrarVerificacionDidit && (
+          <DiditVerificationModal
+            isOpen={mostrarVerificacionDidit}
+            url={urlVerificacionDidit}
+            cargando={iniciandoVerificacionDidit}
+            error={errorVerificacionDidit}
+            onCerrar={cerrarVerificacionDidit}
+            onReintentar={reintentarVerificacionDidit}
+            onFinalizar={finalizarVerificacionDidit}
+          />
+        )}
         {pendienteOtp ? (
           <OtpVerification
             email={email}

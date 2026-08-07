@@ -1,17 +1,19 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { Button, Aviso, LogoMarca } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import {
   iniciarVerificacionDidit,
+  registrarEventoRegistroConductor,
   subirDocumentoConductor,
   subirDocumentoSolicitudConductor,
   type TipoDocumentoConductor
 } from "@ruum/api/services";
 import { enmascararNombreArchivo } from "../cuenta/datos-sensibles";
+import { DiditVerificationModal } from "../registro/DiditVerificationModal";
 
 type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
 
@@ -65,6 +67,56 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const inputsRef = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Telemetría Didit
+  const sesionTelemetriaRef = useRef("");
+  const inicioTelemetriaRef = useRef(0);
+
+  const registrarTelemetriaDidit = useCallback((evento: string) => {
+    if (!tieneSupabaseConfigurado() || !sesionTelemetriaRef.current) return;
+    const duracionMs = inicioTelemetriaRef.current ? Math.max(0, Date.now() - inicioTelemetriaRef.current) : undefined;
+    void registrarEventoRegistroConductor(crearClienteNavegador(), {
+      sesionId: sesionTelemetriaRef.current,
+      evento: evento as any,
+      duracionMs
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (sesionTelemetriaRef.current) return;
+    sesionTelemetriaRef.current = crypto.randomUUID();
+    inicioTelemetriaRef.current = Date.now();
+  }, []);
+
+  // Modal verificación Didit
+  const [mostrarVerificacionDidit, setMostrarVerificacionDidit] = useState(false);
+  const [urlVerificacionDidit, setUrlVerificacionDidit] = useState<string | null>(null);
+  const [errorVerificacionDidit, setErrorVerificacionDidit] = useState<string | null>(null);
+
+  function cerrarVerificacionDidit() {
+    setMostrarVerificacionDidit(false);
+    setUrlVerificacionDidit(null);
+    setErrorVerificacionDidit(null);
+    registrarTelemetriaDidit("didit_completado");
+  }
+
+  function reintentarVerificacionDidit() {
+    setErrorVerificacionDidit(null);
+    setVerificando(true);
+    registrarTelemetriaDidit("didit_iniciado");
+    (async () => {
+      try {
+        const cliente = crearClienteNavegador();
+        const { url } = await iniciarVerificacionDidit(cliente, solicitudId!);
+        setUrlVerificacionDidit(url);
+        setMostrarVerificacionDidit(true);
+      } catch (err) {
+        setErrorVerificacionDidit(traducirErrorOperativo(err, "No pudimos reintentar la verificación."));
+      } finally {
+        setVerificando(false);
+      }
+    })();
+  }
 
   function documentoDe(tipo: TipoDocumentoConductor) {
     // El más reciente de ese tipo, por si hubo reemplazo previo.
@@ -123,12 +175,16 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
     setVerificando(true);
     setError(null);
     setMensaje(null);
+    registrarTelemetriaDidit("didit_iniciado");
     try {
       const cliente = crearClienteNavegador();
       const { url } = await iniciarVerificacionDidit(cliente, solicitudId);
-      window.location.href = url;
+      setUrlVerificacionDidit(url);
+      setMostrarVerificacionDidit(true);
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos iniciar la verificación. Intenta de nuevo."));
+      registrarTelemetriaDidit("didit_error");
+    } finally {
       setVerificando(false);
     }
   }
@@ -221,6 +277,18 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
               {verificando ? "Abriendo verificación…" : "Verificar identidad ahora"}
             </Button>
           </div>
+        )}
+
+        {mostrarVerificacionDidit && (
+          <DiditVerificationModal
+            isOpen={mostrarVerificacionDidit}
+            url={urlVerificacionDidit}
+            cargando={verificando}
+            error={errorVerificacionDidit}
+            onCerrar={cerrarVerificacionDidit}
+            onReintentar={reintentarVerificacionDidit}
+            onFinalizar={cerrarVerificacionDidit}
+          />
         )}
 
         {error && (
