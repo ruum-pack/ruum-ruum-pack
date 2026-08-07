@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { forwardRef, useId, useState } from "react";
 import type { InputHTMLAttributes, ReactNode } from "react";
 
 export interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -12,7 +12,17 @@ export interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 /** Campo con etiqueta visible, ayuda asociada y estado de error anunciado. */
-export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassName = "", error, ayuda, id, className = "", type, ...props }: FieldProps) {
+export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field({
+  etiqueta,
+  etiquetaClassName = "",
+  passwordToggleClassName = "",
+  error,
+  ayuda,
+  id,
+  className = "",
+  type,
+  ...props
+}: FieldProps, ref) {
   const reactId = useId();
   const inputId = id ?? props.name ?? `field-${reactId}`;
   const helpId = ayuda ? `${inputId}-help` : undefined;
@@ -40,6 +50,7 @@ export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassNam
       {esPassword ? (
         <div className="relative">
           <input
+            ref={ref}
             id={inputId}
             type={inputType}
             className={inputClassName}
@@ -71,6 +82,7 @@ export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassNam
         </div>
       ) : (
         <input
+          ref={ref}
           id={inputId}
           type={inputType}
           className={inputClassName}
@@ -92,7 +104,7 @@ export function Field({ etiqueta, etiquetaClassName = "", passwordToggleClassNam
       ) : null}
     </div>
   );
-}
+});
 
 function IconoOjo() {
   return (

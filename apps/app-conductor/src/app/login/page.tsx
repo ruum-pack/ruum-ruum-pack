@@ -152,7 +152,7 @@ export default function PaginaLogin() {
               </Link>
             </div>
 
-            <Button type="submit" loading={enviando} disabled={!tieneSupabaseConfigurado() || emailError} className="mt-3 w-full">
+            <Button type="submit" loading={enviando} disabled={!tieneSupabaseConfigurado() || Boolean(emailError)} className="mt-3 w-full">
               Entrar
             </Button>
         </form>
