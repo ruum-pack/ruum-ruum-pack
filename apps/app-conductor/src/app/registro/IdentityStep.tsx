@@ -1,8 +1,15 @@
 import { Field } from "@ruum/ui";
 import type { CampoRegistroConductor } from "@ruum/shared/validacion";
 import { DatosSensiblesTooltip } from "../cuenta/datos-sensibles";
-import { formatoTelefonoNacional, formatoTelefonoMask, soloDigitos } from "./registration-validation";
+import {
+  formatoTelefonoNacional,
+  calcularCursorTelefono,
+  soloDigitos,
+  formatoCurpMask,
+  esCurpValida
+} from "./registration-validation";
 import { SelectField } from "./SelectField";
+import { useRef, useState } from "react";
 
 export function IdentityStep({
   nombre,
@@ -43,7 +50,6 @@ export function IdentityStep({
 }: {
   nombre: string;
   setNombre: (valor: string) => void;
-  apellidos: string;
   setApellidos: (valor: string) => void;
   curp: string;
   setCurp: (valor: string) => void;
@@ -77,6 +83,55 @@ export function IdentityStep({
   validarTelefono: (campo: "telefono" | "contactoEmergenciaTelefono", valor: string, setter: (valor: string) => void) => boolean;
   buscarCodigoPostal: (cp: string) => void;
 }) {
+  const telefonoContactoRef = useRef<HTMLInputElement>(null);
+  const curpInputRef = useRef<HTMLInputElement>(null);
+  const valorAnteriorTelefonoRef = useRef("");
+  const [errorCurpTemp, setErroresCurpTemp] = useState("");
+
+  // Manejar input del teléfono de contacto con máscara fluida
+  const manejarCambioTelefonoContacto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const valorNuevo = input.value;
+    const cursorPos = input.selectionStart ?? 0;
+    const nuevaPosicion = calcularCursorTelefono(valorAnteriorTelefonoRef.current, valorNuevo, cursorPos);
+
+    const soloNumeros = soloDigitos(valorNuevo);
+    setContactoEmergenciaTelefono(soloNumeros);
+    limpiarErrorCampo("contactoEmergenciaTelefono");
+    valorAnteriorTelefonoRef.current = valorNuevo;
+
+    requestAnimationFrame(() => {
+      if (telefonoContactoRef.current) {
+        telefonoContactoRef.current.value = formatoTelefonoNacional(soloNumeros);
+        telefonoContactoRef.current.setSelectionRange(nuevaPosicion, nuevaPosicion);
+      }
+    });
+  };
+
+  const manejarBlurTelefonoContacto = () => {
+    if (telefonoContactoRef.current) {
+      telefonoContactoRef.current.value = formatoTelefonoNacional(contactoEmergenciaTelefono);
+    }
+    validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono);
+  };
+
+  // Manejar input de CURP con formato automático y validación en tiempo real
+  const manejarCambioCurp = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value;
+    const valorFormateado = formatoCurpMask(valor);
+    setCurp(valorFormateado);
+    limpiarErrorCampo("curp");
+
+    // Validación en tiempo real: si tiene 18 caracteres, verificar formato
+    if (valorFormateado.length === 18 && !esCurpValida(valorFormateado)) {
+      setErroresCurpTemp("Formato de CURP inválido. Debe ser 18 caracteres alfanuméricos.");
+    } else if (valorFormateado.length === 18 && esCurpValida(valorFormateado)) {
+      setErroresCurpTemp("");
+    } else {
+      setErroresCurpTemp("");
+    }
+  };
+
   return (
     <fieldset className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -84,78 +139,122 @@ export function IdentityStep({
         <Field etiqueta="Apellido (s)" value={apellidos} onChange={(e) => { setApellidos(e.target.value); limpiarErrorCampo("apellidos"); }} onBlur={() => validarCampo("apellidos", apellidos)} error={erroresCampos.apellidos || undefined} required autoComplete="family-name" aria-required="true" />
       </div>
       <div className="flex items-center gap-2">
-        <Field 
+        <Field
           etiqueta="CURP"
-          value={curp} 
-          onChange={(e) => { setCurp(e.target.value.toUpperCase()); limpiarErrorCampo("curp"); }} 
-          onBlur={() => validarCurp()} 
-          error={erroresCampos.curp || undefined} 
-          required 
-          maxLength={18} 
+          value={curp}
+          onChange={manejarCambioCurp}
+          onBlur={() => validarCurp()}
+          error={erroresCampos.curp || errorCurpTemp || undefined}
+          required
+          maxLength={18}
           autoComplete="off"
           aria-required="true"
+          ref={curpInputRef}
         />
         <DatosSensiblesTooltip tipo="curp" />
       </div>
-      <Field etiqueta="Código Postal" inputMode="numeric" value={codigoPostal} ayuda={consultandoCp ? "Buscando domicilio..." : "Al capturar 5 dígitos se completa el domicilio."} onChange={(e) => {
-        const cp = soloDigitos(e.target.value, 5);
-        setCodigoPostal(cp);
-        limpiarErrorCampo("codigoPostal");
-        if (cp.length < 5) {
-          setEstado("");
-          setCiudad("");
-          setCiudades([]);
-          setColonia("");
-          setColonias([]);
-        }
-        if (cp.length === 5) buscarCodigoPostal(cp);
-      }} error={erroresCampos.codigoPostal || undefined} required autoComplete="postal-code" aria-required="true" />
-      
+      <Field
+        etiqueta="Código Postal"
+        inputMode="numeric"
+        value={codigoPostal}
+        ayuda={consultandoCp ? (
+          <span className="flex items-center gap-1.5 text-text-secondary">
+            <span className="size-3 animate-spin rounded-full border border-text-tertiary border-t-transparent" aria-hidden="true" />
+            <span>Buscando domicilio...</span>
+          </span>
+        ) : (
+          <span className="text-text-secondary">Al capturar 5 dígitos se completa el domicilio.</span>
+        )}
+        onChange={(e) => {
+          const cp = soloDigitos(e.target.value, 5);
+          setCodigoPostal(cp);
+          limpiarErrorCampo("codigoPostal");
+          if (cp.length < 5) {
+            setEstado("");
+            setCiudad("");
+            setCiudades([]);
+            setColonia("");
+            setColonias([]);
+          }
+          if (cp.length === 5) buscarCodigoPostal(cp);
+        }}
+        error={erroresCampos.codigoPostal || undefined}
+        required
+        autoComplete="postal-code"
+        aria-required="true"
+      />
+
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field 
-          etiqueta="Estado" 
-          value={estado} 
-          onChange={(e) => { setEstado(e.target.value); limpiarErrorCampo("estado"); }} 
-          error={erroresCampos.estado || undefined} 
-          required 
-          autoComplete="address-level1" 
+        <Field
+          etiqueta="Estado"
+          value={estado}
+          onChange={(e) => {
+            setEstado(e.target.value);
+            limpiarErrorCampo("estado");
+          }}
+          error={erroresCampos.estado || undefined}
+          required
+          autoComplete="address-level1"
           disabled={codigoPostal.length < 5}
           aria-required="true"
+          ayuda={consultandoCp && codigoPostal.length >= 5 ? (
+            <span className="flex items-center gap-1.5 text-text-secondary">
+              <span className="size-3 animate-spin rounded-full border border-text-tertiary border-t-transparent" aria-hidden="true" />
+              <span>Validando...</span>
+            </span>
+          ) : undefined}
         />
         {ciudades.length > 0 ? (
           <SelectField
             etiqueta="Ciudad o Municipio"
             value={ciudad}
-            onChange={(valor) => { setCiudad(valor); limpiarErrorCampo("ciudad"); }}
+            onChange={(valor) => {
+              setCiudad(valor);
+              limpiarErrorCampo("ciudad");
+            }}
             error={erroresCampos.ciudad || undefined}
             required
-            placeholder="Selecciona tu ciudad o municipio"
+            placeholder={consultandoCp ? "Obteniendo ciudades..." : "Selecciona tu ciudad o municipio"}
             opciones={ciudades}
-            disabled={codigoPostal.length < 5}
+            disabled={codigoPostal.length < 5 || consultandoCp}
           />
         ) : (
-          <Field 
-            etiqueta="Ciudad o Municipio" 
-            ayuda={colonias.length > 0 ? "Captura el municipio; este CP no lo devolvió automáticamente." : undefined} 
-            value={ciudad} 
-            onChange={(e) => { setCiudad(e.target.value); limpiarErrorCampo("ciudad"); }} 
-            error={erroresCampos.ciudad || undefined} 
-            required 
-            autoComplete="address-level2" 
+          <Field
+            etiqueta="Ciudad o Municipio"
+            ayuda={colonias.length > 0 ? "Captura el municipio; este CP no lo devolvió automáticamente." : undefined}
+            value={ciudad}
+            onChange={(e) => {
+              setCiudad(e.target.value);
+              limpiarErrorCampo("ciudad");
+            }}
+            error={erroresCampos.ciudad || undefined}
+            required
+            autoComplete="address-level2"
             disabled={codigoPostal.length < 5}
             aria-required="true"
           />
         )}
       </div>
-      
+
       <SelectField
         etiqueta="Colonia"
         value={colonia}
-        onChange={(valor) => { setColonia(valor); limpiarErrorCampo("colonia"); }}
+        onChange={(valor) => {
+          setColonia(valor);
+          limpiarErrorCampo("colonia");
+        }}
         error={erroresCampos.colonia || undefined}
         required
         disabled={codigoPostal.length < 5}
-        placeholder={codigoPostal.length < 5 ? "Captura primero un código postal válido" : colonias.length === 0 ? "No hay colonias para este CP" : "Selecciona tu colonia"}
+        placeholder={
+          codigoPostal.length < 5
+            ? "Captura primero un código postal válido"
+            : colonias.length === 0
+              ? consultandoCp
+                ? "Buscando colonias..."
+                : "No hay colonias para este CP"
+              : "Selecciona tu colonia"
+        }
         opciones={colonias}
         aria-required="true"
       />
@@ -165,31 +264,31 @@ export function IdentityStep({
       </div>
       <Field etiqueta="Referencias" value={referencias} onChange={(e) => { setReferencias(e.target.value); limpiarErrorCampo("referencias"); }} error={erroresCampos.referencias || undefined} required aria-required="true" />
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field 
-          etiqueta="Contacto de emergencia (nombre)" 
-          value={contactoEmergenciaNombre} 
-          onChange={(e) => { setContactoEmergenciaNombre(e.target.value); limpiarErrorCampo("contactoEmergenciaNombre"); }} 
-          error={erroresCampos.contactoEmergenciaNombre || undefined} 
-          required 
+        <Field
+          etiqueta="Contacto de emergencia (nombre)"
+          value={contactoEmergenciaNombre}
+          onChange={(e) => {
+            setContactoEmergenciaNombre(e.target.value);
+            limpiarErrorCampo("contactoEmergenciaNombre");
+          }}
+          error={erroresCampos.contactoEmergenciaNombre || undefined}
+          required
           aria-required="true"
         />
         <div className="flex items-center gap-2">
-          <Field 
+          <Field
             etiqueta="Teléfono del contacto"
-            type="tel" 
-            inputMode="numeric" 
+            type="tel"
+            inputMode="numeric"
             placeholder="(55) 1234-5678"
-            value={formatoTelefonoMask(contactoEmergenciaTelefono)} 
-            onChange={(e) => { 
-              const digitos = soloDigitos(e.target.value);
-              setContactoEmergenciaTelefono(digitos); 
-              limpiarErrorCampo("contactoEmergenciaTelefono"); 
-            }} 
-            onBlur={() => validarTelefono("contactoEmergenciaTelefono", contactoEmergenciaTelefono, setContactoEmergenciaTelefono)} 
-            error={erroresCampos.contactoEmergenciaTelefono || undefined} 
-            required 
+            value={formatoTelefonoNacional(contactoEmergenciaTelefono)}
+            onChange={manejarCambioTelefonoContacto}
+            onBlur={manejarBlurTelefonoContacto}
+            error={erroresCampos.contactoEmergenciaTelefono || undefined}
+            required
             autoComplete="tel-national"
             aria-required="true"
+            ref={telefonoContactoRef}
           />
           <DatosSensiblesTooltip tipo="contacto_emergencia" />
         </div>
