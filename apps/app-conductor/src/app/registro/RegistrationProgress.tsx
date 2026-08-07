@@ -19,9 +19,9 @@ export function RegistrationProgress({
     <div className="mt-6 flex flex-col gap-4">
       {/* Stepper visual adaptativo con iconos descriptivos */}
       <nav aria-label="Pasos de registro" className="w-full">
-        {/* Vista Móvil: Pipeline de Iconos descriptivos sin truncamiento de texto */}
+        {/* Vista Móvil: Pipeline de Iconos descriptivos con scroll horizontal */}
         <div className="flex flex-col gap-3 sm:hidden">
-          <div className="flex items-center justify-between font-body text-xs text-text-secondary">
+           <div className="flex items-center justify-between font-body text-xs text-text-tertiary/80 dark:text-gray-400/80">
             <span className="font-medium">
               Paso <strong className="font-bold text-text-primary">{paso + 1} de {PASOS_REGISTRO.length}</strong>
             </span>
@@ -30,8 +30,8 @@ export function RegistrationProgress({
             </span>
           </div>
 
-          {/* Barra de 5 iconos descriptivos - simplificada */}
-          <div className="grid grid-cols-5 gap-1 rounded-xl border border-border bg-surface p-1.5 shadow-xs">
+          {/* Barra de 5 iconos descriptivos - simplificada con scroll horizontal */}
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
             {PASOS_REGISTRO.map((pasoInfo, indice) => {
               const completado = indice < paso;
               const activo = indice === paso;
@@ -42,7 +42,7 @@ export function RegistrationProgress({
                   type="button"
                   disabled={!completado}
                   onClick={() => completado && onGoToStep(indice)}
-                  className={`flex flex-col items-center justify-center rounded-lg py-1.5 transition-all ${
+                  className={`flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg px-2.5 py-1.5 text-center transition-all ${
                     activo
                       ? "bg-route-action/10 text-route-action ring-2 ring-route-action/40 shadow-xs"
                       : completado
@@ -55,7 +55,7 @@ export function RegistrationProgress({
                   <span className="text-sm" aria-hidden="true">
                     {completado ? "✓" : pasoInfo.icono}
                   </span>
-                  <span className="mt-0.5 font-display text-[9px] font-bold">
+                  <span className="font-display text-[9px] font-bold">
                     {indice + 1}
                   </span>
                 </button>

@@ -2,10 +2,10 @@ import { Aviso, Field } from "@ruum/ui";
 import { DIAS_ADVERTENCIA_VIGENCIA_LICENCIA, diasParaVencerLicencia } from "@ruum/shared/validacion";
 import type { CampoRegistroConductor } from "@ruum/shared/validacion";
 import { DatosSensiblesTooltip } from "../cuenta/datos-sensibles";
-import { formatoLicenciaMask, soloAlfanumericoMayusculas } from "./registration-validation";
+import { formatoLicenciaMask } from "./registration-validation";
 import { TIPOS_LICENCIA } from "./registration-types";
 import { SelectField } from "./SelectField";
-import { useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 
 export function LicenseStep({
   numeroLicencia,
@@ -40,6 +40,8 @@ export function LicenseStep({
 }) {
   const diasVigencia = vigenciaLicencia && !erroresCampos.vigenciaLicencia ? diasParaVencerLicencia(vigenciaLicencia) : null;
   const [numeroLicenciaValido, setNumeroLicenciaValido] = useState(false);
+  const numeroLicenciaRef = useRef<HTMLInputElement>(null);
+  const valorAnteriorLicenciaRef = useRef("");
 
   // Fecha mínima: hoy (la licencia debe estar vigente)
   const hoyIso = new Date().toISOString().split("T")[0];
@@ -54,10 +56,37 @@ export function LicenseStep({
     }
   }, [numeroLicencia]);
 
+  // Manejar input con máscara fluida para licencia
   const manejarCambioNumeroLicencia = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const valor = e.target.value;
-    setNumeroLicencia(soloAlfanumericoMayusculas(valor));
+    const input = e.target;
+    const valorNuevo = input.value;
+    const cursorPos = input.selectionStart ?? 0;
+
+    // Calcular nueva posición del cursor
+    const digitosAnteriores = valorAnteriorLicenciaRef.current.replace(/[^a-zA-Z0-9]/g, "");
+    const digitosNuevos = valorNuevo.replace(/[^a-zA-Z0-9]/g, "");
+    const diff = digitosNuevos.length - digitosAnteriores.length;
+    let nuevaPosicion = cursorPos;
+
+    if (diff > 0) {
+      const formatoNuevo = formatoLicenciaMask(digitosNuevos);
+      const formatoAnterior = formatoLicenciaMask(digitosAnteriores);
+      nuevaPosicion = Math.min(formatoNuevo.length, cursorPos + (formatoNuevo.length - formatoAnterior.length));
+    } else if (diff < 0) {
+      nuevaPosicion = Math.max(0, cursorPos + diff);
+    }
+
+    const valorFormateado = formatoLicenciaMask(valorNuevo);
+    setNumeroLicencia(valorFormateado);
     limpiarErrorCampo("numeroLicencia");
+    valorAnteriorLicenciaRef.current = valorNuevo;
+
+    requestAnimationFrame(() => {
+      if (numeroLicenciaRef.current) {
+        numeroLicenciaRef.current.value = valorFormateado;
+        numeroLicenciaRef.current.setSelectionRange(nuevaPosicion, nuevaPosicion);
+      }
+    });
   };
 
   return (

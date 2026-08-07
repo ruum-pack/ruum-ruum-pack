@@ -1,7 +1,7 @@
 import { Field } from "@ruum/ui";
 import type { fortalezaPassword } from "@ruum/shared/utils";
 import { formatoTelefonoNacional, soloDigitos, calcularCursorTelefono } from "./registration-validation";
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 
 type FortalezaPassword = ReturnType<typeof fortalezaPassword>;
 
@@ -79,7 +79,11 @@ export function AccountStep({
     <fieldset className="grid gap-4">
       <Field
         etiqueta="Teléfono móvil"
-        ayuda="Formato estándar 10 dígitos (ej. (55) 1234-5678)."
+        ayuda={
+          <span className="font-body text-xs text-text-tertiary/80 dark:text-gray-400/80">
+            Formato estándar 10 dígitos (ej. (55) 1234-5678).
+          </span>
+        }
         type="tel"
         inputMode="numeric"
         placeholder="(55) 1234-5678"
@@ -199,7 +203,7 @@ export function AccountStep({
       )}
 
       {!sesionAutenticada && (
-        <p className="mt-1 font-body text-xs text-text-secondary flex items-center gap-1.5">
+        <p className="mt-1 flex items-center gap-1.5 font-body text-xs text-text-tertiary/80 dark:text-gray-400/80">
           <span>🔒</span>
           <span>Tus datos personales y contraseña se transmiten y almacenan con cifrado de grado bancario (SSL/TLS).</span>
         </p>

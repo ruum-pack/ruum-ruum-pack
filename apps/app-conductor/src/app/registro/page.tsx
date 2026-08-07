@@ -883,8 +883,8 @@ export default function PaginaRegistroConductor() {
         ) : enviado ? (
           <div className="py-8 text-center">
             <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-control-soft font-display text-xl font-bold text-success" aria-hidden>✓</div>
-            <h1 id="titulo-registro-conductor" className="mt-5 font-display text-2xl font-bold">Solicitud en revisión</h1>
-            <p className="mt-3 font-body text-sm leading-6 text-text-secondary">
+            <h1 id="titulo-registro-conductor" className="mt-5 font-display text-2xl font-bold text-text-primary">Solicitud en revisión</h1>
+            <p className="mt-3 font-body text-sm leading-6 text-text-tertiary/80">
               Tu cuenta está pendiente de validación. Cuando la revisión esté completa, podrás consultar y aceptar viajes.
             </p>
             <Button
@@ -1071,7 +1071,16 @@ export default function PaginaRegistroConductor() {
                     {paso === 0 && !sesionAutenticada ? "Crear cuenta y continuar" : "Continuar"}
                   </Button>
                 ) : (
-                  <Button type="submit" disabled={!puedeEnviar || !tieneSupabaseConfigurado()} loading={enviando} className="min-h-12 px-6 py-3.5 font-display text-base font-bold">
+                  <Button
+                    type="submit"
+                    disabled={!puedeEnviar || !tieneSupabaseConfigurado()}
+                    loading={enviando}
+                    className={[
+                      "w-full min-h-12 px-6 py-3.5 font-display text-base font-bold leading-6",
+                      "shadow-sm hover:-translate-y-0.5 hover:shadow-md active:translate-y-0",
+                      "focus-visible:outline-route-action focus-visible:outline-[3px] focus-visible:outline-offset-2"
+                    ].join(" ")}
+                  >
                     {enviando ? TEXTOS_CARGANDO.enviando : "Enviar registro"}
                   </Button>
                 )}

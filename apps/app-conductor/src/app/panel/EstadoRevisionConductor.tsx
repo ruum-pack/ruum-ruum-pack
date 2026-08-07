@@ -18,11 +18,11 @@ import { DiditVerificationModal } from "../registro/DiditVerificationModal";
 type DocumentoConductorRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
 
 const ESTADO_DOCUMENTO: Record<string, { texto: string; clase: string }> = {
-  pendiente: { texto: "Pendiente de carga", clase: "border-border bg-surface-elevated text-text-secondary" },
-  en_revision: { texto: "En revisión", clase: "border-route-action bg-route-soft text-route-action" },
+  pendiente: { texto: "Pendiente de carga", clase: "border-border bg-surface-elevated text-text-tertiary/80" },
+  en_revision: { texto: "En revisión", clase: "border-warning/30 bg-warning/10 text-warning" },
   aprobado: { texto: "Aprobado", clase: "border-success bg-control-soft text-success" },
   rechazado: { texto: "Rechazado", clase: "border-danger-action bg-danger-soft text-danger-action" },
-  reemplazado: { texto: "Reemplazado", clase: "border-border bg-surface-elevated text-text-secondary" },
+  reemplazado: { texto: "Reemplazado", clase: "border-border bg-surface-elevated text-text-tertiary/80" },
   vencido: { texto: "Vencido", clase: "border-danger-action bg-danger-soft text-danger-action" },
 };
 
@@ -66,6 +66,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
   const [verificando, setVerificando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [notificacionesActivas, setNotificacionesActivas] = useState(true);
   const inputsRef = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Telemetría Didit
@@ -243,7 +244,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
         <h1 id="titulo-estado-revision" className="mt-1 font-display text-2xl font-bold text-text-primary">
           Tu solicitud está en revisión
         </h1>
-        <p className="mt-2 font-body text-sm leading-6 text-text-secondary">
+        <p className="mt-2 font-body text-sm leading-6 text-text-tertiary/80">
           No puedes recibir viajes porque tus documentos están siendo revisados.
         </p>
         <div className="mt-5 rounded-xl border border-border bg-surface p-4">
@@ -258,9 +259,10 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
             </div>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-elevated" aria-hidden>
-            <div className="h-full rounded-full bg-signal" style={{ width: `${porcentaje}%` }} />
+            <div className="h-full rounded-full bg-signal transition-all duration-300" style={{ width: `${porcentaje}%` }} />
           </div>
-          <div className="mt-3 grid gap-2 font-body text-xs text-text-secondary sm:grid-cols-2">
+          <p className="mt-1 font-body text-xs text-text-tertiary/80">{porcentaje}% completado</p>
+          <div className="mt-3 grid gap-2 font-body text-xs text-text-tertiary/80 sm:grid-cols-2">
             <p>Estado actual: <span className="font-semibold text-text-primary">{ETIQUETA_EXPEDIENTE[estadoActual]}</span></p>
             <p>Enviado: <span className="font-semibold text-text-primary">{enviadoEn?new Date(enviadoEn).toLocaleString("es-MX"):"Aún no disponible"}</span></p>
           </div>
@@ -270,10 +272,10 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
         {estadoActual === "en_revision" && solicitudId && (
           <div className="mt-4 rounded-xl border border-signal bg-route-soft p-4">
             <p className="font-body text-sm font-semibold text-text-primary">Verificación de identidad</p>
-            <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
+            <p className="mt-1 font-body text-xs leading-5 text-text-tertiary/80">
               Confirma tu identidad en unos minutos (foto de tu documento + selfie) para acelerar la revisión.
             </p>
-            <Button className="mt-3" onClick={iniciarVerificacion} disabled={verificando}>
+            <Button className="mt-3 w-full sm:w-auto" onClick={iniciarVerificacion} disabled={verificando}>
               {verificando ? "Abriendo verificación…" : "Verificar identidad ahora"}
             </Button>
           </div>
@@ -302,33 +304,34 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
           </output>
         )}
 
-        <div className="mt-6 space-y-3" aria-label="Estado documental">
-          <div className="rounded-xl border border-border p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="font-body text-sm font-semibold text-text-primary">Cuenta</p>
-              <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-medium ${cuentaAprobada ? ESTADO_DOCUMENTO.aprobado.clase : ESTADO_DOCUMENTO.pendiente.clase}`}>
-                {cuentaAprobada ? "Correo confirmado" : "Pendiente"}
-              </span>
-            </div>
-            <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
-              {cuentaAprobada ? "Correo confirmado y solicitud recibida." : "Confirma tu correo para continuar."}
-            </p>
-          </div>
+         <div className="mt-6 space-y-3" aria-label="Estado documental">
+           <div className="rounded-xl border border-border p-3">
+             <div className="flex flex-wrap items-center justify-between gap-2">
+               <p className="font-body text-sm font-semibold text-text-primary">Cuenta</p>
+               <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-medium ${cuentaAprobada ? ESTADO_DOCUMENTO.aprobado.clase : ESTADO_DOCUMENTO.pendiente.clase}`}>
+                 {cuentaAprobada ? "Correo confirmado" : "Pendiente"}
+               </span>
+             </div>
+             <p className="mt-1 font-body text-xs text-text-tertiary">
+               {cuentaAprobada ? "Correo confirmado y solicitud recibida." : "Confirma tu correo para continuar."}
+             </p>
+           </div>
 
-          {gruposDocumentales.map((grupo) => (
-            <div key={grupo.titulo} className="rounded-xl border border-border p-4">
-              <div>
-                <p className="font-body text-sm font-semibold text-text-primary">{grupo.titulo}</p>
-                <p className="mt-1 font-body text-xs leading-5 text-text-secondary">{grupo.descripcion}</p>
-              </div>
-              <div className="mt-3 grid gap-3">
+           {gruposDocumentales.map((grupo) => (
+             <div key={grupo.titulo} className="rounded-xl border border-border p-3">
+               <div>
+                 <p className="font-body text-sm font-semibold text-text-primary">{grupo.titulo}</p>
+                 <p className="mt-1 font-body text-xs text-text-tertiary">{grupo.descripcion}</p>
+               </div>
+               <div className="mt-2 grid gap-2.5">
                 {grupo.documentos.map((t) => {
                   const doc = documentoDe(t.valor);
                   const estadoInfo = ESTADO_DOCUMENTO[doc?.estado ?? "pendiente"];
                   const requiereAccion = doc?.estado === "rechazado" || doc?.estado === "vencido";
+                  const tieneDocumento = Boolean(doc?.url || doc?.nombre_archivo);
 
                   return (
-                    <div key={t.valor} className="rounded-lg border border-border bg-surface-elevated p-3">
+                    <div key={t.valor} className="rounded-lg border border-border bg-surface-elevated p-2.5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="font-body text-sm font-semibold text-text-primary">{t.etiqueta}</p>
                         <span className={`rounded-full border px-2.5 py-1 font-body text-xs font-medium ${estadoInfo.clase}`}>
@@ -343,43 +346,62 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
                         </p>
                       )}
 
-                      {requiereAccion && (
-                        <div className="mt-3">
-                          <input
-                            ref={(el) => { inputsRef.current[t.valor] = el; }}
-                            type="file"
-                            accept="image/*,.pdf"
-                            capture="environment"
-                            className="hidden"
-                            onChange={(e) => {
-                              const archivo = e.target.files?.[0];
-                              if (archivo) void reemplazar(t.valor, archivo);
-                              e.target.value = "";
-                            }}
-                          />
-                          <Button
-                            variant="secondary"
-                            onClick={() => inputsRef.current[t.valor]?.click()}
-                            disabled={subiendo === t.valor}
+                      <div className="mt-2.5 flex items-center gap-2">
+                        {tieneDocumento && doc?.url && (
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-body text-xs font-medium text-route-action hover:underline"
                           >
-                            {subiendo === t.valor ? "Subiendo…" : "Actualizar documento"}
-                          </Button>
-                        </div>
-                      )}
+                            Ver documento
+                          </a>
+                        )}
+                        <input
+                          ref={(el) => { inputsRef.current[t.valor] = el; }}
+                          type="file"
+                          accept="image/*,.pdf"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const archivo = e.target.files?.[0];
+                            if (archivo) void reemplazar(t.valor, archivo);
+                            e.target.value = "";
+                          }}
+                        />
+                        <Button
+                          variant="secondary"
+                          onClick={() => inputsRef.current[t.valor]?.click()}
+                          disabled={subiendo === t.valor}
+                        >
+                          {subiendo === t.valor ? "Subiendo…" : requiereAccion ? "Sustituir documento" : "Reemplazar"}
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          ))}
+               </div>
+             </div>
+           ))}
         </div>
 
-        <div className="mt-6 rounded-xl border border-route-action bg-route-soft p-4">
-          <p className="font-body text-sm font-semibold text-text-primary">Te avisaremos cuando cambie el estado</p>
-          <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
-            Si actualizas un documento, volverá a aparecer como &quot;En revisión&quot;.
-          </p>
-        </div>
+         <div className="mt-6 rounded-xl border border-route-action bg-route-soft p-4">
+           <p className="font-body text-sm font-semibold text-text-primary">Te avisaremos cuando cambie el estado</p>
+           <p className="mt-1 font-body text-xs leading-5 text-text-tertiary/80">
+             Si actualizas un documento, volverá a aparecer como &quot;En revisión&quot;.
+           </p>
+           <label className="mt-3 flex items-start gap-3 cursor-pointer">
+             <input
+               type="checkbox"
+               checked={notificacionesActivas}
+               onChange={(e) => setNotificacionesActivas(e.target.checked)}
+               className="mt-0.5 size-4 accent-route-action focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
+             />
+             <span className="font-body text-xs text-text-tertiary/80">
+               Activar notificaciones por WhatsApp y push para recibir un aviso cuando tu cuenta sea aprobada.
+             </span>
+           </label>
+         </div>
 
         <Button variant="quiet" className="mt-7" onClick={onSalir}>
           Cerrar sesión
