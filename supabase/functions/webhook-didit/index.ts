@@ -136,29 +136,5 @@ Deno.serve(async (req) => {
     return json({ recibido: true, error_procesando: true }, 200);
   }
 
-  return json({ recibido: true, estado: estadoInterno }, 200););
-    return json({ error: "Verificación no encontrada." }, 404);
-  }
-
-  try {
-    if (estadoDidit === "Approved") {
-      const { error } = await servicio.rpc("aprobar_solicitud_conductor_sistema", {
-        p_solicitud_id: verificacion.solicitud_id,
-        p_verificacion_id: verificacion.id,
-      });
-      if (error) throw error;
-    } else if (estadoDidit === "Declined") {
-      const { error } = await servicio.rpc("rechazar_solicitud_por_verificacion_sistema", {
-        p_solicitud_id: verificacion.solicitud_id,
-        p_verificacion_id: verificacion.id,
-      });
-      if (error) throw error;
-    }
-  } catch (error) {
-    console.error("Error aplicando decisión Didit", error instanceof Error ? error.message : error);
-    await servicio.from("verificaciones_identidad_didit").update({ estado: "error" }).eq("id", verificacion.id);
-    return json({ recibido: true, error_procesando: true }, 200);
-  }
-
   return json({ recibido: true, estado: estadoInterno }, 200);
 });
