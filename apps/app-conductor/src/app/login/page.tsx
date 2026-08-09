@@ -23,7 +23,6 @@ export default function PaginaLogin() {
   }, [router]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [recordar, setRecordar] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -132,17 +131,7 @@ export default function PaginaLogin() {
               </output>
             )}
 
-            <div className="flex items-center justify-between gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={recordar}
-                  onChange={(e) => setRecordar(e.target.checked)}
-                  className="size-4 rounded border-border-strong bg-surface text-route-action focus-visible:outline-route-action focus-visible:outline-[3px] focus-visible:outline-offset-2 transition-colors disabled:cursor-not-allowed disabled:border-border disabled:bg-surface-elevated"
-                  aria-label="Recordar sesión"
-                />
-                <span className="font-body text-sm text-text-secondary">Recordarme</span>
-              </label>
+            <div className="flex items-center justify-end gap-4">
               <Link
                 href="/recuperar-password"
                 className="font-body text-sm text-route-action underline-offset-2 hover:underline whitespace-nowrap"

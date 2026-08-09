@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
 import { crearClienteNavegador, tieneSupabaseConfigurado, obtenerOriginApp } from "../../lib/supabase-browser";
+import { traducirErrorAuth } from "@ruum/shared/utils";
 
 export default function PaginaRecuperarPasswordConductor() {
   const [email, setEmail] = useState("");
@@ -35,7 +36,7 @@ export default function PaginaRecuperarPasswordConductor() {
       if (errorAuth) throw errorAuth;
       setEnviado(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No pudimos enviar el correo. Intenta de nuevo.");
+      setError(traducirErrorAuth(err, "No pudimos enviar el correo. Intenta de nuevo."));
     } finally {
       setEnviando(false);
     }
@@ -70,6 +71,9 @@ export default function PaginaRecuperarPasswordConductor() {
             </div>
             <p className="font-body text-sm leading-6 text-text-tertiary/80">
               Correo enviado a <strong>{email}</strong>. Revisa tu bandeja incluyendo spam. El enlace expira en 60 minutos.
+            </p>
+            <p className="font-body text-xs leading-5 text-text-tertiary/70">
+              Ábrelo desde este mismo teléfono y navegador — por seguridad, no funciona si lo abres en otro dispositivo.
             </p>
             <button
               type="button"

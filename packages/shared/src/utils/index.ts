@@ -8,6 +8,7 @@ export * from "./mapbox-directions";
 export * from "./logger";
 export * from "./observar-sesion-recuperacion";
 export * from "./polyline";
+export * from "./requisitos-password";
 export * from "./traducir-error-auth";
 export * from "./traducir-error-operativo";
 export * from "./validar-documentos";

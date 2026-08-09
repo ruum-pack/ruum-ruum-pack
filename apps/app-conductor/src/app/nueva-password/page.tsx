@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
-import { observarSesionRecuperacion, traducirErrorAuth } from "@ruum/shared/utils";
+import { observarSesionRecuperacion, passwordCumpleRequisitos, requisitosPassword, traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 export default function PaginaNuevaPasswordConductor() {
@@ -31,7 +31,10 @@ export default function PaginaNuevaPasswordConductor() {
 
   async function establecer(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) { setError("Mínimo 8 caracteres."); return; }
+    if (!passwordCumpleRequisitos(password)) {
+      setError("Tu contraseña debe cumplir todos los requisitos indicados abajo.");
+      return;
+    }
     if (password !== confirmar) { setError("Las contraseñas no coinciden."); return; }
     setEnviando(true);
     setError(null);
@@ -79,7 +82,10 @@ export default function PaginaNuevaPasswordConductor() {
           </div>
         ) : !sesionLista ? (
           <div className="mt-6 grid gap-4">
-            <Aviso tono="danger">El enlace expiró o ya fue usado. Los enlaces son válidos por 60 minutos.</Aviso>
+            <Aviso tono="danger">
+              El enlace expiró, ya fue usado, o se abrió en un dispositivo o navegador distinto al que lo solicitó.
+              Los enlaces son válidos por 60 minutos y solo funcionan en el mismo teléfono/navegador.
+            </Aviso>
             <Link href="/recuperar-password" className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-signal font-display text-sm font-bold text-text-primary transition hover:bg-signal/90">
               Solicitar un nuevo enlace
             </Link>
@@ -98,26 +104,22 @@ export default function PaginaNuevaPasswordConductor() {
                 autoComplete="new-password"
               />
 
-              {/* Requisitos dinámicos de contraseña */}
+              {/* Requisitos dinámicos de contraseña — misma fuente de verdad que la validación del submit (requisitosPassword) */}
               <ul className="flex flex-col gap-1.5 rounded-xl border border-border bg-surface-elevated/70 p-3 text-xs font-body" aria-label="Requisitos de contraseña">
-                <li className={`flex items-center gap-2 transition-all duration-150 ${password.length >= 8 ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-text-tertiary/80"}`}>
-                  <span className={`flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all ${password.length >= 8 ? "bg-emerald-600 text-white dark:bg-emerald-500 shadow-xs" : "bg-surface-elevated border border-border text-text-tertiary"}`} aria-hidden>
-                    {password.length >= 8 ? "✓" : "○"}
-                  </span>
-                  Mínimo 8 caracteres
-                </li>
-                <li className={`flex items-center gap-2 transition-all duration-150 ${/[A-Z]/.test(password) ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-text-tertiary/80"}`}>
-                  <span className={`flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all ${/[A-Z]/.test(password) ? "bg-emerald-600 text-white dark:bg-emerald-500 shadow-xs" : "bg-surface-elevated border border-border text-text-tertiary"}`} aria-hidden>
-                    {/[A-Z]/.test(password) ? "✓" : "○"}
-                  </span>
-                  Al menos una letra mayúscula (A-Z)
-                </li>
-                <li className={`flex items-center gap-2 transition-all duration-150 ${/[0-9]/.test(password) ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-text-tertiary/80"}`}>
-                  <span className={`flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all ${/[0-9]/.test(password) ? "bg-emerald-600 text-white dark:bg-emerald-500 shadow-xs" : "bg-surface-elevated border border-border text-text-tertiary"}`} aria-hidden>
-                    {/[0-9]/.test(password) ? "✓" : "○"}
-                  </span>
-                  Al menos un número (0-9)
-                </li>
+                {requisitosPassword(password).map((requisito) => (
+                  <li
+                    key={requisito.clave}
+                    className={`flex items-center gap-2 transition-all duration-150 ${requisito.cumplido ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-text-tertiary/80"}`}
+                  >
+                    <span
+                      className={`flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all ${requisito.cumplido ? "bg-emerald-600 text-white dark:bg-emerald-500 shadow-xs" : "bg-surface-elevated border border-border text-text-tertiary"}`}
+                      aria-hidden
+                    >
+                      {requisito.cumplido ? "✓" : "○"}
+                    </span>
+                    {requisito.etiqueta}
+                  </li>
+                ))}
               </ul>
             </div>
 
