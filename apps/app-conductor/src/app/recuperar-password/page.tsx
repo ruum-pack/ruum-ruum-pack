@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado, obtenerOriginApp } from "../../lib/supabase-browser";
 
 export default function PaginaRecuperarPasswordConductor() {
   const [email, setEmail] = useState("");
@@ -30,7 +30,7 @@ export default function PaginaRecuperarPasswordConductor() {
       const cliente = crearClienteNavegador();
       const { error: errorAuth } = await cliente.auth.resetPasswordForEmail(
         email.trim(),
-        { redirectTo: `${window.location.origin}/nueva-password` }
+        { redirectTo: `${obtenerOriginApp()}/nueva-password` }
       );
       if (errorAuth) throw errorAuth;
       setEnviado(true);

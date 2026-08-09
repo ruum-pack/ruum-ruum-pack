@@ -20,7 +20,7 @@ import {
   registrarConsentimientosConductor,
   type ExpedienteSolicitudConductorV2,
 } from "@ruum/api/services";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado, obtenerOriginApp } from "../../lib/supabase-browser";
 import type { Json } from "@ruum/shared/types";
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 import { limpiarBorradorRegistroLocal } from "../../lib/borrador-registro";
@@ -510,7 +510,7 @@ export default function PaginaRegistroConductor() {
           // El camino principal es escribir el código de 6 dígitos dentro de la
           // app; este redirect sólo enruta el enlace de respaldo del correo al
           // handler correcto del conductor (/auth/callback -> /registro).
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: `${obtenerOriginApp()}/auth/callback`
         }
       });
       if (errorAuth) throw errorAuth;
@@ -667,7 +667,7 @@ export default function PaginaRegistroConductor() {
         type: "signup",
         email: email.trim().toLowerCase(),
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: `${obtenerOriginApp()}/auth/callback`
         }
       });
       if (errorReenvio) throw errorReenvio;
