@@ -683,8 +683,14 @@ begin
 
   return jsonb_build_object('id', v_traslado_id, 'tipo_pago', v_tipo_pago, 'precio_cotizado', v_precio_cotizado);
 end;
-$function$
-;
+$function$;
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'mi_rol_admin') then
+    create role "mi_rol_admin";
+  end if;
+end;
+$$;
 
 grant delete on table "public"."admin_capacidades" to "mi_rol_admin";
 

@@ -46,7 +46,9 @@ function validarFotoPerfilConductor(archivo: File) {
   }
 
   const extension = extensionArchivo(archivo.name);
-  if (!EXTENSIONES_FOTO_PERFIL_PERMITIDAS.has(extension) || !TIPOS_MIME_FOTO_PERFIL_PERMITIDOS.has(archivo.type)) {
+  const esExtensionValida = EXTENSIONES_FOTO_PERFIL_PERMITIDAS.has(extension);
+  const esMimeValido = !archivo.type || archivo.type === "application/octet-stream" || TIPOS_MIME_FOTO_PERFIL_PERMITIDOS.has(archivo.type);
+  if (!esExtensionValida || !esMimeValido) {
     throw new Error("La fotografía debe ser JPG, PNG o WEBP.");
   }
 }
@@ -549,9 +551,20 @@ export async function subirFotoPerfilConductor(cliente: Cliente, conductorId: st
   validarFotoPerfilConductor(archivo);
   const extension = extensionArchivo(archivo.name) || "jpg";
   const path = `${conductorId}/perfil.${extension}`;
+
+  const mimeMap: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp"
+  };
+  const contentType = (archivo.type && archivo.type !== "application/octet-stream")
+    ? archivo.type
+    : (mimeMap[extension] ?? "image/jpeg");
+
   const { error: errorSubida } = await cliente.storage.from("fotos-perfil-conductor").upload(path, archivo, {
     upsert: true,
-    contentType: archivo.type
+    contentType
   });
 
   if (errorSubida) throw errorSubida;
