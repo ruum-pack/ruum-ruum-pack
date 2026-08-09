@@ -45,13 +45,13 @@ export default function PaginaDocumentosCuenta() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  async function subirDocumento(tipoDocumento: TipoDocumentoConductor, archivo: File) {
+  async function subirDocumento(tipoDocumento: TipoDocumentoConductor, archivo: File, documentoAnteriorId?: string) {
     if (!archivo || !conductor) return;
     setMensaje(null);
     setSubiendo(tipoDocumento);
     try {
       const cliente = crearClienteNavegador();
-      await subirDocumentoConductor(cliente, conductor.id, tipoDocumento, archivo);
+      await subirDocumentoConductor(cliente, conductor.id, tipoDocumento, archivo, documentoAnteriorId);
       setMensaje("Documento cargado y enviado a revisión.");
       await cargar();
     } catch (error) {

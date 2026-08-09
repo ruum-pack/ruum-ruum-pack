@@ -76,14 +76,13 @@ Deno.serve(async(req)=>{
       .eq(conductor?"conductor_id":"solicitud_id",objetivo).eq("tipo",tipo).eq("es_actual",true).maybeSingle();
     const {data:actual,error:errorActual}=await consulta;
     if(errorActual) return json({error:"No fue posible comprobar la versión documental vigente."},500);
-    if(actual?.estado==="rechazado"||actual?.estado==="vencido") documentoAnteriorId=actual.id;
-    else if(actual) return json({error:"Ya existe una versión vigente; sólo puede reemplazarse cuando fue rechazada o venció."},409);
+    if(actual) documentoAnteriorId=actual.id;
   }
 
   if(documentoAnteriorId) {
     const {data:anterior}=await usuario.from("documentos_conductor").select("id,tipo,estado,es_actual,conductor_id,solicitud_id")
       .eq("id",documentoAnteriorId).maybeSingle();
-    if(!anterior||anterior.tipo!==tipo||!["rechazado","vencido"].includes(anterior.estado)||!anterior.es_actual
+    if(!anterior||anterior.tipo!==tipo||!anterior.es_actual
       ||(anterior.conductor_id??anterior.solicitud_id)!==objetivo) {
       return json({error:"La versión indicada no puede reemplazarse."},409);
     }

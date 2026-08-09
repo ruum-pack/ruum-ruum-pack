@@ -68,7 +68,7 @@ export function DriverDocumentChecklist({
   conductor: ConductorCuenta | null;
   documentos: Documento[];
   subiendo: TipoDocumentoConductor | null;
-  onUpload: (tipo: TipoDocumentoConductor, file: File) => void;
+  onUpload: (tipo: TipoDocumentoConductor, file: File, documentoAnteriorId?: string) => void;
 }) {
   const [arrastrandoSobre, setArrastrandoSobre] = useState<TipoDocumentoConductor | null>(null);
   const [actualizarAbierto, setActualizarAbierto] = useState<Record<string, boolean>>({});
@@ -99,31 +99,31 @@ export function DriverDocumentChecklist({
     setArrastrandoSobre(null);
   }
 
-  function manejarDrop(e: DragEvent<HTMLElement>, tipo: TipoDocumentoConductor) {
+  function manejarDrop(e: DragEvent<HTMLElement>, tipo: TipoDocumentoConductor, documentoAnteriorId?: string) {
     e.preventDefault();
     e.stopPropagation();
     setArrastrandoSobre(null);
 
     const archivo = e.dataTransfer.files?.[0];
     if (archivo) {
-      onUpload(tipo, archivo);
+      onUpload(tipo, archivo, documentoAnteriorId);
     }
   }
 
-  function manejarSeleccionArchivo(e: ChangeEvent<HTMLInputElement>, tipo: TipoDocumentoConductor) {
+  function manejarSeleccionArchivo(e: ChangeEvent<HTMLInputElement>, tipo: TipoDocumentoConductor, documentoAnteriorId?: string) {
     const archivo = e.target.files?.[0];
     if (archivo) {
-      onUpload(tipo, archivo);
+      onUpload(tipo, archivo, documentoAnteriorId);
       e.target.value = "";
     }
   }
 
-  function renderizarZonaCaptura(tipo: TipoDocumentoConductor, estaSubiendo: boolean) {
+  function renderizarZonaCaptura(tipo: TipoDocumentoConductor, estaSubiendo: boolean, documentoAnteriorId?: string) {
     return (
       <div
         onDragOver={(e) => manejarDragOver(e, tipo)}
         onDragLeave={manejarDragLeave}
-        onDrop={(e) => manejarDrop(e, tipo)}
+        onDrop={(e) => manejarDrop(e, tipo, documentoAnteriorId)}
         className={[
           "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 text-center transition-all duration-150",
           arrastrandoSobre === tipo
@@ -146,7 +146,7 @@ export function DriverDocumentChecklist({
               capture="environment"
               disabled={estaSubiendo}
               className="sr-only"
-              onChange={(e) => manejarSeleccionArchivo(e, tipo)}
+              onChange={(e) => manejarSeleccionArchivo(e, tipo, documentoAnteriorId)}
             />
           </label>
 
@@ -158,7 +158,7 @@ export function DriverDocumentChecklist({
               accept="image/*,.pdf"
               disabled={estaSubiendo}
               className="sr-only"
-              onChange={(e) => manejarSeleccionArchivo(e, tipo)}
+              onChange={(e) => manejarSeleccionArchivo(e, tipo, documentoAnteriorId)}
             />
           </label>
         </div>
@@ -275,7 +275,7 @@ export function DriverDocumentChecklist({
                   )}
 
                   {/* Captura / Carga de Archivo para Actualización */}
-                  {renderizarZonaCaptura(requerido.tipo, estaSubiendo)}
+                  {renderizarZonaCaptura(requerido.tipo, estaSubiendo, documento?.id)}
                 </div>
               </article>
             );
@@ -349,7 +349,7 @@ export function DriverDocumentChecklist({
                     {/* Desplegable de Captura/Carga para Documento Aprobado */}
                     {estaAbierto && (
                       <div className="mt-2 pt-3 border-t border-emerald-500/20">
-                        {renderizarZonaCaptura(requerido.tipo, estaSubiendo)}
+                        {renderizarZonaCaptura(requerido.tipo, estaSubiendo, documento?.id)}
                       </div>
                     )}
                   </div>
