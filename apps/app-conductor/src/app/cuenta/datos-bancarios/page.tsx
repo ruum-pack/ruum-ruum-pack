@@ -72,34 +72,41 @@ export default function PaginaDatosBancarios() {
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [confirmandoSesion, setConfirmandoSesion] = useState(false);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [bancoDetectadoAuto, setBancoDetectadoAuto] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     async function cargar() {
-      const conductor = await cargarConductorCuenta();
-      if (!conductor) {
-        setCargando(false);
-        return;
-      }
-      const cliente = crearClienteNavegador();
-      const ganancias = await obtenerGananciasConductor(cliente, conductor.id);
-      const datos = ganancias.datosBancarios;
-      setDatosBancarios(datos);
-      if (datos) {
-        setFormulario({
-          titularCuenta: datos.titular_cuenta,
-          banco: datos.banco,
-          clabe: datos.clabe,
-          numeroTarjeta: datos.numero_tarjeta
-        });
-        const detectado = obtenerBancoPorClabe(datos.clabe);
-        setBancoDetectadoAuto(detectado);
-      }
-      setCargando(false);
-    }
-    void cargar();
+      try {
+        const conductor = await cargarConductorCuenta();
+        if (!conductor) {
+          setCargando(false);
+          return;
+        }
+       const cliente = crearClienteNavegador();
+       const ganancias = await obtenerGananciasConductor(cliente, conductor.id);
+       const datos = ganancias.datosBancarios;
+       setDatosBancarios(datos);
+       if (datos) {
+         setFormulario({
+           titularCuenta: datos.titular_cuenta,
+           banco: datos.banco,
+           clabe: datos.clabe,
+           numeroTarjeta: datos.numero_tarjeta
+         });
+         const detectado = obtenerBancoPorClabe(datos.clabe);
+         setBancoDetectadoAuto(detectado);
+       }
+       setErrorCarga(null);
+     } catch {
+       setErrorCarga("No se pudieron cargar los datos bancarios. Inténtalo de nuevo.");
+     } finally {
+       setCargando(false);
+     }
+   }
+   void cargar();
   }, []);
 
   function actualizarCampo(campo: keyof typeof formulario, valorRaw: string) {
@@ -199,6 +206,10 @@ export default function PaginaDatosBancarios() {
           {cargando ? (
             <div className="py-8 text-center font-body text-sm text-text-secondary">
               Cargando datos bancarios...
+            </div>
+          ) : errorCarga ? (
+            <div className="py-8 text-center">
+              <Aviso tono="danger">{errorCarga}</Aviso>
             </div>
           ) : (
             <div className="grid gap-6">

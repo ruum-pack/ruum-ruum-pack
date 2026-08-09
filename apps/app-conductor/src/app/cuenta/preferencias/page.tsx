@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
-import { Button, Card } from "@ruum/ui";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Aviso, Button, Card } from "@ruum/ui";
 import { guardarPreferenciasConductor, obtenerConfiguracionConductor } from "@ruum/api/services";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import type { Database } from "@ruum/shared/types";
@@ -172,20 +172,29 @@ export default function PaginaPreferenciasCuenta() {
   const [conductor, setConductor] = useState<ConductorCuenta | null>(null);
   const [prefs, setPrefs] = useState(PREFS_DEFAULT);
   const [notificacion, setNotificacion] = useState<{ tipo: "success" | "error"; mensaje: string } | null>(null);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [guardandoAuto, setGuardandoAuto] = useState(false);
-  const [pendiente, startTransition] = useTransition();
+  const [pendiente, setPendiente] = useState(false);
 
   useEffect(() => {
     async function cargar() {
-      const actual = await cargarConductorCuenta();
-      setConductor(actual);
-      if (actual) {
-        const cliente = crearClienteNavegador();
-        const datos = await obtenerConfiguracionConductor(cliente, actual.id);
-        setPrefs({ ...PREFS_DEFAULT, ...((datos.preferencias as Preferencias | null) ?? {}) });
+      try {
+        const actual = await cargarConductorCuenta();
+        setConductor(actual);
+        if (actual) {
+          const cliente = crearClienteNavegador();
+          const datos = await obtenerConfiguracionConductor(cliente, actual.id);
+          const prefsDb = datos.preferencias as Preferencias | null;
+          const { conductor_id: _, actualizado_en: __, ...prefsLimpias } = prefsDb ?? {};
+          setPrefs({ ...PREFS_DEFAULT, ...prefsLimpias });
+        }
+        setErrorCarga(null);
+      } catch {
+        setErrorCarga("No se pudieron cargar las preferencias. Inténtalo de nuevo.");
+      } finally {
+        setCargando(false);
       }
-      setCargando(false);
     }
     void cargar();
   }, []);
@@ -208,35 +217,62 @@ export default function PaginaPreferenciasCuenta() {
   );
 
   // Sincronización automática de preferencias (Auto-save)
-  async function persistirPreferencias(nuevasPrefs: typeof PREFS_DEFAULT) {
-    if (!conductor) return;
-    setGuardandoAuto(true);
-    try {
-      const cliente = crearClienteNavegador();
-      await guardarPreferenciasConductor(cliente, conductor.id, nuevasPrefs);
-      setNotificacion({ tipo: "success", mensaje: "Preferencias actualizadas y sincronizadas" });
-    } catch (error) {
-      setNotificacion({
-        tipo: "error",
-        mensaje: traducirErrorOperativo(error, "No se pudieron guardar las preferencias.")
-      });
-    } finally {
-      setGuardandoAuto(false);
-    }
-  }
+   async function persistirPreferencias(nuevasPrefs: typeof PREFS_DEFAULT) {
+     if (!conductor) return;
+     setGuardandoAuto(true);
+     try {
+       const cliente = crearClienteNavegador();
+       await guardarPreferenciasConductor(cliente, conductor.id, nuevasPrefs);
+       setNotificacion({ tipo: "success", mensaje: "Preferencias actualizadas y sincronizadas" });
+     } catch (error) {
+       setNotificacion({
+         tipo: "error",
+         mensaje: traducirErrorOperativo(error, "No se pudieron guardar las preferencias.")
+       });
+     } finally {
+       setGuardandoAuto(false);
+     }
+   }
 
-  function cambiarPreferencia(clave: keyof typeof PREFS_DEFAULT, valor: boolean) {
-    const estadoSiguiente = { ...prefs, [clave]: valor };
-    setPrefs(estadoSiguiente);
-    void persistirPreferencias(estadoSiguiente);
-  }
+   // Debounce auto-save to prevent race conditions from rapid toggles
+   const autoSaveRef = useRef<{ timeoutId: NodeJS.Timeout | null; latestPrefs: typeof PREFS_DEFAULT | null }>({ timeoutId: null, latestPrefs: null });
 
-  function guardarManual() {
-    if (!conductor) return;
-    startTransition(async () => {
-      await persistirPreferencias(prefs);
-    });
-  }
+   function cambiarPreferencia(clave: keyof typeof PREFS_DEFAULT, valor: boolean) {
+     const estadoSiguiente = { ...prefs, [clave]: valor };
+     setPrefs(estadoSiguiente);
+
+     // Clear any pending save
+     if (autoSaveRef.current.timeoutId) {
+       clearTimeout(autoSaveRef.current.timeoutId);
+     }
+
+     // Store the latest preferences so even if an earlier save completes late,
+     // we only persist the most recent state
+     autoSaveRef.current.latestPrefs = estadoSiguiente;
+
+     autoSaveRef.current.timeoutId = setTimeout(() => {
+       const prefsAAhorrar = autoSaveRef.current.latestPrefs;
+       autoSaveRef.current.latestPrefs = null;
+       if (prefsAAhorrar) {
+         void persistirPreferencias(prefsAAhorrar);
+       }
+     }, 500);
+   }
+
+   async function guardarManual() {
+     if (!conductor) return;
+     // Clear any pending auto-save
+     if (autoSaveRef.current.timeoutId) {
+       clearTimeout(autoSaveRef.current.timeoutId);
+       autoSaveRef.current.timeoutId = null;
+     }
+     setPendiente(true);
+     try {
+       await persistirPreferencias(prefs);
+     } finally {
+       setPendiente(false);
+     }
+   }
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
@@ -269,6 +305,10 @@ export default function PaginaPreferenciasCuenta() {
       {cargando ? (
         <div className="mt-8 text-center font-body text-sm text-text-secondary">
           Cargando tus preferencias...
+        </div>
+      ) : errorCarga ? (
+        <div className="mt-8 text-center">
+          <Aviso tono="danger">{errorCarga}</Aviso>
         </div>
       ) : (
         <div className="mt-6 grid gap-6">

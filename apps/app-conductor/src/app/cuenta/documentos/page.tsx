@@ -17,18 +17,25 @@ export default function PaginaDocumentosCuenta() {
   const [conductor, setConductor] = useState<ConductorCuenta | null>(null);
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [subiendo, setSubiendo] = useState<TipoDocumentoConductor | null>(null);
   const [cargando, setCargando] = useState(true);
 
   async function cargar() {
-    const actual = await cargarConductorCuenta();
-    setConductor(actual);
-    if (actual) {
-      const cliente = crearClienteNavegador();
-      const config = await obtenerConfiguracionConductor(cliente, actual.id);
-      setDocumentos(config.documentos);
+    try {
+      const actual = await cargarConductorCuenta();
+      setConductor(actual);
+      if (actual) {
+        const cliente = crearClienteNavegador();
+        const config = await obtenerConfiguracionConductor(cliente, actual.id);
+        setDocumentos(config.documentos);
+      }
+      setErrorCarga(null);
+    } catch {
+      setErrorCarga("No se pudieron cargar los documentos. Inténtalo de nuevo.");
+    } finally {
+      setCargando(false);
     }
-    setCargando(false);
   }
 
   useEffect(() => {
@@ -68,6 +75,10 @@ export default function PaginaDocumentosCuenta() {
         {cargando ? (
           <div className="py-8 text-center font-body text-sm text-text-secondary">
             Cargando expediente documental...
+          </div>
+        ) : errorCarga ? (
+          <div className="py-8 text-center">
+            <Aviso tono="danger">{errorCarga}</Aviso>
           </div>
         ) : (
           <div className="grid gap-6">

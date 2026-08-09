@@ -4,7 +4,7 @@ import { ConfirmDialog } from "../../../components/ConfirmDialog";
 
 import { ChangeEvent, useEffect, useState } from "react";
 import Image from "next/image";
-import { Button, Card } from "@ruum/ui";
+import { Aviso, Button, Card } from "@ruum/ui";
 import { actualizarPerfilConductor, subirFotoPerfilConductor } from "@ruum/api/services";
 import { consultarCodigoPostalMx, traducirErrorOperativo, type DatosCodigoPostal } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
@@ -164,6 +164,7 @@ export default function PaginaPerfilCuenta() {
   const [perfil, setPerfil] = useState(PERFIL_DEFAULT);
   const [sensiblesEditados, setSensiblesEditados] = useState<Set<CampoSensiblePerfil>>(new Set());
   const [notificacion, setNotificacion] = useState<NotificacionPerfil>(null);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [vistaPreviaFoto, setVistaPreviaFoto] = useState<string | null>(null);
@@ -176,17 +177,23 @@ export default function PaginaPerfilCuenta() {
   const [cpDetectado, setCpDetectado] = useState(false);
 
   async function cargar() {
-    const actual = await cargarConductorCuenta();
-    setConductor(actual);
-    const siguiente = perfilDesdeConductor(actual);
-    siguiente.curp = "";
-    siguiente.licencia_numero = "";
-    siguiente.contacto_emergencia_nombre = "";
-    siguiente.contacto_emergencia_telefono = "";
-    setPerfil(siguiente);
-    setSensiblesEditados(new Set());
-    setVistaPreviaFoto(null);
-    setCargando(false);
+    try {
+      const actual = await cargarConductorCuenta();
+      setConductor(actual);
+      const siguiente = perfilDesdeConductor(actual);
+      siguiente.curp = "";
+      siguiente.licencia_numero = "";
+      siguiente.contacto_emergencia_nombre = "";
+      siguiente.contacto_emergencia_telefono = "";
+      setPerfil(siguiente);
+      setSensiblesEditados(new Set());
+      setVistaPreviaFoto(null);
+      setErrorCarga(null);
+    } catch {
+      setErrorCarga("No se pudieron cargar tus datos. Inténtalo de nuevo.");
+    } finally {
+      setCargando(false);
+    }
   }
 
   useEffect(() => {
@@ -285,14 +292,23 @@ export default function PaginaPerfilCuenta() {
       const fotoUrl = await subirFotoPerfilConductor(cliente, conductor.id, archivo);
       setConductor({ ...conductor, foto_perfil_url: fotoUrl });
       setNotificacion({ tipo: "success", mensaje: "Fotografía de perfil actualizada." });
+      setVistaPreviaFoto(null);
+      URL.revokeObjectURL(urlTemp);
     } catch (error) {
       setNotificacion({ tipo: "error", mensaje: traducirErrorOperativo(error, "No pudimos actualizar la fotografía de perfil.") });
       setVistaPreviaFoto(null);
+      URL.revokeObjectURL(urlTemp);
     } finally {
       setSubiendoFoto(false);
       evento.target.value = "";
     }
   }
+
+  useEffect(() => {
+    return () => {
+      if (vistaPreviaFoto) URL.revokeObjectURL(vistaPreviaFoto);
+    };
+  }, [vistaPreviaFoto]);
 
   function placeholderSensible(campo: CampoPerfil) {
     if (!conductor) return "";
@@ -321,16 +337,16 @@ export default function PaginaPerfilCuenta() {
   // Comprueba si hay cambios reales en el formulario respecto al objeto conductor
   const hayCambiosReales = Boolean(
     conductor && (
-      (perfil.nombre.trim() !== (conductor.nombre ?? "") && perfil.nombre.trim() !== "") ||
-      (perfil.telefono.trim() !== (conductor.telefono ?? "") && perfil.telefono.trim() !== "") ||
-      (perfil.codigo_postal.trim() !== (conductor.codigo_postal ?? "") && perfil.codigo_postal.trim() !== "") ||
-      (perfil.estado_residencia.trim() !== (conductor.estado_residencia ?? "") && perfil.estado_residencia.trim() !== "") ||
-      (perfil.ciudad_municipio.trim() !== (conductor.ciudad_municipio ?? "") && perfil.ciudad_municipio.trim() !== "") ||
-      (perfil.colonia.trim() !== (conductor.colonia ?? "") && perfil.colonia.trim() !== "") ||
-      (perfil.calle.trim() !== (conductor.calle ?? "") && perfil.calle.trim() !== "") ||
-      (perfil.numero.trim() !== (conductor.numero ?? "") && perfil.numero.trim() !== "") ||
-      (perfil.referencias.trim() !== (conductor.referencias ?? "") && perfil.referencias.trim() !== "") ||
-      (perfil.licencia_vigencia.trim() !== (conductor.licencia_vigencia ?? "") && perfil.licencia_vigencia.trim() !== "") ||
+      perfil.nombre.trim() !== (conductor.nombre ?? "") ||
+      perfil.telefono.trim() !== (conductor.telefono ?? "") ||
+      perfil.codigo_postal.trim() !== (conductor.codigo_postal ?? "") ||
+      perfil.estado_residencia.trim() !== (conductor.estado_residencia ?? "") ||
+      perfil.ciudad_municipio.trim() !== (conductor.ciudad_municipio ?? "") ||
+      perfil.colonia.trim() !== (conductor.colonia ?? "") ||
+      perfil.calle.trim() !== (conductor.calle ?? "") ||
+      perfil.numero.trim() !== (conductor.numero ?? "") ||
+      perfil.referencias.trim() !== (conductor.referencias ?? "") ||
+      perfil.licencia_vigencia.trim() !== (conductor.licencia_vigencia ?? "") ||
       sensiblesEditados.size > 0
     )
   );
@@ -393,6 +409,10 @@ export default function PaginaPerfilCuenta() {
         <Card className="mt-6">
           {cargando ? (
             <div className="py-8 text-center font-body text-sm text-text-secondary">Cargando perfil...</div>
+          ) : errorCarga ? (
+            <div className="py-8 text-center">
+              <Aviso tono="danger">{errorCarga}</Aviso>
+            </div>
           ) : (
             <div className="grid gap-6">
               <div className="flex flex-col items-center gap-4 rounded-2xl border border-border/40 bg-surface-elevated/40 p-5 sm:flex-row sm:items-center sm:justify-between">
