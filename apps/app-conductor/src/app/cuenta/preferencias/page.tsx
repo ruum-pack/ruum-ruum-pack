@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Aviso, Button, Card } from "@ruum/ui";
+import { Button, Card } from "@ruum/ui";
 import { guardarPreferenciasConductor, obtenerConfiguracionConductor } from "@ruum/api/services";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import type { Database } from "@ruum/shared/types";
@@ -31,11 +31,149 @@ const PREFS_DEFAULT = {
   viajes_personales: true
 };
 
+type OpcionConfig = {
+  clave: keyof typeof PREFS_DEFAULT;
+  titulo: string;
+  subtitulo: string;
+  icono: string;
+};
+
+const SECCIONES_NOTIFICACIONES: { titulo: string; opciones: OpcionConfig[] }[] = [
+  {
+    titulo: "Operativas y de Servicio",
+    opciones: [
+      {
+        clave: "notificaciones_push",
+        titulo: "Push en este dispositivo",
+        subtitulo: "Alertas visuales y sonoras en tiempo real",
+        icono: "📲"
+      },
+      {
+        clave: "modo_no_molestar",
+        titulo: "Horario silencioso (22:00 - 07:00)",
+        subtitulo: "Silencia avisos fuera de servicio o fuera de turno",
+        icono: "🌙"
+      },
+      {
+        clave: "notificar_traslados_asignados",
+        titulo: "Traslados asignados",
+        subtitulo: "Confirmación inmediata de servicios asignados a tu unidad",
+        icono: "🚘"
+      },
+      {
+        clave: "notificar_cambios_operativos",
+        titulo: "Cambios operativos",
+        subtitulo: "Modificaciones en rutas, puntos de encuentro o tiempos",
+        icono: "⚡"
+      },
+      {
+        clave: "notificar_documentos",
+        titulo: "Alertas de documentos",
+        subtitulo: "Avisos sobre licencias o expedientes por vencer",
+        icono: "📄"
+      }
+    ]
+  },
+  {
+    titulo: "Comerciales y Opcionales",
+    opciones: [
+      {
+        clave: "notificar_oportunidades",
+        titulo: "Nuevas oportunidades",
+        subtitulo: "Avisos de servicios disponibles cercanos a tu ubicación",
+        icono: "🎯"
+      },
+      {
+        clave: "notificar_ganancias",
+        titulo: "Ganancias y pagos",
+        subtitulo: "Resumen de corte semanal y confirmación de depósitos",
+        icono: "💵"
+      },
+      {
+        clave: "notificar_promociones",
+        titulo: "Promociones y beneficios",
+        subtitulo: "Bonos operativos y campañas exclusivas de conductor",
+        icono: "🎁"
+      }
+    ]
+  }
+];
+
+const OPCIONES_VIAJES: OpcionConfig[] = [
+  {
+    clave: "viajes_locales",
+    titulo: "Viajes locales",
+    subtitulo: "Traslados dentro de la zona metropolitana primaria",
+    icono: "🏙️"
+  },
+  {
+    clave: "viajes_foraneos",
+    titulo: "Viajes foráneos",
+    subtitulo: "Traslados interurbanos y trayectos de larga distancia",
+    icono: "🛣️"
+  },
+  {
+    clave: "viajes_nocturnos",
+    titulo: "Servicios nocturnos (22:00 a 06:00)",
+    subtitulo: "Requiere activación voluntaria y autorización operativa",
+    icono: "🌌"
+  },
+  {
+    clave: "viajes_empresariales",
+    titulo: "Viajes corporativos / empresariales",
+    subtitulo: "Servicios ejecutivos para cuentas de empresa",
+    icono: "🏢"
+  },
+  {
+    clave: "viajes_personales",
+    titulo: "Viajes personales de usuario final",
+    subtitulo: "Servicios reservados directamente por particulares",
+    icono: "👤"
+  }
+];
+
+// Componente Toggle (Switch) moderno e interactivo
+function ToggleSwitch({
+  checked,
+  onChange,
+  disabled = false,
+  label
+}: {
+  checked: boolean;
+  onChange: (nuevoEstado: boolean) => void;
+  disabled?: boolean;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={[
+        "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2",
+        checked ? "bg-signal" : "bg-surface-elevated border-border/80",
+        disabled ? "opacity-50 cursor-not-allowed" : ""
+      ].join(" ")}
+    >
+      <span
+        className={[
+          "pointer-events-none inline-block size-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+          checked ? "translate-x-5 bg-slate-950" : "translate-x-0 bg-text-secondary"
+        ].join(" ")}
+      />
+    </button>
+  );
+}
+
 export default function PaginaPreferenciasCuenta() {
   const [conductor, setConductor] = useState<ConductorCuenta | null>(null);
   const [prefs, setPrefs] = useState(PREFS_DEFAULT);
-  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [notificacion, setNotificacion] = useState<{ tipo: "success" | "error"; mensaje: string } | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [guardandoAuto, setGuardandoAuto] = useState(false);
   const [pendiente, startTransition] = useTransition();
 
   useEffect(() => {
@@ -52,82 +190,235 @@ export default function PaginaPreferenciasCuenta() {
     void cargar();
   }, []);
 
+  useEffect(() => {
+    if (!notificacion) return;
+    const timer = window.setTimeout(() => setNotificacion(null), 3500);
+    return () => window.clearTimeout(timer);
+  }, [notificacion]);
+
   const preferenciasActivas = useMemo(
     () => [
-      prefs.viajes_locales && "Viajes locales",
-      prefs.viajes_foraneos && "Viajes foráneos",
-      prefs.viajes_nocturnos && "Nocturnos con autorización",
+      prefs.viajes_locales && "Locales",
+      prefs.viajes_foraneos && "Foráneos",
+      prefs.viajes_nocturnos && "Nocturnos autorizados",
       prefs.viajes_empresariales && "Empresariales",
       prefs.viajes_personales && "Personales"
     ].filter(Boolean) as string[],
     [prefs]
   );
 
-  function guardar() {
+  // Sincronización automática de preferencias (Auto-save)
+  async function persistirPreferencias(nuevasPrefs: typeof PREFS_DEFAULT) {
     if (!conductor) return;
-    setMensaje(null);
+    setGuardandoAuto(true);
+    try {
+      const cliente = crearClienteNavegador();
+      await guardarPreferenciasConductor(cliente, conductor.id, nuevasPrefs);
+      setNotificacion({ tipo: "success", mensaje: "Preferencias actualizadas y sincronizadas" });
+    } catch (error) {
+      setNotificacion({
+        tipo: "error",
+        mensaje: traducirErrorOperativo(error, "No se pudieron guardar las preferencias.")
+      });
+    } finally {
+      setGuardandoAuto(false);
+    }
+  }
+
+  function cambiarPreferencia(clave: keyof typeof PREFS_DEFAULT, valor: boolean) {
+    const estadoSiguiente = { ...prefs, [clave]: valor };
+    setPrefs(estadoSiguiente);
+    void persistirPreferencias(estadoSiguiente);
+  }
+
+  function guardarManual() {
+    if (!conductor) return;
     startTransition(async () => {
-      try {
-        const cliente = crearClienteNavegador();
-        await guardarPreferenciasConductor(cliente, conductor.id, prefs);
-        setMensaje("Preferencias guardadas.");
-      } catch (error) {
-        setMensaje(traducirErrorOperativo(error, "No se pudieron guardar las preferencias."));
-      }
+      await persistirPreferencias(prefs);
     });
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:py-14">
-      <CuentaHeader titulo="Preferencias" descripcion="Configura notificaciones y tipos de viaje que quieres recibir." />
-      {mensaje && <div className="mt-5"><Aviso tono="info">{mensaje}</Aviso></div>}
-      {cargando ? <p className="mt-6 font-body text-sm text-text-secondary">Cargando preferencias...</p> : (
-        <section className="mt-6 grid gap-6 lg:grid-cols-2">
-          <Card>
-            <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Notificaciones</p>
-            <div className="mt-5 grid gap-3">
-              {[
-                ["Push en este dispositivo", "notificaciones_push"],
-                ["Horario silencioso 22:00 - 07:00 (solo no operativo)", "modo_no_molestar"],
-                ["Nuevas oportunidades", "notificar_oportunidades"],
-                ["Traslados asignados", "notificar_traslados_asignados"],
-                ["Cambios operativos", "notificar_cambios_operativos"],
-                ["Documentos", "notificar_documentos"],
-                ["Ganancias y pagos", "notificar_ganancias"],
-                ["Promociones", "notificar_promociones"]
-              ].map(([label, clave]) => (
-                <label key={clave} className="flex items-center justify-between gap-4 rounded-lg border border-border px-4 py-3">
-                  <span className="font-body text-sm font-medium">{label}</span>
-                  <input type="checkbox" checked={Boolean(prefs[clave as keyof typeof prefs])} onChange={(event) => setPrefs({ ...prefs, [clave]: event.target.checked })} className="h-5 w-5 accent-signal" />
-                </label>
-              ))}
-            </div>
-            <p className="mt-4 font-body text-xs text-text-tertiary">Los avisos críticos de seguridad y los cambios urgentes de un traslado activo permanecen habilitados por protección operativa.</p>
-          </Card>
-          <Card>
-            <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Tipos de viaje</p>
-            <div className="mt-5 grid gap-3">
-              {[
-                ["Viajes locales", "viajes_locales"],
-                ["Viajes foráneos", "viajes_foraneos"],
-                ["Nocturnos", "viajes_nocturnos"],
-                ["Empresariales", "viajes_empresariales"],
-                ["Personales", "viajes_personales"]
-              ].map(([label, clave]) => (
-                <label key={clave} className="flex items-center justify-between gap-4 rounded-lg border border-border px-4 py-3">
-                  <span className="font-body text-sm font-medium">{label}</span>
-                  <input type="checkbox" checked={Boolean(prefs[clave as keyof typeof prefs])} onChange={(event) => setPrefs({ ...prefs, [clave]: event.target.checked })} className="h-5 w-5 accent-signal" />
-                </label>
-              ))}
-            </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {preferenciasActivas.map((preferencia) => <span key={preferencia} className="rounded-full border border-border bg-surface-elevated px-3 py-1.5 font-body text-xs font-medium text-text-secondary">{preferencia}</span>)}
-            </div>
-          </Card>
-          <div className="lg:col-span-2">
-            <Button variant="secondary" onClick={guardar} disabled={!conductor || pendiente}>{pendiente ? "Guardando..." : "Guardar preferencias"}</Button>
+    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
+      <CuentaHeader
+        titulo="Preferencias del Conductor"
+        descripcion="Personaliza tus alertas de notificación y ajusta los tipos de viaje que deseas recibir."
+      />
+
+      {/* Toast de Guardado Automático */}
+      {notificacion && (
+        <div
+          aria-live="polite"
+          aria-atomic="true"
+          className={[
+            "conductor-toast-bottom fixed right-4 z-50 max-w-[calc(100vw-2rem)] rounded-xl border px-4 py-3 font-body text-sm font-semibold shadow-[0_18px_48px_rgba(0,0,0,0.42)] sm:right-6 sm:max-w-sm",
+            notificacion.tipo === "success"
+              ? "border-emerald-500/40 bg-emerald-500/12 text-text-primary"
+              : "border-red-500/40 bg-red-500/12 text-text-primary"
+          ].join(" ")}
+        >
+          <div className="flex items-center gap-2">
+            <span className={notificacion.tipo === "success" ? "text-emerald-500 font-bold" : "text-red-500 font-bold"}>
+              {notificacion.tipo === "success" ? "✓" : "⚠️"}
+            </span>
+            {notificacion.mensaje}
           </div>
-        </section>
+        </div>
+      )}
+
+      {cargando ? (
+        <div className="mt-8 text-center font-body text-sm text-text-secondary">
+          Cargando tus preferencias...
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-6">
+          {/* 1. Tarjeta de Notificaciones con Toggles e Iconos */}
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">
+                  Canales de Alerta
+                </p>
+
+                <h2 className="font-display text-lg font-bold text-text-primary">
+                  Notificaciones y Avisos
+                </h2>
+              </div>
+
+              {guardandoAuto && (
+                <span className="font-body text-xs font-semibold text-signal animate-pulse">
+                  Sincronizando...
+                </span>
+              )}
+            </div>
+
+            {SECCIONES_NOTIFICACIONES.map((seccion) => (
+              <div key={seccion.titulo} className="mt-6 border-t border-border/30 pt-4 first:border-t-0 first:pt-0">
+                <h3 className="font-display text-xs font-bold uppercase tracking-wider text-text-tertiary mb-3">
+                  {seccion.titulo}
+                </h3>
+
+                <div className="grid gap-3">
+                  {seccion.opciones.map((opcion) => {
+                    const estaActivo = Boolean(prefs[opcion.clave]);
+                    return (
+                      <div
+                        key={opcion.clave}
+                        className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-surface-elevated/40 px-4 py-3.5 transition hover:border-border"
+                      >
+                        <div className="flex items-start gap-3.5">
+                          <span className="text-xl shrink-0 mt-0.5">{opcion.icono}</span>
+                          <div>
+                            <span className="block font-display text-sm font-bold text-text-primary">
+                              {opcion.titulo}
+                            </span>
+                            <span className="block font-body text-xs leading-5 text-text-tertiary">
+                              {opcion.subtitulo}
+                            </span>
+                          </div>
+                        </div>
+
+                        <ToggleSwitch
+                          checked={estaActivo}
+                          label={opcion.titulo}
+                          disabled={!conductor || guardandoAuto}
+                          onChange={(nuevoValor) => cambiarPreferencia(opcion.clave, nuevoValor)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {/* 3. Disclaimer de Seguridad Destacado */}
+            <div className="mt-6 flex items-start gap-3.5 rounded-2xl border border-route-action/40 bg-route-action/10 p-4">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-route-action/20 text-lg font-bold text-route-action">
+                🛡️
+              </div>
+              <div className="font-body text-xs leading-5 text-text-tertiary">
+                <strong className="block font-display text-sm font-bold text-text-primary mb-0.5">
+                  Protección Operativa e Integridad Ruum Ruum
+                </strong>
+                Los avisos críticos de seguridad (emergencias, protocolos de rastreo GPS) y los cambios urgentes durante un viaje activo se mantendrán siempre habilitados en tu dispositivo por política de protección al conductor.
+              </div>
+            </div>
+          </Card>
+
+          {/* 2. Tarjeta de Tipos de Viaje con Toggles e Iconografía */}
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">
+                  Elegibilidad de Modalidades
+                </p>
+
+                <h2 className="font-display text-lg font-bold text-text-primary">
+                  Tipos de Viaje Disponibles
+                </h2>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              {OPCIONES_VIAJES.map((opcion) => {
+                const estaActivo = Boolean(prefs[opcion.clave]);
+                return (
+                  <div
+                    key={opcion.clave}
+                    className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-surface-elevated/40 px-4 py-3.5 transition hover:border-border"
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <span className="text-xl shrink-0 mt-0.5">{opcion.icono}</span>
+                      <div>
+                        <span className="block font-display text-sm font-bold text-text-primary">
+                          {opcion.titulo}
+                        </span>
+                        <span className="block font-body text-xs leading-5 text-text-tertiary">
+                          {opcion.subtitulo}
+                        </span>
+                      </div>
+                    </div>
+
+                    <ToggleSwitch
+                      checked={estaActivo}
+                      label={opcion.titulo}
+                      disabled={!conductor || guardandoAuto}
+                      onChange={(nuevoValor) => cambiarPreferencia(opcion.clave, nuevoValor)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Badges de resumen visual activo */}
+            <div className="mt-6 border-t border-border/30 pt-4">
+              <p className="font-body text-xs font-bold text-text-tertiary mb-2">
+                Resumen de modalidades activadas ({preferenciasActivas.length}):
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {preferenciasActivas.map((pref) => (
+                  <span
+                    key={pref}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-signal/40 bg-signal/10 px-3 py-1 font-body text-xs font-bold text-signal"
+                  >
+                    ✓ {pref}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {/* Botón opcional de confirmación manual */}
+          <div className="flex items-center justify-end">
+            <Button
+              variant="secondary"
+              onClick={guardarManual}
+              disabled={!conductor || pendiente || guardandoAuto}
+            >
+              {pendiente || guardandoAuto ? "Sincronizando..." : "Confirmar preferencias"}
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

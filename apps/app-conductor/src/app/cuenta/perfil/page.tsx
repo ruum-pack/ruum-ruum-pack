@@ -6,7 +6,7 @@ import { ChangeEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import { Button, Card } from "@ruum/ui";
 import { actualizarPerfilConductor, subirFotoPerfilConductor } from "@ruum/api/services";
-import { traducirErrorOperativo } from "@ruum/shared/utils";
+import { consultarCodigoPostalMx, traducirErrorOperativo, type DatosCodigoPostal } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { CuentaHeader } from "../CuentaHeader";
 import { cargarConductorCuenta, telefonoE164, type ConductorCuenta } from "../cuenta-utils";
@@ -32,32 +32,30 @@ const PERFIL_DEFAULT = {
 
 type CampoPerfil = keyof typeof PERFIL_DEFAULT;
 type CampoSensiblePerfil = "curp" | "licencia_numero" | "contacto_emergencia_nombre" | "contacto_emergencia_telefono";
+type IdPestana = "identidad" | "documentacion" | "ubicacion";
 
 type NotificacionPerfil = { tipo: "success" | "error" | "info"; mensaje: string } | null;
 
-const CAMPO_CONFIG: Record<CampoPerfil, { etiqueta: string; tipo?: string; colSpan?: string }> = {
-  nombre: { etiqueta: "Nombre completo" },
-  telefono: { etiqueta: "Teléfono" },
-  curp: { etiqueta: "CURP" },
-  licencia_numero: { etiqueta: "Número de licencia" },
-  licencia_tipo: { etiqueta: "Tipo de licencia" },
-  licencia_vigencia: { etiqueta: "Vigencia de licencia", tipo: "date" },
-  codigo_postal: { etiqueta: "Código postal" },
-  estado_residencia: { etiqueta: "Estado" },
-  ciudad_municipio: { etiqueta: "Ciudad o municipio" },
-  colonia: { etiqueta: "Colonia" },
-  calle: { etiqueta: "Calle" },
-  numero: { etiqueta: "Número" },
-  referencias: { etiqueta: "Referencias", colSpan: "sm:col-span-2" },
-  contacto_emergencia_nombre: { etiqueta: "Contacto de emergencia" },
-  contacto_emergencia_telefono: { etiqueta: "Teléfono de emergencia" }
-};
-
-const SECCIONES_PERFIL: { titulo: string; campos: CampoPerfil[] }[] = [
-  { titulo: "Identidad", campos: ["nombre", "telefono", "curp"] },
-  { titulo: "Documentación operativa", campos: ["licencia_numero", "licencia_tipo", "licencia_vigencia"] },
+const PESTANAS: { id: IdPestana; titulo: string; icono: string; descripcion: string; campos: CampoPerfil[] }[] = [
   {
+    id: "identidad",
+    titulo: "Identidad",
+    icono: "👤",
+    descripcion: "Fotografía, datos personales y de contacto",
+    campos: ["nombre", "telefono", "curp"]
+  },
+  {
+    id: "documentacion",
+    titulo: "Documentación",
+    icono: "📄",
+    descripcion: "Licencia de conducir y vigencia operativa",
+    campos: ["licencia_numero", "licencia_tipo", "licencia_vigencia"]
+  },
+  {
+    id: "ubicacion",
     titulo: "Ubicación y emergencia",
+    icono: "📍",
+    descripcion: "Domicilio particular y contacto de emergencia",
     campos: [
       "codigo_postal",
       "estado_residencia",
@@ -71,6 +69,24 @@ const SECCIONES_PERFIL: { titulo: string; campos: CampoPerfil[] }[] = [
     ]
   }
 ];
+
+const CAMPO_CONFIG: Record<CampoPerfil, { etiqueta: string; tipo?: string; colSpan?: string; placeholder?: string }> = {
+  nombre: { etiqueta: "Nombre completo", placeholder: "Ej. Juan Pérez López" },
+  telefono: { etiqueta: "Teléfono", placeholder: "10 dígitos" },
+  curp: { etiqueta: "CURP", placeholder: "18 caracteres" },
+  licencia_numero: { etiqueta: "Número de licencia", placeholder: "Ej. B12345678" },
+  licencia_tipo: { etiqueta: "Tipo de licencia" },
+  licencia_vigencia: { etiqueta: "Vigencia de licencia", tipo: "date" },
+  codigo_postal: { etiqueta: "Código postal", placeholder: "5 dígitos" },
+  estado_residencia: { etiqueta: "Estado", placeholder: "Estado de residencia" },
+  ciudad_municipio: { etiqueta: "Ciudad o municipio", placeholder: "Municipio" },
+  colonia: { etiqueta: "Colonia", placeholder: "Nombre de colonia" },
+  calle: { etiqueta: "Calle", placeholder: "Calle principal" },
+  numero: { etiqueta: "Número", placeholder: "Ext. / Int." },
+  referencias: { etiqueta: "Referencias", colSpan: "sm:col-span-2", placeholder: "Entre qué calles o referencias visuales" },
+  contacto_emergencia_nombre: { etiqueta: "Contacto de emergencia", placeholder: "Nombre del familiar o contacto" },
+  contacto_emergencia_telefono: { etiqueta: "Teléfono de emergencia", placeholder: "10 dígitos" }
+};
 
 const CAMPOS_SENSIBLES = new Set<CampoPerfil>(["curp", "licencia_numero", "contacto_emergencia_nombre", "contacto_emergencia_telefono"]);
 const CAMPOS_SOLO_LECTURA = new Set<CampoPerfil>(["licencia_tipo"]);
@@ -102,6 +118,46 @@ function perfilDesdeConductor(conductor: ConductorCuenta | null) {
   };
 }
 
+function evaluarValidacionInline(clave: CampoPerfil, valor: string): { esValido: boolean | null; mensaje?: string } {
+  const limpio = valor.trim();
+  if (!limpio) return { esValido: null };
+
+  switch (clave) {
+    case "telefono":
+    case "contacto_emergencia_telefono": {
+      const digitos = limpio.replace(/\D/g, "");
+      const ok = digitos.length === 10 || (digitos.length === 12 && digitos.startsWith("52"));
+      return { esValido: ok, mensaje: ok ? "Formato válido" : "Ingresa 10 dígitos" };
+    }
+    case "curp": {
+      const ok = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[0-9A-Z]\d$/i.test(limpio);
+      return { esValido: ok, mensaje: ok ? "CURP válida" : "Deben ser 18 caracteres" };
+    }
+    case "licencia_numero": {
+      const ok = limpio.length >= 5;
+      return { esValido: ok, mensaje: ok ? "Válido" : "Mínimo 5 caracteres" };
+    }
+    case "licencia_vigencia": {
+      const fecha = new Date(limpio);
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const ok = !isNaN(fecha.getTime()) && fecha >= hoy;
+      return { esValido: ok, mensaje: ok ? "Vigente" : "La fecha no debe estar vencida" };
+    }
+    case "codigo_postal": {
+      const ok = /^\d{5}$/.test(limpio);
+      return { esValido: ok, mensaje: ok ? "Código de 5 dígitos" : "Debe tener 5 dígitos" };
+    }
+    case "nombre":
+    case "contacto_emergencia_nombre": {
+      const ok = limpio.length >= 3;
+      return { esValido: ok };
+    }
+    default:
+      return { esValido: null };
+  }
+}
+
 export default function PaginaPerfilCuenta() {
   const [confirmacionAbierta, setConfirmacionAbierta] = useState(false);
   const [conductor, setConductor] = useState<ConductorCuenta | null>(null);
@@ -110,7 +166,14 @@ export default function PaginaPerfilCuenta() {
   const [notificacion, setNotificacion] = useState<NotificacionPerfil>(null);
   const [cargando, setCargando] = useState(true);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [vistaPreviaFoto, setVistaPreviaFoto] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [pestanaActiva, setPestanaActiva] = useState<IdPestana>("identidad");
+
+  // Autocompletado inteligente de CP (SEPOMEX)
+  const [buscandoCp, setBuscandoCp] = useState(false);
+  const [coloniasDisponibles, setColoniasDisponibles] = useState<string[]>([]);
+  const [cpDetectado, setCpDetectado] = useState(false);
 
   async function cargar() {
     const actual = await cargarConductorCuenta();
@@ -122,6 +185,7 @@ export default function PaginaPerfilCuenta() {
     siguiente.contacto_emergencia_telefono = "";
     setPerfil(siguiente);
     setSensiblesEditados(new Set());
+    setVistaPreviaFoto(null);
     setCargando(false);
   }
 
@@ -137,6 +201,42 @@ export default function PaginaPerfilCuenta() {
     const timer = window.setTimeout(() => setNotificacion(null), 4200);
     return () => window.clearTimeout(timer);
   }, [notificacion]);
+
+  // Consulta automática de CP cuando el usuario escribe 5 dígitos
+  async function manejarCambioCp(valorCp: string) {
+    const limpio = valorCp.replace(/\D/g, "").slice(0, 5);
+    setPerfil((actual) => ({ ...actual, codigo_postal: limpio }));
+
+    if (limpio.length === 5) {
+      setBuscandoCp(true);
+      try {
+        const resultado: DatosCodigoPostal | null = await consultarCodigoPostalMx(limpio);
+        if (resultado) {
+          setPerfil((actual) => ({
+            ...actual,
+            estado_residencia: resultado.estado,
+            ciudad_municipio: resultado.ciudades[0] ?? actual.ciudad_municipio,
+            colonia: resultado.colonias.includes(actual.colonia)
+              ? actual.colonia
+              : resultado.colonias[0] ?? actual.colonia
+          }));
+          setColoniasDisponibles(resultado.colonias);
+          setCpDetectado(true);
+        } else {
+          setColoniasDisponibles([]);
+          setCpDetectado(false);
+        }
+      } catch {
+        setColoniasDisponibles([]);
+        setCpDetectado(false);
+      } finally {
+        setBuscandoCp(false);
+      }
+    } else {
+      setColoniasDisponibles([]);
+      setCpDetectado(false);
+    }
+  }
 
   async function guardarPerfil() {
     if (!conductor || guardando) return;
@@ -162,7 +262,7 @@ export default function PaginaPerfilCuenta() {
         contacto_emergencia_telefono: telefonoE164(perfilParaGuardar.contacto_emergencia_telefono)
       });
       await cargar();
-      setNotificacion({ tipo: "success", mensaje: "Perfil actualizado correctamente" });
+      setNotificacion({ tipo: "success", mensaje: "Perfil actualizado correctamente." });
     } catch (error) {
       setNotificacion({ tipo: "error", mensaje: traducirErrorOperativo(error, "No se pudo actualizar el perfil.") });
     } finally {
@@ -173,6 +273,11 @@ export default function PaginaPerfilCuenta() {
   async function subirFotoPerfil(evento: ChangeEvent<HTMLInputElement>) {
     const archivo = evento.target.files?.[0];
     if (!archivo || !conductor) return;
+
+    // Vista previa instantánea
+    const urlTemp = URL.createObjectURL(archivo);
+    setVistaPreviaFoto(urlTemp);
+
     setNotificacion(null);
     setSubiendoFoto(true);
     try {
@@ -182,6 +287,7 @@ export default function PaginaPerfilCuenta() {
       setNotificacion({ tipo: "success", mensaje: "Fotografía de perfil actualizada." });
     } catch (error) {
       setNotificacion({ tipo: "error", mensaje: traducirErrorOperativo(error, "No pudimos actualizar la fotografía de perfil.") });
+      setVistaPreviaFoto(null);
     } finally {
       setSubiendoFoto(false);
       evento.target.value = "";
@@ -197,43 +303,180 @@ export default function PaginaPerfilCuenta() {
     return "";
   }
 
+  function valorSensibleExiste(campo: CampoPerfil) {
+    if (!conductor) return false;
+    if (campo === "curp") return Boolean(conductor.curp);
+    if (campo === "licencia_numero") return Boolean(conductor.licencia_numero);
+    if (campo === "contacto_emergencia_nombre") return Boolean(conductor.contacto_emergencia_nombre);
+    if (campo === "contacto_emergencia_telefono") return Boolean(conductor.contacto_emergencia_telefono);
+    return false;
+  }
+
   function claseToast(tipo: NonNullable<NotificacionPerfil>["tipo"]) {
     if (tipo === "success") return "border-success/35 bg-success/12 text-text-primary";
     if (tipo === "error") return "border-danger-action/38 bg-danger-action/12 text-text-primary";
     return "border-route-action/35 bg-surface-elevated text-text-primary";
   }
 
+  // Comprueba si hay cambios reales en el formulario respecto al objeto conductor
+  const hayCambiosReales = Boolean(
+    conductor && (
+      (perfil.nombre.trim() !== (conductor.nombre ?? "") && perfil.nombre.trim() !== "") ||
+      (perfil.telefono.trim() !== (conductor.telefono ?? "") && perfil.telefono.trim() !== "") ||
+      (perfil.codigo_postal.trim() !== (conductor.codigo_postal ?? "") && perfil.codigo_postal.trim() !== "") ||
+      (perfil.estado_residencia.trim() !== (conductor.estado_residencia ?? "") && perfil.estado_residencia.trim() !== "") ||
+      (perfil.ciudad_municipio.trim() !== (conductor.ciudad_municipio ?? "") && perfil.ciudad_municipio.trim() !== "") ||
+      (perfil.colonia.trim() !== (conductor.colonia ?? "") && perfil.colonia.trim() !== "") ||
+      (perfil.calle.trim() !== (conductor.calle ?? "") && perfil.calle.trim() !== "") ||
+      (perfil.numero.trim() !== (conductor.numero ?? "") && perfil.numero.trim() !== "") ||
+      (perfil.referencias.trim() !== (conductor.referencias ?? "") && perfil.referencias.trim() !== "") ||
+      (perfil.licencia_vigencia.trim() !== (conductor.licencia_vigencia ?? "") && perfil.licencia_vigencia.trim() !== "") ||
+      sensiblesEditados.size > 0
+    )
+  );
+
+  const seccionActual = PESTANAS.find((p) => p.id === pestanaActiva) ?? PESTANAS[0];
+
   return (
     <>
-      <ConfirmDialog open={confirmacionAbierta} title="Guardar cambios sensibles" consequence="Operación podría revisar nuevamente tu expediente antes de aprobar los cambios." maskedData={[`Campos modificados: ${sensiblesEditados.size}`]} confirmLabel="Guardar y enviar a revisión" busy={guardando} onCancel={() => setConfirmacionAbierta(false)} onConfirm={() => void guardarPerfil()} />
-    <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:py-14">
-      <CuentaHeader titulo="Perfil" descripcion="Actualiza tus datos personales y de contacto operativo." />
-      {notificacion && (
-        <div
-          aria-live="polite"
-          aria-atomic="true"
-          className={`conductor-toast-bottom fixed right-4 z-50 max-w-[calc(100vw-2rem)] rounded-xl border px-4 py-3 font-body text-sm font-semibold shadow-[0_18px_48px_rgba(0,0,0,0.42)] sm:right-6 sm:max-w-sm ${claseToast(notificacion.tipo)}`}
-        >
-          {notificacion.mensaje}
-        </div>
-      )}
-      <Card className="mt-6">
-        {cargando ? <p className="font-body text-sm text-text-secondary">Cargando perfil...</p> : (
-          <div className="grid gap-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-signal-soft font-display text-3xl font-semibold text-text-primary">
-                {conductor?.foto_perfil_url ? <Image src={conductor.foto_perfil_url} alt="" width={96} height={96} className="h-full w-full object-cover" /> : (perfil.nombre || "CD").slice(0, 2).toUpperCase()}
+      <ConfirmDialog
+        open={confirmacionAbierta}
+        title="Guardar cambios sensibles"
+        consequence="Operación podría revisar nuevamente tu expediente antes de aprobar los cambios."
+        maskedData={[`Campos modificados: ${sensiblesEditados.size}`]}
+        confirmLabel="Guardar y enviar a revisión"
+        busy={guardando}
+        onCancel={() => setConfirmacionAbierta(false)}
+        onConfirm={() => void guardarPerfil()}
+      />
+
+      <div className="mx-auto w-full max-w-3xl px-4 py-8 pb-28 sm:px-6 sm:py-12 sm:pb-14">
+        <CuentaHeader titulo="Perfil del Conductor" descripcion="Administra tus datos personales, documentación y contactos operativos." />
+
+        {notificacion && (
+          <div
+            aria-live="polite"
+            aria-atomic="true"
+            className={`conductor-toast-bottom fixed right-4 z-50 max-w-[calc(100vw-2rem)] rounded-xl border px-4 py-3 font-body text-sm font-semibold shadow-[0_18px_48px_rgba(0,0,0,0.42)] sm:right-6 sm:max-w-sm ${claseToast(notificacion.tipo)}`}
+          >
+            {notificacion.mensaje}
+          </div>
+        )}
+
+        {/* 1. Alertas accionables destacadas */}
+        {sensiblesEditados.size > 0 && (
+          <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 font-body text-sm text-amber-900 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-500/20 font-bold text-amber-600 dark:text-amber-300">
+                ⚠️
               </div>
-              <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 font-body text-sm font-semibold text-text-secondary hover:border-signal">
-                {subiendoFoto ? "Subiendo..." : "Subir o actualizar foto"}
-                <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={subirFotoPerfil} disabled={!conductor || subiendoFoto} />
-              </label>
+              <div>
+                <p className="font-display font-extrabold text-amber-950 dark:text-amber-100">
+                  Acción requerida para confirmar cambios
+                </p>
+                <p className="mt-0.5 text-xs font-medium text-amber-900/90 dark:text-amber-200/90">
+                  Has modificado {sensiblesEditados.size} {sensiblesEditados.size === 1 ? "campo sensible" : "campos sensibles"}. Al guardar, tu perfil será enviado a revisión operativa.
+                </p>
+              </div>
             </div>
-            {SECCIONES_PERFIL.map((seccion) => (
-              <section key={seccion.titulo} className="grid gap-4 border-t border-border/16 pt-5 first:border-t-0 first:pt-0">
-                <h2 className="font-display text-base font-semibold text-text-primary">{seccion.titulo}</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {seccion.campos.map((clave, indice) => {
+            <button
+              type="button"
+              onClick={() => void guardarPerfil()}
+              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-amber-500 px-4 py-2.5 font-display text-xs font-bold text-slate-950 transition hover:bg-amber-400 active:scale-95 shadow-xs"
+            >
+              Solucionar ahora
+            </button>
+          </div>
+        )}
+
+        {/* 3. Carga de fotografía de perfil moderna */}
+        <Card className="mt-6">
+          {cargando ? (
+            <div className="py-8 text-center font-body text-sm text-text-secondary">Cargando perfil...</div>
+          ) : (
+            <div className="grid gap-6">
+              <div className="flex flex-col items-center gap-4 rounded-2xl border border-border/40 bg-surface-elevated/40 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="relative group flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-signal bg-signal-soft font-display text-2xl font-bold text-text-primary shadow-md transition hover:opacity-90">
+                    {vistaPreviaFoto || conductor?.foto_perfil_url ? (
+                      <Image
+                        src={vistaPreviaFoto || conductor?.foto_perfil_url || ""}
+                        alt="Fotografía del conductor"
+                        width={80}
+                        height={80}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      (perfil.nombre || "CD").slice(0, 2).toUpperCase()
+                    )}
+                    {subiendoFoto && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white font-body text-xs font-bold">
+                        Subiendo...
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="font-display text-lg font-bold text-text-primary">
+                      {conductor?.nombre || "Conductor Ruum Ruum"}
+                    </h2>
+                    <p className="font-body text-xs text-text-tertiary">
+                      Fotografía de perfil activa para identificación operativa
+                    </p>
+                  </div>
+                </div>
+
+                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 font-body text-sm font-semibold text-text-primary shadow-xs transition hover:border-signal hover:bg-surface-elevated active:scale-95">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                  {subiendoFoto ? "Cargando imagen..." : "Cambiar fotografía"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={subirFotoPerfil}
+                    disabled={!conductor || subiendoFoto}
+                  />
+                </label>
+              </div>
+
+              {/* 1. Segmentación por Pestañas (Tabs) */}
+              <div className="border-b border-border/40" role="tablist" aria-label="Secciones del perfil">
+                <nav className="-mb-px flex space-x-2 sm:space-x-6 overflow-x-auto no-scrollbar" aria-label="Tabs">
+                  {PESTANAS.map((tab) => {
+                    const activa = tab.id === pestanaActiva;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={activa}
+                        onClick={() => setPestanaActiva(tab.id)}
+                        className={[
+                          "inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3 font-display text-sm font-bold transition-all",
+                          activa
+                            ? "border-signal text-signal"
+                            : "border-transparent text-text-tertiary hover:border-border hover:text-text-primary"
+                        ].join(" ")}
+                      >
+                        <span className="text-base">{tab.icono}</span>
+                        {tab.titulo}
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              {/* Contenido de la Pestaña Activa */}
+              <section key={seccionActual.id} className="grid gap-5 pt-2" role="tabpanel">
+                <div>
+                  <h3 className="font-display text-base font-bold text-text-primary">{seccionActual.titulo}</h3>
+                  <p className="font-body text-xs text-text-tertiary">{seccionActual.descripcion}</p>
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {seccionActual.campos.map((clave, indice) => {
                     const campo = CAMPO_CONFIG[clave];
                     const inputId = `perfil-${clave}`;
                     const tipoDatoSensible = tipoDatoSensibleCampo(clave);
@@ -241,60 +484,158 @@ export default function PaginaPerfilCuenta() {
                     const esSensible = CAMPOS_SENSIBLES.has(clave);
                     const esSoloLectura = CAMPOS_SOLO_LECTURA.has(clave);
 
+                    const tieneValorRegistrado = valorSensibleExiste(clave);
+                    const estaEnEdicionSensible = sensiblesEditados.has(clave as CampoSensiblePerfil);
+                    const evaluacion = evaluarValidacionInline(clave, perfil[clave]);
+
                     return (
-                      <div key={clave} className={`grid gap-1 font-body text-sm font-semibold text-text-tertiary ${campo.colSpan ?? ""}`}>
-                        <div className="flex items-center gap-2">
-                          <label htmlFor={inputId}>{campo.etiqueta}</label>
-                          {tipoDatoSensible && <DatosSensiblesTooltip tipo={tipoDatoSensible} align={tooltipAlign} />}
-                          {esSoloLectura && (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-text-tertiary/28 bg-surface-muted px-2 py-0.5 text-xs font-semibold normal-case tracking-normal text-text-tertiary">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <rect x="4" y="11" width="16" height="9" rx="2" />
-                                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                      <div key={clave} className={`grid gap-1.5 font-body text-sm font-semibold text-text-tertiary ${campo.colSpan ?? ""}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <label htmlFor={inputId} className="text-text-primary">{campo.etiqueta}</label>
+                            {tipoDatoSensible && <DatosSensiblesTooltip tipo={tipoDatoSensible} align={tooltipAlign} />}
+                            {esSoloLectura && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-text-tertiary/28 bg-surface-muted px-2 py-0.5 text-xs font-semibold normal-case tracking-normal text-text-tertiary">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <rect x="4" y="11" width="16" height="9" rx="2" />
+                                  <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                                </svg>
+                                Solo lectura
+                              </span>
+                            )}
+                          </div>
+
+                          {/* 2. Validación Inline real-time feedback */}
+                          {evaluacion.esValido === true && (
+                            <span className="inline-flex items-center gap-1 font-body text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
                               </svg>
-                              Solo lectura
+                              {evaluacion.mensaje ?? "✓ OK"}
                             </span>
                           )}
                         </div>
-                        <input
-                          id={inputId}
-                          type={campo.tipo ?? "text"}
-                          value={perfil[clave]}
-                          placeholder={esSensible ? placeholderSensible(clave) : undefined}
-                          readOnly={esSoloLectura}
-                          aria-readonly={esSoloLectura || undefined}
-                          data-ruum-label={campo.etiqueta}
-                          onChange={(event) => {
-                            if (esSoloLectura) return;
-                            if (esSensible) {
-                              setSensiblesEditados((actual) => new Set(actual).add(clave as CampoSensiblePerfil));
-                            }
-                            const valor = clave === "licencia_numero" ? event.target.value.toLocaleUpperCase("es-MX") : event.target.value;
-                            setPerfil((actual) => ({ ...actual, [clave]: valor }));
-                          }}
-                          className={[
-                            "rounded-lg border px-3 py-2 font-body text-base normal-case tracking-normal text-text-primary placeholder:text-text-tertiary",
-                            esSoloLectura
-                              ? "border-border/12 bg-surface-muted text-text-tertiary outline-none"
-                              : "border-border bg-surface"
-                          ].join(" ")}
-                        />
-                        {esSensible && (
-                          <span className="font-body text-xs normal-case tracking-normal text-text-tertiary">Escribe para actualizar.</span>
+
+                        {/* 2. Estados de campos sensibles (Edición protegida por ícono Lápiz) */}
+                        {esSensible && tieneValorRegistrado && !estaEnEdicionSensible ? (
+                          <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-surface-elevated/70 px-3.5 py-2.5 transition">
+                            <div className="flex items-center gap-2.5 overflow-hidden">
+                              <span className="font-mono text-sm tracking-wider text-text-primary font-bold">
+                                {placeholderSensible(clave)}
+                              </span>
+                              <span className="rounded-md border border-border bg-surface px-2 py-0.5 text-[11px] font-semibold text-text-tertiary">
+                                Protegido
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSensiblesEditados((actual) => new Set(actual).add(clave as CampoSensiblePerfil));
+                                setPerfil((actual) => ({ ...actual, [clave]: "" }));
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 font-body text-xs font-bold text-route-action transition hover:border-route-action hover:bg-route-action/10 active:scale-95"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                              Editar
+                            </button>
+                          </div>
+                        ) : clave === "colonia" && coloniasDisponibles.length > 0 ? (
+                          /* 2. Autocompletado inteligente CP — Desplegable de colonias SEPOMEX */
+                          <div className="relative">
+                            <select
+                              id={inputId}
+                              value={perfil.colonia}
+                              onChange={(e) => setPerfil((actual) => ({ ...actual, colonia: e.target.value }))}
+                              className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 font-body text-base text-text-primary outline-none focus:border-signal"
+                            >
+                              {coloniasDisponibles.map((col) => (
+                                <option key={col} value={col}>{col}</option>
+                              ))}
+                            </select>
+                            <span className="mt-1 block font-body text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                              ✓ Colonias detectadas oficialmente por SEPOMEX
+                            </span>
+                          </div>
+                        ) : (
+                          /* Input Estándar */
+                          <div className="relative">
+                            <input
+                              id={inputId}
+                              type={campo.tipo ?? "text"}
+                              value={perfil[clave]}
+                              placeholder={campo.placeholder ?? (esSensible ? placeholderSensible(clave) : undefined)}
+                              readOnly={esSoloLectura}
+                              aria-readonly={esSoloLectura || undefined}
+                              data-ruum-label={campo.etiqueta}
+                              onChange={(event) => {
+                                if (esSoloLectura) return;
+                                if (clave === "codigo_postal") {
+                                  void manejarCambioCp(event.target.value);
+                                  return;
+                                }
+                                if (esSensible) {
+                                  setSensiblesEditados((actual) => new Set(actual).add(clave as CampoSensiblePerfil));
+                                }
+                                const valor = clave === "licencia_numero" ? event.target.value.toLocaleUpperCase("es-MX") : event.target.value;
+                                setPerfil((actual) => ({ ...actual, [clave]: valor }));
+                              }}
+                              className={[
+                                "w-full rounded-xl border px-3.5 py-2.5 font-body text-base normal-case tracking-normal text-text-primary placeholder:text-text-tertiary/60 outline-none transition focus:border-signal",
+                                esSoloLectura
+                                  ? "border-border/12 bg-surface-muted text-text-tertiary"
+                                  : evaluacion.esValido === false
+                                  ? "border-red-500/80 bg-red-500/5 focus:border-red-500"
+                                  : "border-border bg-surface"
+                              ].join(" ")}
+                            />
+
+                            {clave === "codigo_postal" && buscandoCp && (
+                              <span className="absolute right-3 top-3 font-body text-xs text-text-tertiary animate-pulse">
+                                Buscando CP...
+                              </span>
+                            )}
+                            {clave === "codigo_postal" && cpDetectado && !buscandoCp && (
+                              <span className="mt-1 block font-body text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                ✓ Ubicación y colonias autocompletadas (SEPOMEX)
+                              </span>
+                            )}
+                            {evaluacion.esValido === false && evaluacion.mensaje && (
+                              <span className="mt-1 block font-body text-xs font-semibold text-red-500">
+                                {evaluacion.mensaje}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     );
                   })}
                 </div>
               </section>
-            ))}
-            <Button variant="secondary" onClick={guardarPerfil} loading={guardando} disabled={!conductor}>
-              Guardar perfil
+            </div>
+          )}
+        </Card>
+
+        {/* 3. Botón de acción flotante (Sticky Button) para móvil y escritorio */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-surface/95 px-4 py-3 backdrop-blur-md shadow-lg sm:relative sm:z-auto sm:mt-6 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+          <div className="mx-auto max-w-3xl flex items-center justify-between gap-4">
+            <p className="hidden font-body text-xs text-text-tertiary sm:block">
+              {hayCambiosReales ? "Hay cambios pendientes por guardar" : "Sin cambios detectados"}
+            </p>
+            <Button
+              variant={hayCambiosReales ? "primary" : "secondary"}
+              onClick={() => void guardarPerfil()}
+              loading={guardando}
+              disabled={!conductor || !hayCambiosReales || guardando}
+              className={`w-full sm:w-auto min-w-[200px] transition-all ${hayCambiosReales ? "shadow-md animate-pulse sm:animate-none" : "opacity-75"}`}
+            >
+              {guardando ? "Guardando perfil..." : "Guardar perfil"}
             </Button>
           </div>
-        )}
-      </Card>
-    </div>
+        </div>
+      </div>
     </>
   );
 }

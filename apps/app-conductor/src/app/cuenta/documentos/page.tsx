@@ -1,7 +1,7 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
-import { Aviso, Button, Card } from "@ruum/ui";
+import { useEffect, useState } from "react";
+import { Aviso, Card } from "@ruum/ui";
 import { obtenerConfiguracionConductor, subirDocumentoConductor, type TipoDocumentoConductor } from "@ruum/api/services";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import type { Database } from "@ruum/shared/types";
@@ -38,8 +38,7 @@ export default function PaginaDocumentosCuenta() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  async function subirDocumento(tipoDocumento: TipoDocumentoConductor, evento: ChangeEvent<HTMLInputElement>) {
-    const archivo = evento.target.files?.[0];
+  async function subirDocumento(tipoDocumento: TipoDocumentoConductor, archivo: File) {
     if (!archivo || !conductor) return;
     setMensaje(null);
     setSubiendo(tipoDocumento);
@@ -52,26 +51,46 @@ export default function PaginaDocumentosCuenta() {
       setMensaje(traducirErrorOperativo(error, "No pudimos registrar el documento."));
     } finally {
       setSubiendo(null);
-      evento.target.value = "";
     }
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:py-14">
-      <CuentaHeader titulo="Documentos" descripcion="Consulta y actualiza tu expediente operativo." />
-      {mensaje && <div className="mt-5"><Aviso tono="info">{mensaje}</Aviso></div>}
+    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
+      <CuentaHeader titulo="Expediente de Documentos" descripcion="Consulta y actualiza tu documentación operativa para mantener tu cuenta activa." />
+
+      {mensaje && (
+        <div className="mt-5">
+          <Aviso tono="info">{mensaje}</Aviso>
+        </div>
+      )}
+
       <Card className="mt-6">
-        {cargando ? <p className="font-body text-sm text-text-secondary">Cargando documentos...</p> : (
-          <div className="grid gap-5">
+        {cargando ? (
+          <div className="py-8 text-center font-body text-sm text-text-secondary">
+            Cargando expediente documental...
+          </div>
+        ) : (
+          <div className="grid gap-6">
             <div>
-              <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Checklist documental</p>
-              <h2 className="mt-1 font-display text-xl font-semibold">Documentos que pueden bloquear tu cuenta</h2>
-              <p className="mt-2 font-body text-sm leading-6 text-text-secondary">
-                Los documentos bloqueantes aparecen primero. Los aprobados no vuelven a solicitarse.
+              <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">
+                Expediente digital del Conductor
+              </p>
+              <h2 className="mt-1 font-display text-xl font-bold text-text-primary">
+                Documentos requeridos para operar
+              </h2>
+              <p className="mt-1 font-body text-sm leading-6 text-text-tertiary">
+                Los documentos bloqueantes deben estar vigentes para recibir traslados.
               </p>
             </div>
+
             <DatosSensiblesInfo tipo="documentos" />
-            <DriverDocumentChecklist conductor={conductor} documentos={documentos} subiendo={subiendo} onUpload={subirDocumento} />
+
+            <DriverDocumentChecklist
+              conductor={conductor}
+              documentos={documentos}
+              subiendo={subiendo}
+              onUpload={subirDocumento}
+            />
           </div>
         )}
       </Card>

@@ -1,13 +1,12 @@
 "use client";
 
-import { ChangeEvent } from "react";
+import { ChangeEvent, DragEvent, useState } from "react";
 import type { Database } from "@ruum/shared/types";
 import {
   estadoVigenciaLicencia,
   vencimientoDocumentoDesdeLicencia
 } from "@ruum/shared/validacion";
 import type { TipoDocumentoConductor } from "@ruum/api/services";
-import { Button } from "@ruum/ui";
 import { fechaCuenta, type ConductorCuenta } from "../cuenta-utils";
 import { enmascararNombreArchivo } from "../datos-sensibles";
 
@@ -23,20 +22,20 @@ type DocumentoRequerido = {
 };
 
 const DOCUMENTOS_REQUERIDOS: DocumentoRequerido[] = [
-  { tipo: "licencia_frente", etiqueta: "Licencia - frente", descripcion: "Foto clara del frente de tu licencia vigente.", bloqueante: true },
-  { tipo: "licencia_reverso", etiqueta: "Licencia - reverso", descripcion: "Foto clara del reverso de tu licencia vigente.", bloqueante: true },
-  { tipo: "identificacion_oficial", etiqueta: "Identificación oficial", descripcion: "INE, pasaporte u otra identificación oficial vigente.", bloqueante: true },
-  { tipo: "documento_operativo", etiqueta: "Documento operativo adicional", descripcion: "Solo si operación lo solicita para tu expediente.", bloqueante: false }
+  { tipo: "licencia_frente", etiqueta: "Licencia - Frente", descripcion: "Fotografía clara del frente de tu licencia vigente.", bloqueante: true },
+  { tipo: "licencia_reverso", etiqueta: "Licencia - Reverso", descripcion: "Fotografía clara del reverso de tu licencia vigente.", bloqueante: true },
+  { tipo: "identificacion_oficial", etiqueta: "Identificación Oficial (INE / Pasaporte)", descripcion: "Identificación oficial vigente por ambos lados.", bloqueante: true },
+  { tipo: "documento_operativo", etiqueta: "Documento Operativo Adicional", descripcion: "Solo si el equipo de operación solicita un respaldo extra.", bloqueante: false }
 ];
 
-const ESTILO_ESTADO: Record<EstadoChecklist, { texto: string; clase: string }> = {
-  falta: { texto: "Falta", clase: "border-danger-action bg-danger-soft text-danger-action" },
-  cargado: { texto: "Cargado", clase: "border-route-action bg-route-soft text-route-action" },
-  en_revision: { texto: "En revisión", clase: "border-route-action bg-route-soft text-route-action" },
-  aprobado: { texto: "Aprobado", clase: "border-success bg-control-soft text-success" },
-  rechazado: { texto: "Rechazado", clase: "border-danger-action bg-danger-soft text-danger-action" },
-  por_vencer: { texto: "Por vencer", clase: "border-warning bg-warn-soft text-warning" },
-  vencido: { texto: "Vencido", clase: "border-danger-action bg-danger-soft text-danger-action" }
+const ESTILO_ESTADO: Record<EstadoChecklist, { texto: string; clase: string; icono: string }> = {
+  falta: { texto: "Falta documento", clase: "border-red-500/40 bg-red-500/10 text-red-500 dark:text-red-400", icono: "⚠️" },
+  cargado: { texto: "Cargado", clase: "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400", icono: "⏳" },
+  en_revision: { texto: "En revisión", clase: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400", icono: "🔍" },
+  aprobado: { texto: "Aprobado", clase: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", icono: "✓" },
+  rechazado: { texto: "Rechazado", clase: "border-red-500/40 bg-red-500/10 text-red-500 dark:text-red-400", icono: "❌" },
+  por_vencer: { texto: "Por vencer", clase: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400", icono: "⏰" },
+  vencido: { texto: "Vencido", clase: "border-red-500/40 bg-red-500/10 text-red-500 dark:text-red-400", icono: "🚨" }
 };
 
 function documentoActual(documentos: Documento[], tipo: TipoDocumentoConductor) {
@@ -60,26 +59,11 @@ function estadoDocumento(documento: Documento | null, vencimiento: string | null
   return "falta";
 }
 
-function prioridad(estado: EstadoChecklist, bloqueante: boolean) {
-  const pesoEstado: Record<EstadoChecklist, number> = {
-    vencido: 0,
-    rechazado: 1,
-    falta: 2,
-    por_vencer: 3,
-    cargado: 4,
-    en_revision: 5,
-    aprobado: 6
-  };
-  return (bloqueante ? 0 : 10) + pesoEstado[estado];
-}
-
 function ctaTexto(estado: EstadoChecklist) {
-  if (estado === "aprobado") return "Aprobado";
-  if (estado === "en_revision" || estado === "cargado") return "Esperando revisión";
-  if (estado === "rechazado") return "Reemplazar documento";
+  if (estado === "rechazado") return "Reemplazar documento corregido";
   if (estado === "vencido") return "Subir documento vigente";
-  if (estado === "por_vencer") return "Reemplazar antes del vencimiento";
-  return "Subir documento";
+  if (estado === "por_vencer") return "Actualizar antes del vencimiento";
+  return "Seleccionar o arrastrar archivo";
 }
 
 export function DriverDocumentChecklist({
@@ -91,83 +75,232 @@ export function DriverDocumentChecklist({
   conductor: ConductorCuenta | null;
   documentos: Documento[];
   subiendo: TipoDocumentoConductor | null;
-  onUpload: (tipo: TipoDocumentoConductor, event: ChangeEvent<HTMLInputElement>) => void;
+  onUpload: (tipo: TipoDocumentoConductor, file: File) => void;
 }) {
+  const [arrastrandoSobre, setArrastrandoSobre] = useState<TipoDocumentoConductor | null>(null);
+
   const items = DOCUMENTOS_REQUERIDOS.map((requerido) => {
     const documento = documentoActual(documentos, requerido.tipo);
     const vencimiento = vencimientoDocumento(conductor, requerido.tipo);
     const estado = estadoDocumento(documento, vencimiento);
     return { requerido, documento, vencimiento, estado };
-  }).sort((a, b) => prioridad(a.estado, a.requerido.bloqueante) - prioridad(b.estado, b.requerido.bloqueante));
+  });
+
+  // Agrupación en dos bloques: Acción requerida vs Aprobados
+  const requeridosOAccion = items.filter((i) => i.estado !== "aprobado");
+  const aprobados = items.filter((i) => i.estado === "aprobado");
+
+  function manejarDragOver(e: DragEvent<HTMLElement>, tipo: TipoDocumentoConductor) {
+    e.preventDefault();
+    e.stopPropagation();
+    setArrastrandoSobre(tipo);
+  }
+
+  function manejarDragLeave(e: DragEvent<HTMLElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setArrastrandoSobre(null);
+  }
+
+  function manejarDrop(e: DragEvent<HTMLElement>, tipo: TipoDocumentoConductor) {
+    e.preventDefault();
+    e.stopPropagation();
+    setArrastrandoSobre(null);
+
+    const archivo = e.dataTransfer.files?.[0];
+    if (archivo) {
+      onUpload(tipo, archivo);
+    }
+  }
+
+  function manejarSeleccionArchivo(e: ChangeEvent<HTMLInputElement>, tipo: TipoDocumentoConductor) {
+    const archivo = e.target.files?.[0];
+    if (archivo) {
+      onUpload(tipo, archivo);
+      e.target.value = "";
+    }
+  }
 
   return (
-    <section className="grid gap-3" aria-label="Checklist documental">
-      {items.map(({ requerido, documento, vencimiento, estado }) => {
-        const visual = ESTILO_ESTADO[estado];
-        const rechazo = documento?.motivo_rechazo ?? documento?.notas_admin;
-        const permiteReemplazo = estado !== "aprobado" && estado !== "en_revision" && estado !== "cargado";
-        return (
-          <article
-            key={requerido.tipo}
-            className={[
-              "rounded-xl border px-4 py-4",
-              requerido.bloqueante && ["falta", "rechazado", "vencido"].includes(estado)
-                ? "border-danger-action bg-danger-soft"
-                : "border-border bg-surface"
-            ].join(" ")}
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="font-display text-lg font-semibold">{requerido.etiqueta}</h2>
-                  {requerido.bloqueante && (
-                    <span className="rounded-full border border-danger-action bg-surface px-2.5 py-1 font-body text-sm font-bold text-danger-action">
-                      Bloqueante
+    <div className="grid gap-8">
+      {/* 1. Sección: Documentos que requieren atención / subida */}
+      <section className="grid gap-4" aria-label="Documentos pendientes de atención">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-base font-bold text-text-primary flex items-center gap-2">
+            <span className="flex size-6 items-center justify-center rounded-full bg-amber-500/20 text-xs font-bold text-amber-500">
+              {requeridosOAccion.length}
+            </span>
+            Atención requerida y pendientes
+          </h2>
+          {requeridosOAccion.some((i) => i.requerido.bloqueante && ["falta", "rechazado", "vencido"].includes(i.estado)) && (
+            <span className="rounded-full bg-red-500/15 border border-red-500/30 px-3 py-1 font-body text-xs font-bold text-red-500">
+              🚨 Bloquea recepción de viajes
+            </span>
+          )}
+        </div>
+
+        <div className="grid gap-4">
+          {requeridosOAccion.map(({ requerido, documento, vencimiento, estado }) => {
+            const visual = ESTILO_ESTADO[estado];
+            const rechazo = documento?.motivo_rechazo ?? documento?.notas_admin;
+            const esBloqueanteAccion = requerido.bloqueante && ["falta", "rechazado", "vencido"].includes(estado);
+            const esArrastrando = arrastrandoSobre === requerido.tipo;
+            const estaSubiendo = subiendo === requerido.tipo;
+
+            return (
+              <article
+                key={requerido.tipo}
+                onDragOver={(e) => manejarDragOver(e, requerido.tipo)}
+                onDragLeave={manejarDragLeave}
+                onDrop={(e) => manejarDrop(e, requerido.tipo)}
+                className={[
+                  "relative rounded-2xl border p-5 transition-all duration-200",
+                  esArrastrando
+                    ? "border-signal bg-signal/10 scale-[1.01] shadow-lg"
+                    : esBloqueanteAccion
+                    ? "border-red-500/40 bg-red-500/5 shadow-xs"
+                    : "border-border bg-surface"
+                ].join(" ")}
+              >
+                <div className="flex flex-col gap-4">
+                  {/* Encabezado del documento */}
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-display text-base font-bold text-text-primary">{requerido.etiqueta}</h3>
+                        {requerido.bloqueante ? (
+                          <span className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 font-body text-[11px] font-bold text-red-500">
+                            Bloqueante
+                          </span>
+                        ) : (
+                          <span className="rounded-md border border-border bg-surface-elevated px-2 py-0.5 font-body text-[11px] font-semibold text-text-tertiary">
+                            Opcional / Requerido
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 font-body text-xs leading-5 text-text-tertiary">{requerido.descripcion}</p>
+                    </div>
+
+                    {/* Badge de Estado ÚNICO sin botones duplicados */}
+                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-body text-xs font-bold ${visual.clase}`}>
+                      <span>{visual.icono}</span>
+                      {visual.texto}
                     </span>
+                  </div>
+
+                  {/* 3. Arquitectura de Metadatos con Iconos de Apoyo y Estados Vacíos Limpios ("—") */}
+                  <div className="grid gap-3 rounded-xl border border-border/40 bg-surface-elevated/50 p-3.5 sm:grid-cols-2">
+                    <div className="flex items-center gap-3">
+                      {/* Miniatura / Thumbnail del Documento */}
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface font-display text-lg text-route-action shadow-2xs">
+                        📎
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="font-body text-[11px] font-semibold uppercase tracking-wider text-text-tertiary flex items-center gap-1">
+                          Archivo cargado
+                        </dt>
+                        <dd className="truncate font-body text-xs font-bold text-text-primary">
+                          {documento?.nombre_archivo ? enmascararNombreArchivo(documento.nombre_archivo) : "—"}
+                        </dd>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface font-display text-lg text-signal shadow-2xs">
+                        📅
+                      </div>
+                      <div>
+                        <dt className="font-body text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                          Fecha de Vencimiento
+                        </dt>
+                        <dd className="font-body text-xs font-bold text-text-primary">
+                          {vencimiento ? fechaCuenta(vencimiento) : "—"}
+                        </dd>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Motivo de rechazo en su caso */}
+                  {rechazo && estado === "rechazado" && (
+                    <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3.5 font-body text-xs text-red-500">
+                      <p className="font-bold text-red-600 dark:text-red-400">Motivo de rechazo por operación:</p>
+                      <p className="mt-1 text-text-primary">{rechazo}</p>
+                      <p className="mt-1.5 font-semibold">Sube una nueva imagen legible para reactivar tu revisión.</p>
+                    </div>
+                  )}
+
+                  {/* 2. Carga de Archivos: Zona Drag & Drop + Botón Estilizado */}
+                  {estado !== "en_revision" && estado !== "cargado" && (
+                    <label className="group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-signal/60 bg-surface-elevated/40 p-4 text-center transition hover:border-signal hover:bg-signal/5 active:scale-[0.99]">
+                      <div className="flex items-center gap-2 font-display text-sm font-bold text-route-action group-hover:text-signal">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        {estaSubiendo ? "Subiendo archivo..." : ctaTexto(estado)}
+                      </div>
+                      <p className="mt-1 font-body text-[11px] text-text-tertiary">
+                        Haz clic o arrastra tu archivo (JPG, PNG o PDF de hasta 10 MB)
+                      </p>
+
+                      {/* Input HTML totalmente oculto estilizado */}
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="sr-only"
+                        disabled={estaSubiendo}
+                        onChange={(e) => manejarSeleccionArchivo(e, requerido.tipo)}
+                      />
+                    </label>
                   )}
                 </div>
-                <p className="mt-1 font-body text-sm leading-6 text-text-secondary">{requerido.descripcion}</p>
-                <dl className="mt-3 grid gap-2 font-body text-sm sm:grid-cols-2">
-                  <div>
-                    <dt className="text-xs uppercase tracking-wide text-text-tertiary">Archivo</dt>
-                    <dd className="mt-1 font-semibold">{documento?.nombre_archivo ? enmascararNombreArchivo(documento.nombre_archivo) : "Sin archivo cargado"}</dd>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 1. Sección: Documentos Aprobados (Sin botones redundantes "Aprobado") */}
+      {aprobados.length > 0 && (
+        <section className="grid gap-3 pt-4 border-t border-border/40" aria-label="Documentos aprobados">
+          <h2 className="font-display text-base font-bold text-text-primary flex items-center gap-2">
+            <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/20 text-xs font-bold text-emerald-500">
+              ✓
+            </span>
+            Documentos Aprobados ({aprobados.length})
+          </h2>
+
+          <div className="grid gap-3">
+            {aprobados.map(({ requerido, documento, vencimiento }) => (
+              <article key={requerido.tipo} className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 transition">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 font-bold text-emerald-500">
+                      ✓
+                    </div>
+                    <div>
+                      <h3 className="font-display text-sm font-bold text-text-primary">{requerido.etiqueta}</h3>
+                      <p className="font-body text-xs text-text-tertiary">
+                        {documento?.nombre_archivo ? enmascararNombreArchivo(documento.nombre_archivo) : "Documento validado"}
+                        {vencimiento ? ` • Vence: ${fechaCuenta(vencimiento)}` : ""}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <dt className="text-xs uppercase tracking-wide text-text-tertiary">Vencimiento</dt>
-                    <dd className="mt-1 font-semibold">{vencimiento ? fechaCuenta(vencimiento) : "No registrado"}</dd>
-                  </div>
-                </dl>
-                {rechazo && estado === "rechazado" && (
-                  <div className="mt-3 rounded-lg border border-danger-action bg-surface px-3 py-3">
-                    <p className="font-body text-sm font-semibold text-danger-action">Motivo de rechazo</p>
-                    <p className="mt-1 font-body text-sm text-text-secondary">{rechazo}</p>
-                    <p className="mt-2 font-body text-sm font-semibold text-danger-action">Siguiente acción: reemplaza este documento con una versión corregida.</p>
-                  </div>
-                )}
-              </div>
-              <div className="grid gap-2 sm:min-w-56">
-                <span className={`rounded-full border px-3 py-1.5 text-center font-body text-xs font-semibold ${visual.clase}`}>
-                  {visual.texto}
-                </span>
-                {permiteReemplazo ? (
-                  <label className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-signal bg-signal px-4 py-2 text-center font-body text-sm font-semibold text-text-primary">
-                    {subiendo === requerido.tipo ? "Subiendo..." : ctaTexto(estado)}
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      className="sr-only"
-                      disabled={subiendo !== null}
-                      onChange={(event) => onUpload(requerido.tipo, event)}
-                    />
-                  </label>
-                ) : (
-                  <Button variant="quiet" disabled>{ctaTexto(estado)}</Button>
-                )}
-              </div>
-            </div>
-          </article>
-        );
-      })}
-    </section>
+
+                  {/* Único badge sin botón fantasma redundante */}
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 font-body text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Aprobado
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
   );
 }
