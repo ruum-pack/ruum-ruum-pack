@@ -59,13 +59,6 @@ function estadoDocumento(documento: Documento | null, vencimiento: string | null
   return "falta";
 }
 
-function ctaTexto(estado: EstadoChecklist) {
-  if (estado === "rechazado") return "Reemplazar documento corregido";
-  if (estado === "vencido") return "Subir documento vigente";
-  if (estado === "por_vencer") return "Actualizar antes del vencimiento";
-  return "Seleccionar o arrastrar archivo";
-}
-
 export function DriverDocumentChecklist({
   conductor,
   documentos,
@@ -78,6 +71,7 @@ export function DriverDocumentChecklist({
   onUpload: (tipo: TipoDocumentoConductor, file: File) => void;
 }) {
   const [arrastrandoSobre, setArrastrandoSobre] = useState<TipoDocumentoConductor | null>(null);
+  const [actualizarAbierto, setActualizarAbierto] = useState<Record<string, boolean>>({});
 
   const items = DOCUMENTOS_REQUERIDOS.map((requerido) => {
     const documento = documentoActual(documentos, requerido.tipo);
@@ -86,9 +80,12 @@ export function DriverDocumentChecklist({
     return { requerido, documento, vencimiento, estado };
   });
 
-  // Agrupación en dos bloques: Acción requerida vs Aprobados
   const requeridosOAccion = items.filter((i) => i.estado !== "aprobado");
   const aprobados = items.filter((i) => i.estado === "aprobado");
+
+  function alternarFormActualizar(tipo: TipoDocumentoConductor) {
+    setActualizarAbierto((prev) => ({ ...prev, [tipo]: !prev[tipo] }));
+  }
 
   function manejarDragOver(e: DragEvent<HTMLElement>, tipo: TipoDocumentoConductor) {
     e.preventDefault();
@@ -121,9 +118,61 @@ export function DriverDocumentChecklist({
     }
   }
 
+  function renderizarZonaCaptura(tipo: TipoDocumentoConductor, estaSubiendo: boolean) {
+    return (
+      <div
+        onDragOver={(e) => manejarDragOver(e, tipo)}
+        onDragLeave={manejarDragLeave}
+        onDrop={(e) => manejarDrop(e, tipo)}
+        className={[
+          "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 text-center transition-all duration-150",
+          arrastrandoSobre === tipo
+            ? "border-signal bg-signal/10 scale-[1.01] shadow-md"
+            : "border-signal/50 bg-surface-elevated/40 hover:border-signal hover:bg-signal/5"
+        ].join(" ")}
+      >
+        <p className="font-display text-xs font-bold text-text-primary mb-3">
+          {estaSubiendo ? "⏳ Registrando documento..." : "Captura o selecciona el nuevo archivo para actualizar"}
+        </p>
+
+        {/* Doble Opción: Cámara Móvil (📸) vs Selector de Archivos (📁) */}
+        <div className="flex flex-wrap items-center justify-center gap-3 w-full">
+          {/* Opción 1: Cámara Móvil */}
+          <label className="inline-flex items-center justify-center gap-2 rounded-xl bg-signal/15 border border-signal/40 px-4 py-2.5 font-display text-xs font-bold text-signal transition hover:bg-signal hover:text-slate-950 active:scale-95 cursor-pointer">
+            <span>📸 Tomar foto con cámara</span>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={estaSubiendo}
+              className="sr-only"
+              onChange={(e) => manejarSeleccionArchivo(e, tipo)}
+            />
+          </label>
+
+          {/* Opción 2: Archivo de Galería / PDF */}
+          <label className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 font-display text-xs font-bold text-text-primary transition hover:border-signal hover:bg-surface-elevated active:scale-95 cursor-pointer">
+            <span>📁 Subir imagen o PDF</span>
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              disabled={estaSubiendo}
+              className="sr-only"
+              onChange={(e) => manejarSeleccionArchivo(e, tipo)}
+            />
+          </label>
+        </div>
+
+        <p className="mt-2.5 font-body text-[11px] text-text-tertiary">
+          Formatos JPG, PNG, WEBP o PDF hasta 10 MB. También puedes arrastrar el archivo desde tu escritorio.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-8">
-      {/* 1. Sección: Documentos que requieren atención / subida */}
+      {/* 1. Sección: Documentos pendientes o requeridos de atención */}
       <section className="grid gap-4" aria-label="Documentos pendientes de atención">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-base font-bold text-text-primary flex items-center gap-2">
@@ -144,20 +193,14 @@ export function DriverDocumentChecklist({
             const visual = ESTILO_ESTADO[estado];
             const rechazo = documento?.motivo_rechazo ?? documento?.notas_admin;
             const esBloqueanteAccion = requerido.bloqueante && ["falta", "rechazado", "vencido"].includes(estado);
-            const esArrastrando = arrastrandoSobre === requerido.tipo;
             const estaSubiendo = subiendo === requerido.tipo;
 
             return (
               <article
                 key={requerido.tipo}
-                onDragOver={(e) => manejarDragOver(e, requerido.tipo)}
-                onDragLeave={manejarDragLeave}
-                onDrop={(e) => manejarDrop(e, requerido.tipo)}
                 className={[
                   "relative rounded-2xl border p-5 transition-all duration-200",
-                  esArrastrando
-                    ? "border-signal bg-signal/10 scale-[1.01] shadow-lg"
-                    : esBloqueanteAccion
+                  esBloqueanteAccion
                     ? "border-red-500/40 bg-red-500/5 shadow-xs"
                     : "border-border bg-surface"
                 ].join(" ")}
@@ -177,30 +220,33 @@ export function DriverDocumentChecklist({
                             Opcional / Requerido
                           </span>
                         )}
+                        {documento?.version && (
+                          <span className="rounded-md border border-border bg-surface-elevated px-2 py-0.5 font-body text-[10px] font-bold text-text-tertiary">
+                            v{documento.version}
+                          </span>
+                        )}
                       </div>
                       <p className="mt-1 font-body text-xs leading-5 text-text-tertiary">{requerido.descripcion}</p>
                     </div>
 
-                    {/* Badge de Estado ÚNICO sin botones duplicados */}
                     <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-body text-xs font-bold ${visual.clase}`}>
                       <span>{visual.icono}</span>
                       {visual.texto}
                     </span>
                   </div>
 
-                  {/* 3. Arquitectura de Metadatos con Iconos de Apoyo y Estados Vacíos Limpios ("—") */}
+                  {/* Metadatos */}
                   <div className="grid gap-3 rounded-xl border border-border/40 bg-surface-elevated/50 p-3.5 sm:grid-cols-2">
                     <div className="flex items-center gap-3">
-                      {/* Miniatura / Thumbnail del Documento */}
                       <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface font-display text-lg text-route-action shadow-2xs">
                         📎
                       </div>
                       <div className="min-w-0">
-                        <dt className="font-body text-[11px] font-semibold uppercase tracking-wider text-text-tertiary flex items-center gap-1">
-                          Archivo cargado
+                        <dt className="font-body text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                          Archivo registrado
                         </dt>
                         <dd className="truncate font-body text-xs font-bold text-text-primary">
-                          {documento?.nombre_archivo ? enmascararNombreArchivo(documento.nombre_archivo) : "—"}
+                          {documento?.nombre_archivo ? enmascararNombreArchivo(documento.nombre_archivo) : "— Sin registrar"}
                         </dd>
                       </div>
                     </div>
@@ -220,40 +266,16 @@ export function DriverDocumentChecklist({
                     </div>
                   </div>
 
-                  {/* Motivo de rechazo en su caso */}
+                  {/* Motivo de rechazo */}
                   {rechazo && estado === "rechazado" && (
                     <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3.5 font-body text-xs text-red-500">
                       <p className="font-bold text-red-600 dark:text-red-400">Motivo de rechazo por operación:</p>
                       <p className="mt-1 text-text-primary">{rechazo}</p>
-                      <p className="mt-1.5 font-semibold">Sube una nueva imagen legible para reactivar tu revisión.</p>
                     </div>
                   )}
 
-                  {/* 2. Carga de Archivos: Zona Drag & Drop + Botón Estilizado */}
-                  {estado !== "en_revision" && estado !== "cargado" && (
-                    <label className="group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-signal/60 bg-surface-elevated/40 p-4 text-center transition hover:border-signal hover:bg-signal/5 active:scale-[0.99]">
-                      <div className="flex items-center gap-2 font-display text-sm font-bold text-route-action group-hover:text-signal">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="17 8 12 3 7 8" />
-                          <line x1="12" y1="3" x2="12" y2="15" />
-                        </svg>
-                        {estaSubiendo ? "Subiendo archivo..." : ctaTexto(estado)}
-                      </div>
-                      <p className="mt-1 font-body text-[11px] text-text-tertiary">
-                        Haz clic o arrastra tu archivo (JPG, PNG o PDF de hasta 10 MB)
-                      </p>
-
-                      {/* Input HTML totalmente oculto estilizado */}
-                      <input
-                        type="file"
-                        accept="image/*,.pdf"
-                        className="sr-only"
-                        disabled={estaSubiendo}
-                        onChange={(e) => manejarSeleccionArchivo(e, requerido.tipo)}
-                      />
-                    </label>
-                  )}
+                  {/* Captura / Carga de Archivo para Actualización */}
+                  {renderizarZonaCaptura(requerido.tipo, estaSubiendo)}
                 </div>
               </article>
             );
@@ -261,43 +283,79 @@ export function DriverDocumentChecklist({
         </div>
       </section>
 
-      {/* 1. Sección: Documentos Aprobados (Sin botones redundantes "Aprobado") */}
+      {/* 2. Sección: Documentos Aprobados con opción para actualizar/reemplazar */}
       {aprobados.length > 0 && (
-        <section className="grid gap-3 pt-4 border-t border-border/40" aria-label="Documentos aprobados">
-          <h2 className="font-display text-base font-bold text-text-primary flex items-center gap-2">
-            <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/20 text-xs font-bold text-emerald-500">
-              ✓
+        <section className="grid gap-4 pt-4 border-t border-border/40" aria-label="Documentos aprobados">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-base font-bold text-text-primary flex items-center gap-2">
+              <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/20 text-xs font-bold text-emerald-500">
+                ✓
+              </span>
+              Documentos Aprobados ({aprobados.length})
+            </h2>
+            <span className="font-body text-xs text-text-tertiary">
+              Puedes subir una nueva versión cuando renueves tu documento
             </span>
-            Documentos Aprobados ({aprobados.length})
-          </h2>
+          </div>
 
           <div className="grid gap-3">
-            {aprobados.map(({ requerido, documento, vencimiento }) => (
-              <article key={requerido.tipo} className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 transition">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 font-bold text-emerald-500">
-                      ✓
-                    </div>
-                    <div>
-                      <h3 className="font-display text-sm font-bold text-text-primary">{requerido.etiqueta}</h3>
-                      <p className="font-body text-xs text-text-tertiary">
-                        {documento?.nombre_archivo ? enmascararNombreArchivo(documento.nombre_archivo) : "Documento validado"}
-                        {vencimiento ? ` • Vence: ${fechaCuenta(vencimiento)}` : ""}
-                      </p>
-                    </div>
-                  </div>
+            {aprobados.map(({ requerido, documento, vencimiento }) => {
+              const estaAbierto = Boolean(actualizarAbierto[requerido.tipo]);
+              const estaSubiendo = subiendo === requerido.tipo;
 
-                  {/* Único badge sin botón fantasma redundante */}
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 font-body text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    Aprobado
-                  </span>
-                </div>
-              </article>
-            ))}
+              return (
+                <article key={requerido.tipo} className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 transition">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 font-bold text-emerald-500">
+                          ✓
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-display text-sm font-bold text-text-primary">{requerido.etiqueta}</h3>
+                            {documento?.version && (
+                              <span className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-body text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                v{documento.version}
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-body text-xs text-text-tertiary">
+                            {documento?.nombre_archivo ? enmascararNombreArchivo(documento.nombre_archivo) : "Documento validado"}
+                            {vencimiento ? ` • Vence: ${fechaCuenta(vencimiento)}` : ""}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* Botón Habilitador para Actualizar / Reemplazar Documento Aprobado */}
+                        <button
+                          type="button"
+                          onClick={() => alternarFormActualizar(requerido.tipo)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 font-display text-xs font-bold text-route-action shadow-2xs transition hover:border-signal hover:bg-surface-elevated"
+                        >
+                          ✏️ {estaAbierto ? "Cancelar actualización" : "Actualizar / Reemplazar"}
+                        </button>
+
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 font-body text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          Aprobado
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Desplegable de Captura/Carga para Documento Aprobado */}
+                    {estaAbierto && (
+                      <div className="mt-2 pt-3 border-t border-emerald-500/20">
+                        {renderizarZonaCaptura(requerido.tipo, estaSubiendo)}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
       )}
