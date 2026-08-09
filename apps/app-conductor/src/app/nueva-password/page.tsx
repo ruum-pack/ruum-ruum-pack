@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
-import { fortalezaPassword, observarSesionRecuperacion, traducirErrorAuth } from "@ruum/shared/utils";
+import { observarSesionRecuperacion, traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 export default function PaginaNuevaPasswordConductor() {
@@ -48,7 +48,6 @@ export default function PaginaNuevaPasswordConductor() {
     }
   }
 
-  const pwd = fortalezaPassword(password);
 
   return (
     <div className="conductor-auth-shell flex items-center justify-center px-4 py-10 sm:px-6">
@@ -68,7 +67,7 @@ export default function PaginaNuevaPasswordConductor() {
         </h1>
 
         {verificando ? (
-          <p className="mt-6 font-body text-sm text-text-secondary">Verificando enlace…</p>
+          <p className="mt-6 font-body text-sm text-text-tertiary/80">Verificando enlace…</p>
         ) : listo ? (
           <div className="mt-6 grid gap-3 text-center">
             <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-control-soft text-success">
@@ -76,7 +75,7 @@ export default function PaginaNuevaPasswordConductor() {
                 stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
                 aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
             </div>
-            <p className="font-body text-sm text-text-secondary">Contraseña actualizada. Redirigiendo…</p>
+            <p className="font-body text-sm text-text-tertiary/80">Contraseña actualizada. Redirigiendo…</p>
           </div>
         ) : !sesionLista ? (
           <div className="mt-6 grid gap-4">
@@ -98,24 +97,28 @@ export default function PaginaNuevaPasswordConductor() {
                 minLength={8}
                 autoComplete="new-password"
               />
-              {password.length > 0 && (
-                <div className="flex flex-col gap-1" aria-live="polite">
-                  <div className="flex gap-1" aria-hidden>
-                    {[1, 2, 3].map((n) => (
-                      <div
-                        key={n}
-                        className={[
-                          "h-1 flex-1 rounded-full transition-all",
-                          n <= pwd.nivel
-                            ? pwd.nivel === 1 ? "bg-danger" : pwd.nivel === 2 ? "bg-signal" : "bg-control"
-                            : "bg-surface-elevated"
-                        ].join(" ")}
-                      />
-                    ))}
-                  </div>
-                  {pwd.etiqueta && <span className="font-body text-xs leading-4 text-text-secondary">{pwd.etiqueta}</span>}
-                </div>
-              )}
+
+              {/* Requisitos dinámicos de contraseña */}
+              <ul className="flex flex-col gap-1.5 rounded-xl border border-border bg-surface-elevated/70 p-3 text-xs font-body" aria-label="Requisitos de contraseña">
+                <li className={`flex items-center gap-2 transition-all duration-150 ${password.length >= 8 ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-text-tertiary/80"}`}>
+                  <span className={`flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all ${password.length >= 8 ? "bg-emerald-600 text-white dark:bg-emerald-500 shadow-xs" : "bg-surface-elevated border border-border text-text-tertiary"}`} aria-hidden>
+                    {password.length >= 8 ? "✓" : "○"}
+                  </span>
+                  Mínimo 8 caracteres
+                </li>
+                <li className={`flex items-center gap-2 transition-all duration-150 ${/[A-Z]/.test(password) ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-text-tertiary/80"}`}>
+                  <span className={`flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all ${/[A-Z]/.test(password) ? "bg-emerald-600 text-white dark:bg-emerald-500 shadow-xs" : "bg-surface-elevated border border-border text-text-tertiary"}`} aria-hidden>
+                    {/[A-Z]/.test(password) ? "✓" : "○"}
+                  </span>
+                  Al menos una letra mayúscula (A-Z)
+                </li>
+                <li className={`flex items-center gap-2 transition-all duration-150 ${/[0-9]/.test(password) ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-text-tertiary/80"}`}>
+                  <span className={`flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all ${/[0-9]/.test(password) ? "bg-emerald-600 text-white dark:bg-emerald-500 shadow-xs" : "bg-surface-elevated border border-border text-text-tertiary"}`} aria-hidden>
+                    {/[0-9]/.test(password) ? "✓" : "○"}
+                  </span>
+                  Al menos un número (0-9)
+                </li>
+              </ul>
             </div>
 
             <Field

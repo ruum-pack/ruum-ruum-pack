@@ -57,9 +57,9 @@ export default function PaginaRecuperarPasswordConductor() {
         <h1 id="titulo-recuperar" className="mt-8 font-display text-2xl font-bold text-text-primary">
           Recuperar contraseña
         </h1>
-        <p className="mt-2 font-body text-sm leading-6 text-text-secondary">
-          Escribe el correo con el que te registraste y te enviamos un enlace.
-        </p>
+         <p className="mt-2 font-body text-sm leading-6 text-text-tertiary/80">
+           Escribe el correo con el que te registraste y te enviamos un enlace.
+         </p>
 
         {enviado ? (
           <div className="mt-6 grid gap-4 text-center">
@@ -68,13 +68,13 @@ export default function PaginaRecuperarPasswordConductor() {
                 stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
                 aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
             </div>
-            <p className="font-body text-sm leading-6 text-text-secondary">
+            <p className="font-body text-sm leading-6 text-text-tertiary/80">
               Correo enviado a <strong>{email}</strong>. Revisa tu bandeja incluyendo spam. El enlace expira en 60 minutos.
             </p>
             <button
               type="button"
               onClick={() => { setEnviado(false); setEmail(""); }}
-              className="font-body text-sm text-route-action underline-offset-2 hover:underline"
+              className="font-body text-sm font-semibold text-route-action underline-offset-2 hover:underline"
             >
               Solicitar otro enlace
             </button>
@@ -100,7 +100,7 @@ export default function PaginaRecuperarPasswordConductor() {
           </form>
         )}
 
-        <p className="mt-6 text-center font-body text-sm text-text-secondary">
+        <p className="mt-6 text-center font-body text-sm text-text-tertiary/80">
           <Link href="/login" className="font-semibold text-route-action hover:underline">
             ← Volver al inicio de sesión
           </Link>
