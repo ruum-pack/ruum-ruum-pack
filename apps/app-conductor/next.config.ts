@@ -2,6 +2,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@ruum/shared", "@ruum/ui"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/**"
+      }
+    ]
+  },
   // Nunca configuramos ESLint en este proyecto (la validación real se apoya
   // en tsc, no en linting — ver README, "Por qué este repo no repite los
   // errores de la sesión anterior"). Sin esto, `next build` intenta abrir un

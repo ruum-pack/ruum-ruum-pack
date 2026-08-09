@@ -16,7 +16,12 @@ export function fechaCuenta(fechaIso: string | null | undefined) {
 }
 
 export function telefonoE164(valor: string) {
-  const normalizado = valor.trim();
-  if (!normalizado) return normalizado;
-  return (normalizado.startsWith("+") ? normalizado : `+${normalizado}`).replace(/\s+/g, "");
+  const soloDigitos = valor.replace(/\D/g, "").trim();
+  if (!soloDigitos) return "";
+
+  if (soloDigitos.length === 10) return `+52${soloDigitos}`;
+  if (soloDigitos.length === 12 && soloDigitos.startsWith("52")) return `+${soloDigitos}`;
+  if (soloDigitos.length > 10 && soloDigitos.startsWith("521")) return `+${soloDigitos}`;
+
+  return `+${soloDigitos}`;
 }
