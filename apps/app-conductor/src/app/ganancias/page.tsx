@@ -47,6 +47,26 @@ function estatusViaje(traslado: TrasladoConductorGanancia, payoutEnlazado?: Payo
   return "sin_calcular";
 }
 
+function etiquetaEstadoUnica(estatus: EstadoEconomicoExplicito): { texto: string; clase: string } {
+  switch (estatus) {
+    case "pagado":
+      return { texto: "💳 Pago Transferido", clase: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" };
+    case "programado":
+      return { texto: "🗓️ Depósito Programado", clase: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400" };
+    case "confirmado":
+      return { texto: "✓ Viaje Concluido", clase: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" };
+    case "en_validacion":
+      return { texto: "🔍 En Validación", clase: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400" };
+    case "estimado":
+      return { texto: "⏳ En Curso / Estimado", clase: "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400" };
+    case "rechazado":
+    case "retenido":
+      return { texto: "⚠️ En Revisión / Retenido", clase: "border-red-500/40 bg-red-500/10 text-red-500 dark:text-red-400" };
+    default:
+      return { texto: "Sin calcular", clase: "border-border bg-surface-elevated text-text-tertiary" };
+  }
+}
+
 function formatearFecha(fechaIso: string) {
   if (!fechaIso || !fechaIso.includes("-")) return fechaIso || "—";
   try {
@@ -150,8 +170,8 @@ export default function PaginaGanancias() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-      {/* Encabezado */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Encabezado con Información Bancaria Agrupada y Botón Simplificado */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/40 pb-5">
         <div>
           <div className="flex items-center gap-2">
             <Link href="/panel" className="font-body text-xs text-text-tertiary hover:underline">
@@ -163,7 +183,14 @@ export default function PaginaGanancias() {
             Consulta las ganancias reales generadas por tus traslados y el estado de tus depósitos bancarios.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex flex-wrap items-center gap-3">
+          {datosBancarios && (
+            <span className="hidden md:inline-flex items-center gap-1.5 rounded-xl border border-border/60 bg-surface-elevated px-3 py-2 font-body text-xs text-text-tertiary">
+              <span>🏦 Cuenta de Depósito:</span>
+              <strong className="text-text-primary font-semibold">{datosBancarios.banco} ({datosBancarios.clabe.slice(-4)})</strong>
+            </span>
+          )}
           <Link href="/cuenta/datos-bancarios">
             <Button variant="secondary" className="text-xs">
               💳 Datos Bancarios
@@ -227,7 +254,7 @@ export default function PaginaGanancias() {
               Completa tu primer traslado para comenzar a acumular ganancias. Al finalizar cada viaje, verás aquí el desglose detallado y el estatus de tu depósito bancario.
             </p>
             <Link href="/viajes" className="mt-5">
-              <Button>Ver viajes disponibles</Button>
+              <Button>🚘 Buscar Traslados</Button>
             </Link>
           </div>
         </FinancialCard>
@@ -236,46 +263,46 @@ export default function PaginaGanancias() {
       {/* Contenido Principal con Datos Reales */}
       {tieneContenido && (
         <>
-          {/* Métricas Generales */}
+          {/* Métricas Generales con Diseño de Estructura Vertical Unificada */}
           <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="flex flex-col justify-between">
+            <Card className="flex flex-col justify-between p-4">
               <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">Vehículos Trasladados</p>
-              <div className="mt-3 flex items-baseline justify-between">
-                <span className="font-display text-3xl font-bold text-text-primary">{resumen.totalViajes}</span>
-                <span className="font-body text-xs text-text-tertiary">viajes concluidos</span>
+              <div className="mt-2">
+                <p className="font-display text-2xl font-bold text-text-primary">{resumen.totalViajes}</p>
+                <p className="font-body text-[11px] font-semibold text-text-tertiary">viajes concluidos</p>
               </div>
             </Card>
 
-            <FinancialCard className="flex flex-col justify-between">
+            <FinancialCard className="flex flex-col justify-between p-4">
               <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">Ganancias Brutas</p>
               <DriverEarning
                 amount={resumen.gananciasBrutas}
                 status={resumen.totalViajes > 0 ? "confirmado" : "sin_calcular"}
                 currency="MXN"
-                className="mt-3"
+                className="mt-2"
                 amountClassName="font-display text-2xl font-bold"
               />
             </FinancialCard>
 
-            <FinancialCard className="flex flex-col justify-between">
+            <FinancialCard className="flex flex-col justify-between p-4">
               <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">Gastos Autorizados</p>
               <FinancialAmount
                 amount={resumen.gastosAutorizados}
                 status="confirmado"
                 currency="MXN"
-                className="mt-3"
+                className="mt-2"
                 amountClassName="font-display text-2xl font-bold"
               />
             </FinancialCard>
 
-            <FinancialCard className="border-signal/40 bg-signal/5 flex flex-col justify-between">
+            <FinancialCard className="border-signal/40 bg-signal/5 flex flex-col justify-between p-4">
               <p className="font-body text-xs font-bold uppercase tracking-wider text-signal">Depósito Acumulado Net</p>
               <FinancialAmount
                 amount={resumen.depositoFinal}
                 status={ultimoPayout ? estatusPayout(ultimoPayout) : "confirmado"}
                 currency="MXN"
-                className="mt-3"
-                amountClassName="font-display text-3xl font-extrabold text-signal"
+                className="mt-2"
+                amountClassName="font-display text-2xl font-extrabold text-signal"
               />
             </FinancialCard>
           </section>
@@ -309,16 +336,9 @@ export default function PaginaGanancias() {
                 🏦 Depósitos y Transferencias ({payouts.length})
               </button>
             </div>
-
-            {datosBancarios && (
-              <div className="hidden sm:flex items-center gap-2 font-body text-xs text-text-tertiary">
-                <span>Cuenta de Depósito:</span>
-                <span className="font-bold text-text-primary">{datosBancarios.banco} ({datosBancarios.clabe.slice(-4)})</span>
-              </div>
-            )}
           </div>
 
-          {/* Vista 1: Desglose por Viaje Realizado */}
+          {/* Vista 1: Desglose por Viaje Realizado (Con Affordance, Alto Contraste y Badges Sin Duplicidad) */}
           {vistaActiva === "viajes" && (
             <section className="mt-4 grid gap-3" aria-label="Desglose por viaje realizado">
               {registrosViajes.length === 0 ? (
@@ -326,51 +346,62 @@ export default function PaginaGanancias() {
                   No hay viajes asignados a tu cuenta en este momento.
                 </div>
               ) : (
-                registrosViajes.map((viaje) => (
-                  <FinancialCard key={viaje.id} className="transition hover:border-signal/40">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-elevated font-display text-lg text-route-action shadow-2xs">
-                          🚘
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-display text-sm font-bold text-text-primary truncate">
-                            {viaje.vehiculo}
-                          </h3>
-                          <p className="mt-0.5 font-body text-xs font-semibold text-text-tertiary flex items-center gap-1.5 flex-wrap">
-                            <span>{viaje.origen} ➔ {viaje.destino}</span>
-                            <span>•</span>
-                            <span>{formatearFecha(viaje.fecha)}</span>
-                          </p>
-                        </div>
-                      </div>
+                registrosViajes.map((viaje) => {
+                  const badgeEstado = etiquetaEstadoUnica(viaje.estatusEconomico);
 
-                      <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0 border-t border-border/40 sm:border-t-0 pt-3 sm:pt-0">
-                        <div className="text-left sm:text-right">
-                          <p className="font-body text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
-                            Ganancia Conductor
-                          </p>
-                          <DriverEarning
-                            amount={viaje.montoGanado}
-                            status={viaje.estatusEconomico}
-                            currency="MXN"
-                            className="mt-0.5"
-                            amountClassName="font-display text-base font-bold"
-                          />
+                  return (
+                    <Link
+                      key={viaje.id}
+                      href={`/viajes/${viaje.id}`}
+                      className="group block rounded-2xl border border-border bg-surface p-4 transition-all duration-150 hover:border-signal hover:bg-surface-elevated active:scale-[0.99]"
+                    >
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        {/* Vehículo, Origen/Destino de Alto Contraste y Fecha */}
+                        <div className="flex items-start gap-3.5 min-w-0">
+                          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-elevated font-display text-xl text-route-action shadow-2xs group-hover:border-signal group-hover:bg-signal/10 transition">
+                            🚘
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="font-display text-base font-bold text-text-primary truncate">
+                              {viaje.vehiculo}
+                            </h3>
+                            {/* Ruta en Alto Contraste y Mayor Peso */}
+                            <p className="mt-1 font-body text-xs font-semibold text-text-primary flex items-center gap-1.5 flex-wrap">
+                              <span>{viaje.origen}</span>
+                              <span className="text-signal font-bold">➔</span>
+                              <span>{viaje.destino}</span>
+                              <span className="text-text-tertiary font-normal">•</span>
+                              <span className="text-text-tertiary font-normal">{formatearFecha(viaje.fecha)}</span>
+                            </p>
+                          </div>
                         </div>
 
-                        <div className="text-right">
-                          <FinancialAmount
-                            amount={null}
-                            status={viaje.estatusEconomico}
-                            currency="MXN"
-                            amountClassName="sr-only"
-                          />
+                        {/* Ganancia y Única Etiqueta Consolidada sin Duplicaciones + Affordance */}
+                        <div className="flex items-center justify-between sm:justify-end gap-5 shrink-0 border-t border-border/40 sm:border-t-0 pt-3 sm:pt-0">
+                          <div className="text-left sm:text-right">
+                            <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
+                              Ganancia Conductor
+                            </p>
+                            <p className="font-display text-base font-bold text-emerald-500 dark:text-emerald-400 mt-0.5">
+                              ${viaje.montoGanado.toLocaleString("es-MX", { minimumFractionDigits: 2 })} MXN
+                            </p>
+                          </div>
+
+                          {/* ÚNICO BADGE CONSOLIDADO (Eliminada duplicación) */}
+                          <span className={`inline-flex items-center rounded-full border px-3 py-1 font-body text-xs font-bold ${badgeEstado.clase}`}>
+                            {badgeEstado.texto}
+                          </span>
+
+                          {/* Affordance de Acción (Flecha Direccional) */}
+                          <div className="flex items-center gap-1 font-display text-xs font-bold text-route-action group-hover:text-signal group-hover:translate-x-1 transition-all">
+                            <span className="hidden md:inline">Ver detalle</span>
+                            <span className="text-base">→</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </FinancialCard>
-                ))
+                    </Link>
+                  );
+                })
               )}
             </section>
           )}

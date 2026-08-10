@@ -13,8 +13,8 @@ import { useCerrarSesion } from "../../lib/use-cerrar-sesion";
 
 function PanelLoadingSkeleton() {
   return (
-    <output className="mt-8 grid gap-5" aria-label="Cargando panel operativo" aria-busy="true">
-      <div className="rounded-2xl border border-route-action/35 bg-surface-elevated p-5">
+    <output className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-label="Cargando panel operativo" aria-busy="true">
+      <div className="rounded-2xl border border-route-action/35 bg-surface-elevated p-5 sm:col-span-2 lg:col-span-3">
         <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div className="grid gap-3">
             <div className="h-3 w-40 animate-pulse rounded bg-text-secondary/18" />
@@ -69,34 +69,46 @@ export default function PaginaPanel() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-14">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <RegistroViajeActivo
         viaje={viajeActivoPrincipal ? registroViajeActivoDesdePasaporte(viajeActivoPrincipal) : null}
       />
 
-      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      {/* Encabezado con Jerarquía Tipográfica Unificada y Alto Contraste */}
+      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-border/40 pb-5">
         <div>
-          <p className="font-body text-sm font-medium text-text-tertiary">Hola,</p>
-          <h1 className="font-display text-2xl font-semibold leading-tight text-text-primary sm:text-3xl">
+          <h1 className="font-display text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
+            <span className="font-normal text-text-tertiary">Hola, </span>
             {conductor?.nombre ?? "conductor"}
           </h1>
+          <p className="mt-1 font-body text-xs text-text-tertiary">
+            Bienvenido a tu panel de control operativo de traslados.
+          </p>
         </div>
-        <div className="hidden flex-wrap items-center gap-3 md:flex">
+
+        {/* Acciones de Cabecera con Alto Contraste y Accesibilidad Visibles */}
+        <div className="flex flex-wrap items-center gap-2">
           <Link href="/cuenta" aria-label="Ir a configuración de cuenta">
-            <Button variant="quiet">Configuración</Button>
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-elevated px-3.5 py-2 font-display text-xs font-bold text-text-primary transition hover:border-signal hover:bg-surface active:scale-95">
+              ⚙️ Ajustes de Cuenta
+            </span>
           </Link>
+
           {conductor ? (
-            <button 
-              onClick={() => void cerrarSesion()} 
-              className="inline-flex min-h-11 items-center font-body text-sm text-text-secondary hover:text-text-primary"
-              aria-label="Cerrar sesión actual"
+            <button
+              type="button"
+              onClick={() => void cerrarSesion()}
               disabled={cerrandoSesion}
+              aria-label="Cerrar sesión actual"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2 font-display text-xs font-bold text-red-500 transition hover:border-red-500/60 hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
             >
-              {cerrandoSesion ? "Cerrando sesión..." : "Cerrar sesión"}
+              🚪 {cerrandoSesion ? "Cerrando..." : "Cerrar sesión"}
             </button>
           ) : (
-            <Link href="/login" className="font-body text-sm font-medium text-text-secondary hover:text-text-primary" aria-label="Iniciar sesión">
-              Iniciar sesión
+            <Link href="/login" aria-label="Iniciar sesión">
+              <span className="inline-flex items-center gap-1.5 rounded-xl bg-signal px-3.5 py-2 font-display text-xs font-bold text-slate-950 transition hover:bg-signal-hover active:scale-95">
+                🔑 Iniciar sesión
+              </span>
             </Link>
           )}
         </div>

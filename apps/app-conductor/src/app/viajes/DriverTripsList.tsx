@@ -37,13 +37,13 @@ function OperationalTripCard({
   const etiquetaSiguientePaso = presentation.primaryAction.label;
 
   return (
-    <TripCard folio={viaje.traslado_id.slice(0, 8).toUpperCase()}>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <TripCard folio={viaje.traslado_id.slice(0, 8).toUpperCase()} className="transition hover:border-signal/40">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between border-b border-border/40 pb-4">
         <div>
-          <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">
+          <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">
             {mode === "active" ? "Viaje en seguimiento" : "Viaje finalizado"}
           </p>
-          <h2 className="mt-1 font-display text-xl font-semibold">
+          <h2 className="mt-1 font-display text-xl font-bold text-text-primary">
             {nombreVehiculo(viaje)}
             {viaje.vehiculo_tipo && (
               <span className="ml-2 font-body text-xs font-normal text-text-tertiary">
@@ -52,99 +52,77 @@ function OperationalTripCard({
             )}
           </h2>
         </div>
+        {/* Única etiqueta de estado consolidada */}
         <EstadoBadge estado={viaje.estado} />
       </div>
 
-      <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <dt className="font-body text-sm font-semibold text-text-tertiary">Origen</dt>
-          <dd className="mt-1 font-body text-base font-medium">{detalle.origen}</dd>
+      <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 font-body text-xs">
+        {/* Origen y Destino con Alto Contraste */}
+        <div className="rounded-xl border border-border/40 bg-surface-elevated/40 p-3">
+          <dt className="font-body text-[11px] font-bold uppercase tracking-wider text-text-tertiary">Origen</dt>
+          <dd className="mt-1 font-display text-sm font-bold text-text-primary">{detalle.origen}</dd>
         </div>
-        <div>
-          <dt className="font-body text-sm font-semibold text-text-tertiary">Destino</dt>
-          <dd className="mt-1 font-body text-base font-medium">{detalle.destino}</dd>
+
+        <div className="rounded-xl border border-border/40 bg-surface-elevated/40 p-3">
+          <dt className="font-body text-[11px] font-bold uppercase tracking-wider text-text-tertiary">Destino</dt>
+          <dd className="mt-1 font-display text-sm font-bold text-text-primary">{detalle.destino}</dd>
         </div>
-        <div>
-          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Fecha y hora</dt>
-          <dd className="mt-1 font-body text-sm font-medium">
+
+        <div className="rounded-xl border border-border/40 bg-surface-elevated/40 p-3">
+          <dt className="font-body text-[11px] font-bold uppercase tracking-wider text-text-tertiary">Fecha y hora</dt>
+          <dd className="mt-1 font-display text-sm font-bold text-text-primary">
             {formatearFecha(detalle.fechaHora)} · {formatearHora(detalle.fechaHora)}
           </dd>
         </div>
-        {mode === "active" && (
-          <div>
-            <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Monto conductor</dt>
+
+        {mode === "active" ? (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+            <dt className="font-body text-[11px] font-bold uppercase tracking-wider text-emerald-500">Monto Conductor</dt>
             <dd className="mt-1">
               <DriverEarning
                 amount={detalle.gananciaConductorOficial}
                 status={detalle.estadoEconomico}
                 currency="MXN"
-                amountClassName="text-sm"
+                amountClassName="text-sm font-bold"
               />
             </dd>
           </div>
+        ) : (
+          <div className="rounded-xl border border-border/40 bg-surface-elevated/40 p-3">
+            <dt className="font-body text-[11px] font-bold uppercase tracking-wider text-text-tertiary">Tipo de Servicio</dt>
+            <dd className="mt-1 font-display text-sm font-bold text-text-primary">{detalle.tipoServicio}</dd>
+          </div>
         )}
-        <div>
-          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Tipo de vehículo</dt>
-          <dd className="mt-1 font-body text-sm font-medium">
-            {viaje.vehiculo_tipo ? ETIQUETA_TIPO_VEHICULO[viaje.vehiculo_tipo] : "Por definir"}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Tipo de servicio</dt>
-          <dd className="mt-1 font-body text-sm font-medium">{detalle.tipoServicio}</dd>
-        </div>
-        <div className="sm:col-span-2">
-          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Requisitos especiales</dt>
-          <dd className="mt-1 font-body text-sm font-medium">{detalle.requisitos}</dd>
-        </div>
       </dl>
 
-      <div className="mt-5">
-        {mode === "active" ? (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-end">
-            <div className="grid w-full gap-3 sm:max-w-xs">
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-border/40 pt-4">
+        {/* Affordance de Acción Explicita para Ver Detalles */}
+        <Link
+          href={hrefDetalle(viaje)}
+          className="inline-flex items-center gap-1.5 font-display text-xs font-bold text-route-action hover:text-signal hover:underline transition"
+        >
+          <span>Ver detalles completos del viaje</span>
+          <span className="text-sm">→</span>
+        </Link>
+
+        {mode === "active" && (
+          <div className="flex flex-wrap items-center gap-2">
+            {requiereEvidencia && (
               <Button
-                variant="primary"
-                className="w-full"
-                onClick={() => router.push(hrefDetalle(viaje))}
+                variant="secondary"
+                className="text-xs"
+                onClick={() => router.push(`/viajes/${viaje.traslado_id}/evidencia`)}
               >
-                {etiquetaSiguientePaso}
+                📷 Registrar vehículo
               </Button>
-              {requiereEvidencia && (
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => router.push(`/viajes/${viaje.traslado_id}/evidencia`)}
-                >
-                  Cargar registro del vehículo
-                </Button>
-              )}
-            </div>
-            <details className="relative self-end">
-              <summary
-                aria-label="Más acciones del viaje"
-                className="flex size-11 cursor-pointer list-none items-center justify-center rounded-xl border border-border bg-surface font-display text-xl font-bold leading-none text-text-secondary shadow-sm transition hover:border-route-action hover:bg-route-soft hover:text-route-action focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action [&::-webkit-details-marker]:hidden"
-              >
-                ⋮
-              </summary>
-              <div className="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-xl border border-border bg-surface py-1 shadow-[0_14px_40px_rgba(26,31,46,0.16)]">
-                <Link href={hrefDetalle(viaje)} className="block px-4 py-2.5 font-body text-sm font-medium text-text-secondary hover:bg-route-soft hover:text-route-action">
-                  Ver detalles
-                </Link>
-                <Link href={hrefDetalle(viaje)} className="block px-4 py-2.5 font-body text-sm font-medium text-text-secondary hover:bg-route-soft hover:text-route-action">
-                  {GLOSARIO_OPERATIVO.incidencia}
-                </Link>
-                <Link href={hrefDetalle(viaje)} className="block px-4 py-2.5 font-body text-sm font-medium text-text-secondary hover:bg-route-soft hover:text-route-action">
-                  Confirmar entrega
-                </Link>
-              </div>
-            </details>
-          </div>
-        ) : (
-          <div className="flex justify-end">
-            <Link href={hrefDetalle(viaje)} className="font-body text-sm font-medium text-text-secondary hover:text-text-primary">
-              Ver viaje finalizado
-            </Link>
+            )}
+            <Button
+              variant="primary"
+              className="text-xs font-bold"
+              onClick={() => router.push(hrefDetalle(viaje))}
+            >
+              {etiquetaSiguientePaso}
+            </Button>
           </div>
         )}
       </div>
@@ -162,11 +140,11 @@ export function DriverTripsList({
   hrefDetalle: (viaje: PasaporteRow) => string;
 }) {
   return (
-    <>
+    <div className="grid gap-4">
       {viajes.map((viaje, index) => (
         <OperationalTripCard key={viaje.traslado_id ?? `activo-${index}`} viaje={viaje} detalles={detalles} hrefDetalle={hrefDetalle} mode="active" />
       ))}
-    </>
+    </div>
   );
 }
 
@@ -180,10 +158,10 @@ export function TripHistoryList({
   hrefDetalle: (viaje: PasaporteRow) => string;
 }) {
   return (
-    <>
+    <div className="grid gap-4">
       {viajes.map((viaje, index) => (
         <OperationalTripCard key={viaje.traslado_id ?? `historial-${index}`} viaje={viaje} detalles={detalles} hrefDetalle={hrefDetalle} mode="history" />
       ))}
-    </>
+    </div>
   );
 }

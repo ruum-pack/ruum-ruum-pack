@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Aviso, Button } from "@ruum/ui";
-import type { Conductor } from "@ruum/shared/types";
+import type { Conductor, Database } from "@ruum/shared/types";
 import type { MotivoRechazo } from "@ruum/shared/constants";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
@@ -12,6 +12,7 @@ import {
   listarViajesAceptados,
   aceptarViaje,
   obtenerConductorActual,
+  obtenerGananciasConductor,
   listarHistorialViajesConductor,
   registrarEvento
 } from "@ruum/api/services";
@@ -185,6 +186,7 @@ export default function PaginaViajes() {
   const [aceptando, setAceptando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [conductor, setConductor] = useState<Conductor | null>(null);
+  const [datosBancarios, setDatosBancarios] = useState<Database["public"]["Tables"]["datos_bancarios_conductor"]["Row"] | null>(null);
   const [viajeParaRechazar, setViajeParaRechazar] = useState<PasaporteRow | null>(null);
   const [rechazoPendiente, setRechazoPendiente] = useState<RechazoPendiente | null>(null);
   const [ubicacionOportunidades, setUbicacionOportunidades] = useState<{
@@ -290,11 +292,14 @@ export default function PaginaViajes() {
 
         if (conductorActual) setConductor(conductorActual);
 
-        const [listaDisponibles, listaAceptados, historialViajes] = await Promise.all([
+        const [listaDisponibles, listaAceptados, historialViajes, datosGanancias] = await Promise.all([
           listarViajesDisponibles(cliente),
           conductorActual ? listarViajesAceptados(cliente, conductorActual.id) : Promise.resolve([]),
-          conductorActual ? listarHistorialViajesConductor(cliente, conductorActual.id) : Promise.resolve([])
+          conductorActual ? listarHistorialViajesConductor(cliente, conductorActual.id) : Promise.resolve([]),
+          conductorActual ? obtenerGananciasConductor(cliente, conductorActual.id) : Promise.resolve(null)
         ]);
+
+        if (datosGanancias?.datosBancarios) setDatosBancarios(datosGanancias.datosBancarios);
 
         const todos = [...listaDisponibles, ...listaAceptados];
         if (todos.length > 0) {
@@ -434,7 +439,7 @@ export default function PaginaViajes() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
-      <TripsHeader />
+      <TripsHeader datosBancarios={datosBancarios} />
       {vista === "disponibles" ? (
         <details className="mt-4 rounded-xl border border-border bg-surface">
           <summary className="cursor-pointer px-4 py-3 font-body text-sm font-semibold text-text-secondary">

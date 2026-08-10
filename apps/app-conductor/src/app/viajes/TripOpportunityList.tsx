@@ -35,14 +35,14 @@ function badgeProximidad(viaje: PasaporteRow, coordenadas: Coordenadas | null): 
 
   if (km <= 3) {
     return (
-      <span className="inline-flex items-center rounded-full border border-route-action/32 bg-route-soft px-2.5 py-0.5 font-display text-[11px] font-bold text-route-action">
-        Cerca · {formatoDistanciaCorta(km)}
+      <span className="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 font-display text-[11px] font-bold text-emerald-500">
+        🟢 Cerca · {formatoDistanciaCorta(km)}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-full border border-border/28 bg-surface-elevated px-2.5 py-0.5 font-body text-[11px] font-semibold text-text-secondary">
-      A {formatoDistanciaCorta(km)}
+    <span className="inline-flex items-center rounded-full border border-border/40 bg-surface-elevated px-2.5 py-0.5 font-body text-[11px] font-semibold text-text-tertiary">
+      📍 A {formatoDistanciaCorta(km)}
     </span>
   );
 }
@@ -78,7 +78,7 @@ export function TripOpportunityList({
   });
 
   return (
-    <>
+    <div className="grid gap-4">
       {ordenados.map((viaje) => {
         if (!viaje.traslado_id) return null;
 
@@ -99,69 +99,84 @@ export function TripOpportunityList({
           : null;
 
         return (
-          <TripCard key={trasladoId} folio={trasladoId.slice(0, 8).toUpperCase()}>
+          <TripCard key={trasladoId} folio={trasladoId.slice(0, 8).toUpperCase()} className="transition hover:border-signal/40">
             <article className="grid gap-4">
+              {/* Encabezado con Origen y Destino de Alto Contraste */}
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
-                <div className="min-w-0 rounded-xl border border-route-action/24 bg-surface px-4 py-4">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="font-body text-xs uppercase tracking-wide text-route-action">Oportunidad disponible</p>
+                <div className="min-w-0 rounded-2xl border border-border/60 bg-surface-elevated/40 p-4">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-border/40 pb-3">
+                    <p className="font-body text-xs font-bold uppercase tracking-wider text-signal flex items-center gap-1.5">
+                      <span>🚘</span> Oportunidad Disponible
+                    </p>
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-body text-sm font-semibold text-text-secondary">
+                      <p className="font-body text-xs font-semibold text-text-tertiary">
                         {formatearFecha(detalle.fechaHora)} · {formatearHora(detalle.fechaHora)}
                       </p>
                       {badgeProximidad(viaje, coordenadas)}
                     </div>
                   </div>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <div className="min-w-0 border-l-2 border-route-action pl-3">
-                      <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Origen</p>
-                      <p className="mt-1 line-clamp-2 font-display text-xl font-semibold leading-6 text-text-primary">{detalle.origen}</p>
+
+                  {/* Origen y Destino con Alto Contraste */}
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div className="min-w-0 border-l-3 border-signal pl-3">
+                      <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Origen (Recolección)</p>
+                      <p className="mt-0.5 line-clamp-2 font-display text-lg font-bold leading-6 text-text-primary">{detalle.origen}</p>
                     </div>
-                    <div className="min-w-0 border-l-2 border-action-primary pl-3">
-                      <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Destino</p>
-                      <p className="mt-1 line-clamp-2 font-display text-xl font-semibold leading-6 text-text-primary">{detalle.destino}</p>
+                    <div className="min-w-0 border-l-3 border-emerald-500 pl-3">
+                      <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Destino (Entrega)</p>
+                      <p className="mt-0.5 line-clamp-2 font-display text-lg font-bold leading-6 text-text-primary">{detalle.destino}</p>
                     </div>
                   </div>
                 </div>
-                <div className="rounded-xl border border-success/36 bg-success/10 px-4 py-4 shadow-1 lg:min-w-60">
-                  <p className="font-body text-xs uppercase tracking-wide text-success">{etiquetaGanancia}</p>
+
+                {/* Única Tarjeta Consolidada de Ganancia Conductor */}
+                <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 shadow-2xs flex flex-col justify-between">
+                  <p className="font-body text-[11px] font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1">
+                    <span>💵</span> {etiquetaGanancia}
+                  </p>
                   <DriverEarning
                     amount={detalle.gananciaConductorOficial}
                     status={detalle.estadoEconomico === "confirmado" ? "confirmado" : detalle.estadoEconomico === "estimado" ? "estimado" : "sin_calcular"}
                     currency="MXN"
-                    amountClassName="font-display text-2xl font-bold text-text-primary"
+                    amountClassName="font-display text-2xl font-bold text-text-primary mt-1"
                   />
                 </div>
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
-                <div className="rounded-lg border border-border bg-surface-elevated px-3 py-2">
-                  <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Distancia aproximada al origen</p>
-                  <p className="font-body text-sm font-semibold">
+              {/* Metadatos de Distancia y Duración */}
+              <div className="grid gap-2 sm:grid-cols-3 font-body text-xs">
+                <div className="rounded-xl border border-border/40 bg-surface-elevated p-3">
+                  <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Distancia al origen</p>
+                  <p className="font-display text-sm font-bold text-text-primary mt-0.5">
                     {formatearDistanciaAproximadaAlOrigen(distanciaAlOrigenKm)}
                   </p>
-                  <p className="font-body text-xs text-text-tertiary">
-                    {distanciaAlOrigenKm != null ? "Distancia en línea recta, no ETA vial." : "Distancia a recolección"}
-                  </p>
                 </div>
-                <div className="rounded-lg border border-border bg-surface-elevated px-3 py-2">
-                  <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Distancia del traslado</p>
-                  <p className="font-body text-sm font-semibold">{formatearDistancia(detalle.distanciaKm)}</p>
+                <div className="rounded-xl border border-border/40 bg-surface-elevated p-3">
+                  <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Distancia del traslado</p>
+                  <p className="font-display text-sm font-bold text-text-primary mt-0.5">{formatearDistancia(detalle.distanciaKm)}</p>
                 </div>
-                <div className="rounded-lg border border-border bg-surface-elevated px-3 py-2">
-                  <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Duración estimada del traslado</p>
-                  <p className="font-body text-sm font-semibold">{formatearDuracion(detalle.tiempoEstimadoHoras)}</p>
+                <div className="rounded-xl border border-border/40 bg-surface-elevated p-3">
+                  <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Duración estimada</p>
+                  <p className="font-display text-sm font-bold text-text-primary mt-0.5">{formatearDuracion(detalle.tiempoEstimadoHoras)}</p>
                 </div>
-                <div className="grid grid-cols-3 gap-2 sm:min-w-72">
-                  <Link
-                    href={hrefDetalle(viaje)}
-                    className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-3 py-2 text-center font-body text-sm font-semibold text-text-secondary hover:border-route-action hover:bg-route-soft hover:text-route-action"
-                  >
-                    Ver detalles
-                  </Link>
+              </div>
+
+              {/* Acciones Simplificadas con Affordance Explícito */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-border/40 pt-3">
+                {/* Affordance de Acción para Ver Detalle */}
+                <Link
+                  href={hrefDetalle(viaje)}
+                  className="inline-flex items-center gap-1.5 font-display text-xs font-bold text-route-action hover:text-signal hover:underline transition"
+                >
+                  <span>Ver detalles de la oportunidad</span>
+                  <span className="text-sm">→</span>
+                </Link>
+
+                {/* Botones de Acción Limpios (Sin ruido lateral) */}
+                <div className="flex items-center gap-2">
                   <Button
                     variant="secondary"
-                    className="w-full"
+                    className="text-xs"
                     onClick={() => onReject(viaje)}
                     disabled={aceptando === trasladoId || rechazoPendiente}
                   >
@@ -169,62 +184,28 @@ export function TripOpportunityList({
                   </Button>
                   <Button
                     variant="primary"
-                    className="w-full"
+                    className="text-xs font-bold"
                     onClick={() => onAccept(trasladoId)}
                     disabled={!elegibilidad.elegible || aceptando === trasladoId || rechazoPendiente}
                   >
-                    {aceptando === trasladoId ? "Aceptando..." : "Aceptar"}
+                    {aceptando === trasladoId ? "Aceptando..." : "Aceptar Traslado"}
                   </Button>
                 </div>
               </div>
 
               {requisitoExcepcional && (
-                <div className="rounded-lg border border-warning bg-warn-soft px-3 py-2 font-body text-sm font-semibold text-warning">
-                  Requisito excepcional: {requisitoExcepcional}
+                <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 font-body text-xs font-bold text-amber-500">
+                  ⚠️ Requisito especial: {requisitoExcepcional}
                 </div>
               )}
 
               {!elegibilidad.elegible && (
                 <Aviso tono="atencion">No elegible: {elegibilidad.motivo}</Aviso>
               )}
-
-              <details className="group rounded-lg border border-border bg-surface-elevated">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-body text-sm font-semibold text-text-secondary hover:text-route-action [&::-webkit-details-marker]:hidden">
-                  Información de la oportunidad
-                  <span className="font-display text-lg leading-none transition-transform group-open:rotate-45" aria-hidden>+</span>
-                </summary>
-                <div className="grid gap-4 border-t border-border px-3 py-3 font-body text-sm sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-text-tertiary">Vehículo</p>
-                    <p className="mt-1 font-semibold">{nombreVehiculo(viaje)}</p>
-                    <p className="text-text-secondary">{viaje.vehiculo_tipo ? ETIQUETA_TIPO_VEHICULO[viaje.vehiculo_tipo] : "Tipo por definir"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-text-tertiary">Contactos</p>
-                    <p className="mt-1 font-semibold">{viaje.contacto_entrega_nombre ?? "Contacto de origen por confirmar"}</p>
-                    <p className="text-text-secondary">{viaje.contacto_recepcion_nombre ?? "Contacto de destino por confirmar"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-text-tertiary">Condiciones</p>
-                    <p className="mt-1 font-semibold">{detalle.tipoServicio}</p>
-                    <p className="text-text-secondary">Distancia oficial: {formatearDistancia(detalle.distanciaKm)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-text-tertiary">Requisitos</p>
-                    <p className="mt-1 font-semibold">{detalle.requisitos}</p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <p className="text-xs uppercase tracking-wide text-text-tertiary">Política de cancelación</p>
-                    <p className="mt-1 text-text-secondary">
-                      Al aceptar, el viaje queda en tus próximos traslados. Si necesitas cancelar después, operación revisará el motivo y puede afectar tu disponibilidad.
-                    </p>
-                  </div>
-                </div>
-              </details>
             </article>
           </TripCard>
         );
       })}
-    </>
+    </div>
   );
 }
