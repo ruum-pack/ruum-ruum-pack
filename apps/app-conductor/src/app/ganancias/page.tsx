@@ -80,7 +80,7 @@ export default function PaginaGanancias() {
           fecha: payout.periodo_fin,
           ruta: `Periodo ${payout.periodo_inicio} -> ${payout.periodo_fin}`,
           monto: Number(payout.monto_bruto ?? 0),
-          gastos: Math.max(0, Number(payout.monto_neto ?? 0) - Number(payout.monto_bruto ?? 0)),
+          gastos: Math.max(0, Number(payout.monto_bruto ?? 0) - Number(payout.monto_neto ?? 0)),
           estatus: estatusPayout(payout),
           liberacion: payout.procesado_en ? payout.procesado_en.slice(0, 10) : "Pendiente"
         })) as RegistroGanancia[];
@@ -91,7 +91,7 @@ export default function PaginaGanancias() {
           actual
             ? {
                 ganancias_generadas: Number(actual.monto_bruto ?? 0),
-                gastos_autorizados: Math.max(0, Number(actual.monto_neto ?? 0) - Number(actual.monto_bruto ?? 0)),
+                gastos_autorizados: Math.max(0, Number(actual.monto_bruto ?? 0) - Number(actual.monto_neto ?? 0)),
                 ajustes: Number(actual.ajustes ?? 0),
                 deposito_final: Number(actual.monto_neto ?? 0),
                 fecha_pago: actual.procesado_en ? actual.procesado_en.slice(0, 10) : actual.periodo_fin,
@@ -131,7 +131,7 @@ export default function PaginaGanancias() {
       gastos,
       ajustes,
       retenciones,
-      deposito: Math.max(0, ganancias + gastos - ajustes - retenciones),
+      deposito: Math.max(0, ganancias - gastos - ajustes - retenciones),
       vehiculosTrasladados: registros.length,
       estatusResumen
     };
