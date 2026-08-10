@@ -1,3 +1,5 @@
+"use client";
+
 import { GRUPOS_MIS_VIAJES, VISTAS, type GrupoMisViajes, type VistaViajes } from "./trips-utils";
 
 export function TripsTabs({
@@ -16,48 +18,83 @@ export function TripsTabs({
   return (
     <>
       <div className="grid gap-2 sm:grid-cols-3" role="tablist" aria-label="Secciones de viajes">
-        {VISTAS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onChange({ vista: item.id, grupo: item.id === "mis-viajes" ? grupo : "", estado: "todos" })}
-            aria-pressed={vista === item.id}
-            className={[
-              "min-h-14 rounded-xl border px-4 py-3 text-left font-body text-sm font-semibold transition",
-              vista === item.id ? "border-route-action bg-route-soft text-route-action" : "border-border bg-surface text-secondary hover:border-route-action"
-            ].join(" ")}
-          >
-            <span>{item.etiqueta}</span>
-            <span className="mt-1 block font-body text-xs text-text-tertiary">
-              {item.id === "disponibles" && `${estadisticas.disponibles} por aceptar`}
-              {item.id === "mis-viajes" && `${aceptadosCount} en seguimiento`}
-              {item.id === "historial" && `${estadisticas.historial} finalizado(s)`}
-            </span>
-          </button>
-        ))}
+        {VISTAS.map((item) => {
+          const isActive = vista === item.id;
+          const countText =
+            item.id === "disponibles"
+              ? `${estadisticas.disponibles} por aceptar`
+              : item.id === "mis-viajes"
+                ? `${aceptadosCount} en seguimiento`
+                : `${estadisticas.historial} finalizados`;
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onChange({ vista: item.id, grupo: item.id === "mis-viajes" ? grupo : "", estado: "todos" })}
+              aria-pressed={isActive}
+              className={[
+                "min-h-14 rounded-2xl border px-4 py-3 text-left font-display transition-all duration-150 flex flex-col justify-between",
+                isActive
+                  ? "border-signal bg-signal/15 text-text-primary shadow-xs"
+                  : "border-border/60 bg-surface text-text-tertiary hover:border-signal/50 hover:text-text-primary"
+              ].join(" ")}
+            >
+              <span className="text-sm font-bold text-text-primary">{item.etiqueta}</span>
+              <div className="mt-2 flex items-center justify-between">
+                {/* Badge de Conteo de Alto Contraste y Fácil Lectura */}
+                <span
+                  className={[
+                    "inline-flex items-center rounded-full px-2.5 py-0.5 font-display text-xs font-bold transition",
+                    isActive
+                      ? "bg-signal text-slate-950 font-extrabold shadow-2xs"
+                      : "bg-surface-elevated text-text-primary border border-border/60"
+                  ].join(" ")}
+                >
+                  {countText}
+                </span>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {vista === "mis-viajes" && (
         <div className="mt-3 grid gap-2 sm:grid-cols-3" role="tablist" aria-label="Mis viajes">
-          {GRUPOS_MIS_VIAJES.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onChange({ vista: "mis-viajes", grupo: item.id, estado: "todos" })}
-              aria-pressed={grupo === item.id}
-              className={[
-                "min-h-12 rounded-lg border px-3 py-2 text-left font-body text-sm font-semibold transition",
-                grupo === item.id ? "border-success bg-control-soft text-success" : "border-border bg-surface-elevated text-secondary hover:border-success"
-              ].join(" ")}
-            >
-              {item.etiqueta}
-              <span className="ml-2 font-body text-xs text-text-tertiary">
-                {item.id === "en-curso" && estadisticas.enCurso}
-                {item.id === "proximos" && estadisticas.proximos}
-                {item.id === "por-cerrar" && estadisticas.porCerrar}
-              </span>
-            </button>
-          ))}
+          {GRUPOS_MIS_VIAJES.map((item) => {
+            const isActive = grupo === item.id;
+            const count =
+              item.id === "en-curso"
+                ? estadisticas.enCurso
+                : item.id === "proximos"
+                  ? estadisticas.proximos
+                  : estadisticas.porCerrar;
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onChange({ vista: "mis-viajes", grupo: item.id, estado: "todos" })}
+                aria-pressed={isActive}
+                className={[
+                  "min-h-12 rounded-xl border px-3 py-2 text-left font-display text-xs font-bold transition flex items-center justify-between",
+                  isActive
+                    ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                    : "border-border/60 bg-surface-elevated text-text-tertiary hover:border-emerald-500/40 hover:text-text-primary"
+                ].join(" ")}
+              >
+                <span>{item.etiqueta}</span>
+                <span
+                  className={[
+                    "inline-flex size-5 items-center justify-center rounded-full text-[11px] font-extrabold",
+                    isActive ? "bg-emerald-500 text-slate-950" : "bg-surface text-text-tertiary border border-border/40"
+                  ].join(" ")}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
     </>

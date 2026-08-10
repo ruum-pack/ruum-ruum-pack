@@ -88,43 +88,49 @@ function EmptyTripsState({
   const contenido =
     vista === "disponibles"
       ? {
+          icono: "🗺️",
           titulo: filtrosActivos ? "No hay oportunidades con estos filtros" : "No hay oportunidades nuevas por ahora",
           descripcion: filtrosActivos
-            ? "Prueba ver todos los días o todos los estados para ampliar la búsqueda."
-            : "Activa tu disponibilidad y actualiza ubicación para recibir ofertas cercanas.",
-          accion: filtrosActivos ? "Limpiar filtros" : "Actualizar ubicación",
+            ? "Prueba seleccionar 'Todos los estados' o 'Cualquier fecha' para ampliar tu margen de búsqueda."
+            : "Mantén activada tu disponibilidad operativa y actualiza tu ubicación GPS para ser el primero en recibir solicitudes en tu área.",
+          accion: filtrosActivos ? "Limpiar filtros de búsqueda" : "📍 Actualizar ubicación GPS",
           onAction: filtrosActivos ? () => onChange({ fecha: "todos", estado: "todos" }) : onUpdateLocation
         }
       : vista === "mis-viajes"
         ? {
+            icono: "🚘",
             titulo: filtrosActivos ? "No encontramos viajes con estos filtros" : grupo === "en-curso" ? "No tienes viajes en curso" : grupo === "proximos" ? "No tienes próximos viajes" : "No tienes viajes por cerrar",
             descripcion: filtrosActivos
-              ? "Quita filtros para revisar toda tu operación asignada."
+              ? "Limpia los filtros para revisar toda tu lista de traslados asignados."
               : grupo === "en-curso"
-                ? "Cuando aceptes y comiences un traslado, aparecerá aquí con su siguiente acción."
+                ? "Cuando aceptes un traslado y comiences su traslado, aparecerá aquí con sus siguientes acciones operativas."
                 : grupo === "proximos"
-                  ? "Revisa oportunidades disponibles para sumar traslados a tu agenda."
-                  : "Los viajes pendientes de evidencia final o cierre aparecerán en esta sección.",
-            accion: filtrosActivos ? "Limpiar filtros" : "Ver disponibles",
+                  ? "Explora el catálogo de oportunidades disponibles para agendar nuevos traslados en tu semana."
+                  : "Los traslados pendientes de registro fotográfico o cierre operativo aparecerán en este grupo.",
+            accion: filtrosActivos ? "Limpiar filtros" : "Explorar oportunidades disponibles",
             onAction: filtrosActivos ? () => onChange({ fecha: "todos", estado: "todos" }) : () => onChange({ vista: "disponibles" })
           }
         : {
-            titulo: filtrosActivos ? "No hay historial con estos filtros" : "Tu historial todavía está vacío",
+            icono: "📜",
+            titulo: filtrosActivos ? "Sin historial de viajes con estos filtros" : "Tu historial operativo todavía está vacío",
             descripcion: filtrosActivos
-              ? "Amplía el rango de fecha o revisa todos los estados para encontrar viajes anteriores."
-              : "Cuando cierres tus primeros viajes, podrás consultar aquí folios, fechas y estado económico.",
-            accion: filtrosActivos ? "Limpiar filtros" : "Ver disponibles",
+              ? "Prueba ampliar el rango de fechas o seleccionar 'Todos los estados'."
+              : "Cuando completes tus primeros traslados y cierres los servicios, verás aquí su expediente completo y folio.",
+            accion: filtrosActivos ? "Limpiar filtros" : "Ver oportunidades disponibles",
             onAction: filtrosActivos ? () => onChange({ fecha: "todos", estado: "todos" }) : () => onChange({ vista: "disponibles" })
           };
 
   return (
-    <div className="rounded-2xl border border-dashed border-border/28 bg-surface px-5 py-8 text-center">
-      <h2 className="font-display text-xl font-semibold text-text-primary">{contenido.titulo}</h2>
-      <p className="mx-auto mt-2 max-w-xl font-body text-sm leading-6 text-text-secondary">{contenido.descripcion}</p>
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/40 bg-surface-elevated/30 px-6 py-10 text-center shadow-2xs">
+      <div className="flex size-14 items-center justify-center rounded-full bg-surface-elevated font-display text-2xl text-signal shadow-xs border border-border/60">
+        {contenido.icono}
+      </div>
+      <h2 className="mt-4 font-display text-xl font-bold text-text-primary">{contenido.titulo}</h2>
+      <p className="mx-auto mt-1.5 max-w-md font-body text-xs leading-6 text-text-tertiary">{contenido.descripcion}</p>
       <button
         type="button"
         onClick={contenido.onAction}
-        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-action-primary px-5 py-3 font-display text-sm font-bold text-on-primary shadow-sm hover:bg-action-primary-hover"
+        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-signal px-5 py-2.5 font-display text-xs font-extrabold text-slate-950 shadow-sm transition hover:bg-signal-hover active:scale-95"
       >
         {contenido.accion}
       </button>
@@ -135,38 +141,44 @@ function EmptyTripsState({
 function OpportunityLocationPanel({
   estado,
   actualizadaEn,
+  hayOportunidades,
   onUpdate
 }: {
   estado: EstadoUbicacionOportunidades;
   actualizadaEn: Date | null;
+  hayOportunidades: boolean;
   onUpdate: () => void;
 }) {
-  const textoEstado =
+  const textoContextoGPS =
     estado === "lista"
-      ? `Distancia aproximada activa · ${formatearActualizacion(actualizadaEn)}`
+      ? `📍 Ubicación GPS activa: Detectando traslados cercanos a tu punto actual (${formatearActualizacion(actualizadaEn)})`
       : estado === "denegada"
-        ? "Ubicación sin permiso"
+        ? "⚠️ Permiso de GPS no concedido: No es posible calcular la proximidad exacta a los traslados."
         : estado === "no_disponible"
-          ? "Ubicación no disponible"
-          : "Distancia aproximada al origen";
+          ? "⚠️ Ubicación no disponible: Revisa los permisos de ubicación en tu navegador."
+          : "📍 Distancias calculadas desde tu ubicación GPS de referencia.";
 
   return (
-    <div className="mt-3 rounded-xl border border-route-action/40 bg-route-soft/60 px-3 py-2">
+    <div className="mt-3 rounded-2xl border border-signal/30 bg-signal/5 px-4 py-3 shadow-2xs">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className={[
-          "font-body text-sm font-semibold",
-          estado === "denegada" ? "text-danger-action" : "text-text-secondary"
+          "font-body text-xs font-semibold flex items-center gap-1.5",
+          estado === "denegada" || estado === "no_disponible" ? "text-amber-500" : "text-text-primary"
         ].join(" ")}>
-          {textoEstado}
+          {textoContextoGPS}
         </p>
-        <Button
-          variant="secondary"
-          className="min-h-10 w-full px-3 py-2 text-sm sm:w-auto"
-          onClick={onUpdate}
-          disabled={estado === "solicitando"}
-        >
-          {estado === "solicitando" ? "Obteniendo ubicación..." : estado === "lista" ? "Actualizar ubicación" : "Usar mi ubicación"}
-        </Button>
+
+        {/* Solo mostrar botón de actualización aquí cuando haya oportunidades para no duplicar con el EmptyState */}
+        {hayOportunidades && (
+          <Button
+            variant="secondary"
+            className="text-xs shrink-0"
+            onClick={onUpdate}
+            disabled={estado === "solicitando"}
+          >
+            {estado === "solicitando" ? "Obteniendo GPS..." : "🔄 Actualizar GPS"}
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -481,6 +493,7 @@ export default function PaginaViajes() {
           filtroFecha={filtroFecha as FiltroFecha}
           filtroEstado={filtroEstado}
           estadosFiltro={estadosFiltro}
+          totalItems={lista.length}
           onChange={actualizarUrl}
         />
 
@@ -488,6 +501,7 @@ export default function PaginaViajes() {
           <OpportunityLocationPanel
             estado={ubicacionOportunidades.estado}
             actualizadaEn={ubicacionOportunidades.actualizadaEn}
+            hayOportunidades={lista.length > 0}
             onUpdate={actualizarUbicacionOportunidades}
           />
         )}
