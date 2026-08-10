@@ -252,23 +252,36 @@ async function obtenerConductorIdActual(cliente: Cliente): Promise<string> {
   return conductor.id;
 }
 
+type TrasladoRow = Database["public"]["Tables"]["traslados"]["Row"];
+type VehiculoRow = Database["public"]["Tables"]["vehiculos"]["Row"];
+
+export interface TrasladoConductorGanancia extends TrasladoRow {
+  cerrado_en?: string | null;
+  payout_id?: string | null;
+  vehiculos?: Pick<VehiculoRow, "marca" | "modelo" | "anio"> | null;
+}
+
 export interface DatosGananciasConductor {
   datosBancarios: DatosBancariosRow | null;
   payouts: PayoutRow[];
+  traslados: TrasladoConductorGanancia[];
 }
 
 export async function obtenerGananciasConductor(cliente: Cliente, conductorId: string): Promise<DatosGananciasConductor> {
-  const [datosBancarios, payouts] = await Promise.all([
+  const [datosBancarios, payouts, traslados] = await Promise.all([
     cliente.from("datos_bancarios_conductor").select("*").eq("conductor_id", conductorId).maybeSingle(),
-    cliente.from("payouts_conductor").select("*").eq("conductor_id", conductorId).order("periodo_inicio", { ascending: false })
+    cliente.from("payouts_conductor").select("*").eq("conductor_id", conductorId).order("periodo_inicio", { ascending: false }),
+    cliente.from("traslados").select("*, vehiculos(marca, modelo, anio)").eq("conductor_id", conductorId).order("creado_en", { ascending: false })
   ]);
 
   if (datosBancarios.error) throw datosBancarios.error;
   if (payouts.error) throw payouts.error;
+  if (traslados.error) throw traslados.error;
 
   return {
     datosBancarios: datosBancarios.data ?? null,
-    payouts: payouts.data ?? []
+    payouts: payouts.data ?? [],
+    traslados: (traslados.data ?? []) as TrasladoConductorGanancia[]
   };
 }
 

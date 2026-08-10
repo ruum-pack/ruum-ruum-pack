@@ -1,25 +1,29 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Aviso, Button, Card, DriverEarning, FinancialAmount, FinancialCard } from "@ruum/ui";
-import { type EstadoEconomicoExplicito } from "@ruum/shared/constants";
+import type { EstadoEconomicoExplicito } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
-import { obtenerConductorActual, obtenerGananciasConductor } from "@ruum/api/services";
+import { obtenerConductorActual, obtenerGananciasConductor, type TrasladoConductorGanancia } from "@ruum/api/services";
 
 type Payout = Database["public"]["Tables"]["payouts_conductor"]["Row"];
+type DatosBancarios = Database["public"]["Tables"]["datos_bancarios_conductor"]["Row"];
 
-interface RegistroGanancia {
+interface RegistroViajeGanancia {
+  id: string;
   fecha: string;
-  ruta: string;
-  monto: number;
-  gastos: number;
-  estatus: EstadoEconomicoExplicito;
+  vehiculo: string;
+  origen: string;
+  destino: string;
+  montoGanado: number;
+  gastosAutorizados: number;
+  estatusEconomico: EstadoEconomicoExplicito;
   liberacion: string;
+  payoutId?: string | null;
 }
-
-const FECHA_PAGO_INICIAL = "Pendiente";
 
 function estatusPayout(payout: Payout): EstadoEconomicoExplicito {
   if (payout.estado === "procesado") return "pagado";
@@ -27,36 +31,39 @@ function estatusPayout(payout: Payout): EstadoEconomicoExplicito {
   return "rechazado";
 }
 
-function estatusResumenRegistros(registros: RegistroGanancia[]): EstadoEconomicoExplicito {
-  if (registros.length === 0) return "sin_calcular";
-  const estados = new Set(registros.map((registro) => registro.estatus));
-  if (estados.size === 1) return registros[0].estatus;
-  if (estados.has("retenido")) return "retenido";
-  if (estados.has("rechazado")) return "en_validacion";
-  if (estados.has("en_validacion")) return "en_validacion";
-  if (estados.has("programado")) return "programado";
-  return "confirmado";
+function estatusViaje(traslado: TrasladoConductorGanancia, payoutEnlazado?: Payout | null): EstadoEconomicoExplicito {
+  if (payoutEnlazado) return estatusPayout(payoutEnlazado);
+  if (traslado.estado === "servicio_cerrado") return "confirmado";
+  if (traslado.estado === "entrega_confirmada") return "en_validacion";
+  if (
+    traslado.estado === "traslado_en_curso" ||
+    traslado.estado === "conductor_asignado" ||
+    traslado.estado === "conductor_en_camino_al_origen" ||
+    traslado.estado === "conductor_en_punto_de_recoleccion"
+  ) {
+    return "estimado";
+  }
+  if (traslado.estado === "servicio_cancelado" || traslado.estado === "traslado_fallido") return "rechazado";
+  return "sin_calcular";
 }
 
-function fecha(fechaIso: string) {
-  if (!fechaIso.includes("-")) return fechaIso;
-  return new Intl.DateTimeFormat("es-MX", {
-    dateStyle: "medium",
-    timeZone: "America/Mexico_City"
-  }).format(new Date(`${fechaIso}T12:00:00-06:00`));
+function formatearFecha(fechaIso: string) {
+  if (!fechaIso || !fechaIso.includes("-")) return fechaIso || "—";
+  try {
+    return new Intl.DateTimeFormat("es-MX", {
+      dateStyle: "medium",
+      timeZone: "America/Mexico_City"
+    }).format(new Date(fechaIso.length === 10 ? `${fechaIso}T12:00:00-06:00` : fechaIso));
+  } catch {
+    return fechaIso;
+  }
 }
 
 export default function PaginaGanancias() {
-  const [registros, setRegistros] = useState<RegistroGanancia[]>([]);
-  const [resumenSemanal, setResumenSemanal] = useState({
-    ganancias_generadas: 0,
-    gastos_autorizados: 0,
-    ajustes: 0,
-    deposito_final: 0,
-    fecha_pago: FECHA_PAGO_INICIAL,
-    metodo: "Sin pago programado",
-    estatus: "sin_calcular" as EstadoEconomicoExplicito
-  });
+  const [datosBancarios, setDatosBancarios] = useState<DatosBancarios | null>(null);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [traslados, setTraslados] = useState<TrasladoConductorGanancia[]>([]);
+  const [vistaActiva, setVistaActiva] = useState<"viajes" | "payouts">("viajes");
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
 
@@ -76,112 +83,148 @@ export default function PaginaGanancias() {
         }
 
         const datos = await obtenerGananciasConductor(cliente, conductor.id);
-        const reales = datos.payouts.map((payout: Payout) => ({
-          fecha: payout.periodo_fin,
-          ruta: `Periodo ${payout.periodo_inicio} -> ${payout.periodo_fin}`,
-          monto: Number(payout.monto_bruto ?? 0),
-          gastos: Math.max(0, Number(payout.monto_bruto ?? 0) - Number(payout.monto_neto ?? 0)),
-          estatus: estatusPayout(payout),
-          liberacion: payout.procesado_en ? payout.procesado_en.slice(0, 10) : "Pendiente"
-        })) as RegistroGanancia[];
-
-        setRegistros(reales);
-        const actual = datos.payouts[0];
-        setResumenSemanal(
-          actual
-            ? {
-                ganancias_generadas: Number(actual.monto_bruto ?? 0),
-                gastos_autorizados: Math.max(0, Number(actual.monto_bruto ?? 0) - Number(actual.monto_neto ?? 0)),
-                ajustes: Number(actual.ajustes ?? 0),
-                deposito_final: Number(actual.monto_neto ?? 0),
-                fecha_pago: actual.procesado_en ? actual.procesado_en.slice(0, 10) : actual.periodo_fin,
-                metodo: actual.referencia_pago ? "Transferencia bancaria" : "Depósito programado",
-                estatus: estatusPayout(actual)
-              }
-            : {
-                ganancias_generadas: 0,
-                gastos_autorizados: 0,
-                ajustes: 0,
-                deposito_final: 0,
-                fecha_pago: FECHA_PAGO_INICIAL,
-                metodo: "Sin pago programado",
-                estatus: "sin_calcular"
-              }
-        );
+        setDatosBancarios(datos.datosBancarios);
+        setPayouts(datos.payouts);
+        setTraslados(datos.traslados);
       } catch (err) {
         setError(traducirErrorOperativo(err, "No pudimos cargar tus ganancias."));
       } finally {
         setCargando(false);
       }
     }
-    cargar();
+    void cargar();
   }, []);
 
+  const mapaPayouts = useMemo(() => {
+    const mapa = new Map<string, Payout>();
+    payouts.forEach((p) => mapa.set(p.id, p));
+    return mapa;
+  }, [payouts]);
+
+  const registrosViajes = useMemo<RegistroViajeGanancia[]>(() => {
+    return traslados.map((t) => {
+      const payoutEnlazado = t.payout_id ? mapaPayouts.get(t.payout_id) : null;
+      const vehiculoNombre = t.vehiculos
+        ? `${t.vehiculos.marca} ${t.vehiculos.modelo} ${t.vehiculos.anio}`
+        : "Vehículo trasladado";
+      const montoEstimadoOGanado = Number(
+        t.ganancia_conductor_congelada ?? ((t.precio_final ?? t.precio_cotizado ?? 0) * 0.85)
+      );
+
+      return {
+        id: t.id,
+        fecha: t.cerrado_en ?? t.actualizado_en ?? t.creado_en,
+        vehiculo: vehiculoNombre,
+        origen: t.origen_ciudad,
+        destino: t.destino_ciudad,
+        montoGanado: montoEstimadoOGanado,
+        gastosAutorizados: 0,
+        estatusEconomico: estatusViaje(t, payoutEnlazado),
+        liberacion: payoutEnlazado?.procesado_en ? payoutEnlazado.procesado_en.slice(0, 10) : "Pendiente de corte",
+        payoutId: t.payout_id
+      };
+    });
+  }, [traslados, mapaPayouts]);
+
   const resumen = useMemo(() => {
-    const ganancias = registros.reduce((total, registro) => total + registro.monto, 0);
-    const gastos = registros.reduce((total, registro) => total + registro.gastos, 0);
-    const retenciones = registros.filter((registro) => registro.estatus === "rechazado" || registro.estatus === "retenido" || registro.estatus === "en_validacion").reduce(
-      (total, registro) => total + registro.monto,
-      0
-    );
-    const ajustes = 0;
-    const estatusResumen = estatusResumenRegistros(registros);
+    const gananciasBrutas = registrosViajes.reduce((tot, v) => tot + v.montoGanado, 0);
+    const gastosAutorizados = registrosViajes.reduce((tot, v) => tot + v.gastosAutorizados, 0);
+    const retenciones = registrosViajes
+      .filter((v) => v.estatusEconomico === "rechazado" || v.estatusEconomico === "retenido")
+      .reduce((tot, v) => tot + v.montoGanado, 0);
+    const depositoFinal = Math.max(0, gananciasBrutas - gastosAutorizados - retenciones);
+
     return {
-      ganancias,
-      gastos,
-      ajustes,
+      totalViajes: registrosViajes.length,
+      gananciasBrutas,
+      gastosAutorizados,
       retenciones,
-      deposito: Math.max(0, ganancias - gastos - ajustes - retenciones),
-      vehiculosTrasladados: registros.length,
-      estatusResumen
+      depositoFinal
     };
-  }, [registros]);
-  const sinRegistros = !cargando && registros.length === 0 && !error;
-  const tieneRegistros = !cargando && registros.length > 0;
+  }, [registrosViajes]);
+
+  const ultimoPayout = payouts[0] ?? null;
+  const tieneDatosBancarios = Boolean(datosBancarios?.clabe || datosBancarios?.numero_tarjeta);
+  const sinViajesNiPayouts = !cargando && traslados.length === 0 && payouts.length === 0 && !error;
+  const tieneContenido = !cargando && (traslados.length > 0 || payouts.length > 0);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+      {/* Encabezado */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Link href="/panel" className="font-body text-sm text-text-secondary underline-offset-4 hover:underline">
-            Panel
-          </Link>
-          <h1 className="mt-2 font-display text-3xl font-semibold">Mis ganancias</h1>
-          <p className="mt-2 font-body text-sm text-text-secondary">
-            Entiende cuánto generaste, qué gastos se autorizaron y cuánto se depositará.
+          <div className="flex items-center gap-2">
+            <Link href="/panel" className="font-body text-xs text-text-tertiary hover:underline">
+              ← Volver al Panel
+            </Link>
+          </div>
+          <h1 className="mt-1 font-display text-3xl font-bold text-text-primary">Mis ganancias y pagos</h1>
+          <p className="mt-1 font-body text-sm text-text-tertiary">
+            Consulta las ganancias reales generadas por tus traslados y el estado de tus depósitos bancarios.
           </p>
         </div>
-        <Link href="/viajes">
-          <Button variant="secondary">Abrir viajes</Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/cuenta/datos-bancarios">
+            <Button variant="secondary" className="text-xs">
+              💳 Datos Bancarios
+            </Button>
+          </Link>
+          <Link href="/viajes">
+            <Button className="text-xs">🚘 Buscar Traslados</Button>
+          </Link>
+        </div>
       </header>
 
+      {/* Alertas */}
       {error && (
         <div className="mt-6">
           <Aviso tono="danger">{error}</Aviso>
         </div>
       )}
 
+      {!cargando && !tieneDatosBancarios && (
+        <div className="mt-6">
+          <Aviso tono="atencion">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-bold text-amber-600 dark:text-amber-400">⚠️ No tienes una cuenta bancaria registrada</p>
+                <p className="text-xs text-text-primary mt-0.5">
+                  Registra tu CLABE o número de tarjeta para poder recibir la transferencia semanal de tus ganancias.
+                </p>
+              </div>
+              <Link href="/cuenta/datos-bancarios" className="shrink-0">
+                <Button variant="secondary" className="text-xs">
+                  Configurar cuenta CLABE
+                </Button>
+              </Link>
+            </div>
+          </Aviso>
+        </div>
+      )}
+
+      {/* Cargando */}
       {cargando && (
         <FinancialCard className="mt-6" padding="lg">
-          <p className="font-body text-sm font-semibold text-text-secondary">Cargando ganancias...</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="h-20 rounded-xl bg-surface-elevated" />
-            <div className="h-20 rounded-xl bg-surface-elevated" />
-            <div className="h-20 rounded-xl bg-surface-elevated" />
+          <p className="font-body text-sm font-semibold text-text-secondary">Cargando expediente de ganancias...</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-4">
+            <div className="h-20 animate-pulse rounded-xl bg-surface-elevated" />
+            <div className="h-20 animate-pulse rounded-xl bg-surface-elevated" />
+            <div className="h-20 animate-pulse rounded-xl bg-surface-elevated" />
+            <div className="h-20 animate-pulse rounded-xl bg-surface-elevated" />
           </div>
         </FinancialCard>
       )}
 
-      {sinRegistros && (
+      {/* Estado vacío */}
+      {sinViajesNiPayouts && (
         <FinancialCard className="mt-6 border-route-action/35 bg-surface-elevated" padding="lg">
           <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-            <div className="flex size-12 items-center justify-center rounded-full border border-route-action/35 bg-surface text-route-action" aria-hidden>
-              $
+            <div className="flex size-14 items-center justify-center rounded-full border border-signal/40 bg-signal/10 font-display text-2xl text-signal" aria-hidden>
+              💵
             </div>
-            <h2 className="mt-4 font-display text-2xl font-semibold text-text-primary">Aún no hay ganancias registradas</h2>
-            <p className="mt-2 font-body text-base leading-7 text-text-secondary">
-              Cuando completes viajes y se calcule el pago, aquí verás tu depósito final, gastos autorizados y estatus de liberación.
+            <h2 className="mt-4 font-display text-2xl font-bold text-text-primary">Aún no hay ganancias registradas</h2>
+            <p className="mt-2 font-body text-sm leading-6 text-text-tertiary">
+              Completa tu primer traslado para comenzar a acumular ganancias. Al finalizar cada viaje, verás aquí el desglose detallado y el estatus de tu depósito bancario.
             </p>
             <Link href="/viajes" className="mt-5">
               <Button>Ver viajes disponibles</Button>
@@ -190,121 +233,205 @@ export default function PaginaGanancias() {
         </FinancialCard>
       )}
 
-      {tieneRegistros && (
+      {/* Contenido Principal con Datos Reales */}
+      {tieneContenido && (
         <>
-          <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-12">
-            <Card className="lg:col-span-2">
-              <p className="font-body text-xs uppercase tracking-wide text-text-tertiary">Vehículos trasladados</p>
-              <p className="mt-2 font-display text-2xl font-semibold">{resumen.vehiculosTrasladados}</p>
-            </Card>
-            <FinancialCard className="lg:col-span-2">
-              <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Ganancias</p>
-              <DriverEarning amount={resumen.ganancias} status={resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
-            </FinancialCard>
-            <FinancialCard className="lg:col-span-2">
-              <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Gastos autorizados</p>
-              <FinancialAmount amount={resumen.gastos} status={resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
-            </FinancialCard>
-            <FinancialCard className="lg:col-span-2">
-              <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Ajustes</p>
-              <FinancialAmount amount={resumen.ajustes} status={resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
-            </FinancialCard>
-            <FinancialCard className="lg:col-span-2">
-              <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Retenciones</p>
-              <FinancialAmount amount={resumen.retenciones} status={resumen.retenciones > 0 ? "retenido" : resumen.estatusResumen} currency="MXN" className="mt-2" amountClassName="font-display text-2xl" />
-            </FinancialCard>
-            <FinancialCard className="border-route-action/35 bg-surface-elevated lg:col-span-12 xl:col-span-2" padding="lg">
-              <p className="font-body text-xs uppercase tracking-wide text-route-action">Depósito final</p>
-              <FinancialAmount amount={resumen.deposito} status={resumenSemanal.estatus} currency="MXN" className="mt-3" amountClassName="font-display text-3xl sm:text-4xl" />
-            </FinancialCard>
-          </section>
-
-          <section className="mt-6">
-            <FinancialCard>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Pagos recibidos por semana</p>
-                  <h2 className="mt-1 font-display text-xl font-semibold text-text-primary">Resumen semanal</h2>
-                </div>
-                <p className="font-body text-sm text-text-secondary">
-                  {fecha(resumenSemanal.fecha_pago)} · {resumenSemanal.metodo}
-                </p>
+          {/* Métricas Generales */}
+          <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="flex flex-col justify-between">
+              <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">Vehículos Trasladados</p>
+              <div className="mt-3 flex items-baseline justify-between">
+                <span className="font-display text-3xl font-bold text-text-primary">{resumen.totalViajes}</span>
+                <span className="font-body text-xs text-text-tertiary">viajes concluidos</span>
               </div>
-              <dl className="mt-5 grid gap-3 font-body text-sm sm:grid-cols-2">
-                <div className="flex justify-between gap-4 border-t border-border/14 pt-3">
-                  <dt className="text-text-secondary">Ganancias generadas</dt>
-                  <dd><DriverEarning amount={resumenSemanal.ganancias_generadas} status={resumenSemanal.estatus} currency="MXN" amountClassName="text-sm" /></dd>
-                </div>
-                <div className="flex justify-between gap-4 border-t border-border/14 pt-3">
-                  <dt className="text-text-secondary">Gastos registrados y autorizados</dt>
-                  <dd><FinancialAmount amount={resumenSemanal.gastos_autorizados} status={resumenSemanal.estatus} currency="MXN" amountClassName="text-sm" /></dd>
-                </div>
-                <div className="flex justify-between gap-4 border-t border-border/14 pt-3">
-                  <dt className="text-text-secondary">Ajustes o retenciones</dt>
-                  <dd><FinancialAmount amount={resumenSemanal.ajustes} status={resumenSemanal.ajustes > 0 ? "retenido" : resumenSemanal.estatus} currency="MXN" amountClassName="text-sm" /></dd>
-                </div>
-                <div className="flex justify-between gap-4 border-t border-border/14 pt-3">
-                  <dt className="font-semibold text-text-primary">Depósito final</dt>
-                  <dd><FinancialAmount amount={resumenSemanal.deposito_final} status={resumenSemanal.estatus} currency="MXN" amountClassName="text-sm font-semibold" /></dd>
-                </div>
-              </dl>
+            </Card>
+
+            <FinancialCard className="flex flex-col justify-between">
+              <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">Ganancias Brutas</p>
+              <DriverEarning
+                amount={resumen.gananciasBrutas}
+                status={resumen.totalViajes > 0 ? "confirmado" : "sin_calcular"}
+                currency="MXN"
+                className="mt-3"
+                amountClassName="font-display text-2xl font-bold"
+              />
+            </FinancialCard>
+
+            <FinancialCard className="flex flex-col justify-between">
+              <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">Gastos Autorizados</p>
+              <FinancialAmount
+                amount={resumen.gastosAutorizados}
+                status="confirmado"
+                currency="MXN"
+                className="mt-3"
+                amountClassName="font-display text-2xl font-bold"
+              />
+            </FinancialCard>
+
+            <FinancialCard className="border-signal/40 bg-signal/5 flex flex-col justify-between">
+              <p className="font-body text-xs font-bold uppercase tracking-wider text-signal">Depósito Acumulado Net</p>
+              <FinancialAmount
+                amount={resumen.depositoFinal}
+                status={ultimoPayout ? estatusPayout(ultimoPayout) : "confirmado"}
+                currency="MXN"
+                className="mt-3"
+                amountClassName="font-display text-3xl font-extrabold text-signal"
+              />
             </FinancialCard>
           </section>
 
-          <section className="mt-6">
-            <div className="mb-3 flex flex-col gap-1">
-              <h2 className="font-display text-xl font-semibold">Estatus económico de viajes realizados</h2>
-              <p className="font-body text-sm text-text-secondary">Estados: sin calcular, estimado, en validación, confirmado, programado, pagado, retenido y rechazado.</p>
+          {/* Pestañas de Vista */}
+          <div className="mt-8 flex items-center justify-between border-b border-border/60 pb-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setVistaActiva("viajes")}
+                className={[
+                  "rounded-xl px-4 py-2 font-display text-xs font-bold transition",
+                  vistaActiva === "viajes"
+                    ? "bg-signal text-slate-950 shadow-xs"
+                    : "border border-border bg-surface text-text-tertiary hover:border-signal/60 hover:text-text-primary"
+                ].join(" ")}
+              >
+                🚘 Desglose por Viaje ({registrosViajes.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setVistaActiva("payouts")}
+                className={[
+                  "rounded-xl px-4 py-2 font-display text-xs font-bold transition",
+                  vistaActiva === "payouts"
+                    ? "bg-signal text-slate-950 shadow-xs"
+                    : "border border-border bg-surface text-text-tertiary hover:border-signal/60 hover:text-text-primary"
+                ].join(" ")}
+              >
+                🏦 Depósitos y Transferencias ({payouts.length})
+              </button>
             </div>
-            <div className="grid gap-3">
-              {registros.map((registro) => (
-                <FinancialCard key={`${registro.fecha}-${registro.ruta}`}>
-                  <details className="group">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 lg:cursor-default [&::-webkit-details-marker]:hidden">
-                      <div className="grid min-w-0 flex-1 gap-4 lg:grid-cols-[1fr_0.8fr_0.8fr_0.8fr_0.8fr] lg:items-center">
+
+            {datosBancarios && (
+              <div className="hidden sm:flex items-center gap-2 font-body text-xs text-text-tertiary">
+                <span>Cuenta de Depósito:</span>
+                <span className="font-bold text-text-primary">{datosBancarios.banco} ({datosBancarios.clabe.slice(-4)})</span>
+              </div>
+            )}
+          </div>
+
+          {/* Vista 1: Desglose por Viaje Realizado */}
+          {vistaActiva === "viajes" && (
+            <section className="mt-4 grid gap-3" aria-label="Desglose por viaje realizado">
+              {registrosViajes.length === 0 ? (
+                <div className="rounded-2xl border border-border bg-surface p-8 text-center font-body text-sm text-text-tertiary">
+                  No hay viajes asignados a tu cuenta en este momento.
+                </div>
+              ) : (
+                registrosViajes.map((viaje) => (
+                  <FinancialCard key={viaje.id} className="transition hover:border-signal/40">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-elevated font-display text-lg text-route-action shadow-2xs">
+                          🚘
+                        </div>
                         <div className="min-w-0">
-                          <p className="font-body text-sm font-semibold text-text-primary truncate">{registro.ruta}</p>
-                          <p className="mt-1 font-body text-xs text-text-secondary lg:hidden">Fecha del viaje: {fecha(registro.fecha)}</p>
+                          <h3 className="font-display text-sm font-bold text-text-primary truncate">
+                            {viaje.vehiculo}
+                          </h3>
+                          <p className="mt-0.5 font-body text-xs font-semibold text-text-tertiary flex items-center gap-1.5 flex-wrap">
+                            <span>{viaje.origen} ➔ {viaje.destino}</span>
+                            <span>•</span>
+                            <span>{formatearFecha(viaje.fecha)}</span>
+                          </p>
                         </div>
-                        <div className="hidden lg:block">
-                          <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Fecha</p>
-                          <p className="mt-1 font-body text-sm text-text-primary">{fecha(registro.fecha)}</p>
-                        </div>
-                        <div>
-                          <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Monto generado</p>
-                          <DriverEarning amount={registro.monto} status={registro.estatus} currency="MXN" className="mt-1" amountClassName="text-sm" />
-                        </div>
-                        <div className="hidden lg:block">
-                          <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Gastos autorizados</p>
-                          <FinancialAmount amount={registro.gastos} status={registro.estatus} currency="MXN" className="mt-1" amountClassName="text-sm" />
-                        </div>
-                        <div className="hidden lg:block">
-                          <p className="font-body text-xs uppercase tracking-wide text-text-secondary">Liberación</p>
-                          <p className="mt-1 font-body text-sm text-text-primary">{fecha(registro.liberacion)}</p>
-                        </div>
-                        <FinancialAmount amount={null} status={registro.estatus} currency="MXN" amountClassName="sr-only" auxiliaryText="" />
                       </div>
-                      <span className="font-display text-lg leading-none text-text-tertiary transition-transform group-open:rotate-45 lg:hidden" aria-hidden>+</span>
-                    </summary>
-                    <div className="mt-3 grid gap-3 border-t border-border/18 pt-3 lg:hidden">
-                      <div className="flex justify-between gap-4">
-                        <p className="font-body text-xs text-text-secondary">Fecha del viaje</p>
-                        <p className="font-body text-sm text-text-primary">{fecha(registro.fecha)}</p>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <p className="font-body text-xs text-text-secondary">Gastos autorizados</p>
-                        <FinancialAmount amount={registro.gastos} status={registro.estatus} currency="MXN" amountClassName="text-sm" />
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <p className="font-body text-xs text-text-secondary">Liberación estimada</p>
-                        <p className="font-body text-sm text-text-primary">{fecha(registro.liberacion)}</p>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0 border-t border-border/40 sm:border-t-0 pt-3 sm:pt-0">
+                        <div className="text-left sm:text-right">
+                          <p className="font-body text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                            Ganancia Conductor
+                          </p>
+                          <DriverEarning
+                            amount={viaje.montoGanado}
+                            status={viaje.estatusEconomico}
+                            currency="MXN"
+                            className="mt-0.5"
+                            amountClassName="font-display text-base font-bold"
+                          />
+                        </div>
+
+                        <div className="text-right">
+                          <FinancialAmount
+                            amount={null}
+                            status={viaje.estatusEconomico}
+                            currency="MXN"
+                            amountClassName="sr-only"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </details>
-                </FinancialCard>
-              ))}
-            </div>
-          </section>
+                  </FinancialCard>
+                ))
+              )}
+            </section>
+          )}
+
+          {/* Vista 2: Depósitos y Payouts Semanales */}
+          {vistaActiva === "payouts" && (
+            <section className="mt-4 grid gap-4" aria-label="Historial de depósitos semanales">
+              {payouts.length === 0 ? (
+                <div className="rounded-2xl border border-border bg-surface p-8 text-center font-body text-sm text-text-tertiary">
+                  Aún no se han generado cortes semanales de pago en tu cuenta. Los pagos se procesan al cierre de cada periodo operativo.
+                </div>
+              ) : (
+                payouts.map((payout) => (
+                  <FinancialCard key={payout.id} className="p-5">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 pb-3">
+                        <div>
+                          <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">
+                            Periodo Operativo
+                          </p>
+                          <h3 className="font-display text-base font-bold text-text-primary">
+                            {formatearFecha(payout.periodo_inicio)} ➔ {formatearFecha(payout.periodo_fin)}
+                          </h3>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="font-body text-xs font-semibold text-text-tertiary">
+                            {payout.referencia_pago ? `SPEI: ${payout.referencia_pago}` : "Depósito SPEI"}
+                          </span>
+                          <FinancialAmount amount={null} status={estatusPayout(payout)} currency="MXN" />
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-3 font-body text-xs">
+                        <div className="rounded-xl border border-border/40 bg-surface-elevated p-3">
+                          <p className="text-text-tertiary font-semibold uppercase">Monto Bruto</p>
+                          <p className="mt-1 font-display text-sm font-bold text-text-primary">
+                            ${Number(payout.monto_bruto ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })} MXN
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl border border-border/40 bg-surface-elevated p-3">
+                          <p className="text-text-tertiary font-semibold uppercase">Ajustes / Retenciones</p>
+                          <p className="mt-1 font-display text-sm font-bold text-text-primary">
+                            ${Number(payout.ajustes ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })} MXN
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl border border-signal/40 bg-signal/10 p-3">
+                          <p className="text-signal font-bold uppercase">Monto Neto Transferido</p>
+                          <p className="mt-1 font-display text-sm font-extrabold text-signal">
+                            ${Number(payout.monto_neto ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })} MXN
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </FinancialCard>
+                ))
+              )}
+            </section>
+          )}
         </>
       )}
     </div>
