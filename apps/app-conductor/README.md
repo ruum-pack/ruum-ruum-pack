@@ -202,6 +202,19 @@ La validacion formal por dispositivo debe registrarse en `docs/qa/fase-5-validac
 - Decidir/implementar RPC atomica equivalente para llegada a origen si Operacion requiere auditar distancia de
   recoleccion con el mismo rigor que destino.
 
+## Checklist de Despliegue (Supabase Auth en Producción / Staging)
+
+Para garantizar la correcta ejecución del flujo de recuperación de contraseña y autenticación de la App Conductor en ambientes de Staging y Producción, verificar obligatoriamente en el **Supabase Dashboard** (`Authentication -> URL Configuration`):
+
+1. **Site URL**: `https://www.concer.ruumruum-moviliax.online`
+2. **Redirect URLs** (dar de alta las variaciones con y sin `www`):
+   - `https://www.concer.ruumruum-moviliax.online/auth/callback`
+   - `https://www.concer.ruumruum-moviliax.online/nueva-password`
+   - `https://concer.ruumruum-moviliax.online/auth/callback`
+   - `https://concer.ruumruum-moviliax.online/nueva-password`
+3. **Password Protection** (`Authentication -> Password Protection`):
+   - Habilitar *"Prevent use of leaked passwords"* (HaveIBeenPwned) para cumplimiento de seguridad en producción.
+
 ## Fase 6 — datos bancarios para pagos a conductores
 
 PRD §4.6 — decisión de producto actual: los cobros al usuario siguen en Stripe, pero el pago semanal al conductor

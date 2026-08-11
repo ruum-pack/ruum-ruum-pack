@@ -104,22 +104,30 @@ export default function PaginaNuevaPasswordConductor() {
                 autoComplete="new-password"
               />
 
-              {/* Requisitos dinámicos de contraseña — misma fuente de verdad que la validación del submit (requisitosPassword) */}
+              {/* Requisitos dinámicos de contraseña */}
               <ul className="flex flex-col gap-1.5 rounded-xl border border-border bg-surface-elevated/70 p-3 text-xs font-body" aria-label="Requisitos de contraseña">
-                {requisitosPassword(password).map((requisito) => (
-                  <li
-                    key={requisito.clave}
-                    className={`flex items-center gap-2 transition-all duration-150 ${requisito.cumplido ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-text-tertiary/80"}`}
-                  >
-                    <span
-                      className={`flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all ${requisito.cumplido ? "bg-emerald-600 text-white dark:bg-emerald-500 shadow-xs" : "bg-surface-elevated border border-border text-text-tertiary"}`}
-                      aria-hidden
+                {requisitosPassword(password).map((requisito) => {
+                  const etiquetas: Record<string, string> = {
+                    longitud: "Mínimo 8 caracteres",
+                    minuscula: "Al menos una letra minúscula (a-z)",
+                    mayuscula: "Al menos una letra mayúscula (A-Z)",
+                    numero: "Al menos un número (0-9)"
+                  };
+                  return (
+                    <li
+                      key={requisito.clave}
+                      className={`flex items-center gap-2 transition-all duration-150 ${requisito.cumplido ? "font-semibold text-emerald-600 dark:text-emerald-400" : "text-text-tertiary/80"}`}
                     >
-                      {requisito.cumplido ? "✓" : "○"}
-                    </span>
-                    {requisito.etiqueta}
-                  </li>
-                ))}
+                      <span
+                        className={`flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all ${requisito.cumplido ? "bg-emerald-600 text-white dark:bg-emerald-500 shadow-xs" : "bg-surface-elevated border border-border text-text-tertiary"}`}
+                        aria-hidden
+                      >
+                        {requisito.cumplido ? "✓" : "○"}
+                      </span>
+                      {etiquetas[requisito.clave]}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
 

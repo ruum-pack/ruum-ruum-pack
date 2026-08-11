@@ -21,9 +21,27 @@ port = 54324
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3001", "http://localhost:3002"]
+additional_redirect_urls = [
+  "http://localhost:3001",
+  "http://localhost:3002",
+  "https://www.concer.ruumruum-moviliax.online",
+  "https://concer.ruumruum-moviliax.online"
+]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
+
+# NOTA OPERATIVA — Alcance de Redirect URLs en Proyectos Alojados (Staging / Producción):
+# `additional_redirect_urls` en config.toml configura el entorno local Supabase CLI.
+# En el Dashboard de Supabase para proyectos hospedados en Staging y Producción,
+# SE DEBEN CONFIGURAR EXPLÍCITAMENTE en Authentication → URL Configuration:
+#   - Site URL: https://www.concer.ruumruum-moviliax.online
+#   - Redirect URLs:
+#       * https://www.concer.ruumruum-moviliax.online/auth/callback
+#       * https://www.concer.ruumruum-moviliax.online/nueva-password
+#       * https://concer.ruumruum-moviliax.online/auth/callback
+#       * https://concer.ruumruum-moviliax.online/nueva-password
+# Sin esta alta en el Dashboard, resetPasswordForEmail rechaza el parámetro `redirectTo`
+# en producción y arroja error de enlace inválido/expirado.
 # M3 — Política de contraseñas del lado del servidor. La validación de la UI
 # (mín. 8 + fortaleza) es defensa en profundidad, pero un signUp() directo por
 # API puede saltársela; estas dos líneas la hacen valer en el propio Auth para
@@ -46,6 +64,10 @@ enable_confirmations = true
 [auth.email.template.confirmation]
 subject = "Confirma tu correo"
 content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "🔐 Restablece tu contraseña — Ruum Ruum"
+content_path = "./supabase/templates/recovery.html"
 
 [storage]
 enabled = true

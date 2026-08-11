@@ -106,4 +106,22 @@ describe("/auth/callback — rama de recuperación de contraseña", () => {
     const destino = await ejecutarCallback("?type=recovery&token_hash=token-valido");
     expect(destino).not.toContain("/registro");
   });
+
+  it("reconoce el flujo de recuperación vía next=/nueva-password aunque type sea omitido por Supabase", async () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://proyecto.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key-de-prueba";
+    exchangeCodeForSessionMock.mockResolvedValue({ error: null });
+
+    const destino = await ejecutarCallback("?next=/nueva-password&code=codigo-valido");
+    expect(destino).toBe("https://conductor.ruumruum.mx/nueva-password");
+  });
+
+  it("si exchangeCodeForSession falla en un flujo de recuperación (ej. verificador PKCE faltante o token expirado), redirige a /recuperar-password?error=enlace_invalido", async () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://proyecto.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key-de-prueba";
+    exchangeCodeForSessionMock.mockResolvedValue({ error: { message: "PKCE verifier missing" } });
+
+    const destino = await ejecutarCallback("?type=recovery&code=codigo-invalido");
+    expect(destino).toBe("https://conductor.ruumruum.mx/recuperar-password?error=enlace_invalido");
+  });
 });

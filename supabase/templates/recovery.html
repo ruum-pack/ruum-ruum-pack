@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restablece tu contraseña — Ruum Ruum</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 24px 12px;">
+  <div style="max-width: 520px; margin: 0 auto; background-color: #1e293b; border-radius: 16px; border: 1px solid #334155; padding: 32px 24px; text-align: center;">
+    
+    <!-- Logo / Encabezado de Marca -->
+    <h1 style="color: #f8fafc; font-size: 24px; font-weight: 800; margin-top: 0; margin-bottom: 8px;">
+      <span style="color: #f5a623;">Ruum Ruum</span> 🚗
+    </h1>
+    <h2 style="color: #cbd5e1; font-size: 18px; font-weight: 600; margin-top: 0; margin-bottom: 24px;">
+      🔐 Solicitud de restablecimiento de contraseña
+    </h2>
+
+    <!-- Mensaje principal -->
+    <p style="color: #94a3b8; font-size: 15px; line-height: 1.5; margin-bottom: 24px;">
+      Hemos recibido una solicitud para cambiar la contraseña de tu cuenta en <strong>Ruum Ruum</strong>. Haz clic en el siguiente botón para ingresar una nueva contraseña:
+    </p>
+
+    <!-- Botón CTA Principal -->
+    <p style="margin: 28px 0;">
+      <a href="{{ .ConfirmationURL }}" 
+         target="_blank"
+         style="background-color: #f5a623; color: #0f172a; font-weight: 700; font-size: 16px; padding: 14px 28px; text-decoration: none; border-radius: 12px; display: inline-block; box-shadow: 0 4px 12px rgba(245, 166, 35, 0.25);">
+        Restablecer mi contraseña
+      </a>
+    </p>
+
+    <!-- Fallback de texto plano -->
+    <div style="background-color: #0f172a; border-radius: 8px; padding: 14px; margin-top: 24px; text-align: left;">
+      <p style="color: #64748b; font-size: 12px; margin: 0 0 6px 0;">
+        Si el botón no funciona, copia y pega el siguiente enlace en tu navegador:
+      </p>
+      <p style="color: #38bdf8; font-size: 12px; word-break: break-all; margin: 0;">
+        {{ .ConfirmationURL }}
+      </p>
+    </div>
+
+    <!-- Pie de página y aviso de seguridad -->
+    <p style="font-size: 13px; color: #64748b; margin-top: 28px; margin-bottom: 0; line-height: 1.4;">
+      ⏰ Este enlace expirará en <strong>60 minutos</strong>.<br>
+      Si tú no solicitaste cambiar tu contraseña, puedes ignorar este correo de forma segura.
+    </p>
+  </div>
+</body>
+</html>

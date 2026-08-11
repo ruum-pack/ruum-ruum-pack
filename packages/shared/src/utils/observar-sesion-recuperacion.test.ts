@@ -38,12 +38,12 @@ describe("observarSesionRecuperacion", () => {
     expect(estados.some((estado) => estado.sesionLista)).toBe(true);
   });
 
-  it("termina la verificación para un acceso directo sin sesión", async () => {
+  it("termina la verificación para un acceso directo sin sesión tras expirar el timeout", async () => {
+    vi.useFakeTimers();
     const falsa = authFalsa(null);
     const estados: EstadoSesionRecuperacion[] = [];
-    observarSesionRecuperacion(falsa.auth, (estado) => estados.push(estado));
-    await Promise.resolve();
-    await Promise.resolve();
+    observarSesionRecuperacion(falsa.auth, (estado) => estados.push(estado), 3000);
+    vi.advanceTimersByTime(3000);
     expect(estados.at(-1)).toEqual({ sesionLista: false, verificando: false });
   });
 

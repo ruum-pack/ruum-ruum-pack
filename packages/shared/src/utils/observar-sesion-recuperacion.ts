@@ -13,7 +13,11 @@ type AuthRecuperacion = {
 
 const EVENTOS_CON_SESION = new Set(["INITIAL_SESSION", "PASSWORD_RECOVERY", "SIGNED_IN"]);
 
-/** Observa la sesión de recuperación sin depender de un único evento del SDK. */
+/**
+ * Observa la sesión de recuperación sin depender de un único evento del SDK.
+ * Otorga una ventana de tolerancia para conexiones lentas y evita que la UI
+ * descarte la verificación antes de que onAuthStateChange procese los eventos del SDK.
+ */
 export function observarSesionRecuperacion(
   auth: AuthRecuperacion,
   notificar: (estado: EstadoSesionRecuperacion) => void,
@@ -27,8 +31,11 @@ export function observarSesionRecuperacion(
   };
 
   void auth.getUser().then(({ data }) => {
-    if (activo && data.user) sesionLista = true;
-  }).finally(() => emitir(false));
+    if (activo && data.user) {
+      sesionLista = true;
+      emitir(false);
+    }
+  });
 
   const { data: { subscription } } = auth.onAuthStateChange((evento, sesion) => {
     if (!activo || !EVENTOS_CON_SESION.has(evento) || !sesion?.user) return;
