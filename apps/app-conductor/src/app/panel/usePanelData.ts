@@ -19,11 +19,16 @@ import type { PanelReviewState, PasaporteRow } from "./panel-utils";
 
 export type Disponibilidad = DriverAvailability;
 
-function conductorOperativo(real: Awaited<ReturnType<typeof obtenerConductorActual>>): Conductor | null {
+function conductorOperativo(
+  real: Awaited<ReturnType<typeof obtenerConductorActual>>,
+  email?: string | null
+): Conductor | null {
   if (!real) return null;
   return {
     id: real.id,
     nombre: real.nombre,
+    email: email ?? null,
+    telefono: real.telefono ?? null,
     estado: real.estado,
     calificacion_promedio: real.calificacion_promedio,
     traslados_completados: real.traslados_completados,
@@ -105,7 +110,7 @@ export function usePanelData() {
           return;
         }
 
-        const conductorActual = conductorOperativo(real);
+        const conductorActual = conductorOperativo(real, sesion.user?.email);
         setConductor(conductorActual);
 
         const [aceptados, disponibles, disponibilidadOperativa] = await Promise.all([

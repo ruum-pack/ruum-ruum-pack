@@ -2,12 +2,20 @@ import type { Database } from "@ruum/shared/types";
 import { obtenerConductorActual } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
-export type ConductorCuenta = Database["public"]["Tables"]["conductores"]["Row"];
+export type ConductorCuenta = Database["public"]["Tables"]["conductores"]["Row"] & {
+  email?: string | null;
+};
 
 export async function cargarConductorCuenta(): Promise<ConductorCuenta | null> {
   if (!tieneSupabaseConfigurado()) return null;
   const cliente = crearClienteNavegador();
-  return obtenerConductorActual(cliente);
+  const conductor = await obtenerConductorActual(cliente);
+  if (!conductor) return null;
+  const { data: sesion } = await cliente.auth.getUser();
+  return {
+    ...conductor,
+    email: sesion.user?.email ?? null
+  };
 }
 
 export function fechaCuenta(fechaIso: string | null | undefined) {

@@ -6,7 +6,7 @@ import { TAMANO_MAXIMO, validarDocumento } from "./validacion.ts";
 import { leerFormularioLimitado } from "../_shared/multipart-limitado.ts";
 
 const BUCKET="documentos-conductor";
-const TIPOS=new Set(["licencia_frente","licencia_reverso","identificacion_oficial","documento_operativo"]);
+const TIPOS=new Set(["licencia_frente","licencia_reverso","identificacion_oficial","constancia_situacion_fiscal","documento_operativo"]);
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CORS={
   "Access-Control-Allow-Origin":"*",

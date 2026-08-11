@@ -24,7 +24,8 @@ type DocumentoRequerido = {
 const DOCUMENTOS_REQUERIDOS: DocumentoRequerido[] = [
   { tipo: "licencia_frente", etiqueta: "Licencia - Frente", descripcion: "Fotografía clara del frente de tu licencia vigente.", bloqueante: true },
   { tipo: "licencia_reverso", etiqueta: "Licencia - Reverso", descripcion: "Fotografía clara del reverso de tu licencia vigente.", bloqueante: true },
-  { tipo: "identificacion_oficial", etiqueta: "Identificación Oficial (INE / Pasaporte)", descripcion: "Identificación oficial vigente por ambos lados.", bloqueante: true },
+  { tipo: "identificacion_oficial", etiqueta: "Identificación Oficial (INE / Pasaporte)", descripcion: "Identificación oficial vigente por ambos lados o pasaporte.", bloqueante: true },
+  { tipo: "constancia_situacion_fiscal", etiqueta: "Constancia de Situación Fiscal (SAT)", descripcion: "Constancia actualizada del SAT en archivo PDF o imagen legible.", bloqueante: false },
   { tipo: "documento_operativo", etiqueta: "Documento Operativo Adicional", descripcion: "Solo si el equipo de operación solicita un respaldo extra.", bloqueante: false }
 ];
 

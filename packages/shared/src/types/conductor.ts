@@ -29,6 +29,8 @@ export interface Certificacion {
 export interface Conductor {
   id: string;
   nombre: string;
+  email?: string | null;
+  telefono?: string | null;
   estado: EstadoConductor;
   // PRD §4.13 — promedio sobre traslados completados en últimos 6 meses,
   // máximo los 100 más recientes dentro de esa ventana

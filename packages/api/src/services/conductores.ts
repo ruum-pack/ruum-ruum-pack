@@ -16,6 +16,7 @@ export type TipoDocumentoConductor =
   | "licencia_frente"
   | "licencia_reverso"
   | "identificacion_oficial"
+  | "constancia_situacion_fiscal"
   | "documento_operativo";
 
 const TAMANO_MAX_DOCUMENTO_BYTES = 10 * 1024 * 1024;

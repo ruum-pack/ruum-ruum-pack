@@ -81,6 +81,21 @@ export default function PaginaPanel() {
             <span className="font-normal text-text-tertiary">Hola, </span>
             {conductor?.nombre ?? "conductor"}
           </h1>
+          {(conductor?.email || conductor?.telefono) && (
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-xs text-text-secondary">
+              {conductor?.email && (
+                <span className="inline-flex items-center gap-1 font-medium text-text-primary">
+                  <span>✉️</span> {conductor.email}
+                </span>
+              )}
+              {conductor?.email && conductor?.telefono && <span className="text-text-tertiary/40">•</span>}
+              {conductor?.telefono && (
+                <span className="inline-flex items-center gap-1 font-medium text-text-primary">
+                  <span>📞</span> {conductor.telefono}
+                </span>
+              )}
+            </div>
+          )}
           <p className="mt-1 font-body text-xs text-text-tertiary">
             Bienvenido a tu panel de control operativo de traslados.
           </p>

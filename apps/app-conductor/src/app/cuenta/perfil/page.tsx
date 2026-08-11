@@ -14,6 +14,7 @@ import { DatosSensiblesTooltip, enmascararUltimos, type TipoDatoSensible } from 
 
 const PERFIL_DEFAULT = {
   nombre: "",
+  email: "",
   telefono: "",
   curp: "",
   licencia_numero: "",
@@ -41,8 +42,8 @@ const PESTANAS: { id: IdPestana; titulo: string; icono: string; descripcion: str
     id: "identidad",
     titulo: "Identidad",
     icono: "👤",
-    descripcion: "Fotografía, datos personales y de contacto",
-    campos: ["nombre", "telefono", "curp"]
+    descripcion: "Fotografía, datos personales, correo y teléfono de contacto",
+    campos: ["nombre", "email", "telefono", "curp"]
   },
   {
     id: "documentacion",
@@ -72,6 +73,7 @@ const PESTANAS: { id: IdPestana; titulo: string; icono: string; descripcion: str
 
 const CAMPO_CONFIG: Record<CampoPerfil, { etiqueta: string; tipo?: string; colSpan?: string; placeholder?: string }> = {
   nombre: { etiqueta: "Nombre completo", placeholder: "Ej. Juan Pérez López" },
+  email: { etiqueta: "Correo electrónico", tipo: "email", placeholder: "correo@ejemplo.com" },
   telefono: { etiqueta: "Teléfono", placeholder: "10 dígitos" },
   curp: { etiqueta: "CURP", placeholder: "18 caracteres" },
   licencia_numero: { etiqueta: "Número de licencia", placeholder: "Ej. B12345678" },
@@ -101,6 +103,7 @@ function tipoDatoSensibleCampo(campo: CampoPerfil): TipoDatoSensible | null {
 function perfilDesdeConductor(conductor: ConductorCuenta | null) {
   return {
     nombre: conductor?.nombre ?? "",
+    email: conductor?.email ?? "",
     telefono: conductor?.telefono ?? "",
     curp: conductor?.curp ?? "",
     licencia_numero: conductor?.licencia_numero ?? "",
@@ -123,6 +126,10 @@ function evaluarValidacionInline(clave: CampoPerfil, valor: string): { esValido:
   if (!limpio) return { esValido: null };
 
   switch (clave) {
+    case "email": {
+      const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(limpio);
+      return { esValido: ok, mensaje: ok ? "Formato válido" : "Formato de correo inválido" };
+    }
     case "telefono":
     case "contacto_emergencia_telefono": {
       const digitos = limpio.replace(/\D/g, "");
@@ -263,6 +270,10 @@ export default function PaginaPerfilCuenta() {
         contacto_emergencia_nombre: sensiblesEditados.has("contacto_emergencia_nombre") ? perfil.contacto_emergencia_nombre : conductor.contacto_emergencia_nombre ?? "",
         contacto_emergencia_telefono: sensiblesEditados.has("contacto_emergencia_telefono") ? perfil.contacto_emergencia_telefono : conductor.contacto_emergencia_telefono ?? ""
       };
+      if (perfil.email.trim() && perfil.email.trim().toLowerCase() !== (conductor.email ?? "").toLowerCase()) {
+        const { error: errorAuthEmail } = await cliente.auth.updateUser({ email: perfil.email.trim() });
+        if (errorAuthEmail) throw errorAuthEmail;
+      }
       await actualizarPerfilConductor(cliente, conductor.id, {
         ...perfilParaGuardar,
         telefono: telefonoE164(perfilParaGuardar.telefono),
@@ -338,6 +349,7 @@ export default function PaginaPerfilCuenta() {
   const hayCambiosReales = Boolean(
     conductor && (
       perfil.nombre.trim() !== (conductor.nombre ?? "") ||
+      perfil.email.trim().toLowerCase() !== (conductor.email ?? "").toLowerCase() ||
       perfil.telefono.trim() !== (conductor.telefono ?? "") ||
       perfil.codigo_postal.trim() !== (conductor.codigo_postal ?? "") ||
       perfil.estado_residencia.trim() !== (conductor.estado_residencia ?? "") ||
