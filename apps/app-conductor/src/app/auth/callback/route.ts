@@ -13,10 +13,11 @@ export async function GET(request: NextRequest) {
     searchParams.get("token") ||
     searchParams.get("confirmation_token");
   const rawType = (searchParams.get("type") || searchParams.get("event") || "").toLowerCase();
+  const nextParam = (searchParams.get("next") || searchParams.get("redirectTo") || "").toLowerCase();
 
-  // Mapear tipos de Supabase a los valores reconocidos por verifyOtp
+  // Mapear tipos de Supabase a los valores reconocidos por verifyOtp/recovery
   let type: TipoOtpSanitizado = "signup";
-  if (rawType === "recovery") {
+  if (rawType === "recovery" || nextParam.includes("nueva-password")) {
     type = "recovery";
   } else if (rawType === "magiclink") {
     type = "magiclink";
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
       ? "/recuperar-password?error=enlace_invalido"
       : "/registro?error=enlace_invalido";
 
-  // Si no hay configuración de Supabase, en lugar de redirigir a /onboarding, ir al fallback de error
+  // Si no hay configuración de Supabase, redirigir al fallback de error correspondiente al flujo
   if (!url || !anonKey) {
     return NextResponse.redirect(`${origin}${destinoErrorServer}`);
   }
@@ -77,6 +78,8 @@ export async function GET(request: NextRequest) {
       const destino = await destinoComoConductor();
       return NextResponse.redirect(`${origin}${destino}`);
     }
+    // Si la verificación por código falló en el servidor (ej: token usado o expirado), redirigir directamente al error del flujo
+    return NextResponse.redirect(`${origin}${destinoErrorServer}`);
   }
 
   // 2. Flujo OTP / Hash (verificación de token por correo)
@@ -89,9 +92,11 @@ export async function GET(request: NextRequest) {
       const destino = await destinoComoConductor();
       return NextResponse.redirect(`${origin}${destino}`);
     }
+    // Si la verificación OTP falló en el servidor, redirigir al error del flujo
+    return NextResponse.redirect(`${origin}${destinoErrorServer}`);
   }
 
-  // 3. Respuesta HTML/JS ligera para capturar fragmentos de hash en el navegador (#access_token=...) antes de redirigir
+  // 3. Respuesta HTML/JS ligera para capturar fragmentos de hash en el navegador (#access_token=...)
   const htmlFallback = `
     <!DOCTYPE html>
     <html lang="es">
@@ -111,7 +116,7 @@ export async function GET(request: NextRequest) {
         (function() {
           const hash = window.location.hash || '';
           const search = window.location.search || '';
-          const isRecovery = "${type}" === "recovery" || hash.includes("type=recovery") || search.includes("type=recovery");
+          const isRecovery = "${type}" === "recovery" || hash.includes("type=recovery") || search.includes("type=recovery") || search.includes("nueva-password");
           const fallback = isRecovery ? "${origin}/recuperar-password?error=enlace_invalido" : "${origin}/registro?error=enlace_invalido";
 
           if (hash.includes("access_token=") || hash.includes("refresh_token=") || hash.includes("code=")) {

@@ -89,21 +89,13 @@ describe("/auth/callback — rama de recuperación de contraseña", () => {
     expect(exchangeCodeForSessionMock).toHaveBeenCalledWith("codigo-valido");
   });
 
-  it("si verifyOtp falla, no redirige a /nueva-password (cae al HTML de verificación, no al éxito)", async () => {
+  it("si verifyOtp falla, redirige a /recuperar-password?error=enlace_invalido (no a /nueva-password ni a /registro)", async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://proyecto.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key-de-prueba";
     verifyOtpMock.mockResolvedValue({ error: { message: "Token has expired" } });
 
-    const { GET } = await import("../src/app/auth/callback/route");
-    const request = new NextRequest(
-      "https://conductor.ruumruum.mx/auth/callback?type=recovery&token_hash=token-expirado"
-    );
-    const respuesta = await GET(request);
-
-    expect(respuesta.headers.get("location")).toBeNull();
-    const html = await respuesta.text();
-    expect(html).toContain("Verificando tu enlace");
-    expect(html).toContain("/recuperar-password?error=enlace_invalido");
+    const destino = await ejecutarCallback("?type=recovery&token_hash=token-expirado");
+    expect(destino).toBe("https://conductor.ruumruum.mx/recuperar-password?error=enlace_invalido");
   });
 
   it("un enlace de recuperación nunca debe caer en /registro?verificado=1 (mezclaría flujos)", async () => {
