@@ -1,12 +1,4 @@
 import { redirect } from "next/navigation";
-
-// Parámetros que Supabase puede adjuntar cuando el `redirect_to` del enlace
-// de confirmación no está en la lista blanca del proyecto (o cuando algún
-// intermediario -cliente de correo, proxy- reescribe la URL) y el usuario
-// termina aterrizando en la raíz en vez de en /auth/callback. Sin este
-// reenvío, un `redirect("/onboarding")` incondicional aquí descarta el
-// `code`/`token_hash` en silencio: la cuenta queda creada en Supabase pero
-// nunca se llega a confirmar (ver incidente de verificación de correo).
 const PARAMETROS_CONFIRMACION_CORREO = ["code", "token_hash", "token", "confirmation_token"] as const;
 
 export default async function PaginaInicioConductor({

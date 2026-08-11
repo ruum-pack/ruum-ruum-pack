@@ -17,7 +17,7 @@ const EVENTOS_CON_SESION = new Set(["INITIAL_SESSION", "PASSWORD_RECOVERY", "SIG
 export function observarSesionRecuperacion(
   auth: AuthRecuperacion,
   notificar: (estado: EstadoSesionRecuperacion) => void,
-  esperaMaximaMs = 3000
+  esperaMaximaMs = 7000
 ) {
   let activo = true;
   let sesionLista = false;

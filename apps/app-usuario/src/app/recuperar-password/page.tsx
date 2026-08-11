@@ -43,7 +43,7 @@ export default function PaginaRecuperarPassword() {
       const cliente = crearClienteNavegador();
       const { error: errorAuth } = await cliente.auth.resetPasswordForEmail(
         email.trim(),
-        { redirectTo: `${window.location.origin}/nueva-password` }
+        { redirectTo: `${window.location.origin}/auth/callback?type=recovery` }
       );
       if (errorAuth) throw errorAuth;
       setEnviado(true);

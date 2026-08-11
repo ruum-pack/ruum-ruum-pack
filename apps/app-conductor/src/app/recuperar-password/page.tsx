@@ -31,7 +31,7 @@ export default function PaginaRecuperarPasswordConductor() {
       const cliente = crearClienteNavegador();
       const { error: errorAuth } = await cliente.auth.resetPasswordForEmail(
         email.trim(),
-        { redirectTo: `${obtenerOriginApp()}/nueva-password` }
+        { redirectTo: `${obtenerOriginApp()}/auth/callback?type=recovery` }
       );
       if (errorAuth) throw errorAuth;
       setEnviado(true);

@@ -110,10 +110,11 @@ export async function GET(request: NextRequest) {
       <script>
         (function() {
           const hash = window.location.hash || '';
-          const isRecovery = "${type}" === "recovery";
-          const fallback = "${origin}${destinoErrorServer}";
+          const search = window.location.search || '';
+          const isRecovery = "${type}" === "recovery" || hash.includes("type=recovery") || search.includes("type=recovery");
+          const fallback = isRecovery ? "${origin}/recuperar-password?error=enlace_invalido" : "${origin}/registro?error=enlace_invalido";
 
-          if (hash.includes("access_token=") || hash.includes("refresh_token=")) {
+          if (hash.includes("access_token=") || hash.includes("refresh_token=") || hash.includes("code=")) {
             const target = isRecovery ? "${origin}/nueva-password" : "${origin}/registro?verificado=1";
             window.location.replace(target + hash);
           } else {
