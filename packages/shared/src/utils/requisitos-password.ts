@@ -1,35 +1,72 @@
+export type RequisitoPasswordClave = "longitud" | "minuscula" | "mayuscula" | "numero";
+
 export type RequisitoPassword = {
-  clave: "longitud" | "mayuscula" | "numero";
-  etiqueta: string;
+  clave: RequisitoPasswordClave;
   cumplido: boolean;
 };
 
-type ReglaPassword = {
-  clave: RequisitoPassword["clave"];
-  etiqueta: string;
-  prueba: (password: string) => boolean;
-};
-
-const REGLAS_PASSWORD: ReglaPassword[] = [
-  { clave: "longitud", etiqueta: "Mínimo 8 caracteres", prueba: (pwd) => pwd.length >= 8 },
-  { clave: "mayuscula", etiqueta: "Al menos una letra mayúscula (A-Z)", prueba: (pwd) => /[A-Z]/.test(pwd) },
-  { clave: "numero", etiqueta: "Al menos un número (0-9)", prueba: (pwd) => /[0-9]/.test(pwd) }
+export const requisitosPassword = (password: string): RequisitoPassword[] => [
+  { clave: "longitud", cumplido: password.length >= 8 },
+  { clave: "minuscula", cumplido: /[a-z]/.test(password) },
+  { clave: "mayuscula", cumplido: /[A-Z]/.test(password) },
+  { clave: "numero", cumplido: /\d/.test(password) },
 ];
 
-/**
- * Evalúa una contraseña contra cada requisito mínimo. Pensada para alimentar
- * un checklist visual (✓/○) y, con `passwordCumpleRequisitos`, la validación
- * de submit — así la UI nunca "promete" un requisito que el formulario no
- * exige de verdad.
- */
-export function requisitosPassword(password: string): RequisitoPassword[] {
-  return REGLAS_PASSWORD.map(({ clave, etiqueta, prueba }) => ({
-    clave,
-    etiqueta,
-    cumplido: prueba(password)
-  }));
-}
+export const passwordCumpleRequisitos = (password: string): boolean =>
+  requisitosPassword(password).every((requisito) => requisito.cumplido);
 
-export function passwordCumpleRequisitos(password: string): boolean {
-  return requisitosPassword(password).every((requisito) => requisito.cumplido);
-}
+import { describe, expect, it } from "vitest";
+
+describe("requisitosPassword", () => {
+  it("marca los cuatro requisitos como no cumplidos para una contraseña vacía", () => {
+    const requisitos = requisitosPassword("");
+    expect(requisitos).toHaveLength(4);
+    expect(requisitos.every((r) => !r.cumplido)).toBe(true);
+  });
+
+  it("evalúa cada requisito de forma independiente", () => {
+    const requisitos = requisitosPassword("ABCDEFGH");
+    const porClave = Object.fromEntries(requisitos.map((r) => [r.clave, r.cumplido]));
+    expect(porClave.longitud).toBe(true);
+    expect(porClave.minuscula).toBe(false);
+    expect(porClave.mayuscula).toBe(true);
+    expect(porClave.numero).toBe(false);
+  });
+
+  it("cumple minúscula, mayúscula y número cuando están presentes", () => {
+    const requisitos = requisitosPassword("Abcdefg1");
+    const porClave = Object.fromEntries(requisitos.map((r) => [r.clave, r.cumplido]));
+    expect(porClave.longitud).toBe(true);
+    expect(porClave.minuscula).toBe(true);
+    expect(porClave.mayuscula).toBe(true);
+    expect(porClave.numero).toBe(true);
+  });
+});
+
+describe("passwordCumpleRequisitos", () => {
+  it("rechaza contraseñas que cumplen longitud pero no complejidad", () => {
+    // Este es exactamente el caso que antes se colaba en app-conductor: el
+    // checklist visual mostraba mayúscula/número como pendientes, pero el
+    // submit solo validaba la longitud y dejaba enviar la contraseña igual.
+    expect(passwordCumpleRequisitos("abcdefgh")).toBe(false);
+  });
+
+  it("rechaza contraseñas cortas aunque tengan mayúscula y número", () => {
+    expect(passwordCumpleRequisitos("Ab1")).toBe(false);
+  });
+
+  it("rechaza una contraseña sin minúscula aunque tenga mayúscula y número", () => {
+    // Caso de regresión: el checklist visual de /nueva-password (app-conductor)
+    // marcaba esta contraseña como "cumple todos los requisitos" (longitud +
+    // mayúscula + número), pero Supabase la rechazaba con `weak_password`
+    // porque auth.password_requirements = "lower_upper_letters_digits"
+    // (supabase/config.toml) exige también una minúscula. El usuario quedaba
+    // atascado sin saber qué corregir.
+    expect(passwordCumpleRequisitos("PASSWORD1")).toBe(false);
+    expect(passwordCumpleRequisitos("CONDUCTOR2026")).toBe(false);
+  });
+
+  it("acepta una contraseña que cumple los cuatro requisitos", () => {
+    expect(passwordCumpleRequisitos("Abcdefg1")).toBe(true);
+  });
+});
