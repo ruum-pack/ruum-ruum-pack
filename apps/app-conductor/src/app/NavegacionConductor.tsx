@@ -228,7 +228,7 @@ export function NavegacionConductor() {
             <Link
               href={`/viajes/${viajeActivo.trasladoId}`}
               aria-label={`Abrir traslado activo ${viajeActivo.folio}: ${viajeActivo.etapa}`}
-              className="conductor-mobile-active-trip-card mx-auto grid grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-slate-100 bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur"
+              className="conductor-mobile-active-trip-card mx-auto grid grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-border/40 bg-surface-elevated/95 px-4 py-2.5 shadow-lg backdrop-blur"
             >
               <span className="min-w-0">
                 <span className="flex min-w-0 items-center gap-2">
@@ -239,7 +239,7 @@ export function NavegacionConductor() {
                     <span className="inline-flex size-3 shrink-0 rounded-full bg-warning ring-2 ring-surface-elevated" aria-hidden />
                   )}
                 </span>
-                <span className="mt-1 block truncate font-body text-sm font-bold text-[#0D2C54]">{viajeActivo.etapa}</span>
+                <span className="mt-1 block truncate font-body text-sm font-bold text-text-primary">{viajeActivo.etapa}</span>
                 <span className="conductor-mobile-active-trip-destination mt-0.5 block truncate font-body text-xs text-text-secondary">{viajeActivo.destinoActual}</span>
               </span>
               <span className="inline-flex min-h-10 items-center justify-center rounded-xl bg-route-action px-3.5 font-body text-xs font-bold text-white shadow-xs">
@@ -251,7 +251,7 @@ export function NavegacionConductor() {
 
         <nav
           aria-label="Navegación principal móvil"
-          className="mx-auto max-w-md rounded-full border border-slate-150/70 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)] px-5 py-3.5 backdrop-blur-md"
+          className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"
         >
           <div className="grid grid-cols-3 gap-1">
             {DESTINOS_MOVIL.map((destino) => {
@@ -266,11 +266,11 @@ export function NavegacionConductor() {
                   aria-label={notificar ? `${destino.etiqueta}: acción pendiente en traslado activo` : destino.etiqueta}
                   className={[
                     "relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs transition-colors duration-200 select-none",
-                    activo ? "text-[#0052FF] font-extrabold" : "text-[#64748B] hover:text-[#0052FF]"
+                    activo ? "text-signal font-extrabold" : "text-text-secondary hover:text-text-primary"
                   ].join(" ")}
                 >
                   {notificar && (
-                    <span className="absolute right-6 top-1 size-2.5 rounded-full bg-warning ring-2 ring-white animate-pulse" aria-hidden />
+                    <span className="absolute right-6 top-1 size-2.5 rounded-full bg-warning ring-2 ring-surface-elevated animate-pulse" aria-hidden />
                   )}
                   <destino.Icono />
                   <span className="max-w-full truncate tracking-tight">{destino.etiqueta}</span>
