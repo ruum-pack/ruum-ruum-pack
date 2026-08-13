@@ -7,7 +7,35 @@ import { LogoMarca } from "@ruum/ui";
 import { useViajeActivo } from "./ViajeActivoContext";
 import { getTripPresentation } from "../lib/trip-presentation";
 
-/* Íconos SVG inline — reemplazan los caracteres Unicode ⌂ ▤ $ ◌ */
+/* Íconos SVG inline — actualizados para coincidir con la imagen premium */
+function IcoGrid() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  );
+}
+
+function IcoTruck() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm12 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM14 12v-2h3v2h-3z" />
+    </svg>
+  );
+}
+
+function IcoDollarCircle() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v12M9 9h4.5a1.5 1.5 0 0 1 0 3H9h4.5a1.5 1.5 0 0 1 0 3H9" />
+    </svg>
+  );
+}
+
 function IcoHome() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -17,6 +45,7 @@ function IcoHome() {
     </svg>
   );
 }
+
 function IcoViajes() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -28,6 +57,7 @@ function IcoViajes() {
     </svg>
   );
 }
+
 function IcoGanancias() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -37,6 +67,7 @@ function IcoGanancias() {
     </svg>
   );
 }
+
 function IcoNotificaciones() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -45,6 +76,7 @@ function IcoNotificaciones() {
     </svg>
   );
 }
+
 function IcoCuenta() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -57,12 +89,18 @@ function IcoCuenta() {
 
 type DestinoIcono = React.ComponentType;
 
-const DESTINOS: { href: string; etiqueta: string; Icono: DestinoIcono }[] = [
+const DESTINOS_ESCRITORIO: { href: string; etiqueta: string; Icono: DestinoIcono }[] = [
   { href: "/panel", etiqueta: "Inicio", Icono: IcoHome },
   { href: "/viajes", etiqueta: "Traslados", Icono: IcoViajes },
   { href: "/ganancias", etiqueta: "Ganancias", Icono: IcoGanancias },
   { href: "/notificaciones", etiqueta: "Avisos", Icono: IcoNotificaciones },
   { href: "/cuenta", etiqueta: "Cuenta", Icono: IcoCuenta },
+];
+
+const DESTINOS_MOVIL = [
+  { href: "/panel", etiqueta: "Panel", Icono: IcoGrid },
+  { href: "/viajes", etiqueta: "Traslados", Icono: IcoTruck },
+  { href: "/ganancias", etiqueta: "Ganancias", Icono: IcoDollarCircle },
 ];
 
 function esActivo(pathname: string, href: string) {
@@ -87,7 +125,8 @@ export function NavegacionConductor() {
 
   return (
     <>
-      <header role="banner" className="sticky top-0 z-30 border-b border-border bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur supports-[backdrop-filter]:bg-surface/85">
+      {/* Ocultar encabezado global en pantallas móviles para dar un look nativo y limpio */}
+      <header role="banner" className="hidden md:block sticky top-0 z-30 border-b border-border bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur supports-[backdrop-filter]:bg-surface/85">
         <div className="ruum-container flex min-h-16 items-center gap-3 py-3">
           <Link href="/panel" aria-label="Ir al inicio de Ruum Ruum Conductor" className="flex shrink-0 items-center gap-2.5 rounded-lg">
             <LogoMarca tamano={30} color="signal" />
@@ -98,7 +137,7 @@ export function NavegacionConductor() {
           </Link>
 
           <nav aria-label="Navegación principal" className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex">
-            {DESTINOS.map((destino) => {
+            {DESTINOS_ESCRITORIO.map((destino) => {
               const activo = esActivo(pathname, destino.href);
               return (
                 <Link
@@ -180,13 +219,16 @@ export function NavegacionConductor() {
         )}
       </header>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 md:hidden">
-        {viajeActivo && (
-          <div className="conductor-mobile-active-trip px-3 pb-2">
+      {/* Navegación móvil flotante adaptada a la estética premium de la imagen */}
+      <div className="fixed inset-x-0 bottom-4 z-40 md:hidden px-4">
+        
+        {/* Banner de viaje activo en móvil: ocultado en /panel porque ya tiene su propio botón "Traslado activo" */}
+        {viajeActivo && pathname !== "/panel" && (
+          <div className="conductor-mobile-active-trip pb-3">
             <Link
               href={`/viajes/${viajeActivo.trasladoId}`}
               aria-label={`Abrir traslado activo ${viajeActivo.folio}: ${viajeActivo.etapa}`}
-              className="conductor-mobile-active-trip-card mx-auto grid max-w-md grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-border/30 bg-surface-elevated/95 px-4 py-2.5 shadow-[0_16px_48px_rgba(0,0,0,0.48)] backdrop-blur"
+              className="conductor-mobile-active-trip-card mx-auto grid grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-slate-100 bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur"
             >
               <span className="min-w-0">
                 <span className="flex min-w-0 items-center gap-2">
@@ -196,21 +238,11 @@ export function NavegacionConductor() {
                   {hayAccionPendiente && (
                     <span className="inline-flex size-3 shrink-0 rounded-full bg-warning ring-2 ring-surface-elevated" aria-hidden />
                   )}
-                  {hayAccionPendiente && (
-                    <span className="sr-only">
-                      Acción pendiente
-                    </span>
-                  )}
-                  {viajeActivoSinActualizar && (
-                    <span className="rounded-full border border-warning bg-warning/10 px-2 py-0.5 font-body text-sm font-bold text-warning">
-                      Información sin actualizar
-                    </span>
-                  )}
                 </span>
-                <span className="mt-1 block truncate font-body text-sm font-bold text-text-primary">{viajeActivo.etapa}</span>
-                <span className="conductor-mobile-active-trip-destination mt-0.5 block truncate font-body text-sm text-text-secondary">{viajeActivo.destinoActual}</span>
+                <span className="mt-1 block truncate font-body text-sm font-bold text-[#0D2C54]">{viajeActivo.etapa}</span>
+                <span className="conductor-mobile-active-trip-destination mt-0.5 block truncate font-body text-xs text-text-secondary">{viajeActivo.destinoActual}</span>
               </span>
-              <span className="inline-flex min-h-11 items-center justify-center rounded-xl bg-route-action px-3 font-body text-sm font-bold text-white">
+              <span className="inline-flex min-h-10 items-center justify-center rounded-xl bg-route-action px-3.5 font-body text-xs font-bold text-white shadow-xs">
                 Abrir
               </span>
             </Link>
@@ -219,34 +251,36 @@ export function NavegacionConductor() {
 
         <nav
           aria-label="Navegación principal móvil"
-          className="border-t border-border bg-surface/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 backdrop-blur"
+          className="mx-auto max-w-md rounded-full border border-slate-150/70 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)] px-5 py-3.5 backdrop-blur-md"
         >
-          <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
-          {DESTINOS.map((destino) => {
-            const activo = esActivo(pathname, destino.href);
-            const notificar = destino.href === "/viajes" && hayAccionPendiente;
-            return (
-              <Link
-                key={destino.href}
-                href={destino.href}
-                aria-current={activo ? "page" : undefined}
-                aria-label={notificar ? `${destino.etiqueta}: acción pendiente en traslado activo` : destino.etiqueta}
-                className={[
-                  "relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 font-body text-xs font-semibold",
-                  activo ? "bg-action-primary text-on-primary" : "text-text-secondary"
-                ].join(" ")}
-              >
-                {notificar && (
-                  <span className="absolute right-3 top-2 size-2.5 rounded-full bg-warning ring-2 ring-surface" aria-hidden />
-                )}
-                <destino.Icono />
-                <span className="max-w-full truncate">{destino.etiqueta}</span>
-              </Link>
-            );
-          })}
+          <div className="grid grid-cols-3 gap-1">
+            {DESTINOS_MOVIL.map((destino) => {
+              const activo = esActivo(pathname, destino.href);
+              const notificar = destino.href === "/viajes" && hayAccionPendiente;
+              
+              return (
+                <Link
+                  key={destino.href}
+                  href={destino.href}
+                  aria-current={activo ? "page" : undefined}
+                  aria-label={notificar ? `${destino.etiqueta}: acción pendiente en traslado activo` : destino.etiqueta}
+                  className={[
+                    "relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs transition-colors duration-200 select-none",
+                    activo ? "text-[#0052FF] font-extrabold" : "text-[#64748B] hover:text-[#0052FF]"
+                  ].join(" ")}
+                >
+                  {notificar && (
+                    <span className="absolute right-6 top-1 size-2.5 rounded-full bg-warning ring-2 ring-white animate-pulse" aria-hidden />
+                  )}
+                  <destino.Icono />
+                  <span className="max-w-full truncate tracking-tight">{destino.etiqueta}</span>
+                </Link>
+              );
+            })}
           </div>
         </nav>
       </div>
     </>
   );
 }
+
