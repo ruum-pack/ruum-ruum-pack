@@ -24,12 +24,9 @@ import {
   claveDia,
   crearCalendario,
   detalleFallback,
-  normalizarGrupo,
   normalizarVista,
   type DetalleOperativo,
   type PasaporteRow,
-  type VistaViajes,
-  type GrupoMisViajes
 } from "./trips-utils";
 
 type RechazoPendiente = {
@@ -50,13 +47,19 @@ function TripsLoadingList() {
 function CustomTripCard({
   viaje,
   detalle,
-  onClick,
-  esOferta
+  esOferta,
+  isExpanded,
+  onToggleExpand,
+  onAccept,
+  hrefDetalle
 }: {
   viaje: PasaporteRow;
   detalle: DetalleOperativo;
-  onClick: () => void;
   esOferta: boolean;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onAccept: (trasladoId: string) => void;
+  hrefDetalle: string;
 }) {
   const folio = viaje.traslado_id ? viaje.traslado_id.slice(0, 8).toUpperCase() : "3811604";
   const ganancia = detalle.gananciaConductorOficial != null 
@@ -82,68 +85,128 @@ function CustomTripCard({
   const estadoTexto = esOferta ? "DISPONIBLE" : "ACEPTADO";
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full text-left bg-surface-elevated rounded-[1.5rem] p-5 border border-border/40 hover:border-signal/40 active:scale-[0.99] transition-all shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col gap-3.5 cursor-pointer select-none"
+    <div
+      className={`w-full text-left bg-surface-elevated rounded-[1.5rem] p-5 border transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col gap-3.5 ${
+        isExpanded ? "border-[#00B4D8]/60 ring-1 ring-[#00B4D8]/10" : "border-border/40 hover:border-signal/40"
+      }`}
     >
-      <div className="flex justify-between items-start w-full">
-        <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 font-display text-[10px] font-bold ${
-          esOferta ? "bg-[#00B4D8]/10 text-[#00B4D8] border border-[#00B4D8]/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-        }`}>
-          {estadoTexto}
-        </span>
-        <div className="flex items-center gap-1">
-          <span className="font-display text-base font-extrabold text-text-primary">{ganancia}</span>
-          <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-500 font-bold text-xs select-none">
-            $
+      <button 
+        type="button"
+        onClick={onToggleExpand}
+        className="w-full flex flex-col gap-3.5 cursor-pointer select-none text-left bg-transparent border-none p-0 outline-hidden font-inherit"
+      >
+        <div className="flex justify-between items-start w-full">
+          <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 font-display text-[10px] font-bold ${
+            esOferta ? "bg-[#00B4D8]/10 text-[#00B4D8] border border-[#00B4D8]/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+          }`}>
+            {estadoTexto}
+          </span>
+          <div className="flex items-center gap-1">
+            <span className="font-display text-base font-extrabold text-text-primary">{ganancia}</span>
+            <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-500 font-bold text-xs select-none">
+              $
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="flex flex-col gap-1">
-        <span className="font-body text-[11px] font-bold text-text-tertiary uppercase">Viaje #{folio}</span>
-        <h2 className="font-display text-lg font-extrabold text-text-primary tracking-tight leading-tight">
-          {ruta}
-        </h2>
-      </div>
+        <div className="flex flex-col gap-1">
+          <div className="flex justify-between items-center w-full">
+            <span className="font-body text-[11px] font-bold text-text-tertiary uppercase">Viaje #{folio}</span>
+            <span className="text-[10px] font-bold text-text-tertiary flex items-center gap-0.5">
+              {isExpanded ? "Contraer ▲" : "Expandir ▼"}
+            </span>
+          </div>
+          <h2 className="font-display text-lg font-extrabold text-text-primary tracking-tight leading-tight">
+            {ruta}
+          </h2>
+        </div>
 
-      <div className="flex flex-col gap-1 font-body text-xs text-text-secondary">
-        <p className="flex items-center gap-2">
-          <span className="text-text-tertiary w-14">Ciudad</span>
-          <span className="text-text-primary font-medium">{viaje.origen_ciudad || "Toluca"} - {viaje.destino_ciudad || "Méx."}</span>
-        </p>
-        <p className="flex items-center gap-2">
-          <span className="text-text-tertiary w-14">Solicitado por</span>
-          <span className="text-text-primary font-medium">{viaje.contacto_entrega_nombre || "zaida Froebel"}</span>
-        </p>
-      </div>
+        <div className="flex flex-col gap-1 font-body text-xs text-text-secondary">
+          <p className="flex items-center gap-2">
+            <span className="text-text-tertiary w-14 font-semibold">Ciudad</span>
+            <span className="text-text-primary font-medium">{viaje.origen_ciudad || "Toluca"} - {viaje.destino_ciudad || "Méx."}</span>
+          </p>
+          <p className="flex items-center gap-2">
+            <span className="text-text-tertiary w-14 font-semibold">Solicitado</span>
+            <span className="text-text-primary font-medium">{viaje.contacto_entrega_nombre || "zaida Froebel"}</span>
+          </p>
+        </div>
 
-      <div className="border-t border-border/40 pt-3.5 flex justify-between items-center text-text-secondary font-body text-xs mt-1">
-        <div className="flex items-center gap-1.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-          <span className="font-semibold text-text-primary">{horaInicio} - {horaFin}</span>
+        <div className="border-t border-border/40 pt-3.5 flex justify-between items-center text-text-secondary font-body text-xs mt-1">
+          <div className="flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span className="font-semibold text-text-primary">{horaInicio} - {horaFin}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2v4" />
+              <path d="M12 12h4" />
+            </svg>
+            <span className="font-semibold text-text-primary">{duracionTexto}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span className="font-semibold text-text-primary">{distanciaTexto}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 2v4" />
-            <path d="M12 12h4" />
-          </svg>
-          <span className="font-semibold text-text-primary">{duracionTexto}</span>
+      </button>
+
+      {isExpanded && (
+        <div className="mt-4 border-t border-border/20 pt-4 flex flex-col gap-3.5 animate-slideDown">
+          <div className="grid gap-3 border-l-2 border-dashed border-border/60 pl-3">
+            <div className="min-w-0">
+              <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Recolección (Origen)</p>
+              <p className="mt-0.5 font-body text-xs text-text-primary">{viaje.origen_direccion || "Dirección de recolección"}</p>
+            </div>
+            <div className="min-w-0">
+              <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Entrega (Destino)</p>
+              <p className="mt-0.5 font-body text-xs text-text-primary">{viaje.destino_direccion || "Dirección de entrega"}</p>
+            </div>
+          </div>
+
+          {detalle.requisitos && (
+            <div className="bg-surface p-3 rounded-xl border border-border/40 flex flex-col gap-1">
+              <span className="font-body text-[9px] font-extrabold text-text-tertiary uppercase tracking-wider">Notas de Operación</span>
+              <p className="font-body text-xs text-text-secondary">{detalle.requisitos}</p>
+            </div>
+          )}
+
+          <div className="flex gap-2 mt-1">
+            {esOferta ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onAccept(viaje.traslado_id!)}
+                  className="flex-1 min-h-10 bg-[#00B4D8] hover:bg-[#00B4D8]/90 text-white font-display text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm active:scale-95"
+                >
+                  <span>✓</span> Aceptar Viaje
+                </button>
+                <Link
+                  href={hrefDetalle}
+                  className="flex-1 min-h-10 bg-control-soft hover:bg-border/60 text-text-primary font-display text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center text-center"
+                >
+                  Ver completo →
+                </Link>
+              </>
+            ) : (
+              <Link
+                href={hrefDetalle}
+                className="w-full min-h-10 bg-route-action hover:bg-route-action/90 text-white font-display text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center shadow-sm active:scale-95 text-center"
+              >
+                Abrir Panel de Viaje →
+              </Link>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-            <circle cx="12" cy="10" r="3" />
-          </svg>
-          <span className="font-semibold text-text-primary">{distanciaTexto}</span>
-        </div>
-      </div>
-    </button>
+      )}
+    </div>
   );
 }
 
@@ -163,6 +226,8 @@ export default function PaginaViajes() {
   const [conductor, setConductor] = useState<Conductor | null>(null);
   const [viajeParaRechazar, setViajeParaRechazar] = useState<PasaporteRow | null>(null);
   const [rechazoPendiente, setRechazoPendiente] = useState<RechazoPendiente | null>(null);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [tarjetaExpandida, setTarjetaExpandida] = useState<string | null>(null);
   const timeoutRechazoRef = useRef<number | null>(null);
 
   const vista = normalizarVista(searchParams.get("vista"));
@@ -285,7 +350,7 @@ export default function PaginaViajes() {
       }
     }
     cargar();
-  }, []);
+  }, [refreshCount]);
 
   async function aceptar(trasladoId: string) {
     setAceptando(trasladoId);
@@ -307,8 +372,8 @@ export default function PaginaViajes() {
   }
 
   async function persistirRechazo(pendiente: RechazoPendiente) {
-    if (!conductor) throw new Error("Inicia sesión como conductor para rechazar viajes.");
-    if (!pendiente.viaje.traslado_id) throw new Error("No se pudo identificar el viaje para registrar el rechazo.");
+    if (!conductor) throw new Error("Inicia sesión como conductor para registrar el rechazo.");
+    if (!pendiente.viaje.traslado_id) throw new Error("No se pudo identificar el viaje.");
     const cliente = crearClienteNavegador();
     await registrarEvento(cliente, "modificacion_traslado_activo", "conductor", conductor.id, {
       traslado_id: pendiente.viaje.traslado_id,
@@ -410,16 +475,55 @@ export default function PaginaViajes() {
 
   const totalViajesTexto = listToRender.length === 1 ? "1 Viaje" : `${listToRender.length} Viajes`;
 
+  // Check if any other day has offers
+  const tieneOfertasOtrosDias = calendario.some(
+    ({ dia, viajes }) => claveDia(dia) !== diaSeleccionado && viajes.some((v) => v.tipo === "Ofertado")
+  );
+
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-between min-h-[calc(100vh-100px)] text-text-primary">
       
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes listFadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-list-fade {
+          animation: listFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-10px); max-height: 0; }
+          to { opacity: 1; transform: translateY(0); max-height: 500px; }
+        }
+        .animate-slideDown {
+          animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          overflow: hidden;
+        }
+      ` }} />
+
       <div className="w-full flex flex-col flex-1">
         
         {/* Header */}
         <header className="flex justify-between items-center border-b border-border/20 pb-4">
-          <h1 className="font-display text-3xl font-extrabold text-text-primary tracking-tight mt-1 leading-none">
-            Traslados
-          </h1>
+          <div className="flex flex-col">
+            <h1 className="font-display text-3xl font-extrabold text-text-primary tracking-tight mt-1 leading-none">
+              Traslados
+            </h1>
+            <div className="flex items-center gap-1.5 mt-1.5 text-[10px] font-bold text-text-tertiary">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Sincronizado en tiempo real</span>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setCargando(true);
+                  setRefreshCount((prev) => prev + 1);
+                }}
+                className="ml-1 text-[#00B4D8] hover:underline cursor-pointer select-none"
+              >
+                (Recargar 🔄)
+              </button>
+            </div>
+          </div>
 
           <div className="flex items-center gap-3 shrink-0">
             <Link 
@@ -472,7 +576,7 @@ export default function PaginaViajes() {
           </button>
         </div>
 
-        {/* Calendar Range Header */}
+        {/* Calendar Range Header with Volver a Hoy */}
         <div className="flex justify-center items-center gap-2 mt-6">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -483,6 +587,15 @@ export default function PaginaViajes() {
           <span className="font-body text-xs font-semibold text-text-tertiary">
             {RangoCalendarioText}
           </span>
+          {diaSeleccionado !== diaHoy && (
+            <button
+              type="button"
+              onClick={() => setDiaSeleccionado(diaHoy)}
+              className="ml-2 bg-[#00B4D8]/10 text-[#00B4D8] border border-[#00B4D8]/20 px-2 py-0.5 rounded-full text-[10px] font-black hover:bg-[#00B4D8]/20 transition-all cursor-pointer select-none"
+            >
+              Volver a Hoy
+            </button>
+          )}
         </div>
 
         {/* Week Day Selector */}
@@ -512,18 +625,35 @@ export default function PaginaViajes() {
         </div>
 
         {/* List of custom Trip Cards */}
-        <div className="mt-4 flex flex-col gap-4">
+        <div key={`${diaSeleccionado}-${vista}`} className="mt-4 flex flex-col gap-4 animate-list-fade">
           {cargando ? (
             <TripsLoadingList />
           ) : listToRender.length === 0 ? (
-            <div className="text-center py-10">
+            <div className="text-center py-10 flex flex-col items-center">
               <span className="text-3xl">📅</span>
               <p className="mt-3 font-display text-sm font-bold text-text-primary">Sin viajes para este día</p>
-              <p className="mt-1 font-body text-xs text-text-tertiary">
+              <p className="mt-1 font-body text-xs text-text-tertiary max-w-[280px]">
                 {vista === "disponibles" 
                   ? "No hay ofertas programadas en esta fecha." 
                   : "No tienes traslados aceptados para esta fecha."}
               </p>
+              
+              {/* Contextual Empty State CTAs */}
+              {vista === "mis-viajes" ? (
+                <button
+                  type="button"
+                  onClick={() => actualizarUrl({ vista: "disponibles" })}
+                  className="mt-5 bg-[#00B4D8] text-white font-display text-xs font-extrabold px-4 py-2.5 rounded-xl hover:bg-[#00B4D8]/90 active:scale-95 transition-all cursor-pointer shadow-sm select-none"
+                >
+                  🔍 Buscar Ofertas Disponibles
+                </button>
+              ) : (
+                tieneOfertasOtrosDias && (
+                  <p className="mt-4 font-body text-[11px] text-[#00B4D8] font-bold">
+                    💡 ¡Hay ofertas disponibles otros días de la semana! Revisa los días marcados con un punto azul en el calendario.
+                  </p>
+                )
+              )}
             </div>
           ) : (
             listToRender.map((item, index) => {
@@ -536,7 +666,10 @@ export default function PaginaViajes() {
                   viaje={viaje}
                   detalle={detalle}
                   esOferta={vista === "disponibles"}
-                  onClick={() => router.push(hrefDetalle(viaje))}
+                  isExpanded={tarjetaExpandida === trasladoId}
+                  onToggleExpand={() => setTarjetaExpandida(tarjetaExpandida === trasladoId ? null : trasladoId)}
+                  onAccept={(id) => void aceptar(id)}
+                  hrefDetalle={hrefDetalle(viaje)}
                 />
               );
             })
