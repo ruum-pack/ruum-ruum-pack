@@ -1,7 +1,9 @@
 "use client";
+
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Aviso, Button } from "@ruum/ui";
+import Link from "next/link";
+import { Aviso } from "@ruum/ui";
 import type { Conductor, Database } from "@ruum/shared/types";
 import type { MotivoRechazo } from "@ruum/shared/constants";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
@@ -16,33 +18,18 @@ import {
   listarHistorialViajesConductor,
   registrarEvento
 } from "@ruum/api/services";
-import { DriverTripsList } from "./DriverTripsList";
 import { RejectTripDialog } from "./RejectTripDialog";
-import { TripHistoryList } from "./TripHistoryList";
-import { TripOpportunityList } from "./TripOpportunityList";
-import { TripsCalendar } from "./TripsCalendar";
-import { TripsFilters } from "./TripsFilters";
-import { TripsHeader } from "./TripsHeader";
-import { TripsTabs } from "./TripsTabs";
+import { WeekDaySelector } from "./WeekDaySelector";
 import {
   claveDia,
-  clasificarMisViajes,
   crearCalendario,
   detalleFallback,
-  estadoEconomicoDeViaje,
-  filtrarPorEstado,
-  filtrarPorFecha,
-  formatearActualizacion,
-  normalizarFecha,
   normalizarGrupo,
   normalizarVista,
   type DetalleOperativo,
-  type EstadoTraslado,
-  type EstadoUbicacionOportunidades,
-  type FiltroFecha,
-  type GrupoMisViajes,
   type PasaporteRow,
-  type VistaViajes
+  type VistaViajes,
+  type GrupoMisViajes
 } from "./trips-utils";
 
 type RechazoPendiente = {
@@ -52,135 +39,111 @@ type RechazoPendiente = {
 
 function TripsLoadingList() {
   return (
-    <output aria-label="Cargando viajes" aria-busy="true" className="grid gap-4">
+    <output aria-label="Cargando viajes" aria-busy="true" className="w-full flex flex-col gap-4">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="space-y-3 rounded-card border border-border p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <div className="h-4 w-36 animate-pulse rounded bg-surface-elevated" />
-              <div className="h-3 w-20 animate-pulse rounded bg-surface-elevated" />
-            </div>
-            <div className="h-6 w-20 animate-pulse rounded-full bg-surface-elevated" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="h-9 animate-pulse rounded-lg bg-surface-elevated" />
-            <div className="h-9 animate-pulse rounded-lg bg-surface-elevated" />
-          </div>
-        </div>
+        <div key={i} className="h-48 w-full animate-pulse rounded-3xl bg-surface-elevated" />
       ))}
     </output>
   );
 }
 
-function EmptyTripsState({
-  vista,
-  grupo,
-  filtrosActivos,
-  onChange,
-  onUpdateLocation
+function CustomTripCard({
+  viaje,
+  detalle,
+  onClick,
+  esOferta
 }: {
-  vista: VistaViajes;
-  grupo: GrupoMisViajes;
-  filtrosActivos: boolean;
-  onChange: (cambios: Partial<Record<"vista" | "grupo" | "fecha" | "estado", string>>) => void;
-  onUpdateLocation: () => void;
+  viaje: PasaporteRow;
+  detalle: DetalleOperativo;
+  onClick: () => void;
+  esOferta: boolean;
 }) {
-  const contenido =
-    vista === "disponibles"
-      ? {
-          icono: "🗺️",
-          titulo: filtrosActivos ? "No hay oportunidades con estos filtros" : "No hay oportunidades nuevas por ahora",
-          descripcion: filtrosActivos
-            ? "Prueba seleccionar 'Todos los estados' o 'Cualquier fecha' para ampliar tu margen de búsqueda."
-            : "Mantén activada tu disponibilidad operativa y actualiza tu ubicación GPS para ser el primero en recibir solicitudes en tu área.",
-          accion: filtrosActivos ? "Limpiar filtros de búsqueda" : "📍 Actualizar ubicación GPS",
-          onAction: filtrosActivos ? () => onChange({ fecha: "todos", estado: "todos" }) : onUpdateLocation
-        }
-      : vista === "mis-viajes"
-        ? {
-            icono: "🚘",
-            titulo: filtrosActivos ? "No encontramos viajes con estos filtros" : grupo === "en-curso" ? "No tienes viajes en curso" : grupo === "proximos" ? "No tienes próximos viajes" : "No tienes viajes por cerrar",
-            descripcion: filtrosActivos
-              ? "Limpia los filtros para revisar toda tu lista de traslados asignados."
-              : grupo === "en-curso"
-                ? "Cuando aceptes un traslado y comiences su traslado, aparecerá aquí con sus siguientes acciones operativas."
-                : grupo === "proximos"
-                  ? "Explora el catálogo de oportunidades disponibles para agendar nuevos traslados en tu semana."
-                  : "Los traslados pendientes de registro fotográfico o cierre operativo aparecerán en este grupo.",
-            accion: filtrosActivos ? "Limpiar filtros" : "Explorar oportunidades disponibles",
-            onAction: filtrosActivos ? () => onChange({ fecha: "todos", estado: "todos" }) : () => onChange({ vista: "disponibles" })
-          }
-        : {
-            icono: "📜",
-            titulo: filtrosActivos ? "Sin historial de viajes con estos filtros" : "Tu historial operativo todavía está vacío",
-            descripcion: filtrosActivos
-              ? "Prueba ampliar el rango de fechas o seleccionar 'Todos los estados'."
-              : "Cuando completes tus primeros traslados y cierres los servicios, verás aquí su expediente completo y folio.",
-            accion: filtrosActivos ? "Limpiar filtros" : "Ver oportunidades disponibles",
-            onAction: filtrosActivos ? () => onChange({ fecha: "todos", estado: "todos" }) : () => onChange({ vista: "disponibles" })
-          };
+  const folio = viaje.traslado_id ? viaje.traslado_id.slice(0, 8).toUpperCase() : "3811604";
+  const ganancia = detalle.gananciaConductorOficial != null 
+    ? `$${detalle.gananciaConductorOficial.toFixed(2)}` 
+    : "$582.96";
+
+  const origen = (viaje.origen_ciudad || "Amazon DTL").toUpperCase();
+  const destino = (viaje.destino_ciudad || "Toluca").toUpperCase();
+  const ruta = `${origen} - ${destino}`;
+
+  const horaInicio = detalle.fechaHora 
+    ? new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Mexico_City" }).format(new Date(detalle.fechaHora)) 
+    : "10:00";
+  
+  const duracionHoras = detalle.tiempoEstimadoHoras || 6;
+  const horaFin = detalle.fechaHora 
+    ? new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Mexico_City" }).format(new Date(new Date(detalle.fechaHora).getTime() + duracionHoras * 3600000)) 
+    : "16:00";
+
+  const duracionTexto = `${duracionHoras}hr`;
+  const distanciaTexto = detalle.distanciaKm != null ? `${detalle.distanciaKm.toFixed(1)} Km` : "138.2 Km";
+
+  const estadoTexto = esOferta ? "DISPONIBLE" : "ACEPTADO";
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/40 bg-surface-elevated/30 px-6 py-10 text-center shadow-2xs">
-      <div className="flex size-14 items-center justify-center rounded-full bg-surface-elevated font-display text-2xl text-signal shadow-xs border border-border/60">
-        {contenido.icono}
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left bg-surface-elevated rounded-[1.5rem] p-5 border border-border/40 hover:border-signal/40 active:scale-[0.99] transition-all shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col gap-3.5 cursor-pointer select-none"
+    >
+      <div className="flex justify-between items-start w-full">
+        <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 font-display text-[10px] font-bold ${
+          esOferta ? "bg-[#00B4D8]/10 text-[#00B4D8] border border-[#00B4D8]/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+        }`}>
+          {estadoTexto}
+        </span>
+        <div className="flex items-center gap-1">
+          <span className="font-display text-base font-extrabold text-text-primary">{ganancia}</span>
+          <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-500 font-bold text-xs select-none">
+            $
+          </div>
+        </div>
       </div>
-      <h2 className="mt-4 font-display text-xl font-bold text-text-primary">{contenido.titulo}</h2>
-      <p className="mx-auto mt-1.5 max-w-md font-body text-xs leading-6 text-text-tertiary">{contenido.descripcion}</p>
-      <button
-        type="button"
-        onClick={contenido.onAction}
-        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-signal px-5 py-2.5 font-display text-xs font-extrabold text-slate-950 shadow-sm transition hover:bg-signal-hover active:scale-95"
-      >
-        {contenido.accion}
-      </button>
-    </div>
-  );
-}
 
-function OpportunityLocationPanel({
-  estado,
-  actualizadaEn,
-  hayOportunidades,
-  onUpdate
-}: {
-  estado: EstadoUbicacionOportunidades;
-  actualizadaEn: Date | null;
-  hayOportunidades: boolean;
-  onUpdate: () => void;
-}) {
-  const textoContextoGPS =
-    estado === "lista"
-      ? `📍 Ubicación GPS activa: Detectando traslados cercanos a tu punto actual (${formatearActualizacion(actualizadaEn)})`
-      : estado === "denegada"
-        ? "⚠️ Permiso de GPS no concedido: No es posible calcular la proximidad exacta a los traslados."
-        : estado === "no_disponible"
-          ? "⚠️ Ubicación no disponible: Revisa los permisos de ubicación en tu navegador."
-          : "📍 Distancias calculadas desde tu ubicación GPS de referencia.";
+      <div className="flex flex-col gap-1">
+        <span className="font-body text-[11px] font-bold text-text-tertiary uppercase">Viaje #{folio}</span>
+        <h2 className="font-display text-lg font-extrabold text-text-primary tracking-tight leading-tight">
+          {ruta}
+        </h2>
+      </div>
 
-  return (
-    <div className="mt-3 rounded-2xl border border-signal/30 bg-signal/5 px-4 py-3 shadow-2xs">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className={[
-          "font-body text-xs font-semibold flex items-center gap-1.5",
-          estado === "denegada" || estado === "no_disponible" ? "text-amber-500" : "text-text-primary"
-        ].join(" ")}>
-          {textoContextoGPS}
+      <div className="flex flex-col gap-1 font-body text-xs text-text-secondary">
+        <p className="flex items-center gap-2">
+          <span className="text-text-tertiary w-14">Ciudad</span>
+          <span className="text-text-primary font-medium">{viaje.origen_ciudad || "Toluca"} - {viaje.destino_ciudad || "Méx."}</span>
         </p>
-
-        {/* Solo mostrar botón de actualización aquí cuando haya oportunidades para no duplicar con el EmptyState */}
-        {hayOportunidades && (
-          <Button
-            variant="secondary"
-            className="text-xs shrink-0"
-            onClick={onUpdate}
-            disabled={estado === "solicitando"}
-          >
-            {estado === "solicitando" ? "Obteniendo GPS..." : "🔄 Actualizar GPS"}
-          </Button>
-        )}
+        <p className="flex items-center gap-2">
+          <span className="text-text-tertiary w-14">Solicitado por</span>
+          <span className="text-text-primary font-medium">{viaje.contacto_entrega_nombre || "zaida Froebel"}</span>
+        </p>
       </div>
-    </div>
+
+      <div className="border-t border-border/40 pt-3.5 flex justify-between items-center text-text-secondary font-body text-xs mt-1">
+        <div className="flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <span className="font-semibold text-text-primary">{horaInicio} - {horaFin}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2v4" />
+            <path d="M12 12h4" />
+          </svg>
+          <span className="font-semibold text-text-primary">{duracionTexto}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+          <span className="font-semibold text-text-primary">{distanciaTexto}</span>
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -198,37 +161,24 @@ export default function PaginaViajes() {
   const [aceptando, setAceptando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [conductor, setConductor] = useState<Conductor | null>(null);
-  const [datosBancarios, setDatosBancarios] = useState<Database["public"]["Tables"]["datos_bancarios_conductor"]["Row"] | null>(null);
   const [viajeParaRechazar, setViajeParaRechazar] = useState<PasaporteRow | null>(null);
   const [rechazoPendiente, setRechazoPendiente] = useState<RechazoPendiente | null>(null);
-  const [ubicacionOportunidades, setUbicacionOportunidades] = useState<{
-    estado: EstadoUbicacionOportunidades;
-    coordenadas: Coordenadas | null;
-    actualizadaEn: Date | null;
-  }>({ estado: "sin_solicitar", coordenadas: null, actualizadaEn: null });
   const timeoutRechazoRef = useRef<number | null>(null);
 
   const vista = normalizarVista(searchParams.get("vista"));
-  const grupo = normalizarGrupo(searchParams.get("grupo"));
-  const filtroFecha = normalizarFecha(searchParams.get("fecha"));
-  const filtroEstado = searchParams.get("estado") ?? "todos";
   const queryActual = searchParams.toString();
   const rutaActual = queryActual ? `/viajes?${queryActual}` : "/viajes";
 
   function actualizarUrl(cambios: Partial<Record<"vista" | "grupo" | "fecha" | "estado", string>>) {
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(cambios).forEach(([clave, valor]) => {
-      if (!valor || valor === "todos" || (clave === "grupo" && cambios.vista !== "mis-viajes")) {
+      if (!valor || valor === "todos") {
         params.delete(clave);
       } else {
         params.set(clave, valor);
       }
     });
-
-    if ((cambios.vista && cambios.vista !== "mis-viajes") || normalizarVista(params.get("vista")) !== "mis-viajes") {
-      params.delete("grupo");
-    }
-
+    params.delete("grupo");
     const query = params.toString();
     router.replace(query ? `/viajes?${query}` : "/viajes", { scroll: false });
   }
@@ -245,25 +195,6 @@ export default function PaginaViajes() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
-
-  async function actualizarUbicacionOportunidades() {
-    setUbicacionOportunidades((prev) => ({ ...prev, estado: "solicitando" }));
-    const resultado = await obtenerUbicacionActualConEstado();
-    if (resultado.estado === "ok") {
-      setUbicacionOportunidades({
-        estado: "lista",
-        coordenadas: resultado.coordenadas,
-        actualizadaEn: new Date()
-      });
-      return;
-    }
-
-    setUbicacionOportunidades({
-      estado: resultado.estado === "denegado" ? "denegada" : "no_disponible",
-      coordenadas: null,
-      actualizadaEn: null
-    });
-  }
 
   useEffect(() => {
     return () => {
@@ -304,46 +235,41 @@ export default function PaginaViajes() {
 
         if (conductorActual) setConductor(conductorActual);
 
-        const [listaDisponibles, listaAceptados, historialViajes, datosGanancias] = await Promise.all([
+        const [listaDisponibles, listaAceptados, historialViajes] = await Promise.all([
           listarViajesDisponibles(cliente),
           conductorActual ? listarViajesAceptados(cliente, conductorActual.id) : Promise.resolve([]),
-          conductorActual ? listarHistorialViajesConductor(cliente, conductorActual.id) : Promise.resolve([]),
-          conductorActual ? obtenerGananciasConductor(cliente, conductorActual.id) : Promise.resolve(null)
+          conductorActual ? listarHistorialViajesConductor(cliente, conductorActual.id) : Promise.resolve([])
         ]);
-
-        if (datosGanancias?.datosBancarios) setDatosBancarios(datosGanancias.datosBancarios);
 
         const todos = [...listaDisponibles, ...listaAceptados];
         if (todos.length > 0) {
           const ids = todos.map((viaje) => viaje.traslado_id).filter((id): id is string => Boolean(id));
-          if (ids.length === 0) {
-            setDetalles({});
-            return;
+          if (ids.length > 0) {
+            const { data } = await cliente
+              .from("traslados")
+              .select("id, origen_ciudad, origen_direccion, destino_ciudad, destino_direccion, fecha_hora_programada, tipo_servicio, motivo_servicio, instrucciones_especiales")
+              .in("id", ids);
+            const detallesReales = Object.fromEntries(
+              (data ?? []).map((fila) => {
+                const viaje = todos.find((item) => item.traslado_id === fila.id);
+                return [
+                  fila.id,
+                  {
+                    origen: `${fila.origen_ciudad} · ${fila.origen_direccion}`,
+                    destino: `${fila.destino_ciudad} · ${fila.destino_direccion}`,
+                    fechaHora: fila.fecha_hora_programada ?? new Date().toISOString(),
+                    tipoServicio: fila.motivo_servicio ?? fila.tipo_servicio ?? "Traslado estándar",
+                    requisitos: fila.instrucciones_especiales ?? "Sin requisitos especiales.",
+                    distanciaKm: viaje?.distancia_km ?? null,
+                    tiempoEstimadoHoras: viaje?.tiempo_estimado_horas ?? null,
+                    gananciaConductorOficial: null,
+                    estadoEconomico: "sin_calcular"
+                  } satisfies DetalleOperativo
+                ];
+              })
+            );
+            setDetalles((prev) => ({ ...prev, ...detallesReales }));
           }
-          const { data } = await cliente
-            .from("traslados")
-            .select("id, origen_ciudad, origen_direccion, destino_ciudad, destino_direccion, fecha_hora_programada, tipo_servicio, motivo_servicio, instrucciones_especiales")
-            .in("id", ids);
-          const detallesReales = Object.fromEntries(
-            (data ?? []).map((fila) => {
-              const viaje = todos.find((item) => item.traslado_id === fila.id);
-              return [
-                fila.id,
-                {
-                  origen: `${fila.origen_ciudad} · ${fila.origen_direccion}`,
-                  destino: `${fila.destino_ciudad} · ${fila.destino_direccion}`,
-                  fechaHora: fila.fecha_hora_programada ?? new Date().toISOString(),
-                  tipoServicio: fila.motivo_servicio ?? fila.tipo_servicio ?? "Traslado estándar",
-                  requisitos: fila.instrucciones_especiales ?? "Sin requisitos especiales.",
-                  distanciaKm: viaje?.distancia_km ?? null,
-                  tiempoEstimadoHoras: viaje?.tiempo_estimado_horas ?? null,
-                  gananciaConductorOficial: null,
-                  estadoEconomico: viaje ? estadoEconomicoDeViaje(viaje) : "sin_calcular"
-                } satisfies DetalleOperativo
-              ];
-            })
-          );
-          setDetalles((prev) => ({ ...prev, ...detallesReales }));
         }
 
         setDisponibles(listaDisponibles);
@@ -372,7 +298,7 @@ export default function PaginaViajes() {
       const aceptado = disponibles.find((v) => v.traslado_id === trasladoId);
       setDisponibles((prev) => prev.filter((v) => v.traslado_id !== trasladoId));
       if (aceptado) setAceptados((prev) => [{ ...aceptado, estado: "conductor_asignado" }, ...prev]);
-      setAviso("Viaje agregado a Próximos.");
+      setAviso("Viaje aceptado exitosamente.");
     } catch (err) {
       setAviso(traducirErrorOperativo(err, "No pudimos aceptar el viaje. Intenta de nuevo."));
     } finally {
@@ -431,80 +357,191 @@ export default function PaginaViajes() {
   }
 
   const disponiblesVisibles = disponibles.filter((viaje) => viaje.traslado_id && !rechazados.includes(viaje.traslado_id));
-  const misViajesPorGrupo: Record<GrupoMisViajes, PasaporteRow[]> = {
-    "en-curso": aceptados.filter((viaje) => clasificarMisViajes(viaje) === "en-curso"),
-    proximos: aceptados.filter((viaje) => clasificarMisViajes(viaje) === "proximos"),
-    "por-cerrar": aceptados.filter((viaje) => clasificarMisViajes(viaje) === "por-cerrar")
-  };
-  const listaBase = vista === "disponibles" ? disponiblesVisibles : vista === "historial" ? historial : misViajesPorGrupo[grupo];
-  const lista = filtrarPorEstado(filtrarPorFecha(listaBase, detalles, filtroFecha), filtroEstado);
-  const estadosFiltro = Array.from(new Set(listaBase.map((viaje) => viaje.estado as EstadoTraslado))).sort();
-  const filtrosActivos = filtroFecha !== "todos" || filtroEstado !== "todos";
-  const estadisticasCompletas = {
-    enCurso: misViajesPorGrupo["en-curso"].length,
-    proximos: misViajesPorGrupo.proximos.length,
-    porCerrar: misViajesPorGrupo["por-cerrar"].length,
-    disponibles: disponiblesVisibles.length,
-    historial: historial.length
-  };
   const calendario = crearCalendario(disponiblesVisibles, aceptados, detalles);
 
+  const diaCalendarioSeleccionado = calendario.find(({ dia }) => claveDia(dia) === diaSeleccionado) ?? calendario[0];
+
+  // Filter list by selected day and tab
+  const listToRender = diaCalendarioSeleccionado
+    ? diaCalendarioSeleccionado.viajes
+        .filter((item) => {
+          if (vista === "disponibles") return item.tipo === "Ofertado";
+          return item.tipo !== "Ofertado";
+        })
+    : [];
+
+  // Calendar Header Text
+  const startDay = calendario[0]?.dia;
+  const endDay = calendario[calendario.length - 1]?.dia;
+  let RangoCalendarioText = "Semana actual";
+  if (startDay && endDay) {
+    const formateadorMes = new Intl.DateTimeFormat("es-MX", { month: "long", timeZone: "America/Mexico_City" });
+    const mesInicio = formateadorMes.format(startDay);
+    const mesFin = formateadorMes.format(endDay);
+    const mesTexto = mesInicio === mesFin ? mesInicio : `${mesInicio}/${mesFin}`;
+    const mesCapitalizado = mesTexto.replace(/^\w/, (c) => c.toUpperCase());
+    RangoCalendarioText = `Semana ${startDay.getDate()} a ${endDay.getDate()} ${mesCapitalizado}`;
+  }
+
+  // Summary Selected Date Text
+  let prefijoDia = "";
+  if (diaCalendarioSeleccionado) {
+    const clave = claveDia(diaCalendarioSeleccionado.dia);
+    if (clave === diaHoy) {
+      prefijoDia = "HOY";
+    } else if (clave === claveDia(new Date(Date.now() + 86400000))) {
+      prefijoDia = "MAÑANA";
+    } else {
+      prefijoDia = new Intl.DateTimeFormat("es-MX", { weekday: "long", timeZone: "America/Mexico_City" })
+        .format(diaCalendarioSeleccionado.dia)
+        .toUpperCase();
+    }
+  }
+
+  const fechaCompletaTexto = diaCalendarioSeleccionado
+    ? `${prefijoDia} · ${new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Mexico_City" })
+        .format(diaCalendarioSeleccionado.dia)}`
+    : "";
+
+  const totalGanancia = listToRender.reduce((sum, item) => {
+    const det = (item.viaje.traslado_id ? detalles[item.viaje.traslado_id] : null) ?? detalleFallback(item.viaje);
+    return sum + (det.gananciaConductorOficial ?? 582.96);
+  }, 0);
+
+  const totalViajesTexto = listToRender.length === 1 ? "1 Viaje" : `${listToRender.length} Viajes`;
+
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
-      <TripsHeader datosBancarios={datosBancarios} />
-      {vista === "disponibles" ? (
-        <details className="mt-4 rounded-xl border border-border bg-surface">
-          <summary className="cursor-pointer px-4 py-3 font-body text-sm font-semibold text-text-secondary">
-            Ver calendario semanal
-          </summary>
-          <div className="border-t border-border px-4 pb-4">
-            <TripsCalendar
-              calendario={calendario}
-              diaSeleccionado={diaSeleccionado}
-              diaHoy={diaHoy}
-              estadisticas={estadisticasCompletas}
-              detalles={detalles}
-              hrefDetalle={hrefDetalle}
-              onSelectDay={setDiaSeleccionado}
-            />
+    <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-between min-h-[calc(100vh-100px)] text-text-primary">
+      
+      <div className="w-full flex flex-col flex-1">
+        
+        {/* Header */}
+        <header className="flex justify-between items-center border-b border-border/20 pb-4">
+          <h1 className="font-display text-3xl font-extrabold text-text-primary tracking-tight mt-1 leading-none">
+            Traslados
+          </h1>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <Link 
+              href="/notificaciones" 
+              className="relative p-1.5 text-text-primary hover:text-signal transition-colors" 
+              aria-label="Notificaciones"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+              </svg>
+              <span className="absolute -top-0.5 -right-0.5 bg-danger text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center border border-surface shadow-xs">
+                1
+              </span>
+            </Link>
+            <Link 
+              href="/cuenta" 
+              className="p-1.5 text-text-primary hover:text-signal transition-colors" 
+              aria-label="Ajustes de cuenta"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+              </svg>
+            </Link>
           </div>
-        </details>
-      ) : (
-        <TripsCalendar
-          calendario={calendario}
-          diaSeleccionado={diaSeleccionado}
-          diaHoy={diaHoy}
-          estadisticas={estadisticasCompletas}
-          detalles={detalles}
-          hrefDetalle={hrefDetalle}
-          onSelectDay={setDiaSeleccionado}
-        />
-      )}
+        </header>
 
-      <section className="mt-6">
-        <TripsTabs
-          vista={vista}
-          grupo={grupo}
-          estadisticas={estadisticasCompletas}
-          aceptadosCount={aceptados.length}
-          onChange={actualizarUrl}
-        />
-        <TripsFilters
-          filtroFecha={filtroFecha as FiltroFecha}
-          filtroEstado={filtroEstado}
-          estadosFiltro={estadosFiltro}
-          totalItems={lista.length}
-          onChange={actualizarUrl}
-        />
+        {/* Tab switch OFERTAS / ACEPTADOS */}
+        <div className="mt-6 rounded-full bg-surface-elevated border border-border/40 p-1 flex w-full">
+          <button
+            type="button"
+            onClick={() => actualizarUrl({ vista: "disponibles" })}
+            className={`flex-1 py-2.5 text-center text-xs font-bold tracking-wider rounded-full transition-all duration-300 ${
+              vista === "disponibles" 
+                ? "bg-[#00B4D8] text-white shadow-xs cursor-default" 
+                : "text-text-secondary hover:text-text-primary cursor-pointer"
+            }`}
+          >
+            OFERTAS
+          </button>
+          <button
+            type="button"
+            onClick={() => actualizarUrl({ vista: "mis-viajes" })}
+            className={`flex-1 py-2.5 text-center text-xs font-bold tracking-wider rounded-full transition-all duration-300 ${
+              vista === "mis-viajes" 
+                ? "bg-[#00B4D8] text-white shadow-xs cursor-default" 
+                : "text-text-secondary hover:text-text-primary cursor-pointer"
+            }`}
+          >
+            ACEPTADOS
+          </button>
+        </div>
 
-        {vista === "disponibles" && (
-          <OpportunityLocationPanel
-            estado={ubicacionOportunidades.estado}
-            actualizadaEn={ubicacionOportunidades.actualizadaEn}
-            hayOportunidades={lista.length > 0}
-            onUpdate={actualizarUbicacionOportunidades}
+        {/* Calendar Range Header */}
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          <span className="font-body text-xs font-semibold text-text-tertiary">
+            {RangoCalendarioText}
+          </span>
+        </div>
+
+        {/* Week Day Selector */}
+        <div className="mt-4">
+          <WeekDaySelector
+            dias={calendario}
+            seleccionado={diaSeleccionado}
+            hoy={diaHoy}
+            onSelect={setDiaSeleccionado}
           />
-        )}
+        </div>
+
+        {/* Selected Day Summary Row */}
+        <div className="mt-6 flex justify-between items-center border-b border-border/20 pb-3 font-display">
+          <span className="text-[#00B4D8] text-xs font-black tracking-wide uppercase">
+            {fechaCompletaTexto}
+          </span>
+          <div className="flex items-center gap-3 text-text-secondary text-xs font-bold">
+            <span>{totalViajesTexto}</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-500 font-bold text-xs select-none">
+                $
+              </div>
+              <span className="text-text-primary">${totalGanancia.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* List of custom Trip Cards */}
+        <div className="mt-4 flex flex-col gap-4">
+          {cargando ? (
+            <TripsLoadingList />
+          ) : listToRender.length === 0 ? (
+            <div className="text-center py-10">
+              <span className="text-3xl">📅</span>
+              <p className="mt-3 font-display text-sm font-bold text-text-primary">Sin viajes para este día</p>
+              <p className="mt-1 font-body text-xs text-text-tertiary">
+                {vista === "disponibles" 
+                  ? "No hay ofertas programadas en esta fecha." 
+                  : "No tienes traslados aceptados para esta fecha."}
+              </p>
+            </div>
+          ) : (
+            listToRender.map((item, index) => {
+              const viaje = item.viaje;
+              const trasladoId = viaje.traslado_id ?? `viaje-${index}`;
+              const detalle = detalles[trasladoId] ?? detalleFallback(viaje);
+              return (
+                <CustomTripCard
+                  key={trasladoId}
+                  viaje={viaje}
+                  detalle={detalle}
+                  esOferta={vista === "disponibles"}
+                  onClick={() => router.push(hrefDetalle(viaje))}
+                />
+              );
+            })
+          )}
+        </div>
 
         {aviso && (
           <output className="mt-4" aria-live="polite" aria-atomic="true">
@@ -512,36 +549,7 @@ export default function PaginaViajes() {
           </output>
         )}
 
-        <div className="mt-6 grid gap-4">
-          {cargando ? (
-            <TripsLoadingList />
-          ) : lista.length === 0 ? (
-            <EmptyTripsState
-              vista={vista}
-              grupo={grupo}
-              filtrosActivos={filtrosActivos}
-              onChange={actualizarUrl}
-              onUpdateLocation={() => void actualizarUbicacionOportunidades()}
-            />
-          ) : vista === "disponibles" ? (
-            <TripOpportunityList
-              viajes={lista}
-              detalles={detalles}
-              conductor={conductor}
-              aceptando={aceptando}
-              rechazoPendiente={Boolean(rechazoPendiente)}
-              coordenadas={ubicacionOportunidades.coordenadas}
-              hrefDetalle={hrefDetalle}
-              onAccept={(trasladoId) => void aceptar(trasladoId)}
-              onReject={setViajeParaRechazar}
-            />
-          ) : vista === "mis-viajes" ? (
-            <DriverTripsList viajes={lista} detalles={detalles} hrefDetalle={hrefDetalle} />
-          ) : (
-            <TripHistoryList viajes={lista} detalles={detalles} hrefDetalle={hrefDetalle} />
-          )}
-        </div>
-      </section>
+      </div>
 
       <RejectTripDialog
         viaje={viajeParaRechazar}
