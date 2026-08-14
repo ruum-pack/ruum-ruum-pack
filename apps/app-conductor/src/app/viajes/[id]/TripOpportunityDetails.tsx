@@ -160,6 +160,15 @@ export function TripOpportunityDetails({
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </Link>
+          <Link 
+            href="/cuenta" 
+            className="p-1.5 text-text-secondary hover:text-text-primary transition-colors shrink-0" 
+            aria-label="Ajustes de cuenta"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+            </svg>
+          </Link>
         </header>
 
         {/* Title */}
@@ -277,16 +286,6 @@ export function TripOpportunityDetails({
             >
               CONTACTAR USUARIO
             </a>
-
-            {/* ¡Llegue! (link a paso 1) Button */}
-            <button
-              type="button"
-              onClick={handleLlegue}
-              disabled={procesando}
-              className="w-full min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5"
-            >
-              <span>✓</span> ¡LLEGUE!
-            </button>
           </section>
         )}
 
@@ -310,8 +309,15 @@ export function TripOpportunityDetails({
             <span className="font-display text-2xl font-black text-white">${pagoTotal.toFixed(2)}</span>
             <span className="font-body text-[10px] font-bold text-text-secondary">MXN total</span>
           </div>
-          <p className="font-body text-xs leading-relaxed text-[#D2B48C] mt-2">
-            Notas: Incluye un bono de <strong className="text-[#DCA24C] font-black">$300.00 MXN</strong> por autoretorno (self-return). Para reclamarlo, selecciona la opción correspondiente en el sistema antes de iniciar el viaje.
+        </section>
+
+        {/* Transfer Notes Card */}
+        <section className="mt-4 bg-surface-elevated/20 border border-border/20 rounded-2xl p-5 flex flex-col gap-2 relative">
+          <span className="font-display text-[9px] font-black text-text-tertiary tracking-widest uppercase">
+            NOTAS DE TRASLADO
+          </span>
+          <p className="font-body text-xs leading-relaxed text-text-secondary mt-1">
+            Incluye un bono de <strong className="text-[#DCA24C] font-black">$300.00 MXN</strong> por autoretorno (self-return). Para reclamarlo, selecciona la opción correspondiente en el sistema antes de iniciar el viaje.
           </p>
         </section>
 
@@ -384,9 +390,22 @@ export function TripOpportunityDetails({
                 </div>
               </div>
             </div>
-
           </div>
         </section>
+
+        {/* ¡Llegue! (link a paso 1) Button moved to the bottom */}
+        {!esOferta && (
+          <div className="mt-6 mb-8 w-full">
+            <button
+              type="button"
+              onClick={handleLlegue}
+              disabled={procesando}
+              className="w-full min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5"
+            >
+              <span>✓</span> ¡LLEGUE!
+            </button>
+          </div>
+        )}
 
       </div>
 
