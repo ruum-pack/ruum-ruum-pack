@@ -3,6 +3,7 @@ import { obtenerPasaporteDigital } from "@ruum/api/services";
 import { crearClienteServidor } from "../../../lib/supabase-server";
 import { EstadoError } from "../../EstadoError";
 import { TripOpportunityDetails } from "./TripOpportunityDetails";
+import { LocalizarVehiculoDetails } from "./LocalizarVehiculoDetails";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -64,6 +65,12 @@ export default async function PaginaDetalleViaje({
           { etiqueta: "Volver al panel", href: "/", variant: "quiet" }
         ]}
       />
+    );
+  }
+
+  if (pasaporte.estado === "conductor_en_punto_de_recoleccion") {
+    return (
+      <LocalizarVehiculoDetails pasaporte={pasaporte} volver={volver} />
     );
   }
 
