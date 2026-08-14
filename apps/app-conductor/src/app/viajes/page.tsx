@@ -200,7 +200,7 @@ function CustomTripCard({
                 href={hrefDetalle}
                 className="w-full min-h-10 bg-route-action hover:bg-route-action/90 text-white font-display text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center shadow-sm active:scale-95 text-center"
               >
-                Abrir Panel de Viaje →
+                Iniciar traslado
               </Link>
             )}
           </div>

@@ -8,7 +8,7 @@ import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
-import { aceptarViaje } from "@ruum/api/services";
+import { aceptarViaje, avanzarEstadoTraslado } from "@ruum/api/services";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
@@ -26,6 +26,8 @@ export function TripOpportunityDetails({
 
   const trasladoId = pasaporte.traslado_id!;
   const folio = trasladoId.slice(0, 8).toUpperCase();
+  const estado = pasaporte.estado as Database["public"]["Enums"]["estado_traslado"];
+  const esOferta = estado === "pendiente_de_conductor" || !pasaporte.conductor_id;
 
   const origen = pasaporte.origen_ciudad || "San Mateo Atenco";
   const destino = pasaporte.destino_ciudad || "Tuxtla Gutiérrez";
@@ -44,6 +46,11 @@ export function TripOpportunityDetails({
   // Earning
   const pagoTotal = pasaporte.ganancia_conductor || 582.96;
 
+  // Navigation target
+  const navigationTargetLat = pasaporte.origen_lat ?? 19.4326;
+  const navigationTargetLng = pasaporte.origen_lng ?? -99.1332;
+  const navigationUrl = `https://www.google.com/maps/dir/?api=1&destination=${navigationTargetLat},${navigationTargetLng}`;
+
   async function handleAceptar() {
     setProcesando(true);
     setError(null);
@@ -52,7 +59,6 @@ export function TripOpportunityDetails({
     try {
       const cliente = crearClienteNavegador();
       
-      // Get driver session to check id
       const { data: { session } } = await cliente.auth.getSession();
       if (!session?.user) {
         throw new Error("Inicia sesión para poder aceptar viajes.");
@@ -71,8 +77,47 @@ export function TripOpportunityDetails({
   }
 
   function handleRechazar() {
-    // Go back to available list
     router.push("/viajes?vista=disponibles");
+  }
+
+  async function handleEstoyEnCamino() {
+    setProcesando(true);
+    setError(null);
+    setAvisoExito(null);
+    try {
+      const cliente = crearClienteNavegador();
+      await avanzarEstadoTraslado(cliente, trasladoId, "conductor_asignado");
+      setAvisoExito("¡Buen viaje! Has iniciado tu camino al origen.");
+      router.refresh();
+    } catch (err) {
+      setError(traducirErrorOperativo(err, "No pudimos iniciar el traslado."));
+    } finally {
+      setProcesando(false);
+    }
+  }
+
+  async function handleLlegue() {
+    setProcesando(true);
+    setError(null);
+    setAvisoExito(null);
+    try {
+      const cliente = crearClienteNavegador();
+      const estadoActual = pasaporte.estado as Database["public"]["Enums"]["estado_traslado"];
+      
+      if (estadoActual === "conductor_asignado") {
+        await avanzarEstadoTraslado(cliente, trasladoId, "conductor_asignado");
+        await avanzarEstadoTraslado(cliente, trasladoId, "conductor_en_camino_al_origen");
+      } else {
+        await avanzarEstadoTraslado(cliente, trasladoId, "conductor_en_camino_al_origen");
+      }
+      
+      setAvisoExito("¡Has llegado al punto de recolección!");
+      router.refresh();
+    } catch (err) {
+      setError(traducirErrorOperativo(err, "No pudimos registrar tu llegada."));
+    } finally {
+      setProcesando(false);
+    }
   }
 
   return (
@@ -178,24 +223,72 @@ export function TripOpportunityDetails({
           El tiempo puede variar según el tráfico, el clima u otros retrasos.
         </p>
 
-        {/* Actions Row */}
-        <section className="mt-6 flex gap-3">
-          <button
-            type="button"
-            onClick={handleAceptar}
-            disabled={procesando}
-            className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface border border-border/40 text-text-primary font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-xs select-none"
-          >
-            {procesando ? TEXTOS_CARGANDO.actualizando : "ACEPTAR"}
-          </button>
-          <button
-            type="button"
-            onClick={handleRechazar}
-            className="flex-1 min-h-12 rounded-xl bg-[#00BBC9] text-white hover:bg-[#00BBC9]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none"
-          >
-            RECHAZAR
-          </button>
-        </section>
+        {/* Actions Section */}
+        {esOferta ? (
+          <section className="mt-6 flex gap-3">
+            <button
+              type="button"
+              onClick={handleAceptar}
+              disabled={procesando}
+              className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface border border-border/40 text-text-primary font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-xs select-none"
+            >
+              {procesando ? TEXTOS_CARGANDO.actualizando : "ACEPTAR"}
+            </button>
+            <button
+              type="button"
+              onClick={handleRechazar}
+              className="flex-1 min-h-12 rounded-xl bg-[#00BBC9] text-white hover:bg-[#00BBC9]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none"
+            >
+              RECHAZAR
+            </button>
+          </section>
+        ) : (
+          <section className="mt-6 flex flex-col gap-3">
+            <div className="flex gap-3">
+              {/* RECOLECCIÓN Button with location icon */}
+              <a
+                href={navigationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface border border-border/40 text-text-primary font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary shrink-0">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                RECOLECCIÓN
+              </a>
+
+              {/* ESTOY EN CAMINO Button */}
+              <button
+                type="button"
+                onClick={handleEstoyEnCamino}
+                disabled={procesando || (estado !== "conductor_asignado")}
+                className="flex-1 min-h-12 rounded-xl bg-[#00BBC9] text-white hover:bg-[#00BBC9]/90 disabled:opacity-50 disabled:cursor-not-allowed font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center"
+              >
+                {procesando ? TEXTOS_CARGANDO.actualizando : "ESTOY EN CAMINO"}
+              </button>
+            </div>
+
+            {/* CONTACTAR USUARIO Button */}
+            <a
+              href={`tel:${pasaporte.contacto_entrega_telefono || pasaporte.contacto_recepcion_telefono || ""}`}
+              className="w-full min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/20 border border-[#00BBC9]/40 text-[#00BBC9] font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center active:scale-98 cursor-pointer"
+            >
+              CONTACTAR USUARIO
+            </a>
+
+            {/* ¡Llegue! (link a paso 1) Button */}
+            <button
+              type="button"
+              onClick={handleLlegue}
+              disabled={procesando}
+              className="w-full min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5"
+            >
+              <span>✓</span> ¡LLEGUE!
+            </button>
+          </section>
+        )}
 
         {error && (
           <div className="mt-3">
@@ -297,7 +390,7 @@ export function TripOpportunityDetails({
 
       </div>
 
-      {/* Floating Bottom capsule Navigation bar (inicio, traslados, ganancias) */}
+      {/* Floating Bottom Navigation Bar */}
       <div className="fixed inset-x-0 bottom-4 z-40 px-4">
         <nav
           aria-label="Navegación principal móvil"

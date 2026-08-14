@@ -146,8 +146,18 @@ export default function PaginaPanel() {
               </p>
             </div>
 
-            {/* Iconos de Avisos y Cuenta */}
+            {/* Iconos de Avisos, Soporte y Cuenta */}
             <div className="flex items-center gap-3 mt-1 shrink-0">
+              <button 
+                type="button" 
+                onClick={() => setSoporteAbierto(true)}
+                className="p-1.5 text-text-primary hover:text-signal transition-colors cursor-pointer" 
+                aria-label="Soporte rápido"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary hover:text-signal transition-colors">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </button>
               <Link 
                 href="/notificaciones" 
                 className="relative p-1.5 text-text-primary hover:text-signal transition-colors" 
