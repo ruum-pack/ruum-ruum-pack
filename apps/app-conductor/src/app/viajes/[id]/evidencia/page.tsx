@@ -16,6 +16,7 @@ import {
   confirmarEvidenciaCompleta,
   firmarUrlsEvidencia
 } from "@ruum/api/services";
+import { useEvidenceQueue } from "./useEvidenceQueue";
 
 type EstadoTraslado = "pendiente_de_conductor" | "conductor_asignado" | "conductor_en_camino_al_origen" | "conductor_en_punto_de_recoleccion" | "verificacion_vehiculo_en_proceso" | "evidencia_inicial_en_proceso" | "traslado_en_curso" | "llegada_a_destino" | "evidencia_final_en_proceso" | "servicio_cerrado";
 
@@ -59,6 +60,12 @@ export default function PaginaEvidencia() {
   const [avisoExito, setAvisoExito] = useState<string | null>(null);
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const {
+    cargarPendientesLocales,
+    drenarColaPendiente,
+    registrarFotoEnCola
+  } = useEvidenceQueue({ trasladoId: id, tipo });
 
   const totalRequisitos = 12; // 6 photos + 1 mileage + 5 documents/plates
 
@@ -106,10 +113,18 @@ export default function PaginaEvidencia() {
 
   const refrescarEvidencia = useCallback(async (tipoEvidencia: TipoEvidencia) => {
     const cliente = crearClienteNavegador();
-    const remotas = await obtenerEvidenciaDeTraslado(cliente, id, tipoEvidencia);
+    const [remotas, locales] = await Promise.all([
+      obtenerEvidenciaDeTraslado(cliente, id, tipoEvidencia),
+      cargarPendientesLocales()
+    ]);
     const remotasFirmadas = await firmarUrlsEvidencia(cliente, remotas);
-    setFotos(remotasFirmadas);
-  }, [id]);
+    setFotos([
+      ...remotasFirmadas,
+      ...locales.filter(
+        (local) => local.tipo === tipoEvidencia && !remotasFirmadas.some((remota) => remota.id === local.id)
+      )
+    ]);
+  }, [cargarPendientesLocales, id]);
 
   useEffect(() => {
     async function init() {
@@ -144,42 +159,39 @@ export default function PaginaEvidencia() {
     setError(null);
     setAviso(null);
     try {
-      const cliente = crearClienteNavegador();
-      
-      // Upload file directly using Supabase Storage
-      const bucketName = "evidencia";
-      const blob = await fetch(dataUrl).then((r) => r.blob());
-      const ext = blob.type.split("/")[1] || "jpg";
-      const filePath = `${id}/${tipo}/${angulo}-${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await cliente.storage
-        .from(bucketName)
-        .upload(filePath, blob, { contentType: blob.type, cacheControl: "3600" });
-
-      if (uploadError) throw uploadError;
-
-      // Upsert record to database
-      const { error: insertError } = await cliente.from("evidencia_fotos").upsert(
-        {
-          traslado_id: id,
-          tipo,
-          angulo,
-          url: filePath,
-          capturada_en: new Date().toISOString()
-        },
-        { onConflict: "traslado_id,tipo,angulo" }
-      );
-
-      if (insertError) throw insertError;
-
-      setAvisoExito(`Fotografía "${angulo}" subida correctamente.`);
-      await refrescarEvidencia(tipo);
+      const locales = await registrarFotoEnCola({ angulo, dataUrl });
+      setFotos((prev) => [
+        ...prev.filter((foto) => !locales.some((local) => local.id === foto.id)),
+        ...locales.filter((local) => local.tipo === tipo)
+      ]);
+      setAvisoExito(`Fotografía "${angulo}" registrada localmente.`);
+      void drenarCola();
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos guardar la fotografía."));
     } finally {
       setEnviando(null);
     }
   }
+
+  const drenarCola = useCallback(async () => {
+    if (!tipo) return;
+    try {
+      const subidas = await drenarColaPendiente();
+      if (!subidas) return;
+      await refrescarEvidencia(tipo);
+      setAvisoExito(`${subidas} foto${subidas === 1 ? "" : "s"} sincronizada${subidas === 1 ? "" : "s"}.`);
+    } catch (err) {
+      setError(traducirErrorOperativo(err, "No pudimos sincronizar las fotos pendientes."));
+    }
+  }, [drenarColaPendiente, refrescarEvidencia, tipo]);
+
+  useEffect(() => {
+    if (!tipo) return;
+    const timer = setTimeout(() => {
+      void drenarCola();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [tipo, drenarCola]);
 
   async function capturar(angulo: AnguloEvidencia) {
     if (esNativo()) {
