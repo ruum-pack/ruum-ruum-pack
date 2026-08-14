@@ -134,6 +134,32 @@ export function TripOpportunityDetails({
     }
   }
 
+  async function handleIniciarViaje() {
+    setProcesando(true);
+    setError(null);
+    setAvisoExito(null);
+    try {
+      const cliente = crearClienteNavegador();
+      const estadoActual = (pasaporte.estado || "evidencia_inicial_completada") as Database["public"]["Enums"]["estado_traslado"];
+      
+      if (estadoActual === "evidencia_inicial_completada") {
+        await avanzarEstadoTraslado(cliente, trasladoId, "evidencia_inicial_completada");
+        // Wait 300ms for Supabase transaction to commit and avoid race conditions
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        await avanzarEstadoTraslado(cliente, trasladoId, "vehiculo_recibido");
+      } else if (estadoActual === "vehiculo_recibido") {
+        await avanzarEstadoTraslado(cliente, trasladoId, "vehiculo_recibido");
+      }
+      
+      setAvisoExito("¡Traslado en curso iniciado!");
+      router.refresh();
+    } catch (err) {
+      setError(traducirErrorOperativo(err, "No pudimos iniciar el traslado."));
+    } finally {
+      setProcesando(false);
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-between min-h-[calc(100vh-100px)] text-text-primary">
       
@@ -267,39 +293,59 @@ export function TripOpportunityDetails({
           </section>
         ) : (
           <section className="mt-6 flex flex-col gap-3">
-            <div className="flex gap-3">
-              {/* RECOLECCIÓN Button with location icon */}
-              <a
-                href={navigationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface border border-border/40 text-text-primary font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-1.5 cursor-pointer"
+            {(estado === "evidencia_inicial_en_proceso" || estado === "evidencia_final_en_proceso") ? (
+              <Link
+                href={`/viajes/${trasladoId}/evidencia`}
+                className="w-full min-h-12 rounded-xl bg-[#00BBC9] text-white hover:bg-[#00BBC9]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 text-center"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary shrink-0">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                RECOLECCIÓN
-              </a>
-
-              {/* ESTOY EN CAMINO Button */}
+                {estado === "evidencia_inicial_en_proceso" ? "CONTINUAR EVIDENCIAS" : "CONTINUAR EVIDENCIAS DE ENTREGA"}
+              </Link>
+            ) : (estado === "evidencia_inicial_completada" || estado === "vehiculo_recibido") ? (
               <button
                 type="button"
-                onClick={handleEstoyEnCamino}
-                disabled={procesando || (estado !== "conductor_asignado")}
-                className="flex-1 min-h-12 rounded-xl bg-[#00BBC9] text-white hover:bg-[#00BBC9]/90 disabled:opacity-50 disabled:cursor-not-allowed font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center"
+                onClick={handleIniciarViaje}
+                disabled={procesando}
+                className="w-full min-h-12 rounded-xl bg-route-action text-white hover:bg-route-action/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5"
               >
-                {procesando ? TEXTOS_CARGANDO.actualizando : "ESTOY EN CAMINO"}
+                {procesando ? TEXTOS_CARGANDO.actualizando : "INICIAR TRASLADO"}
               </button>
-            </div>
+            ) : (
+              <>
+                <div className="flex gap-3">
+                  {/* RECOLECCIÓN Button with location icon */}
+                  <a
+                    href={navigationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface border border-border/40 text-text-primary font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary shrink-0">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    RECOLECCIÓN
+                  </a>
 
-            {/* CONTACTAR USUARIO Button */}
-            <a
-              href={`tel:${pasaporte.contacto_entrega_telefono || pasaporte.contacto_recepcion_telefono || ""}`}
-              className="w-full min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/20 border border-[#00BBC9]/40 text-[#00BBC9] font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center active:scale-98 cursor-pointer"
-            >
-              CONTACTAR USUARIO
-            </a>
+                  {/* ESTOY EN CAMINO Button */}
+                  <button
+                    type="button"
+                    onClick={handleEstoyEnCamino}
+                    disabled={procesando || (estado !== "conductor_asignado")}
+                    className="flex-1 min-h-12 rounded-xl bg-[#00BBC9] text-white hover:bg-[#00BBC9]/90 disabled:opacity-50 disabled:cursor-not-allowed font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center"
+                  >
+                    {procesando ? TEXTOS_CARGANDO.actualizando : "ESTOY EN CAMINO"}
+                  </button>
+                </div>
+
+                {/* CONTACTAR USUARIO Button */}
+                <a
+                  href={`tel:${pasaporte.contacto_entrega_telefono || pasaporte.contacto_recepcion_telefono || ""}`}
+                  className="w-full min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/20 border border-[#00BBC9]/40 text-[#00BBC9] font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center active:scale-98 cursor-pointer"
+                >
+                  CONTACTAR USUARIO
+                </a>
+              </>
+            )}
           </section>
         )}
 
@@ -408,7 +454,7 @@ export function TripOpportunityDetails({
         </section>
 
         {/* ¡Llegue! (link a paso 1) Button moved to the bottom */}
-        {!esOferta && (
+        {!esOferta && (estado === "conductor_asignado" || estado === "conductor_en_camino_al_origen") && (
           <div className="mt-6 mb-8 w-full">
             <button
               type="button"

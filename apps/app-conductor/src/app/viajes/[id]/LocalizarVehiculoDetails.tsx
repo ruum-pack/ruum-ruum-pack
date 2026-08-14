@@ -55,9 +55,17 @@ export function LocalizarVehiculoDetails({
     setError(null);
     try {
       const cliente = crearClienteNavegador();
-      const enPuntoDeRecoleccion: EstadoTraslado = "conductor_en_punto_de_recoleccion";
-      const siguiente = (await avanzarEstadoTraslado(cliente, trasladoId, enPuntoDeRecoleccion)) as EstadoTraslado;
-      await avanzarEstadoTraslado(cliente, trasladoId, siguiente);
+      const estadoActual = (pasaporte.estado || "conductor_en_punto_de_recoleccion") as EstadoTraslado;
+      
+      if (estadoActual === "conductor_en_punto_de_recoleccion") {
+        const siguiente = (await avanzarEstadoTraslado(cliente, trasladoId, "conductor_en_punto_de_recoleccion")) as EstadoTraslado;
+        // Wait 300ms for Supabase transaction to commit and avoid race conditions
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        await avanzarEstadoTraslado(cliente, trasladoId, siguiente);
+      } else if (estadoActual === "verificacion_vehiculo_en_proceso") {
+        await avanzarEstadoTraslado(cliente, trasladoId, "verificacion_vehiculo_en_proceso");
+      }
+      
       router.push(`/viajes/${trasladoId}/evidencia`);
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos iniciar la verificación del vehículo."));

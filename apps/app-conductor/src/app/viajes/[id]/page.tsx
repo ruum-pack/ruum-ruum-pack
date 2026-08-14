@@ -69,7 +69,7 @@ export default async function PaginaDetalleViaje({
     );
   }
 
-  if (pasaporte.estado === "conductor_en_punto_de_recoleccion") {
+  if (pasaporte.estado === "conductor_en_punto_de_recoleccion" || pasaporte.estado === "verificacion_vehiculo_en_proceso") {
     return (
       <LocalizarVehiculoDetails pasaporte={pasaporte} volver={volver} />
     );
