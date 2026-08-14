@@ -61,26 +61,26 @@ function CustomTripCard({
   onAccept: (trasladoId: string) => void;
   hrefDetalle: string;
 }) {
-  const folio = viaje.traslado_id ? viaje.traslado_id.slice(0, 8).toUpperCase() : "3811604";
-  const ganancia = detalle.gananciaConductorOficial != null 
-    ? `$${detalle.gananciaConductorOficial.toFixed(2)}` 
-    : "$582.96";
+  const folio = viaje.traslado_id ? viaje.traslado_id.slice(0, 8).toUpperCase() : "POR CONFIRMAR";
+  const ganancia = viaje.ganancia_conductor != null 
+    ? `$${viaje.ganancia_conductor.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+    : "$0.00";
 
-  const origen = (viaje.origen_ciudad || "Amazon DTL").toUpperCase();
-  const destino = (viaje.destino_ciudad || "Toluca").toUpperCase();
+  const origen = (viaje.origen_ciudad || "Por confirmar").toUpperCase();
+  const destino = (viaje.destino_ciudad || "Por confirmar").toUpperCase();
   const ruta = `${origen} - ${destino}`;
 
   const horaInicio = detalle.fechaHora 
     ? new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Mexico_City" }).format(new Date(detalle.fechaHora)) 
-    : "10:00";
+    : "Por confirmar";
   
-  const duracionHoras = detalle.tiempoEstimadoHoras || 6;
-  const horaFin = detalle.fechaHora 
+  const duracionHoras = viaje.tiempo_estimado_horas || null;
+  const horaFin = (detalle.fechaHora && duracionHoras != null)
     ? new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Mexico_City" }).format(new Date(new Date(detalle.fechaHora).getTime() + duracionHoras * 3600000)) 
-    : "16:00";
+    : "Por confirmar";
 
-  const duracionTexto = `${duracionHoras}hr`;
-  const distanciaTexto = detalle.distanciaKm != null ? `${detalle.distanciaKm.toFixed(1)} Km` : "138.2 Km";
+  const duracionTexto = duracionHoras != null ? `${duracionHoras.toFixed(1)} hr` : "Por confirmar";
+  const distanciaTexto = viaje.distancia_km != null ? `${viaje.distancia_km.toFixed(1)} Km` : "Por confirmar";
 
   const estadoTexto = esOferta ? "DISPONIBLE" : "ACEPTADO";
 
@@ -111,7 +111,7 @@ function CustomTripCard({
 
         <div className="flex flex-col gap-1">
           <div className="flex justify-between items-center w-full">
-            <span className="font-body text-[11px] font-bold text-text-tertiary uppercase">Viaje #{folio}</span>
+            <span className="font-body text-[11px] font-bold text-text-tertiary uppercase">Traslado #{folio}</span>
             <span className="text-[10px] font-bold text-text-tertiary flex items-center gap-0.5">
               {isExpanded ? "Contraer ▲" : "Expandir ▼"}
             </span>
@@ -124,11 +124,11 @@ function CustomTripCard({
         <div className="flex flex-col gap-1 font-body text-xs text-text-secondary">
           <p className="flex items-center gap-2">
             <span className="text-text-tertiary w-14 font-semibold">Ciudad</span>
-            <span className="text-text-primary font-medium">{viaje.origen_ciudad || "Toluca"} - {viaje.destino_ciudad || "Méx."}</span>
+            <span className="text-text-primary font-medium">{viaje.origen_ciudad || "Por confirmar"} - {viaje.destino_ciudad || "Por confirmar"}</span>
           </p>
           <p className="flex items-center gap-2">
             <span className="text-text-tertiary w-14 font-semibold">Solicitado</span>
-            <span className="text-text-primary font-medium">{viaje.contacto_entrega_nombre || "zaida Froebel"}</span>
+            <span className="text-text-primary font-medium">{viaje.contacto_entrega_nombre || "Por confirmar"}</span>
           </p>
         </div>
 
@@ -180,21 +180,12 @@ function CustomTripCard({
 
           <div className="flex gap-2 mt-1">
             {esOferta ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onAccept(viaje.traslado_id!)}
-                  className="flex-1 min-h-10 bg-[#00B4D8] hover:bg-[#00B4D8]/90 text-white font-display text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm active:scale-95"
-                >
-                  <span>✓</span> Aceptar Viaje
-                </button>
-                <Link
-                  href={hrefDetalle}
-                  className="flex-1 min-h-10 bg-control-soft hover:bg-border/60 text-text-primary font-display text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center text-center"
-                >
-                  Ver completo →
-                </Link>
-              </>
+              <Link
+                href={hrefDetalle}
+                className="w-full min-h-10 bg-route-action hover:bg-route-action/90 text-white font-display text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center text-center shadow-sm active:scale-95"
+              >
+                Ver completo →
+              </Link>
             ) : (
               <Link
                 href={hrefDetalle}
@@ -228,6 +219,7 @@ export default function PaginaViajes() {
   const [rechazoPendiente, setRechazoPendiente] = useState<RechazoPendiente | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
   const [tarjetaExpandida, setTarjetaExpandida] = useState<string | null>(null);
+  const [soporteAbierto, setSoporteAbierto] = useState(false);
   const timeoutRechazoRef = useRef<number | null>(null);
 
   const vista = normalizarVista(searchParams.get("vista"));
@@ -327,7 +319,7 @@ export default function PaginaViajes() {
                     requisitos: fila.instrucciones_especiales ?? "Sin requisitos especiales.",
                     distanciaKm: viaje?.distancia_km ?? null,
                     tiempoEstimadoHoras: viaje?.tiempo_estimado_horas ?? null,
-                    gananciaConductorOficial: null,
+                    gananciaConductorOficial: viaje?.ganancia_conductor ?? null,
                     estadoEconomico: "sin_calcular"
                   } satisfies DetalleOperativo
                 ];
@@ -341,10 +333,10 @@ export default function PaginaViajes() {
         setAceptados(listaAceptados);
         setHistorial(historialViajes);
         if (!conductorActual) {
-          setAviso("Inicia sesión como conductor para aceptar y ver tus viajes.");
+          setAviso("Inicia sesión como conductor para aceptar y ver tus traslados.");
         }
       } catch (err) {
-        setAviso(traducirErrorOperativo(err, "No pudimos cargar los viajes."));
+        setAviso(traducirErrorOperativo(err, "No pudimos cargar los traslados."));
       } finally {
         setCargando(false);
       }
@@ -363,9 +355,9 @@ export default function PaginaViajes() {
       const aceptado = disponibles.find((v) => v.traslado_id === trasladoId);
       setDisponibles((prev) => prev.filter((v) => v.traslado_id !== trasladoId));
       if (aceptado) setAceptados((prev) => [{ ...aceptado, estado: "conductor_asignado" }, ...prev]);
-      setAviso("Viaje aceptado exitosamente.");
+      setAviso("Traslado aceptado exitosamente.");
     } catch (err) {
-      setAviso(traducirErrorOperativo(err, "No pudimos aceptar el viaje. Intenta de nuevo."));
+      setAviso(traducirErrorOperativo(err, "No pudimos aceptar el traslado. Intenta de nuevo."));
     } finally {
       setAceptando(null);
     }
@@ -373,7 +365,7 @@ export default function PaginaViajes() {
 
   async function persistirRechazo(pendiente: RechazoPendiente) {
     if (!conductor) throw new Error("Inicia sesión como conductor para registrar el rechazo.");
-    if (!pendiente.viaje.traslado_id) throw new Error("No se pudo identificar el viaje.");
+    if (!pendiente.viaje.traslado_id) throw new Error("No se pudo identificar el traslado.");
     const cliente = crearClienteNavegador();
     await registrarEvento(cliente, "modificacion_traslado_activo", "conductor", conductor.id, {
       traslado_id: pendiente.viaje.traslado_id,
@@ -387,7 +379,7 @@ export default function PaginaViajes() {
   function confirmarRechazo(motivo: MotivoRechazo) {
     if (!viajeParaRechazar || rechazoPendiente) return;
     if (!viajeParaRechazar.traslado_id) {
-      setAviso("No se pudo identificar el viaje para rechazarlo.");
+      setAviso("No se pudo identificar el traslado para rechazarlo.");
       setViajeParaRechazar(null);
       return;
     }
@@ -418,7 +410,7 @@ export default function PaginaViajes() {
     setDisponibles((prev) => prev.some((item) => item.traslado_id === viaje.traslado_id) ? prev : [viaje, ...prev]);
     setRechazados((prev) => prev.filter((id) => id !== viaje.traslado_id));
     setRechazoPendiente(null);
-    setAviso("Rechazo deshecho. El viaje volvió a estar disponible.");
+    setAviso("Rechazo deshecho. El traslado volvió a estar disponible.");
   }
 
   const disponiblesVisibles = disponibles.filter((viaje) => viaje.traslado_id && !rechazados.includes(viaje.traslado_id));
@@ -473,7 +465,7 @@ export default function PaginaViajes() {
     return sum + (det.gananciaConductorOficial ?? 582.96);
   }, 0);
 
-  const totalViajesTexto = listToRender.length === 1 ? "1 Viaje" : `${listToRender.length} Viajes`;
+  const totalViajesTexto = listToRender.length === 1 ? "1 Traslado" : `${listToRender.length} Traslados`;
 
   // Check if any other day has offers
   const tieneOfertasOtrosDias = calendario.some(
@@ -526,6 +518,16 @@ export default function PaginaViajes() {
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
+            <button 
+              type="button" 
+              onClick={() => setSoporteAbierto(true)}
+              className="p-1.5 text-text-primary hover:text-signal transition-colors cursor-pointer" 
+              aria-label="Soporte rápido"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary hover:text-signal transition-colors">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </button>
             <Link 
               href="/notificaciones" 
               className="relative p-1.5 text-text-primary hover:text-signal transition-colors" 
@@ -631,7 +633,7 @@ export default function PaginaViajes() {
           ) : listToRender.length === 0 ? (
             <div className="text-center py-10 flex flex-col items-center">
               <span className="text-3xl">📅</span>
-              <p className="mt-3 font-display text-sm font-bold text-text-primary">Sin viajes para este día</p>
+              <p className="mt-3 font-display text-sm font-bold text-text-primary">Sin traslados para este día</p>
               <p className="mt-1 font-body text-xs text-text-tertiary max-w-[280px]">
                 {vista === "disponibles" 
                   ? "No hay ofertas programadas en esta fecha." 
@@ -697,7 +699,7 @@ export default function PaginaViajes() {
         >
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="font-body text-sm font-semibold">Viaje rechazado</p>
+              <p className="font-body text-sm font-semibold">Traslado rechazado</p>
               <p className="mt-0.5 font-body text-sm text-text-secondary">{rechazoPendiente.motivo}</p>
             </div>
             <button
@@ -709,6 +711,76 @@ export default function PaginaViajes() {
             </button>
           </div>
         </output>
+      )}
+
+      {/* Bottom Sheet de Soporte */}
+      {soporteAbierto && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop de cierre */}
+          <button 
+            type="button" 
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-300 animate-fadeIn cursor-default w-full h-full border-none outline-hidden" 
+            onClick={() => setSoporteAbierto(false)}
+            aria-label="Cerrar soporte"
+          />
+          {/* Tarjeta de contenido */}
+          <div className="relative w-full max-w-md bg-surface-elevated rounded-t-[2rem] border-t border-border/40 p-6 flex flex-col gap-4 animate-slideUp shadow-2xl">
+            <div className="flex justify-between items-center pb-2 border-b border-border/20">
+              <h2 className="font-display text-lg font-bold text-text-primary flex items-center gap-2">
+                <span>💬</span> Soporte Rápido Ruum
+              </h2>
+              <button 
+                type="button" 
+                onClick={() => setSoporteAbierto(false)}
+                className="text-text-tertiary hover:text-text-primary p-1 cursor-pointer font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="font-body text-xs text-text-secondary">
+              Selecciona un medio de contacto para comunicarte con el equipo operativo de guardia.
+            </p>
+            <div className="flex flex-col gap-2.5 mt-2">
+              <a
+                href="https://wa.me/525548210937"
+                className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition-colors"
+              >
+                <span className="text-xl">💬</span>
+                <div className="flex flex-col items-start">
+                  <span className="font-display text-sm font-bold text-emerald-400">WhatsApp de Soporte</span>
+                  <span className="font-body text-[11px] text-text-secondary">Mensajería instantánea y respuesta inmediata</span>
+                </div>
+              </a>
+              <a
+                href="tel:+525548210937"
+                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-soft/60 transition-colors"
+              >
+                <span className="text-xl">📞</span>
+                <div className="flex flex-col items-start">
+                  <span className="font-display text-sm font-bold text-route-action">Llamar a Soporte</span>
+                  <span className="font-body text-[11px] text-text-secondary">Habla por teléfono directamente con un operador</span>
+                </div>
+              </a>
+              <a
+                href="mailto:soporte@ruumruum.com"
+                className="flex items-center gap-3 p-4 bg-surface rounded-xl border border-border/40 hover:bg-surface-elevated transition-colors"
+              >
+                <span className="text-xl">✉️</span>
+                <div className="flex flex-col items-start">
+                  <span className="font-display text-sm font-bold text-text-primary">Correo Electrónico</span>
+                  <span className="font-body text-[11px] text-text-secondary">Reportar incidencias técnicas no urgentes</span>
+                </div>
+              </a>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSoporteAbierto(false)}
+              className="w-full min-h-11 mt-2 rounded-xl bg-control-soft font-display text-sm font-bold text-text-primary hover:bg-border/60 transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

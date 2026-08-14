@@ -159,7 +159,7 @@ export function NavegacionConductor() {
           <div className="ml-auto" aria-hidden />
         </div>
 
-        {viajeActivo && pathname !== "/panel" && (
+        {viajeActivo && !["/panel", "/viajes"].includes(pathname) && (
           <div className="hidden border-t border-border bg-surface-elevated/95 px-3 py-2 backdrop-blur md:block">
             <div className="ruum-container flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <Link
@@ -223,7 +223,7 @@ export function NavegacionConductor() {
       <div className="fixed inset-x-0 bottom-4 z-40 md:hidden px-4">
         
         {/* Banner de viaje activo en móvil: ocultado en /panel porque ya tiene su propio botón "Traslado activo" */}
-        {viajeActivo && pathname !== "/panel" && (
+        {viajeActivo && !["/panel", "/viajes"].includes(pathname) && (
           <div className="conductor-mobile-active-trip pb-3">
             <Link
               href={`/viajes/${viajeActivo.trasladoId}`}
