@@ -159,7 +159,7 @@ export function NavegacionConductor() {
           <div className="ml-auto" aria-hidden />
         </div>
 
-        {viajeActivo && (
+        {viajeActivo && pathname !== "/panel" && (
           <div className="hidden border-t border-border bg-surface-elevated/95 px-3 py-2 backdrop-blur md:block">
             <div className="ruum-container flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <Link

@@ -148,16 +148,6 @@ export default function PaginaPanel() {
 
             {/* Iconos de Avisos, Soporte y Cuenta */}
             <div className="flex items-center gap-3 mt-1 shrink-0">
-              <button 
-                type="button" 
-                onClick={() => setSoporteAbierto(true)}
-                className="p-1.5 text-text-primary hover:text-signal transition-colors cursor-pointer" 
-                aria-label="Soporte rápido"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary hover:text-signal transition-colors">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </button>
               <Link 
                 href="/notificaciones" 
                 className="relative p-1.5 text-text-primary hover:text-signal transition-colors" 
@@ -213,25 +203,25 @@ export default function PaginaPanel() {
             {viajeActivoPrincipal && activeTripPresentation ? (
               <Link
                 href={`/viajes/${viajeActivoPrincipal.traslado_id}`}
-                className="w-full p-5 rounded-2xl bg-gradient-to-r from-route-action/90 to-route-action text-white flex flex-col gap-1.5 shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all text-left border border-route-action/40"
+                className="w-full p-5 rounded-2xl bg-gradient-to-r from-[#00BBC9] to-[#00A0AD] text-white flex flex-col gap-1.5 shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all text-left border border-[#00BBC9]/30"
                 style={{
-                  boxShadow: "0 8px 20px rgba(58, 165, 255, 0.25)"
+                  boxShadow: "0 8px 20px rgba(0, 187, 201, 0.25)"
                 }}
               >
                 <div className="flex justify-between items-center w-full">
                   <span className="font-body text-[10px] font-extrabold uppercase tracking-widest text-white/70">
-                    Traslado Activo · {folioViaje(viajeActivoPrincipal)}
+                    Traslado Activo
                   </span>
                   <span className="text-white text-[11px] font-bold flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     En ruta
                   </span>
                 </div>
-                <h2 className="font-display text-lg font-extrabold tracking-tight text-white leading-tight mt-0.5">
-                  {activeTripPresentation.title}
+                <h2 className="font-display text-lg font-black tracking-tight text-white leading-tight mt-1">
+                  Traslado ID {folioViaje(viajeActivoPrincipal)}
                 </h2>
-                <p className="font-body text-xs text-white/80 line-clamp-1 flex items-center gap-1 mt-0.5">
-                  <span>📍</span> {destinoOperativo(viajeActivoPrincipal)}
+                <p className="font-body text-xs text-white/95 line-clamp-1 flex items-center gap-1.5 mt-1">
+                  <span>📍</span> {viajeActivoPrincipal.origen_ciudad || "Toluca"} › {viajeActivoPrincipal.destino_ciudad || "Méx."}
                 </p>
               </Link>
             ) : (
