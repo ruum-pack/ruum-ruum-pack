@@ -4,6 +4,7 @@ import { crearClienteServidor } from "../../../lib/supabase-server";
 import { EstadoError } from "../../EstadoError";
 import { TripOpportunityDetails } from "./TripOpportunityDetails";
 import { LocalizarVehiculoDetails } from "./LocalizarVehiculoDetails";
+import { ConduceADestinoDetails } from "./ConduceADestinoDetails";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -71,6 +72,12 @@ export default async function PaginaDetalleViaje({
   if (pasaporte.estado === "conductor_en_punto_de_recoleccion") {
     return (
       <LocalizarVehiculoDetails pasaporte={pasaporte} volver={volver} />
+    );
+  }
+
+  if (pasaporte.estado === "traslado_en_curso" || pasaporte.estado === "llegada_a_destino") {
+    return (
+      <ConduceADestinoDetails pasaporte={pasaporte} volver={volver} />
     );
   }
 
