@@ -61,11 +61,22 @@ export function TripOpportunityDetails({
       
       const { data: { session } } = await cliente.auth.getSession();
       if (!session?.user) {
-        throw new Error("Inicia sesión para poder aceptar viajes.");
+        throw new Error("Inicia sesión para poder aceptar traslados.");
       }
       
-      await aceptarViaje(cliente, trasladoId, session.user.id);
-      setAvisoExito("¡Viaje aceptado! Agregado a tus traslados asignados.");
+      // Query conductor profile to get the correct conductor.id
+      const { data: conductorData, error: condError } = await cliente
+        .from("conductores")
+        .select("id")
+        .eq("auth_user_id", session.user.id)
+        .maybeSingle();
+
+      if (condError || !conductorData) {
+        throw new Error("No se encontró tu perfil de conductor en el sistema.");
+      }
+
+      await aceptarViaje(cliente, trasladoId, conductorData.id);
+      setAvisoExito("¡Traslado aceptado! Agregado a tus traslados asignados.");
       setTimeout(() => {
         router.push("/viajes?vista=mis-viajes");
       }, 1500);
@@ -86,7 +97,8 @@ export function TripOpportunityDetails({
     setAvisoExito(null);
     try {
       const cliente = crearClienteNavegador();
-      await avanzarEstadoTraslado(cliente, trasladoId, "conductor_asignado");
+      const estadoActual = (pasaporte.estado || "conductor_asignado") as Database["public"]["Enums"]["estado_traslado"];
+      await avanzarEstadoTraslado(cliente, trasladoId, estadoActual);
       setAvisoExito("¡Buen viaje! Has iniciado tu camino al origen.");
       router.refresh();
     } catch (err) {
@@ -102,13 +114,15 @@ export function TripOpportunityDetails({
     setAvisoExito(null);
     try {
       const cliente = crearClienteNavegador();
-      const estadoActual = pasaporte.estado as Database["public"]["Enums"]["estado_traslado"];
+      const estadoActual = (pasaporte.estado || "conductor_en_camino_al_origen") as Database["public"]["Enums"]["estado_traslado"];
       
       if (estadoActual === "conductor_asignado") {
         await avanzarEstadoTraslado(cliente, trasladoId, "conductor_asignado");
+        // Wait 300ms for Supabase transaction to commit and avoid race conditions
+        await new Promise((resolve) => setTimeout(resolve, 300));
         await avanzarEstadoTraslado(cliente, trasladoId, "conductor_en_camino_al_origen");
       } else {
-        await avanzarEstadoTraslado(cliente, trasladoId, "conductor_en_camino_al_origen");
+        await avanzarEstadoTraslado(cliente, trasladoId, estadoActual);
       }
       
       setAvisoExito("¡Has llegado al punto de recolección!");
