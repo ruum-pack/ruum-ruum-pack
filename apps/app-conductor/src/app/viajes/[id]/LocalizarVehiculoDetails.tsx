@@ -66,8 +66,7 @@ export function LocalizarVehiculoDetails({
   }
 
   function handleNoLocalizado() {
-    // Open support or show info alert
-    setError("Reporte registrado. Por favor ponte en contacto con Soporte para asistencia.");
+    router.push(`/viajes/${trasladoId}#reportar-incidencia`);
   }
 
   return (
@@ -95,12 +94,6 @@ export function LocalizarVehiculoDetails({
               <span className="font-display text-[9px] font-black text-[#00BBC9] tracking-wider">CONDUCTOR</span>
             </div>
           </div>
-          
-          <nav className="flex items-center gap-4 text-xs font-body text-text-secondary">
-            <Link href="/panel" className="hover:text-text-primary transition-colors">Inicio</Link>
-            <Link href="/viajes" className="text-signal hover:text-text-primary transition-colors font-extrabold border-b-2 border-signal pb-0.5">Traslados</Link>
-            <Link href="/ganancias" className="hover:text-text-primary transition-colors">Ganancias</Link>
-          </nav>
         </header>
 
         {/* Step Breadcrumbs Tracker */}
@@ -264,6 +257,53 @@ export function LocalizarVehiculoDetails({
         </div>
 
       </div>
+
+      {/* Floating Bottom Navigation Bar */}
+      <div className="fixed inset-x-0 bottom-4 z-40 px-4">
+        <nav
+          aria-label="Navegación principal móvil"
+          className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"
+        >
+          <div className="grid grid-cols-3 gap-1">
+            <Link
+              href="/panel"
+              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="9" />
+                <rect x="14" y="3" width="7" height="5" />
+                <rect x="14" y="12" width="7" height="9" />
+                <rect x="3" y="16" width="7" height="5" />
+              </svg>
+              <span>Inicio</span>
+            </Link>
+
+            <Link
+              href="/viajes"
+              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-signal font-extrabold transition-colors select-none"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+                <line x1="9" y1="3" x2="9" y2="18" />
+                <line x1="15" y1="6" x2="15" y2="21" />
+              </svg>
+              <span>Traslados</span>
+            </Link>
+
+            <Link
+              href="/ganancias"
+              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+              <span>Ganancias</span>
+            </Link>
+          </div>
+        </nav>
+      </div>
+
     </div>
   );
 }
