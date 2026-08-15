@@ -24,6 +24,7 @@ export function ConduceADestinoDetails({
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [avisoExito, setAvisoExito] = useState<string | null>(null);
+  const [soporteAbierto, setSoporteAbierto] = useState(false);
 
   const trasladoId = pasaporte.traslado_id!;
   const folio = trasladoId.slice(0, 8).toUpperCase();
@@ -87,11 +88,27 @@ export function ConduceADestinoDetails({
             </div>
           </div>
           
-          <nav className="flex items-center gap-4 text-xs font-body text-text-secondary">
-            <Link href="/panel" className="hover:text-text-primary transition-colors">Inicio</Link>
-            <Link href="/viajes" className="text-signal hover:text-text-primary transition-colors font-extrabold border-b-2 border-signal pb-0.5">Traslados</Link>
-            <Link href="/ganancias" className="hover:text-text-primary transition-colors">Ganancias</Link>
-          </nav>
+          <div className="flex items-center gap-3 shrink-0">
+            <button 
+              type="button" 
+              onClick={() => setSoporteAbierto(true)}
+              className="p-1.5 text-text-primary hover:text-signal transition-colors cursor-pointer bg-transparent border-none outline-hidden" 
+              aria-label="Soporte rápido"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary hover:text-text-primary transition-colors">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </button>
+            <Link 
+              href="/cuenta" 
+              className="p-1.5 text-text-secondary hover:text-text-primary transition-colors shrink-0" 
+              aria-label="Ajustes de cuenta"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+              </svg>
+            </Link>
+          </div>
         </header>
 
         {/* Step Breadcrumbs Tracker */}
@@ -104,98 +121,83 @@ export function ConduceADestinoDetails({
           </h1>
         </div>
 
-        {/* Main Navigation Map Card */}
-        <div className="mt-6 flex flex-col rounded-2xl overflow-hidden border border-[#162720] bg-gradient-to-b from-[#12231C]/60 to-[#0A1612]/80 relative p-5">
-          
-          {/* Estimated time indicator */}
-          <div className="absolute top-4 right-5 text-right">
-            <span className="font-body text-[10px] text-text-tertiary">Llegada estimada</span>
-            <span className="font-display text-[10px] font-black text-[#00BBC9] block">10:42</span>
-          </div>
+        {/* Destination Details Card */}
+        <div className="mt-6 flex flex-col bg-surface-elevated rounded-[1.5rem] border border-border/40 p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+          <span className="font-display text-[10px] font-black text-emerald-500 tracking-wider uppercase">
+            DESTINO
+          </span>
+          <h2 className="font-display text-2xl font-black text-text-primary mt-1">
+            {destino}
+          </h2>
+          <p className="font-body text-xs text-text-secondary mt-1 leading-relaxed">
+            {destinoDireccion}
+          </p>
 
-          {/* Wavy route vector */}
-          <div className="h-20 w-full relative flex items-center justify-center my-2">
-            <svg width="100%" height="40" viewBox="0 0 300 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="absolute">
-              <path d="M0 20C50 20 100 5 150 20C200 35 250 20 300 20" stroke="url(#gradient-path)" strokeWidth="3" strokeDasharray="6 6" />
-              <defs>
-                <linearGradient id="gradient-path" x1="0" y1="20" x2="300" y2="20" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#00BBC9" stopOpacity="0.3" />
-                  <stop offset="0.5" stopColor="#00BBC9" />
-                  <stop offset="1" stopColor="#00BBC9" stopOpacity="0.3" />
-                </linearGradient>
-              </defs>
-            </svg>
-            
-            {/* Map Pin in the middle */}
-            <div className="absolute left-[50%] -translate-x-[50%] -top-2 flex flex-col items-center">
-              <div className="w-4 h-4 rounded-full bg-[#00BBC9] border-2 border-white flex items-center justify-center shadow-lg relative animate-bounce">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#12231C]" />
-              </div>
+          {/* Metrics Card Grid (3 Columns) */}
+          <div className="mt-6 grid grid-cols-3 gap-1.5 border border-border/30 bg-surface-elevated/45 rounded-xl p-4 text-center">
+            <div className="flex flex-col items-center justify-center gap-1.5">
+              <span className="text-lg leading-none">🛣️</span>
+              <span className="font-display text-sm font-black text-text-primary">98 km</span>
+              <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">RESTANTES</span>
+            </div>
+            <div className="flex flex-col items-center justify-center gap-1.5 border-l border-border/20">
+              <span className="text-lg leading-none">⏱️</span>
+              <span className="font-display text-sm font-black text-text-primary">1.4 hr</span>
+              <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">TIEMPO</span>
+            </div>
+            <div className="flex flex-col items-center justify-center gap-1.5 border-l border-border/20">
+              <span className="text-lg leading-none">🏁</span>
+              <span className="font-display text-sm font-black text-text-primary">10:42</span>
+              <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">LLEGADA</span>
             </div>
           </div>
 
-          <div className="flex flex-col mt-4">
-            <span className="font-display text-[9px] font-black text-text-tertiary tracking-widest uppercase">
-              DESTINO
-            </span>
-            <span className="font-display text-lg font-black text-white leading-tight mt-0.5">
-              {destino}
-            </span>
-            <span className="font-body text-[10px] text-text-secondary leading-relaxed mt-1">
-              {destinoDireccion}
-            </span>
-          </div>
-
-          {/* Details metrics Grid */}
-          <div className="mt-5 grid grid-cols-3 gap-2 border-t border-border/10 pt-4.5 text-center">
-            <div className="flex flex-col">
-              <span className="font-display text-base font-black text-white">98 km</span>
-              <span className="font-body text-[8px] font-black text-text-tertiary tracking-wider uppercase mt-0.5">RESTANTES</span>
-            </div>
-            <div className="flex flex-col border-l border-border/10">
-              <span className="font-display text-base font-black text-white">1.4 hr</span>
-              <span className="font-body text-[8px] font-black text-text-tertiary tracking-wider uppercase mt-0.5">TIEMPO</span>
-            </div>
-            <div className="flex flex-col border-l border-border/10">
-              <span className="font-display text-base font-black text-white">10:42</span>
-              <span className="font-body text-[8px] font-black text-text-tertiary tracking-wider uppercase mt-0.5">LLEGADA</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action buttons row */}
-        <section className="mt-6 flex gap-3">
-          <a
-            href={navigationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 min-h-12 rounded-xl bg-[#28A745] hover:bg-[#218838] text-white font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white shrink-0">
-              <polygon points="3 11 22 2 13 21 11 13 3 11" />
-            </svg>
-            NAVEGAR EN MAPS
-          </a>
+          {/* CONTACTAR USUARIO Link (Teal/Green Text) */}
           <a
             href={`tel:${contactoTelefono}`}
-            className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/20 border border-border/40 text-text-primary font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-1.5 cursor-pointer"
+            className="mt-5 self-start flex items-center gap-2 font-display text-xs font-black text-emerald-500 hover:text-emerald-400 transition-colors uppercase cursor-pointer"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
             </svg>
             CONTACTAR USUARIO
           </a>
-        </section>
+        </div>
 
-        {/* Quick Arrived Action Button */}
-        <button
-          type="button"
-          onClick={handleLlegueDestino}
-          disabled={procesando}
-          className="w-full min-h-12 rounded-xl bg-[#00BBC9] hover:bg-[#00BBC9]/90 text-white font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none mt-3 flex items-center justify-center gap-1.5"
-        >
-          {procesando ? TEXTOS_CARGANDO.actualizando : "✓ MARCAR LLEGADA A DESTINO"}
-        </button>
+        {/* Map Canvas Card */}
+        <div className="mt-6 flex flex-col rounded-[1.5rem] border border-border/30 bg-surface-elevated/20 p-5 relative overflow-hidden">
+          <div className="h-44 w-full bg-surface-elevated/45 rounded-xl flex flex-col items-center justify-center border border-border/10 relative overflow-hidden">
+            <svg width="100%" height="100%" className="absolute inset-0 select-none opacity-20 pointer-events-none">
+              <path d="M 30 130 Q 120 40 210 120 T 370 50" fill="none" stroke="#00BBC9" strokeWidth="4" strokeDasharray="8, 8" />
+            </svg>
+            <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg z-10 animate-pulse">
+              📍
+            </div>
+            <span className="font-display text-sm font-bold text-text-secondary mt-2 z-10">agregar mapa</span>
+          </div>
+
+          <div className="border-t border-border/10 my-4" />
+
+          {/* Navigation & Arrived Buttons side by side */}
+          <div className="flex gap-3">
+            <a
+              href={navigationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+            >
+              NAVEGAR
+            </a>
+            <button
+              type="button"
+              onClick={handleLlegueDestino}
+              disabled={procesando}
+              className="flex-1 min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5"
+            >
+              {procesando ? TEXTOS_CARGANDO.actualizando : "HE LLEGADO"}
+            </button>
+          </div>
+        </div>
 
         {error && (
           <div className="mt-3">
@@ -280,6 +282,122 @@ export function ConduceADestinoDetails({
         </div>
 
       </div>
+
+      {/* Floating Bottom Navigation Bar */}
+      <div className="fixed inset-x-0 bottom-4 z-40 px-4">
+        <nav
+          aria-label="Navegación principal móvil"
+          className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"
+        >
+          <div className="grid grid-cols-3 gap-1">
+            <Link
+              href="/panel"
+              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="9" />
+                <rect x="14" y="3" width="7" height="5" />
+                <rect x="14" y="12" width="7" height="9" />
+                <rect x="3" y="16" width="7" height="5" />
+              </svg>
+              <span>Inicio</span>
+            </Link>
+
+            <Link
+              href="/viajes"
+              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-signal font-extrabold transition-colors select-none"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+                <line x1="9" y1="3" x2="9" y2="18" />
+                <line x1="15" y1="6" x2="15" y2="21" />
+              </svg>
+              <span>Traslados</span>
+            </Link>
+
+            <Link
+              href="/ganancias"
+              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+              <span>Ganancias</span>
+            </Link>
+          </div>
+        </nav>
+      </div>
+
+      {/* Bottom Sheet de Soporte */}
+      {soporteAbierto && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop de cierre */}
+          <button 
+            type="button" 
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-300 animate-fadeIn cursor-default w-full h-full border-none outline-hidden" 
+            onClick={() => setSoporteAbierto(false)}
+            aria-label="Cerrar soporte"
+          />
+          {/* Tarjeta de contenido */}
+          <div className="relative w-full max-w-md bg-surface-elevated rounded-t-[2rem] border-t border-border/40 p-6 flex flex-col gap-4 animate-slideUp shadow-2xl">
+            <div className="flex justify-between items-center pb-2 border-b border-border/20">
+              <h2 className="font-display text-lg font-bold text-text-primary flex items-center gap-2">
+                <span>💬</span> Soporte Rápido Ruum
+              </h2>
+              <button 
+                type="button" 
+                onClick={() => setSoporteAbierto(false)}
+                className="text-text-tertiary hover:text-text-primary p-1 cursor-pointer font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="font-body text-xs text-text-secondary">
+              Selecciona un medio de contacto para comunicarte con el equipo operativo de guardia.
+            </p>
+            <div className="flex flex-col gap-2.5 mt-2">
+              <a
+                href="https://wa.me/525548210937"
+                className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition-colors"
+              >
+                <span className="text-xl">💬</span>
+                <div className="flex flex-col items-start">
+                  <span className="font-display text-sm font-bold text-emerald-400">WhatsApp de Soporte</span>
+                  <span className="font-body text-[11px] text-text-secondary">Mensajería instantánea y respuesta inmediata</span>
+                </div>
+              </a>
+              <a
+                href="tel:+525548210937"
+                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-soft/60 transition-colors"
+              >
+                <span className="text-xl">📞</span>
+                <div className="flex flex-col items-start">
+                  <span className="font-display text-sm font-bold text-route-action">Llamar a Soporte</span>
+                  <span className="font-body text-[11px] text-text-secondary">Habla por teléfono directamente con un operador</span>
+                </div>
+              </a>
+              <a
+                href="mailto:soporte@ruumruum.com"
+                className="flex items-center gap-3 p-4 bg-surface rounded-xl border border-border/40 hover:bg-surface-elevated transition-colors"
+              >
+                <span className="text-xl">✉️</span>
+                <div className="flex flex-col items-start">
+                  <span className="font-display text-sm font-bold text-text-primary">Correo Electrónico</span>
+                  <span className="font-body text-[11px] text-text-secondary">Reportar incidencias técnicas no urgentes</span>
+                </div>
+              </a>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSoporteAbierto(false)}
+              className="w-full min-h-11 mt-2 rounded-xl bg-control-soft font-display text-sm font-bold text-text-primary hover:bg-border/60 transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
