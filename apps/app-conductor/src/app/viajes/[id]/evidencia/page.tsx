@@ -40,6 +40,7 @@ export default function PaginaEvidencia() {
   const [estadoActual, setEstadoActual] = useState<EstadoTraslado | null>(null);
   const [pasaporte, setPasaporte] = useState<any>(null);
   const [tipo, setTipo] = useState<TipoEvidencia | null>(null);
+  const [soporteAbierto, setSoporteAbierto] = useState(false);
   
   // Inspeccion Form Values
   const [kilometraje, setKilometraje] = useState("48,213");
@@ -366,26 +367,44 @@ export default function PaginaEvidencia() {
             </div>
           </div>
           
-          <nav className="flex items-center gap-4 text-xs font-body text-text-secondary">
-            <Link href="/panel" className="hover:text-text-primary transition-colors">Inicio</Link>
-            <Link href="/viajes" className="text-signal hover:text-text-primary transition-colors font-extrabold border-b-2 border-signal pb-0.5">Traslados</Link>
-            <Link href="/ganancias" className="hover:text-text-primary transition-colors">Ganancias</Link>
-          </nav>
+          <div className="flex items-center gap-3 shrink-0">
+            <button 
+              type="button" 
+              onClick={() => setSoporteAbierto(true)}
+              className="p-1.5 text-text-primary hover:text-signal transition-colors cursor-pointer bg-transparent border-none outline-hidden" 
+              aria-label="Soporte rápido"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary hover:text-text-primary transition-colors">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </button>
+            <Link 
+              href="/cuenta" 
+              className="p-1.5 text-text-secondary hover:text-text-primary transition-colors shrink-0" 
+              aria-label="Ajustes de cuenta"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+              </svg>
+            </Link>
+          </div>
         </header>
 
         {/* Step Breadcrumbs Tracker */}
         <div className="mt-6 flex flex-col gap-1">
           <span className="font-body text-[10px] text-text-tertiary font-bold tracking-wide">
-            Traslados › {origen} › <span className="text-text-primary">Paso 2 de 2</span>
+            Traslados › {tipo === "inicial" ? origen : (pasaporte?.destino_ciudad || "Destino")} › <span className="text-text-primary">Paso 2 de 2</span>
           </span>
           <span className="font-display text-[9px] font-black text-[#00BBC9] tracking-widest uppercase mt-0.5">
-            RECOLECCIÓN DE UNIDAD
+            {tipo === "inicial" ? "RECOLECCIÓN DE UNIDAD" : "ENTREGA DE UNIDAD"}
           </span>
           <h1 className="font-display text-2xl font-black text-text-primary leading-tight mt-1">
-            Evidencias
+            {tipo === "inicial" ? "Evidencias Iniciales" : "Evidencias de Destino"}
           </h1>
           <p className="font-body text-xs text-text-secondary leading-relaxed mt-1">
-            Captura las fotografías y datos del vehículo antes de iniciar el traslado.
+            {tipo === "inicial" 
+              ? "Captura las fotografías y datos del vehículo antes de iniciar el traslado." 
+              : "Captura las fotografías y datos del vehículo en el punto de entrega de destino."}
           </p>
         </div>
 
@@ -770,10 +789,127 @@ export default function PaginaEvidencia() {
         )}
 
         <div className="text-center font-body text-[9px] text-text-tertiary font-bold mt-6 tracking-wide select-none">
-          ruumruum · evidencias generadas previas al inicio del traslado
+          ruumruum · evidencias generadas previas al {tipo === "inicial" ? "inicio" : "cierre"} del traslado
         </div>
 
       </div>
+
+      {/* Floating Bottom Navigation Bar */}
+      <div className="fixed inset-x-0 bottom-4 z-40 px-4">
+        <nav
+          aria-label="Navegación principal móvil"
+          className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"
+        >
+          <div className="grid grid-cols-3 gap-1">
+            <Link
+              href="/panel"
+              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="9" />
+                <rect x="14" y="3" width="7" height="5" />
+                <rect x="14" y="12" width="7" height="9" />
+                <rect x="3" y="16" width="7" height="5" />
+              </svg>
+              <span>Inicio</span>
+            </Link>
+
+            <Link
+              href="/viajes"
+              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-signal font-extrabold transition-colors select-none"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+                <line x1="9" y1="3" x2="9" y2="18" />
+                <line x1="15" y1="6" x2="15" y2="21" />
+              </svg>
+              <span>Traslados</span>
+            </Link>
+
+            <Link
+              href="/ganancias"
+              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+              <span>Ganancias</span>
+            </Link>
+          </div>
+        </nav>
+      </div>
+
+      {/* Bottom Sheet de Soporte */}
+      {soporteAbierto && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop de cierre */}
+          <button 
+            type="button" 
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-300 animate-fadeIn cursor-default w-full h-full border-none outline-hidden" 
+            onClick={() => setSoporteAbierto(false)}
+            aria-label="Cerrar soporte"
+          />
+          {/* Tarjeta de contenido */}
+          <div className="relative w-full max-w-md bg-surface-elevated rounded-t-[2rem] border-t border-border/40 p-6 flex flex-col gap-4 animate-slideUp shadow-2xl">
+            <div className="flex justify-between items-center pb-2 border-b border-border/20">
+              <h2 className="font-display text-lg font-bold text-text-primary flex items-center gap-2">
+                <span>💬</span> Soporte Rápido Ruum
+              </h2>
+              <button 
+                type="button" 
+                onClick={() => setSoporteAbierto(false)}
+                className="text-text-tertiary hover:text-text-primary p-1 cursor-pointer font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="font-body text-xs text-text-secondary">
+              Selecciona un medio de contacto para comunicarte con el equipo operativo de guardia.
+            </p>
+            <div className="flex flex-col gap-2.5 mt-2">
+              <a
+                href="https://wa.me/525548210937"
+                className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition-colors"
+              >
+                <span className="text-xl">💬</span>
+                <div className="flex flex-col items-start">
+                  <span className="font-display text-sm font-bold text-emerald-400">WhatsApp de Soporte</span>
+                  <span className="font-body text-[11px] text-text-secondary">Mensajería instantánea y respuesta inmediata</span>
+                </div>
+              </a>
+              <a
+                href="tel:+525548210937"
+                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-soft/60 transition-colors"
+              >
+                <span className="text-xl">📞</span>
+                <div className="flex flex-col items-start">
+                  <span className="font-display text-sm font-bold text-route-action">Llamar a Soporte</span>
+                  <span className="font-body text-[11px] text-text-secondary">Habla por teléfono directamente con un operador</span>
+                </div>
+              </a>
+              <a
+                href="mailto:soporte@ruumruum.com"
+                className="flex items-center gap-3 p-4 bg-surface rounded-xl border border-border/40 hover:bg-surface-elevated transition-colors"
+              >
+                <span className="text-xl">✉️</span>
+                <div className="flex flex-col items-start">
+                  <span className="font-display text-sm font-bold text-text-primary">Correo Electrónico</span>
+                  <span className="font-body text-[11px] text-text-secondary">Reportar incidencias técnicas no urgentes</span>
+                </div>
+              </a>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSoporteAbierto(false)}
+              className="w-full min-h-11 mt-2 rounded-xl bg-control-soft font-display text-sm font-bold text-text-primary hover:bg-border/60 transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

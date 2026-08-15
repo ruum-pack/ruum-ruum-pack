@@ -51,13 +51,21 @@ export function ConduceADestinoDetails({
     setAvisoExito(null);
     try {
       const cliente = crearClienteNavegador();
-      // In Ruum, "traslado_en_curso" transitions to "llegada_a_destino"
+      // First: transition traslado_en_curso -> llegada_a_destino
       await avanzarEstadoTraslado(cliente, trasladoId, "traslado_en_curso");
-      setAvisoExito("¡Llegada a destino registrada exitosamente!");
-      router.refresh();
+      
+      // Wait 300ms to allow Supabase transaction to finalize
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      
+      // Second: transition llegada_a_destino -> evidencia_final_en_proceso
+      await avanzarEstadoTraslado(cliente, trasladoId, "llegada_a_destino");
+      
+      setAvisoExito("¡Llegada a destino registrada! Redirigiendo a evidencias de entrega...");
+      setTimeout(() => {
+        router.push(`/viajes/${trasladoId}/evidencia`);
+      }, 1000);
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos registrar tu llegada al destino."));
-    } finally {
       setProcesando(false);
     }
   }
