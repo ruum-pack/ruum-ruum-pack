@@ -8,7 +8,7 @@ import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
-import { avanzarEstadoTraslado, confirmarLlegadaDestino } from "@ruum/api/services";
+import { avanzarEstadoTraslado, confirmarLlegadaDestino, obtenerPasaporteDigital } from "@ruum/api/services";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -51,11 +51,25 @@ export function ConduceADestinoDetails({
     setAvisoExito(null);
     try {
       const cliente = crearClienteNavegador();
-      // First: transition traslado_en_curso -> llegada_a_destino using dedicated RPC
-      await confirmarLlegadaDestino(cliente, trasladoId, { fueraGeocerca: false, distanciaM: null });
       
-      // Wait 300ms to allow Supabase transaction to finalize
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // Query the freshest state from database to handle race conditions / double clicks
+      const pasaporteFresco = await obtenerPasaporteDigital(cliente, trasladoId);
+      const estadoDb = pasaporteFresco?.estado || pasaporte.estado;
+
+      if (estadoDb === "evidencia_final_en_proceso") {
+        setAvisoExito("Redirigiendo a evidencias de entrega...");
+        setTimeout(() => {
+          router.push(`/viajes/${trasladoId}/evidencia`);
+        }, 800);
+        return;
+      }
+
+      if (estadoDb === "traslado_en_curso") {
+        // First: transition traslado_en_curso -> llegada_a_destino using dedicated RPC
+        await confirmarLlegadaDestino(cliente, trasladoId, { fueraGeocerca: false, distanciaM: null });
+        // Wait 300ms to allow Supabase transaction to finalize
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
       
       // Second: transition llegada_a_destino -> evidencia_final_en_proceso
       await avanzarEstadoTraslado(cliente, trasladoId, "llegada_a_destino");
