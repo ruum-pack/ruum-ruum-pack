@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
 import { TextInputUppercaseBridge } from "@ruum/ui";
 import "./globals.css";
 import { SincronizadorEvidenciaOffline } from "./SincronizadorEvidenciaOffline";
@@ -13,9 +13,9 @@ import { LiveRegionProvider } from "../components/LiveRegionProvider";
 import { VersionGate } from "./VersionGate";
 import { OperationalAccessibilityBridge } from "./OperationalAccessibilityBridge";
 
-const montserrat = Montserrat({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
+  weight: ["500", "600", "700"],
   variable: "--font-display-loaded",
   display: "swap"
 });
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" data-theme="dark">
-      <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
+      <body className={`${spaceGrotesk.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">Saltar al contenido principal</a>
         <LiveRegionProvider>
           <ViajeActivoProvider>

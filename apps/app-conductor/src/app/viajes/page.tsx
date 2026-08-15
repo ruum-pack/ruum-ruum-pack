@@ -97,7 +97,7 @@ function CustomTripCard({
       >
         <div className="flex justify-between items-start w-full">
           <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 font-display text-[10px] font-bold ${
-            esOferta ? "bg-[#00B4D8]/10 text-[#00B4D8] border border-[#00B4D8]/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+            esOferta ? "bg-route-soft text-route-dark border border-[color:var(--ruum-route)]/20" : "bg-[color:var(--ruum-pulse-soft)] text-[color:var(--ruum-pulse)] border border-[color:var(--ruum-pulse)]/20"
           }`}>
             {estadoTexto}
           </span>
@@ -116,9 +116,19 @@ function CustomTripCard({
               {isExpanded ? "Contraer ▲" : "Expandir ▼"}
             </span>
           </div>
-          <h2 className="font-display text-lg font-extrabold text-text-primary tracking-tight leading-tight">
-            {ruta}
-          </h2>
+          <div className="flex flex-col gap-1.5" aria-label={ruta}>
+            <span className="font-display text-base font-extrabold text-text-primary tracking-tight leading-tight">
+              {viaje.origen_ciudad || "Por confirmar"}
+            </span>
+            <div className="ruum-route-line">
+              <span className="ruum-route-dot" />
+              <span className="ruum-route-dash" />
+              <span className="ruum-route-dot is-end" />
+            </div>
+            <span className="font-display text-base font-extrabold text-text-secondary tracking-tight leading-tight">
+              {viaje.destino_ciudad || "Por confirmar"}
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-col gap-1 font-body text-xs text-text-secondary">

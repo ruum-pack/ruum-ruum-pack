@@ -286,6 +286,8 @@ html[data-theme="dark"] .conductor-status-panel {
 
 html[data-theme="dark"] .conductor-auth-shell {
   background:
+    radial-gradient(circle at 18% 12%, rgba(47, 111, 237, 0.22), transparent 40%),
+    radial-gradient(circle at 88% 82%, var(--ruum-pulse-soft), transparent 38%),
     linear-gradient(180deg, rgba(7, 11, 20, 0.78) 0%, rgba(7, 11, 20, 0.94) 62%, var(--ruum-canvas) 100%),
     url("/imagenes/onboarding-paso2.webp") center / cover no-repeat,
     var(--ruum-canvas);

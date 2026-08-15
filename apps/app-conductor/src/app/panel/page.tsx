@@ -131,8 +131,8 @@ export default function PaginaPanel() {
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="font-body text-sm font-medium text-text-tertiary">Hola</span>
-                <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="inline-flex items-center gap-1 bg-[color:var(--ruum-pulse-soft)] text-[color:var(--ruum-pulse)] text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-[color:var(--ruum-pulse)]/25">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--ruum-pulse)] animate-pulse" />
                   GPS En Línea
                 </span>
               </div>
@@ -180,7 +180,7 @@ export default function PaginaPanel() {
               onClick={alCambiarDisponibilidad}
               disabled={disponibilidad === "en_viaje" || persistiendoDisponibilidad}
               className={`w-14 h-8 rounded-full transition-all duration-300 relative focus:outline-hidden ${
-                esDisponible ? "bg-emerald-500 shadow-md shadow-emerald-500/20" : "bg-control-soft"
+                esDisponible ? "bg-[color:var(--ruum-pulse)] shadow-md shadow-[color:var(--ruum-pulse)]/20" : "bg-control-soft"
               } ${disponibilidad === "en_viaje" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
               aria-label="Cambiar disponibilidad"
             >
@@ -203,25 +203,28 @@ export default function PaginaPanel() {
             {viajeActivoPrincipal && activeTripPresentation ? (
               <Link
                 href={`/viajes/${viajeActivoPrincipal.traslado_id}`}
-                className="w-full p-5 rounded-2xl bg-gradient-to-r from-[#00BBC9] to-[#00A0AD] text-white flex flex-col gap-1.5 shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all text-left border border-[#00BBC9]/30"
-                style={{
-                  boxShadow: "0 8px 20px rgba(0, 187, 201, 0.25)"
-                }}
+                className="w-full p-5 rounded-2xl bg-[color:var(--ruum-surface-strong)] text-white flex flex-col gap-2 shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all text-left border border-[color:var(--ruum-pulse)]/25"
               >
                 <div className="flex justify-between items-center w-full">
-                  <span className="font-body text-[10px] font-extrabold uppercase tracking-widest text-white/70">
+                  <span className="font-body text-[10px] font-extrabold uppercase tracking-widest text-white/60">
                     Traslado Activo
                   </span>
-                  <span className="text-white text-[11px] font-bold flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[color:var(--ruum-pulse)] text-[11px] font-bold flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--ruum-pulse)] animate-pulse" />
                     En ruta
                   </span>
                 </div>
                 <h2 className="font-display text-lg font-black tracking-tight text-white leading-tight mt-1">
                   Traslado ID {folioViaje(viajeActivoPrincipal)}
                 </h2>
-                <p className="font-body text-xs text-white/95 line-clamp-1 flex items-center gap-1.5 mt-1">
-                  <span>📍</span> {viajeActivoPrincipal.origen_ciudad || "Toluca"} › {viajeActivoPrincipal.destino_ciudad || "Méx."}
+                <div className="ruum-route-line is-live mt-1">
+                  <span className="ruum-route-dot" />
+                  <span className="ruum-route-dash" />
+                  <span className="ruum-route-dot is-end" />
+                </div>
+                <p className="font-body text-xs text-white/90 flex items-center justify-between mt-0.5">
+                  <span>{viajeActivoPrincipal.origen_ciudad || "Toluca"}</span>
+                  <span>{viajeActivoPrincipal.destino_ciudad || "Méx."}</span>
                 </p>
               </Link>
             ) : (

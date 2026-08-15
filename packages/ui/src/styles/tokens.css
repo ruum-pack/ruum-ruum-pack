@@ -62,7 +62,7 @@
   --color-ok: var(--color-control);
   --color-ok-soft: var(--color-control-soft);
 
-  --font-display: var(--font-display-loaded), "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-loaded), "Space Grotesk", "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-body-loaded), "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono-ruum: var(--font-mono-loaded), "IBM Plex Mono", ui-monospace, monospace;
 
@@ -111,6 +111,11 @@
   --ruum-danger-active: #751616;
   --ruum-action: #f5a623;
   --ruum-action-hover: #d88f16;
+  /* Acento "en vivo": reservado exclusivamente para estados que están ocurriendo
+     ahora mismo (disponible, en ruta, GPS activo). No usar como color decorativo. */
+  --ruum-pulse: #7fb519;
+  --ruum-pulse-soft: #eaf6d2;
+  --ruum-pulse-ink: #223300;
   --ruum-shadow-1: 0 1px 2px rgba(26, 31, 46, 0.08);
   --ruum-shadow-2: 0 6px 16px rgba(26, 31, 46, 0.1);
   --ruum-shadow-3: 0 16px 40px rgba(26, 31, 46, 0.18);
@@ -157,6 +162,9 @@
   --ruum-danger-active: #c94d4d;
   --ruum-action: #f5a623;
   --ruum-action-hover: #d88f16;
+  --ruum-pulse: #aef22c;
+  --ruum-pulse-soft: rgba(174, 242, 44, 0.14);
+  --ruum-pulse-ink: #1c2b00;
   --color-signal-soft: rgba(245, 166, 35, 0.1);
   --color-route-soft: rgba(77, 163, 255, 0.1);
   --color-control-soft: rgba(61, 220, 151, 0.1);
@@ -315,6 +323,90 @@ input[type="radio"] {
   transform: translateY(-2px);
   border-color: var(--ruum-focus);
   box-shadow: var(--ruum-shadow-2);
+}
+
+/* Línea de ruta — elemento de firma visual.
+   Conecta origen/destino en tarjetas de viaje; en estado "live" se anima
+   y cambia a --ruum-pulse para señalar un traslado en curso. */
+.ruum-route-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ruum-route-line .ruum-route-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ruum-route);
+  flex-shrink: 0;
+}
+
+.ruum-route-line .ruum-route-dot.is-end {
+  background: var(--ruum-action-primary);
+}
+
+.ruum-route-line .ruum-route-dash {
+  flex: 1;
+  height: 2px;
+  background-image: linear-gradient(90deg, var(--ruum-route) 0 6px, transparent 6px 12px);
+  background-size: 12px 2px;
+  background-repeat: repeat-x;
+}
+
+.ruum-route-line.is-live .ruum-route-dot {
+  background: var(--ruum-pulse);
+}
+
+.ruum-route-line.is-live .ruum-route-dash {
+  background-image: linear-gradient(90deg, var(--ruum-pulse) 0 6px, transparent 6px 12px);
+  animation: ruum-route-dash-move 900ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ruum-route-line.is-live .ruum-route-dash {
+    animation: none;
+  }
+}
+
+@keyframes ruum-route-dash-move {
+  to {
+    background-position-x: -12px;
+  }
+}
+
+/* Variante vertical — para itinerarios y líneas de tiempo. */
+.ruum-route-line.is-vertical {
+  flex-direction: column;
+  align-items: center;
+  width: 8px;
+  height: 100%;
+  gap: 6px;
+}
+
+.ruum-route-line.is-vertical .ruum-route-dash {
+  width: 2px;
+  flex: 1;
+  background-image: linear-gradient(180deg, var(--ruum-route) 0 6px, transparent 6px 12px);
+  background-size: 2px 12px;
+  background-repeat: repeat-y;
+}
+
+.ruum-route-line.is-vertical.is-live .ruum-route-dash {
+  background-image: linear-gradient(180deg, var(--ruum-pulse) 0 6px, transparent 6px 12px);
+  animation: ruum-route-dash-move-y 900ms linear infinite;
+}
+
+@keyframes ruum-route-dash-move-y {
+  to {
+    background-position-y: -12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ruum-route-line.is-vertical.is-live .ruum-route-dash {
+    animation: none;
+  }
 }
 
 .ruum-auth-page {

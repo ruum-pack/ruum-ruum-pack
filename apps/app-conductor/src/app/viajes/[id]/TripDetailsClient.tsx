@@ -93,7 +93,7 @@ export function TripDetailsClient({
         <header className="flex justify-between items-center pb-4 border-b border-border/20">
           <Link 
             href={volver} 
-            className="p-1.5 text-text-primary hover:text-[#00B4D8] transition-colors shrink-0"
+            className="p-1.5 text-text-primary hover:text-route-action transition-colors shrink-0"
             aria-label="Volver"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -249,12 +249,12 @@ export function TripDetailsClient({
             ITINERARIO
           </h2>
 
-          <div className="flex flex-col relative pl-8 border-l border-border/60 ml-3.5 gap-6">
+          <div className="flex flex-col relative pl-8 border-l-2 border-dashed border-route-action/45 ml-3.5 gap-6">
             
             {/* Punto 1: Origen */}
             <div className="relative flex flex-col gap-2">
               {/* Number Circle Marker */}
-              <div className="absolute -left-12 top-0.5 w-7 h-7 rounded-full bg-text-secondary text-surface flex items-center justify-center font-display text-xs font-black shadow-xs select-none">
+              <div className="absolute -left-12 top-0.5 w-7 h-7 rounded-full bg-route-action text-mist flex items-center justify-center font-display text-xs font-black shadow-xs select-none">
                 1
               </div>
 
@@ -286,7 +286,7 @@ export function TripDetailsClient({
             {/* Punto 2: Destino */}
             <div className="relative flex flex-col gap-2 mt-2">
               {/* Number Circle Marker */}
-              <div className="absolute -left-12 top-0.5 w-7 h-7 rounded-full bg-text-secondary text-surface flex items-center justify-center font-display text-xs font-black shadow-xs select-none">
+              <div className="absolute -left-12 top-0.5 w-7 h-7 rounded-full bg-signal text-slate-950 flex items-center justify-center font-display text-xs font-black shadow-xs select-none">
                 2
               </div>
 

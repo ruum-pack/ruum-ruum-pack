@@ -70,7 +70,7 @@ export function RegistrationProgress({
                     activo
                       ? "border-signal bg-signal/15 text-text-primary ring-2 ring-signal/40 shadow-sm"
                       : completado
-                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer"
+                      ? "border-control/40 bg-control-soft text-control hover:bg-control-soft/70 cursor-pointer"
                       : "border-border/40 bg-surface-elevated/40 text-text-tertiary opacity-60 cursor-not-allowed"
                   ].join(" ")}
                   aria-label={`Paso ${indice + 1}: ${pasoInfo.titulo}`}
@@ -80,7 +80,7 @@ export function RegistrationProgress({
                     className={[
                       "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-black transition-all",
                       completado
-                        ? "bg-emerald-500 text-slate-950 font-bold"
+                        ? "bg-control text-mist font-bold"
                         : activo
                         ? "bg-signal text-slate-950 font-black shadow-xs"
                         : "bg-surface-elevated border border-border text-text-tertiary"
@@ -117,7 +117,7 @@ export function RegistrationProgress({
                     activo
                       ? "border-signal bg-signal/10 ring-2 ring-signal/30 shadow-md transform -translate-y-0.5"
                       : completado
-                      ? "border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/60 hover:bg-emerald-500/10 cursor-pointer"
+                      ? "border-control/30 bg-control-soft/50 hover:border-control/60 hover:bg-control-soft cursor-pointer"
                       : "border-border/50 bg-surface opacity-60 cursor-not-allowed"
                   ].join(" ")}
                   aria-label={`Paso ${indice + 1}: ${pasoInfo.titulo}`}
@@ -129,7 +129,7 @@ export function RegistrationProgress({
                       className={[
                         "flex size-7 shrink-0 items-center justify-center rounded-xl font-display text-xs font-bold transition-all",
                         completado
-                          ? "bg-emerald-500 text-slate-950 font-black shadow-xs"
+                          ? "bg-control text-mist font-black shadow-xs"
                           : activo
                           ? "bg-signal text-slate-950 font-black shadow-md ring-2 ring-signal/50"
                           : "bg-surface-elevated border border-border/60 text-text-tertiary"
@@ -214,7 +214,7 @@ export function RegistrationProgress({
       {sesionAutenticada && estadoGuardadoRemoto !== "inactivo" && (
         <div className="flex items-center gap-2">
           {estadoGuardadoRemoto === "guardado" && (
-            <span className="flex size-4 items-center justify-center rounded-full bg-emerald-500/20 text-xs font-bold text-emerald-400" aria-hidden="true">
+            <span className="flex size-4 items-center justify-center rounded-full bg-control-soft text-xs font-bold text-control" aria-hidden="true">
               ✓
             </span>
           )}
