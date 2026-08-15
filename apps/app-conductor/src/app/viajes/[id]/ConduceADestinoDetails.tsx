@@ -8,7 +8,7 @@ import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
-import { avanzarEstadoTraslado } from "@ruum/api/services";
+import { avanzarEstadoTraslado, confirmarLlegadaDestino } from "@ruum/api/services";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -51,8 +51,8 @@ export function ConduceADestinoDetails({
     setAvisoExito(null);
     try {
       const cliente = crearClienteNavegador();
-      // First: transition traslado_en_curso -> llegada_a_destino
-      await avanzarEstadoTraslado(cliente, trasladoId, "traslado_en_curso");
+      // First: transition traslado_en_curso -> llegada_a_destino using dedicated RPC
+      await confirmarLlegadaDestino(cliente, trasladoId, { fueraGeocerca: false, distanciaM: null });
       
       // Wait 300ms to allow Supabase transaction to finalize
       await new Promise((resolve) => setTimeout(resolve, 300));
