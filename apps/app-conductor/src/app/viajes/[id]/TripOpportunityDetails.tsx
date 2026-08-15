@@ -29,12 +29,10 @@ export function TripOpportunityDetails({
   const estado = pasaporte.estado as Database["public"]["Enums"]["estado_traslado"];
   const esOferta = estado === "pendiente_de_conductor" || !pasaporte.conductor_id;
 
-  const origen = pasaporte.origen_ciudad || "San Mateo Atenco";
-  const destino = pasaporte.destino_ciudad || "Tuxtla Gutiérrez";
-  const distancia = pasaporte.distancia_km || 885.2;
-  const duracion = pasaporte.tiempo_estimado_horas || 12.72;
-
-  // Format Time
+  const origen = pasaporte.origen_ciudad || "Por confirmar";
+  const destino = pasaporte.destino_ciudad || "Por confirmar";
+  const distancia = pasaporte.distancia_km;
+  const duracion = pasaporte.tiempo_estimado_horas;
   const fechaReferencia = pasaporte.creado_en ?? pasaporte.actualizado_en ?? new Date().toISOString();
   const horaTexto = new Intl.DateTimeFormat("es-MX", { 
     hour: "2-digit", 
@@ -44,7 +42,7 @@ export function TripOpportunityDetails({
   }).format(new Date(fechaReferencia));
 
   // Earning
-  const pagoTotal = pasaporte.ganancia_conductor || 582.96;
+  const pagoTotal = pasaporte.ganancia_conductor;
 
   // Navigation target
   const navigationTargetLat = pasaporte.origen_lat ?? 19.4326;
@@ -175,28 +173,41 @@ export function TripOpportunityDetails({
 
       <div className="w-full flex flex-col flex-1 animate-fade-in pb-20">
         
-        {/* Header */}
-        <header className="flex justify-between items-center pb-4 border-b border-border/20">
-          <Link 
-            href={volver} 
-            className="p-1.5 text-text-primary hover:text-signal transition-colors shrink-0"
-            aria-label="Volver"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </Link>
-          
-          <div className="flex items-center gap-1.5 bg-[#1C2C24] border border-[#234D37] px-2.5 py-0.5 rounded-md">
-            <span className="font-display text-[10px] font-black text-[#00BBC9] tracking-wider uppercase">CONDUCTOR</span>
-          </div>
+         {/* Header */}
+         <header className="flex justify-between items-center pb-4 border-b border-border/20">
+           <nav aria-label="Ruta de navegación" className="flex items-center gap-0.5">
+             <Link
+               href={volver}
+               className="p-1 text-text-secondary hover:text-text-primary transition-colors shrink-0"
+               aria-label="Volver"
+             >
+               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                 <polyline points="15 18 9 12 15 6" />
+               </svg>
+             </Link>
+             <span className="text-text-tertiary" aria-hidden>/</span>
+             <Link
+               href="/viajes"
+               className="font-body text-[10px] font-semibold text-text-tertiary hover:text-text-primary transition-colors"
+             >
+               Traslados
+             </Link>
+             <span className="text-text-tertiary" aria-hidden>/</span>
+             <span className="font-body text-[10px] font-semibold text-text-primary truncate max-w-[100px]">
+               {folio}
+             </span>
+           </nav>
+           
+           <div className="flex items-center gap-1.5 bg-[#1C2C24] border border-[#234D37] px-2.5 py-0.5 rounded-md">
+             <span className="font-display text-[10px] font-black text-[#00B4D8] tracking-wider uppercase">CONDUCTOR</span>
+           </div>
 
-          <Link
+           <Link
             href={`/cuenta/soporte?traslado=${trasladoId}`}
             className="p-1.5 text-text-secondary hover:text-text-primary transition-colors shrink-0"
             aria-label="Soporte"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </Link>
@@ -205,7 +216,7 @@ export function TripOpportunityDetails({
             className="p-1.5 text-text-secondary hover:text-text-primary transition-colors shrink-0" 
             aria-label="Ajustes de cuenta"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
             </svg>
           </Link>
@@ -213,7 +224,7 @@ export function TripOpportunityDetails({
 
         {/* Title */}
         <div className="mt-6 flex flex-col">
-          <span className="font-display text-base font-extrabold text-[#00BBC9] uppercase tracking-wider">
+          <span className="font-display text-base font-extrabold text-[#00B4D8] uppercase tracking-wider">
             TRASLADO ID {folio}
           </span>
           <h1 className="font-display text-2xl font-black text-text-primary leading-tight mt-1">
@@ -240,11 +251,11 @@ export function TripOpportunityDetails({
             </div>
             
             {/* Right Dot */}
-            <div className="w-2.5 h-2.5 rounded-full bg-[#00BBC9] border border-[#00BBC9]/60 z-10" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#00B4D8] border border-[#00B4D8]/60 z-10" />
           </div>
 
           <div className="text-center font-body text-[10px] font-bold text-text-tertiary">
-            {distancia.toFixed(1)} KM
+            {distancia != null ? `${distancia.toFixed(1)} KM` : "Por confirmar"}
           </div>
         </div>
 
@@ -255,11 +266,11 @@ export function TripOpportunityDetails({
             <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">HORA</span>
           </div>
           <div className="flex flex-col gap-1.5 border-l border-border/20">
-            <span className="font-display text-sm font-black text-text-primary">{duracion.toFixed(2)} hr</span>
+            <span className="font-display text-sm font-black text-text-primary">{duracion != null ? `${duracion.toFixed(2)} hr` : "Por confirmar"}</span>
             <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">DURACIÓN</span>
           </div>
           <div className="flex flex-col gap-1.5 border-l border-border/20">
-            <span className="font-display text-sm font-black text-text-primary">{distancia.toFixed(1)} km</span>
+            <span className="font-display text-sm font-black text-text-primary">{distancia != null ? `${distancia.toFixed(1)} km` : "Por confirmar"}</span>
             <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">DISTANCIA</span>
           </div>
           <div className="flex flex-col gap-1.5 border-l border-border/20">
@@ -286,7 +297,7 @@ export function TripOpportunityDetails({
             <button
               type="button"
               onClick={handleRechazar}
-              className="flex-1 min-h-12 rounded-xl bg-[#00BBC9] text-white hover:bg-[#00BBC9]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none"
+              className="flex-1 min-h-12 rounded-xl bg-[#00B4D8] text-white hover:bg-[#00B4D8]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none"
             >
               RECHAZAR
             </button>
@@ -296,7 +307,7 @@ export function TripOpportunityDetails({
             {(estado === "evidencia_inicial_en_proceso" || estado === "evidencia_final_en_proceso") ? (
               <Link
                 href={`/viajes/${trasladoId}/evidencia`}
-                className="w-full min-h-12 rounded-xl bg-[#00BBC9] text-white hover:bg-[#00BBC9]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 text-center"
+                className="w-full min-h-12 rounded-xl bg-[#00B4D8] text-white hover:bg-[#00B4D8]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 text-center"
               >
                 {estado === "evidencia_inicial_en_proceso" ? "CONTINUAR EVIDENCIAS" : "CONTINUAR EVIDENCIAS DE ENTREGA"}
               </Link>
@@ -319,7 +330,7 @@ export function TripOpportunityDetails({
                     rel="noopener noreferrer"
                     className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface border border-border/40 text-text-primary font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary shrink-0" aria-hidden="true">
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                       <circle cx="12" cy="10" r="3" />
                     </svg>
@@ -331,7 +342,7 @@ export function TripOpportunityDetails({
                     type="button"
                     onClick={handleEstoyEnCamino}
                     disabled={procesando || (estado !== "conductor_asignado")}
-                    className="flex-1 min-h-12 rounded-xl bg-[#00BBC9] text-white hover:bg-[#00BBC9]/90 disabled:opacity-50 disabled:cursor-not-allowed font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center"
+                    className="flex-1 min-h-12 rounded-xl bg-[#00B4D8] text-white hover:bg-[#00B4D8]/90 disabled:opacity-50 disabled:cursor-not-allowed font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center"
                   >
                     {procesando ? TEXTOS_CARGANDO.actualizando : "ESTOY EN CAMINO"}
                   </button>
@@ -340,7 +351,7 @@ export function TripOpportunityDetails({
                 {/* CONTACTAR USUARIO Button */}
                 <a
                   href={`tel:${pasaporte.contacto_entrega_telefono || pasaporte.contacto_recepcion_telefono || ""}`}
-                  className="w-full min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/20 border border-[#00BBC9]/40 text-[#00BBC9] font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center active:scale-98 cursor-pointer"
+                  className="w-full min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/20 border border-[#00B4D8]/40 text-[#00B4D8] font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center active:scale-98 cursor-pointer"
                 >
                   CONTACTAR USUARIO
                 </a>
@@ -366,7 +377,7 @@ export function TripOpportunityDetails({
             PAGO POR ITINERARIO
           </span>
           <div className="flex items-baseline gap-1 mt-1">
-            <span className="font-display text-2xl font-black text-white">${pagoTotal.toFixed(2)}</span>
+            <span className="font-display text-2xl font-black text-white">${pagoTotal != null ? pagoTotal.toFixed(2) : "0.00"}</span>
             <span className="font-body text-[10px] font-bold text-text-secondary">MXN total</span>
           </div>
         </section>
@@ -392,7 +403,7 @@ export function TripOpportunityDetails({
             {/* Punto 1: Origen */}
             <div className="relative flex flex-col gap-2">
               {/* Number Circle Marker */}
-              <div className="absolute -left-12 top-0.5 w-7 h-7 rounded-full bg-[#1C2C24] border border-[#234D37] text-[#00BBC9] flex items-center justify-center font-display text-xs font-black shadow-xs select-none">
+              <div className="absolute -left-12 top-0.5 w-7 h-7 rounded-full bg-[#1C2C24] border border-[#234D37] text-[#00B4D8] flex items-center justify-center font-display text-xs font-black shadow-xs select-none">
                 1
               </div>
 
@@ -467,53 +478,7 @@ export function TripOpportunityDetails({
           </div>
         )}
 
-      </div>
-
-      {/* Floating Bottom Navigation Bar */}
-      <div className="fixed inset-x-0 bottom-4 z-40 px-4">
-        <nav
-          aria-label="Navegación principal móvil"
-          className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"
-        >
-          <div className="grid grid-cols-3 gap-1">
-            <Link
-              href="/panel"
-              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="9" />
-                <rect x="14" y="3" width="7" height="5" />
-                <rect x="14" y="12" width="7" height="9" />
-                <rect x="3" y="16" width="7" height="5" />
-              </svg>
-              <span>Inicio</span>
-            </Link>
-
-            <Link
-              href="/viajes"
-              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-signal font-extrabold transition-colors select-none"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
-                <line x1="9" y1="3" x2="9" y2="18" />
-                <line x1="15" y1="6" x2="15" y2="21" />
-              </svg>
-              <span>Traslados</span>
-            </Link>
-
-            <Link
-              href="/ganancias"
-              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="1" x2="12" y2="23" />
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-              <span>Ganancias</span>
-            </Link>
-          </div>
-        </nav>
-      </div>
+       </div>
 
     </div>
   );

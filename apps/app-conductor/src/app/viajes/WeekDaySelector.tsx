@@ -35,7 +35,7 @@ export function WeekDaySelector({
               type="button"
               aria-current={activo ? "date" : undefined}
               onClick={() => onSelect(clave)}
-              className="flex flex-col items-center gap-2 py-2 group cursor-pointer focus:outline-hidden"
+              className="flex flex-col items-center gap-2 py-2 group cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:rounded-xl"
             >
               {/* Day name (e.g. Mi, Ju) */}
               <span className="font-body text-xs font-semibold text-text-tertiary">

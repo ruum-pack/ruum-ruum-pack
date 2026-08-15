@@ -335,7 +335,7 @@ export default function PaginaEvidencia() {
   if (cargando) {
     return (
       <div className="mx-auto w-full max-w-md px-6 py-20 text-center text-text-primary">
-        <div className="w-8 h-8 border-4 border-[#00BBC9] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <div className="w-8 h-8 border-4 border-[#00B4D8] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="font-body text-sm font-semibold">Cargando checklist de evidencias...</p>
       </div>
     );
@@ -360,10 +360,10 @@ export default function PaginaEvidencia() {
         <header className="flex justify-between items-center pb-4 border-b border-border/20">
           <div className="flex items-center gap-2">
             <span className="font-display text-lg font-black tracking-tight text-white">
-              ruum<span className="text-[#00BBC9]">ruum</span>
+              ruum<span className="text-[#00B4D8]">ruum</span>
             </span>
             <div className="bg-[#1C2C24] border border-[#234D37] px-2 py-0.5 rounded-md">
-              <span className="font-display text-[9px] font-black text-[#00BBC9] tracking-wider">CONDUCTOR</span>
+              <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-wider">CONDUCTOR</span>
             </div>
           </div>
           
@@ -395,7 +395,7 @@ export default function PaginaEvidencia() {
           <span className="font-body text-[10px] text-text-tertiary font-bold tracking-wide">
             Traslados › {tipo === "inicial" ? origen : (pasaporte?.destino_ciudad || "Destino")} › <span className="text-text-primary">Paso 2 de 2</span>
           </span>
-          <span className="font-display text-[9px] font-black text-[#00BBC9] tracking-widest uppercase mt-0.5">
+          <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-widest uppercase mt-0.5">
             {tipo === "inicial" ? "RECOLECCIÓN DE UNIDAD" : "ENTREGA DE UNIDAD"}
           </span>
           <h1 className="font-display text-2xl font-black text-text-primary leading-tight mt-1">
@@ -412,7 +412,7 @@ export default function PaginaEvidencia() {
         <div className="mt-4 flex flex-col gap-1.5">
           <div className="w-full bg-surface-elevated/45 rounded-full h-2 overflow-hidden border border-border/20 relative">
             <div 
-              className="bg-[#00BBC9] h-full transition-all duration-300"
+              className="bg-[#00B4D8] h-full transition-all duration-300"
               style={{ width: `${(totalCapturados / totalRequisitos) * 100}%` }}
             />
           </div>
@@ -424,7 +424,7 @@ export default function PaginaEvidencia() {
         {/* Section 1: FOTOGRAFÍAS DEL VEHÍCULO */}
         <section className="mt-8 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00BBC9] flex items-center justify-center font-display text-[10px] font-bold">
+            <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00B4D8] flex items-center justify-center font-display text-[10px] font-bold">
               1
             </span>
             <h2 className="font-display text-xs font-black text-text-tertiary tracking-widest uppercase">
@@ -440,7 +440,7 @@ export default function PaginaEvidencia() {
               className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
                 isPhotoCaptured("frente")
                   ? "bg-[#1C2C24]/10 border-[#0D6E4B]/80"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00BBC9]/60"
+                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00B4D8]/60"
               }`}
             >
               {isPhotoCaptured("frente") && (
@@ -457,7 +457,7 @@ export default function PaginaEvidencia() {
               className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
                 isPhotoCaptured("lado_piloto")
                   ? "bg-[#1C2C24]/10 border-[#0D6E4B]/80"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00BBC9]/60"
+                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00B4D8]/60"
               }`}
             >
               {isPhotoCaptured("lado_piloto") && (
@@ -474,7 +474,7 @@ export default function PaginaEvidencia() {
               className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
                 isPhotoCaptured("lado_copiloto")
                   ? "bg-[#1C2C24]/10 border-[#0D6E4B]/80"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00BBC9]/60"
+                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00B4D8]/60"
               }`}
             >
               {isPhotoCaptured("lado_copiloto") && (
@@ -491,7 +491,7 @@ export default function PaginaEvidencia() {
               className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
                 isPhotoCaptured("trasera")
                   ? "bg-[#1C2C24]/10 border-[#0D6E4B]/80"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00BBC9]/60"
+                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00B4D8]/60"
               }`}
             >
               {isPhotoCaptured("trasera") && (
@@ -508,7 +508,7 @@ export default function PaginaEvidencia() {
               className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
                 isPhotoCaptured("tablero")
                   ? "bg-[#1C2C24]/10 border-[#0D6E4B]/80"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00BBC9]/60"
+                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00B4D8]/60"
               }`}
             >
               {isPhotoCaptured("tablero") && (
@@ -525,7 +525,7 @@ export default function PaginaEvidencia() {
               className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
                 isPhotoCaptured("adicional")
                   ? "bg-[#1C2C24]/10 border-[#0D6E4B]/80"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00BBC9]/60"
+                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00B4D8]/60"
               }`}
             >
               {isPhotoCaptured("adicional") && (
@@ -753,7 +753,7 @@ export default function PaginaEvidencia() {
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
             rows={4}
-            className="w-full bg-surface-elevated/20 border border-border/30 rounded-2xl p-4.5 text-xs font-body text-text-secondary leading-relaxed outline-hidden focus:border-[#00BBC9]/50 transition-all font-inherit"
+            className="w-full bg-surface-elevated/20 border border-border/30 rounded-2xl p-4.5 text-xs font-body text-text-secondary leading-relaxed outline-hidden focus:border-[#00B4D8]/50 transition-all font-inherit"
           />
         </section>
 
@@ -880,7 +880,7 @@ export default function PaginaEvidencia() {
               </a>
               <a
                 href="tel:+525548210937"
-                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-soft/60 transition-colors"
+                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-action/10 transition-colors"
               >
                 <span className="text-xl">📞</span>
                 <div className="flex flex-col items-start">

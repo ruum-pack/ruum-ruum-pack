@@ -255,7 +255,7 @@ export function CierreTrasladoDetails({
   if (cargando) {
     return (
       <div className="mx-auto w-full max-w-md px-6 py-20 text-center text-text-primary">
-        <div className="w-8 h-8 border-4 border-[#00BBC9] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <div className="w-8 h-8 border-4 border-[#00B4D8] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="font-body text-sm font-semibold">Cargando detalles de cierre...</p>
       </div>
     );
@@ -281,10 +281,10 @@ export function CierreTrasladoDetails({
         <header className="flex justify-between items-center pb-4 border-b border-border/20">
           <div className="flex items-center gap-2">
             <span className="font-display text-lg font-black tracking-tight text-white">
-              ruum<span className="text-[#00BBC9]">ruum</span>
+              ruum<span className="text-[#00B4D8]">ruum</span>
             </span>
             <div className="bg-[#1C2C24] border border-[#234D37] px-2 py-0.5 rounded-md">
-              <span className="font-display text-[9px] font-black text-[#00BBC9] tracking-wider">CONDUCTOR</span>
+              <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-wider">CONDUCTOR</span>
             </div>
           </div>
           
@@ -332,7 +332,7 @@ export function CierreTrasladoDetails({
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-start">
               <div>
-                <span className="font-display text-[9px] font-black text-[#00BBC9] tracking-widest uppercase">
+                <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-widest uppercase">
                   UNIDAD
                 </span>
                 <h3 className="font-display text-sm font-bold text-text-primary mt-0.5">
@@ -343,7 +343,7 @@ export function CierreTrasladoDetails({
                 </p>
               </div>
               <div className="text-right">
-                <span className="font-display text-[9px] font-black text-[#00BBC9] tracking-widest uppercase">
+                <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-widest uppercase">
                   TRASLADO ID
                 </span>
                 <p className="font-display text-xs font-black text-text-primary mt-0.5">
@@ -369,7 +369,7 @@ export function CierreTrasladoDetails({
         {/* Card: Checklist Conciliación */}
         <section className="mt-8 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00BBC9] flex items-center justify-center font-display text-[10px] font-bold">
+            <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00B4D8] flex items-center justify-center font-display text-[10px] font-bold">
               1
             </span>
             <h2 className="font-display text-xs font-black text-text-tertiary tracking-widest uppercase">
@@ -482,7 +482,7 @@ export function CierreTrasladoDetails({
         {/* Section: Gastos de Traslado */}
         <section className="mt-8 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00BBC9] flex items-center justify-center font-display text-[10px] font-bold">
+            <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00B4D8] flex items-center justify-center font-display text-[10px] font-bold">
               2
             </span>
             <h2 className="font-display text-xs font-black text-text-tertiary tracking-widest uppercase">
@@ -500,7 +500,7 @@ export function CierreTrasladoDetails({
                     id="tipo_gasto"
                     value={tipoGasto}
                     onChange={(e) => setTipoGasto(e.target.value as GastoData["tipo"])}
-                    className="w-full bg-surface-elevated/20 border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00BBC9]/50 transition-colors font-inherit h-10 select-none cursor-pointer"
+                    className="w-full bg-surface-elevated/20 border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00B4D8]/50 transition-colors font-inherit h-10 select-none cursor-pointer"
                   >
                     <option value="caseta">Caseta</option>
                     <option value="combustible">Gasolina</option>
@@ -520,7 +520,7 @@ export function CierreTrasladoDetails({
                     value={montoGasto}
                     onChange={(e) => setMontoGasto(e.target.value)}
                     required
-                    className="w-full bg-surface-elevated/20 border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00BBC9]/50 transition-colors font-inherit h-10"
+                    className="w-full bg-surface-elevated/20 border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00B4D8]/50 transition-colors font-inherit h-10"
                   />
                 </div>
               </div>
@@ -533,14 +533,14 @@ export function CierreTrasladoDetails({
                   placeholder="Ej. Caseta México-Querétaro"
                   value={descGasto}
                   onChange={(e) => setDescGasto(e.target.value)}
-                  className="w-full bg-surface-elevated/20 border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00BBC9]/50 transition-colors font-inherit h-10"
+                  className="w-full bg-surface-elevated/20 border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00B4D8]/50 transition-colors font-inherit h-10"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={procesando}
-                className="w-full h-10 rounded-xl border border-dashed border-[#00BBC9]/60 hover:border-[#00BBC9] text-[#00BBC9] hover:text-white font-display text-xs font-black tracking-wider transition-all cursor-pointer flex items-center justify-center select-none mt-1"
+                className="w-full h-10 rounded-xl border border-dashed border-[#00B4D8]/60 hover:border-[#00B4D8] text-[#00B4D8] hover:text-white font-display text-xs font-black tracking-wider transition-all cursor-pointer flex items-center justify-center select-none mt-1"
               >
                 + REGISTRAR GASTO
               </button>
@@ -685,7 +685,7 @@ export function CierreTrasladoDetails({
               </a>
               <a
                 href="tel:+525548210937"
-                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-soft/60 transition-colors"
+                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-action/10 transition-colors"
               >
                 <span className="text-xl">📞</span>
                 <div className="flex flex-col items-start">

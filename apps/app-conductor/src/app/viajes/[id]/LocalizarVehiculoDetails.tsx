@@ -96,10 +96,10 @@ export function LocalizarVehiculoDetails({
         <header className="flex justify-between items-center pb-4 border-b border-border/20">
           <div className="flex items-center gap-2">
             <span className="font-display text-lg font-black tracking-tight text-white">
-              ruum<span className="text-[#00BBC9]">ruum</span>
+              ruum<span className="text-[#00B4D8]">ruum</span>
             </span>
             <div className="bg-[#1C2C24] border border-[#234D37] px-2 py-0.5 rounded-md">
-              <span className="font-display text-[9px] font-black text-[#00BBC9] tracking-wider">CONDUCTOR</span>
+              <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-wider">CONDUCTOR</span>
             </div>
           </div>
         </header>
@@ -109,7 +109,7 @@ export function LocalizarVehiculoDetails({
           <span className="font-body text-[10px] text-text-tertiary font-bold tracking-wide">
             Traslados › {origen} › <span className="text-text-primary">Paso 1 de 2</span>
           </span>
-          <span className="font-display text-[9px] font-black text-[#00BBC9] tracking-widest uppercase mt-0.5">
+          <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-widest uppercase mt-0.5">
             RECOLECCIÓN DE UNIDAD
           </span>
           <h1 className="font-display text-2xl font-black text-text-primary leading-tight mt-1">
@@ -123,7 +123,7 @@ export function LocalizarVehiculoDetails({
         {/* Section 1: IDENTIFICACIÓN DEL VEHÍCULO */}
         <section className="mt-8 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00BBC9] flex items-center justify-center font-display text-[10px] font-bold">
+            <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00B4D8] flex items-center justify-center font-display text-[10px] font-bold">
               1
             </span>
             <h2 className="font-display text-xs font-black text-text-tertiary tracking-widest uppercase">
@@ -206,7 +206,7 @@ export function LocalizarVehiculoDetails({
           <div className="bg-surface-elevated/40 border border-border/30 rounded-2xl p-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               {/* Avatar circle */}
-              <div className="w-10 h-10 rounded-full border-2 border-[#00BBC9]/80 flex items-center justify-center font-display text-xs font-extrabold text-[#00BBC9]">
+              <div className="w-10 h-10 rounded-full border-2 border-[#00B4D8]/80 flex items-center justify-center font-display text-xs font-extrabold text-[#00B4D8]">
                 {avatarInitials}
               </div>
               <div className="flex flex-col">
@@ -222,7 +222,7 @@ export function LocalizarVehiculoDetails({
             {/* Call button */}
             <a
               href={`tel:${contactoTelefono}`}
-              className="bg-[#1C2C24] hover:bg-[#234D37] border border-[#234D37] text-[#00BBC9] rounded-full px-4 py-2 text-xs font-black font-display flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
+              className="bg-[#1C2C24] hover:bg-[#234D37] border border-[#234D37] text-[#00B4D8] rounded-full px-4 py-2 text-xs font-black font-display flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
             >
               📞 {contactoTelefono}
             </a>

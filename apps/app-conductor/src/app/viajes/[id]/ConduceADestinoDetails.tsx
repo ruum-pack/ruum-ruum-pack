@@ -103,10 +103,10 @@ export function ConduceADestinoDetails({
         <header className="flex justify-between items-center pb-4 border-b border-border/20">
           <div className="flex items-center gap-2">
             <span className="font-display text-lg font-black tracking-tight text-white">
-              ruum<span className="text-[#00BBC9]">ruum</span>
+              ruum<span className="text-[#00B4D8]">ruum</span>
             </span>
             <div className="bg-[#1C2C24] border border-[#234D37] px-2 py-0.5 rounded-md">
-              <span className="font-display text-[9px] font-black text-[#00BBC9] tracking-wider">CONDUCTOR</span>
+              <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-wider">CONDUCTOR</span>
             </div>
           </div>
           
@@ -135,7 +135,7 @@ export function ConduceADestinoDetails({
 
         {/* Step Breadcrumbs Tracker */}
         <div className="mt-6 flex flex-col gap-1">
-          <span className="font-body text-[10px] text-[#00BBC9] font-bold tracking-wide uppercase">
+          <span className="font-body text-[10px] text-[#00B4D8] font-bold tracking-wide uppercase">
             MANIFIESTO DE RUTA · #UNO RESIDENCIAL
           </span>
           <h1 className="font-display text-2xl font-black text-text-primary leading-tight mt-1">
@@ -190,7 +190,7 @@ export function ConduceADestinoDetails({
         <div className="mt-6 flex flex-col rounded-[1.5rem] border border-border/30 bg-surface-elevated/20 p-5 relative overflow-hidden">
           <div className="h-44 w-full bg-surface-elevated/45 rounded-xl flex flex-col items-center justify-center border border-border/10 relative overflow-hidden">
             <svg width="100%" height="100%" className="absolute inset-0 select-none opacity-20 pointer-events-none">
-              <path d="M 30 130 Q 120 40 210 120 T 370 50" fill="none" stroke="#00BBC9" strokeWidth="4" strokeDasharray="8, 8" />
+              <path d="M 30 130 Q 120 40 210 120 T 370 50" fill="none" stroke="#00B4D8" strokeWidth="4" strokeDasharray="8, 8" />
             </svg>
             <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg z-10 animate-pulse">
               📍
@@ -391,7 +391,7 @@ export function ConduceADestinoDetails({
               </a>
               <a
                 href="tel:+525548210937"
-                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-soft/60 transition-colors"
+                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-action/10 transition-colors"
               >
                 <span className="text-xl">📞</span>
                 <div className="flex flex-col items-start">

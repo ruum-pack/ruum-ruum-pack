@@ -167,7 +167,7 @@ export function AccountStep({
                         "h-1 flex-1 rounded-full transition-all",
                         n <= fuerzaPassword.nivel
                           ? fuerzaPassword.nivel === 1
-                            ? "bg-danger"
+                            ? "bg-danger-action"
                             : fuerzaPassword.nivel === 2
                               ? "bg-signal"
                               : "bg-emerald-500"

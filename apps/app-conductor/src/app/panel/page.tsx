@@ -131,8 +131,8 @@ export default function PaginaPanel() {
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="font-body text-sm font-medium text-text-tertiary">Hola</span>
-                <span className="inline-flex items-center gap-1 bg-[color:var(--ruum-pulse-soft)] text-[color:var(--ruum-pulse)] text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-[color:var(--ruum-pulse)]/25">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--ruum-pulse)] animate-pulse" />
+                <span className="inline-flex items-center gap-1 bg-pulse-soft text-pulse text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-pulse/25">
+                  <span className="h-1.5 w-1.5 rounded-full bg-pulse animate-pulse" />
                   GPS En Línea
                 </span>
               </div>
@@ -156,7 +156,7 @@ export default function PaginaPanel() {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="text-text-primary hover:text-signal transition-colors">
                   <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
                 </svg>
-                <span className="absolute -top-0.5 -right-0.5 bg-danger text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center border border-surface shadow-xs">
+                <span className="absolute -top-0.5 -right-0.5 bg-danger-action text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center border border-surface shadow-xs">
                   {notificacionesCount > 0 ? notificacionesCount : 1}
                 </span>
               </Link>
@@ -180,7 +180,7 @@ export default function PaginaPanel() {
               onClick={alCambiarDisponibilidad}
               disabled={disponibilidad === "en_viaje" || persistiendoDisponibilidad}
               className={`w-14 h-8 rounded-full transition-all duration-300 relative focus:outline-hidden ${
-                esDisponible ? "bg-[color:var(--ruum-pulse)] shadow-md shadow-[color:var(--ruum-pulse)]/20" : "bg-control-soft"
+                esDisponible ? "bg-pulse shadow-md shadow-pulse/20" : "bg-control-soft"
               } ${disponibilidad === "en_viaje" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
               aria-label="Cambiar disponibilidad"
             >
@@ -203,14 +203,14 @@ export default function PaginaPanel() {
             {viajeActivoPrincipal && activeTripPresentation ? (
               <Link
                 href={`/viajes/${viajeActivoPrincipal.traslado_id}`}
-                className="w-full p-5 rounded-2xl bg-[color:var(--ruum-surface-strong)] text-white flex flex-col gap-2 shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all text-left border border-[color:var(--ruum-pulse)]/25"
+                className="w-full p-5 rounded-2xl bg-surface-strong text-white flex flex-col gap-2 shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all text-left border border-pulse/25"
               >
                 <div className="flex justify-between items-center w-full">
                   <span className="font-body text-[10px] font-extrabold uppercase tracking-widest text-white/60">
                     Traslado Activo
                   </span>
-                  <span className="text-[color:var(--ruum-pulse)] text-[11px] font-bold flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--ruum-pulse)] animate-pulse" />
+                    <span className="text-pulse text-[11px] font-bold flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-pulse animate-pulse" />
                     En ruta
                   </span>
                 </div>
@@ -351,7 +351,7 @@ export default function PaginaPanel() {
               </a>
               <a
                 href={CONTACTOS_SOPORTE_CONDUCTOR.soporte.telefono.href}
-                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-soft/60 transition-colors"
+                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-action/10 transition-colors"
               >
                 <span className="text-xl">📞</span>
                 <div className="flex flex-col items-start">

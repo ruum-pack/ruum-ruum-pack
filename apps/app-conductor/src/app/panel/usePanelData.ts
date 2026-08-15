@@ -113,11 +113,18 @@ export function usePanelData() {
         const conductorActual = conductorOperativo(real, sesion.user?.email);
         setConductor(conductorActual);
 
-        const [aceptados, disponibles, disponibilidadOperativa] = await Promise.all([
+        const resultados = await Promise.allSettled([
           listarViajesAceptados(cliente, real.id),
           listarViajesDisponibles(cliente),
           obtenerDisponibilidadConductor(cliente, real.id)
         ]);
+
+        const aceptados = resultados[0].status === "fulfilled" ? resultados[0].value : [];
+        const disponibles = resultados[1].status === "fulfilled" ? resultados[1].value : [];
+        const disponibilidadOperativa = resultados[2].status === "fulfilled"
+          ? resultados[2].value
+          : "no_disponible" as const;
+
         setViajesAceptados(aceptados);
         setViajesDisponibles(disponibles);
         setDisponibilidad(aceptados.some((viaje) => viaje.estado === "traslado_en_curso") ? "en_viaje" : disponibilidadOperativa);
