@@ -5,6 +5,7 @@ import { EstadoError } from "../../EstadoError";
 import { TripOpportunityDetails } from "./TripOpportunityDetails";
 import { LocalizarVehiculoDetails } from "./LocalizarVehiculoDetails";
 import { ConduceADestinoDetails } from "./ConduceADestinoDetails";
+import { CierreTrasladoDetails } from "./CierreTrasladoDetails";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -78,6 +79,16 @@ export default async function PaginaDetalleViaje({
   if (pasaporte.estado === "traslado_en_curso" || pasaporte.estado === "llegada_a_destino") {
     return (
       <ConduceADestinoDetails pasaporte={pasaporte} volver={volver} />
+    );
+  }
+
+  if (
+    pasaporte.estado === "evidencia_final_completada" ||
+    pasaporte.estado === "entrega_confirmada" ||
+    pasaporte.estado === "servicio_cerrado"
+  ) {
+    return (
+      <CierreTrasladoDetails pasaporte={pasaporte} volver={volver} />
     );
   }
 
