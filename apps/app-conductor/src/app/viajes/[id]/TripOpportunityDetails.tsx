@@ -283,82 +283,7 @@ export function TripOpportunityDetails({
           El tiempo puede variar según el tráfico, el clima u otros retrasos.
         </p>
 
-        {/* Actions Section */}
-        {esOferta ? (
-          <section className="mt-6 flex gap-3">
-            <button
-              type="button"
-              onClick={handleAceptar}
-              disabled={procesando}
-              className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface border border-border/40 text-text-primary font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-xs select-none"
-            >
-              {procesando ? TEXTOS_CARGANDO.actualizando : "ACEPTAR"}
-            </button>
-            <button
-              type="button"
-              onClick={handleRechazar}
-              className="flex-1 min-h-12 rounded-xl bg-[#00B4D8] text-white hover:bg-[#00B4D8]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none"
-            >
-              RECHAZAR
-            </button>
-          </section>
-        ) : (
-          <section className="mt-6 flex flex-col gap-3">
-            {(estado === "evidencia_inicial_en_proceso" || estado === "evidencia_final_en_proceso") ? (
-              <Link
-                href={`/viajes/${trasladoId}/evidencia`}
-                className="w-full min-h-12 rounded-xl bg-[#00B4D8] text-white hover:bg-[#00B4D8]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 text-center"
-              >
-                {estado === "evidencia_inicial_en_proceso" ? "CONTINUAR EVIDENCIAS" : "CONTINUAR EVIDENCIAS DE ENTREGA"}
-              </Link>
-            ) : (estado === "evidencia_inicial_completada" || estado === "vehiculo_recibido") ? (
-              <button
-                type="button"
-                onClick={handleIniciarViaje}
-                disabled={procesando}
-                className="w-full min-h-12 rounded-xl bg-route-action text-white hover:bg-route-action/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5"
-              >
-                {procesando ? TEXTOS_CARGANDO.actualizando : "INICIAR TRASLADO"}
-              </button>
-            ) : (
-              <>
-                <div className="flex gap-3">
-                  {/* RECOLECCIÓN Button with location icon */}
-                  <a
-                    href={navigationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface border border-border/40 text-text-primary font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary shrink-0" aria-hidden="true">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    RECOLECCIÓN
-                  </a>
 
-                  {/* ESTOY EN CAMINO Button */}
-                  <button
-                    type="button"
-                    onClick={handleEstoyEnCamino}
-                    disabled={procesando || (estado !== "conductor_asignado")}
-                    className="flex-1 min-h-12 rounded-xl bg-[#00B4D8] text-white hover:bg-[#00B4D8]/90 disabled:opacity-50 disabled:cursor-not-allowed font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center"
-                  >
-                    {procesando ? TEXTOS_CARGANDO.actualizando : "ESTOY EN CAMINO"}
-                  </button>
-                </div>
-
-                {/* CONTACTAR USUARIO Button */}
-                <a
-                  href={`tel:${pasaporte.contacto_entrega_telefono || pasaporte.contacto_recepcion_telefono || ""}`}
-                  className="w-full min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/20 border border-[#00B4D8]/40 text-[#00B4D8] font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center active:scale-98 cursor-pointer"
-                >
-                  CONTACTAR USUARIO
-                </a>
-              </>
-            )}
-          </section>
-        )}
 
         {error && (
           <div className="mt-3">
@@ -385,10 +310,10 @@ export function TripOpportunityDetails({
         {/* Transfer Notes Card */}
         <section className="mt-4 bg-surface-elevated/20 border border-border/20 rounded-2xl p-5 flex flex-col gap-2 relative">
           <span className="font-display text-[9px] font-black text-text-tertiary tracking-widest uppercase">
-            NOTAS DE TRASLADO
+            NOTAS DE ORIGEN (SOLICITANTE)
           </span>
-          <p className="font-body text-xs leading-relaxed text-text-secondary mt-1">
-            Incluye un bono de <strong className="text-[#DCA24C] font-black">$300.00 MXN</strong> por autoretorno (self-return). Para reclamarlo, selecciona la opción correspondiente en el sistema antes de iniciar el viaje.
+          <p className="font-body text-xs leading-relaxed text-text-secondary mt-1 whitespace-pre-wrap">
+            {pasaporte.origen_referencias || "Sin notas ni especificaciones adicionales del solicitante para el punto de origen."}
           </p>
         </section>
 
@@ -398,12 +323,12 @@ export function TripOpportunityDetails({
             ITINERARIO DE RUTA
           </h2>
 
-          <div className="flex flex-col relative pl-8 border-l border-border/60 ml-3.5 gap-6">
+          <div className="flex flex-col relative pl-9 border-l-[3px] border-solid border-[#00B4D8]/45 ml-4.5 gap-8">
             
             {/* Punto 1: Origen */}
             <div className="relative flex flex-col gap-2">
               {/* Number Circle Marker */}
-              <div className="absolute -left-12 top-0.5 w-7 h-7 rounded-full bg-[#1C2C24] border border-[#234D37] text-[#00B4D8] flex items-center justify-center font-display text-xs font-black shadow-xs select-none">
+              <div className="absolute -left-[20px] top-0 w-9 h-9 rounded-full bg-[#00B4D8] text-slate-950 flex items-center justify-center font-display text-sm font-black shadow-md select-none border-2 border-[#090D1A]">
                 1
               </div>
 
@@ -438,7 +363,7 @@ export function TripOpportunityDetails({
             {/* Punto 2: Destino */}
             <div className="relative flex flex-col gap-2 mt-2">
               {/* Number Circle Marker */}
-              <div className="absolute -left-12 top-0.5 w-7 h-7 rounded-full bg-surface-elevated text-text-secondary flex items-center justify-center font-display text-xs font-black shadow-xs select-none">
+              <div className="absolute -left-[20px] top-0 w-9 h-9 rounded-full bg-[#10B981] text-white flex items-center justify-center font-display text-sm font-black shadow-md select-none border-2 border-[#090D1A]">
                 2
               </div>
 
@@ -477,6 +402,85 @@ export function TripOpportunityDetails({
             </button>
           </div>
         )}
+
+        {/* Sticky footer for action buttons */}
+        <div className="sticky bottom-0 inset-x-0 z-20 bg-[#090D1A]/95 backdrop-blur-md border-t border-border/20 py-4 px-4 -mx-4 sm:-mx-6 mt-8">
+          {esOferta ? (
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleAceptar}
+                disabled={procesando}
+                className="flex-1 min-h-12 rounded-xl bg-[#10B981] text-white hover:bg-[#10B981]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
+              >
+                {procesando ? TEXTOS_CARGANDO.actualizando : "ACEPTAR OFERTA"}
+              </button>
+              <button
+                type="button"
+                onClick={handleRechazar}
+                className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/40 border border-border/80 text-text-secondary hover:text-text-primary font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-xs select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8]"
+              >
+                RECHAZAR
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {(estado === "evidencia_inicial_en_proceso" || estado === "evidencia_final_en_proceso") ? (
+                <Link
+                  href={`/viajes/${trasladoId}/evidencia`}
+                  className="w-full min-h-12 rounded-xl bg-[#00B4D8] text-white hover:bg-[#00B4D8]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 text-center"
+                >
+                  {estado === "evidencia_inicial_en_proceso" ? "CONTINUAR EVIDENCIAS" : "CONTINUAR EVIDENCIAS DE ENTREGA"}
+                </Link>
+              ) : (estado === "evidencia_inicial_completada" || estado === "vehiculo_recibido") ? (
+                <button
+                  type="button"
+                  onClick={handleIniciarViaje}
+                  disabled={procesando}
+                  className="w-full min-h-12 rounded-xl bg-[#10B981] text-white hover:bg-[#10B981]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  {procesando ? TEXTOS_CARGANDO.actualizando : "INICIAR TRASLADO"}
+                </button>
+              ) : (
+                <>
+                  <div className="flex gap-3">
+                    {/* RECOLECCIÓN Button with location icon */}
+                    <a
+                      href={navigationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/40 border border-border/80 text-text-secondary hover:text-text-primary font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary shrink-0" aria-hidden="true">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      RECOLECCIÓN
+                    </a>
+
+                    {/* ESTOY EN CAMINO Button */}
+                    <button
+                      type="button"
+                      onClick={handleEstoyEnCamino}
+                      disabled={procesando || (estado !== "conductor_asignado")}
+                      className="flex-1 min-h-12 rounded-xl bg-[#00B4D8] text-white hover:bg-[#00B4D8]/90 disabled:opacity-50 disabled:cursor-not-allowed font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center"
+                    >
+                      {procesando ? TEXTOS_CARGANDO.actualizando : "ESTOY EN CAMINO"}
+                    </button>
+                  </div>
+
+                  {/* CONTACTAR USUARIO Button */}
+                  <a
+                    href={`tel:${pasaporte.contacto_entrega_telefono || pasaporte.contacto_recepcion_telefono || ""}`}
+                    className="w-full min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/20 border border-[#00B4D8]/45 text-[#00B4D8] font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center active:scale-98 cursor-pointer"
+                  >
+                    CONTACTAR USUARIO
+                  </a>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
        </div>
 

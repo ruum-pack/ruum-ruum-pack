@@ -50,9 +50,9 @@ export function TripDetailsClient({
   const pasajeroCount = "01";
   const autoCount = "01";
 
-  // Notes text fallback
-  const notasTexto = (pasaporte as any).instrucciones_especiales || 
-    "This itinerary total compensation is $582.96. Includes: $300.00 bonus for Self-return. To claim self-return bonus you must select self-return option in the app and upload evidence.";
+  // Notes text from solicitor (notas de origen)
+  const notasTexto = pasaporte.origen_referencias || 
+    "Sin notas ni especificaciones adicionales del solicitante para el punto de origen.";
 
   // Navigation target
   const navigationTargetLat = pasaporte.origen_lat ?? 19.4326;
@@ -175,26 +175,6 @@ export function TripDetailsClient({
           </p>
         </section>
 
-        {/* Buttons Row */}
-        <section className="mt-6 flex gap-3">
-          <a
-            href={navigationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 min-h-12 rounded-full bg-surface-elevated hover:bg-border/40 text-text-primary font-display text-xs font-black tracking-wide flex items-center justify-center border border-border/40 transition-all select-none text-center"
-          >
-            VER UBICACIÓN
-          </a>
-          <button
-            type="button"
-            onClick={avanzar}
-            disabled={procesando}
-            className="flex-1 min-h-12 rounded-full bg-text-primary text-surface hover:bg-text-secondary disabled:opacity-50 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none"
-          >
-            {btnLabel}
-          </button>
-        </section>
-
         {error && (
           <div className="mt-3">
             <Aviso tono="danger">{error}</Aviso>
@@ -213,7 +193,7 @@ export function TripDetailsClient({
         <section className="mt-6 flex flex-col gap-3">
           <div className="w-full bg-surface-elevated border border-border/40 rounded-2xl p-5 flex flex-col gap-2 relative">
             <span className="font-display text-[10px] font-black text-text-tertiary tracking-widest uppercase">
-              NOTAS
+              NOTAS DE ORIGEN (SOLICITANTE)
             </span>
             <p className={`font-body text-xs leading-relaxed text-text-secondary transition-all ${
               notesExpanded ? "" : "line-clamp-2"
@@ -249,12 +229,12 @@ export function TripDetailsClient({
             ITINERARIO
           </h2>
 
-          <div className="flex flex-col relative pl-8 border-l-2 border-dashed border-route-action/45 ml-3.5 gap-6">
+          <div className="flex flex-col relative pl-9 border-l-[3px] border-solid border-[#00B4D8]/45 ml-4.5 gap-8">
             
             {/* Punto 1: Origen */}
             <div className="relative flex flex-col gap-2">
               {/* Number Circle Marker */}
-              <div className="absolute -left-12 top-0.5 w-7 h-7 rounded-full bg-route-action text-mist flex items-center justify-center font-display text-xs font-black shadow-xs select-none">
+              <div className="absolute -left-[20px] top-0 w-9 h-9 rounded-full bg-[#00B4D8] text-slate-950 flex items-center justify-center font-display text-sm font-black shadow-md select-none border-2 border-[#090D1A]">
                 1
               </div>
 
@@ -286,7 +266,7 @@ export function TripDetailsClient({
             {/* Punto 2: Destino */}
             <div className="relative flex flex-col gap-2 mt-2">
               {/* Number Circle Marker */}
-              <div className="absolute -left-12 top-0.5 w-7 h-7 rounded-full bg-signal text-slate-950 flex items-center justify-center font-display text-xs font-black shadow-xs select-none">
+              <div className="absolute -left-[20px] top-0 w-9 h-9 rounded-full bg-[#10B981] text-white flex items-center justify-center font-display text-sm font-black shadow-md select-none border-2 border-[#090D1A]">
                 2
               </div>
 
@@ -309,6 +289,26 @@ export function TripDetailsClient({
 
           </div>
         </section>
+
+        {/* Sticky footer for action buttons */}
+        <div className="sticky bottom-0 inset-x-0 z-20 bg-[#090D1A]/95 backdrop-blur-md border-t border-border/20 py-4 px-4 -mx-4 sm:-mx-6 flex gap-3 mt-8">
+          <a
+            href={navigationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 min-h-12 rounded-xl bg-surface-elevated hover:bg-border/40 text-text-primary font-display text-xs font-black tracking-wide flex items-center justify-center border border-border/40 transition-all select-none text-center"
+          >
+            VER UBICACIÓN
+          </a>
+          <button
+            type="button"
+            onClick={avanzar}
+            disabled={procesando}
+            className="flex-1 min-h-12 rounded-xl bg-[#10B981] text-white hover:bg-[#10B981]/90 disabled:opacity-50 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          >
+            {btnLabel}
+          </button>
+        </div>
 
       </div>
     </div>
