@@ -340,7 +340,7 @@ export function TripOpportunityDetails({
             {/* Punto 1: Origen */}
             <div className="relative flex flex-col gap-2">
               {/* Number Circle Marker */}
-              <div className="absolute -left-[20px] top-0 w-9 h-9 rounded-full bg-[#00B4D8] text-slate-950 flex items-center justify-center font-display text-sm font-black shadow-md select-none border-2 border-[#090D1A]">
+              <div className="absolute -left-[54px] top-0 w-9 h-9 rounded-full bg-[#00B4D8] text-slate-950 flex items-center justify-center font-display text-sm font-black shadow-md select-none border-2 border-[#090D1A]">
                 1
               </div>
 
@@ -366,6 +366,18 @@ export function TripOpportunityDetails({
                   </span>
                 </div>
                 <div className="flex justify-between items-center border-t border-border/10 pt-2">
+                  <span className="text-text-tertiary font-semibold flex items-center gap-1">🚗 Unidad</span>
+                  <span className="text-text-primary font-bold text-right truncate max-w-[160px]">
+                    {pasaporte.vehiculo_marca} {pasaporte.vehiculo_modelo} ({pasaporte.vehiculo_anio})
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-t border-border/10 pt-2">
+                  <span className="text-text-tertiary font-semibold flex items-center gap-1">🎨 Color</span>
+                  <span className="text-text-primary font-bold capitalize">
+                    {pasaporte.vehiculo_color || "Por confirmar"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-t border-border/10 pt-2">
                   <span className="text-text-tertiary font-semibold flex items-center gap-1">🚗 Recolección vehículo</span>
                   <span className="bg-amber-500/20 text-amber-400 border border-amber-500/40 font-extrabold px-2.5 py-0.5 rounded-md text-[9px] tracking-wide animate-pulse">
                     ⚠️ DETALLES POR CONFIRMAR
@@ -377,7 +389,7 @@ export function TripOpportunityDetails({
             {/* Punto 2: Destino */}
             <div className="relative flex flex-col gap-2 mt-2">
               {/* Number Circle Marker */}
-              <div className="absolute -left-[20px] top-0 w-9 h-9 rounded-full bg-[#10B981] text-white flex items-center justify-center font-display text-sm font-black shadow-md select-none border-2 border-[#090D1A]">
+              <div className="absolute -left-[54px] top-0 w-9 h-9 rounded-full bg-[#10B981] text-white flex items-center justify-center font-display text-sm font-black shadow-md select-none border-2 border-[#090D1A]">
                 2
               </div>
 
@@ -432,7 +444,7 @@ export function TripOpportunityDetails({
               <button
                 type="button"
                 onClick={() => setConfirmarAccion("rechazar")}
-                className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/40 border border-border/80 text-text-secondary hover:text-text-primary font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-xs select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8]"
+                className="flex-1 min-h-12 rounded-xl bg-transparent border border-red-500/50 hover:border-red-500 hover:bg-red-500/10 text-red-400 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-xs select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500"
               >
                 RECHAZAR
               </button>
@@ -511,6 +523,20 @@ export function TripOpportunityDetails({
                 : "¿Estás seguro de que deseas rechazar esta oferta de traslado? No podrás volver a ver esta oportunidad en tu panel."
               }
             </p>
+            {confirmarAccion === "aceptar" && (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex flex-col gap-1.5 text-[11px] font-body text-amber-400 leading-relaxed">
+                <span className="font-bold flex items-center gap-1">
+                  ⚠️ ADVERTENCIA OPERATIVA (TRASLADO INCOMPLETO):
+                </span>
+                <p>
+                  Este traslado cuenta con detalles por confirmar en origen o destino. Al aceptar, confirmas estar de acuerdo con las siguientes directrices:
+                </p>
+                <ul className="list-disc pl-4 flex flex-col gap-0.5 font-medium text-text-secondary">
+                  <li>Esperar las especificaciones y accesos de recolección en sitio.</li>
+                  <li>Coordinar con la mesa de control de Ruum ante variaciones de ruta.</li>
+                </ul>
+              </div>
+            )}
             <div className="flex gap-3 mt-2">
               <button
                 type="button"
