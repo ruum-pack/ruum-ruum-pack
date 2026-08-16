@@ -53,6 +53,9 @@ export function CierreTrasladoDetails({
   const [tipoGasto, setTipoGasto] = useState<GastoData["tipo"]>("caseta");
   const [montoGasto, setMontoGasto] = useState("");
   const [descGasto, setDescGasto] = useState("");
+  const [comprobanteArchivo, setComprobanteArchivo] = useState<File | null>(null);
+
+  const [confirmarCierreAbierto, setConfirmarCierreAbierto] = useState(false);
 
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
@@ -122,16 +125,26 @@ export function CierreTrasladoDetails({
       return;
     }
 
+    if ((tipoGasto === "combustible" || tipoGasto === "caseta") && !comprobanteArchivo) {
+      setError(`El comprobante de pago (foto del ticket) es obligatorio para registrar gastos de ${labelGasto(tipoGasto)}.`);
+      return;
+    }
+
     setProcesando(true);
     try {
       const cliente = crearClienteNavegador() as any;
+      
+      const finalDesc = comprobanteArchivo 
+        ? `[TICKET ADJUNTO] ${descGasto.trim() || labelGasto(tipoGasto)}`
+        : descGasto.trim() || null;
+
       const { data, error: insertError } = await cliente
         .from("gastos_traslado")
         .insert({
           traslado_id: trasladoId,
           tipo: tipoGasto,
           monto: montoVal,
-          descripcion: descGasto.trim() || null
+          descripcion: finalDesc
         })
         .select()
         .single();
@@ -149,6 +162,7 @@ export function CierreTrasladoDetails({
         setGastos((prev) => [nuevoGasto, ...prev]);
         setMontoGasto("");
         setDescGasto("");
+        setComprobanteArchivo(null);
       }
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos registrar el gasto."));
@@ -183,16 +197,58 @@ export function CierreTrasladoDetails({
     setError(null);
     setAvisoExito(null);
 
+    // 1. Validation: Kilometraje final must be greater than initial
+    if (
+      inspeccionInicial?.kilometraje &&
+      inspeccionFinal?.kilometraje &&
+      inspeccionFinal.kilometraje <= inspeccionInicial.kilometraje
+    ) {
+      setError(`Incoherencia en kilometraje: El kilometraje final (${inspeccionFinal.kilometraje.toLocaleString("es-MX")} km) debe ser mayor al inicial (${inspeccionInicial.kilometraje.toLocaleString("es-MX")} km). Por favor, contacta a soporte o corrige el registro.`);
+      setProcesando(false);
+      return;
+    }
+
     try {
       const cliente = crearClienteNavegador();
+
+      // 2. Auto-save pending expense if fields are filled
+      if (montoGasto.trim() !== "") {
+        const montoVal = Number(montoGasto);
+        if (!isNaN(montoVal) && montoVal > 0) {
+          // If it requires a ticket but none is selected, block the finalization
+          if ((tipoGasto === "combustible" || tipoGasto === "caseta") && !comprobanteArchivo) {
+            setError(`Tienes un gasto de ${labelGasto(tipoGasto)} pendiente por agregar. Para registrarlo, debes adjuntar la foto del ticket.`);
+            setProcesando(false);
+            return;
+          }
+
+          const finalDesc = comprobanteArchivo 
+            ? `[TICKET ADJUNTO] ${descGasto.trim() || labelGasto(tipoGasto)}`
+            : descGasto.trim() || null;
+
+          const { error: insertError } = await (cliente as any)
+            .from("gastos_traslado")
+            .insert({
+              traslado_id: trasladoId,
+              tipo: tipoGasto,
+              monto: montoVal,
+              descripcion: finalDesc
+            });
+          if (insertError) throw insertError;
+          
+          setMontoGasto("");
+          setDescGasto("");
+          setComprobanteArchivo(null);
+        }
+      }
       
-      // 1. Transition: evidencia_final_completada -> entrega_confirmada
+      // 3. Transition: evidencia_final_completada -> entrega_confirmada
       await avanzarEstadoTraslado(cliente, trasladoId, "evidencia_final_completada");
       
       // Wait 300ms for Supabase trigger propagation
       await new Promise((resolve) => setTimeout(resolve, 300));
       
-      // 2. Transition: entrega_confirmada -> servicio_cerrado
+      // 4. Transition: entrega_confirmada -> servicio_cerrado
       await avanzarEstadoTraslado(cliente, trasladoId, "entrega_confirmada");
 
       setAvisoExito("¡Vehículo entregado y traslado finalizado exitosamente!");
@@ -275,7 +331,7 @@ export function CierreTrasladoDetails({
         }
       ` }} />
 
-      <div className="w-full flex flex-col flex-1 animate-fade-in pb-24">
+      <div className="w-full flex flex-col flex-1 animate-fade-in">
         
         {/* Top Header */}
         <header className="flex justify-between items-center pb-4 border-b border-border/20">
@@ -537,6 +593,42 @@ export function CierreTrasladoDetails({
                 />
               </div>
 
+              {/* Ticket upload field */}
+              <div className="flex flex-col gap-1">
+                <span className="font-display text-[9px] font-black text-text-tertiary tracking-widest uppercase pl-0.5">
+                  Ticket / Comprobante (Obligatorio para Gasolina y Casetas)
+                </span>
+                <div className="flex items-center gap-3">
+                  <label
+                    htmlFor="comprobante_upload"
+                    className={`flex-1 h-10 rounded-xl border border-dashed flex items-center justify-center gap-1.5 text-xs font-body cursor-pointer select-none transition-all ${
+                      comprobanteArchivo
+                        ? "border-emerald-500/40 bg-emerald-500/5 text-emerald-400 font-semibold"
+                        : "border-border/40 bg-surface-elevated/20 text-text-secondary hover:border-[#00B4D8]/50"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setComprobanteArchivo(e.target.files?.[0] || null)}
+                      className="hidden"
+                      id="comprobante_upload"
+                    />
+                    <span>📷</span>
+                    {comprobanteArchivo ? `✓ ${comprobanteArchivo.name.slice(0, 20)}...` : "Adjuntar foto de ticket"}
+                  </label>
+                  {comprobanteArchivo && (
+                    <button
+                      type="button"
+                      onClick={() => setComprobanteArchivo(null)}
+                      className="text-red-400 font-extrabold text-sm px-2 cursor-pointer bg-transparent border-none"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={procesando}
@@ -611,21 +703,18 @@ export function CierreTrasladoDetails({
         )}
 
         {/* Summary Notes */}
-        <div className="text-center font-body text-[9px] text-text-tertiary font-bold mt-8 tracking-wide select-none">
+        <div className="text-center font-body text-[9px] text-text-tertiary font-bold mt-8 tracking-wide select-none mb-4">
           ruumruum · conciliación y cierre de traslado definitivo
         </div>
 
-      </div>
-
-      {/* Persistent Bottom actions */}
-      <div className="fixed inset-x-0 bottom-0 bg-gradient-to-t from-surface via-surface/95 to-transparent pb-8 pt-4 px-4 z-40 border-t border-border/10">
-        <div className="mx-auto max-w-md flex flex-col gap-3">
+        {/* Sticky footer for action buttons */}
+        <div className="sticky bottom-0 inset-x-0 z-20 bg-[#090D1A]/95 backdrop-blur-md border-t border-border/20 py-4 px-4 -mx-4 sm:-mx-6 flex flex-col gap-3 mt-8">
           {writable ? (
             <button
               type="button"
-              onClick={handleFinalizarTraslado}
+              onClick={() => setConfirmarCierreAbierto(true)}
               disabled={procesando}
-              className="w-full min-h-12 rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-lg select-none flex items-center justify-center"
+              className="w-full min-h-12 rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-lg select-none flex items-center justify-center focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
             >
               {procesando ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -643,6 +732,7 @@ export function CierreTrasladoDetails({
             </button>
           )}
         </div>
+
       </div>
 
       {/* Bottom Sheet de Soporte */}
@@ -711,6 +801,44 @@ export function CierreTrasladoDetails({
             >
               Cancelar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Finalization */}
+      {confirmarCierreAbierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-sm bg-[#090D1A] border border-border/40 rounded-3xl p-6 flex flex-col gap-4 shadow-2xl animate-slideUp">
+            <h3 className="font-display text-base font-black text-text-primary uppercase tracking-wider flex items-center gap-2">
+              ⚠️ Confirmar Entrega
+            </h3>
+            <p className="font-body text-xs text-text-secondary leading-relaxed">
+              ¿Estás seguro de finalizar el traslado y entregar el vehículo? Esta acción es definitiva y no se puede deshacer.
+            </p>
+            <div className="flex gap-3 mt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmarCierreAbierto(false)}
+                className="flex-1 min-h-11 rounded-xl bg-transparent border border-border/80 text-text-secondary hover:text-text-primary font-display text-xs font-black tracking-wider transition-colors cursor-pointer select-none"
+              >
+                CANCELAR
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmarCierreAbierto(false);
+                  handleFinalizarTraslado();
+                }}
+                disabled={procesando}
+                className="flex-[2] min-h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-display text-xs font-black tracking-wider transition-colors cursor-pointer shadow-md select-none flex items-center justify-center"
+              >
+                {procesando ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  "SÍ, ENTREGAR"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
