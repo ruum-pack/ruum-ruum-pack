@@ -35,24 +35,23 @@ export function WeekDaySelector({
               type="button"
               aria-current={activo ? "date" : undefined}
               onClick={() => onSelect(clave)}
-              className="flex flex-col items-center gap-2 rounded-xl py-2 transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:rounded-xl"
+              className="flex flex-col items-center gap-1 rounded-lg py-1 transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8]"
             >
-              <span className={`font-body text-[10px] font-bold uppercase tracking-[0.08em] ${
+              <span className={`font-body text-[9px] font-bold uppercase tracking-[0.05em] ${
                 activo ? "text-[#00B4D8]" : "text-text-tertiary"
               }`}>
                 {nombreDia}
               </span>
 
-              <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold transition-all ${
+              <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all relative ${
                 activo
                   ? "bg-[#00B4D8] text-white shadow-sm"
                   : "bg-surface text-text-primary hover:bg-surface-elevated"
               }`}>
                 {numeroDia}
-              </div>
-
-              <div className="flex h-2.5 items-center justify-center">
-                {tieneViajes && !activo && <span className="h-2 w-2 rounded-full bg-[#00B4D8]" />}
+                {tieneViajes && !activo && (
+                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-[#00B4D8]" />
+                )}
               </div>
             </button>
           );

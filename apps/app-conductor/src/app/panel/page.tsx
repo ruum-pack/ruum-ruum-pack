@@ -39,6 +39,41 @@ function PanelLoadingSkeleton() {
   );
 }
 
+const getPasoActualLabel = (estado: string) => {
+  switch (estado) {
+    case "conductor_asignado":
+      return "ASIGNADO - PENDIENTE DE INICIAR";
+    case "conductor_en_camino_al_origen":
+      return "EN CAMINO AL ORIGEN";
+    case "conductor_en_punto_de_recoleccion":
+    case "verificacion_vehiculo_en_proceso":
+      return "CHECKLIST DE LOCALIZACIÓN";
+    case "evidencia_inicial_en_proceso":
+    case "evidencia_inicial_completada":
+      return "CHECKLIST DE RECOLECCIÓN";
+    case "vehiculo_recibido":
+    case "traslado_en_curso":
+      return "TRAYECTO ACTIVO";
+    case "llegada_a_destino":
+      return "LLEGADA A DESTINO";
+    case "evidencia_final_en_proceso":
+    case "evidencia_final_completada":
+      return "CHECKLIST DE ENTREGA";
+    case "entrega_confirmada":
+    case "servicio_cerrado":
+      return "CIERRE DE TRASLADO";
+    default:
+      return estado.replace(/_/g, " ").toUpperCase();
+  }
+};
+
+const getContinuarTrasladoHref = (viaje: any) => {
+  if (viaje.estado === "evidencia_inicial_en_proceso" || viaje.estado === "evidencia_final_en_proceso") {
+    return `/viajes/${viaje.traslado_id}/evidencia`;
+  }
+  return `/viajes/${viaje.traslado_id}`;
+};
+
 export default function PaginaPanel() {
   const { cerrarSesion } = useCerrarSesion();
   const [soporteAbierto, setSoporteAbierto] = useState(false);
@@ -203,46 +238,69 @@ export default function PaginaPanel() {
           {/* Tarjeta Dinámica de Traslado Activo o Búsqueda */}
           <div className="mt-8">
             {viajeActivoPrincipal && activeTripPresentation ? (
-              <Link
-                href={`/viajes/${viajeActivoPrincipal.traslado_id}`}
-                className="w-full p-5 rounded-2xl bg-[color:var(--ruum-surface-strong)] text-white flex flex-col gap-2 shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all text-left border border-[color:var(--ruum-pulse)]/25"
-              >
+              <div className="w-full p-5 rounded-2xl bg-[#090D1A] border border-emerald-500/30 text-white flex flex-col gap-4 shadow-lg">
                 <div className="flex justify-between items-center w-full">
-                  <span className="font-body text-[10px] font-extrabold uppercase tracking-widest text-white/60">
-                    Traslado Activo
+                  <span className="text-emerald-400 text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                    TRASLADO ACTIVO
                   </span>
-                  <span className="text-[color:var(--ruum-pulse)] text-[11px] font-bold flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--ruum-pulse)] animate-pulse" />
-                    En ruta
+                  <span className="text-text-tertiary text-xs font-mono">
+                    ID: {viajeActivoPrincipal.traslado_id?.slice(0, 8).toUpperCase()}
                   </span>
                 </div>
-                <h2 className="font-display text-lg font-black tracking-tight text-white leading-tight mt-1">
-                  Traslado ID {folioViaje(viajeActivoPrincipal)}
-                </h2>
-                <div className="ruum-route-line is-live mt-1">
-                  <span className="ruum-route-dot" />
-                  <span className="ruum-route-dash" />
-                  <span className="ruum-route-dot is-end" />
+
+                <div className="flex flex-col gap-3 py-1 text-left">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">📍</span>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-text-tertiary font-bold tracking-wider uppercase">Origen</span>
+                      <span className="text-sm font-black text-text-primary mt-0.5">{viajeActivoPrincipal.origen_ciudad || "Toluca"}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Vertical separator arrow */}
+                  <div className="pl-2 text-text-tertiary text-lg leading-none -my-1">
+                    ↓
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">🏁</span>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-text-tertiary font-bold tracking-wider uppercase">Destino</span>
+                      <span className="text-sm font-black text-text-primary mt-0.5">{viajeActivoPrincipal.destino_ciudad || "México"}</span>
+                    </div>
+                  </div>
                 </div>
-                <p className="font-body text-xs text-white/90 flex items-center justify-between mt-0.5">
-                  <span>{viajeActivoPrincipal.origen_ciudad || "Toluca"}</span>
-                  <span>{viajeActivoPrincipal.destino_ciudad || "Méx."}</span>
-                </p>
-              </Link>
+
+                <div className="border-t border-border/15 pt-3.5 text-left">
+                  <span className="text-[9px] text-text-tertiary font-extrabold tracking-widest uppercase">Paso actual</span>
+                  <div className="font-display text-xs font-black text-emerald-400 uppercase tracking-wide mt-1">
+                    {getPasoActualLabel(viajeActivoPrincipal.estado)}
+                  </div>
+                </div>
+
+                <Link
+                  href={getContinuarTrasladoHref(viajeActivoPrincipal)}
+                  className="w-full min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 mt-1"
+                >
+                  CONTINUAR TRASLADO →
+                </Link>
+              </div>
             ) : (
               <Link
                 href="/viajes"
-                className="w-full p-5 rounded-2xl bg-surface-elevated text-text-primary flex flex-col gap-1.5 shadow-xs border border-border/40 hover:border-signal/40 hover:bg-surface active:scale-[0.99] transition-all text-left"
+                className="w-full p-5 rounded-2xl bg-surface-elevated text-text-primary flex flex-col gap-1.5 shadow-xs border border-border/40 hover:border-[#00B4D8]/45 hover:bg-surface active:scale-[0.99] transition-all text-left"
               >
                 <span className="font-body text-[10px] font-extrabold uppercase tracking-widest text-text-tertiary">
-                  Sin traslados en curso
+                  Traslados Disponibles
                 </span>
-                <h2 className="font-display text-lg font-extrabold tracking-tight text-signal leading-tight mt-0.5">
-                  Buscar Traslados
+                <h2 className="font-display text-lg font-extrabold tracking-tight text-[#00B4D8] leading-tight mt-0.5">
+                  Hay nuevas oportunidades para ti
                 </h2>
-                <p className="font-body text-xs text-text-secondary flex items-center gap-1 mt-0.5">
-                  <span>🚘</span> Ver viajes disponibles en tu área
-                </p>
+                
+                <div className="w-full min-h-11 rounded-xl bg-transparent border border-[#00B4D8]/45 hover:bg-[#00B4D8]/10 text-[#00B4D8] font-display text-xs font-black tracking-widest uppercase transition-all flex items-center justify-center select-none mt-3.5">
+                  VER TRASLADOS
+                </div>
               </Link>
             )}
           </div>
