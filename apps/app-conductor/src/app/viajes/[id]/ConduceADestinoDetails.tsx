@@ -174,7 +174,7 @@ export function ConduceADestinoDetails({
       <div className="w-full flex flex-col flex-1 animate-fade-in pb-24">
         
         {/* Top Navbar Header */}
-        <header className="flex justify-between items-center pb-4 border-b border-border/20">
+        <header className="hidden md:flex justify-between items-center pb-4 border-b border-border/20">
           <div className="flex items-center gap-2">
             <span className="font-display text-lg font-black tracking-tight text-white">
               ruum<span className="text-[#00B4D8]">ruum</span>
@@ -218,7 +218,7 @@ export function ConduceADestinoDetails({
             MANIFIESTO DE RUTA · #UNO RESIDENCIAL
           </span>
           <h1 className="font-display text-2xl font-black text-text-primary leading-tight mt-1">
-            Conduce a
+            Trayecto activo
           </h1>
         </div>
 
@@ -235,34 +235,47 @@ export function ConduceADestinoDetails({
           </p>
 
           {/* Metrics Card Grid (3 Columns) */}
-          <div className="mt-6 grid grid-cols-3 gap-1.5 border border-border/30 bg-surface-elevated/45 rounded-xl p-4 text-center">
-            <div className="flex flex-col items-center justify-center gap-1.5">
+          <div className="mt-6 grid grid-cols-3 gap-2 border border-border/30 bg-surface-elevated/45 rounded-xl p-4 text-center">
+            <div className="flex flex-col items-center justify-center gap-1">
               <span className="text-lg leading-none">🛣️</span>
-              <span className="font-display text-sm font-black text-text-primary">98 km</span>
-              <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">RESTANTES</span>
+              <span className="font-display text-sm font-bold text-text-primary">98 km</span>
+              <span className="font-body text-[9px] text-text-tertiary uppercase tracking-wide">Restantes</span>
             </div>
-            <div className="flex flex-col items-center justify-center gap-1.5 border-l border-border/20">
+            <div className="flex flex-col items-center justify-center gap-1 border-l border-border/25">
               <span className="text-lg leading-none">⏱️</span>
-              <span className="font-display text-sm font-black text-text-primary">1.4 hr</span>
-              <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">TIEMPO</span>
+              <span className="font-display text-sm font-bold text-text-primary">1.4 hr</span>
+              <span className="font-body text-[9px] text-text-tertiary uppercase tracking-wide">Tiempo</span>
             </div>
-            <div className="flex flex-col items-center justify-center gap-1.5 border-l border-border/20">
+            <div className="flex flex-col items-center justify-center gap-1 border-l border-border/25">
               <span className="text-lg leading-none">🏁</span>
-              <span className="font-display text-sm font-black text-text-primary">10:42</span>
-              <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">LLEGADA</span>
+              <span className="font-display text-sm font-bold text-text-primary">10:42</span>
+              <span className="font-body text-[9px] text-text-tertiary uppercase tracking-wide">Llegada</span>
             </div>
           </div>
 
-          {/* CONTACTAR USUARIO Link (Teal/Green Text) */}
-          <a
-            href={`tel:${contactoTelefono}`}
-            className="mt-5 self-start flex items-center gap-2 font-display text-xs font-black text-emerald-500 hover:text-emerald-400 transition-colors uppercase cursor-pointer"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-            </svg>
-            CONTACTAR USUARIO
-          </a>
+          {/* Contact Actions Grid */}
+          <div className="mt-5 flex gap-2.5 w-full">
+            <a
+              href={`tel:${contactoTelefono}`}
+              className="flex-1 min-h-10 rounded-xl bg-surface-elevated/80 border border-border/40 hover:bg-surface-elevated text-text-primary font-display text-[10px] font-black tracking-wide flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+              </svg>
+              LLAMAR USUARIO
+            </a>
+            <a
+              href={`https://wa.me/52${contactoTelefono.replace(/[^0-9]/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 min-h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 font-display text-[10px] font-black tracking-wide flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+              </svg>
+              WHATSAPP
+            </a>
+          </div>
         </div>
 
         {/* Map Canvas Card */}
@@ -271,28 +284,6 @@ export function ConduceADestinoDetails({
             origen={{ lat: pasaporte.origen_lat ?? 19.2833, lng: pasaporte.origen_lng ?? -99.5167 }}
             destino={{ lat: pasaporte.destino_lat ?? 16.7569, lng: pasaporte.destino_lng ?? -93.1292 }}
           />
-
-          <div className="border-t border-border/10 my-4" />
-
-          {/* Navigation & Arrived Buttons stacked and chromatic differentiated */}
-          <div className="flex flex-col gap-3">
-            <a
-              href={navigationUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full min-h-[50px] rounded-xl bg-[#00BBC9] hover:bg-[#00BBC9]/90 text-slate-950 font-display text-sm font-extrabold tracking-wide transition-all select-none text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-md focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00BBC9] focus-visible:ring-offset-2"
-            >
-              NAVEGAR
-            </a>
-            <button
-              type="button"
-              onClick={handleLlegueDestino}
-              disabled={procesando}
-              className="w-full min-h-[50px] rounded-xl bg-[#10B981] hover:bg-[#10B981]/90 text-white font-display text-sm font-extrabold tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#10B981] focus-visible:ring-offset-2"
-            >
-              {procesando ? TEXTOS_CARGANDO.actualizando : "HE LLEGADO"}
-            </button>
-          </div>
         </div>
 
         {error && (
@@ -320,42 +311,17 @@ export function ConduceADestinoDetails({
             </div>
           </div>
 
-          {/* Expenses Card */}
-          <div className="bg-surface-elevated/25 border border-border/20 rounded-2xl p-4.5 flex gap-3 text-xs font-body leading-relaxed text-text-secondary">
-            <span className="text-xl leading-none">💵</span>
-            <div className="flex flex-col w-full">
-              <div className="flex justify-between items-center w-full">
-                <span className="font-bold text-text-primary text-[13px]">Gastos del viaje</span>
-                <span className="border border-border/40 text-text-tertiary font-bold px-2 py-0.5 rounded-md text-[9px] hover:text-text-primary cursor-pointer select-none">
-                  REGISTRAR
-                </span>
-              </div>
-              <p className="text-[11px] text-text-tertiary mt-0.5">Casetas, gasolina y viáticos autorizados para esta ruta.</p>
-
-              <div className="mt-3.5 flex flex-col gap-2 border-t border-border/10 pt-3">
-                <div className="flex justify-between items-center text-text-secondary">
-                  <span>Casetas (3)</span>
-                  <span className="font-semibold text-text-primary">$186.00</span>
-                </div>
-                <div className="flex justify-between items-center text-text-secondary">
-                  <span>Gasolina</span>
-                  <span className="font-semibold text-text-primary">$0.00</span>
-                </div>
-                <div className="flex justify-between items-center border-t border-border/10 pt-2 text-text-secondary font-bold">
-                  <span>Total registrado</span>
-                  <span className="text-emerald-500 font-display text-sm font-black">$186.00</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Incidences Card */}
           <div className="bg-surface-elevated/25 border border-border/20 rounded-2xl p-4.5 flex gap-3 text-xs font-body leading-relaxed text-text-secondary">
             <span className="text-xl leading-none">⚠️</span>
             <div className="flex flex-col w-full">
               <div className="flex justify-between items-center w-full">
                 <span className="font-bold text-text-primary text-[13px]">Incidencia</span>
-                <span className="border border-amber-500/40 text-amber-500 font-extrabold px-2 py-0.5 rounded-md text-[9px]">
+                <span className={`font-extrabold px-2 py-0.5 rounded-md text-[9px] border ${
+                  tieneIncidencia
+                    ? "border-amber-500/40 text-amber-500 bg-amber-500/10"
+                    : "border-border/40 text-text-tertiary bg-surface-elevated/30"
+                }`}>
                   {tieneIncidencia ? "ABIERTA" : "NINGUNA"}
                 </span>
               </div>
@@ -375,6 +341,32 @@ export function ConduceADestinoDetails({
 
         <div className="text-center font-body text-[9px] text-text-tertiary font-bold mt-8 tracking-wide select-none">
           ruumruum · manifiesto generado para revisión de conductor
+        </div>
+
+        {/* Sticky footer for navigation & arrival actions */}
+        <div className="sticky bottom-0 inset-x-0 z-20 bg-[#090D1A]/95 backdrop-blur-md border-t border-border/20 py-4 px-4 -mx-4 sm:-mx-6 flex gap-3 mt-8">
+          <a
+            href={navigationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 min-h-12 rounded-xl bg-[#00BBC9] hover:bg-[#00BBC9]/90 text-slate-950 font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-2 cursor-pointer shadow-md focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00BBC9] focus-visible:ring-offset-2"
+          >
+            {/* Map/GPS SVG Icon */}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+              <line x1="9" y1="3" x2="9" y2="18" />
+              <line x1="15" y1="6" x2="15" y2="21" />
+            </svg>
+            NAVEGAR
+          </a>
+          <button
+            type="button"
+            onClick={handleLlegueDestino}
+            disabled={procesando}
+            className="flex-1 min-h-12 rounded-xl bg-[#10B981] hover:bg-[#10B981]/90 text-white font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#10B981] focus-visible:ring-offset-2"
+          >
+            {procesando ? TEXTOS_CARGANDO.actualizando : "HE LLEGADO"}
+          </button>
         </div>
 
       </div>
