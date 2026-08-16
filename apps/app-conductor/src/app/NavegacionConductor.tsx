@@ -98,9 +98,10 @@ const DESTINOS_ESCRITORIO: { href: string; etiqueta: string; Icono: DestinoIcono
 ];
 
 const DESTINOS_MOVIL = [
-  { href: "/panel", etiqueta: "Panel", Icono: IcoGrid },
-  { href: "/viajes", etiqueta: "Traslados", Icono: IcoTruck },
-  { href: "/ganancias", etiqueta: "Ganancias", Icono: IcoDollarCircle },
+  { href: "/panel", etiqueta: "Inicio", Icono: IcoHome },
+  { href: "/viajes", etiqueta: "Traslados", Icono: IcoViajes },
+  { href: "/ganancias", etiqueta: "Ganancias", Icono: IcoGanancias },
+  { href: "/notificaciones", etiqueta: "Avisos", Icono: IcoNotificaciones },
   { href: "/cuenta", etiqueta: "Cuenta", Icono: IcoCuenta },
 ];
 
@@ -220,12 +221,12 @@ export function NavegacionConductor() {
         )}
       </header>
 
-      {/* Navegación móvil flotante adaptada a la estética premium de la imagen */}
-      <div className="fixed inset-x-0 bottom-4 z-40 md:hidden px-4">
+      {/* Navegación móvil fija al fondo adaptada a la propuesta de la imagen */}
+      <div className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-[#070B14] border-t border-border/15 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-3 shadow-[0_-8px_30px_rgba(0,0,0,0.4)]">
         
-        {/* Banner de viaje activo en móvil: ocultado en /panel porque ya tiene su propio botón "Traslado activo" */}
+        {/* Banner de viaje activo en móvil: flotante arriba de la barra fija */}
         {viajeActivo && !pathname.startsWith("/viajes") && pathname !== "/panel" && (
-          <div className="conductor-mobile-active-trip pb-3">
+          <div className="conductor-mobile-active-trip px-4 pb-3">
             <Link
               href={`/viajes/${viajeActivo.trasladoId}`}
               aria-label={`Abrir traslado activo ${viajeActivo.folio}: ${viajeActivo.etapa}`}
@@ -250,13 +251,11 @@ export function NavegacionConductor() {
           </div>
         )}
 
-        <nav
-          aria-label="Navegación principal móvil"
-          className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"
-        >
-          <div className="grid grid-cols-4 gap-1">
+        <nav aria-label="Navegación principal móvil" className="w-full px-2 max-w-md mx-auto">
+          <div className="grid grid-cols-5 gap-1">
             {DESTINOS_MOVIL.map((destino) => {
               const activo = esActivo(pathname, destino.href);
+              const isAvisos = destino.href === "/notificaciones";
               const notificar = destino.href === "/viajes" && hayAccionPendiente;
               
               return (
@@ -264,17 +263,24 @@ export function NavegacionConductor() {
                   key={destino.href}
                   href={destino.href}
                   aria-current={activo ? "page" : undefined}
-                  aria-label={notificar ? `${destino.etiqueta}: acción pendiente en traslado activo` : destino.etiqueta}
+                  aria-label={notificar ? `${destino.etiqueta}: acción pendiente` : destino.etiqueta}
                   className={[
-                    "relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs transition-colors duration-200 select-none",
-                    activo ? "text-signal font-extrabold" : "text-text-secondary hover:text-text-primary"
+                    "relative flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 font-body text-[10px] transition-colors duration-200 select-none",
+                    activo ? "text-[#EAB308] font-bold" : "text-text-secondary hover:text-text-primary"
                   ].join(" ")}
                 >
-                  {notificar && (
-                    <span className="absolute right-6 top-1 size-2.5 rounded-full bg-warning ring-2 ring-surface-elevated animate-pulse" aria-hidden />
-                  )}
-                  <destino.Icono />
-                  <span className="max-w-full truncate tracking-tight">{destino.etiqueta}</span>
+                  <div className="relative flex items-center justify-center p-1">
+                    {notificar && (
+                      <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-warning ring-2 ring-[#070B14] animate-pulse" aria-hidden />
+                    )}
+                    <destino.Icono />
+                    {isAvisos && (
+                      <span className="absolute -top-1 -right-2 bg-danger text-white text-[8px] font-bold rounded-full h-4 w-4 flex items-center justify-center border border-[#070B14] shadow-xs">
+                        2
+                      </span>
+                    )}
+                  </div>
+                  <span className="max-w-full truncate tracking-tight text-[10px]">{destino.etiqueta}</span>
                 </Link>
               );
             })}
