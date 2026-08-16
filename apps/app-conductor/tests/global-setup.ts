@@ -301,13 +301,45 @@ async function globalSetup(config: FullConfig) {
 
   const browser = await chromium.launch();
   const page = await browser.newPage({ baseURL });
+  page.on("console", (msg) => {
+    console.log(`[BROWSER CONSOLE] ${msg.type()}: ${msg.text()}`);
+  });
+  page.on("pageerror", (err) => {
+    console.error(`[BROWSER ERROR] ${err.message}`);
+  });
   try {
-    await page.goto("/login", { waitUntil: "domcontentloaded" });
-    await page.getByLabel("Correo").fill(conductorEmail);
-    await page.getByLabel("Contraseña").fill(conductorPassword);
+    await page.goto("/onboarding", { waitUntil: "networkidle" });
+    await page.evaluate(() => {
+      localStorage.setItem("CapacitorStorage.ruum_conductor_onboarding_visto", "1");
+    });
+    await page.goto("/login", { waitUntil: "networkidle" });
+    await page.waitForTimeout(2000); // Wait for React hydration to complete
+    await page.locator('input[type="email"]').fill(conductorEmail);
+    await page.locator('input[type="password"]').fill(conductorPassword);
     await page.getByRole("button", { name: "Entrar" }).click();
     await page.waitForURL((url) => url.pathname === "/panel", { timeout: 30_000 });
     await page.context().storageState({ path: AUTH_STATE_PATH });
+  } catch (err) {
+    console.error("GLOBAL SETUP ERROR:");
+    console.error("Current URL:", page.url());
+    const storageData = await page.evaluate(() => {
+      const data: Record<string, string> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) data[key] = localStorage.getItem(key) || "";
+      }
+      return data;
+    }).catch(() => ({}));
+    console.error("LocalStorage Contents:", storageData);
+    const emailVal = await page.locator('input[type="email"]').inputValue().catch(() => "ERROR");
+    const passVal = await page.locator('input[type="password"]').inputValue().catch(() => "ERROR");
+    const buttonDisabled = await page.getByRole("button", { name: "Entrar" }).isDisabled().catch(() => "ERROR");
+    console.error("Email input value:", emailVal);
+    console.error("Password input value:", passVal ? "HAS VALUE" : "EMPTY");
+    console.error("Entrar button disabled state:", buttonDisabled);
+    const text = await page.innerText("body").catch(() => "");
+    console.error("Visible Page text:", text);
+    throw err;
   } finally {
     await browser.close();
   }
