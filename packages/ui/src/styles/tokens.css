@@ -36,7 +36,6 @@
   --color-text-disabled: var(--ruum-text-disabled);
   --color-surface: var(--ruum-surface);
   --color-surface-elevated: var(--ruum-surface-elevated);
-  --color-surface-strong: var(--ruum-surface-strong);
   --color-border: var(--ruum-border);
   --color-border-strong: var(--ruum-border-strong);
   --color-action-primary: var(--ruum-action-primary);
@@ -50,8 +49,6 @@
   --color-danger-action: var(--ruum-danger);
   --color-danger-action-hover: var(--ruum-danger-hover);
   --color-danger-action-active: var(--ruum-danger-active);
-  --color-pulse: var(--ruum-pulse);
-  --color-pulse-soft: var(--ruum-pulse-soft);
   --color-on-primary: var(--ruum-on-primary);
   --color-on-danger: var(--ruum-on-danger);
   --color-surface-muted: var(--ruum-surface-subtle);

@@ -51,7 +51,6 @@ function CustomTripCard({
   isExpanded,
   onToggleExpand,
   onAccept,
-  aceptando,
   hrefDetalle
 }: {
   viaje: PasaporteRow;
@@ -60,7 +59,6 @@ function CustomTripCard({
   isExpanded: boolean;
   onToggleExpand: () => void;
   onAccept: (trasladoId: string) => void;
-  aceptando: string | null;
   hrefDetalle: string;
 }) {
   const folio = viaje.traslado_id ? viaje.traslado_id.slice(0, 8).toUpperCase() : "POR CONFIRMAR";
@@ -95,11 +93,11 @@ function CustomTripCard({
       <button 
         type="button"
         onClick={onToggleExpand}
-        className="w-full flex flex-col gap-3.5 cursor-pointer select-none text-left bg-transparent border-none p-0 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:ring-offset-4 focus-visible:rounded-lg font-inherit"
+        className="w-full flex flex-col gap-3.5 cursor-pointer select-none text-left bg-transparent border-none p-0 outline-hidden font-inherit"
       >
         <div className="flex justify-between items-start w-full">
           <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 font-display text-[10px] font-bold ${
-            esOferta ? "bg-route-soft text-[#07325c] border border-route-action/30" : "bg-surface-elevated text-[#083b6f] border border-route-action/30"
+            esOferta ? "bg-route-soft text-route-dark border border-[color:var(--ruum-route)]/20" : "bg-[color:var(--ruum-pulse-soft)] text-[color:var(--ruum-pulse)] border border-[color:var(--ruum-pulse)]/20"
           }`}>
             {estadoTexto}
           </span>
@@ -146,43 +144,29 @@ function CustomTripCard({
 
         <div className="border-t border-border/40 pt-3.5 flex justify-between items-center text-text-secondary font-body text-xs mt-1">
           <div className="flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
-            <span className="sr-only">Horario programado:</span>
             <span className="font-semibold text-text-primary">{horaInicio} - {horaFin}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
               <circle cx="12" cy="12" r="10" />
               <path d="M12 2v4" />
               <path d="M12 12h4" />
             </svg>
-            <span className="sr-only">Duración estimada:</span>
             <span className="font-semibold text-text-primary">{duracionTexto}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
               <circle cx="12" cy="10" r="3" />
             </svg>
-            <span className="sr-only">Distancia del traslado:</span>
             <span className="font-semibold text-text-primary">{distanciaTexto}</span>
           </div>
         </div>
       </button>
-
-      {esOferta && !isExpanded && (
-        <button
-          type="button"
-          onClick={() => onAccept(viaje.traslado_id!)}
-          disabled={aceptando === viaje.traslado_id}
-          className="mt-3 w-full min-h-10 rounded-xl bg-route-action hover:bg-route-action/90 disabled:opacity-60 disabled:cursor-not-allowed text-white font-display text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center shadow-md active:scale-95"
-        >
-          {aceptando === viaje.traslado_id ? "Aceptando…" : "ACEPTAR"}
-        </button>
-      )}
 
       {isExpanded && (
         <div className="mt-4 border-t border-border/20 pt-4 flex flex-col gap-3.5 animate-slideDown">
@@ -238,7 +222,6 @@ export default function PaginaViajes() {
   const [historial, setHistorial] = useState<PasaporteRow[]>([]);
   const [detalles, setDetalles] = useState<Record<string, DetalleOperativo>>({});
   const [cargando, setCargando] = useState(true);
-  const [syncStatus, setSyncStatus] = useState<"loading" | "synced" | "error">("loading");
   const [aceptando, setAceptando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [conductor, setConductor] = useState<Conductor | null>(null);
@@ -248,7 +231,6 @@ export default function PaginaViajes() {
   const [tarjetaExpandida, setTarjetaExpandida] = useState<string | null>(null);
   const [soporteAbierto, setSoporteAbierto] = useState(false);
   const timeoutRechazoRef = useRef<number | null>(null);
-  const ofertasVistasRef = useRef<Set<string>>(new Set());
 
   const vista = normalizarVista(searchParams.get("vista"));
   const queryActual = searchParams.toString();
@@ -268,11 +250,6 @@ export default function PaginaViajes() {
     router.replace(query ? `/viajes?${query}` : "/viajes", { scroll: false });
   }
 
-  function alSeleccionarDia(dia: string) {
-    setDiaSeleccionado(dia);
-    actualizarUrl({ fecha: dia });
-  }
-
   function hrefDetalle(viaje: PasaporteRow) {
     return `/viajes/${viaje.traslado_id}?volver=${encodeURIComponent(rutaActual)}`;
   }
@@ -281,11 +258,10 @@ export default function PaginaViajes() {
     const timer = window.setTimeout(() => {
       const hoy = claveDia(new Date());
       setDiaHoy(hoy);
-      const urlFecha = searchParams.get("fecha");
-      setDiaSeleccionado(urlFecha || hoy);
+      setDiaSeleccionado((actual) => actual || hoy);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -295,13 +271,11 @@ export default function PaginaViajes() {
     };
   }, []);
 
-   useEffect(() => {
+  useEffect(() => {
     async function cargar() {
-      setSyncStatus("loading");
       if (!tieneSupabaseConfigurado()) {
         setAviso("Supabase no está configurado. No se pueden consultar viajes reales.");
         setCargando(false);
-        setSyncStatus("error");
         return;
       }
 
@@ -328,79 +302,51 @@ export default function PaginaViajes() {
 
         if (conductorActual) setConductor(conductorActual);
 
-        const resultados = await Promise.allSettled([
+        const [listaDisponibles, listaAceptados, historialViajes] = await Promise.all([
           listarViajesDisponibles(cliente),
           conductorActual ? listarViajesAceptados(cliente, conductorActual.id) : Promise.resolve([]),
           conductorActual ? listarHistorialViajesConductor(cliente, conductorActual.id) : Promise.resolve([])
         ]);
 
-        const listaDisponibles = resultados[0].status === "fulfilled" ? resultados[0].value : [];
-        const listaAceptados = resultados[1].status === "fulfilled" ? resultados[1].value : [];
-        const historialViajes = resultados[2].status === "fulfilled" ? resultados[2].value : [];
-
-        const resultadosExitosos = resultados.filter((r) => r.status === "fulfilled").length;
-        const algunoFallo = resultados.some((r) => r.status === "rejected");
-
-        setDisponibles(listaDisponibles);
-        setAceptados(listaAceptados);
-        setHistorial(historialViajes);
-
-        const nuevasOfertas: PasaporteRow[] = [];
-        listaDisponibles.forEach((viaje) => {
-          if (viaje.traslado_id && !ofertasVistasRef.current.has(viaje.traslado_id)) {
-            ofertasVistasRef.current.add(viaje.traslado_id);
-            nuevasOfertas.push(viaje);
-          }
-        });
-
-        if (nuevasOfertas.length > 0) {
-          notificarNuevaOferta(nuevasOfertas);
-        }
-
         const todos = [...listaDisponibles, ...listaAceptados];
         if (todos.length > 0) {
           const ids = todos.map((viaje) => viaje.traslado_id).filter((id): id is string => Boolean(id));
           if (ids.length > 0) {
-            try {
-              const { data } = await cliente
-                .from("traslados")
-                .select("id, origen_ciudad, origen_direccion, destino_ciudad, destino_direccion, fecha_hora_programada, tipo_servicio, motivo_servicio, instrucciones_especiales")
-                .in("id", ids);
-              const detallesReales = Object.fromEntries(
-                (data ?? []).map((fila) => {
-                  const viaje = todos.find((item) => item.traslado_id === fila.id);
-                  return [
-                    fila.id,
-                    {
-                      origen: `${fila.origen_ciudad} · ${fila.origen_direccion}`,
-                      destino: `${fila.destino_ciudad} · ${fila.destino_direccion}`,
-                      fechaHora: fila.fecha_hora_programada ?? new Date().toISOString(),
-                      tipoServicio: fila.motivo_servicio ?? fila.tipo_servicio ?? "Traslado estándar",
-                      requisitos: fila.instrucciones_especiales ?? "Sin requisitos especiales.",
-                      distanciaKm: viaje?.distancia_km ?? null,
-                      tiempoEstimadoHoras: viaje?.tiempo_estimado_horas ?? null,
-                      gananciaConductorOficial: viaje?.ganancia_conductor ?? null,
-                      estadoEconomico: "sin_calcular"
-                    } satisfies DetalleOperativo
-                  ];
-                })
-              );
-              setDetalles((prev) => ({ ...prev, ...detallesReales }));
-            } catch {
-              /* La consulta secundaria es solo un refuerzo de detalles;
-                 si falla, las ofertas ya están visibles con valores de reserva. */
-            }
+            const { data } = await cliente
+              .from("traslados")
+              .select("id, origen_ciudad, origen_direccion, destino_ciudad, destino_direccion, fecha_hora_programada, tipo_servicio, motivo_servicio, instrucciones_especiales")
+              .in("id", ids);
+            const detallesReales = Object.fromEntries(
+              (data ?? []).map((fila) => {
+                const viaje = todos.find((item) => item.traslado_id === fila.id);
+                return [
+                  fila.id,
+                  {
+                    origen: `${fila.origen_ciudad} · ${fila.origen_direccion}`,
+                    destino: `${fila.destino_ciudad} · ${fila.destino_direccion}`,
+                    fechaHora: fila.fecha_hora_programada ?? new Date().toISOString(),
+                    tipoServicio: fila.motivo_servicio ?? fila.tipo_servicio ?? "Traslado estándar",
+                    requisitos: fila.instrucciones_especiales ?? "Sin requisitos especiales.",
+                    distanciaKm: viaje?.distancia_km ?? null,
+                    tiempoEstimadoHoras: viaje?.tiempo_estimado_horas ?? null,
+                    gananciaConductorOficial: viaje?.ganancia_conductor ?? null,
+                    estadoEconomico: "sin_calcular"
+                  } satisfies DetalleOperativo
+                ];
+              })
+            );
+            setDetalles((prev) => ({ ...prev, ...detallesReales }));
           }
         }
 
+        setDisponibles(listaDisponibles);
+        setAceptados(listaAceptados);
+        setHistorial(historialViajes);
         if (!conductorActual) {
           setAviso("Inicia sesión como conductor para aceptar y ver tus traslados.");
         }
-
-        setSyncStatus(algunoFallo ? "error" : "synced");
       } catch (err) {
         setAviso(traducirErrorOperativo(err, "No pudimos cargar los traslados."));
-        setSyncStatus("error");
       } finally {
         setCargando(false);
       }
@@ -459,13 +405,6 @@ export default function PaginaViajes() {
     timeoutRechazoRef.current = window.setTimeout(() => {
       void persistirRechazo(pendiente).catch((err) => {
         setAviso(traducirErrorOperativo(err, "No pudimos registrar el rechazo."));
-        // Restore trip to disponibles and remove from rechazados
-        const { viaje } = pendiente;
-        if (viaje.traslado_id) {
-          setRechazados((prev) => prev.filter((id) => id !== viaje.traslado_id));
-          setDisponibles((prev) => prev.some((item) => item.traslado_id === viaje.traslado_id) ? prev : [viaje, ...prev]);
-        }
-        setRechazoPendiente(null);
       });
     }, 8000);
   }
@@ -483,48 +422,6 @@ export default function PaginaViajes() {
     setRechazoPendiente(null);
     setAviso("Rechazo deshecho. El traslado volvió a estar disponible.");
   }
-
-  const notificarNuevaOferta = (ofertas: PasaporteRow[]) => {
-    if (typeof window === "undefined") return;
-
-    // Sonido de notificación (Web Audio API)
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "sine";
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.6);
-    } catch {
-      /* Silencioso: si Web Audio no está disponible, saltamos el sonido. */
-    }
-
-    // Notificación push (solo si el usuario está fuera de la pestaña o no ha concedido permiso)
-    if ("Notification" in window && Notification.permission === "granted") {
-      const titulo = `${ofertas.length} nueva${ofertas.length > 1 ? "s" : ""} oferta${ofertas.length > 1 ? "s" : ""} de viaje`;
-      const origen = ofertas[0]?.origen_ciudad ?? "";
-      const destino = ofertas[0]?.destino_ciudad ?? "";
-      new Notification(titulo, {
-        body: `${origen} → ${destino}`,
-        icon: "/favicon.ico",
-        tag: "ruum-nueva-oferta",
-        requireInteraction: false,
-      });
-    }
-  };
-
-  // Solicitar permiso de notificaciones al montar
-  useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
-      void Notification.requestPermission();
-    }
-  }, []);
 
   const disponiblesVisibles = disponibles.filter((viaje) => viaje.traslado_id && !rechazados.includes(viaje.traslado_id));
   const calendario = crearCalendario(disponiblesVisibles, aceptados, detalles);
@@ -614,55 +511,20 @@ export default function PaginaViajes() {
             <h1 className="font-display text-3xl font-extrabold text-text-primary tracking-tight mt-1 leading-none">
               Traslados
             </h1>
-             <div className="flex items-center gap-1.5 mt-1.5 text-[10px] font-bold">
-               {syncStatus === "loading" && (
-                 <>
-                   <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                   <span className="text-text-tertiary">Sincronizando…</span>
-                 </>
-               )}
-               {syncStatus === "synced" && disponiblesVisibles.length > 0 && (
-                 <>
-                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                   <span className="text-emerald-400">Sincronizado en tiempo real</span>
-                 </>
-               )}
-               {syncStatus === "synced" && disponiblesVisibles.length === 0 && (
-                 <>
-                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                   <span className="text-emerald-400">Sincronizado en tiempo real</span>
-                 </>
-               )}
-               {syncStatus === "error" && (
-                 <>
-                    <span className="h-1.5 w-1.5 rounded-full bg-danger-action" />
-                    <span className="text-danger-action">Error de sincronización</span>
-                 </>
-               )}
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    setCargando(true);
-                    setRefreshCount((prev) => prev + 1);
-                  }}
-                  disabled={cargando}
-                  className={`ml-1 text-[#00B4D8] hover:underline cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:underline flex items-center gap-1 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:ring-offset-2 focus-visible:rounded-sm`}
-                >
-                 {cargando ? (
-                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
-                     <line x1="12" y1="2" x2="12" y2="6" />
-                     <line x1="12" y1="18" x2="12" y2="22" />
-                     <line x1="3.4" y1="3.4" x2="4.9" y2="4.9" />
-                     <line x1="19.1" y1="19.1" x2="20.6" y2="20.6" />
-                     <line x1="2" y1="12" x2="6" y2="12" />
-                     <line x1="18" y1="12" x2="22" y2="12" />
-                     <line x1="3.4" y1="20.6" x2="4.9" y2="19.1" />
-                     <line x1="19.1" y1="4.9" x2="20.6" y2="3.4" />
-                   </svg>
-                 ) : "🔄"}
-                 <span>Recargar</span>
-               </button>
-             </div>
+            <div className="flex items-center gap-1.5 mt-1.5 text-[10px] font-bold text-text-tertiary">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Sincronizado en tiempo real</span>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setCargando(true);
+                  setRefreshCount((prev) => prev + 1);
+                }}
+                className="ml-1 text-[#00B4D8] hover:underline cursor-pointer select-none"
+              >
+                (Recargar 🔄)
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
@@ -684,7 +546,7 @@ export default function PaginaViajes() {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
               </svg>
-              <span className="absolute -top-0.5 -right-0.5 bg-danger-action text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center border border-surface shadow-xs">
+              <span className="absolute -top-0.5 -right-0.5 bg-danger text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center border border-surface shadow-xs">
                 1
               </span>
             </Link>
@@ -705,7 +567,7 @@ export default function PaginaViajes() {
           <button
             type="button"
             onClick={() => actualizarUrl({ vista: "disponibles" })}
-            className={`flex-1 py-2.5 text-center text-xs font-bold tracking-wider rounded-full transition-all duration-300 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:ring-offset-2 ${
+            className={`flex-1 py-2.5 text-center text-xs font-bold tracking-wider rounded-full transition-all duration-300 ${
               vista === "disponibles" 
                 ? "bg-[#00B4D8] text-white shadow-xs cursor-default" 
                 : "text-text-secondary hover:text-text-primary cursor-pointer"
@@ -716,7 +578,7 @@ export default function PaginaViajes() {
           <button
             type="button"
             onClick={() => actualizarUrl({ vista: "mis-viajes" })}
-            className={`flex-1 py-2.5 text-center text-xs font-bold tracking-wider rounded-full transition-all duration-300 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:ring-offset-2 ${
+            className={`flex-1 py-2.5 text-center text-xs font-bold tracking-wider rounded-full transition-all duration-300 ${
               vista === "mis-viajes" 
                 ? "bg-[#00B4D8] text-white shadow-xs cursor-default" 
                 : "text-text-secondary hover:text-text-primary cursor-pointer"
@@ -740,11 +602,8 @@ export default function PaginaViajes() {
           {diaSeleccionado !== diaHoy && (
             <button
               type="button"
-              onClick={() => {
-                setDiaSeleccionado(diaHoy);
-                actualizarUrl({ fecha: diaHoy });
-              }}
-              className="ml-2 bg-route-action/10 text-route-action border border-route-action/20 px-2 py-0.5 rounded-full text-[10px] font-black hover:bg-route-action/20 transition-all cursor-pointer select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:ring-offset-2"
+              onClick={() => setDiaSeleccionado(diaHoy)}
+              className="ml-2 bg-[#00B4D8]/10 text-[#00B4D8] border border-[#00B4D8]/20 px-2 py-0.5 rounded-full text-[10px] font-black hover:bg-[#00B4D8]/20 transition-all cursor-pointer select-none"
             >
               Volver a Hoy
             </button>
@@ -757,13 +616,13 @@ export default function PaginaViajes() {
             dias={calendario}
             seleccionado={diaSeleccionado}
             hoy={diaHoy}
-            onSelect={alSeleccionarDia}
+            onSelect={setDiaSeleccionado}
           />
         </div>
 
         {/* Selected Day Summary Row */}
         <div className="mt-6 flex justify-between items-center border-b border-border/20 pb-3 font-display">
-          <span className="text-route-action text-xs font-black tracking-wide uppercase">
+          <span className="text-[#00B4D8] text-xs font-black tracking-wide uppercase">
             {fechaCompletaTexto}
           </span>
           <div className="flex items-center gap-3 text-text-secondary text-xs font-bold">
@@ -783,8 +642,8 @@ export default function PaginaViajes() {
             <TripsLoadingList />
           ) : listToRender.length === 0 ? (
             <div className="text-center py-10 flex flex-col items-center">
-              <span className="text-xl">📅</span>
-              <p className="mt-3 font-display text-sm font-black text-text-primary">Sin traslados para este día</p>
+              <span className="text-3xl">📅</span>
+              <p className="mt-3 font-display text-sm font-bold text-text-primary">Sin traslados para este día</p>
               <p className="mt-1 font-body text-xs text-text-tertiary max-w-[280px]">
                 {vista === "disponibles" 
                   ? "No hay ofertas programadas en esta fecha." 
@@ -796,7 +655,7 @@ export default function PaginaViajes() {
                 <button
                   type="button"
                   onClick={() => actualizarUrl({ vista: "disponibles" })}
-                  className="mt-5 bg-route-action text-white font-display text-xs font-extrabold px-4 py-2.5 rounded-xl hover:bg-route-action/90 active:scale-95 transition-all cursor-pointer shadow-sm select-none"
+                  className="mt-5 bg-[#00B4D8] text-white font-display text-xs font-extrabold px-4 py-2.5 rounded-xl hover:bg-[#00B4D8]/90 active:scale-95 transition-all cursor-pointer shadow-sm select-none"
                 >
                   🔍 Buscar Ofertas Disponibles
                 </button>
@@ -820,9 +679,8 @@ export default function PaginaViajes() {
                   detalle={detalle}
                   esOferta={vista === "disponibles"}
                   isExpanded={tarjetaExpandida === trasladoId}
-                    onToggleExpand={() => setTarjetaExpandida(tarjetaExpandida === trasladoId ? null : trasladoId)}
+                  onToggleExpand={() => setTarjetaExpandida(tarjetaExpandida === trasladoId ? null : trasladoId)}
                   onAccept={(id) => void aceptar(id)}
-                  aceptando={aceptando}
                   hrefDetalle={hrefDetalle(viaje)}
                 />
               );
@@ -905,7 +763,7 @@ export default function PaginaViajes() {
               </a>
               <a
                 href="tel:+525548210937"
-                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-action/10 transition-colors"
+                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-soft/60 transition-colors"
               >
                 <span className="text-xl">📞</span>
                 <div className="flex flex-col items-start">

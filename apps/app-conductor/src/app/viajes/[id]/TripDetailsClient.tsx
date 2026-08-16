@@ -123,54 +123,49 @@ export function TripDetailsClient({
           <div className="flex flex-wrap items-center gap-4 text-text-secondary font-body text-xs font-semibold">
             {/* Hora */}
             <div className="flex items-center gap-1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
-              <span className="sr-only">Horario programado:</span>
               <span>{horaTexto}</span>
             </div>
 
             {/* Duración */}
             <div className="flex items-center gap-1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 2v4" />
                 <path d="M12 12h4" />
               </svg>
-              <span className="sr-only">Duración estimada:</span>
               <span>{duracionTexto}</span>
             </div>
 
             {/* Distancia */}
             <div className="flex items-center gap-1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
-              <span className="sr-only">Distancia del traslado:</span>
               <span>{distanciaTexto}</span>
             </div>
 
             {/* Pasajeros */}
             <div className="flex items-center gap-1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              <span className="sr-only">Cantidad de pasajeros:</span>
               <span>{pasajeroCount}</span>
             </div>
 
             {/* Autos */}
             <div className="flex items-center gap-1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
                 <rect x="1" y="3" width="15" height="13" />
                 <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
                 <circle cx="5.5" cy="18.5" r="2.5" />
                 <circle cx="18.5" cy="18.5" r="2.5" />
               </svg>
-              <span className="sr-only">Cantidad de vehículos:</span>
               <span>{autoCount}</span>
             </div>
           </div>
@@ -228,7 +223,7 @@ export function TripDetailsClient({
             <button
               type="button"
               onClick={() => setNotesExpanded(!notesExpanded)}
-              className="mt-2 mx-auto w-8 h-5 flex items-center justify-center text-text-tertiary hover:text-text-primary transition-transform cursor-pointer select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:rounded-md"
+              className="mt-2 mx-auto w-8 h-5 flex items-center justify-center text-text-tertiary hover:text-text-primary transition-transform cursor-pointer select-none focus:outline-hidden"
               aria-label={notesExpanded ? "Contraer notas" : "Expandir notas"}
             >
               <svg 
