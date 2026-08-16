@@ -44,8 +44,17 @@ export function TripDetailsClient({
     timeZone: "America/Mexico_City" 
   }).format(new Date(fechaReferencia));
 
+  // Format Duration Helper
+  const formatDuracion = (horasDouble: number | null) => {
+    if (horasDouble == null) return "Por confirmar";
+    const totalMinutos = Math.round(horasDouble * 60);
+    const hrs = Math.floor(totalMinutos / 60);
+    const mins = totalMinutos % 60;
+    return mins > 0 ? `${hrs} h ${mins} min` : `${hrs} h`;
+  };
+
   // Dynamic Details
-  const duracionTexto = `${pasaporte.tiempo_estimado_horas || 6}hr`;
+  const duracionTexto = formatDuracion(pasaporte.tiempo_estimado_horas);
   const distanciaTexto = `${(pasaporte.distancia_km || 138.2).toFixed(1)}Km`;
   const pasajeroCount = "01";
   const autoCount = "01";

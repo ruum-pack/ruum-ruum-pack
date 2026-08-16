@@ -24,6 +24,9 @@ export function TripOpportunityDetails({
   const [error, setError] = useState<string | null>(null);
   const [avisoExito, setAvisoExito] = useState<string | null>(null);
 
+  // Confirmation modal state
+  const [confirmarAccion, setConfirmarAccion] = useState<"aceptar" | "rechazar" | null>(null);
+
   const trasladoId = pasaporte.traslado_id!;
   const folio = trasladoId.slice(0, 8).toUpperCase();
   const estado = pasaporte.estado as Database["public"]["Enums"]["estado_traslado"];
@@ -40,6 +43,15 @@ export function TripOpportunityDetails({
     hour12: false, 
     timeZone: "America/Mexico_City" 
   }).format(new Date(fechaReferencia));
+
+  // Duration formatter helper
+  const formatDuracion = (horasDouble: number | null) => {
+    if (horasDouble == null) return "Por confirmar";
+    const totalMinutos = Math.round(horasDouble * 60);
+    const hrs = Math.floor(totalMinutos / 60);
+    const mins = totalMinutos % 60;
+    return mins > 0 ? `${hrs} h ${mins} min` : `${hrs} h`;
+  };
 
   // Earning
   const pagoTotal = pasaporte.ganancia_conductor;
@@ -263,19 +275,19 @@ export function TripOpportunityDetails({
         <div className="mt-6 grid grid-cols-4 gap-1 border border-border/40 bg-surface-elevated/45 rounded-2xl p-4 text-center">
           <div className="flex flex-col gap-1.5">
             <span className="font-display text-sm font-black text-text-primary">{horaTexto}</span>
-            <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">HORA</span>
+            <span className="font-body text-[9px] font-extrabold text-text-secondary uppercase tracking-wider">HORA</span>
           </div>
           <div className="flex flex-col gap-1.5 border-l border-border/20">
-            <span className="font-display text-sm font-black text-text-primary">{duracion != null ? `${duracion.toFixed(2)} hr` : "Por confirmar"}</span>
-            <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">DURACIÓN</span>
+            <span className="font-display text-sm font-black text-text-primary">{formatDuracion(duracion)}</span>
+            <span className="font-body text-[9px] font-extrabold text-text-secondary uppercase tracking-wider">DURACIÓN</span>
           </div>
           <div className="flex flex-col gap-1.5 border-l border-border/20">
             <span className="font-display text-sm font-black text-text-primary">{distancia != null ? `${distancia.toFixed(1)} km` : "Por confirmar"}</span>
-            <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">DISTANCIA</span>
+            <span className="font-body text-[9px] font-extrabold text-text-secondary uppercase tracking-wider">DISTANCIA</span>
           </div>
           <div className="flex flex-col gap-1.5 border-l border-border/20">
             <span className="font-display text-sm font-black text-text-primary">01 / 01</span>
-            <span className="font-body text-[8px] font-black text-text-tertiary uppercase tracking-wider">VEHÍCULOS</span>
+            <span className="font-body text-[9px] font-extrabold text-text-secondary uppercase tracking-wider">VEHÍCULOS</span>
           </div>
         </div>
 
@@ -348,13 +360,15 @@ export function TripOpportunityDetails({
                   <span className="text-text-primary font-medium">{origen}</span>
                 </div>
                 <div className="flex justify-between items-center border-t border-border/10 pt-2">
-                  <span className="text-text-tertiary font-semibold flex items-center gap-1">📄 Formulario</span>
-                  <span className="text-text-primary font-medium">Amazon</span>
+                  <span className="text-text-tertiary font-semibold flex items-center gap-1">🚗 Categoría de vehículo</span>
+                  <span className="text-text-primary font-bold capitalize">
+                    {(pasaporte as any).vehiculo_tipo || "sedán"}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center border-t border-border/10 pt-2">
                   <span className="text-text-tertiary font-semibold flex items-center gap-1">🚗 Recolección vehículo</span>
-                  <span className="border border-amber-500/40 text-amber-500 font-extrabold px-2 py-0.5 rounded-md text-[9px]">
-                    POR CONFIRMAR
+                  <span className="bg-amber-500/20 text-amber-400 border border-amber-500/40 font-extrabold px-2.5 py-0.5 rounded-md text-[9px] tracking-wide animate-pulse">
+                    ⚠️ DETALLES POR CONFIRMAR
                   </span>
                 </div>
               </div>
@@ -380,8 +394,8 @@ export function TripOpportunityDetails({
               <div className="mt-2 rounded-xl border border-border/30 bg-surface-elevated/20 p-3.5 flex flex-col gap-2 text-xs font-body text-text-secondary">
                 <div className="flex justify-between items-center">
                   <span className="text-text-tertiary font-semibold flex items-center gap-1">🏁 Entrega vehículo</span>
-                  <span className="border border-amber-500/40 text-amber-500 font-extrabold px-2 py-0.5 rounded-md text-[9px]">
-                    POR CONFIRMAR
+                  <span className="bg-amber-500/20 text-amber-400 border border-amber-500/40 font-extrabold px-2.5 py-0.5 rounded-md text-[9px] tracking-wide animate-pulse">
+                    ⚠️ DESTINO POR CONFIRMAR
                   </span>
                 </div>
               </div>
@@ -409,7 +423,7 @@ export function TripOpportunityDetails({
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={handleAceptar}
+                onClick={() => setConfirmarAccion("aceptar")}
                 disabled={procesando}
                 className="flex-1 min-h-12 rounded-xl bg-[#10B981] text-white hover:bg-[#10B981]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
@@ -417,7 +431,7 @@ export function TripOpportunityDetails({
               </button>
               <button
                 type="button"
-                onClick={handleRechazar}
+                onClick={() => setConfirmarAccion("rechazar")}
                 className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/40 border border-border/80 text-text-secondary hover:text-text-primary font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-xs select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8]"
               >
                 RECHAZAR
@@ -483,6 +497,56 @@ export function TripOpportunityDetails({
         </div>
 
        </div>
+
+      {/* Confirmation Modal for Accept/Reject */}
+      {confirmarAccion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-sm bg-[#090D1A] border border-border/40 rounded-3xl p-6 flex flex-col gap-4 shadow-2xl animate-slideUp">
+            <h3 className="font-display text-base font-black text-text-primary uppercase tracking-wider flex items-center gap-2">
+              {confirmarAccion === "aceptar" ? "⚠️ ¿Aceptar Oferta?" : "⚠️ ¿Rechazar Oferta?"}
+            </h3>
+            <p className="font-body text-xs text-text-secondary leading-relaxed">
+              {confirmarAccion === "aceptar"
+                ? "¿Estás seguro de que deseas aceptar esta oferta de traslado? Esta acción te asignará el viaje de inmediato."
+                : "¿Estás seguro de que deseas rechazar esta oferta de traslado? No podrás volver a ver esta oportunidad en tu panel."
+              }
+            </p>
+            <div className="flex gap-3 mt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmarAccion(null)}
+                className="flex-1 min-h-11 rounded-xl bg-transparent border border-border/80 text-text-secondary hover:text-text-primary font-display text-xs font-black tracking-wider transition-colors cursor-pointer select-none"
+              >
+                CANCELAR
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const action = confirmarAccion;
+                  setConfirmarAccion(null);
+                  if (action === "aceptar") {
+                    handleAceptar();
+                  } else {
+                    handleRechazar();
+                  }
+                }}
+                disabled={procesando}
+                className={`flex-[2] min-h-11 rounded-xl text-white font-display text-xs font-black tracking-wider transition-colors cursor-pointer shadow-md select-none flex items-center justify-center ${
+                  confirmarAccion === "aceptar" 
+                    ? "bg-[#10B981] hover:bg-[#10B981]/90" 
+                    : "bg-red-600 hover:bg-red-500"
+                }`}
+              >
+                {procesando ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  confirmarAccion === "aceptar" ? "SÍ, ACEPTAR" : "SÍ, RECHAZAR"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
