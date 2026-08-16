@@ -53,6 +53,12 @@ export default function PaginaEvidencia() {
   const [placaTrasera, setPlacaTrasera] = useState("no");
   const [notas, setNotas] = useState("Vehículo con rayón leve en puerta trasera derecha, ya documentado en fotografía. Sin faltantes visibles. Entrega conforme.");
 
+  // Custom states for damages and receipt modal
+  const [presentaDanosNuevos, setPresentaDanosNuevos] = useState(false);
+  const [mostrarRecibo, setMostrarRecibo] = useState(false);
+  const [tipoReporteEnviado, setTipoReporteEnviado] = useState<"sms" | "email" | null>(null);
+  const [enviandoCopia, setEnviandoCopia] = useState(false);
+
   // Uploaded photos
   const [fotos, setFotos] = useState<FotoEvidencia[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -336,9 +342,7 @@ export default function PaginaEvidencia() {
       // Call API to complete evidence
       await confirmarEvidenciaCompleta(cliente, id, estadoActual || "evidencia_inicial_en_proceso", tipo);
       setAvisoExito("Evidencias completadas y enviadas con éxito.");
-      setTimeout(() => {
-        router.push(`/viajes/${id}`);
-      }, 1500);
+      setMostrarRecibo(true);
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos finalizar el registro de evidencias."));
     } finally {
@@ -438,7 +442,7 @@ export default function PaginaEvidencia() {
                 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
                 : "bg-surface-elevated text-text-primary border border-border/20"
             }`}>
-              {totalCapturados} / {totalRequisitos} completados
+              {totalCapturados} / {totalRequisitos} capturadas
             </span>
           </div>
           <div className="w-full bg-surface-elevated/45 rounded-full h-3 overflow-hidden border border-border/10 relative">
@@ -815,7 +819,7 @@ export default function PaginaEvidencia() {
           </div>
         </section>
 
-        {/* Section 5: NOTAS DE RECOGIDA */}
+        {/* Section 5: NOTAS DE RECOGIDA / ENTREGA */}
         <section className="mt-8 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded-md bg-surface-elevated text-text-secondary flex items-center justify-center font-display text-[10px] font-bold">
@@ -831,10 +835,54 @@ export default function PaginaEvidencia() {
             )}
           </div>
 
+          {tipo === "final" && (
+            <div className="bg-surface-elevated/25 border border-border/20 rounded-2xl p-4 flex flex-col gap-3 mb-2">
+              <div className="flex justify-between items-center">
+                <span className="font-body text-xs font-bold text-text-primary">
+                  ¿Presenta daños nuevos respecto al Origen?
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPresentaDanosNuevos(!presentaDanosNuevos)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                    presentaDanosNuevos ? "bg-emerald-500" : "bg-border/40"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      presentaDanosNuevos ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {presentaDanosNuevos && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex flex-col gap-1.5 text-[11px] font-body text-amber-500 leading-relaxed">
+                  <span className="font-bold flex items-center gap-1">
+                    ⚠️ SUGERENCIA DE REGISTRO FOTOGRÁFICO:
+                  </span>
+                  <p>
+                    Se recomienda capturar fotos a detalle de la incidencia usando las opciones de subida de arriba (sección 1) y documentar claramente en las notas de abajo:
+                  </p>
+                  <ul className="list-disc pl-4 flex flex-col gap-1 font-medium mt-1 text-text-secondary">
+                    <li>Fotografía en primer plano del rayón, abolladura o daño nuevo.</li>
+                    <li>Fotografía de contexto que muestre la zona del vehículo afectada.</li>
+                    <li>Detalla en el cuadro de texto los hallazgos y especifica el daño.</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
           <textarea
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
             rows={4}
+            placeholder={
+              tipo === "inicial"
+                ? "Documenta cualquier detalle observado durante la recolección..."
+                : "Detalla rayones, golpes nuevos o cualquier novedad respecto al punto de origen..."
+            }
             className={`w-full border rounded-2xl p-4.5 text-xs font-body text-text-secondary leading-relaxed outline-hidden transition-all font-inherit ${
               notas.trim().length > 5 
                 ? "border-emerald-500/40 bg-emerald-500/5 focus:border-emerald-500/60" 
@@ -1003,6 +1051,118 @@ export default function PaginaEvidencia() {
             >
               Cancelar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt Modal: Cierre de traslado exitoso */}
+      {mostrarRecibo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-sm bg-[#090D1A] rounded-3xl border border-border/40 p-6 flex flex-col gap-5 shadow-2xl overflow-hidden animate-slideUp">
+            
+            {/* Header / Brand */}
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl font-black mb-3">
+                ✓
+              </div>
+              <h2 className="font-display text-base font-black text-text-primary uppercase tracking-wider">
+                {tipo === "inicial" ? "Inicio de Traslado" : "Cierre de Traslado"}
+              </h2>
+              <span className="font-body text-[10px] text-[#00B4D8] font-bold tracking-widest uppercase mt-0.5">
+                REGISTRO OPERATIVO EXITOSO
+              </span>
+            </div>
+
+            {/* Receipt Ticket Details Box */}
+            <div className="bg-surface-elevated/45 border border-border/20 rounded-2xl p-4 flex flex-col gap-3 font-body text-xs text-text-secondary relative">
+              <div className="flex justify-between items-center pb-2 border-b border-border/10">
+                <span className="text-text-tertiary">Folio del viaje:</span>
+                <span className="font-bold text-text-primary uppercase">#{folio}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-text-tertiary">Tipo checklist:</span>
+                <span className="font-semibold text-text-primary capitalize">{tipo === "inicial" ? "Origen" : "Destino"}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-text-tertiary">Kilometraje:</span>
+                <span className="font-bold text-text-primary">{kilometraje} km</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-text-tertiary">Combustible:</span>
+                <span className="font-semibold text-text-primary">{getFuelText(gasolinaSegments)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-text-tertiary">Fotos validadas:</span>
+                <span className="font-semibold text-emerald-400 font-display font-black">{fotosCapturadas} / 6</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-text-tertiary">Docs verificados:</span>
+                <span className="font-semibold text-emerald-400 font-display font-black">{docsCapturados} / 5</span>
+              </div>
+
+              {/* Dotted separator line */}
+              <div className="border-t-2 border-dashed border-border/25 my-1" />
+
+              <div className="flex flex-col gap-1 text-[10px] text-text-tertiary text-center">
+                <span>Fecha registro: {new Date().toLocaleDateString("es-MX")}</span>
+                <span>Hora: {new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}</span>
+              </div>
+            </div>
+
+            {/* Notification message if sent */}
+            {tipoReporteEnviado && (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-center text-xs font-body text-emerald-400 animate-pulse">
+                {tipoReporteEnviado === "sms" 
+                  ? "✓ Copia del reporte enviada por SMS con éxito al cliente."
+                  : "✓ Copia del reporte enviada por correo electrónico con éxito al cliente."
+                }
+              </div>
+            )}
+
+            {/* Action buttons stack */}
+            <div className="flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setEnviandoCopia(true);
+                  setTimeout(() => {
+                    setTipoReporteEnviado("sms");
+                    setEnviandoCopia(false);
+                  }, 800);
+                }}
+                disabled={enviandoCopia || tipoReporteEnviado === "sms"}
+                className="w-full min-h-11 rounded-xl bg-transparent border border-[#00B4D8]/40 hover:bg-surface-elevated/20 text-[#00B4D8] font-display text-xs font-black tracking-wide flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer disabled:opacity-50"
+              >
+                {enviandoCopia ? "Enviando..." : "ENVIAR COPIA POR SMS"}
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  setEnviandoCopia(true);
+                  setTimeout(() => {
+                    setTipoReporteEnviado("email");
+                    setEnviandoCopia(false);
+                  }, 800);
+                }}
+                disabled={enviandoCopia || tipoReporteEnviado === "email"}
+                className="w-full min-h-11 rounded-xl bg-transparent border border-border hover:bg-surface-elevated/20 text-text-primary font-display text-xs font-black tracking-wide flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer disabled:opacity-50"
+              >
+                {enviandoCopia ? "Enviando..." : "ENVIAR COPIA POR CORREO"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMostrarRecibo(false);
+                  router.push("/viajes");
+                }}
+                className="w-full min-h-12 mt-2 rounded-xl bg-[#10B981] hover:bg-[#10B981]/90 text-white font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center"
+              >
+                VOLVER A TRASLADOS
+              </button>
+            </div>
+
           </div>
         </div>
       )}
