@@ -9,6 +9,7 @@ import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
+import { SincronizacionBadge } from "../../../components/SincronizacionBadge";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -104,6 +105,11 @@ export function LocalizarVehiculoDetails({
           </div>
         </header>
 
+        {/* Sync Status Banner */}
+        <div className="mt-3">
+          <SincronizacionBadge />
+        </div>
+
         {/* Step Breadcrumbs Tracker */}
         <div className="mt-6 flex flex-col gap-1">
           <span className="font-body text-[10px] text-text-tertiary font-bold tracking-wide">
@@ -143,29 +149,29 @@ export function LocalizarVehiculoDetails({
             </div>
 
             {/* Spec detail fields */}
-            <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3.5 text-xs font-body text-text-secondary bg-surface-elevated/40">
+            <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3.5 text-sm font-body text-text-secondary bg-surface-elevated/40">
               <div className="flex flex-col gap-0.5">
-                <span className="font-bold text-[9px] text-text-tertiary uppercase tracking-wider">MARCA</span>
-                <span className="font-bold text-text-primary">{marca}</span>
+                <span className="font-bold text-xs text-text-tertiary uppercase tracking-wider">MARCA</span>
+                <span className="font-extrabold text-text-primary">{marca}</span>
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="font-bold text-[9px] text-text-tertiary uppercase tracking-wider">MODELO</span>
-                <span className="font-bold text-text-primary">{modelo}</span>
+                <span className="font-bold text-xs text-text-tertiary uppercase tracking-wider">MODELO</span>
+                <span className="font-extrabold text-text-primary">{modelo}</span>
               </div>
               <div className="flex flex-col gap-0.5 border-t border-border/10 pt-2">
-                <span className="font-bold text-[9px] text-text-tertiary uppercase tracking-wider">AÑO</span>
-                <span className="font-bold text-text-primary">{anio}</span>
+                <span className="font-bold text-xs text-text-tertiary uppercase tracking-wider">AÑO</span>
+                <span className="font-extrabold text-text-primary">{anio}</span>
               </div>
               <div className="flex flex-col gap-0.5 border-t border-border/10 pt-2">
-                <span className="font-bold text-[9px] text-text-tertiary uppercase tracking-wider">COLOR</span>
-                <span className="font-bold text-text-primary flex items-center gap-1.5">
+                <span className="font-bold text-xs text-text-tertiary uppercase tracking-wider">COLOR</span>
+                <span className="font-extrabold text-text-primary flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block shrink-0" />
                   {color}
                 </span>
               </div>
               <div className="col-span-2 flex flex-col gap-0.5 border-t border-border/10 pt-2">
-                <span className="font-bold text-[9px] text-text-tertiary uppercase tracking-wider">NÚMERO VIN</span>
-                <span className="font-bold text-text-primary tracking-wide">{vin}</span>
+                <span className="font-bold text-xs text-text-tertiary uppercase tracking-wider">NÚMERO VIN</span>
+                <span className="font-extrabold text-text-primary tracking-wide">{vin}</span>
               </div>
             </div>
           </div>
@@ -229,27 +235,23 @@ export function LocalizarVehiculoDetails({
           </div>
         </section>
 
-        {/* Estatus de localización actions */}
-        <section className="mt-8 flex flex-col gap-3">
-          <h3 className="font-display text-[10px] font-black text-text-tertiary tracking-widest uppercase">
-            ESTATUS DE LOCALIZACIÓN
-          </h3>
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={handleNoLocalizado}
-              className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface border border-red-500/30 hover:border-red-500/50 text-red-500 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-xs select-none flex items-center justify-center gap-1.5"
-            >
-              ❌ NO LOCALIZADO
-            </button>
+        {/* Actions Section */}
+        <section className="mt-8 flex flex-col gap-4">
+          <div className="flex flex-col gap-3.5">
             <button
               type="button"
               onClick={handleLocalizado}
               disabled={procesando}
-              className="flex-1 min-h-12 rounded-xl bg-[#0D6E4B] text-white hover:bg-[#0D6E4B]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5"
+              className="w-full min-h-[52px] rounded-xl bg-[#10B981] hover:bg-[#10B981]/90 text-white font-display text-sm font-extrabold tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:ring-offset-2"
             >
               {procesando ? TEXTOS_CARGANDO.actualizando : "✓ LOCALIZADO"}
+            </button>
+            <button
+              type="button"
+              onClick={handleNoLocalizado}
+              className="w-full min-h-[52px] rounded-xl bg-transparent hover:bg-surface-elevated/40 border border-red-500/40 hover:border-red-500/70 text-red-500 font-display text-sm font-extrabold tracking-wide transition-all cursor-pointer shadow-xs select-none flex items-center justify-center gap-1.5 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+            >
+              ❌ NO LOCALIZADO
             </button>
           </div>
         </section>
@@ -272,7 +274,7 @@ export function LocalizarVehiculoDetails({
           aria-label="Navegación principal móvil"
           className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"
         >
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-4 gap-1">
             <Link
               href="/panel"
               className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
@@ -307,6 +309,17 @@ export function LocalizarVehiculoDetails({
                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
               </svg>
               <span>Ganancias</span>
+            </Link>
+
+            <Link
+              href="/cuenta"
+              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
+              <span>Cuenta</span>
             </Link>
           </div>
         </nav>

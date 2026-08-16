@@ -1490,12 +1490,21 @@ export function NuevoTrasladoForm() {
                   error={errores.anio}
                 />
                 <Field etiqueta="Color" value={datos.color} onChange={(e) => actualizar("color", e.target.value)} error={errores.color} />
-                <Field etiqueta="Placas" value={datos.placas} onChange={(e) => actualizar("placas", e.target.value)} error={errores.placas} />
+                <Field
+                  etiqueta="Placas"
+                  value={datos.placas}
+                  onChange={(e) => actualizar("placas", e.target.value)}
+                  error={errores.placas}
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                />
                 <Field
                   etiqueta="Número de serie / VIN"
                   value={datos.vin}
                   onChange={(e) => actualizar("vin", e.target.value)}
                   error={errores.vin}
+                  autoCapitalize="characters"
+                  autoCorrect="off"
                 />
                 <label className="flex flex-col gap-1.5">
                   <span className="font-body text-sm font-medium">Estado general declarado</span>

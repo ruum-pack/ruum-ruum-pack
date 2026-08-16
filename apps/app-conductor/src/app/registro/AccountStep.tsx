@@ -86,6 +86,7 @@ export function AccountStep({
         }
         type="tel"
         inputMode="numeric"
+        pattern="[0-9]*"
         placeholder="(55) 1234-5678"
         value={formatoTelefonoNacional(telefono)}
         onChange={manejarCambioTelefono}

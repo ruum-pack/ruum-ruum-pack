@@ -284,6 +284,7 @@ export function IdentityStep({
               etiqueta="Teléfono del contacto"
               type="tel"
               inputMode="numeric"
+              pattern="[0-9]*"
               placeholder="(55) 1234-5678"
               value={formatoTelefonoNacional(contactoEmergenciaTelefono)}
               onChange={manejarCambioTelefonoContacto}

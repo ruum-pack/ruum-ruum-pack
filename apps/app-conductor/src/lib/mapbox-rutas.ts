@@ -44,3 +44,38 @@ export async function construirUrlMapaRutaOrigen(
 
   return `https://api.mapbox.com/styles/v1/${ESTILO_MAPA}/static/${overlays.join(",")}/auto/${ancho}x${alto}@2x?padding=40&access_token=${encodeURIComponent(tokenMapbox)}`;
 }
+
+/**
+ * Genera la URL del mapa estático de Mapbox que muestra la ruta de conducción
+ * entre el origen y el destino del traslado, marcando opcionalmente la posición
+ * actual del conductor/vehículo.
+ */
+export async function construirUrlMapaRutaConduccion(
+  origen: PuntoMapa,
+  destino: PuntoMapa,
+  ubicacionActual: PuntoMapa | null,
+  opciones: { ancho?: number; alto?: number } = {}
+): Promise<string | null> {
+  if (!tokenMapbox) return null;
+  const ancho = opciones.ancho ?? 600;
+  const alto = opciones.alto ?? 260;
+
+  const pinOrigen = `pin-s-a+1e88e5(${origen.lng},${origen.lat})`;
+  const pinDestino = `pin-s-b+f5a623(${destino.lng},${destino.lat})`;
+
+  const overlays = [pinOrigen, pinDestino];
+
+  if (ubicacionActual) {
+    const pinActual = `pin-s-car+00B4D8(${ubicacionActual.lng},${ubicacionActual.lat})`;
+    overlays.push(pinActual);
+  }
+
+  const ruta = await obtenerRutaDirectionsMapbox([origen.lng, origen.lat], [destino.lng, destino.lat], tokenMapbox);
+
+  if (ruta?.geometry?.coordinates?.length) {
+    const polyline = codificarPolyline(ruta.geometry.coordinates);
+    overlays.unshift(`path-4+1e88e5-0.85(${encodeURIComponent(polyline)})`);
+  }
+
+  return `https://api.mapbox.com/styles/v1/${ESTILO_MAPA}/static/${overlays.join(",")}/auto/${ancho}x${alto}@2x?padding=40&access_token=${encodeURIComponent(tokenMapbox)}`;
+}

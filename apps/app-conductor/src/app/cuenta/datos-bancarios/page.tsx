@@ -390,6 +390,7 @@ export default function PaginaDatosBancarios() {
                         value={formatearClabe(formulario.clabe)}
                         onChange={(e) => actualizarCampo("clabe", e.target.value)}
                         inputMode="numeric"
+                        pattern="[0-9]*"
                         maxLength={22}
                         placeholder="1234 5678 9012 3456 78"
                       />
@@ -405,6 +406,7 @@ export default function PaginaDatosBancarios() {
                         value={formatearTarjeta(formulario.numeroTarjeta)}
                         onChange={(e) => actualizarCampo("numeroTarjeta", e.target.value)}
                         inputMode="numeric"
+                        pattern="[0-9]*"
                         maxLength={19}
                         placeholder="1234 5678 9012 3456"
                       />

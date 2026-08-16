@@ -176,6 +176,33 @@ export default function PaginaPreferenciasCuenta() {
   const [cargando, setCargando] = useState(true);
   const [guardandoAuto, setGuardandoAuto] = useState(false);
   const [pendiente, setPendiente] = useState(false);
+  const [temaSeleccionado, setTemaSeleccionado] = useState<"auto" | "light" | "dark">("dark");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("ruum-theme") as "light" | "dark" | null;
+      if (stored) {
+        setTemaSeleccionado(stored);
+      } else {
+        setTemaSeleccionado("auto");
+      }
+    }
+  }, []);
+
+  const cambiarTema = (nuevoTema: "auto" | "light" | "dark") => {
+    setTemaSeleccionado(nuevoTema);
+    if (typeof window !== "undefined") {
+      if (nuevoTema === "auto") {
+        localStorage.removeItem("ruum-theme");
+        const matchesLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+        document.documentElement.setAttribute("data-theme", matchesLight ? "light" : "dark");
+      } else {
+        localStorage.setItem("ruum-theme", nuevoTema);
+        document.documentElement.setAttribute("data-theme", nuevoTema);
+      }
+      window.dispatchEvent(new Event("ruum:cambio-tema"));
+    }
+  };
 
   useEffect(() => {
     async function cargar() {
@@ -445,6 +472,46 @@ export default function PaginaPreferenciasCuenta() {
                   </span>
                 ))}
               </div>
+            </div>
+          </Card>
+
+          {/* Tarjeta de Apariencia y Visualización (Tema) */}
+          <Card>
+            <div>
+              <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">
+                Apariencia y Visualización
+              </p>
+              <h2 className="font-display text-lg font-bold text-text-primary mt-1">
+                Modo de Pantalla (Tema)
+              </h2>
+              <p className="mt-1 font-body text-xs text-text-tertiary">
+                Selecciona la apariencia preferida para el día y la noche o permite la sincronización automática con el sistema.
+              </p>
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              {[
+                { valor: "auto", etiqueta: "💻 Automático", desc: "Sigue el sistema" },
+                { valor: "light", etiqueta: "☀️ Modo Día", desc: "Alto contraste" },
+                { valor: "dark", etiqueta: "🌙 Modo Noche", desc: "Ruta oscura" }
+              ].map((opc) => {
+                const seleccionado = temaSeleccionado === opc.valor;
+                return (
+                  <button
+                    key={opc.valor}
+                    type="button"
+                    onClick={() => cambiarTema(opc.valor as "auto" | "light" | "dark")}
+                    className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center cursor-pointer transition-all focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:ring-offset-2 ${
+                      seleccionado 
+                        ? "border-[#00B4D8] bg-[#00B4D8]/10 text-white font-extrabold" 
+                        : "border-border/60 bg-surface-elevated/40 text-text-secondary hover:border-border"
+                    }`}
+                  >
+                    <span className="font-display text-xs font-bold">{opc.etiqueta}</span>
+                    <span className="font-body text-[10px] text-text-tertiary mt-1">{opc.desc}</span>
+                  </button>
+                );
+              })}
             </div>
           </Card>
 

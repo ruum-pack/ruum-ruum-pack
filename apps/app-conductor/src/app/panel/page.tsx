@@ -12,6 +12,7 @@ import { useCerrarSesion } from "../../lib/use-cerrar-sesion";
 import { CONTACTOS_SOPORTE_CONDUCTOR } from "../../lib/contactos-soporte";
 import { folioViaje, destinoOperativo } from "./panel-utils";
 import { getTripPresentation } from "../../lib/trip-presentation";
+import { SincronizacionBadge } from "../../components/SincronizacionBadge";
 
 function PanelLoadingSkeleton() {
   return (
@@ -129,12 +130,13 @@ export default function PaginaPanel() {
           {/* Header / Saludo y Ajustes */}
           <header className="flex justify-between items-start">
             <div className="flex flex-col">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-body text-sm font-medium text-text-tertiary">Hola</span>
                 <span className="inline-flex items-center gap-1 bg-[color:var(--ruum-pulse-soft)] text-[color:var(--ruum-pulse)] text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-[color:var(--ruum-pulse)]/25">
                   <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--ruum-pulse)] animate-pulse" />
                   GPS En Línea
                 </span>
+                <SincronizacionBadge />
               </div>
               <h1 className="font-display text-2xl font-bold tracking-tight text-text-primary mt-1.5 leading-none">
                 {conductor?.nombre ?? "Hector Lomelin"}

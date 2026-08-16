@@ -48,6 +48,12 @@ const CATEGORIAS_CUENTA: CategoriaCuenta[] = [
         icono: "⚙️"
       },
       {
+        href: "/notificaciones",
+        titulo: "Avisos y Alertas",
+        descripcion: "Historial de notificaciones, comunicados y alertas operativas de Ruum Ruum.",
+        icono: "🔔"
+      },
+      {
         href: "/cuenta/seguridad",
         titulo: "Seguridad",
         descripcion: "Credenciales de acceso, contraseña y control de sesión activa.",

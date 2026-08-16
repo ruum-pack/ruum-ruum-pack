@@ -101,6 +101,7 @@ const DESTINOS_MOVIL = [
   { href: "/panel", etiqueta: "Panel", Icono: IcoGrid },
   { href: "/viajes", etiqueta: "Traslados", Icono: IcoTruck },
   { href: "/ganancias", etiqueta: "Ganancias", Icono: IcoDollarCircle },
+  { href: "/cuenta", etiqueta: "Cuenta", Icono: IcoCuenta },
 ];
 
 function esActivo(pathname: string, href: string) {
@@ -253,7 +254,7 @@ export function NavegacionConductor() {
           aria-label="Navegación principal móvil"
           className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"
         >
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-4 gap-1">
             {DESTINOS_MOVIL.map((destino) => {
               const activo = esActivo(pathname, destino.href);
               const notificar = destino.href === "/viajes" && hayAccionPendiente;

@@ -16,7 +16,43 @@ export function OperationalAccessibilityBridge(){
     const online=()=>live.announce("Conexión restablecida. Sincronizando cambios pendientes.");
     const rejected=(event: PromiseRejectionEvent)=>void recordOperationalEvent("startup_failure",{reason:event.reason instanceof Error?event.reason.name:"unhandled_rejection"});
     window.addEventListener("offline",offline); window.addEventListener("online",online); window.addEventListener("unhandledrejection",rejected);
-    return()=>{handlers.forEach(([n,h])=>window.removeEventListener(n,h)); window.removeEventListener("offline",offline); window.removeEventListener("online",online); window.removeEventListener("unhandledrejection",rejected);};
+
+    // Theme auto synchronization listener
+    const mediaQuery = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+    const handlerTema = (e: MediaQueryListEvent | MediaQueryList) => {
+      const stored = localStorage.getItem("ruum-theme");
+      if (!stored) {
+        document.documentElement.setAttribute("data-theme", e.matches ? "light" : "dark");
+      }
+    };
+    if (mediaQuery) {
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener("change", handlerTema);
+      } else {
+        mediaQuery.addListener(handlerTema);
+      }
+    }
+    // Set initial value in client on mount to avoid server data-theme mismatch
+    const stored = localStorage.getItem("ruum-theme");
+    if (!stored && mediaQuery) {
+      document.documentElement.setAttribute("data-theme", mediaQuery.matches ? "light" : "dark");
+    } else if (stored) {
+      document.documentElement.setAttribute("data-theme", stored);
+    }
+
+    return()=>{
+      handlers.forEach(([n,h])=>window.removeEventListener(n,h));
+      window.removeEventListener("offline",offline);
+      window.removeEventListener("online",online);
+      window.removeEventListener("unhandledrejection",rejected);
+      if (mediaQuery) {
+        if (mediaQuery.removeEventListener) {
+          mediaQuery.removeEventListener("change", handlerTema);
+        } else {
+          mediaQuery.removeListener(handlerTema);
+        }
+      }
+    };
   },[live]);
   return null;
 }

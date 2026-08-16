@@ -41,6 +41,21 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" data-theme="dark">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            var theme = localStorage.getItem('ruum-theme');
+            if (!theme) {
+              if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                theme = 'light';
+              } else {
+                theme = 'dark';
+              }
+            }
+            document.documentElement.setAttribute('data-theme', theme);
+          })();
+        ` }} />
+      </head>
       <body className={`${spaceGrotesk.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">Saltar al contenido principal</a>
         <LiveRegionProvider>

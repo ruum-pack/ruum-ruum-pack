@@ -9,6 +9,8 @@ import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado, confirmarLlegadaDestino, obtenerPasaporteDigital } from "@ruum/api/services";
+import { MapaRutaConduccion } from "./MapaRutaConduccion";
+import { SincronizacionBadge } from "../../../components/SincronizacionBadge";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -45,42 +47,114 @@ export function ConduceADestinoDetails({
   // Incident status
   const tieneIncidencia = pasaporte.tiene_incidencia_abierta || false;
 
+  function calcularDistanciaKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371; // Radio de la Tierra en Km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
   async function handleLlegueDestino() {
     setProcesando(true);
     setError(null);
     setAvisoExito(null);
-    try {
-      const cliente = crearClienteNavegador();
-      
-      // Query the freshest state from database to handle race conditions / double clicks
-      const pasaporteFresco = await obtenerPasaporteDigital(cliente, trasladoId);
-      const estadoDb = pasaporteFresco?.estado || pasaporte.estado;
 
-      if (estadoDb === "evidencia_final_en_proceso") {
-        setAvisoExito("Redirigiendo a evidencias de entrega...");
+    const ejecutarConfirmacion = async (fueraGeocerca: boolean, distanciaM: number | null) => {
+      try {
+        const cliente = crearClienteNavegador();
+        
+        // Query the freshest state from database to handle race conditions / double clicks
+        const pasaporteFresco = await obtenerPasaporteDigital(cliente, trasladoId);
+        const estadoDb = pasaporteFresco?.estado || pasaporte.estado;
+
+        if (estadoDb === "evidencia_final_en_proceso") {
+          setAvisoExito("Redirigiendo a evidencias de entrega...");
+          setTimeout(() => {
+            router.push(`/viajes/${trasladoId}/evidencia`);
+          }, 800);
+          return;
+        }
+
+        if (estadoDb === "traslado_en_curso") {
+          // First: transition traslado_en_curso -> llegada_a_destino using dedicated RPC
+          await confirmarLlegadaDestino(cliente, trasladoId, { fueraGeocerca, distanciaM });
+          // Wait 300ms to allow Supabase transaction to finalize
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+        
+        // Second: transition llegada_a_destino -> evidencia_final_en_proceso
+        await avanzarEstadoTraslado(cliente, trasladoId, "llegada_a_destino");
+        
+        setAvisoExito("¡Llegada a destino registrada! Redirigiendo a evidencias de entrega...");
         setTimeout(() => {
           router.push(`/viajes/${trasladoId}/evidencia`);
-        }, 800);
+        }, 1000);
+      } catch (err) {
+        setError(traducirErrorOperativo(err, "No pudimos registrar tu llegada al destino."));
+        setProcesando(false);
+      }
+    };
+
+    // 1. Proximity validation using GPS
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const latConductor = position.coords.latitude;
+          const lngConductor = position.coords.longitude;
+          const distanciaKm = calcularDistanciaKm(
+            latConductor,
+            lngConductor,
+            navigationTargetLat,
+            navigationTargetLng
+          );
+          const distanciaM = Math.round(distanciaKm * 1000);
+
+          // If driver is more than 500m away, ask for explicit confirmation
+          if (distanciaM > 500) {
+            const distanciaTexto = distanciaKm < 1 
+              ? `${distanciaM} metros` 
+              : `${distanciaKm.toFixed(1)} km`;
+            
+            const seguro = window.confirm(
+              `⚠️ AVISO DE GEOCERCA:\n\nTe encuentras a ${distanciaTexto} del destino programado.\n\n¿Estás seguro de que deseas registrar la llegada ahora? (Asegúrate de estar estacionado de forma segura).`
+            );
+
+            if (!seguro) {
+              setProcesando(false);
+              return;
+            }
+            await ejecutarConfirmacion(true, distanciaM);
+          } else {
+            await ejecutarConfirmacion(false, distanciaM);
+          }
+        },
+        async (err) => {
+          console.warn("No se pudo obtener la ubicación GPS exacta para geocerca:", err);
+          const seguro = window.confirm(
+            "¿Confirmas que has llegado físicamente al destino del traslado?"
+          );
+          if (!seguro) {
+            setProcesando(false);
+            return;
+          }
+          await ejecutarConfirmacion(false, null);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    } else {
+      const seguro = window.confirm(
+        "¿Confirmas que has llegado físicamente al destino del traslado?"
+      );
+      if (!seguro) {
+        setProcesando(false);
         return;
       }
-
-      if (estadoDb === "traslado_en_curso") {
-        // First: transition traslado_en_curso -> llegada_a_destino using dedicated RPC
-        await confirmarLlegadaDestino(cliente, trasladoId, { fueraGeocerca: false, distanciaM: null });
-        // Wait 300ms to allow Supabase transaction to finalize
-        await new Promise((resolve) => setTimeout(resolve, 300));
-      }
-      
-      // Second: transition llegada_a_destino -> evidencia_final_en_proceso
-      await avanzarEstadoTraslado(cliente, trasladoId, "llegada_a_destino");
-      
-      setAvisoExito("¡Llegada a destino registrada! Redirigiendo a evidencias de entrega...");
-      setTimeout(() => {
-        router.push(`/viajes/${trasladoId}/evidencia`);
-      }, 1000);
-    } catch (err) {
-      setError(traducirErrorOperativo(err, "No pudimos registrar tu llegada al destino."));
-      setProcesando(false);
+      await ejecutarConfirmacion(false, null);
     }
   }
 
@@ -127,11 +201,16 @@ export function ConduceADestinoDetails({
               aria-label="Ajustes de cuenta"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.64-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
               </svg>
             </Link>
           </div>
         </header>
+
+        {/* Sync Status Banner */}
+        <div className="mt-3">
+          <SincronizacionBadge />
+        </div>
 
         {/* Step Breadcrumbs Tracker */}
         <div className="mt-6 flex flex-col gap-1">
@@ -188,25 +267,20 @@ export function ConduceADestinoDetails({
 
         {/* Map Canvas Card */}
         <div className="mt-6 flex flex-col rounded-[1.5rem] border border-border/30 bg-surface-elevated/20 p-5 relative overflow-hidden">
-          <div className="h-44 w-full bg-surface-elevated/45 rounded-xl flex flex-col items-center justify-center border border-border/10 relative overflow-hidden">
-            <svg width="100%" height="100%" className="absolute inset-0 select-none opacity-20 pointer-events-none">
-              <path d="M 30 130 Q 120 40 210 120 T 370 50" fill="none" stroke="#00B4D8" strokeWidth="4" strokeDasharray="8, 8" />
-            </svg>
-            <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg z-10 animate-pulse">
-              📍
-            </div>
-            <span className="font-display text-sm font-bold text-text-secondary mt-2 z-10">agregar mapa</span>
-          </div>
+          <MapaRutaConduccion
+            origen={{ lat: pasaporte.origen_lat ?? 19.2833, lng: pasaporte.origen_lng ?? -99.5167 }}
+            destino={{ lat: pasaporte.destino_lat ?? 16.7569, lng: pasaporte.destino_lng ?? -93.1292 }}
+          />
 
           <div className="border-t border-border/10 my-4" />
 
-          {/* Navigation & Arrived Buttons side by side */}
-          <div className="flex gap-3">
+          {/* Navigation & Arrived Buttons stacked and chromatic differentiated */}
+          <div className="flex flex-col gap-3">
             <a
               href={navigationUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+              className="w-full min-h-[50px] rounded-xl bg-[#00BBC9] hover:bg-[#00BBC9]/90 text-slate-950 font-display text-sm font-extrabold tracking-wide transition-all select-none text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-md focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00BBC9] focus-visible:ring-offset-2"
             >
               NAVEGAR
             </a>
@@ -214,7 +288,7 @@ export function ConduceADestinoDetails({
               type="button"
               onClick={handleLlegueDestino}
               disabled={procesando}
-              className="flex-1 min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5"
+              className="w-full min-h-[50px] rounded-xl bg-[#10B981] hover:bg-[#10B981]/90 text-white font-display text-sm font-extrabold tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#10B981] focus-visible:ring-offset-2"
             >
               {procesando ? TEXTOS_CARGANDO.actualizando : "HE LLEGADO"}
             </button>
@@ -311,7 +385,7 @@ export function ConduceADestinoDetails({
           aria-label="Navegación principal móvil"
           className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"
         >
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-4 gap-1">
             <Link
               href="/panel"
               className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
@@ -346,6 +420,17 @@ export function ConduceADestinoDetails({
                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
               </svg>
               <span>Ganancias</span>
+            </Link>
+
+            <Link
+              href="/cuenta"
+              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
+              <span>Cuenta</span>
             </Link>
           </div>
         </nav>

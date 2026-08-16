@@ -44,6 +44,7 @@ export function OtpVerification({
         <Field
           etiqueta="Código de verificación"
           inputMode="numeric"
+          pattern="[0-9]*"
           autoComplete="one-time-code"
           maxLength={codigoLongitud}
           value={codigoOtp}
