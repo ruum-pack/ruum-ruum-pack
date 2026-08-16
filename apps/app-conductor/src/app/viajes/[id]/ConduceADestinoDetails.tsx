@@ -349,7 +349,7 @@ export function ConduceADestinoDetails({
             href={navigationUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 min-h-12 rounded-xl bg-[#00BBC9] hover:bg-[#00BBC9]/90 text-slate-950 font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-2 cursor-pointer shadow-md focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00BBC9] focus-visible:ring-offset-2"
+            className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/20 border border-[#00BBC9]/60 text-[#00BBC9] font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-2 cursor-pointer shadow-xs focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00BBC9] focus-visible:ring-offset-2"
           >
             {/* Map/GPS SVG Icon */}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -363,7 +363,7 @@ export function ConduceADestinoDetails({
             type="button"
             onClick={handleLlegueDestino}
             disabled={procesando}
-            className="flex-1 min-h-12 rounded-xl bg-[#10B981] hover:bg-[#10B981]/90 text-white font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#10B981] focus-visible:ring-offset-2"
+            className="flex-[2] min-h-12 rounded-xl bg-[#10B981] hover:bg-[#10B981]/90 text-white font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#10B981] focus-visible:ring-offset-2"
           >
             {procesando ? TEXTOS_CARGANDO.actualizando : "HE LLEGADO"}
           </button>
@@ -372,7 +372,7 @@ export function ConduceADestinoDetails({
       </div>
 
       {/* Floating Bottom Navigation Bar */}
-      <div className="fixed inset-x-0 bottom-4 z-40 px-4">
+      <div className="fixed inset-x-0 bottom-4 z-40 md:hidden px-4">
         <nav
           aria-label="Navegación principal móvil"
           className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"

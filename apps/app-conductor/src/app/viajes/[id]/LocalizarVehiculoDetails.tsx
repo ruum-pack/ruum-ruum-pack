@@ -269,7 +269,7 @@ export function LocalizarVehiculoDetails({
       </div>
 
       {/* Floating Bottom Navigation Bar */}
-      <div className="fixed inset-x-0 bottom-4 z-40 px-4">
+      <div className="fixed inset-x-0 bottom-4 z-40 md:hidden px-4">
         <nav
           aria-label="Navegación principal móvil"
           className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"
