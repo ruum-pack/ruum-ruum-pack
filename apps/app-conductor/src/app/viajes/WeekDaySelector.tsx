@@ -35,27 +35,24 @@ export function WeekDaySelector({
               type="button"
               aria-current={activo ? "date" : undefined}
               onClick={() => onSelect(clave)}
-              className="flex flex-col items-center gap-2 py-2 group cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:rounded-xl"
+              className="flex flex-col items-center gap-2 rounded-xl py-2 transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:rounded-xl"
             >
-              {/* Day name (e.g. Mi, Ju) */}
-              <span className="font-body text-xs font-semibold text-text-tertiary">
+              <span className={`font-body text-[10px] font-bold uppercase tracking-[0.08em] ${
+                activo ? "text-[#00B4D8]" : "text-text-tertiary"
+              }`}>
                 {nombreDia}
               </span>
-              
-              {/* Day number (e.g. 23) in a circle if active */}
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center font-display text-sm font-bold transition-all ${
-                activo 
-                  ? "bg-[#00B4D8] text-white shadow-xs scale-105" 
-                  : "text-text-primary hover:bg-surface-elevated"
+
+              <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold transition-all ${
+                activo
+                  ? "bg-[#00B4D8] text-white shadow-sm"
+                  : "bg-surface text-text-primary hover:bg-surface-elevated"
               }`}>
                 {numeroDia}
               </div>
-              
-              {/* Indicator dot below */}
-              <div className="h-1.5 w-1.5 flex items-center justify-center">
-                {tieneViajes && !activo && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#00B4D8]" />
-                )}
+
+              <div className="flex h-2.5 items-center justify-center">
+                {tieneViajes && !activo && <span className="h-2 w-2 rounded-full bg-[#00B4D8]" />}
               </div>
             </button>
           );

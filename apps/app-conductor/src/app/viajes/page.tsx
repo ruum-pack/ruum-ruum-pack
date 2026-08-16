@@ -86,125 +86,119 @@ function CustomTripCard({
 
   return (
     <div
-      className={`w-full text-left bg-surface-elevated rounded-[1.5rem] p-5 border transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col gap-3.5 ${
-        isExpanded ? "border-[#00B4D8]/60 ring-1 ring-[#00B4D8]/10" : "border-border/40 hover:border-signal/40"
+      className={`w-full rounded-[1.2rem] border bg-surface p-4 shadow-[0_2px_12px_rgba(15,23,42,0.03)] transition-all duration-200 ${
+        isExpanded ? "border-[#00B4D8]/40 bg-[#00B4D8]/[0.02]" : "border-border/50 hover:border-border"
       }`}
     >
-      <button 
-        type="button"
-        onClick={onToggleExpand}
-        className="w-full flex flex-col gap-3.5 cursor-pointer select-none text-left bg-transparent border-none p-0 outline-hidden font-inherit"
-      >
-        <div className="flex justify-between items-start w-full">
-          <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 font-display text-[10px] font-bold ${
-            esOferta ? "bg-route-soft text-route-dark border border-[color:var(--ruum-route)]/20" : "bg-[color:var(--ruum-pulse-soft)] text-[color:var(--ruum-pulse)] border border-[color:var(--ruum-pulse)]/20"
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <span className={`inline-flex items-center rounded-full px-2 py-1 font-body text-[10px] font-bold uppercase tracking-[0.08em] ${
+            esOferta ? "bg-[#00B4D8]/10 text-[#00B4D8]" : "bg-surface-elevated text-text-secondary border border-border"
           }`}>
             {estadoTexto}
           </span>
-          <div className="flex items-center gap-1">
-            <span className="font-display text-base font-extrabold text-text-primary">{ganancia}</span>
-            <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-500 font-bold text-xs select-none">
-              $
-            </div>
+          <div className="flex items-center gap-1.5 text-right">
+            <span className="font-display text-lg font-extrabold text-text-primary">{ganancia}</span>
           </div>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between items-center w-full">
-            <span className="font-body text-[11px] font-bold text-text-tertiary uppercase">Traslado #{folio}</span>
-            <span className="text-[10px] font-bold text-text-tertiary flex items-center gap-0.5">
-              {isExpanded ? "Contraer ▲" : "Expandir ▼"}
+        <button
+          type="button"
+          onClick={onToggleExpand}
+          className="flex w-full cursor-pointer select-none flex-col gap-3 rounded-xl bg-transparent p-0 text-left font-inherit outline-hidden"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-body text-[10px] font-bold uppercase tracking-[0.12em] text-text-tertiary">Traslado #{folio}</span>
+            <span className="font-body text-[10px] font-semibold text-text-secondary">
+              {isExpanded ? "Cerrar" : "Detalles"}
             </span>
           </div>
-          <div className="flex flex-col gap-1.5" aria-label={ruta}>
-            <span className="font-display text-base font-extrabold text-text-primary tracking-tight leading-tight">
+
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="font-body text-[10px] font-bold uppercase tracking-[0.12em] text-text-tertiary">Origen</span>
+            <span className="font-display text-xl font-extrabold tracking-tight text-text-primary">
               {viaje.origen_ciudad || "Por confirmar"}
             </span>
-            <div className="ruum-route-line">
-              <span className="ruum-route-dot" />
-              <span className="ruum-route-dash" />
-              <span className="ruum-route-dot is-end" />
-            </div>
-            <span className="font-display text-base font-extrabold text-text-secondary tracking-tight leading-tight">
+          </div>
+
+          <div className="flex items-center gap-2 text-text-tertiary">
+            <div className="h-px flex-1 bg-border" />
+            <span className="font-body text-[10px] font-bold uppercase tracking-[0.12em]">A</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="font-body text-[10px] font-bold uppercase tracking-[0.12em] text-text-tertiary">Destino</span>
+            <span className="font-display text-xl font-extrabold tracking-tight text-text-primary">
               {viaje.destino_ciudad || "Por confirmar"}
             </span>
           </div>
-        </div>
+        </button>
 
-        <div className="flex flex-col gap-1 font-body text-xs text-text-secondary">
-          <p className="flex items-center gap-2">
-            <span className="text-text-tertiary w-14 font-semibold">Ciudad</span>
-            <span className="text-text-primary font-medium">{viaje.origen_ciudad || "Por confirmar"} - {viaje.destino_ciudad || "Por confirmar"}</span>
-          </p>
-          <p className="flex items-center gap-2">
-            <span className="text-text-tertiary w-14 font-semibold">Solicitado</span>
-            <span className="text-text-primary font-medium">{viaje.contacto_entrega_nombre || "Por confirmar"}</span>
-          </p>
-        </div>
-
-        <div className="border-t border-border/40 pt-3.5 flex justify-between items-center text-text-secondary font-body text-xs mt-1">
-          <div className="flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-            <span className="font-semibold text-text-primary">{horaInicio} - {horaFin}</span>
+        <div className="grid grid-cols-3 gap-2 border-t border-border/40 pt-3">
+          <div className="min-w-0">
+            <p className="font-body text-[9px] font-bold uppercase tracking-[0.1em] text-text-tertiary">Hora</p>
+            <p className="mt-1 font-body text-xs font-semibold text-text-primary">{horaInicio}</p>
           </div>
-          <div className="flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2v4" />
-              <path d="M12 12h4" />
-            </svg>
-            <span className="font-semibold text-text-primary">{duracionTexto}</span>
+          <div className="min-w-0">
+            <p className="font-body text-[9px] font-bold uppercase tracking-[0.1em] text-text-tertiary">Duración</p>
+            <p className="mt-1 font-body text-xs font-semibold text-text-primary">{duracionTexto}</p>
           </div>
-          <div className="flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-            <span className="font-semibold text-text-primary">{distanciaTexto}</span>
+          <div className="min-w-0">
+            <p className="font-body text-[9px] font-bold uppercase tracking-[0.1em] text-text-tertiary">Distancia</p>
+            <p className="mt-1 font-body text-xs font-semibold text-text-primary">{distanciaTexto}</p>
           </div>
         </div>
-      </button>
+      </div>
 
       {isExpanded && (
-        <div className="mt-4 border-t border-border/20 pt-4 flex flex-col gap-3.5 animate-slideDown">
-          <div className="grid gap-3 border-l-2 border-dashed border-border/60 pl-3">
-            <div className="min-w-0">
-              <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Recolección (Origen)</p>
-              <p className="mt-0.5 font-body text-xs text-text-primary">{viaje.origen_direccion || "Dirección de recolección"}</p>
+        <div className="mt-4 border-t border-border/20 pt-4">
+          <div className="flex flex-col gap-3">
+            <div className="rounded-xl border border-border/40 bg-surface-elevated px-3 py-2">
+              <p className="font-body text-[9px] font-bold uppercase tracking-[0.12em] text-text-tertiary">Recolección</p>
+              <p className="mt-1 font-body text-xs text-text-primary">{viaje.origen_direccion || "Dirección de recolección"}</p>
             </div>
-            <div className="min-w-0">
-              <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Entrega (Destino)</p>
-              <p className="mt-0.5 font-body text-xs text-text-primary">{viaje.destino_direccion || "Dirección de entrega"}</p>
+            <div className="rounded-xl border border-border/40 bg-surface-elevated px-3 py-2">
+              <p className="font-body text-[9px] font-bold uppercase tracking-[0.12em] text-text-tertiary">Entrega</p>
+              <p className="mt-1 font-body text-xs text-text-primary">{viaje.destino_direccion || "Dirección de entrega"}</p>
             </div>
+
+            {detalle.requisitos && (
+              <div className="rounded-xl border border-border/40 bg-surface-elevated px-3 py-2">
+                <p className="font-body text-[9px] font-bold uppercase tracking-[0.12em] text-text-tertiary">Notas</p>
+                <p className="mt-1 font-body text-xs text-text-secondary">{detalle.requisitos}</p>
+              </div>
+            )}
           </div>
 
-          {detalle.requisitos && (
-            <div className="bg-surface p-3 rounded-xl border border-border/40 flex flex-col gap-1">
-              <span className="font-body text-[9px] font-extrabold text-text-tertiary uppercase tracking-wider">Notas de Operación</span>
-              <p className="font-body text-xs text-text-secondary">{detalle.requisitos}</p>
-            </div>
-          )}
-
-          <div className="flex gap-2 mt-1">
+          <div className="mt-4">
             {esOferta ? (
               <Link
                 href={hrefDetalle}
-                className="w-full min-h-10 bg-route-action hover:bg-route-action/90 text-white font-display text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center text-center shadow-sm active:scale-95"
+                className="flex min-h-11 w-full items-center justify-center rounded-xl bg-route-action px-4 py-2.5 font-display text-xs font-extrabold text-white transition-colors hover:bg-route-action/90"
               >
-                Ver completo →
+                Ver completo
               </Link>
             ) : (
               <Link
                 href={hrefDetalle}
-                className="w-full min-h-10 bg-route-action hover:bg-route-action/90 text-white font-display text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center shadow-sm active:scale-95 text-center"
+                className="flex min-h-11 w-full items-center justify-center rounded-xl bg-route-action px-4 py-2.5 font-display text-xs font-extrabold text-white transition-colors hover:bg-route-action/90"
               >
                 Iniciar traslado
               </Link>
             )}
           </div>
+        </div>
+      )}
+
+      {!isExpanded && (
+        <div className="mt-4">
+          <Link
+            href={hrefDetalle}
+            className="flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface-elevated px-4 py-2.5 font-display text-[11px] font-extrabold text-text-primary transition-colors hover:bg-surface"
+          >
+            {esOferta ? "Ver detalles" : "Abrir traslado"}
+          </Link>
         </div>
       )}
     </div>
@@ -506,56 +500,42 @@ export default function PaginaViajes() {
       <div className="w-full flex flex-col flex-1">
         
         {/* Header */}
-        <header className="flex justify-between items-center border-b border-border/20 pb-4">
-          <div className="flex flex-col">
-            <h1 className="font-display text-3xl font-extrabold text-text-primary tracking-tight mt-1 leading-none">
+        <header className="flex items-center justify-between gap-3 border-b border-border/20 pb-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight text-text-primary leading-none">
               Traslados
             </h1>
-            <div className="flex items-center gap-1.5 mt-1.5 text-[10px] font-bold text-text-tertiary">
+            <div className="mt-2 flex items-center gap-2 text-[10px] font-bold text-text-tertiary">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Sincronizado en tiempo real</span>
-              <button 
-                type="button" 
+              <span>Actualizado ahora</span>
+              <button
+                type="button"
                 onClick={() => {
                   setCargando(true);
                   setRefreshCount((prev) => prev + 1);
                 }}
-                className="ml-1 text-[#00B4D8] hover:underline cursor-pointer select-none"
+                className="text-[#00B4D8] underline-offset-2 hover:underline cursor-pointer select-none"
               >
-                (Recargar 🔄)
+                Recargar
               </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            <button 
-              type="button" 
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
               onClick={() => setSoporteAbierto(true)}
-              className="p-1.5 text-text-primary hover:text-signal transition-colors cursor-pointer" 
+              className="inline-flex min-h-10 items-center justify-center rounded-full border border-border/60 bg-surface px-3 py-2 font-body text-[11px] font-bold text-text-secondary transition-colors hover:text-text-primary cursor-pointer"
               aria-label="Soporte rápido"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary hover:text-signal transition-colors">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
+              Ayuda
             </button>
-            <Link 
-              href="/notificaciones" 
-              className="relative p-1.5 text-text-primary hover:text-signal transition-colors" 
-              aria-label="Notificaciones"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
-              </svg>
-              <span className="absolute -top-0.5 -right-0.5 bg-danger text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center border border-surface shadow-xs">
-                1
-              </span>
-            </Link>
-            <Link 
-              href="/cuenta" 
-              className="p-1.5 text-text-primary hover:text-signal transition-colors" 
+            <Link
+              href="/cuenta"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-surface text-text-primary transition-colors hover:text-signal"
               aria-label="Ajustes de cuenta"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
               </svg>
             </Link>
@@ -563,28 +543,28 @@ export default function PaginaViajes() {
         </header>
 
         {/* Tab switch OFERTAS / ACEPTADOS */}
-        <div className="mt-6 rounded-full bg-surface-elevated border border-border/40 p-1 flex w-full">
+        <div className="mt-6 flex w-full rounded-full border border-border/60 bg-surface-elevated p-1">
           <button
             type="button"
             onClick={() => actualizarUrl({ vista: "disponibles" })}
-            className={`flex-1 py-2.5 text-center text-xs font-bold tracking-wider rounded-full transition-all duration-300 ${
-              vista === "disponibles" 
-                ? "bg-[#00B4D8] text-white shadow-xs cursor-default" 
-                : "text-text-secondary hover:text-text-primary cursor-pointer"
+            className={`flex-1 rounded-full px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.12em] transition-all duration-200 ${
+              vista === "disponibles"
+                ? "bg-[#00B4D8] text-white shadow-sm"
+                : "text-text-secondary hover:text-text-primary"
             }`}
           >
-            OFERTAS
+            Ofertas
           </button>
           <button
             type="button"
             onClick={() => actualizarUrl({ vista: "mis-viajes" })}
-            className={`flex-1 py-2.5 text-center text-xs font-bold tracking-wider rounded-full transition-all duration-300 ${
-              vista === "mis-viajes" 
-                ? "bg-[#00B4D8] text-white shadow-xs cursor-default" 
-                : "text-text-secondary hover:text-text-primary cursor-pointer"
+            className={`flex-1 rounded-full px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.12em] transition-all duration-200 ${
+              vista === "mis-viajes"
+                ? "bg-[#00B4D8] text-white shadow-sm"
+                : "text-text-secondary hover:text-text-primary"
             }`}
           >
-            ACEPTADOS
+            Aceptados
           </button>
         </div>
 
@@ -603,7 +583,7 @@ export default function PaginaViajes() {
             <button
               type="button"
               onClick={() => setDiaSeleccionado(diaHoy)}
-              className="ml-2 bg-[#00B4D8]/10 text-[#00B4D8] border border-[#00B4D8]/20 px-2 py-0.5 rounded-full text-[10px] font-black hover:bg-[#00B4D8]/20 transition-all cursor-pointer select-none"
+              className="ml-2 rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-bold text-text-secondary transition-colors hover:text-text-primary cursor-pointer select-none"
             >
               Volver a Hoy
             </button>
@@ -621,17 +601,15 @@ export default function PaginaViajes() {
         </div>
 
         {/* Selected Day Summary Row */}
-        <div className="mt-6 flex justify-between items-center border-b border-border/20 pb-3 font-display">
-          <span className="text-[#00B4D8] text-xs font-black tracking-wide uppercase">
+        <div className="mt-6 flex items-center justify-between gap-3 border-b border-border/20 pb-3">
+          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-tertiary">
             {fechaCompletaTexto}
           </span>
-          <div className="flex items-center gap-3 text-text-secondary text-xs font-bold">
+          <div className="flex items-center gap-3 text-[11px] font-bold text-text-secondary">
             <span>{totalViajesTexto}</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-500 font-bold text-xs select-none">
-                $
-              </div>
-              <span className="text-text-primary">${totalGanancia.toFixed(2)}</span>
+            <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2 py-1 text-emerald-700">
+              <span className="font-bold">$</span>
+              <span className="text-text-primary">{totalGanancia.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -642,7 +620,7 @@ export default function PaginaViajes() {
             <TripsLoadingList />
           ) : listToRender.length === 0 ? (
             <div className="text-center py-10 flex flex-col items-center">
-              <span className="text-3xl">📅</span>
+              <span className="text-xl font-bold text-text-tertiary">Sin horario</span>
               <p className="mt-3 font-display text-sm font-bold text-text-primary">Sin traslados para este día</p>
               <p className="mt-1 font-body text-xs text-text-tertiary max-w-[280px]">
                 {vista === "disponibles" 
@@ -655,9 +633,9 @@ export default function PaginaViajes() {
                 <button
                   type="button"
                   onClick={() => actualizarUrl({ vista: "disponibles" })}
-                  className="mt-5 bg-[#00B4D8] text-white font-display text-xs font-extrabold px-4 py-2.5 rounded-xl hover:bg-[#00B4D8]/90 active:scale-95 transition-all cursor-pointer shadow-sm select-none"
+                  className="mt-5 bg-surface-elevated text-text-primary font-display text-xs font-extrabold px-4 py-2.5 rounded-xl border border-border hover:bg-surface transition-colors cursor-pointer select-none"
                 >
-                  🔍 Buscar Ofertas Disponibles
+                  Buscar Ofertas Disponibles
                 </button>
               ) : (
                 tieneOfertasOtrosDias && (
@@ -736,8 +714,8 @@ export default function PaginaViajes() {
           {/* Tarjeta de contenido */}
           <div className="relative w-full max-w-md bg-surface-elevated rounded-t-[2rem] border-t border-border/40 p-6 flex flex-col gap-4 animate-slideUp shadow-2xl">
             <div className="flex justify-between items-center pb-2 border-b border-border/20">
-              <h2 className="font-display text-lg font-bold text-text-primary flex items-center gap-2">
-                <span>💬</span> Soporte Rápido Ruum
+              <h2 className="font-display text-lg font-bold text-text-primary">
+                Soporte Rápido Ruum
               </h2>
               <button 
                 type="button" 
@@ -755,7 +733,7 @@ export default function PaginaViajes() {
                 href="https://wa.me/525548210937"
                 className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition-colors"
               >
-                <span className="text-xl">💬</span>
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 font-body text-xs font-bold text-emerald-600">WA</span>
                 <div className="flex flex-col items-start">
                   <span className="font-display text-sm font-bold text-emerald-400">WhatsApp de Soporte</span>
                   <span className="font-body text-[11px] text-text-secondary">Mensajería instantánea y respuesta inmediata</span>
@@ -765,7 +743,7 @@ export default function PaginaViajes() {
                 href="tel:+525548210937"
                 className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-soft/60 transition-colors"
               >
-                <span className="text-xl">📞</span>
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-route-soft font-body text-xs font-bold text-route-action">TEL</span>
                 <div className="flex flex-col items-start">
                   <span className="font-display text-sm font-bold text-route-action">Llamar a Soporte</span>
                   <span className="font-body text-[11px] text-text-secondary">Habla por teléfono directamente con un operador</span>
@@ -775,7 +753,7 @@ export default function PaginaViajes() {
                 href="mailto:soporte@ruumruum.com"
                 className="flex items-center gap-3 p-4 bg-surface rounded-xl border border-border/40 hover:bg-surface-elevated transition-colors"
               >
-                <span className="text-xl">✉️</span>
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface-elevated font-body text-[10px] font-bold text-text-secondary">MAIL</span>
                 <div className="flex flex-col items-start">
                   <span className="font-display text-sm font-bold text-text-primary">Correo Electrónico</span>
                   <span className="font-body text-[11px] text-text-secondary">Reportar incidencias técnicas no urgentes</span>
