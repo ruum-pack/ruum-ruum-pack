@@ -9,6 +9,7 @@ import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { aceptarViaje, avanzarEstadoTraslado } from "@ruum/api/services";
+import { construirUrlMapaRutaConduccion, type PuntoMapa } from "../../../lib/mapbox-rutas";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
@@ -36,6 +37,10 @@ export function TripOpportunityDetails({
   const destino = pasaporte.destino_ciudad || "Por confirmar";
   const distancia = pasaporte.distancia_km;
   const duracion = pasaporte.tiempo_estimado_horas;
+  const origenLat = pasaporte.origen_lat ?? 19.4326;
+  const origenLng = pasaporte.origen_lng ?? -99.1332;
+  const destinoLat = pasaporte.destino_lat ?? 19.4326;
+  const destinoLng = pasaporte.destino_lng ?? -99.1332;
   const fechaReferencia = pasaporte.creado_en ?? pasaporte.actualizado_en ?? new Date().toISOString();
   const horaTexto = new Intl.DateTimeFormat("es-MX", { 
     hour: "2-digit", 
@@ -244,31 +249,96 @@ export function TripOpportunityDetails({
           </h1>
         </div>
 
-        {/* Route Preview with Dashed Line and Truck */}
-        <div className="mt-8 flex flex-col gap-2 bg-surface-elevated/20 border border-border/30 rounded-2xl p-5">
-          <div className="flex justify-between items-center text-text-primary font-display text-sm font-bold">
-            <span>{origen}</span>
-            <span>{destino}</span>
+        {/* Interactive Route Map Preview */}
+        <div className="mt-8 relative bg-surface-elevated/20 border border-border/30 rounded-2xl overflow-hidden">
+          <div className="relative h-48 w-full">
+            {/* Mapbox Static Route Map */}
+            {origenLat && destinoLat && origenLng && destinoLng ? (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&origin=${origenLat},${origenLng}&destination=${destinoLat},${destinoLng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute inset-0 w-full h-full rounded-t-2xl object-cover"
+                aria-label="Ver mapa en Google Maps"
+              />
+            ) : (
+              <div className="absolute inset-0 w-full h-full bg-surface-elevated/45 flex items-center justify-center text-text-tertiary">
+                Cargando mapa...
+              </div>
+            )}
           </div>
           
-          {/* Dashed Line representation */}
-          <div className="relative flex items-center justify-between w-full h-8 my-1 px-1">
-            {/* Left Dot */}
-            <div className="w-2.5 h-2.5 rounded-full bg-white border border-border/60 z-10" />
-            
-            {/* Center Dashed Border */}
-            <div className="absolute left-3 right-3 border-t border-dashed border-border/60 z-0 flex justify-center items-center">
-              {/* Floating Truck Icon */}
-              <span className="absolute -top-3.5 text-base bg-surface px-1 select-none pointer-events-none">🚚</span>
+          {/* Origin Marker (verde/blanco) - top-left corner overlay */}
+          {origenLat && origenLng && (
+            <div
+              className="absolute left-2 top-2 w-8 h-8 rounded-full bg-white border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg z-20"
+            >
+              📍
             </div>
-            
-            {/* Right Dot */}
-            <div className="w-2.5 h-2.5 rounded-full bg-[#00B4D8] border border-[#00B4D8]/60 z-10" />
-          </div>
+          )}
+          
+          {/* Destination Marker (azul) - bottom-right corner overlay */}
+          {destinoLat && destinoLng && (
+            <div
+              className="absolute right-2 bottom-2 w-8 h-8 rounded-full bg-[#00B4D8] text-white flex items-center justify-center text-sm font-bold z-20"
+            >
+              {destino}
+            </div>
+          )}
+          
+          {/* Distance & Time Overlay - bottom center */}
+          {distancia != null && duracion != null && (
+            <div
+              className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 text-sm text-white z-20"
+            >
+              {distancia.toFixed(1)} km • {formatDuracion(duracion)}
+            </div>
+          )}
+          
+          {/* Expand button - top right */}
+          <button
+            onClick={() => window.open(
+              `https://www.google.com/maps/dir/?api=1&origin=${origenLat},${origenLng}&destination=${destinoLat},${destinoLng}`,
+              "_blank"
+            )}
+            className="absolute top-2 right-2 p-2 rounded-full bg-[#10B981] text-white text-xs font-bold hover:bg-[#10B981]/90 transition-colors z-30"
+            aria-label="Ver mapa completo"
+          >
+            ↑
+          </button>
+        </div>
 
-          <div className="text-center font-body text-[10px] font-bold text-text-tertiary">
-            {distancia != null ? `${distancia.toFixed(1)} KM` : "Por confirmar"}
-          </div>
+        <div className="mt-3 flex justify-center gap-2">
+          <a
+            href={`https://www.waze.com/ul?ll=${destinoLat},${destinoLng}&navigate=yes`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 rounded-xl bg-green-500/20 border border-green-500/40 text-green-400 font-display text-xs font-black tracking-wide px-3 py-1.5 transition-colors"
+            aria-label="Abrir en Waze"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            Waze
+          </a>
+          <a
+            href={`https://maps.apple.com/?saddr=&dirflg=w&z=15&lat=${destinoLat}&lon=${destinoLng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 font-display text-xs font-black tracking-wide px-3 py-1.5 transition-colors"
+            aria-label="Abrir en Apple Maps"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            Apple Maps
+          </a>
+        </div>
+
+        <div className="mt-3 text-center font-body text-[10px] font-bold text-text-tertiary">
+          {distancia != null ? `${distancia.toFixed(1)} KM` : "Por confirmar"}
         </div>
 
         {/* Details Grid (4 Columns) */}
