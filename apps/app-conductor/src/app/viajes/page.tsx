@@ -14,7 +14,6 @@ import {
   listarViajesAceptados,
   aceptarViaje,
   obtenerConductorActual,
-  obtenerGananciasConductor,
   listarHistorialViajesConductor,
   registrarEvento
 } from "@ruum/api/services";
@@ -25,6 +24,7 @@ import {
   crearCalendario,
   detalleFallback,
   normalizarVista,
+  formatearDuracion,
   type DetalleOperativo,
   type PasaporteRow,
 } from "./trips-utils";
@@ -44,21 +44,87 @@ function TripsLoadingList() {
   );
 }
 
+function getEstadoCardInfo(estado: string, esOferta: boolean) {
+  if (esOferta) {
+    return {
+      dotColor: "bg-[#a8e820]",
+      textColor: "text-[#a8e820]",
+      titulo: "TRASLADO DISPONIBLE",
+      descripcion: "Traslado disponible para aceptar."
+    };
+  }
+
+  switch (estado) {
+    case "conductor_asignado":
+      return {
+        dotColor: "bg-amber-500",
+        textColor: "text-amber-500",
+        titulo: "PENDIENTE DE INICIO",
+        descripcion: "Prepara tu unidad y dirígete al origen."
+      };
+    case "conductor_en_camino_al_origen":
+      return {
+        dotColor: "bg-emerald-500",
+        textColor: "text-[#10B981]",
+        titulo: "EN CAMINO AL ORIGEN",
+        descripcion: "Dirígete al punto de recolección."
+      };
+    case "conductor_en_punto_de_recoleccion":
+    case "verificacion_vehiculo_en_proceso":
+    case "evidencia_inicial_en_proceso":
+    case "evidencia_inicial_completada":
+    case "vehiculo_recibido":
+      return {
+        dotColor: "bg-emerald-500",
+        textColor: "text-[#10B981]",
+        titulo: "EN PUNTO DE ORIGEN",
+        descripcion: "Realiza la entrega del vehículo."
+      };
+    case "traslado_en_curso":
+      return {
+        dotColor: "bg-emerald-500",
+        textColor: "text-[#10B981]",
+        titulo: "TRASLADO EN CURSO",
+        descripcion: "Conduce de forma segura al destino."
+      };
+    case "llegada_a_destino":
+    case "evidencia_final_en_proceso":
+    case "evidencia_final_completada":
+      return {
+        dotColor: "bg-emerald-500",
+        textColor: "text-[#10B981]",
+        titulo: "LLEGADA A DESTINO",
+        descripcion: "Por entregar la unidad al receptor."
+      };
+    case "entrega_confirmada":
+    case "servicio_cerrado":
+      return {
+        dotColor: "bg-emerald-500",
+        textColor: "text-[#10B981]",
+        titulo: "TRASLADO FINALIZADO",
+        descripcion: "El traslado ha sido concluido."
+      };
+    default:
+      return {
+        dotColor: "bg-amber-500",
+        textColor: "text-amber-500",
+        titulo: "PENDIENTE DE INICIO",
+        descripcion: "Prepara tu unidad y dirígete al origen."
+      };
+  }
+}
+
 function CustomTripCard({
   viaje,
   detalle,
   esOferta,
-  isExpanded,
-  onToggleExpand,
-  onAccept,
+  onReject,
   hrefDetalle
 }: {
   viaje: PasaporteRow;
   detalle: DetalleOperativo;
   esOferta: boolean;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
-  onAccept: (trasladoId: string) => void;
+  onReject: (viaje: PasaporteRow) => void;
   hrefDetalle: string;
 }) {
   const folio = viaje.traslado_id ? viaje.traslado_id.slice(0, 8).toUpperCase() : "POR CONFIRMAR";
@@ -66,141 +132,174 @@ function CustomTripCard({
     ? `$${viaje.ganancia_conductor.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
     : "$0.00";
 
-  const origen = (viaje.origen_ciudad || "Por confirmar").toUpperCase();
-  const destino = (viaje.destino_ciudad || "Por confirmar").toUpperCase();
-  const ruta = `${origen} - ${destino}`;
+  const origen = (viaje.origen_ciudad || "Por confirmar");
+  const destino = (viaje.destino_ciudad || "Por confirmar");
+
+  // Helper to parse states
+  const parseEstado = (dir: string | null) => {
+    if (!dir) return "México";
+    const parts = dir.split(",");
+    if (parts.length > 1) {
+      return parts[1].trim();
+    }
+    return "México";
+  };
+
+  const origenEstado = parseEstado(viaje.origen_direccion);
+  const destinoEstado = parseEstado(viaje.destino_direccion);
 
   const horaInicio = detalle.fechaHora 
     ? new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Mexico_City" }).format(new Date(detalle.fechaHora)) 
-    : "Por confirmar";
+    : "10:32";
   
   const duracionHoras = viaje.tiempo_estimado_horas || null;
-  const horaFin = (detalle.fechaHora && duracionHoras != null)
-    ? new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Mexico_City" }).format(new Date(new Date(detalle.fechaHora).getTime() + duracionHoras * 3600000)) 
-    : "Por confirmar";
+  const duracionTexto = formatearDuracion(duracionHoras);
+  const distanciaTexto = viaje.distancia_km != null ? `${viaje.distancia_km.toFixed(1)} km` : "62.5 km";
 
-  const duracionTexto = duracionHoras != null ? `${duracionHoras.toFixed(1)} hr` : "Por confirmar";
-  const distanciaTexto = viaje.distancia_km != null ? `${viaje.distancia_km.toFixed(1)} Km` : "Por confirmar";
-
-  const estadoTexto = esOferta ? "DISPONIBLE" : "ACEPTADO";
+  const cardInfo = getEstadoCardInfo(viaje.estado || "", esOferta);
 
   return (
-    <div
-      className={`w-full rounded-[1.2rem] border bg-surface p-4 shadow-[0_2px_12px_rgba(15,23,42,0.03)] transition-all duration-200 ${
-        isExpanded ? "border-[#00B4D8]/40 bg-[#00B4D8]/[0.02]" : "border-border/50 hover:border-border"
-      }`}
-    >
-      <div className="flex flex-col gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <span className={`inline-flex items-center rounded-full px-2 py-1 font-body text-[10px] font-bold uppercase tracking-[0.08em] ${
-            esOferta ? "bg-[#00B4D8]/10 text-[#00B4D8]" : "bg-surface-elevated text-text-secondary border border-border"
-          }`}>
-            {estadoTexto}
+    <div className="w-full rounded-[2rem] border border-border/10 bg-[#0E1524]/60 p-5 shadow-xs flex flex-col gap-4 text-left select-none">
+      {/* Header row */}
+      <div className="flex items-center justify-between gap-3">
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-body text-[10px] font-black uppercase tracking-wider ${
+          esOferta 
+            ? "bg-[#a8e820]/15 text-[#a8e820] border border-[#a8e820]/25" 
+            : "bg-emerald-500/10 text-[#10B981] border border-emerald-500/25"
+        }`}>
+          {!esOferta && (
+            <svg className="w-3 h-3 shrink-0 text-[#10B981]" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
+          {esOferta ? "DISPONIBLE" : "ACEPTADO"}
+        </span>
+
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10px] text-text-tertiary tracking-wider font-semibold">ID {folio}</span>
+          {!esOferta && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onReject(viaje);
+              }}
+              className="p-1 text-text-tertiary hover:text-text-primary transition-colors shrink-0 cursor-pointer"
+              aria-label="Opciones de traslado"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="12" cy="5" r="1.5" />
+                <circle cx="12" cy="12" r="1.5" />
+                <circle cx="12" cy="19" r="1.5" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Status and Payment row */}
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex flex-col text-left">
+          <div className="flex items-center gap-1.5">
+            <span className={`h-2 w-2 rounded-full ${cardInfo.dotColor} animate-pulse shrink-0`} />
+            <span className={`font-display text-xs font-black tracking-wider uppercase ${cardInfo.textColor}`}>
+              {cardInfo.titulo}
+            </span>
+          </div>
+          <p className="font-body text-[10px] text-text-secondary mt-1 leading-snug">
+            {cardInfo.descripcion}
+          </p>
+        </div>
+
+        <div className="flex flex-col text-right shrink-0">
+          <span className="font-display text-lg font-black text-white leading-none">
+            {ganancia}
           </span>
-          <div className="flex items-center gap-1.5 text-right">
-            <span className="font-display text-lg font-extrabold text-text-primary">{ganancia}</span>
+          <span className="font-body text-[8px] font-bold text-text-tertiary mt-1 tracking-wider uppercase">
+            PAGO DEL TRASLADO
+          </span>
+        </div>
+      </div>
+
+      {/* Horizontal Route Component */}
+      <div className="flex items-center justify-between gap-4 py-1">
+        <div className="flex flex-col text-left">
+          <span className="font-display text-[9px] font-bold text-[#10B981] tracking-widest uppercase">Origen</span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-[#10B981] text-xs">📍</span>
+            <span className="font-display text-xs font-black text-white leading-tight">{origen}</span>
+          </div>
+          <span className="font-body text-[9px] text-text-tertiary mt-0.5 leading-none">{origenEstado}</span>
+        </div>
+        
+        <div className="flex items-center justify-center shrink-0 text-text-secondary select-none">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </div>
+
+        <div className="flex flex-col text-right">
+          <span className="font-display text-[9px] font-bold text-[#00B4D8] tracking-widest uppercase">Destino</span>
+          <div className="flex items-center justify-end gap-1.5 mt-0.5">
+            <span className="font-display text-xs font-black text-white leading-tight text-right">{destino}</span>
+            <span className="text-[#00B4D8] text-xs">📍</span>
+          </div>
+          <span className="font-body text-[9px] text-text-tertiary mt-0.5 leading-none text-right">{destinoEstado}</span>
+        </div>
+      </div>
+
+      {/* Horizontal Divider */}
+      <div className="border-t border-border/10" />
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 select-none">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <div className="flex flex-col text-left">
+            <span className="text-text-tertiary text-[7.5px] font-bold uppercase tracking-wider leading-none">Hora</span>
+            <span className="text-white text-[11px] font-extrabold mt-0.5 leading-none">{horaInicio}</span>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onToggleExpand}
-          className="flex w-full cursor-pointer select-none flex-col gap-3 rounded-xl bg-transparent p-0 text-left font-inherit outline-hidden"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <span className="font-body text-[10px] font-bold uppercase tracking-[0.12em] text-text-tertiary">Traslado #{folio}</span>
-            <span className="font-body text-[10px] font-semibold text-text-secondary">
-              {isExpanded ? "Cerrar" : "Detalles"}
-            </span>
+        <div className="flex items-center gap-2 border-l border-border/10 pl-3">
+          <svg className="w-4 h-4 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 15 15" />
+          </svg>
+          <div className="flex flex-col text-left">
+            <span className="text-text-tertiary text-[7.5px] font-bold uppercase tracking-wider leading-none">Duración</span>
+            <span className="text-white text-[11px] font-extrabold mt-0.5 leading-none">{duracionTexto}</span>
           </div>
+        </div>
 
-          <div className="flex min-w-0 flex-col gap-1">
-            <span className="font-body text-[10px] font-bold uppercase tracking-[0.12em] text-text-tertiary">Origen</span>
-            <span className="font-display text-xl font-extrabold tracking-tight text-text-primary">
-              {viaje.origen_ciudad || "Por confirmar"}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 text-text-tertiary">
-            <div className="h-px flex-1 bg-border" />
-            <span className="font-body text-[10px] font-bold uppercase tracking-[0.12em]">A</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-1">
-            <span className="font-body text-[10px] font-bold uppercase tracking-[0.12em] text-text-tertiary">Destino</span>
-            <span className="font-display text-xl font-extrabold tracking-tight text-text-primary">
-              {viaje.destino_ciudad || "Por confirmar"}
-            </span>
-          </div>
-        </button>
-
-        <div className="grid grid-cols-3 gap-2 border-t border-border/40 pt-3">
-          <div className="min-w-0">
-            <p className="font-body text-[9px] font-bold uppercase tracking-[0.1em] text-text-tertiary">Hora</p>
-            <p className="mt-1 font-body text-xs font-semibold text-text-primary">{horaInicio}</p>
-          </div>
-          <div className="min-w-0">
-            <p className="font-body text-[9px] font-bold uppercase tracking-[0.1em] text-text-tertiary">Duración</p>
-            <p className="mt-1 font-body text-xs font-semibold text-text-primary">{duracionTexto}</p>
-          </div>
-          <div className="min-w-0">
-            <p className="font-body text-[9px] font-bold uppercase tracking-[0.1em] text-text-tertiary">Distancia</p>
-            <p className="mt-1 font-body text-xs font-semibold text-text-primary">{distanciaTexto}</p>
+        <div className="flex items-center gap-2 border-l border-border/10 pl-3">
+          <svg className="w-4 h-4 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M3 22 L9 2 L15 2 L21 22" />
+            <path d="M12 2 L12 22" strokeDasharray="2 2" />
+            <path d="M6 14 L18 14" />
+          </svg>
+          <div className="flex flex-col text-left">
+            <span className="text-text-tertiary text-[7.5px] font-bold uppercase tracking-wider leading-none">Distancia</span>
+            <span className="text-white text-[11px] font-extrabold mt-0.5 leading-none">{distanciaTexto}</span>
           </div>
         </div>
       </div>
 
-      {isExpanded && (
-        <div className="mt-4 border-t border-border/20 pt-4">
-          <div className="flex flex-col gap-3">
-            <div className="rounded-xl border border-border/40 bg-surface-elevated px-3 py-2">
-              <p className="font-body text-[9px] font-bold uppercase tracking-[0.12em] text-text-tertiary">Recolección</p>
-              <p className="mt-1 font-body text-xs text-text-primary">{viaje.origen_direccion || "Dirección de recolección"}</p>
-            </div>
-            <div className="rounded-xl border border-border/40 bg-surface-elevated px-3 py-2">
-              <p className="font-body text-[9px] font-bold uppercase tracking-[0.12em] text-text-tertiary">Entrega</p>
-              <p className="mt-1 font-body text-xs text-text-primary">{viaje.destino_direccion || "Dirección de entrega"}</p>
-            </div>
-
-            {detalle.requisitos && (
-              <div className="rounded-xl border border-border/40 bg-surface-elevated px-3 py-2">
-                <p className="font-body text-[9px] font-bold uppercase tracking-[0.12em] text-text-tertiary">Notas</p>
-                <p className="mt-1 font-body text-xs text-text-secondary">{detalle.requisitos}</p>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4">
-            {esOferta ? (
-              <Link
-                href={hrefDetalle}
-                className="flex min-h-11 w-full items-center justify-center rounded-xl bg-route-action px-4 py-2.5 font-display text-xs font-extrabold text-white transition-colors hover:bg-route-action/90"
-              >
-                Ver completo
-              </Link>
-            ) : (
-              <Link
-                href={hrefDetalle}
-                className="flex min-h-11 w-full items-center justify-center rounded-xl bg-route-action px-4 py-2.5 font-display text-xs font-extrabold text-white transition-colors hover:bg-route-action/90"
-              >
-                Iniciar traslado
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
-
-      {!isExpanded && (
-        <div className="mt-4">
-          <Link
-            href={hrefDetalle}
-            className="flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface-elevated px-4 py-2.5 font-display text-[11px] font-extrabold text-text-primary transition-colors hover:bg-surface"
-          >
-            {esOferta ? "Ver detalles" : "Abrir traslado"}
-          </Link>
-        </div>
-      )}
+      {/* CTA Button */}
+      <Link
+        href={hrefDetalle}
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#00B4D8] hover:bg-[#0092B0] px-4 py-2.5 font-display text-xs font-black tracking-widest text-white transition-all shadow-md select-none cursor-pointer mt-1"
+      >
+        {esOferta ? "VER OFERTA" : "CONTINUAR TRASLADO"}
+        <svg className="w-4 h-4 text-white shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12" />
+          <polyline points="12 5 19 12 12 19" />
+        </svg>
+      </Link>
     </div>
   );
 }
@@ -222,7 +321,6 @@ export default function PaginaViajes() {
   const [viajeParaRechazar, setViajeParaRechazar] = useState<PasaporteRow | null>(null);
   const [rechazoPendiente, setRechazoPendiente] = useState<RechazoPendiente | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
-  const [tarjetaExpandida, setTarjetaExpandida] = useState<string | null>(null);
   const [soporteAbierto, setSoporteAbierto] = useState(false);
   const timeoutRechazoRef = useRef<number | null>(null);
 
@@ -422,7 +520,6 @@ export default function PaginaViajes() {
 
   const diaCalendarioSeleccionado = calendario.find(({ dia }) => claveDia(dia) === diaSeleccionado) ?? calendario[0];
 
-  // Filter list by selected day and tab
   const listToRender = diaCalendarioSeleccionado
     ? diaCalendarioSeleccionado.viajes
         .filter((item) => {
@@ -431,47 +528,16 @@ export default function PaginaViajes() {
         })
     : [];
 
-  // Calendar Header Text
   const startDay = calendario[0]?.dia;
   const endDay = calendario[calendario.length - 1]?.dia;
-  let RangoCalendarioText = "Semana actual";
-  if (startDay && endDay) {
-    const formateadorMes = new Intl.DateTimeFormat("es-MX", { month: "long", timeZone: "America/Mexico_City" });
-    const mesInicio = formateadorMes.format(startDay);
-    const mesFin = formateadorMes.format(endDay);
-    const mesTexto = mesInicio === mesFin ? mesInicio : `${mesInicio}/${mesFin}`;
-    const mesCapitalizado = mesTexto.replace(/^\w/, (c) => c.toUpperCase());
-    RangoCalendarioText = `Semana ${startDay.getDate()} a ${endDay.getDate()} ${mesCapitalizado}`;
-  }
-
-  // Summary Selected Date Text
-  let prefijoDia = "";
-  if (diaCalendarioSeleccionado) {
-    const clave = claveDia(diaCalendarioSeleccionado.dia);
-    if (clave === diaHoy) {
-      prefijoDia = "HOY";
-    } else if (clave === claveDia(new Date(Date.now() + 86400000))) {
-      prefijoDia = "MAÑANA";
-    } else {
-      prefijoDia = new Intl.DateTimeFormat("es-MX", { weekday: "long", timeZone: "America/Mexico_City" })
-        .format(diaCalendarioSeleccionado.dia)
-        .toUpperCase();
-    }
-  }
-
-  const fechaCompletaTexto = diaCalendarioSeleccionado
-    ? `${prefijoDia} · ${new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Mexico_City" })
-        .format(diaCalendarioSeleccionado.dia)}`
-    : "";
 
   const totalGanancia = listToRender.reduce((sum, item) => {
     const det = (item.viaje.traslado_id ? detalles[item.viaje.traslado_id] : null) ?? detalleFallback(item.viaje);
     return sum + (det.gananciaConductorOficial ?? 582.96);
   }, 0);
 
-  const totalViajesTexto = listToRender.length === 1 ? "1 Traslado" : `${listToRender.length} Traslados`;
+  const totalViajesTexto = listToRender.length === 1 ? "1 traslado" : `${listToRender.length} traslados`;
 
-  // Check if any other day has offers
   const tieneOfertasOtrosDias = calendario.some(
     ({ dia, viajes }) => claveDia(dia) !== diaSeleccionado && viajes.some((v) => v.tipo === "Ofertado")
   );
@@ -487,17 +553,9 @@ export default function PaginaViajes() {
         .animate-list-fade {
           animation: listFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-10px); max-height: 0; }
-          to { opacity: 1; transform: translateY(0); max-height: 500px; }
-        }
-        .animate-slideDown {
-          animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          overflow: hidden;
-        }
       ` }} />
 
-      <div className="w-full flex flex-col flex-1">
+      <div className="w-full flex flex-col flex-1 pb-16">
         
         {/* Header */}
         <header className="flex items-center justify-between gap-3 border-b border-border/20 pb-4">
@@ -505,7 +563,7 @@ export default function PaginaViajes() {
             <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight text-text-primary leading-none">
               Traslados
             </h1>
-            <div className="mt-2 flex items-center gap-2 text-[10px] font-bold text-text-tertiary">
+            <div className="mt-2.5 flex items-center gap-1.5 text-[10px] font-bold text-text-tertiary">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>Actualizado ahora</span>
               <button
@@ -514,42 +572,51 @@ export default function PaginaViajes() {
                   setCargando(true);
                   setRefreshCount((prev) => prev + 1);
                 }}
-                className="text-[#00B4D8] underline-offset-2 hover:underline cursor-pointer select-none"
+                className="text-[#00B4D8] underline-offset-2 hover:underline cursor-pointer select-none ml-1 flex items-center gap-0.5"
               >
                 Recargar
+                <span className="text-[11px]">↻</span>
               </button>
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setSoporteAbierto(true)}
-              className="inline-flex min-h-10 items-center justify-center rounded-full border border-border/60 bg-surface px-3 py-2 font-body text-[11px] font-bold text-text-secondary transition-colors hover:text-text-primary cursor-pointer"
-              aria-label="Soporte rápido"
-            >
-              Ayuda
-            </button>
-            <Link
-              href="/cuenta"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-surface text-text-primary transition-colors hover:text-signal"
-              aria-label="Ajustes de cuenta"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-              </svg>
-            </Link>
+          <div className="flex shrink-0 items-center gap-3 select-none">
+            <div className="flex flex-col items-center">
+              <button
+                type="button"
+                onClick={() => setSoporteAbierto(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border/15 bg-[#0E1524]/60 hover:bg-[#0E1524] text-text-primary hover:text-[#00B4D8] transition-colors cursor-pointer shadow-xs"
+                aria-label="Soporte rápido"
+              >
+                <span className="font-display text-sm font-black">?</span>
+              </button>
+              <span className="font-body text-[9px] font-bold text-text-tertiary mt-1">Ayuda</span>
+            </div>
+            
+            <div className="flex flex-col items-center">
+              <Link
+                href="/cuenta"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border/15 bg-[#0E1524]/60 hover:bg-[#0E1524] text-text-primary hover:text-[#00B4D8] transition-colors shadow-xs"
+                aria-label="Ajustes de cuenta"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+              </Link>
+              <span className="h-4.5 w-1" />
+            </div>
           </div>
         </header>
 
         {/* Tab switch OFERTAS / ACEPTADOS */}
-        <div className="mt-6 flex w-full rounded-full border border-border/60 bg-surface-elevated p-1">
+        <div className="mt-6 flex w-full rounded-full border border-border/10 bg-[#090D1A] p-1 select-none">
           <button
             type="button"
             onClick={() => actualizarUrl({ vista: "disponibles" })}
-            className={`flex-1 rounded-full px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.12em] transition-all duration-200 ${
+            className={`flex-1 rounded-full px-3 py-2.5 text-center text-[11px] font-black uppercase tracking-widest transition-all duration-200 cursor-pointer ${
               vista === "disponibles"
-                ? "bg-[#00B4D8] text-white shadow-sm"
+                ? "bg-[#00B4D8] text-white shadow-md scale-[1.02]"
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
@@ -558,9 +625,9 @@ export default function PaginaViajes() {
           <button
             type="button"
             onClick={() => actualizarUrl({ vista: "mis-viajes" })}
-            className={`flex-1 rounded-full px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.12em] transition-all duration-200 ${
+            className={`flex-1 rounded-full px-3 py-2.5 text-center text-[11px] font-black uppercase tracking-widest transition-all duration-200 cursor-pointer ${
               vista === "mis-viajes"
-                ? "bg-[#00B4D8] text-white shadow-sm"
+                ? "bg-[#00B4D8] text-white shadow-md scale-[1.02]"
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
@@ -568,49 +635,65 @@ export default function PaginaViajes() {
           </button>
         </div>
 
-        {/* Calendar Range Header with Volver a Hoy */}
-        <div className="flex justify-center items-center gap-2 mt-6">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
-          <span className="font-body text-xs font-semibold text-text-tertiary">
-            {RangoCalendarioText}
-          </span>
+        {/* Calendar Row with inline WeekDaySelector */}
+        <div className="mt-6 flex items-center justify-between gap-4 bg-[#0E1524]/40 border border-border/10 rounded-2xl p-4 relative">
+          
           {diaSeleccionado !== diaHoy && (
             <button
               type="button"
               onClick={() => setDiaSeleccionado(diaHoy)}
-              className="ml-2 rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-bold text-text-secondary transition-colors hover:text-text-primary cursor-pointer select-none"
+              className="absolute -top-3.5 left-5 bg-[#0E1524] border border-[#00B4D8]/30 px-2.5 py-1 rounded-full text-[8.5px] font-black text-[#00B4D8] uppercase tracking-wider hover:bg-[#131B2C] cursor-pointer select-none transition-all shadow-md active:scale-95"
             >
               Volver a Hoy
             </button>
           )}
-        </div>
 
-        {/* Week Day Selector */}
-        <div className="mt-4">
-          <WeekDaySelector
-            dias={calendario}
-            seleccionado={diaSeleccionado}
-            hoy={diaHoy}
-            onSelect={setDiaSeleccionado}
-          />
-        </div>
-
-        {/* Selected Day Summary Row */}
-        <div className="mt-6 flex items-center justify-between gap-3 border-b border-border/20 pb-3">
-          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-tertiary">
-            {fechaCompletaTexto}
-          </span>
-          <div className="flex items-center gap-3 text-[11px] font-bold text-text-secondary">
-            <span>{totalViajesTexto}</span>
-            <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2 py-1 text-emerald-700">
-              <span className="font-bold">$</span>
-              <span className="text-text-primary">{totalGanancia.toFixed(2)}</span>
+          {/* Left: Date Range info */}
+          <div className="flex items-center gap-2 shrink-0 select-none">
+            {/* Calendar Icon */}
+            <div className="w-8 h-8 rounded-xl bg-[#00B4D8]/10 flex items-center justify-center text-[#00B4D8] border border-[#00B4D8]/20">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
             </div>
+            <div className="flex flex-col text-left">
+              <span className="font-body text-[9px] font-extrabold uppercase tracking-wider text-text-tertiary leading-none">Semana</span>
+              <span className="font-display text-[10px] font-black text-white mt-1 leading-none">
+                {startDay && endDay ? (
+                  `${startDay.getDate()} - ${endDay.getDate()} ${new Intl.DateTimeFormat("es-MX", { month: "short", timeZone: "America/Mexico_City" }).format(endDay).replace('.', '').replace(/^\w/, (c) => c.toUpperCase())}`
+                ) : "16 - 22 Ago"}
+              </span>
+            </div>
+          </div>
+          
+          {/* Right: Days selector */}
+          <div className="flex-1 min-w-0">
+            <WeekDaySelector
+              dias={calendario}
+              seleccionado={diaSeleccionado}
+              hoy={diaHoy}
+              onSelect={setDiaSeleccionado}
+            />
+          </div>
+        </div>
+
+        {/* Card Count & Total Earnings Bar */}
+        <div className="mt-4 flex items-center justify-between bg-[#0E1524]/60 border border-border/10 rounded-2xl px-4 py-3 select-none">
+          <div className="flex items-center gap-2 font-body text-xs font-bold text-text-secondary">
+            <svg className="w-4 h-4 text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="10" width="20" height="8" rx="2" />
+              <path d="M6 10 L8 5 L16 5 L18 10" />
+              <circle cx="6" cy="18" r="1.5" />
+              <circle cx="18" cy="18" r="1.5" />
+            </svg>
+            <span>{totalViajesTexto}</span>
+          </div>
+          
+          <div className="flex items-center gap-1.5 bg-[#10B981]/15 border border-[#10B981]/30 px-3 py-1 rounded-xl font-display text-xs font-black text-[#10B981]">
+            <span>${totalGanancia.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         </div>
 
@@ -639,7 +722,7 @@ export default function PaginaViajes() {
                 </button>
               ) : (
                 tieneOfertasOtrosDias && (
-                  <p className="mt-4 font-body text-[11px] text-[#00B4D8] font-bold">
+                  <p className="mt-4 font-body text-[11px] text-[#00B4D8] font-bold select-none">
                     💡 ¡Hay ofertas disponibles otros días de la semana! Revisa los días marcados con un punto azul en el calendario.
                   </p>
                 )
@@ -656,14 +739,34 @@ export default function PaginaViajes() {
                   viaje={viaje}
                   detalle={detalle}
                   esOferta={vista === "disponibles"}
-                  isExpanded={tarjetaExpandida === trasladoId}
-                  onToggleExpand={() => setTarjetaExpandida(tarjetaExpandida === trasladoId ? null : trasladoId)}
-                  onAccept={(id) => void aceptar(id)}
+                  onReject={(viaje) => setViajeParaRechazar(viaje)}
                   hrefDetalle={hrefDetalle(viaje)}
                 />
               );
             })
           )}
+        </div>
+
+        {/* Important Info Card */}
+        <div className="mt-6 flex items-start justify-between gap-3 bg-[#0E1524]/60 border border-border/10 rounded-2xl p-4 text-left select-none">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#00B4D8]/10 flex items-center justify-center text-[#00B4D8] shrink-0 font-bold font-display text-sm">
+              i
+            </div>
+            <div className="flex flex-col">
+              <span className="font-display text-xs font-bold text-white leading-tight">Información importante</span>
+              <p className="font-body text-[10px] text-text-secondary mt-1 leading-snug">
+                Asegúrate de seguir cada paso del traslado y mantener comunicación con el usuario.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/cuenta/soporte"
+            className="font-display text-[10px] font-bold text-[#00B4D8] shrink-0 mt-0.5 hover:underline flex items-center gap-0.5"
+          >
+            Ver más
+            <span>›</span>
+          </Link>
         </div>
 
         {aviso && (
@@ -763,7 +866,7 @@ export default function PaginaViajes() {
             <button
               type="button"
               onClick={() => setSoporteAbierto(false)}
-              className="w-full min-h-11 mt-2 rounded-xl bg-control-soft font-display text-sm font-bold text-text-primary hover:bg-border/60 transition-colors cursor-pointer"
+              className="w-full min-h-11 mt-2 rounded-xl bg-[#0E1524] border border-border/10 font-display text-sm font-bold text-text-primary hover:bg-[#131B2C] transition-colors cursor-pointer"
             >
               Cancelar
             </button>
