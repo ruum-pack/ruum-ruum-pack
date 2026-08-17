@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import { ConfirmarDisponibilidad } from "../ConfirmarDisponibilidad";
@@ -25,16 +25,15 @@ function PanelLoadingSkeleton() {
         </div>
         <div className="flex gap-2">
           <div className="h-8 w-8 animate-pulse rounded-full bg-surface-elevated" />
-          <div className="h-8 w-8 animate-pulse rounded-full bg-surface-elevated" />
         </div>
       </div>
-      <div className="h-16 w-full animate-pulse rounded-2xl bg-surface-elevated" />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="h-20 animate-pulse rounded-2xl bg-surface-elevated" />
+        <div className="h-20 animate-pulse rounded-2xl bg-surface-elevated" />
+      </div>
       <div className="h-16 w-full animate-pulse rounded-full bg-surface-elevated" />
       <div className="h-32 w-full animate-pulse rounded-2xl bg-surface-elevated" />
-      <div className="grid grid-cols-2 gap-4">
-        <div className="h-32 animate-pulse rounded-3xl bg-surface-elevated" />
-        <div className="h-32 animate-pulse rounded-3xl bg-surface-elevated" />
-      </div>
+      <div className="h-24 w-full animate-pulse rounded-2xl bg-surface-elevated" />
     </output>
   );
 }
@@ -112,33 +111,6 @@ const IconPin = ({ color }: { color: string }) => (
 export default function PaginaPanel() {
   const { cerrarSesion } = useCerrarSesion();
   const [soporteAbierto, setSoporteAbierto] = useState(false);
-  const [gpsActivo, setGpsActivo] = useState<boolean | null>(null);
-  const [estaOnline, setEstaOnline] = useState(
-    typeof navigator !== "undefined" ? navigator.onLine : true
-  );
-
-  useEffect(() => {
-    const actualizar = () => setEstaOnline(navigator.onLine);
-    window.addEventListener("online", actualizar);
-    window.addEventListener("offline", actualizar);
-    return () => {
-      window.removeEventListener("online", actualizar);
-      window.removeEventListener("offline", actualizar);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGpsActivo(false);
-      return;
-    }
-    const id = navigator.geolocation.watchPosition(
-      () => setGpsActivo(true),
-      () => setGpsActivo(false),
-      { enableHighAccuracy: false, maximumAge: 30_000, timeout: 10_000 }
-    );
-    return () => navigator.geolocation.clearWatch(id);
-  }, []);
 
   const {
     cargando,
@@ -153,7 +125,9 @@ export default function PaginaPanel() {
     seleccionarDisponibilidad,
     persistirDisponibilidad,
     setDisponibilidadPendiente,
-    notificacionesCount = 0
+    notificacionesCount = 0,
+    gananciasHoy = 0,
+    trasladosHoy = 0
   } = usePanelData() as any;
 
   if (enRevision) {
@@ -227,27 +201,25 @@ export default function PaginaPanel() {
             </div>
           </header>
 
-          {/* Barra de Estado Unificada */}
-          <div className="flex items-center justify-around bg-[#0E1524] border border-border/15 rounded-2xl py-3.5 px-4 mt-6 select-none shadow-xs">
-            <div className={`flex items-center gap-2 text-xs font-semibold ${gpsActivo ? "text-[#a8e820]" : gpsActivo === false ? "text-danger" : "text-text-tertiary"}`}>
-              <span className={`h-2.5 w-2.5 rounded-full ${gpsActivo ? "bg-[#a8e820]" : gpsActivo === false ? "bg-danger" : "bg-text-disabled animate-pulse"}`} />
-              <span className="text-text-primary font-bold">
-                {gpsActivo ? "GPS activo" : gpsActivo === false ? "GPS inactivo" : "GPS…"}
+          {/* Barra de Métricas del Día */}
+          <div className="grid grid-cols-2 gap-3 mt-6">
+            <div className="bg-[#0E1524] border border-border/15 rounded-2xl px-4 py-3.5 flex flex-col gap-0.5 shadow-xs">
+              <span className="text-text-tertiary text-[9px] font-extrabold tracking-widest uppercase leading-none">Ganancias hoy</span>
+              <span className="font-display text-xl font-black text-[#a8e820] mt-1.5 leading-none tabular-nums">
+                {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(gananciasHoy)}
+              </span>
+              <span className="text-text-disabled text-[10px] mt-1">
+                {trasladosHoy === 0 ? "Sin traslados cerrados" : `${trasladosHoy} traslado${trasladosHoy !== 1 ? "s" : ""} cerrado${trasladosHoy !== 1 ? "s" : ""}`}
               </span>
             </div>
-            <div className="w-[1px] h-4 bg-border/20" />
-            <div className={`flex items-center gap-2 text-xs font-semibold ${estaOnline ? "text-[#a8e820]" : "text-danger"}`}>
-              {estaOnline ? (
-                <svg className="w-4 h-4 text-[#a8e820]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4 text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              )}
-              <span className="text-text-primary font-bold">{estaOnline ? "Conectado" : "Sin conexión"}</span>
+            <div className="bg-[#0E1524] border border-border/15 rounded-2xl px-4 py-3.5 flex flex-col gap-0.5 shadow-xs">
+              <span className="text-text-tertiary text-[9px] font-extrabold tracking-widest uppercase leading-none">Traslados hoy</span>
+              <span className="font-display text-xl font-black text-text-primary mt-1.5 leading-none tabular-nums">
+                {trasladosHoy}
+              </span>
+              <span className="text-text-disabled text-[10px] mt-1">
+                <Link href="/ganancias" className="text-[#00B4D8] hover:underline">Ver detalle →</Link>
+              </span>
             </div>
           </div>
 
@@ -403,44 +375,8 @@ export default function PaginaPanel() {
                 Ver detalle <span className="text-[10px]">&gt;</span>
               </Link>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4 mt-4 select-none">
-              <div className="flex items-center gap-2.5">
-                <svg
-                  className={`w-4 h-4 shrink-0 ${gpsActivo ? "text-[#a8e820]" : gpsActivo === false ? "text-danger" : "text-text-disabled"}`}
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
-                >
-                  {gpsActivo === false ? (
-                    <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
-                  ) : (
-                    <polyline points="20 6 9 17 4 12" />
-                  )}
-                </svg>
-                <div className="flex flex-col leading-none">
-                  <span className="text-xs font-bold text-text-primary">GPS</span>
-                  <span className="text-[10px] text-text-secondary mt-1">
-                    {gpsActivo ? "Activo" : gpsActivo === false ? "Inactivo" : "Verificando"}
-                  </span>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2.5">
-                <svg
-                  className={`w-4 h-4 shrink-0 ${estaOnline ? "text-[#a8e820]" : "text-danger"}`}
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
-                >
-                  {estaOnline ? (
-                    <polyline points="20 6 9 17 4 12" />
-                  ) : (
-                    <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
-                  )}
-                </svg>
-                <div className="flex flex-col leading-none">
-                  <span className="text-xs font-bold text-text-primary">Conectividad</span>
-                  <span className="text-[10px] text-text-secondary mt-1">{estaOnline ? "Conectado" : "Sin conexión"}</span>
-                </div>
-              </div>
-
+            <div className="flex items-center gap-6 mt-4 select-none">
               <div className="flex items-center gap-2.5">
                 <svg className={`w-4 h-4 ${!documentoBloqueante ? "text-[#a8e820]" : "text-danger"} shrink-0`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
                   {!documentoBloqueante ? (
@@ -456,6 +392,8 @@ export default function PaginaPanel() {
                   </span>
                 </div>
               </div>
+
+              <div className="w-[1px] h-8 bg-border/20" />
 
               <div className="flex items-center gap-2.5">
                 <svg className="w-4 h-4 text-[#a8e820] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
