@@ -14,7 +14,6 @@ from docx.shared import Inches, Pt, RGBColor
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "app-conductor" / "informe-flujos-app-conductor.docx"
-CODIGO_REVISADO = date(2026, 8, 17)
 
 BLUE = RGBColor(46, 116, 181)
 DARK_BLUE = RGBColor(31, 77, 120)
@@ -156,18 +155,17 @@ def add_title(doc: Document) -> None:
     r.font.size = Pt(12)
     r.font.color.rgb = MUTED
 
+    table = doc.add_table(rows=5, cols=2)
+    table.style = "Table Grid"
+    set_table_geometry(table, [2200, 7160])
+    set_cell_margins(table)
     rows = [
         ("Aplicacion", "@ruum/app-conductor"),
         ("Ubicacion revisada", "C:\\Users\\hmlom\\ruum\\apps\\app-conductor"),
         ("Fecha del informe", date.today().isoformat()),
-        ("Corte de revision de codigo", CODIGO_REVISADO.isoformat()),
         ("Version del paquete", "1.0.0"),
-        ("Alcance", "Flujos de registro, autenticacion, panel, traslados, evidencia, seguridad, cuenta, ganancias, gastos, soporte, offline, Android y observabilidad."),
+        ("Alcance", "Flujos de registro, autenticacion, panel, viajes, evidencia, seguridad, cuenta, ganancias, soporte, offline, Android y observabilidad."),
     ]
-    table = doc.add_table(rows=len(rows), cols=2)
-    table.style = "Table Grid"
-    set_table_geometry(table, [2200, 7160])
-    set_cell_margins(table)
     for i, (label, value) in enumerate(rows):
         table.cell(i, 0).text = label
         table.cell(i, 1).text = value
@@ -243,7 +241,7 @@ def build() -> None:
         "El frontend guia la experiencia, pero las decisiones sensibles dependen de Supabase, RLS, RPCs, Storage privado y servicios compartidos de @ruum/api.",
         "El lenguaje visible favorece 'traslados'; internamente persisten rutas y servicios con nombre historico '/viajes'.",
         "La app ya contempla uso Android con Capacitor, seguimiento de ubicacion, push notifications, cola local de evidencia y un modo de mitigacion para conectividad intermitente.",
-        "Los importes al conductor se alimentan desde pasaporte_digital, traslados y payouts_conductor; el informe separa los importes backend de los fallbacks visibles de UI que aun existen.",
+        "Los importes al conductor se muestran solo cuando existe estado economico explicito del backend; no se infieren montos en la UI.",
     ])
 
     doc.add_heading("2. Arquitectura y superficies principales", level=1)
@@ -340,7 +338,6 @@ def build() -> None:
         "Rechazar registra evento 'rechazo_oferta_conductor' mediante registrarEvento, no como borrado silencioso.",
         "La elegibilidad usa reglas compartidas esElegibleParaViaje segun tipo de vehiculo y perfil del conductor.",
         "La distancia al origen se etiqueta como aproximada y en linea recta; no promete ETA vial.",
-        "La card movil actual conserva fallbacks visuales para hora, distancia y ganancia cuando faltan datos; esos valores deben leerse como placeholder de presentacion, no como contrato operativo.",
     ])
 
     doc.add_heading("8. Flujo completo de vida de un traslado", level=1)
@@ -423,12 +420,10 @@ def build() -> None:
 
     doc.add_heading("12. Ganancias y datos bancarios", level=1)
     doc.add_paragraph(
-        "El modulo de ganancias consulta datos bancarios, payouts_conductor y traslados del conductor autenticado. La vista pasaporte_digital fue actualizada para calcular ganancia_conductor cuando la ganancia congelada aun es nula, y calcular_pago_conductor ahora devuelve null si no hay precio o certificacion, evitando errores en viajes sin conductor o sin certificacion asignada."
+        "El modulo de ganancias evita inferir dinero desde el frontend. El resumen semanal y los detalles dependen de payouts_conductor; DriverEarning muestra estado economico explicito como sin_calcular, estimado, en_validacion, confirmado, programado, pagado, retenido o rechazado."
     )
     add_table(doc, ["Flujo", "Detalle"], [
         ["Ganancias", "Carga resumen e historial de pagos; muestra vehiculos trasladados, generado, gastos autorizados, ajustes, retenciones y deposito final cuando existen."],
-        ["Fallback economico visible", "La pagina de ganancias aun calcula un monto de respaldo con precio_final/precio_cotizado * 0.85 si no hay ganancia_conductor_congelada; debe tratarse como riesgo de honestidad financiera hasta que se elimine o se respalde por contrato backend."],
-        ["Gastos de traslado", "La migracion 20260815000100 habilita que el conductor administre gastos_traslado solo de traslados asignados a su Auth mediante policy RLS."],
         ["Datos bancarios", "Captura titular, banco, CLABE y tarjeta; requiere reautenticacion y llama conductor_guarda_datos_bancarios."],
         ["Auditoria", "El guardado queda en datos_bancarios_conductor con estado en_revision y evento sin exponer numeros completos."],
     ], [2300, 7060])
@@ -466,7 +461,6 @@ def build() -> None:
         "La app evita exponer completos datos sensibles mediante mascaras, tooltips y mensajes de contexto.",
         "Las transiciones sensibles deben permanecer server-owned en RPCs, RLS y servicios compartidos.",
         "Los errores de conectividad se registran con codigos y metadatos operativos, no con payloads sensibles.",
-        "La aprobacion operativa no depende de crear cuenta Auth: el panel exige estado_expediente aprobado y conductor activo o modo_prueba_supervisada antes de cargar operacion.",
     ])
 
     doc.add_heading("16. Accesibilidad y UX operacional", level=1)
@@ -484,8 +478,6 @@ def build() -> None:
         ["Tracking", "Foreground Service existe, pero requiere evidencia de piloto.", "Conservar actas por dispositivo y logs estructurados sin datos sensibles."],
         ["Push", "Depende de configuracion de FCM y canales.", "Validar registro, entrega, apertura y desactivacion por logout."],
         ["Geocerca origen", "Destino tiene RPC atomica; origen podria requerir rigor equivalente.", "Decidir si Operacion necesita RPC atomica de llegada a origen."],
-        ["Ganancias", "Hay fallbacks de monto en UI de viajes/ganancias cuando falta ganancia congelada o datos de pasaporte.", "Eliminar inferencias de dinero en frontend o etiquetarlas como estimaciones no pagaderas respaldadas por backend."],
-        ["Detalle de traslado", "TripDetailsClient conserva placeholders de distancia, pasajeros, autos y direcciones para ciertos campos vacios.", "Reemplazar por 'Por confirmar' sin numero ficticio o bloquear el dato hasta recibir contrato real."],
         ["Migraciones", "Ambientes compartidos pueden no tener la cadena completa.", "Verificar contratos RPC/RLS antes de pruebas productivas."],
     ], [1800, 3800, 3760])
 
@@ -501,10 +493,6 @@ def build() -> None:
         ["src/lib/cola-offline.ts", "Cola local, sincronizacion, Storage privado y backoff."],
         ["src/app/ViajeActivoContext.tsx y hooks asociados", "Cache, suscripcion, tracking y estado global."],
         ["src/app/ganancias y src/app/cuenta/**", "Pagos, datos bancarios, perfil, documentos y soporte."],
-        ["packages/api/src/services/traslados.ts", "Aceptacion, elegibilidad, avance por RPC y llegada atomica a destino."],
-        ["packages/api/src/services/evidencia.ts", "Completitud, metodo de pago requerido y auditoria de evidencia inicial/final."],
-        ["packages/api/src/services/conductores.ts", "Ganancias, datos bancarios, disponibilidad, historial y preferencias."],
-        ["supabase/migrations/20260815000100, 20260816000200, 20260816000300", "Politicas de gastos, ganancia del conductor en pasaporte y correccion de certificacion NULL."],
         ["package.json", "Versiones, scripts y dependencias."],
     ], [3600, 5760])
 

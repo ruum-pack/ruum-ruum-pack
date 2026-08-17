@@ -157,43 +157,6 @@ async function ensureConductor(admin: AdminClient, authUserId: string) {
 }
 
 async function prepareFixture(admin: AdminClient, conductorId: string, ownerAuthUserId: string) {
-  const hoy = new Date();
-  
-  // Format YYYY-MM-DD in Mexico City time
-  const hoyPartes = new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    timeZone: "America/Mexico_City"
-  }).formatToParts(hoy);
-  const valor = Object.fromEntries(hoyPartes.map((p) => [p.type, p.value]));
-  const hoyStr = `${valor.year}-${valor.month}-${valor.day}`;
-
-  const disponibleFecha = `${hoyStr}T16:00:00-06:00`;
-  const cotizacionExpira = `${hoyStr}T23:59:59-06:00`;
-  const activoFecha = `${hoyStr}T18:00:00-06:00`;
-
-  // Calculate start/end of current week (Sunday-Saturday) for payouts
-  const currentDay = hoy.getDay(); // 0 is Sunday, 6 is Saturday
-  const sunday = new Date(hoy);
-  sunday.setDate(hoy.getDate() - currentDay);
-  const saturday = new Date(sunday);
-  saturday.setDate(sunday.getDate() + 6);
-
-  const formatYYYMMDD = (d: Date) => {
-    const p = new Intl.DateTimeFormat("en-CA", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      timeZone: "America/Mexico_City"
-    }).formatToParts(d);
-    const v = Object.fromEntries(p.map((item) => [item.type, item.value]));
-    return `${v.year}-${v.month}-${v.day}`;
-  };
-
-  const periodoInicio = formatYYYMMDD(sunday);
-  const periodoFin = formatYYYMMDD(saturday);
-
   await upsert(admin, "preferencias_conductor", {
     conductor_id: conductorId,
     modo_no_molestar: false,
@@ -261,7 +224,7 @@ async function prepareFixture(admin: AdminClient, conductorId: string, ownerAuth
     precio_final: 1450,
     tipo_pago: "anticipado",
     modalidad_programacion: "programado",
-    fecha_hora_programada: disponibleFecha,
+    fecha_hora_programada: "2026-07-21T16:00:00-06:00",
     tipo_ruta: "local",
     tipo_servicio: "personal",
     motivo_servicio: "traslado_especial",
@@ -269,7 +232,7 @@ async function prepareFixture(admin: AdminClient, conductorId: string, ownerAuth
     distancia_km: 18.4,
     tiempo_estimado_horas: 0.85,
     presupuesto_usuario: 1500,
-    cotizacion_expira_en: cotizacionExpira
+    cotizacion_expira_en: "2026-07-21T12:00:00-06:00"
   };
 
   await upsert(admin, "traslados", {
@@ -286,7 +249,7 @@ async function prepareFixture(admin: AdminClient, conductorId: string, ownerAuth
     estado: "evidencia_inicial_en_proceso",
     conductor_id: conductorId,
     clave_idempotencia: "00000000-0000-4000-8000-00000000e215",
-    fecha_hora_programada: activoFecha
+    fecha_hora_programada: "2026-07-21T18:00:00-06:00"
   });
 
   for (const [index, tipo] of ["licencia_frente", "licencia_reverso", "identificacion_oficial", "documento_operativo"].entries()) {
@@ -305,8 +268,8 @@ async function prepareFixture(admin: AdminClient, conductorId: string, ownerAuth
   await upsert(admin, "payouts_conductor", {
     id: E2E_PAYOUT_ID,
     conductor_id: conductorId,
-    periodo_inicio: periodoInicio,
-    periodo_fin: periodoFin,
+    periodo_inicio: "2026-07-13",
+    periodo_fin: "2026-07-19",
     monto_bruto: 3200,
     ajustes: 120,
     monto_neto: 3080,
@@ -345,11 +308,11 @@ async function globalSetup(config: FullConfig) {
     console.error(`[BROWSER ERROR] ${err.message}`);
   });
   try {
-    await page.goto("/onboarding", { waitUntil: "load", timeout: 60000 });
+    await page.goto("/onboarding", { waitUntil: "networkidle" });
     await page.evaluate(() => {
       localStorage.setItem("CapacitorStorage.ruum_conductor_onboarding_visto", "1");
     });
-    await page.goto("/login", { waitUntil: "load", timeout: 60000 });
+    await page.goto("/login", { waitUntil: "networkidle" });
     await page.waitForTimeout(2000); // Wait for React hydration to complete
     await page.locator('input[type="email"]').fill(conductorEmail);
     await page.locator('input[type="password"]').fill(conductorPassword);
