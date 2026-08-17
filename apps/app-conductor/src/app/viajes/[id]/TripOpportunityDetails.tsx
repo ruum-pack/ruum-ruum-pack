@@ -1127,21 +1127,6 @@ export function TripOpportunityDetails({
                     {procesando ? TEXTOS_CARGANDO.actualizando : "¡LLEGUE!"}
                   </button>
                 )}
-
-                {/* Secondary Action Button (Rechazar Traslado) */}
-                <button
-                  type="button"
-                  onClick={() => setConfirmarAccion("rechazar")}
-                  disabled={procesando}
-                  className="w-full min-h-12 rounded-2xl bg-transparent border border-red-500/50 hover:border-red-500 hover:bg-red-500/10 text-red-500 font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-xs select-none flex items-center justify-center gap-1.5 focus:outline-hidden"
-                >
-                  <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                  RECHAZAR TRASLADO
-                </button>
-
                 {/* Important safety warning disclaimer */}
                 <div className="flex items-start gap-2.5 px-1 py-1.5 select-none">
                   <svg className="w-4.5 h-4.5 text-[#10B981] shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
