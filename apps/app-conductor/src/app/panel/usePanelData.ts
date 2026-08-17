@@ -53,6 +53,7 @@ export function usePanelData() {
   const [viajesAceptados, setViajesAceptados] = useState<PasaporteRow[]>([]);
   const [viajesDisponibles, setViajesDisponibles] = useState<PasaporteRow[]>([]);
   const [enRevision, setEnRevision] = useState<PanelReviewState | null>(null);
+  const [notificacionesCount, setNotificacionesCount] = useState(0);
   const [cargando, setCargando] = useState(true);
   const ultimoTriggerDisponibilidadRef = useRef(0);
 
@@ -116,7 +117,11 @@ export function usePanelData() {
         const resultados = await Promise.allSettled([
           listarViajesAceptados(cliente, real.id),
           listarViajesDisponibles(cliente),
-          obtenerDisponibilidadConductor(cliente, real.id)
+          obtenerDisponibilidadConductor(cliente, real.id),
+          (cliente as any)
+            .from("notificaciones_conductor")
+            .select("id", { count: "exact", head: true })
+            .is("leida_en", null)
         ]);
 
         const aceptados = resultados[0].status === "fulfilled" ? resultados[0].value : [];
@@ -124,9 +129,14 @@ export function usePanelData() {
         const disponibilidadOperativa = resultados[2].status === "fulfilled"
           ? resultados[2].value
           : "no_disponible" as const;
+        const countNoLeidas =
+          resultados[3].status === "fulfilled"
+            ? ((resultados[3].value as any)?.count ?? 0)
+            : 0;
 
         setViajesAceptados(aceptados);
         setViajesDisponibles(disponibles);
+        setNotificacionesCount(countNoLeidas);
         setDisponibilidad(aceptados.some((viaje) => viaje.estado === "traslado_en_curso") ? "en_viaje" : disponibilidadOperativa);
       } catch (err) {
         setErrorDisponibilidad(traducirErrorOperativo(err, "No pudimos cargar tu información operativa."));
@@ -200,6 +210,7 @@ export function usePanelData() {
     viajeActivoPrincipal,
     proximoViaje,
     documentoBloqueante,
+    notificacionesCount,
     errorDisponibilidad,
     seleccionarDisponibilidad,
     persistirDisponibilidad,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import { ConfirmarDisponibilidad } from "../ConfirmarDisponibilidad";
@@ -112,6 +112,34 @@ const IconPin = ({ color }: { color: string }) => (
 export default function PaginaPanel() {
   const { cerrarSesion } = useCerrarSesion();
   const [soporteAbierto, setSoporteAbierto] = useState(false);
+  const [gpsActivo, setGpsActivo] = useState<boolean | null>(null);
+  const [estaOnline, setEstaOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
+
+  useEffect(() => {
+    const actualizar = () => setEstaOnline(navigator.onLine);
+    window.addEventListener("online", actualizar);
+    window.addEventListener("offline", actualizar);
+    return () => {
+      window.removeEventListener("online", actualizar);
+      window.removeEventListener("offline", actualizar);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGpsActivo(false);
+      return;
+    }
+    const id = navigator.geolocation.watchPosition(
+      () => setGpsActivo(true),
+      () => setGpsActivo(false),
+      { enableHighAccuracy: false, maximumAge: 30_000, timeout: 10_000 }
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, []);
+
   const {
     cargando,
     conductor,
@@ -170,12 +198,12 @@ export default function PaginaPanel() {
             <div className="flex flex-col text-left">
               <span className="font-body text-sm font-medium text-text-tertiary">Hola,</span>
               <h1 className="font-display text-2xl font-black tracking-tight text-text-primary mt-1 uppercase">
-                {conductor?.nombre ?? "ARGELIA LOMELIN"}
+                {conductor?.nombre ?? "—"}
               </h1>
               <p className="mt-1 font-body text-xs text-text-secondary">
-                {conductor?.email && conductor?.telefono 
-                  ? `${conductor.email} • ${conductor.telefono}` 
-                  : conductor?.email || conductor?.telefono || "gelo@concer.com • +52 961 207 3599"}
+                {conductor?.email && conductor?.telefono
+                  ? `${conductor.email} • ${conductor.telefono}`
+                  : conductor?.email || conductor?.telefono || ""}
               </p>
             </div>
 
@@ -190,25 +218,36 @@ export default function PaginaPanel() {
                   <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
                   <path d="M10 21h4" />
                 </svg>
-                <span className="absolute top-1.5 right-1.5 bg-danger text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center border border-[#070B14] shadow-xs">
-                  {notificacionesCount > 0 ? notificacionesCount : 2}
-                </span>
+                {notificacionesCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 bg-danger text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center border border-[#070B14] shadow-xs">
+                    {notificacionesCount}
+                  </span>
+                )}
               </Link>
             </div>
           </header>
 
           {/* Barra de Estado Unificada */}
           <div className="flex items-center justify-around bg-[#0E1524] border border-border/15 rounded-2xl py-3.5 px-4 mt-6 select-none shadow-xs">
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#a8e820]">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#a8e820]" />
-              <span className="text-text-primary font-bold">GPS activo</span>
+            <div className={`flex items-center gap-2 text-xs font-semibold ${gpsActivo ? "text-[#a8e820]" : gpsActivo === false ? "text-danger" : "text-text-tertiary"}`}>
+              <span className={`h-2.5 w-2.5 rounded-full ${gpsActivo ? "bg-[#a8e820]" : gpsActivo === false ? "bg-danger" : "bg-text-disabled animate-pulse"}`} />
+              <span className="text-text-primary font-bold">
+                {gpsActivo ? "GPS activo" : gpsActivo === false ? "GPS inactivo" : "GPS…"}
+              </span>
             </div>
             <div className="w-[1px] h-4 bg-border/20" />
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#a8e820]">
-              <svg className="w-4 h-4 text-[#a8e820]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              <span className="text-text-primary font-bold">Sincronizado</span>
+            <div className={`flex items-center gap-2 text-xs font-semibold ${estaOnline ? "text-[#a8e820]" : "text-danger"}`}>
+              {estaOnline ? (
+                <svg className="w-4 h-4 text-[#a8e820]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              )}
+              <span className="text-text-primary font-bold">{estaOnline ? "Conectado" : "Sin conexión"}</span>
             </div>
           </div>
 
@@ -266,7 +305,7 @@ export default function PaginaPanel() {
                   <div className="border border-purple-500/20 bg-purple-500/5 rounded-lg px-2.5 py-1.5 flex flex-col items-center">
                     <span className="text-[8px] text-text-tertiary font-bold tracking-wider leading-none">FOLIO</span>
                     <span className="font-mono text-[10px] font-bold text-text-primary mt-1">
-                      {viajeActivoPrincipal.traslado_id?.slice(0, 8).toUpperCase() || "9F61265D"}
+                      {folioViaje(viajeActivoPrincipal)}
                     </span>
                   </div>
                 </div>
@@ -278,7 +317,7 @@ export default function PaginaPanel() {
                     <div className="flex flex-col">
                       <span className="text-[9px] text-text-tertiary font-bold tracking-wider uppercase leading-none">Origen</span>
                       <span className="text-sm font-black text-text-primary mt-1">
-                        {viajeActivoPrincipal.origen_ciudad || "San Mateo Atenco"}
+                        {viajeActivoPrincipal.origen_ciudad || viajeActivoPrincipal.origen_direccion || "Punto de recolección"}
                       </span>
                     </div>
                   </div>
@@ -292,7 +331,7 @@ export default function PaginaPanel() {
                     <div className="flex flex-col">
                       <span className="text-[9px] text-text-tertiary font-bold tracking-wider uppercase leading-none">Destino</span>
                       <span className="text-sm font-black text-text-primary mt-1">
-                        {viajeActivoPrincipal.destino_ciudad || "Tuxtla Gutiérrez"}
+                        {viajeActivoPrincipal.destino_ciudad || viajeActivoPrincipal.destino_direccion || "Punto de entrega"}
                       </span>
                     </div>
                   </div>
@@ -367,28 +406,48 @@ export default function PaginaPanel() {
             
             <div className="grid grid-cols-2 gap-4 mt-4 select-none">
               <div className="flex items-center gap-2.5">
-                <svg className="w-4 h-4 text-[#a8e820] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
+                <svg
+                  className={`w-4 h-4 shrink-0 ${gpsActivo ? "text-[#a8e820]" : gpsActivo === false ? "text-danger" : "text-text-disabled"}`}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
+                >
+                  {gpsActivo === false ? (
+                    <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
+                  ) : (
+                    <polyline points="20 6 9 17 4 12" />
+                  )}
                 </svg>
                 <div className="flex flex-col leading-none">
                   <span className="text-xs font-bold text-text-primary">GPS</span>
-                  <span className="text-[10px] text-text-secondary mt-1">Activo</span>
+                  <span className="text-[10px] text-text-secondary mt-1">
+                    {gpsActivo ? "Activo" : gpsActivo === false ? "Inactivo" : "Verificando"}
+                  </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5">
-                <svg className="w-4 h-4 text-[#a8e820] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
+                <svg
+                  className={`w-4 h-4 shrink-0 ${estaOnline ? "text-[#a8e820]" : "text-danger"}`}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
+                >
+                  {estaOnline ? (
+                    <polyline points="20 6 9 17 4 12" />
+                  ) : (
+                    <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
+                  )}
                 </svg>
                 <div className="flex flex-col leading-none">
                   <span className="text-xs font-bold text-text-primary">Conectividad</span>
-                  <span className="text-[10px] text-text-secondary mt-1">Conectado</span>
+                  <span className="text-[10px] text-text-secondary mt-1">{estaOnline ? "Conectado" : "Sin conexión"}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5">
                 <svg className={`w-4 h-4 ${!documentoBloqueante ? "text-[#a8e820]" : "text-danger"} shrink-0`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
+                  {!documentoBloqueante ? (
+                    <polyline points="20 6 9 17 4 12" />
+                  ) : (
+                    <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
+                  )}
                 </svg>
                 <div className="flex flex-col leading-none">
                   <span className="text-xs font-bold text-text-primary">Documentos</span>
