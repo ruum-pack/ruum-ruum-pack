@@ -289,111 +289,135 @@ export function TripOpportunityDetails({
       <div className="w-full flex flex-col flex-1 animate-fade-in pb-20">
         {esOferta ? (
           /* SINGLE-COLUMN OFFER VIEW */
-          <div className="mx-auto w-full max-w-md flex flex-col gap-6">
+          <div className="mx-auto w-full max-w-md flex flex-col pb-4">
              {/* Header */}
-             <header className="grid grid-cols-[auto_1fr_auto] items-center pb-4 border-b border-border/10 select-none">
+             <header className="grid grid-cols-[auto_1fr_auto] items-center pt-2 pb-4 select-none">
                <Link
                  href={volver}
                  className="p-1.5 text-text-secondary hover:text-text-primary transition-colors shrink-0"
                  aria-label="Volver"
                >
-                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                    <polyline points="15 18 9 12 15 6" />
                  </svg>
                </Link>
                <div className="flex flex-col items-center justify-center text-center">
-                 <span className="font-display text-sm font-bold text-text-primary">Detalle del traslado</span>
-                 <span className="font-mono text-[10px] text-text-tertiary mt-0.5 tracking-wider">ID {folio}</span>
+                 <span className="font-display text-sm font-bold text-white tracking-wide">Detalle del traslado</span>
+                 <span className="font-body text-xs text-text-tertiary mt-0.5">Oferta disponible</span>
                </div>
-               <button
-                 type="button"
-                 className="p-1.5 text-text-secondary hover:text-text-primary transition-colors shrink-0"
-                 aria-label="Compartir traslado"
-                 onClick={() => {
-                   if (navigator.share) {
-                     navigator.share({
-                       title: `Traslado Ruum - ${folio}`,
-                       text: `Detalles del traslado ${origen} a ${destino}`,
-                       url: window.location.href,
-                     }).catch(() => {});
-                   }
-                 }}
-               >
-                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                   <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                   <polyline points="16 6 12 2 8 6" />
-                   <line x1="12" y1="2" x2="12" y2="15" />
+               <div className="relative p-1.5">
+                 <svg className="w-5 h-5 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                   <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                  </svg>
-               </button>
+                 <div className="absolute top-0 right-0 bg-[#EAB308] text-black text-[9px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                   3
+                 </div>
+               </div>
              </header>
 
-             {/* Route Details */}
-             <div className="mt-6 flex flex-col text-left pl-1">
-               <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-[#a8e820] tracking-widest uppercase">
-                 <span>Traslado Disponible</span>
-                 <span className="h-1.5 w-1.5 rounded-full bg-[#a8e820] animate-pulse" />
-               </div>
-               
-               <div className="mt-4 flex flex-col gap-3 relative">
-                 <h2 className="font-display text-2xl font-black text-text-primary leading-none">
-                   {origen}
-                 </h2>
-                 
-                 {/* Vertical dotted line with arrow */}
-                 <div className="flex flex-col items-center justify-center w-6 h-8 -my-1">
-                   <div className="w-[1px] border-l-2 border-dotted border-border/40 h-5" />
-                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary">
-                     <polyline points="6 9 12 15 18 9" />
-                   </svg>
-                 </div>
+            {/* Origin & Destination */}
+            <div className="grid grid-cols-[1fr_auto] gap-4 mt-2">
+              <div className="flex flex-col relative pl-8">
+                {/* Dotted line */}
+                <div className="absolute left-[11px] top-6 bottom-6 w-[1px] border-l-[1.5px] border-dashed border-text-tertiary" />
+                
+                {/* Origen */}
+                <div className="relative flex flex-col mb-6 mt-1">
+                  <div className="absolute -left-8 -top-0.5 w-6 h-6 flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" fill="#a8e820" className="w-6 h-6">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                    </svg>
+                  </div>
+                  <span className="text-[9px] font-bold text-[#a8e820] tracking-widest uppercase mb-0.5">Origen</span>
+                  <span className="font-display text-base font-bold text-white leading-tight">{origen}</span>
+                  <span className="font-body text-[11px] text-text-tertiary mt-0.5">Punto de recogida</span>
+                </div>
 
-                 <h2 className="font-display text-2xl font-black text-text-primary leading-none">
-                   {destino}
-                 </h2>
-               </div>
-             </div>
-
-            {/* Essential Info Row */}
-            <div className="grid grid-cols-3 gap-3 mt-6 select-none">
-              <div className="flex items-center gap-2.5 bg-[#0E1524] border border-border/10 rounded-xl p-3">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#00B4D8] shrink-0">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                <div className="flex flex-col text-left leading-tight">
-                  <span className="font-display text-xs font-black text-text-primary">{horaTexto}</span>
-                  <span className="font-body text-[9px] font-bold text-text-secondary mt-0.5">Salida</span>
+                {/* Destino */}
+                <div className="relative flex flex-col">
+                  <div className="absolute -left-8 -top-0.5 w-6 h-6 flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" fill="#E14343" className="w-6 h-6">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                    </svg>
+                  </div>
+                  <span className="text-[9px] font-bold text-[#E14343] tracking-widest uppercase mb-0.5">Destino</span>
+                  <span className="font-display text-base font-bold text-white leading-tight">{destino}</span>
+                  <span className="font-body text-[11px] text-text-tertiary mt-0.5">Punto de destino</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 bg-[#0E1524] border border-border/10 rounded-xl p-3">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#00B4D8] shrink-0">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 15 15" />
-                </svg>
-                <div className="flex flex-col text-left leading-tight">
-                  <span className="font-display text-xs font-black text-text-primary">{formatDuracion(duracion)}</span>
-                  <span className="font-body text-[9px] font-bold text-text-secondary mt-0.5">Duración</span>
+              {/* Info chips to the right */}
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-3 bg-[#0a0f1a] border border-border/10 rounded-xl p-2.5 items-center">
+                  <svg className="w-5 h-5 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  <div className="flex flex-col pr-1">
+                    <div className="flex justify-between items-end">
+                      <span className="text-[10px] text-text-secondary">Hoy</span>
+                    </div>
+                    <span className="font-display font-bold text-[15px] text-white leading-none mt-0.5">{horaTexto}</span>
+                    <span className="text-[9px] text-text-tertiary mt-0.5">Hora de recogida</span>
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 bg-[#0E1524] border border-border/10 rounded-xl p-3">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#00B4D8] shrink-0">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                <div className="flex flex-col text-left leading-tight">
-                  <span className="font-display text-xs font-black text-text-primary">
-                    {distancia != null ? `${distancia.toFixed(1)} km` : "Confirmar"}
-                  </span>
-                  <span className="font-body text-[9px] font-bold text-text-secondary mt-0.5">Distancia</span>
+                
+                <div className="flex gap-2.5 px-2.5 items-center mt-3">
+                  <svg className="w-5 h-5 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                  <div className="flex flex-col">
+                    <span className="font-display font-bold text-[13px] text-white">2 pasajeros</span>
+                    <span className="text-[10px] text-text-tertiary mt-0.5">Capacidad</span>
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* Stats Row */}
+            <div className="grid grid-cols-4 gap-0 mt-7 border-y border-border/10 py-4 select-none">
+              <div className="flex flex-col items-center border-r border-border/10">
+                <svg className="w-5 h-5 text-text-secondary mb-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span className="font-display text-sm font-bold text-white">{horaTexto}</span>
+                <span className="font-body text-[10px] text-text-tertiary mt-0.5">Recogida</span>
+              </div>
+              <div className="flex flex-col items-center border-r border-border/10">
+                <svg className="w-5 h-5 text-text-secondary mb-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 22L9 2L15 2L21 22"></path><path d="M12 2L12 22" strokeDasharray="2 2"></path></svg>
+                <span className="font-display text-sm font-bold text-white">{distancia != null ? `${distancia.toFixed(1)} km` : "12.5 km"}</span>
+                <span className="font-body text-[10px] text-text-tertiary mt-0.5">Distancia</span>
+              </div>
+              <div className="flex flex-col items-center border-r border-border/10">
+                <svg className="w-5 h-5 text-text-secondary mb-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 15 15"></polyline></svg>
+                <span className="font-display text-sm font-bold text-white">{formatDuracion(duracion) || "26 min"}</span>
+                <span className="font-body text-[10px] text-text-tertiary mt-0.5">Duración</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <svg className="w-5 h-5 text-text-secondary mb-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span className="font-display text-sm font-bold text-white">2</span>
+                <span className="font-body text-[10px] text-text-tertiary mt-0.5">Pasajeros</span>
+              </div>
+            </div>
+
+            {/* Payment Details Card */}
+            <section className="mt-5 bg-[#1C160F] border border-[#DCA24C]/40 rounded-2xl p-4 flex items-center gap-4 text-left shadow-xs">
+              <div className="w-12 h-12 rounded-full border border-[#DCA24C]/40 flex items-center justify-center text-[#DCA24C] shrink-0 shadow-xs">
+                <span className="font-display text-2xl font-bold">$</span>
+              </div>
+              <div className="flex flex-col flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-display text-[22px] font-bold text-[#DCA24C] leading-none">
+                    ${pagoTotal != null ? pagoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "343.67"}
+                  </span>
+                  <span className="text-xs font-bold text-[#DCA24C] pt-1">MXN</span>
+                </div>
+                <p className="font-body text-xs text-text-secondary mt-1">
+                  Pago del traslado
+                </p>
+              </div>
+              <div className="border border-[#DCA24C]/30 text-[#DCA24C] text-[10px] font-bold px-3 py-1.5 rounded-full mr-1">
+                $27.49 / km
+              </div>
+            </section>
+
             {/* Interactive Route Map Preview */}
-            <div className="mt-6 relative bg-surface-elevated/20 border border-border/30 rounded-2xl overflow-hidden shadow-xs">
-              <div className="relative h-44 w-full select-none">
+            <div className="mt-5 relative bg-[#0a0f1a] border border-border/10 rounded-2xl overflow-hidden shadow-xs">
+              <div className="relative h-[150px] w-full select-none">
                 {origenLat && destinoLat && origenLng && destinoLng ? (
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&origin=${origenLat},${origenLng}&destination=${destinoLat},${destinoLng}`}
@@ -415,173 +439,90 @@ export function TripOpportunityDetails({
               </div>
             </div>
 
-            {/* Waze / Apple Maps Action Buttons */}
-            <div className="mt-4 grid grid-cols-2 gap-3 select-none">
-              <a
-                href={`https://www.waze.com/ul?ll=${destinoLat},${destinoLng}&navigate=yes`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 rounded-xl bg-[#0E1524] border border-border/15 text-text-primary hover:text-[#00B4D8] font-display text-xs font-bold py-3 transition-colors shadow-xs"
-                aria-label="Abrir en Waze"
-              >
-                <span className="text-base">💬</span>
-                Waze
-              </a>
-              <a
-                href={`https://maps.apple.com/?saddr=&dirflg=w&z=15&lat=${destinoLat}&lon=${destinoLng}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 rounded-xl bg-[#0E1524] border border-border/15 text-text-primary hover:text-[#00B4D8] font-display text-xs font-bold py-3 transition-colors shadow-xs"
-                aria-label="Abrir en Apple Maps"
-              >
-                <span className="text-base">🗺️</span>
-                Apple Maps
-              </a>
+            {/* Distance to pickup */}
+            <div className="mt-5 bg-[#0a0f1a] border border-border/10 rounded-2xl p-4 flex items-center justify-between cursor-pointer">
+              <div className="flex items-center gap-4">
+                <svg className="w-7 h-7 text-[#00B4D8] shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z" />
+                </svg>
+                <div className="flex flex-col">
+                  <span className="font-display font-bold text-[13px] text-white">4.2 km • 9 min</span>
+                  <span className="font-body text-[11px] text-text-tertiary mt-0.5">desde tu ubicación al punto de recogida</span>
+                </div>
+              </div>
+              <svg className="w-4 h-4 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
             </div>
 
-            {error && (
-              <div className="mt-3">
-                <Aviso tono="danger">{error}</Aviso>
-              </div>
-            )}
-            {avisoExito && (
-              <div className="mt-3">
-                <Aviso tono="info">{avisoExito}</Aviso>
-              </div>
-            )}
-
-            {/* Payment Details Card */}
-            <section className="mt-6 bg-[#2B2317] border border-[#523F27]/60 rounded-2xl p-5 flex justify-between items-center text-left shadow-xs">
-              <div className="flex flex-col gap-1.5">
-                <span className="font-display text-[10px] font-extrabold text-[#DCA24C] tracking-widest uppercase">
-                  Pago del traslado
-                </span>
-                <div className="font-display text-2xl font-black text-white">
-                  ${pagoTotal != null ? pagoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
-                  <span className="text-[11px] font-bold text-text-secondary ml-1">MXN</span>
+            {/* Assigned Vehicle */}
+            <section className="mt-4 bg-[#0a0f1a] border border-border/10 rounded-2xl p-4 flex flex-col gap-4">
+              <span className="font-display text-[9px] font-bold text-[#00B4D8] tracking-widest uppercase">
+                Vehículo asignado
+              </span>
+              <div className="flex items-center gap-3">
+                <div className="w-[110px] h-[60px] flex-shrink-0 flex items-center justify-center">
+                  <img src="/img/sedan-placeholder.png" alt="Sedan" className="w-full object-contain filter drop-shadow-md brightness-90" onError={(e) => (e.currentTarget.style.display = 'none')} />
                 </div>
-                <p className="font-body text-[10px] text-text-tertiary leading-none">
-                  Total que recibirás por completar este traslado
-                </p>
-              </div>
-              <div className="w-11 h-11 rounded-full bg-[#DCA24C]/10 border border-[#DCA24C]/35 flex items-center justify-center text-[#DCA24C] shrink-0 shadow-xs">
-                <span className="font-display text-xl font-bold">$</span>
-              </div>
-            </section>
-
-            {/* Transfer Notes Card */}
-            <section className="mt-4 bg-[#0E1524] border border-border/15 rounded-2xl p-5 flex flex-col gap-2.5 text-left shadow-xs">
-              <div className="flex items-center gap-2 text-purple-400">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                  <polyline points="10 9 9 9 8 9" />
-                </svg>
-                <span className="font-display text-[10px] font-extrabold tracking-widest uppercase">
-                  Instrucciones del origen
-                </span>
-              </div>
-              <p className="font-body text-xs leading-relaxed text-text-secondary whitespace-pre-wrap pl-0.5">
-                {pasaporte.origen_referencias || "Sin notas ni especificaciones adicionales del solicitante para el punto de origen."}
-              </p>
-            </section>
-
-            {/* Itinerario Section */}
-            <section className="mt-6 flex flex-col gap-4 text-left">
-              <div className="flex items-center gap-2 text-[#00B4D8]">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="8" y1="6" x2="21" y2="6" />
-                  <line x1="8" y1="12" x2="21" y2="12" />
-                  <line x1="8" y1="18" x2="21" y2="18" />
-                  <line x1="3" y1="6" x2="3.01" y2="6" />
-                  <line x1="3" y1="12" x2="3.01" y2="12" />
-                  <line x1="3" y1="18" x2="3.01" y2="18" />
-                </svg>
-                <span className="font-display text-[10px] font-extrabold tracking-widest uppercase">
-                  Itinerario de ruta
-                </span>
-              </div>
-
-              <div className="flex flex-col relative pl-9 border-l-2 border-dashed border-[#00B4D8]/20 ml-4.5 pb-2">
-                
-                {/* Punto 1: Origen */}
-                <div className="relative flex flex-col gap-3">
-                  {/* Number Circle Marker */}
-                  <div className="absolute -left-[54px] top-0 w-9 h-9 rounded-full bg-[#00B4D8] text-slate-950 flex items-center justify-center font-display text-sm font-black shadow-md select-none border-2 border-[#070B14]">
-                    1
+                <div className="flex flex-1 items-center justify-between border-l border-border/10 pl-3">
+                  <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-text-tertiary">Categoría</span>
+                      <span className="font-bold text-xs text-white">Sedan</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-text-tertiary">Unidad</span>
+                      <span className="font-bold text-xs text-white uppercase">{pasaporte.vehiculo_placas ? pasaporte.vehiculo_placas : "NIS-1234"}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-text-tertiary">Color</span>
+                      <span className="font-bold text-xs text-white capitalize">{pasaporte.vehiculo_color || "Negro"}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-text-tertiary">Placas</span>
+                      <span className="font-bold text-xs text-white uppercase">{pasaporte.vehiculo_placas || "ABC-123-A"}</span>
+                    </div>
                   </div>
-
-                  <div className="flex flex-col">
-                    <h3 className="font-display text-sm font-bold text-text-primary leading-tight">
-                      {origen} <span className="text-xs text-text-secondary font-normal">(Origen)</span>
-                    </h3>
-                    <span className="font-body text-[11px] text-text-tertiary mt-1">
-                      {pasaporte.origen_direccion || "LOS SAUCES 274, Col. Uruapan, 52104 México"}
-                    </span>
-                  </div>
-
-                  {/* Table details Card */}
-                  <div className="mt-1 rounded-xl border border-border/15 bg-surface-elevated/20 p-4 flex flex-col gap-3 text-xs font-body text-text-secondary">
-                    <div className="flex justify-between items-center">
-                      <span className="text-text-tertiary font-semibold flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                          <polyline points="2 17 12 22 22 17" />
-                          <polyline points="2 12 17 22 12" />
-                        </svg>
-                        Categoría de vehículo
-                      </span>
-                      <span className="text-text-primary font-bold capitalize">
-                        {(pasaporte as any).vehiculo_tipo || "Luxury"}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center border-t border-border/10 pt-3">
-                      <span className="text-text-tertiary font-semibold flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <rect x="1" y="3" width="15" height="13" rx="2" />
-                          <path d="M16 8h4l3 3v5h-7V8Z" />
-                          <circle cx="5.5" cy="18.5" r="2.5" />
-                          <circle cx="18.5" cy="18.5" r="2.5" />
-                        </svg>
-                        Unidad
-                      </span>
-                      <span className="text-text-primary font-bold text-right truncate max-w-[160px]">
-                        {pasaporte.vehiculo_marca || "BMW"} {pasaporte.vehiculo_modelo || "Serie 1"} ({pasaporte.vehiculo_anio || "2020"})
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center border-t border-border/10 pt-3">
-                      <span className="text-text-tertiary font-semibold flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <circle cx="12" cy="12" r="10" />
-                          <path d="M12 2a7 7 0 0 0-7 7c0 4.17 7 13 7 13s7-8.83 7-7a7 7 0 0 0-7-7z" />
-                        </svg>
-                        Color
-                      </span>
-                      <span className="text-text-primary font-bold capitalize">
-                        {pasaporte.vehiculo_color || "Rojo"}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center border-t border-border/10 pt-3">
-                      <span className="text-text-tertiary font-semibold flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg>
-                        Recolección vehículo
-                      </span>
-                      <span className="bg-[#EAB308]/15 text-[#EAB308] border border-[#EAB308]/30 font-extrabold px-2 py-0.5 rounded-md text-[9px] tracking-wide flex items-center gap-1">
-                        <span className="w-1 h-1 rounded-full bg-[#EAB308] animate-ping" />
-                        DETALLES POR CONFIRMAR
-                      </span>
-                    </div>
+                  <div className="w-10 h-10 rounded-full bg-[#00B4D8]/10 border border-[#00B4D8]/20 flex items-center justify-center shrink-0 ml-2">
+                    <svg className="w-5 h-5 text-[#00B4D8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 16H9m10 0h3v-3.15a1 1 0 00-.84-.99L16 11l-2.7-3.6a1 1 0 00-.8-.4H8.5a1 1 0 00-.8.4L5 11l-5.16.86a1 1 0 00-.84.99V16h3m10 0a2 2 0 11-4 0 2 2 0 014 0zM7 16a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                   </div>
                 </div>
               </div>
+            </section>
+
+            {/* Service Instructions */}
+            <section className="mt-4 bg-[#0a0f1a] border border-border/10 rounded-2xl p-4 flex flex-col gap-3">
+              <span className="font-display text-[9px] font-bold text-[#A855F7] tracking-widest uppercase">
+                Instrucciones de servicio
+              </span>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-[#A855F7]/15 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-[#A855F7]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
+                  </svg>
+                </div>
+                <div className="flex flex-col flex-1">
+                  <span className="font-body text-[11px] text-text-secondary leading-[1.4]">
+                    Recoge al pasajero en el punto indicado.<br />Mantén comunicación durante todo el servicio.
+                  </span>
+                </div>
+                <svg className="w-4 h-4 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </div>
+            </section>
+
+            {/* Warning Box */}
+            <section className="mt-4 bg-transparent border border-border/20 rounded-xl py-3 px-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5 text-[#EAB308] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span className="font-body text-[10px] text-text-secondary leading-tight">
+                  Verifica que puedes llegar al punto de recogida<br />a la hora indicada antes de aceptar.
+                </span>
+              </div>
+              <button className="bg-transparent border border-[#EAB308] text-[#EAB308] text-[10px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap">
+                Ver detalles
+              </button>
             </section>
           </div>
         ) : (
@@ -1027,43 +968,28 @@ export function TripOpportunityDetails({
       <div className="sticky bottom-0 inset-x-0 z-20 bg-[#090D1A]/95 backdrop-blur-md border-t border-border/15 py-4 px-4 -mx-4 sm:-mx-6 mt-8 flex flex-col gap-3 select-none">
         {esOferta ? (
           <>
-            <div className="flex gap-3 w-full">
-              {/* ACEPTAR OFERTA Button */}
+            <div className="flex flex-col gap-4 w-full">
+              {/* ACEPTAR TRASLADO Button */}
               <button
                 type="button"
                 onClick={() => setConfirmarAccion("aceptar")}
                 disabled={procesando}
-                className="flex-[2] min-h-12 rounded-2xl bg-[#10B981] hover:bg-[#0EA271] text-white font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-2 focus:outline-hidden"
+                className="w-full min-h-[52px] rounded-full bg-[#00C26F] hover:bg-[#00A960] text-white font-display text-sm font-bold tracking-widest uppercase transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-2 focus:outline-hidden"
               >
-                <svg className="w-4 h-4 shrink-0 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-5 h-5 shrink-0 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                {procesando ? TEXTOS_CARGANDO.actualizando : "ACEPTAR OFERTA"}
+                {procesando ? TEXTOS_CARGANDO.actualizando : "ACEPTAR TRASLADO"}
               </button>
               
               {/* RECHAZAR OFERTA Button */}
               <button
                 type="button"
                 onClick={() => setConfirmarAccion("rechazar")}
-                className="flex-1 min-h-12 rounded-2xl bg-transparent border border-red-500/50 hover:border-red-500 hover:bg-red-500/10 text-red-500 font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-xs select-none flex items-center justify-center gap-1.5 focus:outline-hidden"
+                className="w-full bg-transparent text-[#E14343] font-display text-sm font-bold hover:text-[#C73838] transition-all cursor-pointer select-none focus:outline-hidden pb-1"
               >
-                <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-                RECHAZAR
+                Rechazar oferta
               </button>
-            </div>
-
-            {/* Commitment Shield */}
-            <div className="flex items-start gap-2.5 px-1 py-1.5">
-              <svg className="w-4.5 h-4.5 text-[#10B981] shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <polyline points="9 11 11 13 15 9" />
-              </svg>
-              <p className="font-body text-[10px] text-text-secondary leading-snug text-left">
-                Al aceptar el traslado, te comprometes a realizarlo bajo las condiciones mostradas.
-              </p>
             </div>
           </>
         ) : (
