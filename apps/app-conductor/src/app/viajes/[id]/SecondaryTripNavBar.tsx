@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { ReportarIncidencia } from "./ReportarIncidencia";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import type { Database } from "@ruum/shared/types";
@@ -120,91 +121,6 @@ export function SecondaryTripNavBar({
 
   return (
     <>
-      {/* ------------------------------------------------------------------ */}
-      {/* Modal / Overlay: DESCRIPCIÓN Y DETALLES DEL TRASLADO */}
-      {/* ------------------------------------------------------------------ */}
-      {tabActiva === "detalles_modal" && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-lg mx-auto bg-[#0E1524] border-t border-border/20 rounded-t-3xl p-5 shadow-2xl max-h-[85vh] overflow-y-auto flex flex-col gap-4 text-left select-none animate-slideUp">
-            
-            {/* Header del Modal Detalles */}
-            <div className="flex items-center justify-between border-b border-border/10 pb-3">
-              <div className="flex items-center gap-2 text-[#00B4D8]">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 className="font-display text-base font-black text-white uppercase tracking-wider">
-                  Descripción del Traslado
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setTabActiva("detalles")}
-                className="p-1.5 text-text-tertiary hover:text-white rounded-full hover:bg-surface-elevated cursor-pointer"
-                aria-label="Cerrar detalles"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Especificaciones del Traslado */}
-            <div className="flex flex-col gap-3 text-xs">
-              <div className="bg-[#070B14] border border-border/10 rounded-2xl p-4 flex flex-col gap-2">
-                <span className="text-[10px] font-extrabold text-[#00B4D8] uppercase tracking-wider">Identificador del Servicio</span>
-                <span className="font-mono text-sm font-bold text-white uppercase">ID {pasaporte.traslado_id ? pasaporte.traslado_id.slice(0, 8).toUpperCase() : "POR CONFIRMAR"}</span>
-              </div>
-
-              {/* Datos del Vehículo */}
-              <div className="bg-[#070B14] border border-border/10 rounded-2xl p-4 flex flex-col gap-3">
-                <span className="text-[10px] font-extrabold text-[#00B4D8] uppercase tracking-wider">Especificaciones del Vehículo</span>
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-[10px] text-text-tertiary block font-bold uppercase">Categoría</span>
-                    <span className="font-bold text-white capitalize">{pasaporte.vehiculo_categoria_tarifa || pasaporte.vehiculo_tipo || "Por confirmar"}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-text-tertiary block font-bold uppercase">Marca / Modelo</span>
-                    <span className="font-bold text-white truncate block">{pasaporte.vehiculo_marca || pasaporte.vehiculo_modelo ? `${pasaporte.vehiculo_marca ?? ''} ${pasaporte.vehiculo_modelo ?? ''}` : "Por confirmar"}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-text-tertiary block font-bold uppercase">Color</span>
-                    <span className="font-bold text-white capitalize">{pasaporte.vehiculo_color || "Por confirmar"}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-text-tertiary block font-bold uppercase">Placas</span>
-                    <span className="font-bold text-white uppercase">{pasaporte.vehiculo_placas || "Por confirmar"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Indicaciones y Notas */}
-              <div className="bg-[#070B14] border border-border/10 rounded-2xl p-4 flex flex-col gap-2">
-                <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider">Instrucciones y Especificaciones</span>
-                <p className="text-text-secondary leading-relaxed">
-                  {pasaporte.origen_referencias || "Verifica la documentación del vehículo y realiza el reporte de fotos al llegar al origen."}
-                </p>
-                {pasaporte.destino_referencias && (
-                  <p className="text-text-tertiary text-[11px] border-t border-border/10 pt-2 mt-1">
-                    <strong className="text-text-secondary">Notas adicionales:</strong> {pasaporte.destino_referencias}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setTabActiva("detalles")}
-              className="w-full py-3 rounded-xl bg-[#00B4D8] text-white font-display text-xs font-bold uppercase tracking-wider shadow-md transition-all cursor-pointer mt-1"
-            >
-              Cerrar Descripción
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ------------------------------------------------------------------ */}
       {/* Modal / Overlay: GASTOS DEL TRASLADO */}
       {/* ------------------------------------------------------------------ */}
@@ -401,15 +317,10 @@ export function SecondaryTripNavBar({
       <nav aria-label="Navegación secundaria del traslado" className="fixed bottom-0 inset-x-0 z-50 bg-[#070B14]/95 border-t border-border/20 backdrop-blur-lg px-3 py-2 select-none shadow-[0_-8px_30px_rgba(0,0,0,0.6)]">
         <div className="grid grid-cols-3 gap-2 max-w-md mx-auto">
           
-          {/* Pestaña 1: Detalles del traslado (Invoca la pantalla Descripción del traslado) */}
-          <button
-            type="button"
-            onClick={() => setTabActiva("detalles_modal")}
-            className={`flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl transition-all duration-200 cursor-pointer ${
-              tabActiva === "detalles" || tabActiva === "detalles_modal"
-                ? "bg-[#00B4D8]/15 text-[#00B4D8] border border-[#00B4D8]/30 font-extrabold shadow-xs"
-                : "text-text-secondary hover:text-white hover:bg-surface-elevated/40"
-            }`}
+          {/* Pestaña 1: Detalles del traslado (Navega a la pantalla de Detalles completa) */}
+          <Link
+            href={`/viajes/${trasladoId}/detalles`}
+            className="flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl transition-all duration-200 cursor-pointer text-text-secondary hover:text-white hover:bg-surface-elevated/40"
           >
             <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -417,7 +328,7 @@ export function SecondaryTripNavBar({
             <span className="font-display text-[10px] uppercase tracking-wider truncate max-w-full">
               Detalles
             </span>
-          </button>
+          </Link>
 
           {/* Pestaña 2: Gastos */}
           <button

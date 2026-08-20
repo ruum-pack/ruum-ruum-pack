@@ -318,6 +318,73 @@ export function CierreTrasladoDetails({
     );
   }
 
+  // --- NUEVA PANTALLA DE CIERRE/ÉXITO LIMPIA (ESTADO CERRADO) ---
+  if (estadoActual === "servicio_cerrado") {
+    const gananciaTotal = pasaporte.ganancia_conductor || 0;
+    const totalGastos = gastos.reduce((acc, g) => acc + g.monto, 0);
+
+    return (
+      <div className="mx-auto w-full max-w-md bg-[#070B14] min-h-[calc(100vh-100px)] flex flex-col items-center justify-center text-white pb-6 px-4 animate-in fade-in zoom-in duration-500">
+        
+        <div className="w-24 h-24 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(16,185,129,0.2)]">
+          <svg className="w-12 h-12 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+        </div>
+
+        <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-2">
+          TRASLADO COMPLETADO
+        </span>
+        <h1 className="font-display text-3xl font-black text-center mb-2 leading-tight">
+          ¡Excelente trabajo!
+        </h1>
+        <p className="font-body text-text-secondary text-center mb-8 px-4">
+          Has completado el traslado #{trasladoId.slice(0, 8).toUpperCase()} exitosamente.
+        </p>
+
+        <div className="bg-[#0E1524] border border-border/20 rounded-3xl p-6 w-full shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-5">
+            <svg width="100" height="100" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.64-2.25 1.64-1.74 0-2.24-.93-2.28-1.81H7.91c.06 1.6 1.28 2.62 2.98 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.65-3.42z"/></svg>
+          </div>
+          
+          <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest block text-center mb-1">
+            Ganancia del Viaje
+          </span>
+          <div className="text-center">
+            <span className="font-display text-4xl font-black text-white">
+              ${gananciaTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className="text-sm text-text-secondary ml-1 font-bold">MXN</span>
+          </div>
+
+          {totalGastos > 0 && (
+            <div className="mt-4 pt-4 border-t border-border/15 flex justify-between items-center text-sm">
+              <span className="text-text-secondary">Gastos reembolsables</span>
+              <span className="font-bold text-emerald-400">
+                + ${totalGastos.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8 w-full flex flex-col gap-3">
+          <Link
+            href="/viajes"
+            className="flex w-full items-center justify-center gap-2 rounded-[1rem] bg-[#00B4D8] hover:bg-[#0092B0] px-4 py-3.5 font-display text-[13px] font-black tracking-widest text-white uppercase shadow-md active:scale-[0.98] transition-all"
+          >
+            VOLVER AL PANEL
+          </Link>
+          <Link
+            href={`/viajes/${trasladoId}/detalles`}
+            className="text-text-tertiary hover:text-text-primary text-xs font-bold uppercase tracking-widest text-center py-2 transition-colors"
+          >
+            Ver resumen completo
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const writable = estadoActual === "evidencia_final_completada";
 
   return (
