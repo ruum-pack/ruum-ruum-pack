@@ -318,6 +318,8 @@ export function CierreTrasladoDetails({
     );
   }
 
+  const writable = estadoActual === "evidencia_final_completada";
+
   return (
     <div className="mx-auto w-full max-w-md md:max-w-xl px-4 py-5 flex flex-col justify-between min-h-screen text-text-primary">
       <style dangerouslySetInnerHTML={{ __html: `
