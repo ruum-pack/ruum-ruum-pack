@@ -66,6 +66,7 @@ export function ConfirmDialog({
   return (
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-4 sm:items-center backdrop-blur-xs"
+      role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && !busy) onCancel();
       }}

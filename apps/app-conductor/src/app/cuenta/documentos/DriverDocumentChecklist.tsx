@@ -121,11 +121,10 @@ export function DriverDocumentChecklist({
 
   function renderizarZonaCaptura(tipo: TipoDocumentoConductor, estaSubiendo: boolean, documentoAnteriorId?: string) {
     return (
-      <div
+      <section
         onDragOver={(e) => manejarDragOver(e, tipo)}
         onDragLeave={manejarDragLeave}
         onDrop={(e) => manejarDrop(e, tipo, documentoAnteriorId)}
-        role="region"
         aria-label={`Zona de carga para ${tipo}`}
         className={[
           "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 text-center transition-all duration-150",
@@ -169,7 +168,7 @@ export function DriverDocumentChecklist({
         <p className="mt-2.5 font-body text-[11px] text-text-tertiary">
           Formatos JPG, PNG, WEBP o PDF hasta 10 MB. También puedes arrastrar el archivo desde tu escritorio.
         </p>
-      </div>
+      </section>
     );
   }
 
