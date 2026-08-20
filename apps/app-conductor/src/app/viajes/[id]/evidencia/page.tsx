@@ -17,6 +17,7 @@ import {
   firmarUrlsEvidencia
 } from "@ruum/api/services";
 import { useEvidenceQueue } from "./useEvidenceQueue";
+import { SecondaryTripNavBar } from "../SecondaryTripNavBar";
 
 type EstadoTraslado = "pendiente_de_conductor" | "conductor_asignado" | "conductor_en_camino_al_origen" | "conductor_en_punto_de_recoleccion" | "verificacion_vehiculo_en_proceso" | "evidencia_inicial_en_proceso" | "traslado_en_curso" | "llegada_a_destino" | "evidencia_final_en_proceso" | "servicio_cerrado";
 
@@ -431,34 +432,54 @@ export default function PaginaEvidencia() {
           </p>
         </div>
 
-        {/* Progress Bar Container with highlighted visual feedback */}
-        <div className="mt-5 bg-surface-elevated/30 border border-border/20 rounded-2xl p-4 flex flex-col gap-2">
-          <div className="flex justify-between items-center">
-            <span className="font-display text-[10px] font-black text-text-secondary tracking-wider uppercase">
-              Progreso General
-            </span>
-            <span className={`font-display text-xs font-black px-2 py-0.5 rounded-md ${
-              totalCapturados === totalRequisitos 
-                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
-                : "bg-surface-elevated text-text-primary border border-border/20"
-            }`}>
-              {totalCapturados} / {totalRequisitos} capturadas
-            </span>
-          </div>
-          <div className="w-full bg-surface-elevated/45 rounded-full h-3 overflow-hidden border border-border/10 relative">
-            <div 
-              className={`h-full transition-all duration-500 ${
-                totalCapturados === totalRequisitos ? "bg-emerald-500" : "bg-[#00B4D8]"
-              }`}
-              style={{ width: `${(totalCapturados / totalRequisitos) * 100}%` }}
-            />
-          </div>
-          {totalCapturados === totalRequisitos && (
-            <span className="font-body text-[10px] text-emerald-400 font-bold flex items-center gap-1.5 mt-0.5 animate-pulse">
-              🎉 ¡Todo verificado y listo para guardar/enviar!
-            </span>
-          )}
-        </div>
+        {/* Progress Bar Container with Prominent Percent Badge */}
+        {(() => {
+          const porcentaje = Math.round((totalCapturados / Math.max(1, totalRequisitos)) * 100);
+          return (
+            <div className="mt-5 bg-[#0E1524] border border-border/20 rounded-2xl p-4.5 flex flex-col gap-3 shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="font-display text-[9px] font-black text-text-tertiary tracking-widest uppercase">
+                    PROGRESO GENERAL DE REVISIÓN
+                  </span>
+                  <span className="font-body text-xs text-text-secondary font-bold mt-0.5">
+                    {totalCapturados} de {totalRequisitos} verificaciones completadas
+                  </span>
+                </div>
+                <div className={`flex flex-col items-end px-3 py-1.5 rounded-xl border ${
+                  porcentaje === 100
+                    ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                    : "bg-[#00B4D8]/10 border-[#00B4D8]/30 text-[#00B4D8]"
+                }`}>
+                  <span className="font-display text-xl font-black leading-none">{porcentaje}%</span>
+                  <span className="font-display text-[8px] font-extrabold uppercase tracking-wider mt-0.5">COMPLETADO</span>
+                </div>
+              </div>
+
+              {/* Progress Bar Track */}
+              <div className="w-full bg-[#070B14] rounded-full h-3.5 overflow-hidden border border-border/15 relative p-0.5">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    porcentaje === 100 
+                      ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]" 
+                      : "bg-[#00B4D8] shadow-[0_0_10px_rgba(0,180,216,0.4)]"
+                  }`}
+                  style={{ width: `${porcentaje}%` }}
+                />
+              </div>
+
+              {porcentaje === 100 ? (
+                <span className="font-body text-xs text-emerald-400 font-extrabold flex items-center gap-1.5 animate-pulse">
+                  ✓ ¡Checklist completado al 100%! Puedes finalizar evidencias.
+                </span>
+              ) : (
+                <span className="font-body text-[11px] text-amber-400 font-bold flex items-center gap-1">
+                  ⚠️ Faltan {totalRequisitos - totalCapturados} elementos por verificar para poder finalizar.
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Section 1: FOTOGRAFÍAS DEL VEHÍCULO */}
         <section className="mt-8 flex flex-col gap-3">
@@ -874,6 +895,40 @@ export default function PaginaEvidencia() {
             </div>
           )}
 
+          {/* Quick Tags Pills */}
+          <div className="flex flex-col gap-1.5 my-1">
+            <span className="font-display text-[9px] font-extrabold text-text-tertiary uppercase tracking-wider">
+              Atajos de observaciones (toca para insertar):
+            </span>
+            <div className="flex flex-wrap gap-1.5 select-none">
+              {[
+                "Rayón",
+                "Golpe",
+                "Mancha",
+                "Sin llanta de refacción",
+                "Parabrisas estrellado",
+                "Asiento sucio",
+                "Sin tapetes",
+                "Rayón en fascia"
+              ].map((etiqueta) => (
+                <button
+                  key={etiqueta}
+                  type="button"
+                  onClick={() => {
+                    setNotas((prev) => {
+                      const trimmed = prev.trim();
+                      if (!trimmed) return `[${etiqueta}]`;
+                      return `${trimmed}, [${etiqueta}]`;
+                    });
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-surface-elevated/60 border border-border/30 hover:border-[#00B4D8] text-text-secondary hover:text-white font-body text-[11px] font-bold transition-all cursor-pointer active:scale-95"
+                >
+                  + {etiqueta}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <textarea
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
@@ -891,33 +946,13 @@ export default function PaginaEvidencia() {
           />
         </section>
 
-        {/* Actions Button Row */}
-        <section className="mt-8 flex gap-3">
-          <button
-            type="button"
-            onClick={guardarBorrador}
-            disabled={procesando}
-            className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/40 border border-border/80 text-text-secondary hover:text-text-primary font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-xs select-none flex items-center justify-center focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:ring-offset-2"
-          >
-            GUARDAR BORRADOR
-          </button>
-          <button
-            type="button"
-            onClick={finalizar}
-            disabled={procesando}
-            className="flex-1 min-h-12 rounded-xl bg-[#10B981] text-white hover:bg-[#10B981]/90 font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-          >
-            FINALIZAR EVIDENCIAS
-          </button>
-        </section>
-
         {error && (
-          <div className="mt-4">
+          <div className="mt-4 px-1">
             <Aviso tono="danger">{error}</Aviso>
           </div>
         )}
         {avisoExito && (
-          <div className="mt-4">
+          <div className="mt-4 px-1">
             <Aviso tono="info">{avisoExito}</Aviso>
           </div>
         )}
@@ -928,62 +963,39 @@ export default function PaginaEvidencia() {
 
       </div>
 
-      {/* Floating Bottom Navigation Bar */}
-      <div className="fixed inset-x-0 bottom-4 z-40 md:hidden px-4">
-        <nav
-          aria-label="Navegación principal móvil"
-          className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"
-        >
-          <div className="grid grid-cols-4 gap-1">
-            <Link
-              href="/panel"
-              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="9" />
-                <rect x="14" y="3" width="7" height="5" />
-                <rect x="14" y="12" width="7" height="9" />
-                <rect x="3" y="16" width="7" height="5" />
-              </svg>
-              <span>Inicio</span>
-            </Link>
-
-            <Link
-              href="/viajes"
-              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-signal font-extrabold transition-colors select-none"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
-                <line x1="9" y1="3" x2="9" y2="18" />
-                <line x1="15" y1="6" x2="15" y2="21" />
-              </svg>
-              <span>Traslados</span>
-            </Link>
-
-            <Link
-              href="/ganancias"
-              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="1" x2="12" y2="23" />
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-              <span>Ganancias</span>
-            </Link>
-
-            <Link
-              href="/cuenta"
-              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-              </svg>
-              <span>Cuenta</span>
-            </Link>
-          </div>
-        </nav>
+      {/* Sticky Primary Action Buttons Bar (Fixed directly ABOVE Secondary Trip Bottom Bar) */}
+      <div className="fixed bottom-[60px] inset-x-0 z-40 bg-[#070B14]/95 backdrop-blur-md border-t border-border/15 py-3 px-4 shadow-2xl select-none">
+        <div className="max-w-md mx-auto flex gap-3">
+          {/* GUARDAR BORRADOR (Estilo Outline Definido) */}
+          <button
+            type="button"
+            onClick={guardarBorrador}
+            disabled={procesando}
+            className="flex-1 min-h-[48px] rounded-xl bg-transparent border-2 border-border/60 hover:border-white text-text-primary font-display text-xs font-black tracking-wider transition-all cursor-pointer shadow-xs select-none flex items-center justify-center focus:outline-hidden"
+          >
+            GUARDAR BORRADOR
+          </button>
+          
+          {/* FINALIZAR EVIDENCIAS (Botón Primario Verde con Validación) */}
+          <button
+            type="button"
+            onClick={finalizar}
+            disabled={procesando}
+            className={`flex-1 min-h-[48px] rounded-xl font-display text-xs font-black tracking-wider transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden ${
+              totalCapturados === totalRequisitos
+                ? "bg-[#10B981] hover:bg-[#0EA271] text-white"
+                : "bg-[#10B981]/70 hover:bg-[#10B981] text-white/90"
+            }`}
+          >
+            {procesando ? TEXTOS_CARGANDO.actualizando : "FINALIZAR EVIDENCIAS"}
+          </button>
+        </div>
       </div>
+
+      {/* Secondary Bottom Navigation Bar (Detalles, Gastos, Incidencia) */}
+      {pasaporte && (
+        <SecondaryTripNavBar trasladoId={id} pasaporte={pasaporte} />
+      )}
 
       {/* Bottom Sheet de Soporte */}
       {soporteAbierto && (
