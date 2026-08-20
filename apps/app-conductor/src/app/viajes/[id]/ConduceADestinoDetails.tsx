@@ -11,6 +11,7 @@ import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado, confirmarLlegadaDestino, obtenerPasaporteDigital } from "@ruum/api/services";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
 import { SincronizacionBadge } from "../../../components/SincronizacionBadge";
+import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -371,61 +372,9 @@ export function ConduceADestinoDetails({
 
       </div>
 
-      {/* Floating Bottom Navigation Bar */}
-      <div className="fixed inset-x-0 bottom-4 z-40 md:hidden px-4">
-        <nav
-          aria-label="Navegación principal móvil"
-          className="mx-auto max-w-md rounded-full border border-border/40 bg-surface-elevated/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] px-5 py-3.5 backdrop-blur-md"
-        >
-          <div className="grid grid-cols-4 gap-1">
-            <Link
-              href="/panel"
-              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="9" />
-                <rect x="14" y="3" width="7" height="5" />
-                <rect x="14" y="12" width="7" height="9" />
-                <rect x="3" y="16" width="7" height="5" />
-              </svg>
-              <span>Inicio</span>
-            </Link>
-
-            <Link
-              href="/viajes"
-              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-signal font-extrabold transition-colors select-none"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
-                <line x1="9" y1="3" x2="9" y2="18" />
-                <line x1="15" y1="6" x2="15" y2="21" />
-              </svg>
-              <span>Traslados</span>
-            </Link>
-
-            <Link
-              href="/ganancias"
-              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="1" x2="12" y2="23" />
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-              <span>Ganancias</span>
-            </Link>
-
-            <Link
-              href="/cuenta"
-              className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 font-body text-xs text-text-secondary hover:text-text-primary transition-colors select-none"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-              </svg>
-              <span>Cuenta</span>
-            </Link>
-          </div>
-        </nav>
+      {/* Secondary Bottom Navigation Bar (Detalles del traslado, Gastos, Incidencia) */}
+      <div className="mt-auto pt-4 -mx-4 -mb-6">
+        <SecondaryTripNavBar trasladoId={trasladoId} pasaporte={pasaporte} />
       </div>
 
       {/* Bottom Sheet de Soporte */}
