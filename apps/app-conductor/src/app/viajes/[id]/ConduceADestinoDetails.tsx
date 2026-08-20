@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
@@ -9,11 +9,29 @@ import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado, confirmarLlegadaDestino, obtenerPasaporteDigital } from "@ruum/api/services";
+import { createNavigationOptions, type NavigationOption } from "../../../lib/navigation-launcher";
+import { nombreVehiculo } from "../trips-utils";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
-type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
+
+function extraerColonia(direccion: string | null): string {
+  if (!direccion) return "";
+  const partes = direccion.split(",").map((p) => p.trim());
+  return partes[1] ?? partes[0] ?? "";
+}
+
+function abrirNavegacion(option: NavigationOption) {
+  if (!option.nativeHref || typeof window === "undefined") return;
+
+  window.location.href = option.nativeHref;
+  window.setTimeout(() => {
+    if (document.visibilityState === "visible") {
+      window.open(option.webHref, "_blank", "noopener,noreferrer");
+    }
+  }, 900);
+}
 
 export function ConduceADestinoDetails({
   pasaporte,
@@ -27,16 +45,33 @@ export function ConduceADestinoDetails({
   const [error, setError] = useState<string | null>(null);
 
   const trasladoId = pasaporte.traslado_id!;
-  
+
   const destinoCiudad = pasaporte.destino_ciudad || "Ciudad Destino";
-  const destinoDireccion = pasaporte.destino_direccion || "Dirección Destino";
-  
+  const destinoDireccion = pasaporte.destino_direccion || "Dirección de entrega por confirmar";
+  const destinoColonia = extraerColonia(pasaporte.destino_direccion);
+
   const distancia = pasaporte.distancia_km != null ? pasaporte.distancia_km.toFixed(1) : "138.2";
   const tiempoMinutos = pasaporte.tiempo_estimado_horas != null ? Math.round(pasaporte.tiempo_estimado_horas * 60) : 120;
 
   const navigationTargetLat = pasaporte.destino_lat ?? 16.7569;
   const navigationTargetLng = pasaporte.destino_lng ?? -93.1292;
-  const navigationUrl = `https://www.google.com/maps/dir/?api=1&destination=${navigationTargetLat},${navigationTargetLng}`;
+
+  const autoNombre = nombreVehiculo(pasaporte);
+  const placas = pasaporte.vehiculo_placas || "POR CONFIRMAR";
+
+  const contactoNombre = pasaporte.contacto_recepcion_nombre || "Contacto en destino";
+  const contactoTelefono = pasaporte.contacto_recepcion_telefono || "";
+  const telefonoLimpio = contactoTelefono.replace(/[^0-9]/g, "");
+
+  const navOptions = useMemo(
+    () =>
+      createNavigationOptions({
+        lat: navigationTargetLat,
+        lng: navigationTargetLng,
+        address: destinoDireccion
+      }),
+    [navigationTargetLat, navigationTargetLng, destinoDireccion]
+  );
 
   async function handleLlegueDestino() {
     setProcesando(true);
@@ -44,7 +79,7 @@ export function ConduceADestinoDetails({
 
     try {
       const cliente = crearClienteNavegador();
-      
+
       const pasaporteFresco = await obtenerPasaporteDigital(cliente, trasladoId);
       const estadoDb = pasaporteFresco?.estado || pasaporte.estado;
 
@@ -57,132 +92,198 @@ export function ConduceADestinoDetails({
         await confirmarLlegadaDestino(cliente, trasladoId, { fueraGeocerca: false, distanciaM: 0 });
         await new Promise((resolve) => setTimeout(resolve, 300));
       }
-      
+
       await avanzarEstadoTraslado(cliente, trasladoId, "llegada_a_destino");
       router.push(`/viajes/${trasladoId}/evidencia`);
     } catch (err) {
-      setError(traducirErrorOperativo(err, "No pudimos registrar tu llegada al destino."));
+      setError(traducirErrorOperativo(err, "No pudimos registrar tu llegada al destino. Intenta de nuevo."));
       setProcesando(false);
     }
   }
 
   return (
-    <div className="mx-auto w-full max-w-md bg-[#070B14] min-h-[calc(100vh-100px)] flex flex-col text-white pb-6 px-4">
+    <div className="mx-auto w-full max-w-md bg-surface min-h-[calc(100vh-100px)] flex flex-col text-text-primary pb-6 px-4">
       {/* HEADER */}
-      <header className="flex items-center justify-between py-4 border-b border-border/10">
-        <Link href={volver} className="p-2 -ml-2 text-text-tertiary">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+      <header className="flex items-center justify-between py-4 border-b border-border/15">
+        <Link
+          href={volver}
+          className="p-2 -ml-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-surface-elevated"
+          aria-label="Volver a la lista de viajes"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
         </Link>
-        <span className="font-display text-[13px] font-black uppercase tracking-widest">TRASLADO ACTIVO</span>
-        <button type="button" className="p-2 -mr-2 text-text-tertiary relative">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></svg>
-        </button>
+        <span className="font-display text-xs font-black uppercase tracking-widest text-text-primary">
+          TRASLADO ACTIVO
+        </span>
+        <div className="w-10" />
       </header>
 
       {/* ESTADO ACTUAL */}
-      <div className="mt-5 bg-[#0E1524] border border-border/20 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
-        <div className="w-12 h-12 rounded-full bg-[#3B82F6]/10 border border-[#3B82F6]/20 flex items-center justify-center shrink-0">
-          <svg className="w-6 h-6 text-[#3B82F6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+      <div className="mt-4 bg-surface-elevated border border-border/20 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+        <div className="w-12 h-12 rounded-full bg-route-action/15 border border-route-action/30 flex items-center justify-center shrink-0">
+          <svg className="w-6 h-6 text-route-action" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
           </svg>
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-text-tertiary font-bold tracking-widest uppercase mb-0.5">ESTADO ACTUAL</span>
-          <div className="flex items-center gap-1.5">
-            <span className="font-display text-lg font-black uppercase tracking-wide">EN TRASLADO</span>
-            <span className="h-2 w-2 rounded-full bg-[#3B82F6] animate-pulse mt-0.5" />
+          <div className="flex items-center gap-2">
+            <span className="font-display text-lg font-black uppercase tracking-wide text-text-primary">
+              EN TRASLADO
+            </span>
+            <span className="h-2 w-2 rounded-full bg-route-action animate-pulse mt-0.5" />
           </div>
         </div>
       </div>
 
       {/* TU PRÓXIMA ACCIÓN */}
-      <div className="mt-6 flex flex-col">
-        <span className="text-[10px] font-bold text-[#3B82F6] uppercase tracking-widest">TU PRÓXIMA ACCIÓN</span>
-        <h2 className="font-display text-[28px] font-black leading-tight mt-1">
+      <div className="mt-5 flex flex-col">
+        <span className="text-[10px] font-bold text-route-action uppercase tracking-widest">TU PRÓXIMA ACCIÓN</span>
+        <h2 className="font-display text-2xl font-black leading-tight mt-1 text-text-primary">
           Dirígete al destino
         </h2>
-        <span className="font-body text-base text-text-secondary mt-1">Conduce con precaución hacia el punto de entrega.</span>
+        <span className="font-body text-sm text-text-secondary mt-1 leading-relaxed">
+          Conduce con precaución hacia el punto de entrega y registra tu llegada al estar en sitio.
+        </span>
+      </div>
+
+      {/* VEHÍCULO EN CONDUCCIÓN */}
+      <div className="mt-4 bg-surface-elevated rounded-2xl border border-border/20 p-3.5 flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="text-[9px] text-text-tertiary uppercase font-bold">UNIDAD EN TRÁNSITO</span>
+          <span className="font-display text-sm font-black text-text-primary mt-0.5">{autoNombre}</span>
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="text-[9px] text-text-tertiary uppercase font-bold">PLACAS</span>
+          <span className="font-display text-xs font-black text-text-primary bg-surface px-2 py-0.5 rounded border border-border/20 mt-0.5">
+            {placas}
+          </span>
+        </div>
       </div>
 
       {/* DESTINO */}
-      <div className="mt-6 bg-[#0E1524] rounded-[2rem] border border-border/15 p-5 shadow-lg relative">
-        <span className="text-[10px] text-[#3B82F6] font-bold uppercase tracking-widest mb-3 block">DESTINO FINAL</span>
-        
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3">
-            <div className="mt-1">
-              <span className="text-[#3B82F6] text-xl">📍</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-display text-xl font-black">{destinoCiudad}</span>
-              <span className="font-body text-[13px] text-text-secondary leading-snug mt-1 pr-4">{destinoDireccion}</span>
-            </div>
+      <div className="mt-4 bg-surface-elevated rounded-3xl border border-border/20 p-5 shadow-lg relative">
+        <span className="text-[10px] text-route-action font-bold uppercase tracking-widest mb-3 block">
+          DESTINO FINAL
+        </span>
+
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-route-action/15 text-route-action flex items-center justify-center shrink-0 font-bold mt-0.5">
+            📍
           </div>
-          <a href={navigationUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1.5 text-text-tertiary hover:text-text-primary transition-colors shrink-0">
-            <div className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center border border-border/20 shadow-xs">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-            </div>
-            <span className="text-[9px] font-medium tracking-wider">Ver en mapa</span>
-          </a>
+          <div className="flex flex-col flex-1">
+            <span className="font-display text-lg font-black text-text-primary">
+              {destinoCiudad} {destinoColonia && <span className="font-normal text-text-secondary text-xs">({destinoColonia})</span>}
+            </span>
+            <span className="font-body text-xs text-text-secondary leading-relaxed mt-0.5">{destinoDireccion}</span>
+          </div>
         </div>
 
+        {/* CONTACTO DE RECEPCIÓN */}
+        {contactoNombre && (
+          <div className="mt-3 pt-3 border-t border-border/15 flex items-center justify-between bg-surface rounded-xl p-3 border border-border/20">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-full bg-route-action/10 text-route-action flex items-center justify-center font-bold text-sm">
+                {contactoNombre.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex flex-col">
+                <span className="font-bold text-xs text-text-primary">{contactoNombre}</span>
+                <span className="text-[11px] text-text-secondary">Recibe la unidad</span>
+              </div>
+            </div>
+
+            {telefonoLimpio && (
+              <div className="flex items-center gap-2">
+                <a
+                  href={`https://wa.me/52${telefonoLimpio}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 active:scale-95 transition-transform"
+                  aria-label={`Enviar WhatsApp a ${contactoNombre}`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                  </svg>
+                </a>
+                <a
+                  href={`tel:${telefonoLimpio}`}
+                  className="w-9 h-9 rounded-full bg-route-action/10 text-route-action flex items-center justify-center border border-route-action/20 active:scale-95 transition-transform"
+                  aria-label={`Llamar a ${contactoNombre}`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* MAP PREVIEW */}
-        <div className="mt-5 rounded-xl overflow-hidden h-[120px] bg-surface relative pointer-events-none">
-           <MapaRutaConduccion
-             origen={{ lat: navigationTargetLat, lng: navigationTargetLng }}
-             destino={{ lat: navigationTargetLat, lng: navigationTargetLng }}
-           />
+        <div className="mt-4 rounded-xl overflow-hidden h-[110px] bg-surface relative pointer-events-none border border-border/10">
+          <MapaRutaConduccion
+            origen={{ lat: navigationTargetLat, lng: navigationTargetLng }}
+            destino={{ lat: navigationTargetLat, lng: navigationTargetLng }}
+          />
+        </div>
+
+        {/* ACCESOS DIRECTOS DE NAVEGACIÓN */}
+        <div className="mt-4 pt-3 border-t border-border/15">
+          <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider block mb-2">
+            NAVEGAR AL DESTINO CON
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            {navOptions.map((option) => (
+              <a
+                key={option.id}
+                href={option.href}
+                target={option.nativeHref ? undefined : "_blank"}
+                rel="noreferrer"
+                onClick={(event) => {
+                  if (!option.nativeHref) return;
+                  event.preventDefault();
+                  abrirNavegacion(option);
+                }}
+                className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-route-action/30 bg-surface hover:bg-surface-elevated px-3 py-2 text-center font-display text-xs font-bold text-route-action transition shadow-xs active:scale-[0.98]"
+              >
+                <span>🗺️</span>
+                <span>{option.label}</span>
+              </a>
+            ))}
+          </div>
         </div>
 
         {/* STATS */}
-        <div className="mt-5 flex items-center">
-          <div className="flex flex-1 items-center gap-3">
-            <div className="w-8 h-8 rounded-full border border-border/20 flex items-center justify-center text-text-tertiary">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 22L9 2l6 0 6 20M12 2l0 20" strokeDasharray="2 2" /><path d="M6 14h12" /></svg>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[9px] text-[#3B82F6] font-bold uppercase tracking-widest">DISTANCIA RESTANTE</span>
-              <span className="font-display text-base font-black">{distancia} km</span>
-            </div>
+        <div className="mt-4 pt-3 border-t border-border/15 grid grid-cols-2 gap-3 text-center">
+          <div className="bg-surface rounded-xl p-2.5 border border-border/10">
+            <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">DISTANCIA RESTANTE</span>
+            <span className="font-display text-base font-black text-text-primary block mt-0.5">{distancia} km</span>
           </div>
-          <div className="w-px h-10 bg-border/20 mx-4" />
-          <div className="flex flex-1 items-center gap-3">
-            <div className="w-8 h-8 rounded-full border border-border/20 flex items-center justify-center text-text-tertiary">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[9px] text-[#3B82F6] font-bold uppercase tracking-widest">TIEMPO ESTIMADO</span>
-              <span className="font-display text-base font-black">{tiempoMinutos} min</span>
-            </div>
+          <div className="bg-surface rounded-xl p-2.5 border border-border/10">
+            <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">TIEMPO ESTIMADO</span>
+            <span className="font-display text-base font-black text-text-primary block mt-0.5">{tiempoMinutos} min</span>
           </div>
         </div>
 
         {/* CTAs */}
-        <div className="mt-6 flex flex-col gap-3">
-          <a
-            href={navigationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex w-full items-center justify-center gap-2 rounded-[1rem] bg-[#00B4D8] hover:bg-[#0092B0] px-4 py-3.5 font-display text-[13px] font-black tracking-widest text-white uppercase shadow-md active:scale-[0.98] transition-all"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="mr-1"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
-            <div className="flex flex-col items-center leading-none">
-              <span>NAVEGAR</span>
-              <span className="text-[8px] font-medium tracking-wide mt-0.5 opacity-90 normal-case">Google Maps ⌄</span>
-            </div>
-          </a>
-
+        <div className="mt-5 flex flex-col gap-3">
           <button
             type="button"
             onClick={handleLlegueDestino}
             disabled={procesando}
-            className="flex w-full items-center justify-center gap-2 rounded-[1rem] bg-transparent border-2 border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-[#070B14] px-4 py-3.5 font-display text-[13px] font-black tracking-widest uppercase shadow-sm active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-signal hover:bg-signal/85 text-slate-950 px-4 py-4 font-display text-xs font-black tracking-widest uppercase shadow-md active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {procesando ? (
               TEXTOS_CARGANDO.actualizando
             ) : (
               <>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="mr-1 rounded-full border border-current p-0.5"><path d="M20 6L9 17l-5-5" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
                 HE LLEGADO AL DESTINO
               </>
             )}
@@ -196,8 +297,8 @@ export function ConduceADestinoDetails({
         </div>
       )}
 
-      {/* Secondary Bottom Navigation Bar (Detalles del traslado, Gastos, Incidencia) */}
-      <div className="mt-auto pt-4 -mx-4 -mb-6">
+      {/* Secondary Bottom Navigation Bar */}
+      <div className="mt-auto pt-5 -mx-4 -mb-6">
         <SecondaryTripNavBar trasladoId={trasladoId} pasaporte={pasaporte} />
       </div>
     </div>

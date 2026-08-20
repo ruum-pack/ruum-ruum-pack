@@ -341,7 +341,8 @@ export default function PaginaEvidencia() {
       if (upsertError) throw upsertError;
 
       // Call API to complete evidence
-      await confirmarEvidenciaCompleta(cliente, id, estadoActual || "evidencia_inicial_en_proceso", tipo);
+      const estadoEsperado = tipo === "inicial" ? "evidencia_inicial_en_proceso" : "evidencia_final_en_proceso";
+      await confirmarEvidenciaCompleta(cliente, id, estadoActual || estadoEsperado, tipo);
       setAvisoExito("Evidencias completadas y enviadas con éxito.");
       setTimeout(() => {
         router.push(`/viajes/${id}`);
