@@ -274,11 +274,6 @@ export function NavegacionConductor() {
                       <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-warning ring-2 ring-[#070B14] animate-pulse" aria-hidden />
                     )}
                     <destino.Icono />
-                    {isAvisos && (
-                      <span className="absolute -top-1 -right-2 bg-danger text-white text-[8px] font-bold rounded-full h-4 w-4 flex items-center justify-center border border-[#070B14] shadow-xs">
-                        2
-                      </span>
-                    )}
                   </div>
                   <span className="max-w-full truncate tracking-tight text-[10px]">{destino.etiqueta}</span>
                 </Link>

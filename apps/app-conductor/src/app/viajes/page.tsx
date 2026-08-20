@@ -49,6 +49,7 @@ function getEstadoCardInfo(estado: string, esOferta: boolean) {
     return {
       dotColor: "bg-[#a8e820]",
       textColor: "text-[#a8e820]",
+      badgeBg: "bg-[#a8e820]/15 text-[#a8e820] border-[#a8e820]/30",
       titulo: "TRASLADO DISPONIBLE",
       descripcion: "Traslado disponible para aceptar."
     };
@@ -57,15 +58,17 @@ function getEstadoCardInfo(estado: string, esOferta: boolean) {
   switch (estado) {
     case "conductor_asignado":
       return {
-        dotColor: "bg-amber-500",
-        textColor: "text-amber-500",
+        dotColor: "bg-amber-400",
+        textColor: "text-amber-300",
+        badgeBg: "bg-amber-400/20 text-amber-300 border-amber-400/40",
         titulo: "PENDIENTE DE INICIO",
-        descripcion: "Prepara tu unidad y dirígete al origen."
+        descripcion: "Dirígete al punto de origen."
       };
     case "conductor_en_camino_al_origen":
       return {
-        dotColor: "bg-emerald-500",
-        textColor: "text-[#10B981]",
+        dotColor: "bg-emerald-400",
+        textColor: "text-emerald-300",
+        badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
         titulo: "EN CAMINO AL ORIGEN",
         descripcion: "Dirígete al punto de recolección."
       };
@@ -75,15 +78,17 @@ function getEstadoCardInfo(estado: string, esOferta: boolean) {
     case "evidencia_inicial_completada":
     case "vehiculo_recibido":
       return {
-        dotColor: "bg-emerald-500",
-        textColor: "text-[#10B981]",
+        dotColor: "bg-emerald-400",
+        textColor: "text-emerald-300",
+        badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
         titulo: "EN PUNTO DE ORIGEN",
         descripcion: "Realiza la entrega del vehículo."
       };
     case "traslado_en_curso":
       return {
-        dotColor: "bg-emerald-500",
-        textColor: "text-[#10B981]",
+        dotColor: "bg-emerald-400",
+        textColor: "text-emerald-300",
+        badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
         titulo: "TRASLADO EN CURSO",
         descripcion: "Conduce de forma segura al destino."
       };
@@ -91,25 +96,28 @@ function getEstadoCardInfo(estado: string, esOferta: boolean) {
     case "evidencia_final_en_proceso":
     case "evidencia_final_completada":
       return {
-        dotColor: "bg-emerald-500",
-        textColor: "text-[#10B981]",
+        dotColor: "bg-emerald-400",
+        textColor: "text-emerald-300",
+        badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
         titulo: "LLEGADA A DESTINO",
         descripcion: "Por entregar la unidad al receptor."
       };
     case "entrega_confirmada":
     case "servicio_cerrado":
       return {
-        dotColor: "bg-emerald-500",
-        textColor: "text-[#10B981]",
+        dotColor: "bg-emerald-400",
+        textColor: "text-emerald-300",
+        badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
         titulo: "TRASLADO FINALIZADO",
         descripcion: "El traslado ha sido concluido."
       };
     default:
       return {
-        dotColor: "bg-amber-500",
-        textColor: "text-amber-500",
+        dotColor: "bg-amber-400",
+        textColor: "text-amber-300",
+        badgeBg: "bg-amber-400/20 text-amber-300 border-amber-400/40",
         titulo: "PENDIENTE DE INICIO",
-        descripcion: "Prepara tu unidad y dirígete al origen."
+        descripcion: "Dirígete al punto de origen."
       };
   }
 }
@@ -154,29 +162,40 @@ function CustomTripCard({
   
   const duracionHoras = viaje.tiempo_estimado_horas || null;
   const duracionTexto = formatearDuracion(duracionHoras);
-  const distanciaTexto = viaje.distancia_km != null ? `${viaje.distancia_km.toFixed(1)} km` : "62.5 km";
+  const distanciaTexto = viaje.distancia_km != null ? `${viaje.distancia_km.toFixed(1)} km` : "Por confirmar";
 
   const cardInfo = getEstadoCardInfo(viaje.estado || "", esOferta);
 
   return (
-    <div className="w-full rounded-[2rem] border border-border/10 bg-[#0E1524]/60 p-5 shadow-xs flex flex-col gap-4 text-left select-none">
-      {/* Header row */}
-      <div className="flex items-center justify-between gap-3">
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-body text-[10px] font-black uppercase tracking-wider ${
-          esOferta 
-            ? "bg-[#a8e820]/15 text-[#a8e820] border border-[#a8e820]/25" 
-            : "bg-emerald-500/10 text-[#10B981] border border-emerald-500/25"
-        }`}>
-          {!esOferta && (
-            <svg className="w-3 h-3 shrink-0 text-[#10B981]" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          )}
-          {esOferta ? "DISPONIBLE" : "ACEPTADO"}
-        </span>
+    <div className="w-full rounded-2xl border border-border/15 bg-[#0E1524]/80 p-3.5 sm:p-4 shadow-sm flex flex-col gap-3 text-left select-none">
+      
+      {/* Bloque de Cabecera: Estado + ID + Tarifa agrupada + Menú contextual */}
+      <div className="flex items-center justify-between gap-2 border-b border-border/10 pb-2.5">
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-body text-[9.5px] font-extrabold uppercase tracking-wider ${
+            esOferta 
+              ? "bg-[#a8e820]/15 text-[#a8e820] border border-[#a8e820]/30" 
+              : "bg-emerald-500/15 text-[#10B981] border border-emerald-500/30"
+          }`}>
+            {!esOferta && (
+              <svg className="w-2.5 h-2.5 shrink-0 text-[#10B981]" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+            {esOferta ? "DISPONIBLE" : "ACEPTADO"}
+          </span>
+
+          <span className="font-mono text-[10px] font-extrabold text-text-tertiary tracking-wider uppercase">
+            ID {folio}
+          </span>
+        </div>
 
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] text-text-tertiary tracking-wider font-semibold">ID {folio}</span>
+          {/* Tarifa destacada agrupada en cabecera */}
+          <span className="font-display text-xs sm:text-sm font-black text-white leading-none tabular-nums bg-surface-elevated/80 border border-border/15 px-2.5 py-1 rounded-lg shadow-2xs">
+            {ganancia}
+          </span>
+
           {!esOferta && (
             <button
               type="button"
@@ -184,10 +203,10 @@ function CustomTripCard({
                 e.stopPropagation();
                 onReject(viaje);
               }}
-              className="p-1 text-text-tertiary hover:text-text-primary transition-colors shrink-0 cursor-pointer"
+              className="p-1 text-text-tertiary hover:text-text-primary transition-colors shrink-0 cursor-pointer rounded-lg hover:bg-surface-elevated"
               aria-label="Opciones de traslado"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="12" cy="5" r="1.5" />
                 <circle cx="12" cy="12" r="1.5" />
                 <circle cx="12" cy="19" r="1.5" />
@@ -197,65 +216,45 @@ function CustomTripCard({
         </div>
       </div>
 
-      {/* Status and Payment row */}
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex flex-col text-left">
-          <div className="flex items-center gap-1.5">
-            <span className={`h-2 w-2 rounded-full ${cardInfo.dotColor} animate-pulse shrink-0`} />
-            <span className={`font-display text-xs font-black tracking-wider uppercase ${cardInfo.textColor}`}>
-              {cardInfo.titulo}
-            </span>
-          </div>
-          <p className="font-body text-[10px] text-text-secondary mt-1 leading-snug">
-            {cardInfo.descripcion}
-          </p>
+      {/* Indicador de Estado (Badge de alto contraste) */}
+      <div className="flex flex-col text-left">
+        <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase border self-start ${
+          cardInfo.badgeBg
+        }`}>
+          <span className={`h-2 w-2 rounded-full ${cardInfo.dotColor} animate-pulse shrink-0`} />
+          <span>{cardInfo.titulo}</span>
         </div>
-
-        <div className="flex flex-col text-right shrink-0">
-          <span className="font-display text-lg font-black text-white leading-none">
-            {ganancia}
-          </span>
-          <span className="font-body text-[8px] font-bold text-text-tertiary mt-1 tracking-wider uppercase">
-            PAGO DEL TRASLADO
-          </span>
-        </div>
+        <p className="font-body text-[10px] text-text-secondary mt-1 leading-snug">
+          {cardInfo.descripcion}
+        </p>
       </div>
 
-      {/* Horizontal Route Component */}
-      <div className="flex items-center justify-between gap-4 py-1">
-        <div className="flex flex-col text-left">
-          <span className="font-display text-[9px] font-bold text-[#10B981] tracking-widest uppercase">Origen</span>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[#10B981] text-xs">📍</span>
-            <span className="font-display text-xs font-black text-white leading-tight">{origen}</span>
-          </div>
-          <span className="font-body text-[9px] text-text-tertiary mt-0.5 leading-none">{origenEstado}</span>
+      {/* Conector gráfico de Línea de Ruta Timeline (Origen -> Línea -> Destino) */}
+      <div className="flex items-center justify-between gap-3 py-1.5 bg-[#070B14]/60 border border-border/10 rounded-xl px-3">
+        <div className="flex flex-col text-left min-w-0 flex-1">
+          <span className="font-display text-[8.5px] font-bold text-[#10B981] tracking-widest uppercase">Origen</span>
+          <span className="font-display text-xs font-black text-white leading-tight truncate mt-0.5">{origen}</span>
+          <span className="font-body text-[9px] text-text-tertiary truncate leading-none mt-0.5">{origenEstado}</span>
         </div>
         
-        <div className="flex items-center justify-center shrink-0 text-text-secondary select-none">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
+        {/* Timeline Graphic Connector */}
+        <div className="flex items-center gap-1 shrink-0 px-1 select-none" aria-hidden="true">
+          <span className="h-2 w-2 rounded-full border-2 border-[#10B981] bg-transparent shrink-0" />
+          <div className="h-[2px] w-6 sm:w-10 bg-gradient-to-r from-[#10B981] via-border/40 to-[#00B4D8] rounded-full" />
+          <span className="h-2 w-2 rounded-full bg-[#00B4D8] shrink-0" />
         </div>
 
-        <div className="flex flex-col text-right">
-          <span className="font-display text-[9px] font-bold text-[#00B4D8] tracking-widest uppercase">Destino</span>
-          <div className="flex items-center justify-end gap-1.5 mt-0.5">
-            <span className="font-display text-xs font-black text-white leading-tight text-right">{destino}</span>
-            <span className="text-[#00B4D8] text-xs">📍</span>
-          </div>
-          <span className="font-body text-[9px] text-text-tertiary mt-0.5 leading-none text-right">{destinoEstado}</span>
+        <div className="flex flex-col text-right min-w-0 flex-1">
+          <span className="font-display text-[8.5px] font-bold text-[#00B4D8] tracking-widest uppercase">Destino</span>
+          <span className="font-display text-xs font-black text-white leading-tight truncate mt-0.5">{destino}</span>
+          <span className="font-body text-[9px] text-text-tertiary truncate leading-none mt-0.5">{destinoEstado}</span>
         </div>
       </div>
 
-      {/* Horizontal Divider */}
-      <div className="border-t border-border/10" />
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 select-none">
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      {/* Stats compactas */}
+      <div className="grid grid-cols-3 gap-2 select-none border-t border-border/10 pt-2.5">
+        <div className="flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
@@ -265,8 +264,8 @@ function CustomTripCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 border-l border-border/10 pl-3">
-          <svg className="w-4 h-4 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <div className="flex items-center gap-1.5 border-l border-border/10 pl-2">
+          <svg className="w-3.5 h-3.5 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 15 15" />
           </svg>
@@ -276,8 +275,8 @@ function CustomTripCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 border-l border-border/10 pl-3">
-          <svg className="w-4 h-4 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <div className="flex items-center gap-1.5 border-l border-border/10 pl-2">
+          <svg className="w-3.5 h-3.5 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M3 22 L9 2 L15 2 L21 22" />
             <path d="M12 2 L12 22" strokeDasharray="2 2" />
             <path d="M6 14 L18 14" />
@@ -289,13 +288,13 @@ function CustomTripCard({
         </div>
       </div>
 
-      {/* CTA Button */}
+      {/* CTA Button visible sin necesidad de scroll */}
       <Link
         href={hrefDetalle}
-        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#00B4D8] hover:bg-[#0092B0] px-4 py-2.5 font-display text-xs font-black tracking-widest text-white transition-all shadow-md select-none cursor-pointer mt-1"
+        className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#00B4D8] hover:bg-[#0092B0] px-4 py-2 font-display text-[11px] font-black tracking-widest text-white uppercase transition-all shadow-sm select-none cursor-pointer mt-0.5"
       >
         {esOferta ? "VER OFERTA" : "CONTINUAR TRASLADO"}
-        <svg className="w-4 h-4 text-white shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <svg className="w-3.5 h-3.5 text-white shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
           <line x1="5" y1="12" x2="19" y2="12" />
           <polyline points="12 5 19 12 12 19" />
         </svg>
@@ -815,43 +814,50 @@ export default function PaginaViajes() {
           </button>
         </div>
 
-        {/* Simple Date Navigation */}
-        <div className="mt-6 flex items-center justify-between px-2 select-none">
+        {/* Compact Integrated Date Selector */}
+        <div className="mt-3 flex items-center justify-between bg-[#0E1524]/60 border border-border/10 rounded-xl px-3 py-1.5 select-none">
           <button 
             type="button" 
-            className="p-2 text-text-tertiary hover:text-text-primary cursor-pointer active:scale-95 transition-all"
+            className="p-1 text-text-tertiary hover:text-text-primary cursor-pointer active:scale-95 transition-all rounded-lg hover:bg-surface-elevated"
             onClick={() => {
               const idx = calendario.findIndex(c => claveDia(c.dia) === diaSeleccionado);
               if (idx > 0) setDiaSeleccionado(claveDia(calendario[idx - 1].dia));
             }}
+            aria-label="Día anterior"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
           </button>
           
-          <div className="flex flex-col items-center">
-            <span className="font-display text-sm font-black uppercase tracking-widest text-text-primary">
+          <div className="flex items-center gap-2">
+            <span className="font-display text-xs font-black uppercase tracking-wider text-text-primary">
               {diaCalendarioSeleccionado ? 
                 new Intl.DateTimeFormat("es-MX", { weekday: "short", day: "numeric", month: "short", timeZone: "America/Mexico_City" }).format(diaCalendarioSeleccionado.dia).replace('.', '').toUpperCase() 
                 : "HOY"}
             </span>
+            {claveDia(diaCalendarioSeleccionado?.dia ?? new Date()) === diaHoy && (
+              <span className="bg-[#00B4D8]/20 text-[#00B4D8] border border-[#00B4D8]/30 text-[8px] font-extrabold px-1.5 py-0.2 rounded-md uppercase">
+                Hoy
+              </span>
+            )}
           </div>
 
           <button 
             type="button" 
-            className="p-2 text-text-tertiary hover:text-text-primary cursor-pointer active:scale-95 transition-all"
+            className="p-1 text-text-tertiary hover:text-text-primary cursor-pointer active:scale-95 transition-all rounded-lg hover:bg-surface-elevated"
             onClick={() => {
               const idx = calendario.findIndex(c => claveDia(c.dia) === diaSeleccionado);
               if (idx >= 0 && idx < calendario.length - 1) setDiaSeleccionado(claveDia(calendario[idx + 1].dia));
             }}
+            aria-label="Día siguiente"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
           </button>
         </div>
 
-        <div className="border-t border-border/20 my-5" />
-
-        <div className="mb-4 text-[13px] font-medium text-text-secondary">
-          {listToRender.length === 1 ? `1 ${vista === "disponibles" ? "oferta disponible" : "traslado aceptado"}` : `${listToRender.length} ${vista === "disponibles" ? "ofertas disponibles" : "traslados aceptados"}`}
+        <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-text-secondary select-none px-1">
+          <span>
+            {listToRender.length === 1 ? `1 ${vista === "disponibles" ? "oferta disponible" : "traslado aceptado"}` : `${listToRender.length} ${vista === "disponibles" ? "ofertas disponibles" : "traslados aceptados"}`}
+          </span>
         </div>
 
         {/* List of custom Trip Cards */}
