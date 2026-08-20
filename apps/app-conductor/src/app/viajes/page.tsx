@@ -342,7 +342,7 @@ function OfertaCard({
   const coloniaDestino = extraerColonia(viaje.destino_direccion);
   const ciudadDestino = extraerCiudad(viaje.destino_ciudad, viaje.destino_direccion);
 
-  const usuarioNombre = viaje.contacto_recepcion_nombre || viaje.contacto_entrega_nombre || null;
+  const solicitanteNombre = viaje.contacto_entrega_nombre || null;
 
   const horaInicio = detalle.fechaHora
     ? new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Mexico_City" }).format(new Date(detalle.fechaHora))
@@ -409,15 +409,15 @@ function OfertaCard({
         </div>
       </div>
 
-      {/* — Usuario / contacto — */}
-      {usuarioNombre && (
+      {/* — Solicitante / contacto — */}
+      {solicitanteNombre && (
         <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl bg-surface-elevated/60 border border-border/10 px-3 py-2">
           <svg className="w-3.5 h-3.5 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
-          <span className="font-body text-[10px] text-text-tertiary font-bold uppercase tracking-wider leading-none">Usuario:</span>
-          <span className="font-body text-[11px] text-text-primary font-semibold leading-none truncate">{usuarioNombre}</span>
+          <span className="font-body text-[10px] text-text-tertiary font-bold uppercase tracking-wider leading-none">Solicitante:</span>
+          <span className="font-body text-[11px] text-text-primary font-semibold leading-none truncate">{solicitanteNombre}</span>
         </div>
       )}
 
@@ -476,6 +476,7 @@ export default function PaginaViajes() {
   const [rechazoPendiente, setRechazoPendiente] = useState<RechazoPendiente | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
   const [soporteAbierto, setSoporteAbierto] = useState(false);
+  const [notificacionesCount, setNotificacionesCount] = useState(0);
   const timeoutRechazoRef = useRef<number | null>(null);
 
   const vista = normalizarVista(searchParams.get("vista"));
@@ -499,6 +500,26 @@ export default function PaginaViajes() {
   function hrefDetalle(viaje: PasaporteRow) {
     return `/viajes/${viaje.traslado_id}?volver=${encodeURIComponent(rutaActual)}`;
   }
+
+  useEffect(() => {
+    async function cargarNotificacionesCount() {
+      if (!tieneSupabaseConfigurado()) return;
+      try {
+        const cliente = crearClienteNavegador();
+        const { count } = await (cliente as any)
+          .from("notificaciones_conductor")
+          .select("id", { count: "exact", head: true })
+          .is("leida_en", null);
+        setNotificacionesCount(count ?? 0);
+      } catch {
+        // Ignorar si error de red o configuración
+      }
+    }
+    void cargarNotificacionesCount();
+    const actualizar = () => void cargarNotificacionesCount();
+    window.addEventListener("ruum:notificaciones-actualizar", actualizar);
+    return () => window.removeEventListener("ruum:notificaciones-actualizar", actualizar);
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -749,16 +770,21 @@ export default function PaginaViajes() {
             
             <div className="flex flex-col items-center">
               <Link
-                href="/cuenta"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-border/15 bg-[#0E1524]/60 hover:bg-[#0E1524] text-text-primary hover:text-[#00B4D8] transition-colors shadow-xs"
-                aria-label="Ajustes de cuenta"
+                href="/notificaciones"
+                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border/15 bg-[#0E1524]/60 hover:bg-[#0E1524] text-text-primary hover:text-[#00B4D8] transition-colors shadow-xs"
+                aria-label="Notificaciones"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                  <path d="M10 21h4" />
                 </svg>
+                {notificacionesCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-danger text-white text-[9px] font-bold rounded-full h-4 w-4 flex items-center justify-center border border-[#070B14] shadow-xs">
+                    {notificacionesCount > 9 ? "9+" : notificacionesCount}
+                  </span>
+                )}
               </Link>
-              <span className="h-4.5 w-1" />
+              <span className="font-body text-[9px] font-bold text-text-tertiary mt-1">Avisos</span>
             </div>
           </div>
         </header>
