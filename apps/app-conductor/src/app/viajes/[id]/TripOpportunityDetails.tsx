@@ -1,16 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
-import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
+import { ETIQUETA_TIPO_VEHICULO, TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 import { aceptarViaje } from "@ruum/api/services";
+import { obtenerUbicacionActualConEstado, distanciaMetrosEntre, type Coordenadas } from "../../../lib/ubicacion";
+import { nombreVehiculo } from "../trips-utils";
+import { MapaRutaConduccion } from "./MapaRutaConduccion";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
+
+const DURACION_OFERTA_SEGUNDOS = 300; // 5 minutos de vigencia por oferta
+
+function extraerColonia(direccion: string | null): string {
+  if (!direccion) return "";
+  const partes = direccion.split(",").map((p) => p.trim());
+  return partes[1] ?? partes[0] ?? "";
+}
 
 export function TripOpportunityDetails({
   pasaporte,
@@ -23,13 +34,29 @@ export function TripOpportunityDetails({
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [avisoExito, setAvisoExito] = useState<string | null>(null);
-
-  // Countdown timer for offer acceptance (120 seconds default)
-  const [segundosRestantes, setSegundosRestantes] = useState(120);
+  const [ofertaTomada, setOfertaTomada] = useState(false);
+  const [posicionConductor, setPosicionConductor] = useState<Coordenadas | null>(null);
+  const [calculandoAproximacion, setCalculandoAproximacion] = useState(true);
 
   const trasladoId = pasaporte.traslado_id!;
-  
+
+  // 1. Temporizador sincronizado con la fecha de creación de la oferta
+  const segundosIniciales = useMemo(() => {
+    if (pasaporte.creado_en) {
+      const creado = new Date(pasaporte.creado_en).getTime();
+      const ahora = Date.now();
+      const transcurrido = Math.floor((ahora - creado) / 1000);
+      const restante = DURACION_OFERTA_SEGUNDOS - transcurrido;
+      return Math.max(0, Math.min(DURACION_OFERTA_SEGUNDOS, restante));
+    }
+    return 180;
+  }, [pasaporte.creado_en]);
+
+  const [segundosRestantes, setSegundosRestantes] = useState(segundosIniciales);
+
   useEffect(() => {
+    if (segundosRestantes <= 0) return;
+
     const interval = setInterval(() => {
       setSegundosRestantes((prev) => {
         if (prev <= 1) {
@@ -40,7 +67,87 @@ export function TripOpportunityDetails({
       });
     }, 1000);
     return () => clearInterval(interval);
+  }, [segundosRestantes]);
+
+  // 2. Suscripción Realtime a cambios en este traslado (Detección de asignación concurrente)
+  useEffect(() => {
+    if (!trasladoId || !tieneSupabaseConfigurado()) return;
+
+    let cliente: ReturnType<typeof crearClienteNavegador>;
+    try {
+      cliente = crearClienteNavegador();
+    } catch {
+      return;
+    }
+
+    const canal = cliente
+      .channel(`oferta_detalle_${trasladoId}`)
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "traslados",
+          filter: `id=eq.${trasladoId}`
+        },
+        (payload: any) => {
+          const nuevo = payload.new;
+          if (nuevo && nuevo.conductor_id && nuevo.estado !== "pendiente_de_conductor") {
+            setOfertaTomada(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cliente.removeChannel(canal);
+    };
+  }, [trasladoId]);
+
+  // 3. Cálculo real de aproximación GPS
+  useEffect(() => {
+    let cancelado = false;
+    async function obtenerGPS() {
+      try {
+        const resultado = await obtenerUbicacionActualConEstado();
+        if (!cancelado && resultado.estado === "ok") {
+          setPosicionConductor(resultado.coordenadas);
+        }
+      } catch {
+        // Ignorar fallo de geolocalización
+      } finally {
+        if (!cancelado) setCalculandoAproximacion(false);
+      }
+    }
+    void obtenerGPS();
+    return () => {
+      cancelado = true;
+    };
   }, []);
+
+  const aproximacionReal = useMemo(() => {
+    if (
+      posicionConductor &&
+      pasaporte.origen_lat !== null &&
+      pasaporte.origen_lng !== null
+    ) {
+      const metros = distanciaMetrosEntre(
+        { lat: posicionConductor.lat, lng: posicionConductor.lng },
+        { lat: pasaporte.origen_lat, lng: pasaporte.origen_lng }
+      );
+      const km = (metros / 1000).toFixed(1);
+      const min = Math.max(1, Math.round((metros / 1000) * 2.5));
+      return { distancia: `${km} km`, tiempo: `${min} min`, exacto: true };
+    }
+
+    if (pasaporte.distancia_km) {
+      const kmAprox = (pasaporte.distancia_km * 0.08).toFixed(1);
+      const minAprox = Math.max(5, Math.round(pasaporte.distancia_km * 0.2));
+      return { distancia: `${kmAprox} km`, tiempo: `${minAprox} min`, exacto: false };
+    }
+
+    return { distancia: "Por calcular", tiempo: "Por calcular", exacto: false };
+  }, [posicionConductor, pasaporte.origen_lat, pasaporte.origen_lng, pasaporte.distancia_km]);
 
   const formatTimer = (seg: number) => {
     const mins = Math.floor(seg / 60);
@@ -48,20 +155,21 @@ export function TripOpportunityDetails({
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  const porcentajeProgreso = Math.max(0, Math.min(100, (segundosRestantes / 120) * 100));
+  const porcentajeProgreso = Math.max(0, Math.min(100, (segundosRestantes / DURACION_OFERTA_SEGUNDOS) * 100));
 
   const origenCiudad = pasaporte.origen_ciudad || "Por confirmar";
+  const origenColonia = extraerColonia(pasaporte.origen_direccion);
   const destinoCiudad = pasaporte.destino_ciudad || "Por confirmar";
-  const distanciaTotal = pasaporte.distancia_km ? pasaporte.distancia_km.toFixed(1) : "0";
-  const tiempoEstimado = pasaporte.tiempo_estimado_horas 
-    ? Math.round(pasaporte.tiempo_estimado_horas * 60) 
-    : 0;
+  const destinoColonia = extraerColonia(pasaporte.destino_direccion);
 
-  // Aproximación (Mock calculation, normally comes from backend)
-  const distanciaAprox = pasaporte.distancia_km ? (pasaporte.distancia_km * 0.08).toFixed(1) : "4.2";
-  const tiempoAprox = pasaporte.tiempo_estimado_horas ? Math.max(5, Math.round(pasaporte.tiempo_estimado_horas * 60 * 0.1)) : 9;
+  const distanciaTotal = pasaporte.distancia_km ? `${pasaporte.distancia_km.toFixed(1)} km` : "Por confirmar";
+  const tiempoEstimado = pasaporte.tiempo_estimado_horas
+    ? `${Math.round(pasaporte.tiempo_estimado_horas * 60)} min`
+    : "Por confirmar";
 
   const gananciaNeta = pasaporte.ganancia_conductor || 0;
+  const autoNombre = nombreVehiculo(pasaporte);
+  const tipoVehiculo = pasaporte.vehiculo_tipo ? ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo] : null;
 
   async function handleAceptar() {
     setProcesando(true);
@@ -69,12 +177,11 @@ export function TripOpportunityDetails({
 
     try {
       const cliente = crearClienteNavegador();
-      
       const { data: { session } } = await cliente.auth.getSession();
       if (!session?.user) {
         throw new Error("Inicia sesión para poder aceptar traslados.");
       }
-      
+
       const { data: conductorData, error: condError } = await cliente
         .from("conductores")
         .select("id")
@@ -86,7 +193,7 @@ export function TripOpportunityDetails({
       }
 
       await aceptarViaje(cliente, trasladoId, conductorData.id);
-      setAvisoExito("¡Traslado aceptado! Preparando viaje...");
+      setAvisoExito("¡Traslado aceptado con éxito! Redirigiendo...");
       setTimeout(() => {
         router.push(`/viajes/${trasladoId}`);
       }, 1000);
@@ -96,94 +203,234 @@ export function TripOpportunityDetails({
     }
   }
 
-  function handleRechazar() {
-    router.push("/viajes?vista=disponibles");
-  }
-
   const expirado = segundosRestantes === 0;
 
+  const tieneCoordenadas =
+    pasaporte.origen_lat !== null &&
+    pasaporte.origen_lng !== null &&
+    pasaporte.destino_lat !== null &&
+    pasaporte.destino_lng !== null;
+
   return (
-    <div className="mx-auto w-full max-w-md bg-[#070B14] min-h-screen flex flex-col text-white pb-6 px-4">
+    <div className="mx-auto w-full max-w-md bg-surface min-h-screen flex flex-col text-text-primary pb-8 px-4">
       {/* HEADER */}
-      <header className="flex items-center justify-between py-4">
-        <button onClick={handleRechazar} className="p-2 -ml-2 text-text-tertiary hover:text-white transition-colors">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
-        </button>
-        <span className="font-display text-[13px] font-black uppercase tracking-widest text-amber-400">NUEVA OFERTA</span>
+      <header className="flex items-center justify-between py-4 border-b border-border/15">
+        <Link
+          href={volver}
+          className="p-2 -ml-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-surface-elevated"
+          aria-label="Volver a la lista de viajes"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+        </Link>
+        <span className="font-display text-sm font-black uppercase tracking-widest text-warning flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
+          NUEVA OFERTA DISPONIBLE
+        </span>
         <div className="w-10" />
       </header>
 
       {/* TIMELINE PROGRESS */}
-      <div className="w-full bg-[#0E1524] h-2 rounded-full overflow-hidden mb-6 border border-border/20">
-        <div 
-          className={`h-full transition-all duration-1000 ease-linear ${segundosRestantes < 30 ? 'bg-rose-500' : 'bg-amber-400'}`}
+      <div className="w-full bg-surface-elevated h-2 rounded-full overflow-hidden my-4 border border-border/20">
+        <div
+          className={`h-full transition-all duration-1000 ease-linear ${
+            segundosRestantes < 45 ? "bg-danger" : "bg-signal"
+          }`}
           style={{ width: `${porcentajeProgreso}%` }}
         />
       </div>
 
-      <div className="flex flex-col flex-1 gap-6">
-        {/* TIMER & HERO */}
-        <div className="flex flex-col items-center">
-          <span className={`font-mono text-sm font-bold tracking-widest mb-2 ${segundosRestantes < 30 ? 'text-rose-400 animate-pulse' : 'text-text-secondary'}`}>
+      {/* ALERTA EN TIEMPO REAL SI OTRO CONDUCTOR YA TOMÓ LA OFERTA */}
+      {ofertaTomada && (
+        <div className="mb-4">
+          <Aviso tono="atencion">
+            <div className="flex flex-col gap-2">
+              <span className="font-bold">Esta oferta ya fue asignada a otro conductor.</span>
+              <Link
+                href={volver}
+                className="inline-block font-display text-xs font-black text-route-action hover:underline"
+              >
+                Volver a la lista de ofertas disponibles →
+              </Link>
+            </div>
+          </Aviso>
+        </div>
+      )}
+
+      <div className="flex flex-col flex-1 gap-5">
+        {/* TIMER & GANANCIA DESTACADA */}
+        <div className="flex flex-col items-center bg-surface-elevated rounded-3xl p-5 border border-border/20 shadow-xs">
+          <span
+            className={`font-mono text-xs font-extrabold tracking-widest mb-2 px-3 py-1 rounded-full border ${
+              segundosRestantes < 45
+                ? "text-danger border-danger/30 bg-danger/10 animate-pulse"
+                : "text-text-secondary border-border/30 bg-surface"
+            }`}
+          >
             {expirado ? "OFERTA EXPIRADA" : `EXPIRA EN ${formatTimer(segundosRestantes)}`}
           </span>
-          <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest">Ganancia Neta</span>
-          <div className="flex items-start mt-1">
-            <span className="text-2xl font-bold text-emerald-400 mt-1 mr-1">$</span>
-            <span className="font-display text-[56px] font-black text-emerald-400 leading-none tracking-tight">
+
+          <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest mt-1">
+            Ganancia Neta Conductor
+          </span>
+
+          <div className="flex items-start mt-1.5">
+            <span className="text-xl font-bold text-signal mt-1 mr-1">$</span>
+            <span className="font-display text-[48px] font-black text-signal leading-none tracking-tight tabular-nums">
               {gananciaNeta.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
-          <span className="text-xs text-text-secondary mt-2 font-medium">Incluye tarifa base y bonos</span>
+          <span className="text-[11px] text-text-secondary mt-2 font-semibold">
+            Tarifa base garantizada + bonos operativos
+          </span>
         </div>
 
-        {/* RUTAS Y LOGÍSTICA */}
-        <div className="bg-[#0E1524] border border-border/20 rounded-3xl p-5 mt-2 flex flex-col gap-4 shadow-lg">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest mb-3 block">ITINERARIO</span>
-            
-            <div className="flex items-start gap-4">
-              <div className="flex flex-col items-center mt-1">
-                <span className="text-emerald-400 text-sm">📍</span>
-                <div className="w-px h-8 bg-border/40 my-1" />
-                <span className="text-[#3B82F6] text-sm">📍</span>
+        {/* FICHA TÉCNICA DEL VEHÍCULO */}
+        <div className="bg-surface-elevated border border-border/20 rounded-2xl p-4 flex flex-col gap-3 shadow-xs">
+          <span className="text-[10px] text-text-tertiary font-extrabold uppercase tracking-widest">
+            Vehículo a Trasladar
+          </span>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🚗</span>
+              <div className="flex flex-col">
+                <span className="font-display text-sm font-black text-text-primary leading-tight">
+                  {autoNombre}
+                </span>
+                <span className="font-body text-[11px] text-text-secondary mt-0.5">
+                  {pasaporte.vehiculo_color ? `Color: ${pasaporte.vehiculo_color}` : "Color por confirmar"}
+                </span>
               </div>
-              <div className="flex flex-col justify-between py-0.5">
-                <div className="flex flex-col mb-4">
-                  <span className="font-display text-lg font-black leading-none">{origenCiudad}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-display text-lg font-black leading-none">{destinoCiudad}</span>
-                </div>
+            </div>
+
+            {tipoVehiculo && (
+              <span className="px-2.5 py-1 rounded-lg bg-surface border border-border/30 text-[10px] font-bold text-text-primary uppercase">
+                {tipoVehiculo}
+              </span>
+            )}
+          </div>
+
+          {pasaporte.vehiculo_placas && (
+            <div className="flex items-center justify-between pt-2 border-t border-border/15">
+              <span className="text-[10px] text-text-tertiary font-bold uppercase">Placas / Folio</span>
+              <span className="font-mono text-xs font-black text-text-primary bg-surface px-2 py-0.5 rounded border border-border/20">
+                {pasaporte.vehiculo_placas}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ITINERARIO Y RUTAS */}
+        <div className="bg-surface-elevated border border-border/20 rounded-3xl p-5 flex flex-col gap-4 shadow-xs">
+          <span className="text-[10px] text-text-tertiary font-extrabold uppercase tracking-widest block">
+            Itinerario de Ruta
+          </span>
+
+          <div className="flex flex-col gap-4">
+            {/* Origen */}
+            <div className="flex items-start gap-3">
+              <div className="mt-1 flex flex-col items-center">
+                <span className="h-3 w-3 rounded-full border-2 border-emerald-400 bg-transparent" />
+                <span className="w-[1px] h-8 bg-border/40 my-1" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="font-display text-[9px] font-bold text-emerald-400 tracking-widest uppercase">
+                  Punto de Recolección
+                </span>
+                {origenColonia && (
+                  <span className="font-display text-sm font-black text-text-primary leading-tight truncate mt-0.5">
+                    {origenColonia}
+                  </span>
+                )}
+                <span className="font-body text-xs text-text-secondary truncate mt-0.5">
+                  {origenCiudad}
+                </span>
+              </div>
+            </div>
+
+            {/* Destino */}
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5">
+                <span className="h-3 w-3 rounded-full bg-route-action block" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="font-display text-[9px] font-bold text-route-action tracking-widest uppercase">
+                  Punto de Entrega
+                </span>
+                {destinoColonia && (
+                  <span className="font-display text-sm font-black text-text-primary leading-tight truncate mt-0.5">
+                    {destinoColonia}
+                  </span>
+                )}
+                <span className="font-body text-xs text-text-secondary truncate mt-0.5">
+                  {destinoCiudad}
+                </span>
               </div>
             </div>
           </div>
 
           <div className="h-px w-full bg-border/20 my-1" />
 
+          {/* Estadísticas de Ruta */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col">
               <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest">Distancia total</span>
-              <span className="font-bold text-base mt-0.5">{distanciaTotal} km</span>
+              <span className="font-display text-sm font-black text-text-primary mt-0.5 tabular-nums">{distanciaTotal}</span>
             </div>
             <div className="flex flex-col text-right">
               <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest">Tiempo estimado</span>
-              <span className="font-bold text-base mt-0.5">{tiempoEstimado} min</span>
+              <span className="font-display text-sm font-black text-text-primary mt-0.5 tabular-nums">{tiempoEstimado}</span>
             </div>
           </div>
         </div>
 
-        {/* APROXIMACIÓN */}
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-amber-500 font-bold uppercase tracking-widest flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5-1.5zM5 11l1.5-4.5h11L19 11H5z" /></svg>
-              Distancia de Aproximación
-            </span>
-            <span className="font-bold text-white mt-1">A {distanciaAprox} km • {tiempoAprox} min</span>
+        {/* MINI MAPA DE RUTA (Si hay coordenadas) */}
+        {tieneCoordenadas && (
+          <div className="overflow-hidden rounded-2xl border border-border/20 shadow-xs">
+            <MapaRutaConduccion
+              origen={{ lat: pasaporte.origen_lat!, lng: pasaporte.origen_lng! }}
+              destino={{ lat: pasaporte.destino_lat!, lng: pasaporte.destino_lng! }}
+            />
           </div>
+        )}
+
+        {/* DISTANCIA DE APROXIMACIÓN (GPS REAL) */}
+        <div className="bg-surface-elevated border border-route-action/25 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-route-action font-extrabold uppercase tracking-widest flex items-center gap-1.5">
+              <span>📍</span>
+              {aproximacionReal.exacto ? "Distancia desde tu ubicación" : "Aproximación estimada"}
+            </span>
+            <span className="font-display text-sm font-black text-text-primary mt-1">
+              A {aproximacionReal.distancia} • ~{aproximacionReal.tiempo}
+            </span>
+          </div>
+          {posicionConductor && (
+            <span className="h-2.5 w-2.5 rounded-full bg-signal shrink-0" title="GPS activo" />
+          )}
         </div>
 
+        {/* BENEFICIOS OPERATIVOS */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 bg-surface-elevated border border-border/15 rounded-xl flex items-center gap-2.5">
+            <span className="text-lg">🛡️</span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-[10px] font-bold text-text-primary">Seguro Incluido</span>
+              <span className="text-[9px] text-text-secondary">Cobertura amplia activa</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-surface-elevated border border-border/15 rounded-xl flex items-center gap-2.5">
+            <span className="text-lg">⚡</span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-[10px] font-bold text-text-primary">Pago Garantizado</span>
+              <span className="text-[9px] text-text-secondary">Acreditación al entregar</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -191,32 +438,31 @@ export function TripOpportunityDetails({
           <Aviso tono="danger">{error}</Aviso>
         </div>
       )}
+
       {avisoExito && (
         <div className="mt-4">
           <Aviso tono="info">{avisoExito}</Aviso>
         </div>
       )}
 
-      {/* CTAs */}
+      {/* BOTONES DE ACCIÓN */}
       <div className="mt-6 flex flex-col gap-3">
         <button
           type="button"
           onClick={handleAceptar}
-          disabled={procesando || expirado}
-          className="flex w-full items-center justify-center gap-2 rounded-[1rem] bg-emerald-500 hover:bg-emerald-600 px-4 py-4 font-display text-[15px] font-black tracking-widest text-[#070B14] uppercase shadow-[0_4px_14px_0_rgba(16,185,129,0.39)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={procesando || expirado || ofertaTomada}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-signal hover:bg-signal/85 px-4 min-h-[52px] font-display text-sm font-black tracking-widest text-slate-950 uppercase shadow-md active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
-          {procesando ? TEXTOS_CARGANDO.actualizando : "ACEPTAR TRASLADO"}
+          {procesando ? TEXTOS_CARGANDO.actualizando : "ACEPTAR TRASLADO →"}
         </button>
-        <button
-          type="button"
-          onClick={handleRechazar}
-          disabled={procesando}
-          className="flex w-full items-center justify-center gap-2 rounded-[1rem] bg-transparent text-text-tertiary hover:text-white px-4 py-3 font-display text-[11px] font-bold tracking-widest uppercase transition-all"
-        >
-          Rechazar y ver más ofertas
-        </button>
-      </div>
 
+        <Link
+          href={volver}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-surface-elevated hover:bg-surface border border-border/30 text-text-secondary hover:text-text-primary px-4 min-h-[44px] font-display text-xs font-bold tracking-widest uppercase transition-all text-center"
+        >
+          Volver y ver más ofertas
+        </Link>
+      </div>
     </div>
   );
 }
