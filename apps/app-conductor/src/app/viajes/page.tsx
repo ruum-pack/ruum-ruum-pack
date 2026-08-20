@@ -774,7 +774,7 @@ export default function PaginaViajes() {
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
-            Ofertas
+            Ofertas ({disponiblesVisibles.length})
           </button>
           <button
             type="button"
@@ -785,70 +785,47 @@ export default function PaginaViajes() {
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
-            Aceptados
+            Aceptados ({aceptados.length})
           </button>
         </div>
 
-        {/* Calendar Row with inline WeekDaySelector */}
-        <div className="mt-6 flex items-center justify-between gap-4 bg-[#0E1524]/40 border border-border/10 rounded-2xl p-4 relative">
+        {/* Simple Date Navigation */}
+        <div className="mt-6 flex items-center justify-between px-2 select-none">
+          <button 
+            type="button" 
+            className="p-2 text-text-tertiary hover:text-text-primary cursor-pointer active:scale-95 transition-all"
+            onClick={() => {
+              const idx = calendario.findIndex(c => claveDia(c.dia) === diaSeleccionado);
+              if (idx > 0) setDiaSeleccionado(claveDia(calendario[idx - 1].dia));
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
           
-          {diaSeleccionado !== diaHoy && (
-            <button
-              type="button"
-              onClick={() => setDiaSeleccionado(diaHoy)}
-              className="absolute -top-3.5 left-5 bg-[#0E1524] border border-[#00B4D8]/30 px-2.5 py-1 rounded-full text-[8.5px] font-black text-[#00B4D8] uppercase tracking-wider hover:bg-[#131B2C] cursor-pointer select-none transition-all shadow-md active:scale-95"
-            >
-              Volver a Hoy
-            </button>
-          )}
+          <div className="flex flex-col items-center">
+            <span className="font-display text-sm font-black uppercase tracking-widest text-text-primary">
+              {diaCalendarioSeleccionado ? 
+                new Intl.DateTimeFormat("es-MX", { weekday: "short", day: "numeric", month: "short", timeZone: "America/Mexico_City" }).format(diaCalendarioSeleccionado.dia).replace('.', '').toUpperCase() 
+                : "HOY"}
+            </span>
+          </div>
 
-          {/* Left: Date Range info */}
-          <div className="flex items-center gap-2 shrink-0 select-none">
-            {/* Calendar Icon */}
-            <div className="w-8 h-8 rounded-xl bg-[#00B4D8]/10 flex items-center justify-center text-[#00B4D8] border border-[#00B4D8]/20">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="font-body text-[9px] font-extrabold uppercase tracking-wider text-text-tertiary leading-none">Semana</span>
-              <span className="font-display text-[10px] font-black text-white mt-1 leading-none">
-                {startDay && endDay ? (
-                  `${startDay.getDate()} - ${endDay.getDate()} ${new Intl.DateTimeFormat("es-MX", { month: "short", timeZone: "America/Mexico_City" }).format(endDay).replace('.', '').replace(/^\w/, (c) => c.toUpperCase())}`
-                ) : "16 - 22 Ago"}
-              </span>
-            </div>
-          </div>
-          
-          {/* Right: Days selector */}
-          <div className="flex-1 min-w-0">
-            <WeekDaySelector
-              dias={calendario}
-              seleccionado={diaSeleccionado}
-              hoy={diaHoy}
-              onSelect={setDiaSeleccionado}
-            />
-          </div>
+          <button 
+            type="button" 
+            className="p-2 text-text-tertiary hover:text-text-primary cursor-pointer active:scale-95 transition-all"
+            onClick={() => {
+              const idx = calendario.findIndex(c => claveDia(c.dia) === diaSeleccionado);
+              if (idx >= 0 && idx < calendario.length - 1) setDiaSeleccionado(claveDia(calendario[idx + 1].dia));
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
         </div>
 
-        {/* Card Count & Total Earnings Bar */}
-        <div className="mt-4 flex items-center justify-between bg-[#0E1524]/60 border border-border/10 rounded-2xl px-4 py-3 select-none">
-          <div className="flex items-center gap-2 font-body text-xs font-bold text-text-secondary">
-            <svg className="w-4 h-4 text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="10" width="20" height="8" rx="2" />
-              <path d="M6 10 L8 5 L16 5 L18 10" />
-              <circle cx="6" cy="18" r="1.5" />
-              <circle cx="18" cy="18" r="1.5" />
-            </svg>
-            <span>{totalViajesTexto}</span>
-          </div>
-          
-          <div className="flex items-center gap-1.5 bg-[#10B981]/15 border border-[#10B981]/30 px-3 py-1 rounded-xl font-display text-xs font-black text-[#10B981]">
-            <span>${totalGanancia.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-          </div>
+        <div className="border-t border-border/20 my-5" />
+
+        <div className="mb-4 text-[13px] font-medium text-text-secondary">
+          {listToRender.length === 1 ? `1 ${vista === "disponibles" ? "oferta disponible" : "traslado aceptado"}` : `${listToRender.length} ${vista === "disponibles" ? "ofertas disponibles" : "traslados aceptados"}`}
         </div>
 
         {/* List of custom Trip Cards */}
