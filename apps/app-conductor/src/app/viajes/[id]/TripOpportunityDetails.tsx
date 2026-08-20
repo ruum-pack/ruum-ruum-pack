@@ -193,7 +193,7 @@ export function TripOpportunityDetails({
       )}
       {avisoExito && (
         <div className="mt-4">
-          <Aviso tono="success">{avisoExito}</Aviso>
+          <Aviso tono="info">{avisoExito}</Aviso>
         </div>
       )}
 
