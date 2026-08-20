@@ -7,6 +7,7 @@ import { LocalizarVehiculoDetails } from "./LocalizarVehiculoDetails";
 import { ConduceADestinoDetails } from "./ConduceADestinoDetails";
 import { CierreTrasladoDetails } from "./CierreTrasladoDetails";
 import { DirigeteAOrigenDetails } from "./DirigeteAOrigenDetails";
+import { TrasladoAsignadoDetails } from "./TrasladoAsignadoDetails";
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
@@ -67,6 +68,12 @@ export default async function PaginaDetalleViaje({
           { etiqueta: "Volver al panel", href: "/", variant: "quiet" }
         ]}
       />
+    );
+  }
+
+  if (pasaporte.estado === "conductor_asignado") {
+    return (
+      <TrasladoAsignadoDetails pasaporte={pasaporte} volver={volver} />
     );
   }
 
