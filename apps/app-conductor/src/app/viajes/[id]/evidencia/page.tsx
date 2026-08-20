@@ -343,7 +343,9 @@ export default function PaginaEvidencia() {
       // Call API to complete evidence
       await confirmarEvidenciaCompleta(cliente, id, estadoActual || "evidencia_inicial_en_proceso", tipo);
       setAvisoExito("Evidencias completadas y enviadas con éxito.");
-      setMostrarRecibo(true);
+      setTimeout(() => {
+        router.push(`/viajes/${id}`);
+      }, 500);
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos finalizar el registro de evidencias."));
     } finally {
@@ -1063,118 +1065,6 @@ export default function PaginaEvidencia() {
             >
               Cancelar
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Receipt Modal: Cierre de traslado exitoso */}
-      {mostrarRecibo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-sm bg-[#090D1A] rounded-3xl border border-border/40 p-6 flex flex-col gap-5 shadow-2xl overflow-hidden animate-slideUp">
-            
-            {/* Header / Brand */}
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl font-black mb-3">
-                ✓
-              </div>
-              <h2 className="font-display text-base font-black text-text-primary uppercase tracking-wider">
-                {tipo === "inicial" ? "Inicio de Traslado" : "Cierre de Traslado"}
-              </h2>
-              <span className="font-body text-[10px] text-[#00B4D8] font-bold tracking-widest uppercase mt-0.5">
-                REGISTRO OPERATIVO EXITOSO
-              </span>
-            </div>
-
-            {/* Receipt Ticket Details Box */}
-            <div className="bg-surface-elevated/45 border border-border/20 rounded-2xl p-4 flex flex-col gap-3 font-body text-xs text-text-secondary relative">
-              <div className="flex justify-between items-center pb-2 border-b border-border/10">
-                <span className="text-text-tertiary">Folio del viaje:</span>
-                <span className="font-bold text-text-primary uppercase">#{folio}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-text-tertiary">Tipo checklist:</span>
-                <span className="font-semibold text-text-primary capitalize">{tipo === "inicial" ? "Origen" : "Destino"}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-text-tertiary">Kilometraje:</span>
-                <span className="font-bold text-text-primary">{kilometraje} km</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-text-tertiary">Combustible:</span>
-                <span className="font-semibold text-text-primary">{getFuelText(gasolinaSegments)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-text-tertiary">Fotos validadas:</span>
-                <span className="font-semibold text-emerald-400 font-display font-black">{fotosCapturadas} / 6</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-text-tertiary">Docs verificados:</span>
-                <span className="font-semibold text-emerald-400 font-display font-black">{docsCapturados} / 5</span>
-              </div>
-
-              {/* Dotted separator line */}
-              <div className="border-t-2 border-dashed border-border/25 my-1" />
-
-              <div className="flex flex-col gap-1 text-[10px] text-text-tertiary text-center">
-                <span>Fecha registro: {new Date().toLocaleDateString("es-MX")}</span>
-                <span>Hora: {new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}</span>
-              </div>
-            </div>
-
-            {/* Notification message if sent */}
-            {tipoReporteEnviado && (
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-center text-xs font-body text-emerald-400 animate-pulse">
-                {tipoReporteEnviado === "sms" 
-                  ? "✓ Copia del reporte enviada por SMS con éxito al cliente."
-                  : "✓ Copia del reporte enviada por correo electrónico con éxito al cliente."
-                }
-              </div>
-            )}
-
-            {/* Action buttons stack */}
-            <div className="flex flex-col gap-2.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setEnviandoCopia(true);
-                  setTimeout(() => {
-                    setTipoReporteEnviado("sms");
-                    setEnviandoCopia(false);
-                  }, 800);
-                }}
-                disabled={enviandoCopia || tipoReporteEnviado === "sms"}
-                className="w-full min-h-11 rounded-xl bg-transparent border border-[#00B4D8]/40 hover:bg-surface-elevated/20 text-[#00B4D8] font-display text-xs font-black tracking-wide flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer disabled:opacity-50"
-              >
-                {enviandoCopia ? "Enviando..." : "ENVIAR COPIA POR SMS"}
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  setEnviandoCopia(true);
-                  setTimeout(() => {
-                    setTipoReporteEnviado("email");
-                    setEnviandoCopia(false);
-                  }, 800);
-                }}
-                disabled={enviandoCopia || tipoReporteEnviado === "email"}
-                className="w-full min-h-11 rounded-xl bg-transparent border border-border hover:bg-surface-elevated/20 text-text-primary font-display text-xs font-black tracking-wide flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer disabled:opacity-50"
-              >
-                {enviandoCopia ? "Enviando..." : "ENVIAR COPIA POR CORREO"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMostrarRecibo(false);
-                  router.push("/viajes");
-                }}
-                className="w-full min-h-12 mt-2 rounded-xl bg-[#10B981] hover:bg-[#10B981]/90 text-white font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center"
-              >
-                VOLVER A TRASLADOS
-              </button>
-            </div>
-
           </div>
         </div>
       )}

@@ -44,9 +44,12 @@ export function ConduceADestinoDetails({
   const navigationTargetLat = pasaporte.destino_lat ?? 16.7569;
   const navigationTargetLng = pasaporte.destino_lng ?? -93.1292;
   const navigationUrl = `https://www.google.com/maps/dir/?api=1&destination=${navigationTargetLat},${navigationTargetLng}`;
+  const [mapaExpandido, setMapaExpandido] = useState(false);
 
-  // Incident status
-  const tieneIncidencia = pasaporte.tiene_incidencia_abierta || false;
+  const distancia = pasaporte.distancia_km;
+  const duracion = pasaporte.tiempo_estimado_horas;
+  const origenLat = pasaporte.origen_lat ?? 19.2833;
+  const origenLng = pasaporte.origen_lng ?? -99.5167;
 
   function calcularDistanciaKm(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371; // Radio de la Tierra en Km
@@ -68,8 +71,6 @@ export function ConduceADestinoDetails({
     const ejecutarConfirmacion = async (fueraGeocerca: boolean, distanciaM: number | null) => {
       try {
         const cliente = crearClienteNavegador();
-        
-        // Query the freshest state from database to handle race conditions / double clicks
         const pasaporteFresco = await obtenerPasaporteDigital(cliente, trasladoId);
         const estadoDb = pasaporteFresco?.estado || pasaporte.estado;
 
@@ -77,31 +78,27 @@ export function ConduceADestinoDetails({
           setAvisoExito("Redirigiendo a evidencias de entrega...");
           setTimeout(() => {
             router.push(`/viajes/${trasladoId}/evidencia`);
-          }, 800);
+          }, 600);
           return;
         }
 
         if (estadoDb === "traslado_en_curso") {
-          // First: transition traslado_en_curso -> llegada_a_destino using dedicated RPC
           await confirmarLlegadaDestino(cliente, trasladoId, { fueraGeocerca, distanciaM });
-          // Wait 300ms to allow Supabase transaction to finalize
           await new Promise((resolve) => setTimeout(resolve, 300));
         }
         
-        // Second: transition llegada_a_destino -> evidencia_final_en_proceso
         await avanzarEstadoTraslado(cliente, trasladoId, "llegada_a_destino");
         
         setAvisoExito("¡Llegada a destino registrada! Redirigiendo a evidencias de entrega...");
         setTimeout(() => {
           router.push(`/viajes/${trasladoId}/evidencia`);
-        }, 1000);
+        }, 800);
       } catch (err) {
         setError(traducirErrorOperativo(err, "No pudimos registrar tu llegada al destino."));
         setProcesando(false);
       }
     };
 
-    // 1. Proximity validation using GPS
     if (typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -115,7 +112,6 @@ export function ConduceADestinoDetails({
           );
           const distanciaM = Math.round(distanciaKm * 1000);
 
-          // If driver is more than 500m away, ask for explicit confirmation
           if (distanciaM > 500) {
             const distanciaTexto = distanciaKm < 1 
               ? `${distanciaM} metros` 
@@ -160,7 +156,7 @@ export function ConduceADestinoDetails({
   }
 
   return (
-    <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-between min-h-screen text-text-primary">
+    <div className="mx-auto w-full max-w-md md:max-w-xl px-4 py-5 flex flex-col justify-between min-h-screen text-text-primary">
       
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes fadeIn {
@@ -172,277 +168,245 @@ export function ConduceADestinoDetails({
         }
       ` }} />
 
-      <div className="w-full flex flex-col flex-1 animate-fade-in pb-24">
+      {/* SINGLE COLUMN MOBILE VERTICAL LAYOUT (EN CAMINO AL DESTINO) */}
+      <div className="flex flex-col gap-5 w-full mx-auto pb-36 items-stretch animate-fade-in">
         
-        {/* Top Navbar Header */}
-        <header className="hidden md:flex justify-between items-center pb-4 border-b border-border/20">
-          <div className="flex items-center gap-2">
-            <span className="font-display text-lg font-black tracking-tight text-white">
-              ruum<span className="text-[#00B4D8]">ruum</span>
-            </span>
-            <div className="bg-[#1C2C24] border border-[#234D37] px-2 py-0.5 rounded-md">
-              <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-wider">CONDUCTOR</span>
-            </div>
+        {/* Header (Volver, Detalle del traslado, ID, Ayuda) */}
+        <header className="grid grid-cols-[auto_1fr_auto] items-center pb-3 border-b border-border/10 select-none">
+          <Link
+            href={volver}
+            className="p-1.5 text-text-secondary hover:text-text-primary transition-colors shrink-0 rounded-full hover:bg-surface-elevated/60"
+            aria-label="Volver"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </Link>
+          <div className="flex flex-col items-center justify-center text-center">
+            <span className="font-display text-sm font-bold text-text-primary">Detalle del traslado</span>
+            <span className="font-mono text-[10px] text-text-tertiary mt-0.5 tracking-wider uppercase">ID {folio}</span>
           </div>
-          
-          <div className="flex items-center gap-3 shrink-0">
-            <button 
-              type="button" 
-              onClick={() => setSoporteAbierto(true)}
-              className="p-1.5 text-text-primary hover:text-signal transition-colors cursor-pointer bg-transparent border-none outline-hidden" 
-              aria-label="Soporte rápido"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary hover:text-text-primary transition-colors">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </button>
-            <Link 
-              href="/cuenta" 
-              className="p-1.5 text-text-secondary hover:text-text-primary transition-colors shrink-0" 
-              aria-label="Ajustes de cuenta"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.64-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-              </svg>
-            </Link>
-          </div>
+          <Link
+            href={`/cuenta/soporte?traslado=${trasladoId}`}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-border/15 bg-[#0E1524]/60 hover:bg-[#0E1524] text-text-primary hover:text-[#00B4D8] transition-colors shadow-xs"
+            aria-label="Ayuda"
+          >
+            <span className="font-display text-xs font-black">?</span>
+          </Link>
         </header>
 
-        {/* Sync Status Banner */}
-        <div className="mt-3">
-          <SincronizacionBadge />
-        </div>
+        {/* Sync Status Badge */}
+        <SincronizacionBadge />
 
-        {/* Step Breadcrumbs Tracker */}
-        <div className="mt-6 flex flex-col gap-1">
-          <span className="font-body text-[10px] text-[#00B4D8] font-bold tracking-wide uppercase">
-            MANIFIESTO DE RUTA · #UNO RESIDENCIAL
-          </span>
-          <h1 className="font-display text-2xl font-black text-text-primary leading-tight mt-1">
-            Trayecto activo
-          </h1>
-        </div>
+        {/* 1. Traslado en Curso status card */}
+        <section className="bg-[#0E1524] border border-emerald-500/25 rounded-2xl p-4 flex justify-between items-center text-left shadow-xs">
+          <div className="flex flex-col text-left">
+            <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-[#10B981] tracking-widest uppercase">
+              <span>Traslado en Curso</span>
+              <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse" />
+            </div>
+            <span className="text-text-tertiary text-[9px] font-bold uppercase tracking-wider mt-2">
+              Estado actual
+            </span>
+            <h2 className="font-display text-base font-black text-white leading-none mt-1 select-none">
+              EN CAMINO AL DESTINO
+            </h2>
+            <p className="font-body text-xs text-text-secondary mt-1 leading-tight">
+              Dirígete al punto de entrega indicado.
+            </p>
+          </div>
+        </section>
 
-        {/* Destination Details Card */}
-        <div className="mt-6 flex flex-col bg-surface-elevated rounded-[1.5rem] border border-border/40 p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
-          <span className="font-display text-[10px] font-black text-emerald-500 tracking-wider uppercase">
-            DESTINO
-          </span>
-          <h2 className="font-display text-2xl font-black text-text-primary mt-1">
-            {destino}
-          </h2>
-          <p className="font-body text-xs text-text-secondary mt-1 leading-relaxed">
-            {destinoDireccion}
-          </p>
-
-          {/* Metrics Card Grid (3 Columns) */}
-          <div className="mt-6 grid grid-cols-3 gap-2 border border-border/30 bg-surface-elevated/45 rounded-xl p-4 text-center">
-            <div className="flex flex-col items-center justify-center gap-1">
-              <span className="text-lg leading-none">🛣️</span>
-              <span className="font-display text-sm font-bold text-text-primary">98 km</span>
-              <span className="font-body text-[9px] text-text-tertiary uppercase tracking-wide">Restantes</span>
+        {/* 2. Card de Destino destacado (SIN Origen) con métricas de distancia y tiempo */}
+        <section className="bg-[#0E1524] border border-border/15 rounded-2xl p-4.5 flex flex-col gap-3 text-left shadow-xs">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <span className="text-[#10B981] text-lg">📍</span>
+              <span className="font-display text-[10px] font-bold text-[#10B981] tracking-widest uppercase">Punto de Destino</span>
             </div>
-            <div className="flex flex-col items-center justify-center gap-1 border-l border-border/25">
-              <span className="text-lg leading-none">⏱️</span>
-              <span className="font-display text-sm font-bold text-text-primary">1.4 hr</span>
-              <span className="font-body text-[9px] text-text-tertiary uppercase tracking-wide">Tiempo</span>
-            </div>
-            <div className="flex flex-col items-center justify-center gap-1 border-l border-border/25">
-              <span className="text-lg leading-none">🏁</span>
-              <span className="font-display text-sm font-bold text-text-primary">10:42</span>
-              <span className="font-body text-[9px] text-text-tertiary uppercase tracking-wide">Llegada</span>
-            </div>
+            <span className="font-display text-lg sm:text-xl font-black text-white leading-tight mt-1">{destino}</span>
+            {destinoDireccion && (
+              <span className="font-body text-xs text-text-secondary leading-relaxed mt-1">{destinoDireccion}</span>
+            )}
           </div>
 
-          {/* Contact Actions Grid */}
-          <div className="mt-5 flex gap-2.5 w-full">
+          <div className="border-t border-border/10 my-0.5" />
+
+          {/* Proyección de Distancia y Tiempo del Conductor al Destino */}
+          <div className="grid grid-cols-2 gap-3 text-center">
+            <div className="flex flex-col items-center justify-center bg-[#070B14] border border-border/10 rounded-xl p-2.5 shadow-2xs">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#10B981] shrink-0" aria-hidden="true">
+                <path d="M3 22 L9 2 L15 2 L21 22" />
+                <path d="M12 2 L12 22" strokeDasharray="2 2" />
+                <path d="M6 14 L18 14" />
+              </svg>
+              <span className="font-display text-base font-black text-white mt-1">
+                {distancia != null ? `${distancia} km` : "98.0 km"}
+              </span>
+              <span className="font-body text-[9px] font-bold text-text-tertiary mt-0.5 uppercase tracking-wider">Distancia al destino</span>
+            </div>
+
+            <div className="flex flex-col items-center justify-center bg-[#070B14] border border-border/10 rounded-xl p-2.5 shadow-2xs">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#10B981] shrink-0" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 15 15" />
+              </svg>
+              <span className="font-display text-base font-black text-white mt-1">
+                {duracion != null ? `${Math.round(duracion * 60)} min` : "84 min"}
+              </span>
+              <span className="font-body text-[9px] font-bold text-text-tertiary mt-0.5 uppercase tracking-wider">Tiempo est. al destino</span>
+            </div>
+          </div>
+        </section>
+
+        {/* 3. Tarjeta de Contactar Destinatario Integrada en Flujo Vertical justo debajo de Destino */}
+        <section className="bg-[#0E1524] border border-border/15 rounded-2xl p-4 flex flex-col gap-3 text-left shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-display text-[10px] font-extrabold text-text-tertiary tracking-widest uppercase">
+              Contactar destinatario
+            </span>
+            <span className="font-display text-xs font-bold text-white truncate max-w-[180px]">
+              {pasaporte.contacto_recepcion_nombre || pasaporte.contacto_entrega_nombre || "Por confirmar"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 select-none mt-1">
             <a
               href={`tel:${contactoTelefono}`}
-              className="flex-1 min-h-10 rounded-xl bg-surface-elevated/80 border border-border/40 hover:bg-surface-elevated text-text-primary font-display text-[10px] font-black tracking-wide flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer"
+              className="flex items-center justify-center gap-2 rounded-xl bg-surface-elevated/60 border border-border/20 hover:border-text-primary text-text-primary font-display text-xs font-bold py-2.5 transition-colors cursor-pointer select-none"
+              aria-label="Llamar al destinatario"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-              </svg>
-              LLAMAR USUARIO
+              <span className="text-base">📞</span>
+              Llamar
             </a>
             <a
-              href={`https://wa.me/52${contactoTelefono.replace(/[^0-9]/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 min-h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 font-display text-[10px] font-black tracking-wide flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer"
+              href={`sms:${contactoTelefono}`}
+              className="flex items-center justify-center gap-2 rounded-xl bg-surface-elevated/60 border border-border/20 hover:border-text-primary text-text-primary font-display text-xs font-bold py-2.5 transition-colors cursor-pointer select-none"
+              aria-label="Enviar mensaje de texto"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-              </svg>
-              WHATSAPP
+              <span className="text-base">💬</span>
+              Enviar mensaje
             </a>
           </div>
-        </div>
+        </section>
 
-        {/* Map Canvas Card */}
-        <div className="mt-6 flex flex-col rounded-[1.5rem] border border-border/30 bg-surface-elevated/20 p-5 relative overflow-hidden">
-          <MapaRutaConduccion
-            origen={{ lat: pasaporte.origen_lat ?? 19.2833, lng: pasaporte.origen_lng ?? -99.5167 }}
-            destino={{ lat: pasaporte.destino_lat ?? 16.7569, lng: pasaporte.destino_lng ?? -93.1292 }}
-          />
-        </div>
+        {/* 4. Tarjeta del Mapa (Ocupa el 40% de altura de pantalla con Botones Flotantes directos de Waze y Google Maps) */}
+        <section className="relative rounded-2xl border border-border/25 overflow-hidden shadow-lg h-[40vh] min-h-[280px] max-h-[420px] w-full">
+          <div className="relative h-full w-full select-none">
+            {navigationTargetLat && navigationTargetLng ? (
+              <>
+                <div
+                  onClick={() => setMapaExpandido(true)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") setMapaExpandido(true);
+                  }}
+                  className="absolute inset-0 w-full h-full z-10 cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Abrir mapa en pantalla completa"
+                >
+                  <MapaRutaConduccion
+                    origen={{ lat: origenLat, lng: origenLng }}
+                    destino={{ lat: navigationTargetLat, lng: navigationTargetLng }}
+                  />
+                </div>
+                
+                {/* Floating top button: Ver mapa completo */}
+                <button
+                  type="button"
+                  onClick={() => setMapaExpandido(true)}
+                  className="absolute top-3 right-3 bg-black/80 backdrop-blur-md border border-white/20 rounded-xl px-3 py-1.5 text-[10px] font-bold text-white hover:bg-black transition-colors z-20 flex items-center gap-1 select-none shadow-md cursor-pointer"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="15 3 21 3 21 9" />
+                    <polyline points="9 21 3 21 3 15" />
+                    <line x1="21" y1="3" x2="14" y2="10" />
+                    <line x1="3" y1="21" x2="10" y2="14" />
+                  </svg>
+                  Mapa Completo
+                </button>
 
-        {error && (
-          <div className="mt-3">
-            <Aviso tono="danger">{error}</Aviso>
-          </div>
-        )}
-        {avisoExito && (
-          <div className="mt-3">
-            <Aviso tono="info">{avisoExito}</Aviso>
-          </div>
-        )}
-
-        <div className="mt-6 flex flex-col gap-3.5">
-          <span className="font-display text-[10px] font-black text-text-tertiary tracking-widest uppercase">
-            DETALLES DEL TRASLADO
-          </span>
-
-          {/* Description Card */}
-          <div className="bg-surface-elevated/25 border border-border/20 rounded-2xl p-4.5 flex gap-3 text-xs font-body leading-relaxed text-text-secondary">
-            <span className="text-xl leading-none">📖</span>
-            <div className="flex flex-col gap-1">
-              <span className="font-bold text-text-primary text-[13px]">Descripción</span>
-              <p className="mt-0.5">{descripcionTexto}</p>
-            </div>
-          </div>
-
-          {/* Incidences Card */}
-          <div className="bg-surface-elevated/25 border border-border/20 rounded-2xl p-4.5 flex gap-3 text-xs font-body leading-relaxed text-text-secondary">
-            <span className="text-xl leading-none">⚠️</span>
-            <div className="flex flex-col w-full">
-              <div className="flex justify-between items-center w-full">
-                <span className="font-bold text-text-primary text-[13px]">Incidencia</span>
-                <span className={`font-extrabold px-2 py-0.5 rounded-md text-[9px] border ${
-                  tieneIncidencia
-                    ? "border-amber-500/40 text-amber-500 bg-amber-500/10"
-                    : "border-border/40 text-text-tertiary bg-surface-elevated/30"
-                }`}>
-                  {tieneIncidencia ? "ABIERTA" : "NINGUNA"}
-                </span>
+                {/* Floating Action Bar over bottom of Map Card (Waze & Google Maps direct buttons) */}
+                <div className="absolute bottom-3 inset-x-3 z-20 flex items-center gap-2 select-none">
+                  <a
+                    href={`https://www.waze.com/ul?ll=${navigationTargetLat},${navigationTargetLng}&navigate=yes`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-black/80 backdrop-blur-md border border-white/20 px-3 py-2.5 text-xs font-bold text-white hover:bg-black transition-all shadow-lg active:scale-95"
+                    aria-label="Navegar en Waze"
+                  >
+                    <span className="text-base">💬</span> Waze
+                  </a>
+                  <a
+                    href={navigationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-black/80 backdrop-blur-md border border-white/20 px-3 py-2.5 text-xs font-bold text-white hover:bg-black transition-all shadow-lg active:scale-95"
+                    aria-label="Navegar en Google Maps"
+                  >
+                    <span className="text-base">🗺️</span> Google Maps
+                  </a>
+                </div>
+              </>
+            ) : (
+              <div className="absolute inset-0 w-full h-full bg-surface-elevated/45 flex items-center justify-center text-text-tertiary text-xs">
+                Cargando mapa interactivo...
               </div>
-              <p className="text-[11px] text-text-tertiary mt-0.5">Reporta retrasos, desviaciones, fallas del vehículo o cualquier situación fuera de lo previsto.</p>
-
-              <button
-                type="button"
-                onClick={() => router.push(`/viajes/${trasladoId}#reportar-incidencia`)}
-                className="w-full mt-3.5 border border-dashed border-border/60 hover:border-signal/50 rounded-xl py-3 flex items-center justify-center text-text-secondary hover:text-text-primary font-display text-xs font-bold transition-all cursor-pointer select-none"
-              >
-                + REPORTAR INCIDENCIA
-              </button>
-            </div>
+            )}
           </div>
+        </section>
 
+      </div>
+
+      {error && (
+        <div className="mt-3 px-4">
+          <Aviso tono="danger">{error}</Aviso>
         </div>
-
-        <div className="text-center font-body text-[9px] text-text-tertiary font-bold mt-8 tracking-wide select-none">
-          ruumruum · manifiesto generado para revisión de conductor
+      )}
+      {avisoExito && (
+        <div className="mt-3 px-4">
+          <Aviso tono="info">{avisoExito}</Aviso>
         </div>
+      )}
 
-        {/* Sticky footer for navigation & arrival actions */}
-        <div className="sticky bottom-0 inset-x-0 z-20 bg-[#090D1A]/95 backdrop-blur-md border-t border-border/20 py-4 px-4 -mx-4 sm:-mx-6 flex gap-3 mt-8">
-          <a
-            href={navigationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 min-h-12 rounded-xl bg-transparent hover:bg-surface-elevated/20 border border-[#00BBC9]/60 text-[#00BBC9] font-display text-xs font-black tracking-wide transition-all select-none text-center flex items-center justify-center gap-2 cursor-pointer shadow-xs focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00BBC9] focus-visible:ring-offset-2"
-          >
-            {/* Map/GPS SVG Icon */}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-              <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
-              <line x1="9" y1="3" x2="9" y2="18" />
-              <line x1="15" y1="6" x2="15" y2="21" />
-            </svg>
-            NAVEGAR
-          </a>
+      {/* Primary Action Button Bar (Fixed directly ABOVE the Secondary Bottom Navigation Bar) */}
+      <div className="fixed bottom-[60px] inset-x-0 z-40 bg-[#070B14]/90 backdrop-blur-md border-t border-border/15 py-3 px-4 select-none shadow-lg">
+        <div className="max-w-md mx-auto flex flex-col gap-2">
           <button
             type="button"
             onClick={handleLlegueDestino}
             disabled={procesando}
-            className="flex-[2] min-h-12 rounded-xl bg-[#10B981] hover:bg-[#10B981]/90 text-white font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#10B981] focus-visible:ring-offset-2"
+            className="w-full min-h-[48px] rounded-2xl bg-[#10B981] hover:bg-[#0EA271] text-white font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-2 focus:outline-hidden"
           >
-            {procesando ? TEXTOS_CARGANDO.actualizando : "HE LLEGADO"}
+            <svg className="w-4.5 h-4.5 text-white shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            {procesando ? TEXTOS_CARGANDO.actualizando : "HE LLEGADO AL DESTINO"}
           </button>
         </div>
-
       </div>
 
-      {/* Secondary Bottom Navigation Bar (Detalles del traslado, Gastos, Incidencia) */}
-      <div className="mt-auto pt-4 -mx-4 -mb-6">
-        <SecondaryTripNavBar trasladoId={trasladoId} pasaporte={pasaporte} />
-      </div>
+      {/* Secondary Bottom Navigation Bar fixed at bottom (0px) */}
+      <SecondaryTripNavBar trasladoId={trasladoId} pasaporte={pasaporte} />
 
-      {/* Bottom Sheet de Soporte */}
-      {soporteAbierto && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          {/* Backdrop de cierre */}
-          <button 
-            type="button" 
-            className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-300 animate-fadeIn cursor-default w-full h-full border-none outline-hidden" 
-            onClick={() => setSoporteAbierto(false)}
-            aria-label="Cerrar soporte"
-          />
-          {/* Tarjeta de contenido */}
-          <div className="relative w-full max-w-md bg-surface-elevated rounded-t-[2rem] border-t border-border/40 p-6 flex flex-col gap-4 animate-slideUp shadow-2xl">
-            <div className="flex justify-between items-center pb-2 border-b border-border/20">
-              <h2 className="font-display text-lg font-bold text-text-primary flex items-center gap-2">
-                <span>💬</span> Soporte Rápido Ruum
-              </h2>
-              <button 
-                type="button" 
-                onClick={() => setSoporteAbierto(false)}
-                className="text-text-tertiary hover:text-text-primary p-1 cursor-pointer font-bold text-sm"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="font-body text-xs text-text-secondary">
-              Selecciona un medio de contacto para comunicarte con el equipo operativo de guardia.
-            </p>
-            <div className="flex flex-col gap-2.5 mt-2">
-              <a
-                href="https://wa.me/525548210937"
-                className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition-colors"
-              >
-                <span className="text-xl">💬</span>
-                <div className="flex flex-col items-start">
-                  <span className="font-display text-sm font-bold text-emerald-400">WhatsApp de Soporte</span>
-                  <span className="font-body text-[11px] text-text-secondary">Mensajería instantánea y respuesta inmediata</span>
-                </div>
-              </a>
-              <a
-                href="tel:+525548210937"
-                className="flex items-center gap-3 p-4 bg-route-soft border border-route-action/20 rounded-xl hover:bg-route-action/10 transition-colors"
-              >
-                <span className="text-xl">📞</span>
-                <div className="flex flex-col items-start">
-                  <span className="font-display text-sm font-bold text-route-action">Llamar a Soporte</span>
-                  <span className="font-body text-[11px] text-text-secondary">Habla por teléfono directamente con un operador</span>
-                </div>
-              </a>
-              <a
-                href="mailto:soporte@ruumruum.com"
-                className="flex items-center gap-3 p-4 bg-surface rounded-xl border border-border/40 hover:bg-surface-elevated transition-colors"
-              >
-                <span className="text-xl">✉️</span>
-                <div className="flex flex-col items-start">
-                  <span className="font-display text-sm font-bold text-text-primary">Correo Electrónico</span>
-                  <span className="font-body text-[11px] text-text-secondary">Reportar incidencias técnicas no urgentes</span>
-                </div>
-              </a>
-            </div>
+      {/* Fullscreen Map Modal */}
+      {mapaExpandido && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black animate-fade-in">
+          <div className="flex items-center justify-between p-4 bg-[#070B14] border-b border-border/20">
+            <span className="font-display text-sm font-bold text-white">Ruta a Destino</span>
             <button
               type="button"
-              onClick={() => setSoporteAbierto(false)}
-              className="w-full min-h-11 mt-2 rounded-xl bg-control-soft font-display text-sm font-bold text-text-primary hover:bg-border/60 transition-colors cursor-pointer"
+              onClick={() => setMapaExpandido(false)}
+              className="px-3 py-1.5 rounded-xl bg-surface-elevated text-xs font-bold text-white hover:bg-surface"
             >
-              Cancelar
+              Cerrar
             </button>
+          </div>
+          <div className="flex-1 w-full relative">
+            <MapaRutaConduccion
+              origen={{ lat: origenLat, lng: origenLng }}
+              destino={{ lat: navigationTargetLat, lng: navigationTargetLng }}
+            />
           </div>
         </div>
       )}
