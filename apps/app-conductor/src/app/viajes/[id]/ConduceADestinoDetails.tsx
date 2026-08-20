@@ -128,10 +128,9 @@ export function ConduceADestinoDetails({
 
         {/* MAP PREVIEW */}
         <div className="mt-5 rounded-xl overflow-hidden h-[120px] bg-surface relative pointer-events-none">
-           <MapaRutaConduccion 
-             origenLat={navigationTargetLat} origenLng={navigationTargetLng} 
-             destinoLat={navigationTargetLat} destinoLng={navigationTargetLng} 
-             padding={40} height="120px"
+           <MapaRutaConduccion
+             origen={{ lat: navigationTargetLat, lng: navigationTargetLng }}
+             destino={{ lat: navigationTargetLat, lng: navigationTargetLng }}
            />
         </div>
 

@@ -239,10 +239,11 @@ export function SecondaryTripNavBar({
             <form onSubmit={handleAgregarGasto} className="flex flex-col gap-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
+                  <label htmlFor="tipo-gasto" className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
                     Tipo de gasto
                   </label>
                   <select
+                    id="tipo-gasto"
                     value={tipoGasto}
                     onChange={(e) => setTipoGasto(e.target.value as GastoTipo)}
                     className="bg-[#070B14] border border-border/20 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#00B4D8]"
@@ -256,12 +257,13 @@ export function SecondaryTripNavBar({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
+                  <label htmlFor="monto-gasto" className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
                     Monto (MXN)
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-xs font-bold text-text-tertiary">$</span>
                     <input
+                      id="monto-gasto"
                       type="number"
                       step="0.01"
                       placeholder="0.00"
@@ -274,10 +276,11 @@ export function SecondaryTripNavBar({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
+                <label htmlFor="notas-gasto" className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
                   Notas / Especificaciones (opcional)
                 </label>
                 <input
+                  id="notas-gasto"
                   type="text"
                   placeholder="Ej. Casetas autopista México-Toluca"
                   value={notas}
