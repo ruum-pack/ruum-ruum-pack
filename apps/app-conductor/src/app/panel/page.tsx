@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Aviso } from "@ruum/ui";
+import { Aviso, LogoMarca } from "@ruum/ui";
 import { ConfirmarDisponibilidad } from "../ConfirmarDisponibilidad";
 import { RegistroViajeActivo } from "../ViajeActivoContext";
 import { EstadoRevisionConductor } from "./EstadoRevisionConductor";
@@ -195,33 +195,25 @@ export default function PaginaPanel() {
       ) : (
         <div className="w-full flex flex-col flex-1 pb-20 md:pb-6">
           
-          {/* Header / Saludo */}
-          <header className="flex justify-between items-start">
-            <div className="flex flex-col text-left">
-              <span className="font-body text-sm font-medium text-text-tertiary">Hola,</span>
-              <h1 className="font-display text-2xl font-black tracking-tight text-text-primary mt-1 uppercase">
-                {conductor?.nombre ?? "—"}
-              </h1>
-              <p className="mt-1 font-body text-xs text-text-secondary">
-                {conductor?.email && conductor?.telefono
-                  ? `${conductor.email} • ${conductor.telefono}`
-                  : conductor?.email || conductor?.telefono || ""}
-              </p>
+          {/* Header */}
+          <header className="flex justify-between items-center">
+            <div className="flex items-center">
+              <LogoMarca tamano={28} color="signal" />
             </div>
 
-            {/* Icono de Avisos con Badge '2' */}
-            <div className="flex items-center mt-1 shrink-0">
+            {/* Icono de Avisos con Badge */}
+            <div className="flex items-center shrink-0">
               <Link 
                 href="/notificaciones" 
-                className="relative p-2.5 text-text-primary hover:text-[#00B4D8] transition-colors" 
+                className="relative p-2 text-text-primary hover:text-[#00B4D8] transition-colors" 
                 aria-label="Notificaciones"
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary hover:text-[#00B4D8] transition-colors">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
                   <path d="M10 21h4" />
                 </svg>
                 {notificacionesCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 bg-danger text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center border border-[#070B14] shadow-xs">
+                  <span className="absolute top-1 right-1 bg-danger text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center border border-[#070B14] shadow-xs">
                     {notificacionesCount}
                   </span>
                 )}
@@ -229,34 +221,12 @@ export default function PaginaPanel() {
             </div>
           </header>
 
-          {/* Barra de Métricas del Día */}
-          <div className="grid grid-cols-2 gap-3 mt-6">
-            <div className="bg-[#0E1524] border border-border/15 rounded-2xl px-4 py-3.5 flex flex-col gap-0.5 shadow-xs">
-              <span className="text-text-tertiary text-[9px] font-extrabold tracking-widest uppercase leading-none">Ganancias hoy</span>
-              <span className="font-display text-xl font-black text-[#a8e820] mt-1.5 leading-none tabular-nums">
-                {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(gananciasHoy)}
-              </span>
-              <span className="text-text-disabled text-[10px] mt-1">
-                {trasladosHoy === 0 ? "Sin traslados cerrados" : `${trasladosHoy} traslado${trasladosHoy !== 1 ? "s" : ""} cerrado${trasladosHoy !== 1 ? "s" : ""}`}
-              </span>
-            </div>
-            <div className="bg-[#0E1524] border border-border/15 rounded-2xl px-4 py-3.5 flex flex-col gap-0.5 shadow-xs">
-              <span className="text-text-tertiary text-[9px] font-extrabold tracking-widest uppercase leading-none">Traslados hoy</span>
-              <span className="font-display text-xl font-black text-text-primary mt-1.5 leading-none tabular-nums">
-                {trasladosHoy}
-              </span>
-              <span className="text-text-disabled text-[10px] mt-1">
-                <Link href="/ganancias" className="text-[#00B4D8] hover:underline">Ver detalle →</Link>
-              </span>
-            </div>
-          </div>
-
-          {/* Estado Operativo */}
+          {/* ESTADO DEL CONDUCTOR */}
           <section className="mt-6 bg-[#0E1524] rounded-2xl p-5 border border-border/15 text-left shadow-xs">
             <div className="flex justify-between items-start">
               <div className="flex flex-col gap-1">
                 <span className="text-text-tertiary text-[10px] font-extrabold tracking-wider uppercase">
-                  Estado Operativo
+                  Estado del Conductor
                 </span>
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className={`h-2.5 w-2.5 rounded-full ${esDisponible ? "bg-[#a8e820]" : "bg-text-disabled"}`} />
@@ -393,11 +363,33 @@ export default function PaginaPanel() {
             )}
           </div>
 
-          {/* Estado Operativo */}
+          {/* GANANCIAS DEL DÍA */}
+          <div className="grid grid-cols-2 gap-3 mt-6">
+            <div className="bg-[#0E1524] border border-border/15 rounded-2xl px-4 py-3.5 flex flex-col gap-0.5 shadow-xs">
+              <span className="text-text-tertiary text-[9px] font-extrabold tracking-widest uppercase leading-none">Ganancias del día</span>
+              <span className="font-display text-xl font-black text-[#a8e820] mt-1.5 leading-none tabular-nums">
+                {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(gananciasHoy)}
+              </span>
+              <span className="text-text-disabled text-[10px] mt-1">
+                {trasladosHoy === 0 ? "Sin traslados cerrados" : `${trasladosHoy} traslado${trasladosHoy !== 1 ? "s" : ""} cerrado${trasladosHoy !== 1 ? "s" : ""}`}
+              </span>
+            </div>
+            <div className="bg-[#0E1524] border border-border/15 rounded-2xl px-4 py-3.5 flex flex-col gap-0.5 shadow-xs">
+              <span className="text-text-tertiary text-[9px] font-extrabold tracking-widest uppercase leading-none">Traslados hoy</span>
+              <span className="font-display text-xl font-black text-text-primary mt-1.5 leading-none tabular-nums">
+                {trasladosHoy}
+              </span>
+              <span className="text-text-disabled text-[10px] mt-1">
+                <Link href="/ganancias" className="text-[#00B4D8] hover:underline">Ver detalle →</Link>
+              </span>
+            </div>
+          </div>
+
+          {/* Salud Operacional */}
           <section className="mt-6 bg-[#0E1524] rounded-2xl p-5 border border-border/15 text-left shadow-xs">
             <div className="flex justify-between items-center pb-3 border-b border-border/10">
               <span className="text-text-tertiary text-[10px] font-extrabold tracking-wider uppercase">
-                Estado Operativo
+                Salud Operacional
               </span>
               <Link href="/cuenta" className="text-xs font-semibold text-[#00B4D8] hover:underline flex items-center gap-0.5">
                 Ver detalle <span className="text-[10px]">&gt;</span>
