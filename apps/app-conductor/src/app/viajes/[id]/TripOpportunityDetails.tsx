@@ -1087,17 +1087,10 @@ export function TripOpportunityDetails({
               }
             </p>
             {confirmarAccion === "aceptar" && (
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex flex-col gap-1.5 text-[11px] font-body text-amber-400 leading-relaxed">
-                <span className="font-bold flex items-center gap-1">
-                  ⚠️ ADVERTENCIA OPERATIVA (TRASLADO INCOMPLETO):
-                </span>
+              <div className="bg-surface-elevated border border-border/20 rounded-xl p-3 flex flex-col gap-1.5 text-[11px] font-body text-text-secondary leading-relaxed">
                 <p>
-                  Este traslado cuenta con detalles por confirmar en origen o destino. Al aceptar, confirmas estar de acuerdo con las siguientes directrices:
+                  <strong className="text-text-primary">Importante:</strong> una vez aceptado, el traslado quedará asignado a ti. Las cancelaciones posteriores pueden afectar tu operación.
                 </p>
-                <ul className="list-disc pl-4 flex flex-col gap-0.5 font-medium text-text-secondary">
-                  <li>Esperar las especificaciones y accesos de recolección en sitio.</li>
-                  <li>Coordinar con la mesa de control de Ruum ante variaciones de ruta.</li>
-                </ul>
               </div>
             )}
             <div className="flex gap-3 mt-2">
