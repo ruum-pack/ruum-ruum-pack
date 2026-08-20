@@ -8,6 +8,7 @@ import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
+import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -317,10 +318,8 @@ export function CierreTrasladoDetails({
     );
   }
 
-  const writable = estadoActual === "evidencia_final_completada";
-
   return (
-    <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-between min-h-screen text-text-primary">
+    <div className="mx-auto w-full max-w-md md:max-w-xl px-4 py-5 flex flex-col justify-between min-h-screen text-text-primary">
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -331,47 +330,37 @@ export function CierreTrasladoDetails({
         }
       ` }} />
 
-      <div className="w-full flex flex-col flex-1 animate-fade-in">
+      <div className="w-full flex flex-col flex-1 animate-fade-in pb-36">
         
-        {/* Top Header */}
-        <header className="flex justify-between items-center pb-4 border-b border-border/20">
-          <div className="flex items-center gap-2">
-            <span className="font-display text-lg font-black tracking-tight text-white">
-              ruum<span className="text-[#00B4D8]">ruum</span>
-            </span>
-            <div className="bg-[#1C2C24] border border-[#234D37] px-2 py-0.5 rounded-md">
-              <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-wider">CONDUCTOR</span>
-            </div>
+        {/* Header (Volver, Detalle del traslado, ID, Ayuda) */}
+        <header className="grid grid-cols-[auto_1fr_auto] items-center pb-3 border-b border-border/10 select-none">
+          <Link
+            href={volver}
+            className="p-1.5 text-text-secondary hover:text-text-primary transition-colors shrink-0 rounded-full hover:bg-surface-elevated/60"
+            aria-label="Volver"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </Link>
+          <div className="flex flex-col items-center justify-center text-center">
+            <span className="font-display text-sm font-bold text-text-primary">Cierre de Traslado</span>
+            <span className="font-mono text-[10px] text-text-tertiary mt-0.5 tracking-wider uppercase">ID {trasladoId.slice(0, 8).toUpperCase()}</span>
           </div>
-          
-          <div className="flex items-center gap-3 shrink-0">
-            <button 
-              type="button" 
-              onClick={() => setSoporteAbierto(true)}
-              className="p-1.5 text-text-primary hover:text-signal transition-colors cursor-pointer bg-transparent border-none outline-hidden" 
-              aria-label="Soporte rápido"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary hover:text-text-primary transition-colors">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </button>
-            <Link 
-              href="/cuenta" 
-              className="p-1.5 text-text-secondary hover:text-text-primary transition-colors shrink-0" 
-              aria-label="Ajustes de cuenta"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-              </svg>
-            </Link>
-          </div>
+          <Link
+            href={`/cuenta/soporte?traslado=${trasladoId}`}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-border/15 bg-[#0E1524]/60 hover:bg-[#0E1524] text-text-primary hover:text-[#00B4D8] transition-colors shadow-xs"
+            aria-label="Ayuda"
+          >
+            <span className="font-display text-xs font-black">?</span>
+          </Link>
         </header>
 
-        {/* Header section */}
-        <div className="mt-6 flex flex-col gap-1.5">
+        {/* Header status badge section */}
+        <div className="mt-4 flex flex-col gap-1.5">
           <div className="flex justify-between items-center">
-            <span className="font-body text-[10px] text-text-tertiary font-bold tracking-wide">
-              Resumen del Traslado
+            <span className="font-body text-[10px] text-text-tertiary font-bold tracking-wide uppercase">
+              REVISION Y CONCILIACION
             </span>
             {renderBadge()}
           </div>
@@ -384,7 +373,7 @@ export function CierreTrasladoDetails({
         </div>
 
         {/* Card: Vehicle and Route info */}
-        <div className="mt-6 bg-surface-elevated/45 border border-border/20 rounded-2xl p-4.5">
+        <div className="mt-5 bg-[#0E1524] border border-border/20 rounded-2xl p-4.5 shadow-xs">
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-start">
               <div>
@@ -400,10 +389,10 @@ export function CierreTrasladoDetails({
               </div>
               <div className="text-right">
                 <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-widest uppercase">
-                  TRASLADO ID
+                  FOLIO VIAJE
                 </span>
-                <p className="font-display text-xs font-black text-text-primary mt-0.5">
-                  {pasaporte.traslado_id?.slice(0, 8).toUpperCase()}
+                <p className="font-display text-xs font-black text-text-primary mt-0.5 font-mono">
+                  #{trasladoId.slice(0, 8).toUpperCase()}
                 </p>
               </div>
             </div>
@@ -413,7 +402,7 @@ export function CierreTrasladoDetails({
                 <span className="text-[9px] text-text-tertiary font-black font-display tracking-widest uppercase">ORIGEN</span>
                 <span className="font-bold text-text-primary mt-0.5">{pasaporte.origen_ciudad}</span>
               </div>
-              <span className="text-text-tertiary">➔</span>
+              <span className="text-text-tertiary font-bold">➔</span>
               <div className="flex flex-col text-right">
                 <span className="text-[9px] text-text-tertiary font-black font-display tracking-widest uppercase">DESTINO</span>
                 <span className="font-bold text-text-primary mt-0.5">{pasaporte.destino_ciudad}</span>
@@ -423,7 +412,7 @@ export function CierreTrasladoDetails({
         </div>
 
         {/* Card: Checklist Conciliación */}
-        <section className="mt-8 flex flex-col gap-3">
+        <section className="mt-6 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00B4D8] flex items-center justify-center font-display text-[10px] font-bold">
               1
@@ -433,8 +422,8 @@ export function CierreTrasladoDetails({
             </h2>
           </div>
 
-          <div className="bg-surface-elevated/25 border border-border/20 rounded-2xl overflow-hidden text-xs font-body">
-            <div className="grid grid-cols-3 gap-2 bg-surface/50 border-b border-border/15 p-3 font-bold text-text-tertiary text-[10px] tracking-wider font-display uppercase">
+          <div className="bg-[#0E1524] border border-border/20 rounded-2xl overflow-hidden text-xs font-body shadow-xs">
+            <div className="grid grid-cols-3 gap-2 bg-[#070B14] border-b border-border/15 p-3 font-bold text-text-tertiary text-[10px] tracking-wider font-display uppercase">
               <span>Elemento</span>
               <span className="text-center">Origen (Inicial)</span>
               <span className="text-center">Entrega (Final)</span>
@@ -452,7 +441,7 @@ export function CierreTrasladoDetails({
               </div>
 
               {getKmDiff() !== null && (
-                <div className="grid grid-cols-3 gap-2 p-2.5 bg-emerald-500/5 items-center">
+                <div className="grid grid-cols-3 gap-2 p-2.5 bg-emerald-500/10 items-center">
                   <span className="font-bold text-emerald-400 pl-1 text-[11px]">Distancia recorrida</span>
                   <span />
                   <span className="text-center text-emerald-400 font-black font-display text-[13px] font-mono">
@@ -514,17 +503,17 @@ export function CierreTrasladoDetails({
           </div>
 
           {/* Observaciones Comparison */}
-          <div className="bg-surface-elevated/15 border border-border/20 rounded-2xl p-4.5 flex flex-col gap-3.5 text-xs font-body mt-1">
+          <div className="bg-[#0E1524] border border-border/20 rounded-2xl p-4 flex flex-col gap-3 text-xs font-body mt-1">
             {inspeccionInicial?.notas ? (
               <div className="flex flex-col gap-1">
                 <span className="font-bold text-text-tertiary text-[10px] tracking-wider font-display uppercase">Notas de Recolección (Origen)</span>
-                <p className="text-text-secondary leading-relaxed italic bg-surface/30 p-2.5 rounded-xl">{inspeccionInicial.notas}</p>
+                <p className="text-text-secondary leading-relaxed italic bg-[#070B14] p-3 rounded-xl border border-border/10">{inspeccionInicial.notas}</p>
               </div>
             ) : null}
             {inspeccionFinal?.notas ? (
               <div className="flex flex-col gap-1">
                 <span className="font-bold text-text-tertiary text-[10px] tracking-wider font-display uppercase">Notas de Entrega (Destino)</span>
-                <p className="text-text-secondary leading-relaxed italic bg-surface/30 p-2.5 rounded-xl">{inspeccionFinal.notas}</p>
+                <p className="text-text-secondary leading-relaxed italic bg-[#070B14] p-3 rounded-xl border border-border/10">{inspeccionFinal.notas}</p>
               </div>
             ) : (
               <div className="flex flex-col gap-1">
@@ -536,7 +525,7 @@ export function CierreTrasladoDetails({
         </section>
 
         {/* Section: Gastos de Traslado */}
-        <section className="mt-8 flex flex-col gap-3">
+        <section className="mt-6 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00B4D8] flex items-center justify-center font-display text-[10px] font-bold">
               2
@@ -546,9 +535,14 @@ export function CierreTrasladoDetails({
             </h2>
           </div>
 
-          {/* Form to add expenses */}
+          {/* Formulario de Registro de Gastos con Borde Delimitado Sutil */}
           {writable && (
-            <form onSubmit={handleAgregarGasto} className="bg-surface-elevated/45 border border-border/20 rounded-2xl p-4.5 flex flex-col gap-3.5">
+            <form onSubmit={handleAgregarGasto} className="bg-[#0E1524] border border-[#00B4D8]/30 shadow-md rounded-2xl p-4.5 flex flex-col gap-3.5">
+              <div className="flex items-center gap-1.5 border-b border-border/15 pb-2">
+                <span className="text-sm">💵</span>
+                <span className="font-display text-xs font-bold text-text-primary">Registrar Nuevo Gasto</span>
+              </div>
+
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="flex flex-col gap-1">
                   <label htmlFor="tipo_gasto" className="font-display text-[9px] font-black text-text-tertiary tracking-widest uppercase pl-0.5">Tipo de Gasto</label>
@@ -556,7 +550,7 @@ export function CierreTrasladoDetails({
                     id="tipo_gasto"
                     value={tipoGasto}
                     onChange={(e) => setTipoGasto(e.target.value as GastoData["tipo"])}
-                    className="w-full bg-surface-elevated/20 border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00B4D8]/50 transition-colors font-inherit h-10 select-none cursor-pointer"
+                    className="w-full bg-[#070B14] border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00B4D8] transition-colors font-inherit h-11 select-none cursor-pointer"
                   >
                     <option value="caseta">Caseta</option>
                     <option value="combustible">Gasolina</option>
@@ -576,7 +570,7 @@ export function CierreTrasladoDetails({
                     value={montoGasto}
                     onChange={(e) => setMontoGasto(e.target.value)}
                     required
-                    className="w-full bg-surface-elevated/20 border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00B4D8]/50 transition-colors font-inherit h-10"
+                    className="w-full bg-[#070B14] border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00B4D8] transition-colors font-inherit h-11 font-mono font-bold"
                   />
                 </div>
               </div>
@@ -589,59 +583,65 @@ export function CierreTrasladoDetails({
                   placeholder="Ej. Caseta México-Querétaro"
                   value={descGasto}
                   onChange={(e) => setDescGasto(e.target.value)}
-                  className="w-full bg-surface-elevated/20 border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00B4D8]/50 transition-colors font-inherit h-10"
+                  className="w-full bg-[#070B14] border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00B4D8] transition-colors font-inherit h-11"
                 />
               </div>
 
-              {/* Ticket upload field */}
-              <div className="flex flex-col gap-1">
+              {/* Botón de Subida de Ticket Amplio Dashed con Ícono de Cámara */}
+              <div className="flex flex-col gap-1.5">
                 <span className="font-display text-[9px] font-black text-text-tertiary tracking-widest uppercase pl-0.5">
                   Ticket / Comprobante (Obligatorio para Gasolina y Casetas)
                 </span>
-                <div className="flex items-center gap-3">
-                  <label
-                    htmlFor="comprobante_upload"
-                    className={`flex-1 h-10 rounded-xl border border-dashed flex items-center justify-center gap-1.5 text-xs font-body cursor-pointer select-none transition-all ${
-                      comprobanteArchivo
-                        ? "border-emerald-500/40 bg-emerald-500/5 text-emerald-400 font-semibold"
-                        : "border-border/40 bg-surface-elevated/20 text-text-secondary hover:border-[#00B4D8]/50"
-                    }`}
-                  >
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setComprobanteArchivo(e.target.files?.[0] || null)}
-                      className="hidden"
-                      id="comprobante_upload"
-                    />
-                    <span>📷</span>
-                    {comprobanteArchivo ? `✓ ${comprobanteArchivo.name.slice(0, 20)}...` : "Adjuntar foto de ticket"}
-                  </label>
-                  {comprobanteArchivo && (
-                    <button
-                      type="button"
-                      onClick={() => setComprobanteArchivo(null)}
-                      className="text-red-400 font-extrabold text-sm px-2 cursor-pointer bg-transparent border-none"
-                    >
-                      ✕
-                    </button>
+                <label
+                  htmlFor="comprobante_upload"
+                  className={`w-full min-h-[56px] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-3 text-xs font-body cursor-pointer select-none transition-all touch-manipulation active:scale-[0.99] ${
+                    comprobanteArchivo
+                      ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-400 font-bold"
+                      : "border-[#00B4D8]/40 bg-[#070B14] hover:bg-[#070B14]/80 text-text-secondary hover:border-[#00B4D8]"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setComprobanteArchivo(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="comprobante_upload"
+                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">📷</span>
+                    <span className="font-bold text-xs">
+                      {comprobanteArchivo ? `✓ ${comprobanteArchivo.name.slice(0, 26)}...` : "Toca para adjuntar foto del ticket"}
+                    </span>
+                  </div>
+                  {!comprobanteArchivo && (
+                    <span className="text-[10px] text-text-tertiary mt-0.5">Soporta JPG, PNG y fotos directas de cámara</span>
                   )}
-                </div>
+                </label>
+                {comprobanteArchivo && (
+                  <button
+                    type="button"
+                    onClick={() => setComprobanteArchivo(null)}
+                    className="text-red-400 hover:text-red-300 font-bold text-xs cursor-pointer bg-transparent border-none text-left pl-1"
+                  >
+                    ✕ Quitar ticket adjunto
+                  </button>
+                )}
               </div>
 
+              {/* Botón Acción Secundaria Azul Outline (+ REGISTRAR GASTO) */}
               <button
                 type="submit"
                 disabled={procesando}
-                className="w-full h-10 rounded-xl border border-dashed border-[#00B4D8]/60 hover:border-[#00B4D8] text-[#00B4D8] hover:text-white font-display text-xs font-black tracking-wider transition-all cursor-pointer flex items-center justify-center select-none mt-1"
+                className="w-full min-h-[46px] rounded-xl bg-[#00B4D8]/15 hover:bg-[#00B4D8]/25 border-2 border-[#00B4D8]/60 text-[#00B4D8] hover:text-white font-display text-xs font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 select-none shadow-xs mt-1 active:scale-98"
               >
                 + REGISTRAR GASTO
               </button>
             </form>
           )}
 
-          {/* Expenses List */}
-          <div className="bg-surface-elevated/25 border border-border/20 rounded-2xl overflow-hidden text-xs font-body">
-            <div className="grid grid-cols-12 bg-surface/50 border-b border-border/15 p-3 font-bold text-text-tertiary text-[10px] tracking-wider font-display uppercase">
+          {/* Tabla / Lista Separada de Gastos Guardados */}
+          <div className="bg-[#0E1524] border border-border/20 rounded-2xl overflow-hidden text-xs font-body shadow-xs">
+            <div className="grid grid-cols-12 bg-[#070B14] border-b border-border/15 p-3 font-bold text-text-tertiary text-[10px] tracking-wider font-display uppercase">
               <span className="col-span-4">Concepto</span>
               <span className="col-span-3 text-center">Tipo</span>
               <span className="col-span-3 text-right">Monto</span>
@@ -681,7 +681,7 @@ export function CierreTrasladoDetails({
                 ))}
 
                 {/* Sum of expenses */}
-                <div className="grid grid-cols-12 p-3.5 bg-surface/60 font-bold items-center border-t border-border/15">
+                <div className="grid grid-cols-12 p-3.5 bg-[#070B14] font-bold items-center border-t border-border/15">
                   <span className="col-span-7 font-display text-[10px] font-black text-text-tertiary tracking-widest uppercase">Total Gastos Registrados</span>
                   <span className="col-span-3 text-right font-display text-sm font-black text-emerald-400 font-mono">${totalGastos.toFixed(2)}</span>
                   <span className="col-span-2" />
@@ -692,29 +692,33 @@ export function CierreTrasladoDetails({
         </section>
 
         {error && (
-          <div className="mt-4">
+          <div className="mt-4 px-1">
             <Aviso tono="danger">{error}</Aviso>
           </div>
         )}
         {avisoExito && (
-          <div className="mt-4">
+          <div className="mt-4 px-1">
             <Aviso tono="info">{avisoExito}</Aviso>
           </div>
         )}
 
-        {/* Summary Notes */}
-        <div className="text-center font-body text-[9px] text-text-tertiary font-bold mt-8 tracking-wide select-none mb-4">
-          ruumruum · conciliación y cierre de traslado definitivo
-        </div>
+      </div>
 
-        {/* Sticky footer for action buttons */}
-        <div className="sticky bottom-0 inset-x-0 z-20 bg-[#090D1A]/95 backdrop-blur-md border-t border-border/20 py-4 px-4 -mx-4 sm:-mx-6 flex flex-col gap-3 mt-8">
+      {/* Sticky footer for action buttons (Fixed directly ABOVE Secondary Trip Bottom Bar) */}
+      <div className="fixed bottom-[60px] inset-x-0 z-40 bg-[#070B14]/95 backdrop-blur-md border-t border-border/15 py-3 px-4 shadow-2xl select-none">
+        <div className="max-w-md md:max-w-xl mx-auto flex flex-col gap-2">
+          
+          {/* Leyenda Legal / Aclaratoria con Alto Contraste Justo Arriba del Botón */}
+          <div className="bg-[#0E1524] border border-border/20 rounded-xl px-3 py-1.5 text-center text-[10px] font-body text-text-secondary font-semibold">
+            ruumruum · conciliación y cierre de traslado definitivo
+          </div>
+
           {writable ? (
             <button
               type="button"
               onClick={() => setConfirmarCierreAbierto(true)}
               disabled={procesando}
-              className="w-full min-h-12 rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-lg select-none flex items-center justify-center focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="w-full min-h-[48px] rounded-2xl bg-[#10B981] hover:bg-[#0EA271] text-white font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-lg select-none flex items-center justify-center focus:outline-hidden"
             >
               {procesando ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -726,14 +730,16 @@ export function CierreTrasladoDetails({
             <button
               type="button"
               onClick={() => router.push("/viajes")}
-              className="w-full min-h-12 rounded-xl bg-control-soft hover:bg-border/60 text-text-primary font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-xs select-none flex items-center justify-center"
+              className="w-full min-h-[48px] rounded-2xl bg-surface-elevated hover:bg-border/60 text-text-primary font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-xs select-none flex items-center justify-center"
             >
               VOLVER A TRASLADOS
             </button>
           )}
         </div>
-
       </div>
+
+      {/* Secondary Bottom Navigation Bar (Detalles, Gastos, Incidencia) */}
+      <SecondaryTripNavBar trasladoId={trasladoId} pasaporte={pasaporte} />
 
       {/* Bottom Sheet de Soporte */}
       {soporteAbierto && (
