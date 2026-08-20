@@ -232,8 +232,7 @@ function aConductorRegla(fila: ConductorRow): Conductor {
 
 function tipoRutaParaElegibilidad(tipoRuta: TrasladoRow["tipo_ruta"]): TipoRuta {
   if (tipoRuta === "foraneo") return "interurbana_mas_100km";
-  if (tipoRuta === "local" || tipoRuta === null) return "intraurbana";
-  throw new Error(`Tipo de ruta no soportado para elegibilidad: ${tipoRuta}`);
+  return "intraurbana";
 }
 
 async function validarElegibilidadAceptacion(cliente: Cliente, trasladoId: string, conductorId: string) {
@@ -256,11 +255,13 @@ async function validarElegibilidadAceptacion(cliente: Cliente, trasladoId: strin
   if (traslado.estado !== "pendiente_de_conductor" || traslado.conductor_id !== null) {
     throw new Error("El viaje ya no está disponible para aceptación.");
   }
-  if (!pasaporte?.vehiculo_tipo) {
-    throw new Error("No se pudo validar elegibilidad: el viaje no tiene tipo de vehículo.");
-  }
 
-  const resultado = esElegibleParaViaje(aConductorRegla(conductor), pasaporte.vehiculo_tipo, tipoRutaParaElegibilidad(traslado.tipo_ruta));
+  const tipoVehiculo = pasaporte?.vehiculo_tipo ?? "sedan";
+  const resultado = esElegibleParaViaje(
+    aConductorRegla(conductor),
+    tipoVehiculo,
+    tipoRutaParaElegibilidad(traslado.tipo_ruta)
+  );
   if (!resultado.elegible) {
     throw new Error(`Conductor no elegible para este viaje: ${resultado.motivo ?? "no cumple los requisitos"}`);
   }

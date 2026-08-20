@@ -243,14 +243,14 @@ export function CierreTrasladoDetails({
         }
       }
       
-      // 3. Transition: evidencia_final_completada -> entrega_confirmada
-      await avanzarEstadoTraslado(cliente, trasladoId, "evidencia_final_completada");
-      
-      // Wait 300ms for Supabase trigger propagation
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      
-      // 4. Transition: entrega_confirmada -> servicio_cerrado
-      await avanzarEstadoTraslado(cliente, trasladoId, "entrega_confirmada");
+      // 3. Transición segura a entrega_confirmada y servicio_cerrado
+      if (estadoActual === "evidencia_final_completada") {
+        await avanzarEstadoTraslado(cliente, trasladoId, "evidencia_final_completada");
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        await avanzarEstadoTraslado(cliente, trasladoId, "entrega_confirmada");
+      } else if (estadoActual === "entrega_confirmada") {
+        await avanzarEstadoTraslado(cliente, trasladoId, "entrega_confirmada");
+      }
 
       setAvisoExito("¡Vehículo entregado y traslado finalizado exitosamente!");
       setTimeout(() => {

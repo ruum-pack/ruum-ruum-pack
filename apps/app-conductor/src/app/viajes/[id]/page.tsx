@@ -83,13 +83,23 @@ export default async function PaginaDetalleViaje({
     );
   }
 
-  if (pasaporte.estado === "conductor_en_punto_de_recoleccion" || pasaporte.estado === "verificacion_vehiculo_en_proceso") {
+  if (
+    pasaporte.estado === "conductor_en_punto_de_recoleccion" ||
+    pasaporte.estado === "verificacion_vehiculo_en_proceso" ||
+    pasaporte.estado === "evidencia_inicial_en_proceso" ||
+    pasaporte.estado === "evidencia_inicial_completada" ||
+    pasaporte.estado === "vehiculo_recibido"
+  ) {
     return (
       <LocalizarVehiculoDetails pasaporte={pasaporte} volver={volver} />
     );
   }
 
-  if (pasaporte.estado === "traslado_en_curso" || pasaporte.estado === "llegada_a_destino") {
+  if (
+    pasaporte.estado === "traslado_en_curso" ||
+    pasaporte.estado === "llegada_a_destino" ||
+    pasaporte.estado === "evidencia_final_en_proceso"
+  ) {
     return (
       <ConduceADestinoDetails pasaporte={pasaporte} volver={volver} />
     );
@@ -102,6 +112,22 @@ export default async function PaginaDetalleViaje({
   ) {
     return (
       <CierreTrasladoDetails pasaporte={pasaporte} volver={volver} />
+    );
+  }
+
+  if (
+    pasaporte.estado === "servicio_cancelado" ||
+    pasaporte.estado === "traslado_fallido"
+  ) {
+    return (
+      <EstadoError
+        titulo="Traslado concluido o cancelado"
+        descripcion="Este traslado ya no está activo en la plataforma."
+        acciones={[
+          { etiqueta: "Ver mis viajes", href: "/viajes", variant: "primary" },
+          { etiqueta: "Volver al panel", href: "/panel", variant: "quiet" }
+        ]}
+      />
     );
   }
 
