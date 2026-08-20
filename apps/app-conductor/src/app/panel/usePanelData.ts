@@ -53,9 +53,6 @@ export function usePanelData() {
   const [viajesAceptados, setViajesAceptados] = useState<PasaporteRow[]>([]);
   const [viajesDisponibles, setViajesDisponibles] = useState<PasaporteRow[]>([]);
   const [enRevision, setEnRevision] = useState<PanelReviewState | null>(null);
-  const [notificacionesCount, setNotificacionesCount] = useState(0);
-  const [gananciasHoy, setGananciasHoy] = useState<number>(0);
-  const [trasladosHoy, setTrasladosHoy] = useState<number>(0);
   const [cargando, setCargando] = useState(true);
   const ultimoTriggerDisponibilidadRef = useRef(0);
 
@@ -116,22 +113,10 @@ export function usePanelData() {
         const conductorActual = conductorOperativo(real, sesion.user?.email);
         setConductor(conductorActual);
 
-        const inicioHoy = new Date();
-        inicioHoy.setHours(0, 0, 0, 0);
         const resultados = await Promise.allSettled([
           listarViajesAceptados(cliente, real.id),
           listarViajesDisponibles(cliente),
-          obtenerDisponibilidadConductor(cliente, real.id),
-          (cliente as any)
-            .from("notificaciones_conductor")
-            .select("id", { count: "exact", head: true })
-            .is("leida_en", null),
-          (cliente as any)
-            .from("traslados")
-            .select("ganancia_conductor_congelada, precio_final, precio_cotizado")
-            .eq("conductor_id", real.id)
-            .eq("estado", "servicio_cerrado")
-            .gte("cerrado_en", inicioHoy.toISOString())
+          obtenerDisponibilidadConductor(cliente, real.id)
         ]);
 
         const aceptados = resultados[0].status === "fulfilled" ? resultados[0].value : [];
@@ -139,22 +124,9 @@ export function usePanelData() {
         const disponibilidadOperativa = resultados[2].status === "fulfilled"
           ? resultados[2].value
           : "no_disponible" as const;
-        const countNoLeidas =
-          resultados[3].status === "fulfilled"
-            ? ((resultados[3].value as any)?.count ?? 0)
-            : 0;
-        const trasladosDelDia: Array<{ ganancia_conductor_congelada: number | null; precio_final: number | null; precio_cotizado: number | null }> =
-          resultados[4].status === "fulfilled" ? ((resultados[4].value as any)?.data ?? []) : [];
-        const gananciaDelDia = trasladosDelDia.reduce((acc, t) => {
-          const monto = Number(t.ganancia_conductor_congelada ?? ((t.precio_final ?? t.precio_cotizado ?? 0) * 0.85));
-          return acc + monto;
-        }, 0);
 
         setViajesAceptados(aceptados);
         setViajesDisponibles(disponibles);
-        setNotificacionesCount(countNoLeidas);
-        setGananciasHoy(gananciaDelDia);
-        setTrasladosHoy(trasladosDelDia.length);
         setDisponibilidad(aceptados.some((viaje) => viaje.estado === "traslado_en_curso") ? "en_viaje" : disponibilidadOperativa);
       } catch (err) {
         setErrorDisponibilidad(traducirErrorOperativo(err, "No pudimos cargar tu información operativa."));
@@ -228,9 +200,6 @@ export function usePanelData() {
     viajeActivoPrincipal,
     proximoViaje,
     documentoBloqueante,
-    notificacionesCount,
-    gananciasHoy,
-    trasladosHoy,
     errorDisponibilidad,
     seleccionarDisponibilidad,
     persistirDisponibilidad,

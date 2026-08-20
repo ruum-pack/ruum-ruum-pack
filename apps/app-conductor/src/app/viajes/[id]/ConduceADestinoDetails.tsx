@@ -27,6 +27,7 @@ export function ConduceADestinoDetails({
   const [error, setError] = useState<string | null>(null);
   const [avisoExito, setAvisoExito] = useState<string | null>(null);
   const [soporteAbierto, setSoporteAbierto] = useState(false);
+  const [detalleAbierto, setDetalleAbierto] = useState(false);
 
   const trasladoId = pasaporte.traslado_id!;
   const folio = trasladoId.slice(0, 8).toUpperCase();
@@ -212,74 +213,62 @@ export function ConduceADestinoDetails({
           <SincronizacionBadge />
         </div>
 
-        {/* Step Breadcrumbs Tracker */}
-        <div className="mt-6 flex flex-col gap-1">
-          <span className="font-body text-[10px] text-[#00B4D8] font-bold tracking-wide uppercase">
-            MANIFIESTO DE RUTA · #UNO RESIDENCIAL
-          </span>
-          <h1 className="font-display text-2xl font-black text-text-primary leading-tight mt-1">
-            Trayecto activo
-          </h1>
-        </div>
-
-        {/* Destination Details Card */}
-        <div className="mt-6 flex flex-col bg-surface-elevated rounded-[1.5rem] border border-border/40 p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
-          <span className="font-display text-[10px] font-black text-emerald-500 tracking-wider uppercase">
-            DESTINO
-          </span>
-          <h2 className="font-display text-2xl font-black text-text-primary mt-1">
-            {destino}
-          </h2>
-          <p className="font-body text-xs text-text-secondary mt-1 leading-relaxed">
-            {destinoDireccion}
-          </p>
-
-          {/* Metrics Card Grid (3 Columns) */}
-          <div className="mt-6 grid grid-cols-3 gap-2 border border-border/30 bg-surface-elevated/45 rounded-xl p-4 text-center">
-            <div className="flex flex-col items-center justify-center gap-1">
-              <span className="text-lg leading-none">🛣️</span>
-              <span className="font-display text-sm font-bold text-text-primary">98 km</span>
-              <span className="font-body text-[9px] text-text-tertiary uppercase tracking-wide">Restantes</span>
+        {/* Acción operativa inmediata */}
+        <section className="mt-6 rounded-[1.5rem] border border-emerald-500/30 bg-surface-elevated p-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <span className="font-body text-[10px] font-black tracking-widest text-emerald-400 uppercase">
+                ESTADO ACTUAL
+              </span>
+              <p className="mt-1 font-display text-sm font-black text-text-primary">
+                EN CAMINO AL DESTINO
+              </p>
             </div>
-            <div className="flex flex-col items-center justify-center gap-1 border-l border-border/25">
-              <span className="text-lg leading-none">⏱️</span>
-              <span className="font-display text-sm font-bold text-text-primary">1.4 hr</span>
-              <span className="font-body text-[9px] text-text-tertiary uppercase tracking-wide">Tiempo</span>
-            </div>
-            <div className="flex flex-col items-center justify-center gap-1 border-l border-border/25">
-              <span className="text-lg leading-none">🏁</span>
-              <span className="font-display text-sm font-bold text-text-primary">10:42</span>
-              <span className="font-body text-[9px] text-text-tertiary uppercase tracking-wide">Llegada</span>
-            </div>
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]" aria-label="Activo" />
           </div>
 
-          {/* Contact Actions Grid */}
-          <div className="mt-5 flex gap-2.5 w-full">
-            <a
-              href={`tel:${contactoTelefono}`}
-              className="flex-1 min-h-10 rounded-xl bg-surface-elevated/80 border border-border/40 hover:bg-surface-elevated text-text-primary font-display text-[10px] font-black tracking-wide flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-              </svg>
-              LLAMAR USUARIO
-            </a>
-            <a
-              href={`https://wa.me/52${contactoTelefono.replace(/[^0-9]/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 min-h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 font-display text-[10px] font-black tracking-wide flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-              </svg>
-              WHATSAPP
-            </a>
+          <div className="mt-5">
+            <span className="font-body text-[10px] font-black tracking-widest text-[#00B4D8] uppercase">
+              TU PRÓXIMA ACCIÓN
+            </span>
+            <h1 className="mt-1 font-display text-2xl font-black leading-tight text-text-primary">
+              Dirígete al destino
+            </h1>
+            <p className="mt-1 font-body text-sm leading-6 text-text-secondary">
+              Lleva el vehículo al punto de entrega y registra tu llegada cuando estés en el lugar.
+            </p>
           </div>
-        </div>
 
-        {/* Map Canvas Card */}
-        <div className="mt-6 flex flex-col rounded-[1.5rem] border border-border/30 bg-surface-elevated/20 p-5 relative overflow-hidden">
+          <div className="mt-5 rounded-xl border border-border/40 bg-surface px-4 py-4">
+            <span className="font-display text-[10px] font-black tracking-wider text-emerald-400 uppercase">
+              DESTINO
+            </span>
+            <h2 className="mt-1 font-display text-xl font-black text-text-primary">
+              {destino}
+            </h2>
+            <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
+              {destinoDireccion}
+            </p>
+
+            <div className="mt-4 grid grid-cols-3 divide-x divide-border/30 rounded-lg border border-border/30 bg-surface-elevated/40 py-3 text-center">
+              <div>
+                <span className="block font-display text-sm font-bold text-text-primary">98 km</span>
+                <span className="font-body text-[9px] uppercase tracking-wide text-text-tertiary">Restantes</span>
+              </div>
+              <div>
+                <span className="block font-display text-sm font-bold text-text-primary">1.4 h</span>
+                <span className="font-body text-[9px] uppercase tracking-wide text-text-tertiary">Tiempo</span>
+              </div>
+              <div>
+                <span className="block font-display text-sm font-bold text-text-primary">10:42</span>
+                <span className="font-body text-[9px] uppercase tracking-wide text-text-tertiary">Llegada</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Mapa: soporte visual para la acción inmediata */}
+        <div className="mt-4 flex flex-col rounded-[1.5rem] border border-border/30 bg-surface-elevated/20 p-4 relative overflow-hidden">
           <MapaRutaConduccion
             origen={{ lat: pasaporte.origen_lat ?? 19.2833, lng: pasaporte.origen_lng ?? -99.5167 }}
             destino={{ lat: pasaporte.destino_lat ?? 16.7569, lng: pasaporte.destino_lng ?? -93.1292 }}
@@ -297,51 +286,84 @@ export function ConduceADestinoDetails({
           </div>
         )}
 
-        <div className="mt-6 flex flex-col gap-3.5">
-          <span className="font-display text-[10px] font-black text-text-tertiary tracking-widest uppercase">
-            DETALLES DEL TRASLADO
-          </span>
+        {/* Información secundaria: disponible sin competir con la acción principal */}
+        <section className="mt-4 overflow-hidden rounded-2xl border border-border/30 bg-surface-elevated/40">
+          <button
+            type="button"
+            onClick={() => setDetalleAbierto((abierto) => !abierto)}
+            aria-expanded={detalleAbierto}
+            className="flex min-h-14 w-full items-center justify-between gap-3 px-4 text-left font-display text-xs font-black tracking-wide text-text-primary transition-colors hover:bg-surface-elevated"
+          >
+            <span className="flex items-center gap-2">
+              <span aria-hidden="true">▤</span>
+              Ver detalles del traslado
+            </span>
+            <span className={`text-text-tertiary transition-transform duration-200 ${detalleAbierto ? "rotate-180" : ""}`} aria-hidden="true">⌄</span>
+          </button>
 
-          {/* Description Card */}
-          <div className="bg-surface-elevated/25 border border-border/20 rounded-2xl p-4.5 flex gap-3 text-xs font-body leading-relaxed text-text-secondary">
-            <span className="text-xl leading-none">📖</span>
-            <div className="flex flex-col gap-1">
-              <span className="font-bold text-text-primary text-[13px]">Descripción</span>
-              <p className="mt-0.5">{descripcionTexto}</p>
-            </div>
-          </div>
+          {detalleAbierto && (
+            <div className="border-t border-border/30 px-4 pb-4 pt-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-border/20 bg-surface px-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl leading-none" aria-hidden="true">📖</span>
+                    <div>
+                      <span className="font-display text-[13px] font-bold text-text-primary">Descripción</span>
+                      <p className="mt-1 font-body text-xs leading-relaxed text-text-secondary">{descripcionTexto}</p>
+                    </div>
+                  </div>
+                </div>
 
-          {/* Incidences Card */}
-          <div className="bg-surface-elevated/25 border border-border/20 rounded-2xl p-4.5 flex gap-3 text-xs font-body leading-relaxed text-text-secondary">
-            <span className="text-xl leading-none">⚠️</span>
-            <div className="flex flex-col w-full">
-              <div className="flex justify-between items-center w-full">
-                <span className="font-bold text-text-primary text-[13px]">Incidencia</span>
-                <span className={`font-extrabold px-2 py-0.5 rounded-md text-[9px] border ${
-                  tieneIncidencia
-                    ? "border-amber-500/40 text-amber-500 bg-amber-500/10"
-                    : "border-border/40 text-text-tertiary bg-surface-elevated/30"
-                }`}>
-                  {tieneIncidencia ? "ABIERTA" : "NINGUNA"}
-                </span>
+                <div className="rounded-xl border border-border/20 bg-surface px-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl leading-none" aria-hidden="true">☎</span>
+                    <div className="w-full">
+                      <span className="font-display text-[13px] font-bold text-text-primary">Contacto</span>
+                      <div className="mt-3 flex gap-2">
+                        <a href={`tel:${contactoTelefono}`} className="flex-1 rounded-lg border border-border/40 px-3 py-2 text-center font-display text-[10px] font-black text-text-primary hover:bg-surface-elevated">
+                          LLAMAR
+                        </a>
+                        <a href={`https://wa.me/52${contactoTelefono.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-center font-display text-[10px] font-black text-emerald-400 hover:bg-emerald-500/20">
+                          WHATSAPP
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="text-[11px] text-text-tertiary mt-0.5">Reporta retrasos, desviaciones, fallas del vehículo o cualquier situación fuera de lo previsto.</p>
 
-              <button
-                type="button"
-                onClick={() => router.push(`/viajes/${trasladoId}#reportar-incidencia`)}
-                className="w-full mt-3.5 border border-dashed border-border/60 hover:border-signal/50 rounded-xl py-3 flex items-center justify-center text-text-secondary hover:text-text-primary font-display text-xs font-bold transition-all cursor-pointer select-none"
-              >
-                + REPORTAR INCIDENCIA
-              </button>
+              <div className="mt-3 rounded-xl border border-border/20 bg-surface px-4 py-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2 font-display text-[13px] font-bold text-text-primary">
+                    <span aria-hidden="true">⚠️</span>
+                    Incidencias
+                  </span>
+                  <span className={`rounded-md border px-2 py-0.5 font-display text-[9px] font-extrabold ${
+                    tieneIncidencia
+                      ? "border-amber-500/40 bg-amber-500/10 text-amber-500"
+                      : "border-border/40 bg-surface-elevated/30 text-text-tertiary"
+                  }`}>
+                    {tieneIncidencia ? "ABIERTA" : "NINGUNA"}
+                  </span>
+                </div>
+                <p className="mt-1 font-body text-[11px] leading-5 text-text-tertiary">
+                  Reporta retrasos, desviaciones, fallas del vehículo o cualquier situación fuera de lo previsto.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/viajes/${trasladoId}#reportar-incidencia`)}
+                  className="mt-3 w-full rounded-xl border border-dashed border-border/60 py-3 font-display text-xs font-bold text-text-secondary transition-all hover:border-signal/50 hover:text-text-primary"
+                >
+                  + REPORTAR INCIDENCIA
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+        </section>
 
-        </div>
-
-        <div className="text-center font-body text-[9px] text-text-tertiary font-bold mt-8 tracking-wide select-none">
-          ruumruum · manifiesto generado para revisión de conductor
-        </div>
+        <p className="mt-5 text-center font-body text-[9px] font-bold tracking-wide text-text-tertiary select-none">
+          Folio #{folio} · ruumruum
+        </p>
 
         {/* Sticky footer for navigation & arrival actions */}
         <div className="sticky bottom-0 inset-x-0 z-20 bg-[#090D1A]/95 backdrop-blur-md border-t border-border/20 py-4 px-4 -mx-4 sm:-mx-6 flex gap-3 mt-8">
