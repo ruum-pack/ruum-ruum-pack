@@ -71,7 +71,10 @@ export default async function PaginaDetalleViaje({
     );
   }
 
-  if (pasaporte.estado === "conductor_asignado") {
+  if (
+    pasaporte.estado === "conductor_asignado" ||
+    (Boolean(pasaporte.conductor_id) && pasaporte.estado === "pendiente_de_conductor")
+  ) {
     return (
       <TrasladoAsignadoDetails pasaporte={pasaporte} volver={volver} />
     );
@@ -128,6 +131,13 @@ export default async function PaginaDetalleViaje({
           { etiqueta: "Volver al panel", href: "/panel", variant: "quiet" }
         ]}
       />
+    );
+  }
+
+  // Si ya tiene conductor_id asignado de cualquier forma, mostrar TrasladoAsignadoDetails
+  if (pasaporte.conductor_id) {
+    return (
+      <TrasladoAsignadoDetails pasaporte={pasaporte} volver={volver} />
     );
   }
 

@@ -104,6 +104,33 @@ export function TripOpportunityDetails({
     };
   }, [trasladoId]);
 
+  // Si el viaje ya está asignado o no está pendiente, redirigir al flujo activo
+  useEffect(() => {
+    async function verificarAsignacion() {
+      if (!tieneSupabaseConfigurado()) return;
+      try {
+        const cliente = crearClienteNavegador();
+        const { data: { session } } = await cliente.auth.getSession();
+        if (!session?.user) return;
+        const { data: cond } = await cliente
+          .from("conductores")
+          .select("id")
+          .eq("auth_user_id", session.user.id)
+          .maybeSingle();
+
+        if (cond && pasaporte.conductor_id === cond.id) {
+          router.replace(`/viajes/${trasladoId}`);
+        }
+      } catch {
+        // Ignorar error de lectura de sesión
+      }
+    }
+
+    if (pasaporte.conductor_id || pasaporte.estado !== "pendiente_de_conductor") {
+      void verificarAsignacion();
+    }
+  }, [pasaporte.conductor_id, pasaporte.estado, trasladoId, router]);
+
   // 3. Cálculo real de aproximación GPS
   useEffect(() => {
     let cancelado = false;
