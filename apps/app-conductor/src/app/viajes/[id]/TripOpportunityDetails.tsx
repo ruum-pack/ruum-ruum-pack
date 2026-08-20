@@ -439,6 +439,9 @@ export function TripOpportunityDetails({
             <div className="mt-4 relative bg-[#0a0f1a] border border-border/15 rounded-2xl overflow-hidden shadow-xs text-left">
               <div
                 onClick={() => setMapaExpandido(true)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") setMapaExpandido(true);
+                }}
                 className="relative h-[160px] w-full select-none cursor-pointer group"
                 role="button"
                 tabIndex={0}
@@ -714,6 +717,9 @@ export function TripOpportunityDetails({
                       <>
                         <div
                           onClick={() => setMapaExpandido(true)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") setMapaExpandido(true);
+                          }}
                           className="absolute inset-0 w-full h-full z-10 cursor-pointer"
                           role="button"
                           tabIndex={0}

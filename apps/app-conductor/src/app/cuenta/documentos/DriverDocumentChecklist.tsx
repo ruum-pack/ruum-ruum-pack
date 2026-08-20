@@ -125,6 +125,8 @@ export function DriverDocumentChecklist({
         onDragOver={(e) => manejarDragOver(e, tipo)}
         onDragLeave={manejarDragLeave}
         onDrop={(e) => manejarDrop(e, tipo, documentoAnteriorId)}
+        role="region"
+        aria-label={`Zona de carga para ${tipo}`}
         className={[
           "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 text-center transition-all duration-150",
           arrastrandoSobre === tipo
