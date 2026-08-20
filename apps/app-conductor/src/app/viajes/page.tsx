@@ -304,6 +304,160 @@ function CustomTripCard({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Nueva tarjeta de oferta — diseño compacto de dos columnas
+// ---------------------------------------------------------------------------
+function extraerColonia(direccion: string | null): string {
+  if (!direccion) return "";
+  // Formato típico: "Calle Nro, Colonia, Ciudad, Estado, CP"
+  const partes = direccion.split(",").map((p) => p.trim());
+  // La colonia suele estar en la 2da parte (índice 1)
+  return partes[1] ?? partes[0] ?? "";
+}
+
+function extraerCiudad(ciudad: string | null, direccion: string | null): string {
+  if (ciudad) return ciudad;
+  if (!direccion) return "";
+  const partes = direccion.split(",").map((p) => p.trim());
+  return partes[2] ?? partes[1] ?? partes[0] ?? "";
+}
+
+function OfertaCard({
+  viaje,
+  detalle,
+  hrefDetalle
+}: {
+  viaje: PasaporteRow;
+  detalle: DetalleOperativo;
+  hrefDetalle: string;
+}) {
+  const folio = viaje.traslado_id ? viaje.traslado_id.slice(0, 8).toUpperCase() : "SIN ID";
+
+  const ganancia = viaje.ganancia_conductor != null
+    ? new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(viaje.ganancia_conductor)
+    : "Por confirmar";
+
+  const coloniaOrigen = extraerColonia(viaje.origen_direccion);
+  const ciudadOrigen = extraerCiudad(viaje.origen_ciudad, viaje.origen_direccion);
+  const coloniaDestino = extraerColonia(viaje.destino_direccion);
+  const ciudadDestino = extraerCiudad(viaje.destino_ciudad, viaje.destino_direccion);
+
+  const usuarioNombre = viaje.contacto_recepcion_nombre || viaje.contacto_entrega_nombre || null;
+
+  const horaInicio = detalle.fechaHora
+    ? new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Mexico_City" }).format(new Date(detalle.fechaHora))
+    : null;
+
+  const distanciaTexto = viaje.distancia_km != null
+    ? `${new Intl.NumberFormat("es-MX", { maximumFractionDigits: viaje.distancia_km < 10 ? 1 : 0 }).format(viaje.distancia_km)} km`
+    : null;
+
+  const duracionTexto = formatearDuracion(viaje.tiempo_estimado_horas);
+
+  return (
+    <div className="w-full rounded-2xl border border-border/15 bg-[#0C1120] overflow-hidden shadow-sm select-none text-left">
+
+      {/* — Cabecera: ID + precio — */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border/10">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-[#a8e820] animate-pulse shrink-0" />
+          <span className="font-mono text-[10px] font-extrabold text-text-tertiary tracking-widest uppercase">
+            {folio}
+          </span>
+        </div>
+        <span className="font-display text-base font-black text-[#a8e820] leading-none tabular-nums">
+          {ganancia}
+        </span>
+      </div>
+
+      {/* — Ruta: origen → destino — */}
+      <div className="px-4 py-3 flex flex-col gap-3">
+
+        {/* Origen */}
+        <div className="flex items-start gap-2.5">
+          <div className="mt-0.5 shrink-0 flex flex-col items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full border-2 border-[#10B981] bg-transparent" />
+            <span className="w-[1px] h-4 bg-border/20" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            {coloniaOrigen && (
+              <span className="font-display text-sm font-black text-text-primary leading-tight truncate">
+                {coloniaOrigen}
+              </span>
+            )}
+            <span className="font-body text-[11px] text-text-secondary leading-tight truncate mt-0.5">
+              {ciudadOrigen || "Origen por confirmar"}
+            </span>
+          </div>
+        </div>
+
+        {/* Destino */}
+        <div className="flex items-start gap-2.5">
+          <div className="mt-0.5 shrink-0">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#00B4D8] flex-none block" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            {coloniaDestino && (
+              <span className="font-display text-sm font-black text-text-primary leading-tight truncate">
+                {coloniaDestino}
+              </span>
+            )}
+            <span className="font-body text-[11px] text-text-secondary leading-tight truncate mt-0.5">
+              {ciudadDestino || "Destino por confirmar"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* — Usuario / contacto — */}
+      {usuarioNombre && (
+        <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl bg-surface-elevated/60 border border-border/10 px-3 py-2">
+          <svg className="w-3.5 h-3.5 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <span className="font-body text-[10px] text-text-tertiary font-bold uppercase tracking-wider leading-none">Usuario:</span>
+          <span className="font-body text-[11px] text-text-primary font-semibold leading-none truncate">{usuarioNombre}</span>
+        </div>
+      )}
+
+      {/* — Stats: hora · distancia · duración — */}
+      <div className="flex items-center divide-x divide-border/10 border-t border-border/10">
+        {horaInicio ? (
+          <div className="flex flex-1 flex-col items-center gap-0.5 py-2.5">
+            <span className="text-text-tertiary text-[8px] font-extrabold uppercase tracking-widest leading-none">Inicio</span>
+            <span className="font-display text-[13px] font-black text-text-primary mt-1 tabular-nums leading-none">{horaInicio}</span>
+          </div>
+        ) : null}
+        {distanciaTexto ? (
+          <div className="flex flex-1 flex-col items-center gap-0.5 py-2.5">
+            <span className="text-text-tertiary text-[8px] font-extrabold uppercase tracking-widest leading-none">Distancia</span>
+            <span className="font-display text-[13px] font-black text-text-primary mt-1 tabular-nums leading-none">{distanciaTexto}</span>
+          </div>
+        ) : null}
+        <div className="flex flex-1 flex-col items-center gap-0.5 py-2.5">
+          <span className="text-text-tertiary text-[8px] font-extrabold uppercase tracking-widest leading-none">Duración</span>
+          <span className="font-display text-[13px] font-black text-text-primary mt-1 tabular-nums leading-none">{duracionTexto}</span>
+        </div>
+      </div>
+
+      {/* — CTA — */}
+      <div className="px-4 pb-4 pt-3">
+        <Link
+          href={hrefDetalle}
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#00B4D8] hover:bg-[#0092B0] active:scale-[0.98] px-4 font-display text-[11px] font-black tracking-widest text-white uppercase transition-all shadow-sm cursor-pointer"
+        >
+          Ver oferta
+          <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function PaginaViajes() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -620,7 +774,7 @@ export default function PaginaViajes() {
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
-            Ofertas
+            Ofertas ({disponiblesVisibles.length})
           </button>
           <button
             type="button"
@@ -631,70 +785,47 @@ export default function PaginaViajes() {
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
-            Aceptados
+            Aceptados ({aceptados.length})
           </button>
         </div>
 
-        {/* Calendar Row with inline WeekDaySelector */}
-        <div className="mt-6 flex items-center justify-between gap-4 bg-[#0E1524]/40 border border-border/10 rounded-2xl p-4 relative">
+        {/* Simple Date Navigation */}
+        <div className="mt-6 flex items-center justify-between px-2 select-none">
+          <button 
+            type="button" 
+            className="p-2 text-text-tertiary hover:text-text-primary cursor-pointer active:scale-95 transition-all"
+            onClick={() => {
+              const idx = calendario.findIndex(c => claveDia(c.dia) === diaSeleccionado);
+              if (idx > 0) setDiaSeleccionado(claveDia(calendario[idx - 1].dia));
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
           
-          {diaSeleccionado !== diaHoy && (
-            <button
-              type="button"
-              onClick={() => setDiaSeleccionado(diaHoy)}
-              className="absolute -top-3.5 left-5 bg-[#0E1524] border border-[#00B4D8]/30 px-2.5 py-1 rounded-full text-[8.5px] font-black text-[#00B4D8] uppercase tracking-wider hover:bg-[#131B2C] cursor-pointer select-none transition-all shadow-md active:scale-95"
-            >
-              Volver a Hoy
-            </button>
-          )}
+          <div className="flex flex-col items-center">
+            <span className="font-display text-sm font-black uppercase tracking-widest text-text-primary">
+              {diaCalendarioSeleccionado ? 
+                new Intl.DateTimeFormat("es-MX", { weekday: "short", day: "numeric", month: "short", timeZone: "America/Mexico_City" }).format(diaCalendarioSeleccionado.dia).replace('.', '').toUpperCase() 
+                : "HOY"}
+            </span>
+          </div>
 
-          {/* Left: Date Range info */}
-          <div className="flex items-center gap-2 shrink-0 select-none">
-            {/* Calendar Icon */}
-            <div className="w-8 h-8 rounded-xl bg-[#00B4D8]/10 flex items-center justify-center text-[#00B4D8] border border-[#00B4D8]/20">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="font-body text-[9px] font-extrabold uppercase tracking-wider text-text-tertiary leading-none">Semana</span>
-              <span className="font-display text-[10px] font-black text-white mt-1 leading-none">
-                {startDay && endDay ? (
-                  `${startDay.getDate()} - ${endDay.getDate()} ${new Intl.DateTimeFormat("es-MX", { month: "short", timeZone: "America/Mexico_City" }).format(endDay).replace('.', '').replace(/^\w/, (c) => c.toUpperCase())}`
-                ) : "16 - 22 Ago"}
-              </span>
-            </div>
-          </div>
-          
-          {/* Right: Days selector */}
-          <div className="flex-1 min-w-0">
-            <WeekDaySelector
-              dias={calendario}
-              seleccionado={diaSeleccionado}
-              hoy={diaHoy}
-              onSelect={setDiaSeleccionado}
-            />
-          </div>
+          <button 
+            type="button" 
+            className="p-2 text-text-tertiary hover:text-text-primary cursor-pointer active:scale-95 transition-all"
+            onClick={() => {
+              const idx = calendario.findIndex(c => claveDia(c.dia) === diaSeleccionado);
+              if (idx >= 0 && idx < calendario.length - 1) setDiaSeleccionado(claveDia(calendario[idx + 1].dia));
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
         </div>
 
-        {/* Card Count & Total Earnings Bar */}
-        <div className="mt-4 flex items-center justify-between bg-[#0E1524]/60 border border-border/10 rounded-2xl px-4 py-3 select-none">
-          <div className="flex items-center gap-2 font-body text-xs font-bold text-text-secondary">
-            <svg className="w-4 h-4 text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="10" width="20" height="8" rx="2" />
-              <path d="M6 10 L8 5 L16 5 L18 10" />
-              <circle cx="6" cy="18" r="1.5" />
-              <circle cx="18" cy="18" r="1.5" />
-            </svg>
-            <span>{totalViajesTexto}</span>
-          </div>
-          
-          <div className="flex items-center gap-1.5 bg-[#10B981]/15 border border-[#10B981]/30 px-3 py-1 rounded-xl font-display text-xs font-black text-[#10B981]">
-            <span>${totalGanancia.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-          </div>
+        <div className="border-t border-border/20 my-5" />
+
+        <div className="mb-4 text-[13px] font-medium text-text-secondary">
+          {listToRender.length === 1 ? `1 ${vista === "disponibles" ? "oferta disponible" : "traslado aceptado"}` : `${listToRender.length} ${vista === "disponibles" ? "ofertas disponibles" : "traslados aceptados"}`}
         </div>
 
         {/* List of custom Trip Cards */}
@@ -733,12 +864,22 @@ export default function PaginaViajes() {
               const viaje = item.viaje;
               const trasladoId = viaje.traslado_id ?? `viaje-${index}`;
               const detalle = detalles[trasladoId] ?? detalleFallback(viaje);
+              if (vista === "disponibles") {
+                return (
+                  <OfertaCard
+                    key={trasladoId}
+                    viaje={viaje}
+                    detalle={detalle}
+                    hrefDetalle={hrefDetalle(viaje)}
+                  />
+                );
+              }
               return (
                 <CustomTripCard
                   key={trasladoId}
                   viaje={viaje}
                   detalle={detalle}
-                  esOferta={vista === "disponibles"}
+                  esOferta={false}
                   onReject={(viaje) => setViajeParaRechazar(viaje)}
                   hrefDetalle={hrefDetalle(viaje)}
                 />
