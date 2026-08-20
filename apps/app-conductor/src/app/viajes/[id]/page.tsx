@@ -6,7 +6,7 @@ import { TripOpportunityDetails } from "./TripOpportunityDetails";
 import { LocalizarVehiculoDetails } from "./LocalizarVehiculoDetails";
 import { ConduceADestinoDetails } from "./ConduceADestinoDetails";
 import { CierreTrasladoDetails } from "./CierreTrasladoDetails";
-
+import { DirigeteAOrigenDetails } from "./DirigeteAOrigenDetails";
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
@@ -67,6 +67,12 @@ export default async function PaginaDetalleViaje({
           { etiqueta: "Volver al panel", href: "/", variant: "quiet" }
         ]}
       />
+    );
+  }
+
+  if (pasaporte.estado === "conductor_en_camino_al_origen") {
+    return (
+      <DirigeteAOrigenDetails pasaporte={pasaporte} volver={volver} />
     );
   }
 
