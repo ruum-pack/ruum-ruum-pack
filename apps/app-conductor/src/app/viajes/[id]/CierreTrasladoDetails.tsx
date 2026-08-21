@@ -312,7 +312,7 @@ export function CierreTrasladoDetails({
   if (cargando) {
     return (
       <div className="mx-auto w-full max-w-md px-6 py-20 text-center text-text-primary">
-        <div className="w-8 h-8 border-4 border-[#00B4D8] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <div className="w-8 h-8 border-4 border-route-action border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="font-body text-sm font-semibold">Cargando detalles de cierre...</p>
       </div>
     );
@@ -414,7 +414,7 @@ export function CierreTrasladoDetails({
           </div>
           <Link
             href={`/cuenta/soporte?traslado=${trasladoId}`}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border/15 bg-[#0E1524]/60 hover:bg-[#0E1524] text-text-primary hover:text-[#00B4D8] transition-colors shadow-xs"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-border/15 bg-surface-elevated hover:bg-surface text-text-primary hover:text-route-action transition-colors shadow-xs focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
             aria-label="Ayuda"
           >
             <span className="font-display text-xs font-black">?</span>
@@ -438,11 +438,11 @@ export function CierreTrasladoDetails({
         </div>
 
         {/* Card: Vehicle and Route info */}
-        <div className="mt-5 bg-[#0E1524] border border-border/20 rounded-2xl p-4.5 shadow-xs">
+        <div className="mt-5 bg-surface-elevated border border-border/20 rounded-2xl p-4.5 shadow-xs">
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-start">
               <div>
-                <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-widest uppercase">
+                <span className="font-display text-[9px] font-black text-route-action tracking-widest uppercase">
                   UNIDAD
                 </span>
                 <h3 className="font-display text-sm font-bold text-text-primary mt-0.5">
@@ -453,7 +453,7 @@ export function CierreTrasladoDetails({
                 </p>
               </div>
               <div className="text-right">
-                <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-widest uppercase">
+                <span className="font-display text-[9px] font-black text-route-action tracking-widest uppercase">
                   FOLIO VIAJE
                 </span>
                 <p className="font-display text-xs font-black text-text-primary mt-0.5 font-mono">
@@ -479,7 +479,7 @@ export function CierreTrasladoDetails({
         {/* Card: Checklist Conciliación */}
         <section className="mt-6 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00B4D8] flex items-center justify-center font-display text-[10px] font-bold">
+            <span className="w-5 h-5 rounded-md bg-success/10 border border-success/30 text-success flex items-center justify-center font-display text-[10px] font-bold">
               1
             </span>
             <h2 className="font-display text-xs font-black text-text-tertiary tracking-widest uppercase">

@@ -185,11 +185,17 @@ export default function PaginaViajes() {
 
         if (conductorActual) setConductor(conductorActual);
 
-        const [listaDisponibles, listaAceptados, historialViajes] = await Promise.all([
+        const resultados = await Promise.allSettled([
           listarViajesDisponibles(cliente),
-          conductorActual ? listarViajesAceptados(cliente, conductorActual.id) : Promise.resolve([]),
-          conductorActual ? listarHistorialViajesConductor(cliente, conductorActual.id) : Promise.resolve([])
+          conductorActual ? listarViajesAceptados(cliente, conductorActual.id) : Promise.resolve([] as PasaporteRow[]),
+          conductorActual ? listarHistorialViajesConductor(cliente, conductorActual.id) : Promise.resolve([] as PasaporteRow[])
         ]);
+        const listaDisponibles = resultados[0].status === "fulfilled" ? resultados[0].value : [];
+        const listaAceptados = resultados[1].status === "fulfilled" ? resultados[1].value : [];
+        const historialViajes = resultados[2].status === "fulfilled" ? resultados[2].value : [];
+        if (resultados.some((r) => r.status === "rejected")) {
+          console.warn("Algunos listados fallaron, mostrando datos parciales", resultados);
+        }
 
         const todos = [...listaDisponibles, ...listaAceptados];
         if (todos.length > 0) {
@@ -322,8 +328,12 @@ export default function PaginaViajes() {
     setAviso("Rechazo deshecho. El traslado volvió a estar disponible.");
   }
 
-  const disponiblesVisibles = disponibles.filter((viaje) => viaje.traslado_id && !rechazados.includes(viaje.traslado_id));
-  const calendario = crearCalendario(disponiblesVisibles, aceptados, detalles);
+  const disponiblesVisibles = useMemo(
+    () => disponibles.filter((viaje) => viaje.traslado_id && !rechazados.includes(viaje.traslado_id)),
+    [disponibles, rechazados]
+  );
+  const calendario = useMemo(() => crearCalendario(disponiblesVisibles, aceptados, detalles), [disponiblesVisibles, aceptados, detalles]);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   const diaCalendarioSeleccionado = calendario.find(({ dia }) => claveDia(dia) === diaSeleccionado) ?? calendario[0];
 
@@ -365,6 +375,13 @@ export default function PaginaViajes() {
   const tieneOfertasOtrosDias = calendario.some(
     ({ dia, viajes }) => claveDia(dia) !== diaSeleccionado && viajes.some((v) => v.tipo === "Ofertado")
   );
+
+  // Reset paginación al cambiar filtros/vista/día
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [vista, ciudadFiltro, orden, diaSeleccionado]);
+
+  const listToRenderVisible = useMemo(() => listToRender.slice(0, visibleCount), [listToRender, visibleCount]);
 
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-between min-h-[calc(100vh-100px)] text-text-primary">
@@ -560,32 +577,43 @@ export default function PaginaViajes() {
               ) : null}
             </div>
           ) : (
-            listToRender.map((item, index) => {
-              const viaje = item.viaje;
-              const trasladoId = viaje.traslado_id ?? `viaje-${index}`;
-              const detalle = detalles[trasladoId] ?? detalleFallback(viaje);
+            <>
+              {listToRenderVisible.map((item, index) => {
+                const viaje = item.viaje;
+                const trasladoId = viaje.traslado_id ?? `viaje-${index}`;
+                const detalle = detalles[trasladoId] ?? detalleFallback(viaje);
 
-              if (vista === "disponibles") {
+                if (vista === "disponibles") {
+                  return (
+                    <OfertaCard
+                      key={trasladoId}
+                      viaje={viaje}
+                      detalle={detalle}
+                      hrefDetalle={hrefDetalle(viaje)}
+                    />
+                  );
+                }
+
                 return (
-                  <OfertaCard
+                  <AcceptedTripCard
                     key={trasladoId}
                     viaje={viaje}
                     detalle={detalle}
+                    onReject={(viaje) => setViajeParaRechazar(viaje)}
                     hrefDetalle={hrefDetalle(viaje)}
                   />
                 );
-              }
-
-              return (
-                <AcceptedTripCard
-                  key={trasladoId}
-                  viaje={viaje}
-                  detalle={detalle}
-                  onReject={(viaje) => setViajeParaRechazar(viaje)}
-                  hrefDetalle={hrefDetalle(viaje)}
-                />
-              );
-            })
+              })}
+              {listToRender.length > visibleCount && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((v) => v + 10)}
+                  className="mt-2 inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-5 py-3 font-body text-sm font-bold text-text-primary hover:bg-surface-elevated focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                >
+                  Cargar más ({listToRender.length - visibleCount} restantes)
+                </button>
+              )}
+            </>
           )}
         </div>
 

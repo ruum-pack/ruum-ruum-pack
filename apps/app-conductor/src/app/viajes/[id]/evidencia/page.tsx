@@ -719,7 +719,7 @@ export default function PaginaEvidencia() {
                       ✓ REGISTRADO
                     </span>
                   )}
-                  <span className="font-body text-[8px] font-bold text-[#DCA24C]">{getFuelText(gasolinaSegments)}</span>
+                  <span className="font-body text-[8px] font-bold text-signal">{getFuelText(gasolinaSegments)}</span>
                 </div>
               </div>
 
@@ -730,8 +730,9 @@ export default function PaginaEvidencia() {
                     key={idx}
                     type="button"
                     onClick={() => setGasolinaSegments(idx + 1)}
-                    className={`flex-1 h-3 rounded-xs border-none cursor-pointer transition-all ${
-                      idx < gasolinaSegments ? "bg-[#DCA24C]" : "bg-border/30"
+                    aria-label={`Nivel ${idx + 1} de 8`}
+                    className={`flex-1 h-3 rounded-xs border-none cursor-pointer transition-all focus-visible:outline focus-visible:outline-[2px] focus-visible:outline-offset-1 focus-visible:outline-signal ${
+                      idx < gasolinaSegments ? "bg-signal" : "bg-border/30"
                     }`}
                   />
                 ))}
@@ -765,7 +766,7 @@ export default function PaginaEvidencia() {
             </div>
 
             {/* Stepper counter */}
-            <div className="flex items-center gap-2 bg-[#17231E]/40 border border-border/30 rounded-lg p-1 shrink-0">
+            <div className="flex items-center gap-2 bg-surface border border-border/30 rounded-lg p-1 shrink-0">
               <button
                 type="button"
                 onClick={() => setLlavesCount(Math.max(0, llavesCount - 1))}

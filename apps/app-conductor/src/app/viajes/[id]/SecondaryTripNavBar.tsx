@@ -294,7 +294,7 @@ export function SecondaryTripNavBar({
       {/* ------------------------------------------------------------------ */}
       {tabActiva === "gastos" && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-lg mx-auto bg-[#151515] border-t border-border/30 rounded-t-3xl p-5 shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col gap-4 text-left select-none animate-slideUp">
+          <div className="w-full max-w-lg mx-auto bg-surface-elevated border-t border-border/30 rounded-t-3xl p-5 shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col gap-4 text-left select-none animate-slideUp">
             
             {/* Header del Modal Gastos */}
             <div className="flex items-center justify-between border-b border-border/15 pb-3">

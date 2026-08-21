@@ -30,9 +30,14 @@ function enlaceWhatsApp(tel?: string | null, mensaje?: string) {
 
 type TabId = "itinerario" | "vehiculo" | "pago" | "operacion";
 
+function copiar(texto: string) {
+  if (typeof navigator !== "undefined" && navigator.clipboard) void navigator.clipboard.writeText(texto);
+}
+
 export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>("itinerario");
+  const [copiado, setCopiado] = useState<string | null>(null);
   
   const trasladoId = pasaporte.traslado_id!;
   const folio = trasladoId.slice(0, 8).toUpperCase();
@@ -196,17 +201,23 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
              </div>
 
              <div className="grid grid-cols-2 gap-2.5 mt-1">
-               {/* 1. Placas */}
-               <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
-                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Placas</span>
-                 <span className="font-mono text-xs font-black mt-0.5 text-text-primary">{placas}</span>
-               </div>
+                {/* 1. Placas */}
+                <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Placas</span>
+                    <button type="button" onClick={() => { copiar(placas); setCopiado("placas"); setTimeout(()=>setCopiado(null),1200); }} className="text-[10px] font-bold text-route-action hover:underline focus-visible:outline focus-visible:outline-[2px] focus-visible:outline-offset-1 focus-visible:outline-route-action rounded px-1 -mx-1 min-h-6">{copiado==="placas"?"Copiado ✓":"Copiar"}</button>
+                  </div>
+                  <span className="font-mono text-xs font-black mt-0.5 text-text-primary">{placas}</span>
+                </div>
 
-               {/* 2. Número VIN */}
-               <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
-                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Número VIN</span>
-                 <span className="font-mono text-xs font-black mt-0.5 text-text-primary truncate" title={vin}>{vin}</span>
-               </div>
+                {/* 2. Número VIN */}
+                <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Número VIN</span>
+                    <button type="button" onClick={() => { copiar(vin); setCopiado("vin"); setTimeout(()=>setCopiado(null),1200); }} className="text-[10px] font-bold text-route-action hover:underline focus-visible:outline focus-visible:outline-[2px] focus-visible:outline-offset-1 focus-visible:outline-route-action rounded px-1 -mx-1 min-h-6">{copiado==="vin"?"Copiado ✓":"Copiar"}</button>
+                  </div>
+                  <span className="font-mono text-xs font-black mt-0.5 text-text-primary truncate" title={vin}>{vin}</span>
+                </div>
 
                {/* 3. Marca */}
                <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
@@ -297,6 +308,15 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                 </span>
               </div>
               <span className="text-[11px] text-text-secondary mt-1 font-semibold">Tarifa garantizada por entrega completada</span>
+              <button type="button" onClick={() => { copiar(String(pagoTotal)); setCopiado("pago"); setTimeout(()=>setCopiado(null),1200); }} className="mt-2 text-xs font-bold text-route-action hover:underline focus-visible:outline focus-visible:outline-[2px] focus-visible:outline-offset-1 focus-visible:outline-route-action rounded px-2 py-1 min-h-8">{copiado==="pago"?"Copiado ✓":"Copiar monto"}</button>
+            </div>
+
+            {/* Desglose simulado */}
+            <div className="bg-surface rounded-xl border border-border/15 p-3 grid gap-2">
+              <div className="flex justify-between text-xs"><span className="text-text-tertiary">Tarifa base cliente</span><span className="font-semibold text-text-primary tabular-nums">${(pagoTotal/0.85).toLocaleString("es-MX", { maximumFractionDigits: 0 })} MXN</span></div>
+              <div className="flex justify-between text-xs"><span className="text-text-tertiary">Comisión plataforma (15%)</span><span className="font-semibold text-danger tabular-nums">- ${(pagoTotal/0.85*0.15).toLocaleString("es-MX", { maximumFractionDigits: 0 })} MXN</span></div>
+              <div className="h-px bg-border/15 my-1" />
+              <div className="flex justify-between text-sm font-bold"><span className="text-text-primary">Neto a recibir</span><span className="text-signal tabular-nums">${pagoTotal.toLocaleString("es-MX", { maximumFractionDigits: 0 })} MXN</span></div>
             </div>
 
             <div className="h-px w-full bg-border/20 my-0.5" />
@@ -370,7 +390,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                   <div className="flex flex-col min-w-0">
                     <span className="text-[9px] text-route-action font-bold uppercase tracking-wider">Solicitante del Servicio</span>
                     <span className="font-bold text-xs text-text-primary truncate">{solicitanteNombre}</span>
-                    <span className="font-mono text-[11px] text-text-secondary">{solicitanteTelefono || "Teléfono no disponible"}</span>
+                    <span className="font-mono text-[11px] text-text-secondary flex items-center gap-1">{solicitanteTelefono || "Teléfono no disponible"}{solicitanteTelefono && <button type="button" onClick={()=>{ copiar(solicitanteTelefono); setCopiado("sol"); setTimeout(()=>setCopiado(null),1200); }} className="text-[10px] font-bold text-route-action hover:underline px-1">{copiado==="sol"?"Copiado":"Copiar"}</button>}</span>
                   </div>
                 </div>
                 {solicitanteTelefono && (
@@ -379,21 +399,21 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                       href={enlaceWhatsApp(solicitanteTelefono, `Hola ${solicitanteNombre}, me comunico como tu conductor certificado de Ruum Ruum respecto al traslado #TR-${folio}.`)}
                       target="_blank"
                       rel="noreferrer"
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25"
+                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`WhatsApp a ${solicitanteNombre}`}
                       title="Enviar WhatsApp"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
                         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                       </svg>
                     </a>
                     <a
                       href={enlaceTel(solicitanteTelefono)}
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-route-action/15 text-route-action flex items-center justify-center border border-route-action/30 active:scale-95 transition-transform hover:bg-route-action/25"
+                      className="min-h-[40px] min-w-[40px] rounded-xl bg-route-action/15 text-route-action flex items-center justify-center border border-route-action/30 active:scale-95 transition-transform hover:bg-route-action/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`Llamar a ${solicitanteNombre}`}
                       title="Llamar"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                       </svg>
                     </a>
