@@ -85,7 +85,7 @@ export default function PaginaLogin() {
     >
       <section className="conductor-auth-card p-6 sm:p-8" aria-labelledby="titulo-inicio-conductor">
         <div className="flex items-center gap-3">
-          <LogoMarca tamano={34} color="signal" descriptor="Conductor" subtitulo="Tu operación, tu control." />
+          <LogoMarca tamano={34} color="signal" descriptor="Conductor" subtitulo="" />
         </div>
         <h1 id="titulo-inicio-conductor" className="mt-8 font-display text-2xl font-bold text-text-primary">Iniciar sesión</h1>
 

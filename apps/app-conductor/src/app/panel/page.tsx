@@ -273,54 +273,8 @@ export default function PaginaPanel() {
             documentoPorVencer={documentoPorVencer}
             conductorEstado={conductor?.estado}
           />
-
-          {/* SOPORTE Y EMERGENCIA */}
-          <div className="grid grid-cols-2 gap-4 mt-6">
-            <button
-              type="button"
-              onClick={() => setSoporteAbierto(true)}
-              className="bg-surface-elevated rounded-2xl p-4 border border-border/20 flex items-center gap-3.5 shadow-xs hover:border-route-action/40 hover:bg-surface active:scale-95 transition-all duration-200 cursor-pointer text-left w-full min-h-[64px]"
-            >
-              <div className="w-10 h-10 rounded-full bg-route-action/10 text-route-action flex items-center justify-center shrink-0">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 12a9 9 0 0 1 18 0" />
-                  <rect x="2" y="12" width="4" height="6" rx="2" fill="none" />
-                  <rect x="18" y="12" width="4" height="6" rx="2" fill="none" />
-                  <path d="M20 15a4 4 0 0 1-4 4H12" />
-                  <circle cx="11" cy="19" r="1" fill="currentColor" />
-                </svg>
-              </div>
-              <div className="flex flex-col leading-tight">
-                <span className="text-text-primary font-bold text-sm tracking-tight">Soporte</span>
-                <span className="text-xs text-text-secondary mt-0.5">Estamos contigo</span>
-              </div>
-            </button>
-
-            <a
-              href={CONTACTOS_SOPORTE_CONDUCTOR.emergencia.telefono.href}
-              className="bg-surface-elevated rounded-2xl p-4 border border-border/20 flex items-center gap-3.5 shadow-xs hover:border-danger/40 hover:bg-surface active:scale-95 transition-all duration-200 text-left w-full min-h-[64px]"
-            >
-              <div className="w-10 h-10 rounded-full bg-danger-soft text-danger flex items-center justify-center shrink-0">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-              </div>
-              <div className="flex flex-col leading-tight">
-                <span className="text-text-primary font-bold text-sm tracking-tight">Emergencia</span>
-                <span className="text-xs text-text-secondary mt-0.5">Asistencia SOS</span>
-              </div>
-            </a>
-          </div>
         </div>
       )}
-
-      {/* Bottom Sheet de Soporte Accesible */}
-      <PanelSupportSheet
-        abierto={soporteAbierto}
-        onCerrar={() => setSoporteAbierto(false)}
-      />
 
       {/* Modal de Confirmación de Disponibilidad */}
       <ConfirmarDisponibilidad
