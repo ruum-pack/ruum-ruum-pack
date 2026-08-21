@@ -29,9 +29,47 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
   
   const vehiculo = nombreVehiculo(pasaporte);
   const placas = pasaporte.vehiculo_placas || "POR ASIGNAR";
-  const color = pasaporte.vehiculo_color || "No especificado";
   const vin = pasaporte.vehiculo_vin || "POR CONFIRMAR";
+  const marca = pasaporte.vehiculo_marca || (pasaporte.vehiculo_modelo ? pasaporte.vehiculo_modelo.split(" ")[0] : "No especificada");
+  const modelo = pasaporte.vehiculo_modelo || "No especificado";
+  const anio = pasaporte.vehiculo_anio ? String(pasaporte.vehiculo_anio) : "No especificado";
+  const color = pasaporte.vehiculo_color || "No especificado";
+  const condicion = pasaporte.vehiculo_condicion || "En condiciones de circular rodando";
+  const categoria = pasaporte.vehiculo_categoria_tarifa || (pasaporte.vehiculo_tipo ? ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo] : "Particular / Estándar");
+  const gama = pasaporte.vehiculo_gama || "Comercial / Convencional";
   const tipoVehiculo = pasaporte.vehiculo_tipo ? ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo] : "Traslado vehicular";
+  const tipoOperativo = pasaporte.vehiculo_tipo 
+    ? `${ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo]} · Traslado rodando con conductor certificado`
+    : "Traslado rodando con conductor certificado";
+
+  const fotosIniciales = pasaporte.evidencia_inicial_fotos_sincronizadas ?? 0;
+  const estadoTraslado = pasaporte.estado;
+  let estadoRecepcionTexto = "Pendiente de inspección en origen";
+  let estadoRecepcionTono: "warning" | "success" = "warning";
+
+  if (
+    fotosIniciales > 0 ||
+    estadoTraslado === "evidencia_inicial_completada" ||
+    estadoTraslado === "vehiculo_recibido" ||
+    estadoTraslado === "traslado_en_curso" ||
+    estadoTraslado === "llegada_a_destino" ||
+    estadoTraslado === "evidencia_final_en_proceso" ||
+    estadoTraslado === "evidencia_final_completada" ||
+    estadoTraslado === "entrega_confirmada" ||
+    estadoTraslado === "servicio_cerrado"
+  ) {
+    estadoRecepcionTexto = fotosIniciales > 0
+      ? `Inspeccionado (${fotosIniciales} fotos sincronizadas)`
+      : "Recepción completada y documentada";
+    estadoRecepcionTono = "success";
+  } else if (
+    estadoTraslado === "conductor_en_punto_de_recoleccion" ||
+    estadoTraslado === "verificacion_vehiculo_en_proceso" ||
+    estadoTraslado === "evidencia_inicial_en_proceso"
+  ) {
+    estadoRecepcionTexto = "En proceso de inspección y recepción en origen";
+    estadoRecepcionTono = "warning";
+  }
   
   const pagoTotal = pasaporte.ganancia_conductor || 0;
   const fecha = pasaporte.creado_en ? new Date(pasaporte.creado_en).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "Fecha pendiente";
@@ -116,23 +154,85 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                  <span className="text-[10px] text-text-tertiary font-extrabold uppercase tracking-widest">Unidad a trasladar</span>
                  <span className="font-display text-lg font-black text-text-primary mt-0.5">{vehiculo}</span>
                </div>
-               <div className="border border-border/30 bg-surface px-2.5 py-1 rounded-lg">
-                 <span className="font-mono text-xs font-black tracking-widest text-text-primary">{placas}</span>
+               <div className="border border-border/30 bg-surface px-3 py-1.5 rounded-xl shadow-xs">
+                 <span className="font-mono text-xs font-black tracking-widest text-signal">{placas}</span>
                </div>
              </div>
 
-             <div className="grid grid-cols-2 gap-3 mt-1">
+             <div className="grid grid-cols-2 gap-2.5 mt-1">
+               {/* 1. Placas */}
+               <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
+                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Placas</span>
+                 <span className="font-mono text-xs font-black mt-0.5 text-text-primary">{placas}</span>
+               </div>
+
+               {/* 2. Número VIN */}
+               <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
+                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Número VIN</span>
+                 <span className="font-mono text-xs font-black mt-0.5 text-text-primary truncate" title={vin}>{vin}</span>
+               </div>
+
+               {/* 3. Marca */}
+               <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
+                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Marca</span>
+                 <span className="font-semibold text-xs mt-0.5 text-text-primary">{marca}</span>
+               </div>
+
+               {/* 4. Modelo */}
+               <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
+                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Modelo</span>
+                 <span className="font-semibold text-xs mt-0.5 text-text-primary truncate" title={modelo}>{modelo}</span>
+               </div>
+
+               {/* 5. Año */}
+               <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
+                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Año</span>
+                 <span className="font-semibold text-xs mt-0.5 text-text-primary tabular-nums">{anio}</span>
+               </div>
+
+               {/* 6. Color */}
                <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
                  <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Color</span>
-                 <span className="font-semibold text-xs mt-0.5 text-text-primary">{color}</span>
+                 <span className="font-semibold text-xs mt-0.5 text-text-primary capitalize">{color}</span>
                </div>
+
+               {/* 7. Categoría */}
                <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
-                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Tipo</span>
-                 <span className="font-semibold text-xs mt-0.5 text-text-primary">{tipoVehiculo}</span>
+                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Categoría</span>
+                 <span className="font-semibold text-xs mt-0.5 text-text-primary capitalize">{categoria}</span>
                </div>
+
+               {/* 8. Gama */}
+               <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
+                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Gama</span>
+                 <span className="font-semibold text-xs mt-0.5 text-text-primary capitalize">{gama}</span>
+               </div>
+
+               {/* 9. Condición */}
                <div className="flex flex-col col-span-2 bg-surface p-3 rounded-xl border border-border/15">
-                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">VIN / Número de Serie</span>
-                 <span className="font-mono text-xs font-black mt-0.5 text-text-primary truncate">{vin}</span>
+                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Condición</span>
+                 <span className="font-semibold text-xs mt-0.5 text-text-primary">{condicion}</span>
+               </div>
+
+               {/* 10. Tipo Operativo */}
+               <div className="flex flex-col col-span-2 bg-surface p-3 rounded-xl border border-border/15">
+                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Tipo Operativo</span>
+                 <span className="font-semibold text-xs mt-0.5 text-text-primary">{tipoOperativo}</span>
+               </div>
+
+               {/* 11. Estado General de Recepción */}
+               <div className="flex flex-col col-span-2 bg-surface p-3.5 rounded-xl border border-border/15 gap-1">
+                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Estado General de Recepción</span>
+                 <div className="flex items-center gap-2 mt-0.5">
+                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${
+                     estadoRecepcionTono === "success"
+                       ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                       : "bg-warning/15 text-warning border border-warning/30"
+                   }`}>
+                     <span>{estadoRecepcionTono === "success" ? "✓" : "⏳"}</span>
+                     <span>{estadoRecepcionTexto}</span>
+                   </span>
+                 </div>
                </div>
              </div>
 
@@ -143,7 +243,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                <div className="p-3 bg-surface rounded-xl border border-border/15 flex items-center gap-2.5">
                  <span className="text-base">🛡️</span>
                  <span className="text-[11px] text-text-secondary leading-snug">
-                   Inspección 360° fotográfica obligatoria antes de iniciar y al concluir la entrega.
+                   Inspección 360° fotográfica obligatoria antes de iniciar y al concluir la entrega documentada.
                  </span>
                </div>
              </div>
