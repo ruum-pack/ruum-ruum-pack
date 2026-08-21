@@ -5,10 +5,15 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
-    "rootDir": "./src"
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "**/*.test.ts", "**/*.spec.ts"]
+  "include": [],
+  "references": [
+    { "path": "apps/app-conductor" },
+    { "path": "apps/app-usuario" },
+    { "path": "apps/panel-admin" },
+    { "path": "packages/api" },
+    { "path": "packages/shared" },
+    { "path": "packages/ui" }
+  ]
 }
