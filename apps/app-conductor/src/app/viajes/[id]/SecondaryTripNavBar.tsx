@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ReportarIncidencia } from "./ReportarIncidencia";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
@@ -8,15 +8,86 @@ import type { Database } from "@ruum/shared/types";
 import { Aviso } from "@ruum/ui";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
-type GastoTipo = "gasolina" | "casetas" | "lavado" | "estacionamiento" | "otros";
+export type GastoTipoDb = "combustible" | "caseta" | "maniobra" | "estadia" | "penalizacion" | "otro";
 
 interface GastoRegistro {
   id: string;
-  tipo: GastoTipo;
+  tipo: GastoTipoDb;
   monto: number;
-  notas: string | null;
+  descripcion: string | null;
   comprobante_url: string | null;
-  created_at: string;
+  registrado_en: string;
+}
+
+const BUCKET_EVIDENCIA = "evidencia";
+const MAX_COMPROBANTE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+function obtenerEtiquetaGasto(tipo: GastoTipoDb): string {
+  switch (tipo) {
+    case "combustible":
+      return "⛽ Combustible / Gasolina";
+    case "caseta":
+      return "🛣️ Casetas / Peaje";
+    case "maniobra":
+      return "🔄 Maniobra / Carga";
+    case "estadia":
+      return "⏱️ Estadía / Espera";
+    case "penalizacion":
+      return "⚠️ Penalización";
+    case "otro":
+    default:
+      return "📝 Estacionamiento / Lavado / Otro";
+  }
+}
+
+function extraerUrlComprobante(descripcion: string | null): { url: string | null; texto: string | null } {
+  if (!descripcion) return { url: null, texto: null };
+  const match = descripcion.match(/\[COMPROBANTE:\s*([^\]]+)\]/);
+  if (match && match[1]) {
+    const url = match[1].trim();
+    const texto = descripcion.replace(match[0], "").trim();
+    return { url, texto: texto || null };
+  }
+  return { url: null, texto: descripcion };
+}
+
+async function subirComprobanteGasto(
+  cliente: ReturnType<typeof crearClienteNavegador>,
+  trasladoId: string,
+  archivo: File
+): Promise<{ url: string | null; ruta: string }> {
+  if (archivo.size > MAX_COMPROBANTE_BYTES) {
+    throw new Error("El comprobante debe pesar máximo 10 MB.");
+  }
+
+  const { data: sesion } = await cliente.auth.getUser();
+  const authUserId = sesion?.user?.id || "conductor";
+
+  const extension = archivo.name.split(".").pop()?.toLowerCase() || "jpg";
+  const nombreLimpio = archivo.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`;
+  const ruta = `${authUserId}/${trasladoId}/gastos/${id}-${nombreLimpio}.${extension}`;
+
+  try {
+    const { error: uploadError } = await cliente.storage.from(BUCKET_EVIDENCIA).upload(ruta, archivo, {
+      upsert: false,
+      contentType: archivo.type || "image/jpeg"
+    });
+
+    if (uploadError) {
+      console.warn("Aviso al subir comprobante a storage:", uploadError);
+      return { url: null, ruta };
+    }
+
+    const { data: signedData } = await cliente.storage.from(BUCKET_EVIDENCIA).createSignedUrl(ruta, 60 * 60 * 24 * 30);
+    return {
+      url: signedData?.signedUrl || null,
+      ruta
+    };
+  } catch (err) {
+    console.warn("Excepción al subir comprobante:", err);
+    return { url: null, ruta };
+  }
 }
 
 export function SecondaryTripNavBar({
@@ -28,40 +99,70 @@ export function SecondaryTripNavBar({
 }) {
   const [tabActiva, setTabActiva] = useState<"detalles" | "detalles_modal" | "gastos" | "incidencia">("detalles");
   
-  // States for Gastos Modal
-  const [tipoGasto, setTipoGasto] = useState<GastoTipo>("gasolina");
+  // States for Gastos Form
+  const [tipoGasto, setTipoGasto] = useState<GastoTipoDb>("combustible");
   const [monto, setMonto] = useState<string>("");
   const [notas, setNotas] = useState<string>("");
+  const [archivoComprobante, setArchivoComprobante] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  
   const [gastosList, setGastosList] = useState<GastoRegistro[]>([]);
   const [guardandoGasto, setGuardandoGasto] = useState(false);
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null);
   const [errorGasto, setErrorGasto] = useState<string | null>(null);
   const [exitoGasto, setExitoGasto] = useState<string | null>(null);
+
+  const camaraInputRef = useRef<HTMLInputElement>(null);
+  const archivoInputRef = useRef<HTMLInputElement>(null);
+
+  // Manejo de previsualización al cambiar archivo
+  useEffect(() => {
+    if (!archivoComprobante) {
+      setPreviewUrl(null);
+      return;
+    }
+    if (archivoComprobante.type.startsWith("image/")) {
+      const url = URL.createObjectURL(archivoComprobante);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [archivoComprobante]);
 
   // Fetch registered expenses on load
   useEffect(() => {
     async function cargarGastos() {
       try {
         const cliente = crearClienteNavegador();
-        const { data } = await (cliente as any)
+        const { data, error } = await (cliente as any)
           .from("gastos_traslado")
           .select("*")
           .eq("traslado_id", trasladoId)
-          .order("created_at", { ascending: false });
+          .order("registrado_en", { ascending: false });
+
+        if (error) {
+          console.warn("Error cargando gastos:", error);
+          return;
+        }
 
         if (data) {
           setGastosList(
-            (data as any[]).map((g) => ({
-              id: String(g.id),
-              tipo: g.tipo as GastoTipo,
-              monto: Number(g.monto || 0),
-              notas: g.notas || g.descripcion || null,
-              comprobante_url: g.comprobante_url || null,
-              created_at: g.created_at || g.registrado_en || new Date().toISOString()
-            }))
+            (data as any[]).map((g) => {
+              const { url, texto } = extraerUrlComprobante(g.descripcion);
+              return {
+                id: String(g.id),
+                tipo: (g.tipo as GastoTipoDb) || "otro",
+                monto: Number(g.monto || 0),
+                descripcion: texto || g.descripcion || null,
+                comprobante_url: url || g.comprobante_url || null,
+                registrado_en: g.registrado_en || g.created_at || new Date().toISOString()
+              };
+            })
           );
         }
-      } catch {
-        // Fallback smooth
+      } catch (err) {
+        console.warn("Error al obtener gastos:", err);
       }
     }
     if (trasladoId) {
@@ -69,11 +170,31 @@ export function SecondaryTripNavBar({
     }
   }, [trasladoId]);
 
+  function handleSeleccionarArchivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > MAX_COMPROBANTE_BYTES) {
+      setErrorGasto("El comprobante seleccionado supera el límite de 10 MB.");
+      return;
+    }
+
+    setErrorGasto(null);
+    setArchivoComprobante(file);
+  }
+
+  function handleQuitarComprobante() {
+    setArchivoComprobante(null);
+    setPreviewUrl(null);
+    if (camaraInputRef.current) camaraInputRef.current.value = "";
+    if (archivoInputRef.current) archivoInputRef.current.value = "";
+  }
+
   async function handleAgregarGasto(e: React.FormEvent) {
     e.preventDefault();
     const montoNum = parseFloat(monto);
     if (isNaN(montoNum) || montoNum <= 0) {
-      setErrorGasto("Ingresa un monto válido mayor a $0.00");
+      setErrorGasto("Ingresa un monto válido mayor a $0.00 MXN.");
       return;
     }
 
@@ -83,37 +204,84 @@ export function SecondaryTripNavBar({
 
     try {
       const cliente = crearClienteNavegador();
-      const { data, error: err } = await (cliente as any)
+      let comprobanteUrlSubido: string | null = null;
+
+      // Subir archivo a Supabase Storage si se adjuntó
+      if (archivoComprobante) {
+        try {
+          const resultado = await subirComprobanteGasto(cliente, trasladoId, archivoComprobante);
+          comprobanteUrlSubido = resultado.url;
+        } catch (subidaErr: any) {
+          console.warn("Error al subir archivo:", subidaErr);
+        }
+      }
+
+      // Construir descripción incluyendo etiqueta del comprobante si existe
+      let descripcionFinal = notas.trim();
+      if (comprobanteUrlSubido) {
+        descripcionFinal = `[COMPROBANTE: ${comprobanteUrlSubido}] ${descripcionFinal}`.trim();
+      } else if (archivoComprobante) {
+        descripcionFinal = `[COMPROBANTE ADJUNTO: ${archivoComprobante.name}] ${descripcionFinal}`.trim();
+      }
+
+      const { data, error: insertError } = await (cliente as any)
         .from("gastos_traslado")
         .insert({
           traslado_id: trasladoId,
           tipo: tipoGasto,
           monto: montoNum,
-          notas: notas.trim() || null
+          descripcion: descripcionFinal || null
         })
         .select("*")
         .single();
 
-      if (err) throw err;
+      if (insertError) {
+        throw insertError;
+      }
 
       if (data) {
+        const { url, texto } = extraerUrlComprobante(data.descripcion);
         const nuevoGasto: GastoRegistro = {
           id: String(data.id),
-          tipo: data.tipo as GastoTipo,
+          tipo: data.tipo as GastoTipoDb,
           monto: Number(data.monto || montoNum),
-          notas: data.notas || data.descripcion || notas.trim() || null,
-          comprobante_url: data.comprobante_url || null,
-          created_at: data.created_at || new Date().toISOString()
+          descripcion: texto || (notas.trim() || null),
+          comprobante_url: url || comprobanteUrlSubido || null,
+          registrado_en: data.registrado_en || new Date().toISOString()
         };
         setGastosList((prev) => [nuevoGasto, ...prev]);
         setMonto("");
         setNotas("");
-        setExitoGasto("Gasto registrado correctamente.");
+        handleQuitarComprobante();
+        setExitoGasto("Gasto registrado y comprobante guardado con éxito.");
       }
-    } catch {
-      setErrorGasto("No se pudo registrar el gasto. Intenta nuevamente.");
+    } catch (err: any) {
+      console.error("Error al registrar gasto:", err);
+      setErrorGasto(err?.message || "No se pudo registrar el gasto. Verifica la conexión e intenta nuevamente.");
     } finally {
       setGuardandoGasto(false);
+    }
+  }
+
+  async function handleEliminarGasto(id: string) {
+    if (eliminandoId) return;
+    setEliminandoId(id);
+    setErrorGasto(null);
+    try {
+      const cliente = crearClienteNavegador();
+      const { error: deleteError } = await (cliente as any)
+        .from("gastos_traslado")
+        .delete()
+        .eq("id", id);
+
+      if (deleteError) throw deleteError;
+      setGastosList((prev) => prev.filter((g) => g.id !== id));
+      setExitoGasto("Gasto eliminado correctamente.");
+    } catch (err) {
+      console.error("Error al eliminar gasto:", err);
+      setErrorGasto("No se pudo eliminar el gasto.");
+    } finally {
+      setEliminandoId(null);
     }
   }
 
@@ -126,22 +294,22 @@ export function SecondaryTripNavBar({
       {/* ------------------------------------------------------------------ */}
       {tabActiva === "gastos" && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-lg mx-auto bg-surface-elevated border-t border-border/20 rounded-t-3xl p-5 shadow-2xl max-h-[85vh] overflow-y-auto flex flex-col gap-4 text-left select-none animate-slideUp">
+          <div className="w-full max-w-lg mx-auto bg-[#151515] border-t border-border/30 rounded-t-3xl p-5 shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col gap-4 text-left select-none animate-slideUp">
             
             {/* Header del Modal Gastos */}
             <div className="flex items-center justify-between border-b border-border/15 pb-3">
-              <div className="flex items-center gap-2 text-route-action">
+              <div className="flex items-center gap-2 text-signal">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <h3 className="font-display text-base font-black text-text-primary uppercase tracking-wider">
+                <h3 className="font-display text-base font-black text-mist uppercase tracking-wider">
                   Gastos del Traslado
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setTabActiva("detalles")}
-                className="p-1.5 text-text-tertiary hover:text-text-primary rounded-full hover:bg-surface cursor-pointer"
+                className="p-1.5 text-text-tertiary hover:text-mist rounded-full hover:bg-surface cursor-pointer transition-colors"
                 aria-label="Cerrar gastos"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -152,7 +320,7 @@ export function SecondaryTripNavBar({
             </div>
 
             {/* Formulario para agregar gasto */}
-            <form onSubmit={handleAgregarGasto} className="flex flex-col gap-3">
+            <form onSubmit={handleAgregarGasto} className="flex flex-col gap-3.5">
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label htmlFor="tipo-gasto" className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
@@ -161,20 +329,21 @@ export function SecondaryTripNavBar({
                   <select
                     id="tipo-gasto"
                     value={tipoGasto}
-                    onChange={(e) => setTipoGasto(e.target.value as GastoTipo)}
-                    className="bg-surface border border-border/30 rounded-xl px-3 py-2.5 text-xs text-text-primary focus:outline-none focus:border-route-action"
+                    onChange={(e) => setTipoGasto(e.target.value as GastoTipoDb)}
+                    className="bg-surface border border-border/30 rounded-xl px-3 py-2.5 text-xs text-mist focus:outline-none focus:border-signal"
                   >
-                    <option value="gasolina">⛽ Gasolina</option>
-                    <option value="casetas">🛣️ Casetas / Peaje</option>
-                    <option value="estacionamiento">🅿️ Estacionamiento</option>
-                    <option value="lavado">🧼 Lavado</option>
-                    <option value="otros">📝 Otros</option>
+                    <option value="combustible">⛽ Combustible</option>
+                    <option value="caseta">🛣️ Casetas / Peaje</option>
+                    <option value="maniobra">🔄 Maniobra / Carga</option>
+                    <option value="estadia">⏱️ Estadía / Espera</option>
+                    <option value="penalizacion">⚠️ Penalización</option>
+                    <option value="otro">📝 Estacionamiento / Otro</option>
                   </select>
                 </div>
 
                 <div className="flex flex-col gap-1">
                   <label htmlFor="monto-gasto" className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
-                    Monto (MXN)
+                    Monto (MXN) *
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-xs font-bold text-text-tertiary">$</span>
@@ -185,7 +354,8 @@ export function SecondaryTripNavBar({
                       placeholder="0.00"
                       value={monto}
                       onChange={(e) => setMonto(e.target.value)}
-                      className="w-full bg-surface border border-border/30 rounded-xl pl-7 pr-3 py-2.5 text-xs font-mono font-bold text-text-primary focus:outline-none focus:border-route-action"
+                      className="w-full bg-surface border border-border/30 rounded-xl pl-7 pr-3 py-2.5 text-xs font-mono font-bold text-mist focus:outline-none focus:border-signal"
+                      required
                     />
                   </div>
                 </div>
@@ -198,11 +368,110 @@ export function SecondaryTripNavBar({
                 <input
                   id="notas-gasto"
                   type="text"
-                  placeholder="Ej. Casetas autopista México-Toluca"
+                  placeholder="Ej. Ticket Gasolinera Pemex #4820"
                   value={notas}
                   onChange={(e) => setNotas(e.target.value)}
-                  className="bg-surface border border-border/30 rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-route-action"
+                  className="bg-surface border border-border/30 rounded-xl px-3 py-2 text-xs text-mist focus:outline-none focus:border-signal"
                 />
+              </div>
+
+              {/* Sección de Comprobante / Fotografía */}
+              <div className="flex flex-col gap-2 bg-surface/60 border border-border/20 rounded-2xl p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
+                    Comprobante o Ticket
+                  </span>
+                  {archivoComprobante && (
+                    <span className="text-[10px] text-signal font-semibold">
+                      Listo para adjuntar
+                    </span>
+                  )}
+                </div>
+
+                {/* Hidden File Inputs */}
+                <input
+                  ref={camaraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleSeleccionarArchivo}
+                />
+                <input
+                  ref={archivoInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={handleSeleccionarArchivo}
+                />
+
+                {!archivoComprobante ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => camaraInputRef.current?.click()}
+                      className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-surface border border-border/30 hover:border-signal/50 text-mist text-xs font-bold transition-all cursor-pointer hover:bg-surface-elevated active:scale-95"
+                    >
+                      <svg className="w-4 h-4 text-signal shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                      <span>Tomar foto</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => archivoInputRef.current?.click()}
+                      className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-surface border border-border/30 hover:border-signal/50 text-mist text-xs font-bold transition-all cursor-pointer hover:bg-surface-elevated active:scale-95"
+                    >
+                      <svg className="w-4 h-4 text-route shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      <span>Subir archivo</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between bg-surface-elevated rounded-xl p-2.5 border border-border/30">
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      {previewUrl ? (
+                        <img
+                          src={previewUrl}
+                          alt="Vista previa comprobante"
+                          className="w-10 h-10 object-cover rounded-lg border border-border/30 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-surface flex items-center justify-center text-text-tertiary shrink-0 border border-border/20">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="flex flex-col overflow-hidden">
+                        <span className="text-xs font-semibold text-mist truncate">
+                          {archivoComprobante.name}
+                        </span>
+                        <span className="text-[10px] text-text-tertiary">
+                          {(archivoComprobante.size / 1024).toFixed(1)} KB
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleQuitarComprobante}
+                      className="p-1.5 text-danger hover:text-danger/80 rounded-lg hover:bg-danger/10 transition-colors cursor-pointer shrink-0"
+                      title="Quitar comprobante"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {errorGasto && <Aviso tono="danger">{errorGasto}</Aviso>}
@@ -213,7 +482,7 @@ export function SecondaryTripNavBar({
                 disabled={guardandoGasto}
                 className="w-full py-3 rounded-xl bg-signal hover:bg-signal/85 text-slate-950 font-display text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-md disabled:opacity-50 mt-1"
               >
-                {guardandoGasto ? "Registrando..." : "+ Registrar Gasto"}
+                {guardandoGasto ? "Guardando y subiendo..." : "+ Registrar Gasto"}
               </button>
             </form>
 
@@ -233,23 +502,56 @@ export function SecondaryTripNavBar({
                   No has registrado gastos en este traslado aún.
                 </p>
               ) : (
-                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
+                <div className="flex flex-col gap-2 max-h-52 overflow-y-auto pr-1">
                   {gastosList.map((g) => (
                     <div
                       key={g.id}
-                      className="flex items-center justify-between bg-surface border border-border/20 rounded-xl p-2.5 text-xs"
+                      className="flex items-center justify-between bg-surface border border-border/20 rounded-xl p-2.5 text-xs gap-2"
                     >
-                      <div className="flex flex-col">
-                        <span className="font-bold text-text-primary capitalize">
-                          {g.tipo === "gasolina" ? "⛽ Gasolina" : g.tipo === "casetas" ? "🛣️ Casetas" : g.tipo === "estacionamiento" ? "🅿️ Estacionamiento" : g.tipo === "lavado" ? "🧼 Lavado" : "📝 Otros"}
-                        </span>
-                        {g.notas && (
-                          <span className="text-[10px] text-text-tertiary mt-0.5">{g.notas}</span>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-mist">
+                            {obtenerEtiquetaGasto(g.tipo)}
+                          </span>
+                          {g.comprobante_url && (
+                            <a
+                              href={g.comprobante_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] text-route font-semibold hover:underline"
+                              title="Ver comprobante adjunto"
+                            >
+                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                              </svg>
+                              <span>Ticket</span>
+                            </a>
+                          )}
+                        </div>
+                        {g.descripcion && (
+                          <span className="text-[10px] text-text-tertiary mt-0.5 truncate">{g.descripcion}</span>
                         )}
                       </div>
-                      <span className="font-mono font-bold text-text-primary">
-                        ${g.monto.toFixed(2)}
-                      </span>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-mono font-bold text-mist tabular-nums">
+                          ${g.monto.toFixed(2)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleEliminarGasto(g.id)}
+                          disabled={eliminandoId === g.id}
+                          className="p-1 text-text-tertiary hover:text-danger rounded-md hover:bg-surface-elevated transition-colors cursor-pointer disabled:opacity-40"
+                          title="Eliminar gasto"
+                          aria-label="Eliminar gasto"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -336,7 +638,7 @@ export function SecondaryTripNavBar({
             onClick={() => setTabActiva("gastos")}
             className={`flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl transition-all duration-200 cursor-pointer ${
               tabActiva === "gastos"
-                ? "bg-route-action/15 text-route-action border border-route-action/30 font-extrabold shadow-xs"
+                ? "bg-signal/15 text-signal border border-signal/30 font-extrabold shadow-xs"
                 : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated/60"
             }`}
           >
