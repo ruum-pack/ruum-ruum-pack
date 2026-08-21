@@ -1,6 +1,44 @@
 #!/usr/bin/env node
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = process.argv[2] ?? "workspace";
 const prod = process.env.NODE_ENV === "production";
+
+// Cargar version desde config/app-version.json si no está en .env
+if (!process.env.NEXT_PUBLIC_APP_VERSION) {
+  try {
+    const configPath = path.join(__dirname, "../config/app-version.json");
+    if (fs.existsSync(configPath)) {
+      const versionConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      process.env.NEXT_PUBLIC_APP_VERSION = versionConfig.version;
+    }
+  } catch (e) {
+    // Continuar si no se puede leer
+  }
+}
+
+// Intentar cargar variables faltantes desde .env.example en Vercel (solo desarrollo/preview)
+if (process.env.VERCEL && !prod) {
+  try {
+    const appPath = app !== "workspace" ? path.join(__dirname, `../apps/${app}/.env.example`) : null;
+    if (appPath && fs.existsSync(appPath)) {
+      const exampleEnv = fs.readFileSync(appPath, "utf-8");
+      for (const line of exampleEnv.split("\n")) {
+        const match = line.match(/^([^=]+)=/);
+        if (match && !process.env[match[1]]?.trim()) {
+          // Usar valor dummy para development si no está configurado
+          process.env[match[1]] = `__VERCEL_PREVIEW_${match[1]}__`;
+        }
+      }
+    }
+  } catch (e) {
+    // Ignorar errores
+  }
+}
+
 const requiredByApp = {
   "panel-admin": ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
   "app-conductor": [
@@ -20,7 +58,8 @@ if (prod && demo) invalid.push("NEXT_PUBLIC_PANEL_ADMIN_DEMO no puede ser true e
 if (prod && missing.length) invalid.push(`faltan variables: ${missing.join(", ")}`);
 for (const name of required.filter((n) => n.includes("SUPABASE_URL"))) {
   const value = process.env[name];
-  if (value && !/^https:\/\//.test(value)) invalid.push(`${name} debe usar https://`);
+  if (value && !/^https:\/\//.test(value) && !value.startsWith("__VERCEL")) 
+    invalid.push(`${name} debe usar https://`);
 }
 if (prod) {
   for (const name of ["NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_SUPABASE_URL"]) {
