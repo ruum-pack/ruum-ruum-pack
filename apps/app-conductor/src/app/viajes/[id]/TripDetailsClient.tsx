@@ -10,6 +10,7 @@ import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
 import { getTripPresentation } from "../../../lib/trip-presentation";
+import { formatearDuracion } from "../trips-utils";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -44,17 +45,8 @@ export function TripDetailsClient({
     timeZone: "America/Mexico_City" 
   }).format(new Date(fechaReferencia));
 
-  // Format Duration Helper
-  const formatDuracion = (horasDouble: number | null) => {
-    if (horasDouble == null) return "Por confirmar";
-    const totalMinutos = Math.round(horasDouble * 60);
-    const hrs = Math.floor(totalMinutos / 60);
-    const mins = totalMinutos % 60;
-    return mins > 0 ? `${hrs} h ${mins} min` : `${hrs} h`;
-  };
-
-  // Dynamic Details
-  const duracionTexto = formatDuracion(pasaporte.tiempo_estimado_horas);
+  // Dynamic Details - formato HH:MM (ej 12:57)
+  const duracionTexto = formatearDuracion(pasaporte.tiempo_estimado_horas);
   const distanciaTexto = `${(pasaporte.distancia_km || 138.2).toFixed(1)}Km`;
   const pasajeroCount = "01";
   const autoCount = "01";

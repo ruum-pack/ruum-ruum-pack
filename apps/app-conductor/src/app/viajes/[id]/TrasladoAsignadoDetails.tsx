@@ -10,7 +10,7 @@ import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
 import { createNavigationOptions, type NavigationOption } from "../../../lib/navigation-launcher";
-import { nombreVehiculo } from "../trips-utils";
+import { formatearDuracion, nombreVehiculo } from "../trips-utils";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
 
@@ -68,9 +68,7 @@ export function TrasladoAsignadoDetails({
 
   const gananciaNeta = pasaporte.ganancia_conductor || 0;
   const distanciaTotal = pasaporte.distancia_km ? `${pasaporte.distancia_km.toFixed(1)} km` : "Por confirmar";
-  const tiempoEstimado = pasaporte.tiempo_estimado_horas
-    ? `${Math.round(pasaporte.tiempo_estimado_horas * 60)} min`
-    : "Por confirmar";
+  const tiempoEstimado = formatearDuracion(pasaporte.tiempo_estimado_horas);
 
   const horaProgramada = useMemo(() => {
     const fechaOrigen = (pasaporte as { fecha_hora_programada?: string | null }).fecha_hora_programada ?? pasaporte.creado_en;

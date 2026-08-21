@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
-import { nombreVehiculo } from "../../trips-utils";
+import { crearClienteNavegador } from "../../../../lib/supabase-browser";
+import { formatearDuracion, nombreVehiculo } from "../../trips-utils";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
@@ -47,9 +48,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
   const destinoCiudad = pasaporte.destino_ciudad || "Ciudad Destino";
   const destinoDir = pasaporte.destino_direccion || "Dirección pendiente";
   const distancia = pasaporte.distancia_km != null ? `${pasaporte.distancia_km.toFixed(1)} km` : "Por confirmar";
-  const tiempoEstimado = pasaporte.tiempo_estimado_horas != null 
-    ? `${Math.round(pasaporte.tiempo_estimado_horas * 60)} min` 
-    : "Por confirmar";
+  const tiempoEstimado = formatearDuracion(pasaporte.tiempo_estimado_horas);
   
   const vehiculo = nombreVehiculo(pasaporte);
   const placas = pasaporte.vehiculo_placas || "POR ASIGNAR";
@@ -98,13 +97,48 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
   const pagoTotal = pasaporte.ganancia_conductor || 0;
   const fecha = pasaporte.creado_en ? new Date(pasaporte.creado_en).toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "long", year: "numeric" }) : "Fecha pendiente";
   const horaInicio = pasaporte.creado_en ? new Date(pasaporte.creado_en).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }) + " hrs" : "Por confirmar";
-  const ventanaRecoleccion = "08:00 - 12:00 hrs (Horario Hábil)";
-  const ventanaEntrega = pasaporte.tiempo_estimado_horas != null
-    ? `${Math.round(pasaporte.tiempo_estimado_horas * 60)} min tras recolección (Estimada)`
-    : "14:00 - 18:00 hrs (Estimada)";
+  // Ventanas desde formulario de solicitud (traslados.ventana_*), con fallback si pasaporte no las proyecta
+  const [ventanaRecoleccion, setVentanaRecoleccion] = useState<string | null>((pasaporte as unknown as { ventana_recoleccion?: string | null }).ventana_recoleccion ?? null);
+  const [ventanaEntrega, setVentanaEntrega] = useState<string | null>((pasaporte as unknown as { ventana_entrega?: string | null }).ventana_entrega ?? null);
+  // Solicitante = titular de la cuenta usuario (traslados.usuario_id -> usuarios)
+  const [solicitanteNombre, setSolicitanteNombre] = useState<string>(pasaporte.contacto_entrega_nombre || "Cliente Solicitante");
+  const [solicitanteTelefono, setSolicitanteTelefono] = useState<string>(pasaporte.contacto_entrega_telefono || "");
 
-  const solicitanteNombre = pasaporte.contacto_entrega_nombre || "Cliente Solicitante";
-  const solicitanteTelefono = pasaporte.contacto_entrega_telefono || "";
+  useEffect(() => {
+    let cancelado = false;
+    async function cargarVentanasYTitular() {
+      try {
+        const cliente = crearClienteNavegador();
+        const trasladoId = pasaporte.traslado_id;
+        const usuarioId = pasaporte.usuario_id;
+        if (!trasladoId) return;
+        // Ventanas: si pasaporte no las trae, leer traslados
+        if (!ventanaRecoleccion || !ventanaEntrega) {
+          // @ts-ignore supabase any
+          const resVent = await (cliente as unknown as { from: any }).from("traslados").select("ventana_recoleccion, ventana_entrega").eq("id", trasladoId).maybeSingle();
+          const d = (resVent as { data: { ventana_recoleccion: string | null; ventana_entrega: string | null } | null }).data;
+          if (!cancelado) {
+            if (d?.ventana_recoleccion) setVentanaRecoleccion(d.ventana_recoleccion);
+            if (d?.ventana_entrega) setVentanaEntrega(d.ventana_entrega);
+          }
+        }
+        // Titular: usuarios.id = traslados.usuario_id
+        if (usuarioId) {
+          // @ts-ignore supabase any
+          const resUser = await (cliente as unknown as { from: any }).from("usuarios").select("nombre, telefono").eq("id", usuarioId).maybeSingle();
+          const u = (resUser as { data: { nombre: string | null; telefono: string | null } | null }).data;
+          if (!cancelado && u) {
+            if (u.nombre) setSolicitanteNombre(u.nombre);
+            if (u.telefono) setSolicitanteTelefono(u.telefono);
+          }
+        }
+      } catch {
+        // fallback silencioso a valores ya mostrados
+      }
+    }
+    void cargarVentanasYTitular();
+    return () => { cancelado = true; };
+  }, [pasaporte.traslado_id, pasaporte.usuario_id, ventanaRecoleccion, ventanaEntrega]);
 
   const entregaNombre = pasaporte.contacto_entrega_nombre || "Contacto en Origen";
   const entregaTelefono = pasaporte.contacto_entrega_telefono || "";
@@ -366,12 +400,14 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
 
               <div className="flex flex-col bg-surface p-3 rounded-xl border border-border/15">
                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Ventana de Recolección</span>
-                <span className="font-semibold text-xs mt-0.5 text-text-primary">{ventanaRecoleccion}</span>
+                <span className="font-semibold text-xs mt-0.5 text-text-primary">{ventanaRecoleccion ?? "No especificada"}</span>
+                <span className="font-body text-[10px] text-text-tertiary">Según formulario de solicitud</span>
               </div>
 
               <div className="flex flex-col col-span-2 bg-surface p-3 rounded-xl border border-border/15">
                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Ventana de Entrega</span>
-                <span className="font-semibold text-xs mt-0.5 text-text-primary">{ventanaEntrega}</span>
+                <span className="font-semibold text-xs mt-0.5 text-text-primary">{ventanaEntrega ?? "No especificada"}</span>
+                <span className="font-body text-[10px] text-text-tertiary">Según formulario de solicitud</span>
               </div>
             </div>
 

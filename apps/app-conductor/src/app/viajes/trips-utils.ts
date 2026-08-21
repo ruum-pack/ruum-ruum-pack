@@ -140,11 +140,10 @@ export function formatearDistanciaAproximadaAlOrigen(km: number | null) {
 
 export function formatearDuracion(horas: number | null) {
   if (horas == null || !Number.isFinite(horas)) return "Por confirmar";
-  const minutos = Math.max(1, Math.round(horas * 60));
-  if (minutos < 60) return `${minutos} min`;
-  const h = Math.floor(minutos / 60);
-  const m = minutos % 60;
-  return m > 0 ? `${h} h ${m} min` : `${h} h`;
+  const totalMin = Math.max(1, Math.round(horas * 60));
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 export function distanciaKmEntre(a: Coordenadas, b: { lat: number | null; lng: number | null }) {

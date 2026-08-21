@@ -10,7 +10,7 @@ import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado, confirmarLlegadaDestino, obtenerPasaporteDigital } from "@ruum/api/services";
 import { createNavigationOptions, type NavigationOption } from "../../../lib/navigation-launcher";
-import { nombreVehiculo } from "../trips-utils";
+import { formatearDuracion, nombreVehiculo } from "../trips-utils";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
 
@@ -50,7 +50,7 @@ export function ConduceADestinoDetails({
   const destinoDireccion = pasaporte.destino_direccion || "Dirección de entrega por confirmar";
   const destinoColonia = extraerColonia(pasaporte.destino_direccion);
   const distanciaTexto = pasaporte.distancia_km != null ? `${pasaporte.distancia_km.toFixed(1)} km` : "Por confirmar";
-  const tiempoTexto = pasaporte.tiempo_estimado_horas != null ? `${Math.round(pasaporte.tiempo_estimado_horas * 60)} min` : "Por confirmar";
+  const tiempoTexto = formatearDuracion(pasaporte.tiempo_estimado_horas);
 
   const navigationTargetLat = pasaporte.destino_lat;
   const navigationTargetLng = pasaporte.destino_lng;
