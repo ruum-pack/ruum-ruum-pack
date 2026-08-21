@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
@@ -14,8 +14,6 @@ import { nombreVehiculo } from "../trips-utils";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
-
-const DURACION_OFERTA_SEGUNDOS = 300; // 5 minutos de vigencia por oferta
 
 function extraerColonia(direccion: string | null): string {
   if (!direccion) return "";
@@ -39,35 +37,6 @@ export function TripOpportunityDetails({
   const [calculandoAproximacion, setCalculandoAproximacion] = useState(true);
 
   const trasladoId = pasaporte.traslado_id!;
-
-  // 1. Temporizador sincronizado con la fecha de creación de la oferta
-  const segundosIniciales = useMemo(() => {
-    if (pasaporte.creado_en) {
-      const creado = new Date(pasaporte.creado_en).getTime();
-      const ahora = Date.now();
-      const transcurrido = Math.floor((ahora - creado) / 1000);
-      const restante = DURACION_OFERTA_SEGUNDOS - transcurrido;
-      return Math.max(0, Math.min(DURACION_OFERTA_SEGUNDOS, restante));
-    }
-    return 180;
-  }, [pasaporte.creado_en]);
-
-  const [segundosRestantes, setSegundosRestantes] = useState(segundosIniciales);
-
-  useEffect(() => {
-    if (segundosRestantes <= 0) return;
-
-    const interval = setInterval(() => {
-      setSegundosRestantes((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [segundosRestantes]);
 
   // 2. Suscripción Realtime a cambios en este traslado (Detección de asignación concurrente)
   useEffect(() => {
@@ -176,14 +145,6 @@ export function TripOpportunityDetails({
     return { distancia: "Por calcular", tiempo: "Por calcular", exacto: false };
   }, [posicionConductor, pasaporte.origen_lat, pasaporte.origen_lng, pasaporte.distancia_km]);
 
-  const formatTimer = (seg: number) => {
-    const mins = Math.floor(seg / 60);
-    const secs = seg % 60;
-    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  };
-
-  const porcentajeProgreso = Math.max(0, Math.min(100, (segundosRestantes / DURACION_OFERTA_SEGUNDOS) * 100));
-
   const origenCiudad = pasaporte.origen_ciudad || "Por confirmar";
   const origenColonia = extraerColonia(pasaporte.origen_direccion);
   const destinoCiudad = pasaporte.destino_ciudad || "Por confirmar";
@@ -230,8 +191,6 @@ export function TripOpportunityDetails({
     }
   }
 
-  const expirado = segundosRestantes === 0;
-
   const tieneCoordenadas =
     pasaporte.origen_lat !== null &&
     pasaporte.origen_lng !== null &&
@@ -252,26 +211,16 @@ export function TripOpportunityDetails({
             <polyline points="12 19 5 12 12 5" />
           </svg>
         </Link>
-        <span className="font-display text-sm font-black uppercase tracking-widest text-warning flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
+        <span className="font-display text-sm font-black uppercase tracking-widest text-signal flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-signal animate-pulse" />
           NUEVA OFERTA DISPONIBLE
         </span>
         <div className="w-10" />
       </header>
 
-      {/* TIMELINE PROGRESS */}
-      <div className="w-full bg-surface-elevated h-2 rounded-full overflow-hidden my-4 border border-border/20">
-        <div
-          className={`h-full transition-all duration-1000 ease-linear ${
-            segundosRestantes < 45 ? "bg-danger" : "bg-signal"
-          }`}
-          style={{ width: `${porcentajeProgreso}%` }}
-        />
-      </div>
-
       {/* ALERTA EN TIEMPO REAL SI OTRO CONDUCTOR YA TOMÓ LA OFERTA */}
       {ofertaTomada && (
-        <div className="mb-4">
+        <div className="my-4">
           <Aviso tono="atencion">
             <div className="flex flex-col gap-2">
               <span className="font-bold">Esta oferta ya fue asignada a otro conductor.</span>
@@ -286,17 +235,11 @@ export function TripOpportunityDetails({
         </div>
       )}
 
-      <div className="flex flex-col flex-1 gap-5">
-        {/* TIMER & GANANCIA DESTACADA */}
+      <div className="flex flex-col flex-1 gap-5 mt-4">
+        {/* GANANCIA DESTACADA */}
         <div className="flex flex-col items-center bg-surface-elevated rounded-3xl p-5 border border-border/20 shadow-xs">
-          <span
-            className={`font-mono text-xs font-extrabold tracking-widest mb-2 px-3 py-1 rounded-full border ${
-              segundosRestantes < 45
-                ? "text-danger border-danger/30 bg-danger/10 animate-pulse"
-                : "text-text-secondary border-border/30 bg-surface"
-            }`}
-          >
-            {expirado ? "OFERTA EXPIRADA" : `EXPIRA EN ${formatTimer(segundosRestantes)}`}
+          <span className="font-mono text-xs font-extrabold tracking-widest mb-2 px-3 py-1 rounded-full border text-signal border-signal/30 bg-signal/10">
+            DISPONIBLE PARA ACEPTAR
           </span>
 
           <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest mt-1">
@@ -477,7 +420,7 @@ export function TripOpportunityDetails({
         <button
           type="button"
           onClick={handleAceptar}
-          disabled={procesando || expirado || ofertaTomada}
+          disabled={procesando || ofertaTomada}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-signal hover:bg-signal/85 px-4 min-h-[52px] font-display text-sm font-black tracking-widest text-slate-950 uppercase shadow-md active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {procesando ? TEXTOS_CARGANDO.actualizando : "ACEPTAR TRASLADO →"}
