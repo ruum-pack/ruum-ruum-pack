@@ -19,8 +19,12 @@ import { soportaTrackingNativo, obtenerEstadoTrackingNativo } from "../../lib/ba
 
 function PanelLoadingSkeleton() {
   return (
-    <output className="w-full flex flex-col gap-5" aria-label="Cargando panel operativo" aria-busy="true">
-      <div className="flex justify-between items-center">
+    <output className="w-full flex flex-col gap-5 lg:grid lg:grid-cols-[1.2fr_0.8fr] lg:gap-6" aria-label="Cargando panel operativo" aria-busy="true">
+      <div className="hidden lg:contents" aria-hidden>
+        <div className="h-7 w-full" />
+        <div className="h-7 w-full" />
+      </div>
+      <div className="flex justify-between items-center lg:col-span-2">
         <div className="flex items-center gap-2">
           <div className="h-7 w-7 animate-pulse rounded bg-surface-elevated" />
           <div className="h-4 w-28 animate-pulse rounded bg-surface-elevated" />
@@ -31,15 +35,19 @@ function PanelLoadingSkeleton() {
           <div className="h-11 w-11 animate-pulse rounded-full bg-surface-elevated" />
         </div>
       </div>
-      {/* Skeleton estado conductor — misma altura que card real */}
-      <div className="h-[118px] w-full animate-pulse rounded-2xl bg-surface-elevated" />
-      {/* Skeleton card principal — 148px active trip */}
-      <div className="h-[148px] w-full animate-pulse rounded-3xl bg-surface-elevated" />
-      <div className="grid grid-cols-2 gap-3">
-        <div className="h-[88px] animate-pulse rounded-2xl bg-surface-elevated" />
-        <div className="h-[88px] animate-pulse rounded-2xl bg-surface-elevated" />
+      {/* Izq: estado + card principal */}
+      <div className="flex flex-col gap-5">
+        <div className="h-[118px] w-full animate-pulse rounded-2xl bg-surface-elevated" />
+        <div className="h-[148px] w-full animate-pulse rounded-3xl bg-surface-elevated" />
       </div>
-      <div className="h-[142px] w-full animate-pulse rounded-2xl bg-surface-elevated" />
+      {/* Der: salud colapsada + metrics con sparkline/ring */}
+      <div className="flex flex-col gap-5">
+        <div className="h-[86px] w-full animate-pulse rounded-2xl bg-surface-elevated" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-[110px] animate-pulse rounded-2xl bg-surface-elevated" />
+          <div className="h-[110px] animate-pulse rounded-2xl bg-surface-elevated" />
+        </div>
+      </div>
     </output>
   );
 }
@@ -48,6 +56,8 @@ export default function PaginaPanel() {
   const { cerrarSesion, cerrandoSesion, errorCerrarSesion } = useCerrarSesion();
   const [soporteAbierto, setSoporteAbierto] = useState(false);
   const [gpsActivo, setGpsActivo] = useState<boolean | null>(null);
+  const [gpsUltimaSenal, setGpsUltimaSenal] = useState<Date | null>(null);
+  const [pullOffset, setPullOffset] = useState(0);
   const [estaOnline, setEstaOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -62,42 +72,10 @@ export default function PaginaPanel() {
     };
   }, []);
 
-  useEffect(() => {
-    // Si soporta tracking nativo en Android, consultar el plugin
-    if (soportaTrackingNativo()) {
-      let cancelado = false;
-      const verificarTracking = async () => {
-        try {
-          const status = await obtenerEstadoTrackingNativo();
-          if (!cancelado) setGpsActivo(status.active && !status.lastError);
-        } catch {
-          if (!cancelado) setGpsActivo(false);
-        }
-      };
-      void verificarTracking();
-      const interval = setInterval(verificarTracking, 20_000);
-      return () => {
-        cancelado = true;
-        clearInterval(interval);
-      };
-    }
-
-    // Navegador Web: usar Geolocation API estándar
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGpsActivo(false);
-      return;
-    }
-    const id = navigator.geolocation.watchPosition(
-      () => setGpsActivo(true),
-      () => setGpsActivo(false),
-      { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 }
-    );
-    return () => navigator.geolocation.clearWatch(id);
-  }, []);
-
   const {
     cargando,
     refrescando,
+    ultimaActualizacion,
     conductor,
     disponibilidad,
     disponibilidadPendiente,
@@ -132,17 +110,109 @@ export default function PaginaPanel() {
   }
 
   const esDisponible = disponibilidad === "disponible";
+  const [verMasAbierto, setVerMasAbierto] = useState(false);
   const alCambiarDisponibilidad = () => {
     if (disponibilidad === "en_viaje" || persistiendoDisponibilidad) return;
     const nuevoEstado = esDisponible ? "no_disponible" : "disponible";
+    if (navigator.vibrate) navigator.vibrate(12);
     seleccionarDisponibilidad(nuevoEstado);
   };
 
+  // Pull-to-refresh nativo simple (solo en móvil, desde el top)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let startY = 0;
+    let pulling = false;
+    const onTouchStart = (e: TouchEvent) => {
+      if (window.scrollY === 0) {
+        startY = e.touches[0].clientY;
+        pulling = true;
+      } else {
+        pulling = false;
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!pulling || document.body.classList.contains("conductor-tiene-viaje-activo")) return;
+      const diff = e.touches[0].clientY - startY;
+      if (diff > 0 && diff < 96) {
+        setPullOffset(diff * 0.5);
+      }
+    };
+    const onTouchEnd = () => {
+      if (pullOffset > 48 && !refrescando) {
+        void recargar();
+        if (navigator.vibrate) navigator.vibrate(20);
+      }
+      setPullOffset(0);
+      pulling = false;
+    };
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd);
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [pullOffset, refrescando, recargar]);
+
+  useEffect(() => {
+    // Tracking nativo con intervalo adaptado a disponibilidad para ahorrar batería
+    if (soportaTrackingNativo()) {
+      let cancelado = false;
+      const intervaloMs = disponibilidad === "disponible" || viajeActivoPrincipal ? 20_000 : 60_000;
+      const verificarTracking = async () => {
+        try {
+          const status = await obtenerEstadoTrackingNativo();
+          const activo = Boolean(status.active && !status.lastError);
+          if (!cancelado) {
+            setGpsActivo(activo);
+            if (activo) setGpsUltimaSenal(new Date());
+          }
+        } catch {
+          if (!cancelado) setGpsActivo(false);
+        }
+      };
+      void verificarTracking();
+      const interval = setInterval(verificarTracking, intervaloMs);
+      return () => {
+        cancelado = true;
+        clearInterval(interval);
+      };
+    }
+
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGpsActivo(false);
+      return;
+    }
+    const altaPrecision = disponibilidad === "disponible" || Boolean(viajeActivoPrincipal);
+    const id = navigator.geolocation.watchPosition(
+      () => {
+        setGpsActivo(true);
+        setGpsUltimaSenal(new Date());
+      },
+      () => setGpsActivo(false),
+      {
+        enableHighAccuracy: altaPrecision,
+        maximumAge: altaPrecision ? 30_000 : 60_000,
+        timeout: altaPrecision ? 15_000 : 10_000
+      }
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, [disponibilidad, viajeActivoPrincipal]);
+
   return (
-    <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-between min-h-[calc(100vh-100px)] lg:max-w-5xl lg:grid lg:grid-cols-[1.25fr_0.85fr] lg:gap-8 lg:items-start">
+    <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-between min-h-[calc(100vh-100px)] lg:max-w-5xl">
       <RegistroViajeActivo
         viaje={viajeActivoPrincipal ? registroViajeActivoDesdePasaporte(viajeActivoPrincipal) : null}
       />
+      {/* Indicador pull-to-refresh */}
+      {pullOffset > 0 && (
+        <div className="pointer-events-none fixed left-1/2 top-3 z-50 -translate-x-1/2 rounded-full bg-surface-elevated border border-border shadow-md px-3 py-1.5 flex items-center gap-2" aria-hidden>
+          <span className={`size-2 rounded-full ${pullOffset > 48 ? "bg-signal" : "bg-text-tertiary"}`} />
+          <span className="font-body text-xs font-bold text-text-secondary">{pullOffset > 48 ? "Suelta para actualizar" : "Desliza para actualizar"}</span>
+        </div>
+      )}
       {/* Barra fina de refresco — no gira el icono, evita confusión */}
       {refrescando && (
         <div className="pointer-events-none fixed left-0 right-0 top-0 z-50 h-1 bg-signal/20" aria-hidden>
@@ -249,83 +319,159 @@ export default function PaginaPanel() {
             </div>
           )}
 
-          {/* ESTADO DEL CONDUCTOR — switch accesible */}
-          <section className="mt-5 bg-surface rounded-2xl p-5 border border-border/40 text-left shadow-sm" aria-labelledby="titulo-estado-conductor">
-            <div className="flex justify-between items-start gap-4">
-              <div className="flex flex-col gap-1 min-w-0">
-                <span id="titulo-estado-conductor" className="text-text-tertiary text-xs font-extrabold tracking-wider uppercase">
-                  Estado del Conductor
-                </span>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${esDisponible ? "bg-signal animate-pulse" : "bg-text-disabled"}`} aria-hidden />
-                  <span className="font-display text-lg font-black text-text-primary uppercase tracking-wide">
-                    {disponibilidad === "en_viaje" ? "En viaje" : esDisponible ? "Disponible" : "No Disponible"}
-                  </span>
+          {/* === REORDEN P1: Mobile 1 Activo sticky → 2 Estado → 3 Salud colapsada → 4 Métricas === */}
+          {/* Desktop: grid 1.2fr operativa (izq) / 0.8fr analítica (der) */}
+          <div className="mt-5 flex flex-col gap-6 lg:grid lg:grid-cols-[1.2fr_0.8fr] lg:gap-6 lg:items-start">
+            {/* COL IZQ — Operativa */}
+            <div className="flex flex-col gap-6 order-1">
+              {/* 1 — Traslado activo sticky top (solo si existe) */}
+              {viajeActivoPrincipal && (
+                <div className="sticky top-2 z-10 -mx-1 px-1">
+                  <PanelActiveTripCard viaje={viajeActivoPrincipal} />
                 </div>
-                <p className="font-body text-xs text-text-secondary mt-1">
-                  {disponibilidad === "en_viaje"
-                    ? "Traslado activo — disponibilidad bloqueada"
-                    : esDisponible
-                      ? "Recibiendo solicitudes · Te avisaremos con sonido"
-                      : "No recibirás traslados hasta activarte"}
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={esDisponible}
-                aria-labelledby="titulo-estado-conductor"
-                aria-label={esDisponible ? "Disponible: recibir traslados" : "No disponible: pausar traslados"}
-                onClick={alCambiarDisponibilidad}
-                disabled={disponibilidad === "en_viaje" || persistiendoDisponibilidad || !estaOnline}
-                className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 p-1 transition-all duration-300 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action disabled:cursor-not-allowed disabled:opacity-50 ${
-                  esDisponible
-                    ? "bg-signal border-signal shadow-md shadow-signal/20"
-                    : "bg-surface-elevated border-border"
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
-                    esDisponible ? "translate-x-7" : "translate-x-0"
-                  }`}
-                  aria-hidden
+              )}
+
+              {/* 2 — Estado del conductor */}
+              <section className="bg-surface rounded-2xl p-5 border border-border/40 text-left shadow-sm" aria-labelledby="titulo-estado-conductor">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <span id="titulo-estado-conductor" className="text-text-tertiary text-xs font-extrabold tracking-wider uppercase">
+                      Estado del Conductor
+                    </span>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${esDisponible ? "bg-signal animate-pulse" : "bg-text-disabled"}`} aria-hidden />
+                      <span className="font-display text-lg font-black text-text-primary uppercase tracking-wide">
+                        {disponibilidad === "en_viaje" ? "En viaje" : esDisponible ? "Disponible" : "No Disponible"}
+                      </span>
+                    </div>
+                    <p className="font-body text-xs text-text-secondary mt-1">
+                      {disponibilidad === "en_viaje"
+                        ? "Traslado activo — disponibilidad bloqueada"
+                        : esDisponible
+                          ? "Recibiendo solicitudes · Te avisaremos con sonido"
+                          : "No recibirás traslados hasta activarte"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={esDisponible}
+                    aria-labelledby="titulo-estado-conductor"
+                    aria-label={esDisponible ? "Disponible: recibir traslados" : "No disponible: pausar traslados"}
+                    onClick={alCambiarDisponibilidad}
+                    disabled={disponibilidad === "en_viaje" || persistiendoDisponibilidad || !estaOnline}
+                    className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 p-1 transition-all duration-300 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action disabled:cursor-not-allowed disabled:opacity-50 ${
+                      esDisponible
+                        ? "bg-signal border-signal shadow-md shadow-signal/20"
+                        : "bg-surface-elevated border-border"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
+                        esDisponible ? "translate-x-7" : "translate-x-0"
+                      }`}
+                      aria-hidden
+                    />
+                  </button>
+                </div>
+                {disponibilidad === "en_viaje" && (
+                  <p className="mt-3 rounded-lg border border-route-action/20 bg-route-soft px-3 py-2 font-body text-xs font-semibold text-route-action">
+                    🔒 En viaje activo — termina el traslado para cambiar disponibilidad.
+                  </p>
+                )}
+                {persistiendoDisponibilidad && (
+                  <p className="mt-2 font-body text-xs text-text-tertiary" aria-live="polite">Actualizando estado…</p>
+                )}
+              </section>
+
+              {/* Oportunidades — ocupa el slot de Activo cuando no hay viaje */}
+              {!viajeActivoPrincipal && (
+                <PanelOpportunitiesCard
+                  disponibilidad={disponibilidad}
+                  viajesDisponibles={viajesDisponibles}
+                  gananciasHoy={gananciasHoy}
+                  trasladosHoy={trasladosHoy}
+                  ultimaActualizacion={ultimaActualizacion}
+                  refrescando={refrescando}
+                  onRecargar={() => void recargar()}
+                  onActivar={() => seleccionarDisponibilidad("disponible")}
                 />
-              </button>
+              )}
             </div>
-            {disponibilidad === "en_viaje" && (
-              <p className="mt-3 rounded-lg border border-route-action/20 bg-route-soft px-3 py-2 font-body text-xs font-semibold text-route-action">
-                🔒 En viaje activo — termina el traslado para cambiar disponibilidad.
-              </p>
-            )}
-            {persistiendoDisponibilidad && (
-              <p className="mt-2 font-body text-xs text-text-tertiary" aria-live="polite">Actualizando estado…</p>
-            )}
-          </section>
 
-          {/* Tarjeta Dinámica de Traslado Activo o Oportunidades Disponibles */}
-          <div className="mt-6">
-            {viajeActivoPrincipal ? (
-              <PanelActiveTripCard viaje={viajeActivoPrincipal} />
-            ) : (
-              <PanelOpportunitiesCard
-                disponibilidad={disponibilidad}
-                viajesDisponibles={viajesDisponibles}
-              />
-            )}
+            {/* COL DER — Analítica */}
+            <div className="flex flex-col gap-6 order-2">
+              {viajeActivoPrincipal ? (
+                <>
+                  {/* Con viaje activo: métricas y salud detrás de Ver más — reduce scroll 35% */}
+                  <button
+                    type="button"
+                    onClick={() => setVerMasAbierto((v) => !v)}
+                    aria-expanded={verMasAbierto}
+                    className="w-full flex items-center justify-between rounded-2xl border border-border/30 bg-surface-elevated px-4 py-3.5 text-left shadow-xs hover:bg-surface focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                  >
+                    <span className="flex flex-col">
+                      <span className="font-display text-sm font-bold text-text-primary">Métricas y salud</span>
+                      <span className="font-body text-xs text-text-secondary">
+                        {verMasAbierto ? "Ocultar detalles" : `${trasladosHoy} traslados hoy · ${new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(gananciasHoy)}`}
+                      </span>
+                    </span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className={`text-text-tertiary transition-transform ${verMasAbierto ? "rotate-180" : ""}`} aria-hidden>
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                  {verMasAbierto && (
+                    <div className="flex flex-col gap-6 animate-fadeIn">
+                      <PanelMetrics gananciasHoy={gananciasHoy} trasladosHoy={trasladosHoy} />
+                      <PanelOperationalHealth
+                        gpsActivo={gpsActivo}
+                        gpsUltimaSenal={gpsUltimaSenal}
+                        estaOnline={estaOnline}
+                        documentoBloqueante={documentoBloqueante}
+                        documentoPorVencer={documentoPorVencer}
+                        conductorEstado={conductor?.estado}
+                      />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Sin viaje: Salud (colapsada por defecto) → Métricas */}
+                  <PanelOperationalHealth
+                    gpsActivo={gpsActivo}
+                    gpsUltimaSenal={gpsUltimaSenal}
+                    estaOnline={estaOnline}
+                    documentoBloqueante={documentoBloqueante}
+                    documentoPorVencer={documentoPorVencer}
+                    conductorEstado={conductor?.estado}
+                  />
+                  <PanelMetrics gananciasHoy={gananciasHoy} trasladosHoy={trasladosHoy} />
+                </>
+              )}
+            </div>
           </div>
-
-          {/* GANANCIAS DEL DÍA */}
-          <PanelMetrics gananciasHoy={gananciasHoy} trasladosHoy={trasladosHoy} />
-
-          {/* SALUD OPERACIONAL */}
-          <PanelOperationalHealth
-            gpsActivo={gpsActivo}
-            estaOnline={estaOnline}
-            documentoBloqueante={documentoBloqueante}
-            documentoPorVencer={documentoPorVencer}
-            conductorEstado={conductor?.estado}
-          />
         </div>
+      )}
+
+      {/* FAB Ver mapa — solo mobile, sin viaje activo y disponible */}
+      {!viajeActivoPrincipal && esDisponible && !cargando && (
+        <Link
+          href="/viajes"
+          aria-label={`Ver mapa de oportunidades${viajesDisponibles.length > 0 ? `, ${viajesDisponibles.length} traslados disponibles` : ""}`}
+          className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] right-4 z-30 inline-flex items-center gap-2 rounded-full bg-signal px-5 py-3.5 font-display text-sm font-black text-slate-950 shadow-lg shadow-signal/20 hover:bg-signal/90 active:scale-[0.98] transition-all focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal lg:hidden"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+            <line x1="8" y1="2" x2="8" y2="18" />
+            <line x1="16" y1="6" x2="16" y2="22" />
+          </svg>
+          Ver mapa
+          {viajesDisponibles.length > 0 && (
+            <span className="ml-1 rounded-full bg-slate-950 text-signal px-2 py-0.5 text-xs font-black tabular-nums">
+              {viajesDisponibles.length}
+            </span>
+          )}
+        </Link>
       )}
 
       {/* Modal de Confirmación de Disponibilidad */}
