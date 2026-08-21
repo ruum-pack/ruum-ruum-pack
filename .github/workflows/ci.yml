@@ -77,6 +77,19 @@ jobs:
       - name: App conductor tests
         run: pnpm --filter @ruum/app-conductor test
 
+      - name: App conductor coverage (P1 gate)
+        run: pnpm --filter @ruum/app-conductor test:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-conductor-coverage
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            apps/app-conductor/coverage/
+
       - name: Build
         run: pnpm build
 

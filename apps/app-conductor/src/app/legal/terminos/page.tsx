@@ -1,4 +1,5 @@
 import Link from "next/link";
+import appVersion from "../../../../../../config/app-version.json";
 
 export const metadata = {
   title: "Términos y condiciones — Ruum Ruum Conductor"
@@ -24,14 +25,14 @@ export default function PaginaTerminosConductor() {
               Documento Legal Oficial
             </span>
             <span className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-body text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase">
-              v1.0 • Vigente
+              v{appVersion.version} • Vigente
             </span>
           </div>
           <h1 className="mt-2 font-display text-2xl font-bold text-text-primary sm:text-3xl">
             Términos y Condiciones de Uso
           </h1>
           <p className="mt-1.5 font-body text-xs text-text-tertiary">
-            Ruum Ruum by Movilia • Última actualización: 3 de julio de 2026
+            Ruum Ruum by Movilia • Última actualización: 3 de julio de 2026 • App v{appVersion.version} (mín. {appVersion.minimumSupported})
           </p>
         </header>
 
