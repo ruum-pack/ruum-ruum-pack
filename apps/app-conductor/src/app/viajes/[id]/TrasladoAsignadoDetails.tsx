@@ -53,8 +53,8 @@ export function TrasladoAsignadoDetails({
   const destinoCiudad = pasaporte.destino_ciudad || "Ciudad Destino";
   const destinoColonia = extraerColonia(pasaporte.destino_direccion);
 
-  const navigationTargetLat = pasaporte.origen_lat ?? 19.4326;
-  const navigationTargetLng = pasaporte.origen_lng ?? -99.1332;
+  const navigationTargetLat = pasaporte.origen_lat;
+  const navigationTargetLng = pasaporte.origen_lng;
 
   const autoNombre = nombreVehiculo(pasaporte);
   const placas = pasaporte.vehiculo_placas || "POR ASIGNAR";
@@ -280,12 +280,14 @@ export function TrasladoAsignadoDetails({
         )}
 
         {/* MAP PREVIEW */}
-        <div className="mt-4 rounded-xl overflow-hidden h-[110px] bg-surface relative pointer-events-none opacity-85 border border-border/10">
-          <MapaRutaConduccion
-            origen={{ lat: navigationTargetLat, lng: navigationTargetLng }}
-            destino={{ lat: navigationTargetLat, lng: navigationTargetLng }}
-          />
-        </div>
+        {navigationTargetLat !== null && navigationTargetLng !== null && (
+          <div className="mt-4 rounded-xl overflow-hidden h-[110px] bg-surface relative pointer-events-none opacity-85 border border-border/10">
+            <MapaRutaConduccion
+              origen={{ lat: navigationTargetLat, lng: navigationTargetLng }}
+              destino={{ lat: navigationTargetLat, lng: navigationTargetLng }}
+            />
+          </div>
+        )}
 
         {/* ACCESOS DIRECTOS DE NAVEGACIÓN (Google Maps / Waze) */}
         <div className="mt-3 pt-3 border-t border-border/15">

@@ -49,12 +49,11 @@ export function ConduceADestinoDetails({
   const destinoCiudad = pasaporte.destino_ciudad || "Ciudad Destino";
   const destinoDireccion = pasaporte.destino_direccion || "Dirección de entrega por confirmar";
   const destinoColonia = extraerColonia(pasaporte.destino_direccion);
+  const distanciaTexto = pasaporte.distancia_km != null ? `${pasaporte.distancia_km.toFixed(1)} km` : "Por confirmar";
+  const tiempoTexto = pasaporte.tiempo_estimado_horas != null ? `${Math.round(pasaporte.tiempo_estimado_horas * 60)} min` : "Por confirmar";
 
-  const distancia = pasaporte.distancia_km != null ? pasaporte.distancia_km.toFixed(1) : "138.2";
-  const tiempoMinutos = pasaporte.tiempo_estimado_horas != null ? Math.round(pasaporte.tiempo_estimado_horas * 60) : 120;
-
-  const navigationTargetLat = pasaporte.destino_lat ?? 16.7569;
-  const navigationTargetLng = pasaporte.destino_lng ?? -93.1292;
+  const navigationTargetLat = pasaporte.destino_lat;
+  const navigationTargetLng = pasaporte.destino_lng;
 
   const autoNombre = nombreVehiculo(pasaporte);
   const placas = pasaporte.vehiculo_placas || "POR CONFIRMAR";
@@ -224,12 +223,14 @@ export function ConduceADestinoDetails({
         )}
 
         {/* MAP PREVIEW */}
-        <div className="mt-4 rounded-xl overflow-hidden h-[110px] bg-surface relative pointer-events-none border border-border/10">
-          <MapaRutaConduccion
-            origen={{ lat: navigationTargetLat, lng: navigationTargetLng }}
-            destino={{ lat: navigationTargetLat, lng: navigationTargetLng }}
-          />
-        </div>
+        {navigationTargetLat !== null && navigationTargetLng !== null && (
+          <div className="mt-4 rounded-xl overflow-hidden h-[110px] bg-surface relative pointer-events-none border border-border/10">
+            <MapaRutaConduccion
+              origen={{ lat: navigationTargetLat, lng: navigationTargetLng }}
+              destino={{ lat: navigationTargetLat, lng: navigationTargetLng }}
+            />
+          </div>
+        )}
 
         {/* ACCESOS DIRECTOS DE NAVEGACIÓN */}
         <div className="mt-4 pt-3 border-t border-border/15">
@@ -261,11 +262,11 @@ export function ConduceADestinoDetails({
         <div className="mt-4 pt-3 border-t border-border/15 grid grid-cols-2 gap-3 text-center">
           <div className="bg-surface rounded-xl p-2.5 border border-border/10">
             <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">DISTANCIA RESTANTE</span>
-            <span className="font-display text-base font-black text-text-primary block mt-0.5">{distancia} km</span>
+            <span className="font-display text-base font-black text-text-primary block mt-0.5">{distanciaTexto}</span>
           </div>
           <div className="bg-surface rounded-xl p-2.5 border border-border/10">
             <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">TIEMPO ESTIMADO</span>
-            <span className="font-display text-base font-black text-text-primary block mt-0.5">{tiempoMinutos} min</span>
+            <span className="font-display text-base font-black text-text-primary block mt-0.5">{tiempoTexto}</span>
           </div>
         </div>
 

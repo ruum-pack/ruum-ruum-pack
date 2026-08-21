@@ -42,11 +42,11 @@ export function DirigeteAOrigenDetails({
   const origenCiudad = pasaporte.origen_ciudad || "Ciudad Origen";
   const origenDireccion = pasaporte.origen_direccion || "Dirección de origen por confirmar";
 
-  const distancia = pasaporte.distancia_km != null ? pasaporte.distancia_km.toFixed(1) : "4.2";
-  const tiempoMinutos = pasaporte.tiempo_estimado_horas != null ? Math.round(pasaporte.tiempo_estimado_horas * 60) : 15;
+  const distanciaTexto = pasaporte.distancia_km != null ? `${pasaporte.distancia_km.toFixed(1)} km` : "Por confirmar";
+  const tiempoTexto = pasaporte.tiempo_estimado_horas != null ? `${Math.round(pasaporte.tiempo_estimado_horas * 60)} min` : "Por confirmar";
 
-  const navigationTargetLat = pasaporte.origen_lat ?? 19.2811;
-  const navigationTargetLng = pasaporte.origen_lng ?? -99.5312;
+  const navigationTargetLat = pasaporte.origen_lat;
+  const navigationTargetLng = pasaporte.origen_lng;
 
   const navOptions = useMemo(
     () =>
@@ -140,12 +140,14 @@ export function DirigeteAOrigenDetails({
         </div>
 
         {/* MAP PREVIEW */}
-        <div className="mt-4 rounded-xl overflow-hidden h-[110px] bg-surface relative pointer-events-none border border-border/10">
-          <MapaRutaConduccion
-            origen={{ lat: navigationTargetLat, lng: navigationTargetLng }}
-            destino={{ lat: navigationTargetLat, lng: navigationTargetLng }}
-          />
-        </div>
+        {navigationTargetLat !== null && navigationTargetLng !== null && (
+          <div className="mt-4 rounded-xl overflow-hidden h-[110px] bg-surface relative pointer-events-none border border-border/10">
+            <MapaRutaConduccion
+              origen={{ lat: navigationTargetLat, lng: navigationTargetLng }}
+              destino={{ lat: navigationTargetLat, lng: navigationTargetLng }}
+            />
+          </div>
+        )}
 
         {/* ACCESOS DIRECTOS DE NAVEGACIÓN */}
         <div className="mt-4 pt-3 border-t border-border/15">
@@ -177,11 +179,11 @@ export function DirigeteAOrigenDetails({
         <div className="mt-4 pt-3 border-t border-border/15 grid grid-cols-2 gap-3 text-center">
           <div className="bg-surface rounded-xl p-2.5 border border-border/10">
             <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">DISTANCIA AL ORIGEN</span>
-            <span className="font-display text-base font-black text-text-primary block mt-0.5">{distancia} km</span>
+            <span className="font-display text-base font-black text-text-primary block mt-0.5">{distanciaTexto}</span>
           </div>
           <div className="bg-surface rounded-xl p-2.5 border border-border/10">
             <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">TIEMPO ESTIMADO</span>
-            <span className="font-display text-base font-black text-text-primary block mt-0.5">{tiempoMinutos} min</span>
+            <span className="font-display text-base font-black text-text-primary block mt-0.5">{tiempoTexto}</span>
           </div>
         </div>
 

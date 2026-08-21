@@ -324,43 +324,39 @@ export function CierreTrasladoDetails({
     const totalGastos = gastos.reduce((acc, g) => acc + g.monto, 0);
 
     return (
-      <div className="mx-auto w-full max-w-md bg-[#070B14] min-h-[calc(100vh-100px)] flex flex-col items-center justify-center text-white pb-6 px-4 animate-in fade-in zoom-in duration-500">
+      <div className="mx-auto w-full max-w-md bg-surface min-h-[calc(100vh-100px)] flex flex-col items-center justify-center text-text-primary pb-6 px-4 animate-in fade-in zoom-in duration-500">
         
-        <div className="w-24 h-24 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(16,185,129,0.2)]">
-          <svg className="w-12 h-12 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="w-24 h-24 rounded-full bg-signal/15 border-2 border-signal/30 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(255,196,0,0.15)]">
+          <svg className="w-12 h-12 text-signal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
           </svg>
         </div>
 
-        <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-2">
+        <span className="text-[10px] text-signal font-bold uppercase tracking-widest mb-2">
           TRASLADO COMPLETADO
         </span>
-        <h1 className="font-display text-3xl font-black text-center mb-2 leading-tight">
+        <h1 className="font-display text-3xl font-black text-center mb-2 leading-tight text-text-primary">
           ¡Excelente trabajo!
         </h1>
-        <p className="font-body text-text-secondary text-center mb-8 px-4">
-          Has completado el traslado #{trasladoId.slice(0, 8).toUpperCase()} exitosamente.
+        <p className="font-body text-text-secondary text-center mb-8 px-4 text-sm">
+          Has completado el traslado #{trasladoId.slice(0, 8).toUpperCase()} con trazabilidad certificada.
         </p>
 
-        <div className="bg-[#0E1524] border border-border/20 rounded-3xl p-6 w-full shadow-lg relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-5">
-            <svg width="100" height="100" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.64-2.25 1.64-1.74 0-2.24-.93-2.28-1.81H7.91c.06 1.6 1.28 2.62 2.98 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.65-3.42z"/></svg>
-          </div>
-          
+        <div className="bg-surface-elevated border border-border/20 rounded-3xl p-6 w-full shadow-lg relative overflow-hidden">
           <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest block text-center mb-1">
-            Ganancia del Viaje
+            Ganancia Neta del Viaje
           </span>
           <div className="text-center">
-            <span className="font-display text-4xl font-black text-white">
+            <span className="font-display text-4xl font-black text-signal tabular-nums">
               ${gananciaTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className="text-sm text-text-secondary ml-1 font-bold">MXN</span>
+            <span className="text-xs text-text-secondary ml-1.5 font-bold uppercase">MXN</span>
           </div>
 
           {totalGastos > 0 && (
             <div className="mt-4 pt-4 border-t border-border/15 flex justify-between items-center text-sm">
-              <span className="text-text-secondary">Gastos reembolsables</span>
-              <span className="font-bold text-emerald-400">
+              <span className="text-text-secondary text-xs">Gastos registrados reembolsables</span>
+              <span className="font-bold text-route-action font-mono text-xs">
                 + ${totalGastos.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -370,7 +366,7 @@ export function CierreTrasladoDetails({
         <div className="mt-8 w-full flex flex-col gap-3">
           <Link
             href="/viajes"
-            className="flex w-full items-center justify-center gap-2 rounded-[1rem] bg-[#00B4D8] hover:bg-[#0092B0] px-4 py-3.5 font-display text-[13px] font-black tracking-widest text-white uppercase shadow-md active:scale-[0.98] transition-all"
+            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-signal hover:bg-signal/85 px-4 py-3.5 font-display text-xs font-black tracking-widest text-slate-950 uppercase shadow-md active:scale-[0.98] transition-all cursor-pointer"
           >
             VOLVER AL PANEL
           </Link>
@@ -491,8 +487,8 @@ export function CierreTrasladoDetails({
             </h2>
           </div>
 
-          <div className="bg-[#0E1524] border border-border/20 rounded-2xl overflow-hidden text-xs font-body shadow-xs">
-            <div className="grid grid-cols-3 gap-2 bg-[#070B14] border-b border-border/15 p-3 font-bold text-text-tertiary text-[10px] tracking-wider font-display uppercase">
+          <div className="bg-surface-elevated border border-border/20 rounded-2xl overflow-hidden text-xs font-body shadow-xs">
+            <div className="grid grid-cols-3 gap-2 bg-surface border-b border-border/15 p-3 font-bold text-text-tertiary text-[10px] tracking-wider font-display uppercase">
               <span>Elemento</span>
               <span className="text-center">Origen (Inicial)</span>
               <span className="text-center">Entrega (Final)</span>
@@ -510,10 +506,10 @@ export function CierreTrasladoDetails({
               </div>
 
               {getKmDiff() !== null && (
-                <div className="grid grid-cols-3 gap-2 p-2.5 bg-emerald-500/10 items-center">
-                  <span className="font-bold text-emerald-400 pl-1 text-[11px]">Distancia recorrida</span>
+                <div className="grid grid-cols-3 gap-2 p-2.5 bg-signal/10 items-center">
+                  <span className="font-bold text-signal pl-1 text-[11px]">Distancia recorrida</span>
                   <span />
-                  <span className="text-center text-emerald-400 font-black font-display text-[13px] font-mono">
+                  <span className="text-center text-signal font-black font-display text-[13px] font-mono">
                     +{getKmDiff()?.toLocaleString("es-MX")} km
                   </span>
                 </div>
@@ -572,17 +568,17 @@ export function CierreTrasladoDetails({
           </div>
 
           {/* Observaciones Comparison */}
-          <div className="bg-[#0E1524] border border-border/20 rounded-2xl p-4 flex flex-col gap-3 text-xs font-body mt-1">
+          <div className="bg-surface-elevated border border-border/20 rounded-2xl p-4 flex flex-col gap-3 text-xs font-body mt-1">
             {inspeccionInicial?.notas ? (
               <div className="flex flex-col gap-1">
                 <span className="font-bold text-text-tertiary text-[10px] tracking-wider font-display uppercase">Notas de Recolección (Origen)</span>
-                <p className="text-text-secondary leading-relaxed italic bg-[#070B14] p-3 rounded-xl border border-border/10">{inspeccionInicial.notas}</p>
+                <p className="text-text-secondary leading-relaxed italic bg-surface p-3 rounded-xl border border-border/10">{inspeccionInicial.notas}</p>
               </div>
             ) : null}
             {inspeccionFinal?.notas ? (
               <div className="flex flex-col gap-1">
                 <span className="font-bold text-text-tertiary text-[10px] tracking-wider font-display uppercase">Notas de Entrega (Destino)</span>
-                <p className="text-text-secondary leading-relaxed italic bg-[#070B14] p-3 rounded-xl border border-border/10">{inspeccionFinal.notas}</p>
+                <p className="text-text-secondary leading-relaxed italic bg-surface p-3 rounded-xl border border-border/10">{inspeccionFinal.notas}</p>
               </div>
             ) : (
               <div className="flex flex-col gap-1">
@@ -596,7 +592,7 @@ export function CierreTrasladoDetails({
         {/* Section: Gastos de Traslado */}
         <section className="mt-6 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00B4D8] flex items-center justify-center font-display text-[10px] font-bold">
+            <span className="w-5 h-5 rounded-md bg-route-action/15 border border-route-action/30 text-route-action flex items-center justify-center font-display text-[10px] font-bold">
               2
             </span>
             <h2 className="font-display text-xs font-black text-text-tertiary tracking-widest uppercase">
@@ -604,9 +600,9 @@ export function CierreTrasladoDetails({
             </h2>
           </div>
 
-          {/* Formulario de Registro de Gastos con Borde Delimitado Sutil */}
+          {/* Formulario de Registro de Gastos */}
           {writable && (
-            <form onSubmit={handleAgregarGasto} className="bg-[#0E1524] border border-[#00B4D8]/30 shadow-md rounded-2xl p-4.5 flex flex-col gap-3.5">
+            <form onSubmit={handleAgregarGasto} className="bg-surface-elevated border border-border/25 shadow-md rounded-2xl p-4.5 flex flex-col gap-3.5">
               <div className="flex items-center gap-1.5 border-b border-border/15 pb-2">
                 <span className="text-sm">💵</span>
                 <span className="font-display text-xs font-bold text-text-primary">Registrar Nuevo Gasto</span>
@@ -619,7 +615,7 @@ export function CierreTrasladoDetails({
                     id="tipo_gasto"
                     value={tipoGasto}
                     onChange={(e) => setTipoGasto(e.target.value as GastoData["tipo"])}
-                    className="w-full bg-[#070B14] border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00B4D8] transition-colors font-inherit h-11 select-none cursor-pointer"
+                    className="w-full bg-surface border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-route-action transition-colors font-inherit h-11 select-none cursor-pointer"
                   >
                     <option value="caseta">Caseta</option>
                     <option value="combustible">Gasolina</option>
@@ -639,7 +635,7 @@ export function CierreTrasladoDetails({
                     value={montoGasto}
                     onChange={(e) => setMontoGasto(e.target.value)}
                     required
-                    className="w-full bg-[#070B14] border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00B4D8] transition-colors font-inherit h-11 font-mono font-bold"
+                    className="w-full bg-surface border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-route-action transition-colors font-inherit h-11 font-mono font-bold"
                   />
                 </div>
               </div>
@@ -652,11 +648,11 @@ export function CierreTrasladoDetails({
                   placeholder="Ej. Caseta México-Querétaro"
                   value={descGasto}
                   onChange={(e) => setDescGasto(e.target.value)}
-                  className="w-full bg-[#070B14] border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-[#00B4D8] transition-colors font-inherit h-11"
+                  className="w-full bg-surface border border-border/40 rounded-xl px-3 py-2 text-xs font-body text-text-primary outline-hidden focus:border-route-action transition-colors font-inherit h-11"
                 />
               </div>
 
-              {/* Botón de Subida de Ticket Amplio Dashed con Ícono de Cámara */}
+              {/* Botón de Subida de Ticket */}
               <div className="flex flex-col gap-1.5">
                 <span className="font-display text-[9px] font-black text-text-tertiary tracking-widest uppercase pl-0.5">
                   Ticket / Comprobante (Obligatorio para Gasolina y Casetas)
@@ -666,7 +662,7 @@ export function CierreTrasladoDetails({
                   className={`w-full min-h-[56px] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-3 text-xs font-body cursor-pointer select-none transition-all touch-manipulation active:scale-[0.99] ${
                     comprobanteArchivo
                       ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-400 font-bold"
-                      : "border-[#00B4D8]/40 bg-[#070B14] hover:bg-[#070B14]/80 text-text-secondary hover:border-[#00B4D8]"
+                      : "border-route-action/40 bg-surface hover:bg-surface-elevated text-text-secondary hover:border-route-action"
                   }`}
                 >
                   <input
@@ -697,11 +693,11 @@ export function CierreTrasladoDetails({
                 )}
               </div>
 
-              {/* Botón Acción Secundaria Azul Outline (+ REGISTRAR GASTO) */}
+              {/* Botón Acción Secundaria */}
               <button
                 type="submit"
                 disabled={procesando}
-                className="w-full min-h-[46px] rounded-xl bg-[#00B4D8]/15 hover:bg-[#00B4D8]/25 border-2 border-[#00B4D8]/60 text-[#00B4D8] hover:text-white font-display text-xs font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 select-none shadow-xs mt-1 active:scale-98"
+                className="w-full min-h-[46px] rounded-xl bg-route-action/15 hover:bg-route-action/25 border border-route-action/40 text-route-action hover:text-white font-display text-xs font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 select-none shadow-xs mt-1 active:scale-98"
               >
                 + REGISTRAR GASTO
               </button>
@@ -709,8 +705,8 @@ export function CierreTrasladoDetails({
           )}
 
           {/* Tabla / Lista Separada de Gastos Guardados */}
-          <div className="bg-[#0E1524] border border-border/20 rounded-2xl overflow-hidden text-xs font-body shadow-xs">
-            <div className="grid grid-cols-12 bg-[#070B14] border-b border-border/15 p-3 font-bold text-text-tertiary text-[10px] tracking-wider font-display uppercase">
+          <div className="bg-surface-elevated border border-border/20 rounded-2xl overflow-hidden text-xs font-body shadow-xs">
+            <div className="grid grid-cols-12 bg-surface border-b border-border/15 p-3 font-bold text-text-tertiary text-[10px] tracking-wider font-display uppercase">
               <span className="col-span-4">Concepto</span>
               <span className="col-span-3 text-center">Tipo</span>
               <span className="col-span-3 text-right">Monto</span>
@@ -750,9 +746,9 @@ export function CierreTrasladoDetails({
                 ))}
 
                 {/* Sum of expenses */}
-                <div className="grid grid-cols-12 p-3.5 bg-[#070B14] font-bold items-center border-t border-border/15">
+                <div className="grid grid-cols-12 p-3.5 bg-surface font-bold items-center border-t border-border/15">
                   <span className="col-span-7 font-display text-[10px] font-black text-text-tertiary tracking-widest uppercase">Total Gastos Registrados</span>
-                  <span className="col-span-3 text-right font-display text-sm font-black text-emerald-400 font-mono">${totalGastos.toFixed(2)}</span>
+                  <span className="col-span-3 text-right font-display text-sm font-black text-signal font-mono">${totalGastos.toFixed(2)}</span>
                   <span className="col-span-2" />
                 </div>
               </div>
@@ -774,12 +770,12 @@ export function CierreTrasladoDetails({
       </div>
 
       {/* Sticky footer for action buttons (Fixed directly ABOVE Secondary Trip Bottom Bar) */}
-      <div className="fixed bottom-[60px] inset-x-0 z-40 bg-[#070B14]/95 backdrop-blur-md border-t border-border/15 py-3 px-4 shadow-2xl select-none">
+      <div className="fixed bottom-[60px] inset-x-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border/20 py-3 px-4 shadow-2xl select-none">
         <div className="max-w-md md:max-w-xl mx-auto flex flex-col gap-2">
           
-          {/* Leyenda Legal / Aclaratoria con Alto Contraste Justo Arriba del Botón */}
-          <div className="bg-[#0E1524] border border-border/20 rounded-xl px-3 py-1.5 text-center text-[10px] font-body text-text-secondary font-semibold">
-            ruumruum · conciliación y cierre de traslado definitivo
+          {/* Leyenda Legal / Aclaratoria */}
+          <div className="bg-surface-elevated border border-border/20 rounded-xl px-3 py-1.5 text-center text-[10px] font-body text-text-secondary font-semibold">
+            Ruum Ruum by MoviliaX · Seguridad, evidencia y trazabilidad
           </div>
 
           {writable ? (
@@ -787,10 +783,10 @@ export function CierreTrasladoDetails({
               type="button"
               onClick={() => setConfirmarCierreAbierto(true)}
               disabled={procesando}
-              className="w-full min-h-[48px] rounded-2xl bg-[#10B981] hover:bg-[#0EA271] text-white font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-lg select-none flex items-center justify-center focus:outline-hidden"
+              className="w-full min-h-[48px] rounded-2xl bg-signal hover:bg-signal/85 text-slate-950 font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-lg select-none flex items-center justify-center focus:outline-hidden"
             >
               {procesando ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
               ) : (
                 "FINALIZAR Y ENTREGAR VEHÍCULO"
               )}

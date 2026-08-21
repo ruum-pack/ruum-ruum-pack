@@ -218,8 +218,8 @@ export function NavegacionConductor() {
         )}
       </header>
 
-      {/* Navegación móvil fija al fondo adaptada a la propuesta de la imagen */}
-      <div className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-[#070B14] border-t border-border/15 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-3 shadow-[0_-8px_30px_rgba(0,0,0,0.4)]">
+      {/* Navegación móvil fija al fondo adaptada al Brand Book */}
+      <div className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-surface/95 border-t border-border/20 backdrop-blur-md pb-[calc(env(safe-area-inset-bottom)+8px)] pt-3 shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
         
         {/* Banner de viaje activo en móvil: flotante arriba de la barra fija */}
         {viajeActivo && !pathname.startsWith("/viajes") && pathname !== "/panel" && (
@@ -241,7 +241,7 @@ export function NavegacionConductor() {
                 <span className="mt-1 block truncate font-body text-sm font-bold text-text-primary">{viajeActivo.etapa}</span>
                 <span className="conductor-mobile-active-trip-destination mt-0.5 block truncate font-body text-xs text-text-secondary">{viajeActivo.destinoActual}</span>
               </span>
-              <span className="inline-flex min-h-10 items-center justify-center rounded-xl bg-route-action px-3.5 font-body text-xs font-bold text-white shadow-xs">
+              <span className="inline-flex min-h-10 items-center justify-center rounded-xl bg-signal px-3.5 font-display text-xs font-black text-slate-950 shadow-xs uppercase">
                 Abrir
               </span>
             </Link>
@@ -263,12 +263,12 @@ export function NavegacionConductor() {
                   aria-label={notificar ? `${destino.etiqueta}: acción pendiente` : destino.etiqueta}
                   className={[
                     "relative flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 font-body text-[10px] transition-colors duration-200 select-none",
-                    activo ? "text-[#EAB308] font-bold" : "text-text-secondary hover:text-text-primary"
+                    activo ? "text-signal font-black" : "text-text-secondary hover:text-text-primary"
                   ].join(" ")}
                 >
                   <div className="relative flex items-center justify-center p-1">
                     {notificar && (
-                      <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-warning ring-2 ring-[#070B14] animate-pulse" aria-hidden />
+                      <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-warning ring-2 ring-surface animate-pulse" aria-hidden />
                     )}
                     <destino.Icono />
                   </div>

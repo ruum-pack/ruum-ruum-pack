@@ -30,8 +30,9 @@ export function LocalizarVehiculoDetails({
 
   const placas = pasaporte.vehiculo_placas || "POR CONFIRMAR";
   const vin = pasaporte.vehiculo_vin || "POR CONFIRMAR";
-  const contactoNombre = pasaporte.contacto_entrega_nombre || "Contacto Origen";
-  const contactoTelefono = pasaporte.contacto_entrega_telefono || "0000000000";
+  const contactoNombre = pasaporte.contacto_entrega_nombre || "Contacto en origen";
+  const contactoTelefono = pasaporte.contacto_entrega_telefono || "";
+  const telefonoLimpio = contactoTelefono.replace(/[^0-9]/g, "");
 
   const esEvidenciaCompletada =
     estadoActual === "evidencia_inicial_completada" || estadoActual === "vehiculo_recibido";
@@ -89,15 +90,15 @@ export function LocalizarVehiculoDetails({
   };
 
   const getSubtituloAccion = () => {
-    if (esEvidenciaCompletada) return "El registro inicial está completo. Conduce de manera segura hacia el destino.";
-    if (estadoActual === "evidencia_inicial_en_proceso") return "Completa las fotos y checklist pendientes del vehículo.";
-    return "Localiza la unidad e inicia la inspección física.";
+    if (esEvidenciaCompletada) return "El registro inicial está completo con evidencia. Conduce de manera segura hacia el destino.";
+    if (estadoActual === "evidencia_inicial_en_proceso") return "Completa las fotos y checklist requeridos para la trazabilidad del vehículo.";
+    return "Localiza la unidad e inicia la inspección física y fotográfica.";
   };
 
   const getBotonLabel = () => {
     if (esEvidenciaCompletada) return "INICIAR TRAYECTO AL DESTINO →";
     if (estadoActual === "evidencia_inicial_en_proceso") return "CONTINUAR INSPECCIÓN";
-    return "INICIAR INSPECCIÓN";
+    return "INICIAR INSPECCIÓN Y EVIDENCIA";
   };
 
   return (
@@ -122,8 +123,8 @@ export function LocalizarVehiculoDetails({
 
       {/* ESTADO ACTUAL */}
       <div className="mt-5 bg-surface-elevated border border-border/20 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
-        <div className="w-12 h-12 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
-          <svg className="w-6 h-6 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="w-12 h-12 rounded-full bg-signal/15 border border-signal/30 flex items-center justify-center shrink-0">
+          <svg className="w-6 h-6 text-signal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <path d="M14 2v6h6" />
             <path d="M16 13H8" />
@@ -134,18 +135,18 @@ export function LocalizarVehiculoDetails({
         <div className="flex flex-col">
           <span className="text-[10px] text-text-tertiary font-bold tracking-widest uppercase mb-0.5">ESTADO ACTUAL</span>
           <div className="flex items-center gap-1.5">
-            <span className="font-display text-lg font-black uppercase tracking-wide">
+            <span className="font-display text-lg font-black uppercase tracking-wide text-text-primary">
               {esEvidenciaCompletada ? "RECEPCIÓN LISTA" : "EN EL ORIGEN"}
             </span>
-            <span className="h-2 w-2 rounded-full bg-purple-400 animate-pulse mt-0.5" />
+            <span className="h-2 w-2 rounded-full bg-signal animate-pulse mt-0.5" />
           </div>
         </div>
       </div>
 
       {/* TU PRÓXIMA ACCIÓN */}
       <div className="mt-6 flex flex-col">
-        <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">TU PRÓXIMA ACCIÓN</span>
-        <h2 className="font-display text-2xl font-black leading-tight mt-1">
+        <span className="text-[10px] font-bold text-signal uppercase tracking-widest">TU PRÓXIMA ACCIÓN</span>
+        <h2 className="font-display text-2xl font-black leading-tight mt-1 text-text-primary">
           {getTituloAccion()}
         </h2>
         <span className="font-body text-sm text-text-secondary mt-1 leading-relaxed">
@@ -155,7 +156,7 @@ export function LocalizarVehiculoDetails({
 
       {/* ORIGEN CONTACTO */}
       <div className="mt-6 bg-surface-elevated rounded-3xl border border-border/20 p-5 shadow-lg relative">
-        <span className="text-[10px] text-purple-400 font-bold uppercase tracking-widest mb-3 block">
+        <span className="text-[10px] text-signal font-bold uppercase tracking-widest mb-3 block">
           CONTACTO DE RECOLECCIÓN
         </span>
 
@@ -166,18 +167,35 @@ export function LocalizarVehiculoDetails({
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-sm text-text-primary">{contactoNombre}</span>
-              <span className="text-xs text-text-secondary">{contactoTelefono}</span>
+              <span className="text-xs text-text-secondary">
+                {contactoTelefono || "Teléfono no registrado"}
+              </span>
             </div>
           </div>
-          <a
-            href={`tel:${contactoTelefono.replace(/\s+/g, "")}`}
-            className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 active:scale-95 transition-transform"
-            aria-label={`Llamar a ${contactoNombre}`}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-            </svg>
-          </a>
+          {telefonoLimpio && (
+            <div className="flex items-center gap-2">
+              <a
+                href={`https://wa.me/52${telefonoLimpio}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 active:scale-95 transition-transform"
+                aria-label={`Enviar WhatsApp a ${contactoNombre}`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                </svg>
+              </a>
+              <a
+                href={`tel:${telefonoLimpio}`}
+                className="w-10 h-10 rounded-full bg-route-action/10 text-route-action flex items-center justify-center border border-route-action/20 active:scale-95 transition-transform"
+                aria-label={`Llamar a ${contactoNombre}`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                </svg>
+              </a>
+            </div>
+          )}
         </div>
 
         {/* VEHÍCULO A BUSCAR */}
@@ -188,11 +206,11 @@ export function LocalizarVehiculoDetails({
           <div className="flex items-center gap-3">
             <div className="flex-1 bg-surface border border-border/20 rounded-xl p-3 flex flex-col">
               <span className="text-[9px] text-text-tertiary uppercase font-bold">PLACAS</span>
-              <span className="font-display font-black text-lg mt-0.5 text-text-primary">{placas}</span>
+              <span className="font-mono font-black text-lg mt-0.5 text-text-primary">{placas}</span>
             </div>
             <div className="flex-1 bg-surface border border-border/20 rounded-xl p-3 flex flex-col">
               <span className="text-[9px] text-text-tertiary uppercase font-bold">VIN</span>
-              <span className="font-display font-black text-sm mt-1 uppercase truncate text-text-primary">{vin}</span>
+              <span className="font-mono font-black text-xs mt-1 uppercase truncate text-text-primary">{vin}</span>
             </div>
           </div>
         </div>
@@ -203,11 +221,7 @@ export function LocalizarVehiculoDetails({
             type="button"
             onClick={handleAccionPrincipal}
             disabled={procesando}
-            className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-4 font-display text-xs font-black tracking-widest uppercase shadow-md active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
-              esEvidenciaCompletada
-                ? "bg-signal hover:bg-signal/85 text-slate-950"
-                : "bg-purple-600 hover:bg-purple-500 text-white"
-            }`}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-signal hover:bg-signal/85 text-slate-950 px-4 py-4 font-display text-xs font-black tracking-widest uppercase shadow-md active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {procesando ? (
               TEXTOS_CARGANDO.actualizando

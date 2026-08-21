@@ -359,8 +359,8 @@ export default function PaginaEvidencia() {
   if (cargando) {
     return (
       <div className="mx-auto w-full max-w-md px-6 py-20 text-center text-text-primary">
-        <div className="w-8 h-8 border-4 border-[#00B4D8] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="font-body text-sm font-semibold">Cargando checklist de evidencias...</p>
+        <div className="w-8 h-8 border-4 border-signal border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="font-body text-sm font-semibold text-text-secondary">Cargando checklist de evidencias...</p>
       </div>
     );
   }
@@ -383,11 +383,11 @@ export default function PaginaEvidencia() {
         {/* Top Navbar Header */}
         <header className="hidden md:flex justify-between items-center pb-4 border-b border-border/20">
           <div className="flex items-center gap-2">
-            <span className="font-display text-lg font-black tracking-tight text-white">
-              ruum<span className="text-[#00B4D8]">ruum</span>
+            <span className="font-display text-lg font-black tracking-tight text-text-primary">
+              ruum<span className="text-signal">ruum</span>
             </span>
-            <div className="bg-[#1C2C24] border border-[#234D37] px-2 py-0.5 rounded-md">
-              <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-wider">CONDUCTOR</span>
+            <div className="bg-surface-elevated border border-border/30 px-2 py-0.5 rounded-md">
+              <span className="font-display text-[9px] font-black text-signal tracking-wider">CONDUCTOR CERTIFICADO</span>
             </div>
           </div>
           
@@ -419,15 +419,15 @@ export default function PaginaEvidencia() {
           <span className="font-body text-[10px] text-text-tertiary font-bold tracking-wide">
             Traslados › {tipo === "inicial" ? origen : (pasaporte?.destino_ciudad || "Destino")} › <span className="text-text-primary">Paso 2 de 2</span>
           </span>
-          <span className="font-display text-[9px] font-black text-[#00B4D8] tracking-widest uppercase mt-0.5">
+          <span className="font-display text-[9px] font-black text-route-action tracking-widest uppercase mt-0.5">
             {tipo === "inicial" ? "RECOLECCIÓN DE UNIDAD" : "ENTREGA DE UNIDAD"}
           </span>
           <h1 className="font-display text-2xl font-black text-text-primary leading-tight mt-1">
             {tipo === "inicial" ? "Checklist de Origen" : "Checklist de Destino"}
           </h1>
           <p className="font-body text-xs text-text-secondary leading-relaxed mt-1">
-            <span className="font-bold text-emerald-500 block mb-0.5">
-              {tipo === "inicial" ? "Verificación de salida" : "Verificación de entrega"}
+            <span className="font-bold text-signal block mb-0.5">
+              {tipo === "inicial" ? "Verificación y evidencia de salida" : "Verificación y evidencia de entrega"}
             </span>
             {tipo === "inicial" 
               ? "Captura las fotografías y datos del vehículo antes de iniciar el traslado." 
@@ -439,7 +439,7 @@ export default function PaginaEvidencia() {
         {(() => {
           const porcentaje = Math.round((totalCapturados / Math.max(1, totalRequisitos)) * 100);
           return (
-            <div className="mt-5 bg-[#0E1524] border border-border/20 rounded-2xl p-4.5 flex flex-col gap-3 shadow-xs">
+            <div className="mt-5 bg-surface-elevated border border-border/20 rounded-2xl p-4.5 flex flex-col gap-3 shadow-xs">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="font-display text-[9px] font-black text-text-tertiary tracking-widest uppercase">
@@ -451,8 +451,8 @@ export default function PaginaEvidencia() {
                 </div>
                 <div className={`flex flex-col items-end px-3 py-1.5 rounded-xl border ${
                   porcentaje === 100
-                    ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
-                    : "bg-[#00B4D8]/10 border-[#00B4D8]/30 text-[#00B4D8]"
+                    ? "bg-signal/15 border-signal/30 text-signal"
+                    : "bg-route-action/10 border-route-action/30 text-route-action"
                 }`}>
                   <span className="font-display text-xl font-black leading-none">{porcentaje}%</span>
                   <span className="font-display text-[8px] font-extrabold uppercase tracking-wider mt-0.5">COMPLETADO</span>
@@ -460,19 +460,19 @@ export default function PaginaEvidencia() {
               </div>
 
               {/* Progress Bar Track */}
-              <div className="w-full bg-[#070B14] rounded-full h-3.5 overflow-hidden border border-border/15 relative p-0.5">
+              <div className="w-full bg-surface rounded-full h-3.5 overflow-hidden border border-border/15 relative p-0.5">
                 <div 
                   className={`h-full rounded-full transition-all duration-500 ${
                     porcentaje === 100 
-                      ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]" 
-                      : "bg-[#00B4D8] shadow-[0_0_10px_rgba(0,180,216,0.4)]"
+                      ? "bg-signal shadow-[0_0_12px_rgba(255,196,0,0.4)]" 
+                      : "bg-route-action shadow-[0_0_10px_rgba(30,136,229,0.3)]"
                   }`}
                   style={{ width: `${porcentaje}%` }}
                 />
               </div>
 
               {porcentaje === 100 ? (
-                <span className="font-body text-xs text-emerald-400 font-extrabold flex items-center gap-1.5 animate-pulse">
+                <span className="font-body text-xs text-signal font-extrabold flex items-center gap-1.5 animate-pulse">
                   ✓ ¡Checklist completado al 100%! Puedes finalizar evidencias.
                 </span>
               ) : (
@@ -487,7 +487,7 @@ export default function PaginaEvidencia() {
         {/* Section 1: FOTOGRAFÍAS DEL VEHÍCULO */}
         <section className="mt-8 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-md bg-[#1C2C24] border border-[#234D37] text-[#00B4D8] flex items-center justify-center font-display text-[10px] font-bold">
+            <span className="w-5 h-5 rounded-md bg-route-action/15 border border-route-action/30 text-route-action flex items-center justify-center font-display text-[10px] font-bold">
               1
             </span>
             <h2 className="font-display text-xs font-black text-text-tertiary tracking-widest uppercase">
@@ -502,12 +502,12 @@ export default function PaginaEvidencia() {
               onClick={() => capturar("frente")}
               className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
                 isPhotoCaptured("frente")
-                  ? "bg-[#1C2C24]/10 border-[#0D6E4B]/80"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00B4D8]/60"
+                  ? "bg-surface-elevated border-signal/60"
+                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
               }`}
             >
               {isPhotoCaptured("frente") && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-600 border border-emerald-500/30 flex items-center justify-center text-[8px] text-white">✓</span>
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-signal text-slate-950 flex items-center justify-center text-[8px] font-black">✓</span>
               )}
               <span className="text-xl">📷</span>
               <span className="font-body text-[10px] font-bold text-text-secondary">Frente</span>
@@ -519,12 +519,12 @@ export default function PaginaEvidencia() {
               onClick={() => capturar("lado_piloto")}
               className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
                 isPhotoCaptured("lado_piloto")
-                  ? "bg-[#1C2C24]/10 border-[#0D6E4B]/80"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00B4D8]/60"
+                  ? "bg-surface-elevated border-signal/60"
+                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
               }`}
             >
               {isPhotoCaptured("lado_piloto") && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-600 border border-emerald-500/30 flex items-center justify-center text-[8px] text-white">✓</span>
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-signal text-slate-950 flex items-center justify-center text-[8px] font-black">✓</span>
               )}
               <span className="text-xl">📷</span>
               <span className="font-body text-[10px] font-bold text-text-secondary">Lado piloto</span>
@@ -536,12 +536,12 @@ export default function PaginaEvidencia() {
               onClick={() => capturar("lado_copiloto")}
               className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
                 isPhotoCaptured("lado_copiloto")
-                  ? "bg-[#1C2C24]/10 border-[#0D6E4B]/80"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00B4D8]/60"
+                  ? "bg-surface-elevated border-signal/60"
+                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
               }`}
             >
               {isPhotoCaptured("lado_copiloto") && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-600 border border-emerald-500/30 flex items-center justify-center text-[8px] text-white">✓</span>
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-signal text-slate-950 flex items-center justify-center text-[8px] font-black">✓</span>
               )}
               <span className="text-xl">📷</span>
               <span className="font-body text-[10px] font-bold text-text-secondary">Lado copiloto</span>
@@ -553,12 +553,12 @@ export default function PaginaEvidencia() {
               onClick={() => capturar("trasera")}
               className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
                 isPhotoCaptured("trasera")
-                  ? "bg-[#1C2C24]/10 border-[#0D6E4B]/80"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00B4D8]/60"
+                  ? "bg-surface-elevated border-signal/60"
+                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
               }`}
             >
               {isPhotoCaptured("trasera") && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-600 border border-emerald-500/30 flex items-center justify-center text-[8px] text-white">✓</span>
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-signal text-slate-950 flex items-center justify-center text-[8px] font-black">✓</span>
               )}
               <span className="text-xl">📷</span>
               <span className="font-body text-[10px] font-bold text-text-secondary">Trasera</span>
@@ -570,12 +570,12 @@ export default function PaginaEvidencia() {
               onClick={() => capturar("tablero")}
               className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
                 isPhotoCaptured("tablero")
-                  ? "bg-[#1C2C24]/10 border-[#0D6E4B]/80"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00B4D8]/60"
+                  ? "bg-surface-elevated border-signal/60"
+                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
               }`}
             >
               {isPhotoCaptured("tablero") && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-600 border border-emerald-500/30 flex items-center justify-center text-[8px] text-white">✓</span>
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-signal text-slate-950 flex items-center justify-center text-[8px] font-black">✓</span>
               )}
               <span className="text-xl">📷</span>
               <span className="font-body text-[10px] font-bold text-text-secondary">Tablero</span>
@@ -587,12 +587,12 @@ export default function PaginaEvidencia() {
               onClick={() => capturar("adicional")}
               className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
                 isPhotoCaptured("adicional")
-                  ? "bg-[#1C2C24]/10 border-[#0D6E4B]/80"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-[#00B4D8]/60"
+                  ? "bg-surface-elevated border-signal/60"
+                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
               }`}
             >
               {isPhotoCaptured("adicional") && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-600 border border-emerald-500/30 flex items-center justify-center text-[8px] text-white">✓</span>
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-signal text-slate-950 flex items-center justify-center text-[8px] font-black">✓</span>
               )}
               <span className="text-xl">+</span>
               <span className="font-body text-[10px] font-bold text-text-secondary">Adicionales <span className="font-normal text-[8px] text-text-tertiary">(opc.)</span></span>
@@ -748,13 +748,13 @@ export default function PaginaEvidencia() {
                   type="checkbox"
                   checked={tarjetaCirculacion === "si"}
                   onChange={(e) => setTarjetaCirculacion(e.target.checked ? "si" : "no")}
-                  className="w-5 h-5 rounded border-border/60 text-[#00B4D8] focus:ring-[#00B4D8] focus:ring-offset-2 cursor-pointer"
+                  className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
                 />
                 <span className="font-body text-sm font-semibold text-text-primary">💳 Tarjeta de circulación</span>
               </div>
               <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
                 tarjetaCirculacion === "si"
-                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
+                  ? "bg-signal/15 text-signal border border-signal/25"
                   : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
               }`}>
                 {tarjetaCirculacion === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
@@ -768,13 +768,13 @@ export default function PaginaEvidencia() {
                   type="checkbox"
                   checked={talonVerificacion === "si"}
                   onChange={(e) => setTalonVerificacion(e.target.checked ? "si" : "no")}
-                  className="w-5 h-5 rounded border-border/60 text-[#00B4D8] focus:ring-[#00B4D8] focus:ring-offset-2 cursor-pointer"
+                  className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
                 />
                 <span className="font-body text-sm font-semibold text-text-primary">📄 Talón de verificación</span>
               </div>
               <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
                 talonVerificacion === "si"
-                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
+                  ? "bg-signal/15 text-signal border border-signal/25"
                   : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
               }`}>
                 {talonVerificacion === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
@@ -788,13 +788,13 @@ export default function PaginaEvidencia() {
                   type="checkbox"
                   checked={hologramaVerificacion === "si"}
                   onChange={(e) => setHologramaVerificacion(e.target.checked ? "si" : "no")}
-                  className="w-5 h-5 rounded border-border/60 text-[#00B4D8] focus:ring-[#00B4D8] focus:ring-offset-2 cursor-pointer"
+                  className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
                 />
                 <span className="font-body text-sm font-semibold text-text-primary">🔖 Holograma de verificación</span>
               </div>
               <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
                 hologramaVerificacion === "si"
-                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
+                  ? "bg-signal/15 text-signal border border-signal/25"
                   : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
               }`}>
                 {hologramaVerificacion === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
@@ -808,13 +808,13 @@ export default function PaginaEvidencia() {
                   type="checkbox"
                   checked={placaDelantera === "si"}
                   onChange={(e) => setPlacaDelantera(e.target.checked ? "si" : "no")}
-                  className="w-5 h-5 rounded border-border/60 text-[#00B4D8] focus:ring-[#00B4D8] focus:ring-offset-2 cursor-pointer"
+                  className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
                 />
                 <span className="font-body text-sm font-semibold text-text-primary">◽ Placa delantera</span>
               </div>
               <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
                 placaDelantera === "si"
-                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
+                  ? "bg-signal/15 text-signal border border-signal/25"
                   : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
               }`}>
                 {placaDelantera === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
@@ -828,13 +828,13 @@ export default function PaginaEvidencia() {
                   type="checkbox"
                   checked={placaTrasera === "si"}
                   onChange={(e) => setPlacaTrasera(e.target.checked ? "si" : "no")}
-                  className="w-5 h-5 rounded border-border/60 text-[#00B4D8] focus:ring-[#00B4D8] focus:ring-offset-2 cursor-pointer"
+                  className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
                 />
                 <span className="font-body text-sm font-semibold text-text-primary">◽ Placa trasera</span>
               </div>
               <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
                 placaTrasera === "si"
-                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
+                  ? "bg-signal/15 text-signal border border-signal/25"
                   : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
               }`}>
                 {placaTrasera === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
@@ -846,14 +846,14 @@ export default function PaginaEvidencia() {
         {/* Section 5: NOTAS DE RECOGIDA / ENTREGA */}
         <section className="mt-8 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-md bg-surface-elevated text-text-secondary flex items-center justify-center font-display text-[10px] font-bold">
+            <span className="w-5 h-5 rounded-md bg-route-action/15 border border-route-action/30 text-route-action flex items-center justify-center font-display text-[10px] font-bold">
               5
             </span>
             <h2 className="font-display text-xs font-black text-text-tertiary tracking-widest uppercase flex-1">
               {tipo === "inicial" ? "NOTAS DE RECOGIDA" : "NOTAS DE ENTREGA"}
             </h2>
             {notas.trim().length > 5 && (
-              <span className="font-display text-[9px] font-extrabold text-emerald-400 tracking-wider uppercase">
+              <span className="font-display text-[9px] font-extrabold text-signal tracking-wider uppercase">
                 ✓ REGISTRADO
               </span>
             )}
@@ -869,7 +869,7 @@ export default function PaginaEvidencia() {
                   type="button"
                   onClick={() => setPresentaDanosNuevos(!presentaDanosNuevos)}
                   className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                    presentaDanosNuevos ? "bg-emerald-500" : "bg-border/40"
+                    presentaDanosNuevos ? "bg-signal" : "bg-border/40"
                   }`}
                 >
                   <span
@@ -924,7 +924,7 @@ export default function PaginaEvidencia() {
                       return `${trimmed}, [${etiqueta}]`;
                     });
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-surface-elevated/60 border border-border/30 hover:border-[#00B4D8] text-text-secondary hover:text-white font-body text-[11px] font-bold transition-all cursor-pointer active:scale-95"
+                  className="px-2.5 py-1 rounded-lg bg-surface-elevated/60 border border-border/30 hover:border-route-action text-text-secondary hover:text-white font-body text-[11px] font-bold transition-all cursor-pointer active:scale-95"
                 >
                   + {etiqueta}
                 </button>
@@ -943,8 +943,8 @@ export default function PaginaEvidencia() {
             }
             className={`w-full border rounded-2xl p-4.5 text-xs font-body text-text-secondary leading-relaxed outline-hidden transition-all font-inherit ${
               notas.trim().length > 5 
-                ? "border-emerald-500/40 bg-emerald-500/5 focus:border-emerald-500/60" 
-                : "border-border/30 bg-surface-elevated/20 focus:border-[#00B4D8]/50"
+                ? "border-signal/40 bg-signal/5 focus:border-signal/60" 
+                : "border-border/30 bg-surface-elevated/20 focus:border-route-action/50"
             }`}
           />
         </section>
@@ -967,7 +967,7 @@ export default function PaginaEvidencia() {
       </div>
 
       {/* Sticky Primary Action Buttons Bar (Fixed directly ABOVE Secondary Trip Bottom Bar) */}
-      <div className="fixed bottom-[60px] inset-x-0 z-40 bg-[#070B14]/95 backdrop-blur-md border-t border-border/15 py-3 px-4 shadow-2xl select-none">
+      <div className="fixed bottom-[60px] inset-x-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border/20 py-3 px-4 shadow-2xl select-none">
         <div className="max-w-md mx-auto flex gap-3">
           {/* GUARDAR BORRADOR (Estilo Outline Definido) */}
           <button
@@ -986,8 +986,8 @@ export default function PaginaEvidencia() {
             disabled={procesando}
             className={`flex-1 min-h-[48px] rounded-xl font-display text-xs font-black tracking-wider transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden ${
               totalCapturados === totalRequisitos
-                ? "bg-[#10B981] hover:bg-[#0EA271] text-white"
-                : "bg-[#10B981]/70 hover:bg-[#10B981] text-white/90"
+                ? "bg-signal hover:bg-signal/90 text-slate-950"
+                : "bg-signal/70 hover:bg-signal text-slate-950/90"
             }`}
           >
             {procesando ? TEXTOS_CARGANDO.actualizando : "FINALIZAR EVIDENCIAS"}
