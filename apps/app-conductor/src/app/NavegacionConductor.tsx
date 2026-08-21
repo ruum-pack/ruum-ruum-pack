@@ -131,10 +131,7 @@ export function NavegacionConductor() {
       <header role="banner" className="hidden md:block sticky top-0 z-30 border-b border-border bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur supports-[backdrop-filter]:bg-surface/85">
         <div className="ruum-container flex min-h-16 items-center gap-3 py-3">
           <Link href="/panel" aria-label="Ir al inicio de Ruum Ruum Conductor" className="flex shrink-0 items-center gap-2.5 rounded-lg">
-            <LogoMarca tamano={30} color="signal" />
-            <span className="hidden font-display text-base font-extrabold tracking-tight text-text-primary sm:inline">
-              ruum<span className="text-signal">ruum</span>
-            </span>
+            <LogoMarca variante="horizontal" tema="oscuro" tamano={30} mostrarDescriptor={false} mostrarRespaldo={false} />
             <span className="hidden font-body text-xs font-semibold text-text-tertiary lg:inline">Conductor</span>
           </Link>
 

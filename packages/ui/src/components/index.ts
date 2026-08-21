@@ -1,4 +1,6 @@
 export * from "./LogoMarca";
+export * from "./SelloConductor";
+export * from "./CredencialConductor";
 export * from "./Button";
 export * from "./BannerDemo";
 export * from "./Field";

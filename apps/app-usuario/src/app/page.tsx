@@ -1,9 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Database } from "@ruum/shared/types";
+import { IDENTIDAD_MARCA } from "@ruum/shared/constants";
+import { LogoMarca, SelloConductor } from "@ruum/ui";
 import { NavegacionUsuario } from "./NavegacionUsuario";
 import { InicioUsuario } from "./InicioUsuario";
-import { botonAzul, botonContorno, LogoRuum, PantallaPublica } from "./experiencia-publica";
+import { botonAzul, botonContorno } from "./experiencia-publica";
 
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -47,42 +49,240 @@ export default async function PaginaInicio() {
     );
   }
 
-  // Sin sesión: entrada móvil pública alineada con el onboarding.
+  // Experiencia Pública / Landing Page Inicial (Brand Book Ruum Ruum V1 · Página 28)
   return (
-    <PantallaPublica>
-      <section className="relative flex min-h-screen flex-col overflow-hidden px-5 pb-10 pt-14">
-        <LogoRuum className="mx-auto text-center" />
+    <div className="min-h-screen bg-[#151515] text-[#F8F8F5]">
+      {/* Barra de Navegación Pública */}
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#151515]/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
+          <LogoMarca variante="horizontal" tema="oscuro" tamano={34} />
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="rounded-lg px-3.5 py-2 font-display text-xs font-semibold text-[#F8F8F5] transition hover:text-[#FFC400]"
+            >
+              Iniciar sesión
+            </Link>
+            <Link
+              href="/registro"
+              className="rounded-lg bg-[#FFC400] px-4 py-2 font-display text-xs font-bold text-[#151515] shadow-sm transition hover:bg-[#e0ac00]"
+            >
+              Crear cuenta
+            </Link>
+          </div>
+        </div>
+      </header>
 
-        <div className="pointer-events-none absolute inset-x-0 top-[118px] h-[430px] overflow-hidden">
+      {/* 1. PORTADA / HERO (Páginas 1 & 28) */}
+      <section className="relative overflow-hidden border-b border-white/10 px-4 pb-16 pt-12 sm:px-6 sm:pb-24 sm:pt-20">
+        <div className="pointer-events-none absolute inset-0 opacity-20">
           <Image
             src="/imagenes/seguridad-traslado.png"
-            alt="Traslado vehicular protegido con verificacion de identidad"
+            alt="Traslado vehicular con conductores certificados"
             fill
             priority
-            sizes="(min-width: 640px) 390px, 100vw"
-            className="scale-[1.12] object-cover object-[39%_50%]"
+            sizes="100vw"
+            className="object-cover object-center"
           />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_34%_18%,rgba(245,166,35,0.12),transparent_38%),linear-gradient(180deg,rgba(7,18,38,0)_52%,#1a1f2e_94%)]" />
-          <div className="absolute inset-y-0 left-0 w-14 bg-gradient-to-r from-[#1a1f2e] to-transparent" />
-          <div className="absolute inset-y-0 right-0 w-14 bg-gradient-to-l from-[#1a1f2e] to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#151515] via-[#151515]/70 to-transparent" />
         </div>
 
-        <div className="relative z-10 mt-auto">
-          <h1 className="font-display text-[23px] font-extrabold leading-[1.05] tracking-normal text-white drop-shadow-[0_2px_0_rgba(0,0,0,0.35)]">
-            Bienvenido
-          </h1>
-          <p className="mt-2 font-body text-xs leading-5 text-[#d4d9e2]">Inicia sesión para continuar</p>
+        <div className="relative mx-auto max-w-4xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#FFC400]/40 bg-[#FFC400]/10 px-3.5 py-1 text-xs font-semibold text-[#FFC400] mb-6">
+            <span className="size-2 rounded-full bg-[#FFC400] animate-pulse" />
+            Traslado vehicular con conductores certificados
+          </div>
 
-          <div className="mt-5 grid gap-2.5">
-            <Link href="/login" className={botonAzul}>
-              Conecta con tu cuenta
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
+            Seguridad, evidencia y trazabilidad en cada viaje.
+          </h1>
+
+          <p className="mx-auto mt-6 max-w-2xl font-body text-base text-[#B7C2D4] sm:text-lg">
+            No movemos vehículos a ciegas. Cuidamos tu vehículo antes, durante y después del traslado
+            mediante conductores certificados, evidencia documentada y seguimiento en tiempo real.
+          </p>
+
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link href="/registro" className={`sm:w-auto ${botonAzul} sm:px-8`}>
+              Cotizar traslado
             </Link>
-            <Link href="/registro" className={botonContorno}>
-              Crea tu cuenta
+            <Link href="/login" className={`sm:w-auto ${botonContorno} sm:px-8`}>
+              Ingresar a mi cuenta
+            </Link>
+          </div>
+
+          <div className="mt-10 flex items-center justify-center gap-2 font-mono-ruum text-xs uppercase tracking-widest text-[#5F6368]">
+            <span>by MoviliaX</span>
+            <span>•</span>
+            <span>Cobertura Local y Foránea</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. QUÉ HACEMOS (Página 28) */}
+      <section className="border-b border-white/10 bg-[#121721] py-16 sm:py-20">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+          <div className="grid gap-10 md:grid-cols-2 md:items-center">
+            <div>
+              <span className="font-display text-xs font-bold uppercase tracking-wider text-[#FFC400]">
+                Esencia de marca
+              </span>
+              <h2 className="mt-2 font-display text-2xl font-black text-white sm:text-3xl">
+                ¿Qué es Ruum Ruum?
+              </h2>
+              <p className="mt-4 font-body text-sm leading-relaxed text-[#B7C2D4] sm:text-base">
+                {IDENTIDAD_MARCA.esencia.queEs}
+              </p>
+              <p className="mt-4 font-body text-sm leading-relaxed text-[#8B98AD]">
+                Muchas personas entregan su vehículo sin suficiente información, sin evidencia y sin
+                claridad sobre quién lo conduce. Ruum Ruum convierte el traslado vehicular en un proceso profesional documentado.
+              </p>
+              <div className="mt-6">
+                <SelloConductor compacto tema="dorado" />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-[#151515] p-6 shadow-xl">
+              <h3 className="font-display text-lg font-bold text-[#FFC400]">
+                Idea Central
+              </h3>
+              <p className="mt-2 font-display text-xl font-bold text-white">
+                “No movemos vehículos a ciegas. Movemos vehículos con seguridad, evidencia y trazabilidad.”
+              </p>
+              <div className="mt-6 border-t border-white/10 pt-4">
+                <p className="font-body text-xs text-[#B7C2D4]">
+                  Diseñado para particulares, agencias automotrices, talleres mecánicos, flotillas y corporativos.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. CÓMO FUNCIONA (Protocolo Operativo de 6 Pasos · Página 28) */}
+      <section className="border-b border-white/10 py-16 sm:py-20">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+          <div className="text-center">
+            <span className="font-display text-xs font-bold uppercase tracking-wider text-[#FFC400]">
+              Protocolo Operativo
+            </span>
+            <h2 className="mt-2 font-display text-2xl font-black text-white sm:text-3xl">
+              ¿Cómo funciona cada traslado?
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl font-body text-sm text-[#B7C2D4]">
+              Cada viaje cumple un protocolo riguroso de principio a fin, garantizando evidencia y trazabilidad.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {IDENTIDAD_MARCA.pasosProtocolo.map((item) => (
+              <div
+                key={item.paso}
+                className="relative rounded-xl border border-white/10 bg-[#151b26] p-5 transition hover:border-[#FFC400]/50"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-[#FFC400] font-display text-sm font-black text-[#151515]">
+                    {item.paso}
+                  </span>
+                  <span className="font-mono-ruum text-[10px] text-[#5F6368]">FASE {item.paso}</span>
+                </div>
+                <h3 className="mt-4 font-display text-base font-bold text-white">
+                  {item.titulo}
+                </h3>
+                <p className="mt-2 font-body text-xs leading-relaxed text-[#B7C2D4]">
+                  {item.descripcion}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 4. DIFERENCIADORES CLAVE (Páginas 4 & 28) */}
+      <section className="border-b border-white/10 bg-[#121721] py-16 sm:py-20">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+          <div className="text-center">
+            <span className="font-display text-xs font-bold uppercase tracking-wider text-[#FFC400]">
+              Ventajas Ruum Ruum
+            </span>
+            <h2 className="mt-2 font-display text-2xl font-black text-white sm:text-3xl">
+              Diferenciadores Clave
+            </h2>
+          </div>
+
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {IDENTIDAD_MARCA.diferenciadores.map((dif, idx) => (
+              <div key={idx} className="rounded-xl border border-white/10 bg-[#151515] p-5">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-[#FFC400]/15 text-[#FFC400]">
+                  <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="mt-4 font-display text-base font-bold text-white">
+                  {dif.titulo}
+                </h3>
+                <p className="mt-2 font-body text-xs leading-relaxed text-[#B7C2D4]">
+                  {dif.descripcion}
+                </p>
+              </div>
+            ))}
+            <div className="rounded-xl border border-[#FFC400]/30 bg-[#FFC400]/10 p-5 flex flex-col justify-center">
+              <h3 className="font-display text-base font-bold text-[#FFC400]">
+                Atención y Cotización
+              </h3>
+              <p className="mt-2 font-body text-xs text-[#F8F8F5]">
+                Soporte por canales autorizados y WhatsApp Business con catálogo de servicios inmediato.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. MANIFIESTO Y CIERRE INSTITUCIONAL (Páginas 35 & 36) */}
+      <section className="px-4 py-16 text-center sm:px-6 sm:py-24">
+        <div className="mx-auto max-w-3xl">
+          <SelloConductor tamano="md" tema="dorado" className="mx-auto mb-6" />
+          <h2 className="font-display text-2xl font-black text-white sm:text-3xl">
+            No entregues tu auto a ciegas. Un traslado serio deja evidencia.
+          </h2>
+          <p className="mt-4 font-body text-sm leading-relaxed text-[#B7C2D4] sm:text-base">
+            {IDENTIDAD_MARCA.manifiesto}
+          </p>
+
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link href="/registro" className={`sm:w-auto ${botonAzul} sm:px-8`}>
+              Comenzar ahora
+            </Link>
+            <Link href="/login" className={`sm:w-auto ${botonContorno} sm:px-8`}>
+              Iniciar sesión
             </Link>
           </div>
         </div>
       </section>
-    </PantallaPublica>
+
+      {/* FOOTER */}
+      <footer className="border-t border-white/10 bg-[#0d1117] px-4 py-8 sm:px-6">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+          <div>
+            <LogoMarca variante="horizontal" tema="oscuro" tamano={28} />
+            <p className="mt-2 font-body text-xs text-[#5F6368]">
+              {IDENTIDAD_MARCA.lema}
+            </p>
+          </div>
+          <div className="flex gap-4 font-body text-xs text-[#8B98AD]">
+            <Link href="/legal/terminos" className="transition hover:text-white">
+              Términos y condiciones
+            </Link>
+            <Link href="/legal/privacidad" className="transition hover:text-white">
+              Aviso de privacidad
+            </Link>
+            <Link href="/soporte" className="transition hover:text-white">
+              Ayuda y soporte
+            </Link>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
+

@@ -10,3 +10,5 @@ export * from "./estatus-economico";
 export * from "./textos-cargando";
 export * from "./contactos-soporte";
 export * from "./glosario-operativo";
+export * from "./identidad-marca";
+

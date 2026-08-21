@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card } from "@ruum/ui";
+import { Card, SelloConductor } from "@ruum/ui";
 import { CuentaHeader } from "./CuentaHeader";
 
 type SeccionCuenta = {
@@ -83,11 +83,14 @@ const CATEGORIAS_CUENTA: CategoriaCuenta[] = [
 export default function PaginaCuenta() {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-      {/* 3. Limpieza de Cabecera */}
-      <CuentaHeader
-        titulo="Cuenta del Conductor"
-        descripcion="Centro de configuración, expediente operativo y soporte del servicio Ruum Ruum."
-      />
+      {/* Cabecera con Sello Oficial de Conductor */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/40 pb-6">
+        <CuentaHeader
+          titulo="Cuenta del Conductor"
+          descripcion="Centro de configuración, expediente operativo y soporte del servicio Ruum Ruum by MoviliaX."
+        />
+        <SelloConductor compacto tema="dorado" className="self-start sm:self-auto shrink-0" />
+      </div>
 
       {/* 2. Agrupación Temática por Categorías */}
       <div className="mt-8 grid gap-8">

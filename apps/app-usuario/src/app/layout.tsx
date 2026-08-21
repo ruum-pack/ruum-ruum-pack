@@ -24,9 +24,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ruum Ruum — Seguridad, evidencia y trazabilidad",
+  title: "Ruum Ruum — Traslado vehicular con conductores certificados",
   description:
-    "Traslado vehicular con conductores certificados, evidencia documentada y trazabilidad en cada viaje.",
+    "Ruum Ruum by MoviliaX: Traslado vehicular con conductores certificados. Seguridad, evidencia y trazabilidad en cada viaje.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

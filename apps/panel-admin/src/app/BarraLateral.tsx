@@ -310,13 +310,14 @@ export function BarraLateral() {
     >
       {/* Logo */}
       <div className={colapsada ? "px-3 py-3.5" : "px-3 py-3.5 lg:px-5"}>
-        <span className="flex items-center gap-2.5">
-          <LogoMarca tamano={28} color="signal" />
-          <span className={`font-display text-base font-bold tracking-tight text-mist ${colapsada ? "hidden" : "hidden lg:inline"}`}>
-            ruum<span className="text-signal">ruum</span>
-          </span>
-        </span>
-        <p className={`mt-0.5 font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary ${colapsada ? "hidden" : "hidden lg:block"}`}>
+        <div className="flex items-center gap-2.5">
+          {colapsada ? (
+            <LogoMarca variante="simbolo" tema="oscuro" tamano={28} />
+          ) : (
+            <LogoMarca variante="horizontal" tema="oscuro" tamano={28} mostrarDescriptor={false} mostrarRespaldo />
+          )}
+        </div>
+        <p className={`mt-1 font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary ${colapsada ? "hidden" : "hidden lg:block"}`}>
           Torre de Control
         </p>
         <button

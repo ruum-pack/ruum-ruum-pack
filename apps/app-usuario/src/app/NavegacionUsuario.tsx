@@ -143,10 +143,7 @@ export function NavegacionUsuario() {
           aria-label="Ir al inicio de Ruum Ruum"
           className="flex shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-route-dark"
         >
-          <LogoMarca tamano={30} color="signal" />
-          <span className="font-display text-base font-extrabold tracking-tight text-ink">
-            ruum<span className="text-signal">ruum</span>
-          </span>
+          <LogoMarca variante="horizontal" tema="oscuro" tamano={30} mostrarDescriptor={false} mostrarRespaldo={false} />
         </Link>
 
         {/* Nav escritorio */}

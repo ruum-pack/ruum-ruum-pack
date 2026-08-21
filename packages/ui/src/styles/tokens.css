@@ -7,14 +7,14 @@
  * neutra, superficies claras y señal dorada para acciones de alta intención.
  */
 @theme {
-  --color-ink: #1a1f2e;
+  --color-ink: #151515;
   --color-ink-soft: #2d3447;
-  --color-asphalt: #1a1f2e;
+  --color-asphalt: #151515;
   --color-steel: #5f6368;
-  --color-mist: #ffffff;
-  --color-mist-dim: #f4f5f7;
-  --color-signal: #f5a623;
-  --color-signal-soft: #fef3dc;
+  --color-mist: #f8f8f5;
+  --color-mist-dim: #edece8;
+  --color-signal: #ffc400;
+  --color-signal-soft: #fff6d6;
   --color-route: #1e88e5;
   --color-route-dark: #0e5cab;
   --color-route-soft: #dceeff;
@@ -62,16 +62,16 @@
   --color-ok: var(--color-control);
   --color-ok-soft: var(--color-control-soft);
 
-  --font-display: var(--font-display-loaded), "Space Grotesk", "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-loaded), "Montserrat", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-body-loaded), "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono-ruum: var(--font-mono-loaded), "IBM Plex Mono", ui-monospace, monospace;
 
   --radius-card: 0.75rem;
 
-  --shadow-1: 0 1px 2px rgba(26, 31, 46, 0.08);
-  --shadow-2: 0 6px 16px rgba(26, 31, 46, 0.1);
-  --shadow-3: 0 16px 40px rgba(26, 31, 46, 0.18);
-  --shadow-4: 0 24px 64px rgba(26, 31, 46, 0.24);
+  --shadow-1: 0 1px 2px rgba(21, 21, 21, 0.08);
+  --shadow-2: 0 6px 16px rgba(21, 21, 21, 0.1);
+  --shadow-3: 0 16px 40px rgba(21, 21, 21, 0.18);
+  --shadow-4: 0 24px 64px rgba(21, 21, 21, 0.24);
 }
 
 :root,
@@ -79,47 +79,47 @@
   color-scheme: light;
 
   /* Tokens semánticos: consumir estos valores en CSS de producto. */
-  --ruum-canvas: #f4f5f7;
+  --ruum-canvas: #f8f8f5;
   --ruum-surface: #ffffff;
   --ruum-surface-elevated: #ffffff;
-  --ruum-surface-subtle: #f8f9fb;
-  --ruum-surface-strong: #1a1f2e;
+  --ruum-surface-subtle: #f0f0eb;
+  --ruum-surface-strong: #151515;
   --ruum-border: #d6dae3;
-  --ruum-border-strong: #aeb6c5;
-  --ruum-text-primary: #1a1f2e;
-  --ruum-text: #1a1f2e;
-  --ruum-text-secondary: #4d5668;
+  --ruum-border-strong: #5f6368;
+  --ruum-text-primary: #151515;
+  --ruum-text: #151515;
+  --ruum-text-secondary: #5f6368;
   --ruum-text-tertiary: #687287;
   --ruum-text-disabled: #8791a3;
   --ruum-dark-text-secondary: #c9cfda;
   --ruum-dark-text-tertiary: #9aa2b5;
-  --ruum-focus: #0e5cab;
-  --ruum-focus-ring: rgba(14, 92, 171, 0.24);
-  --ruum-action-primary: #f5a623;
-  --ruum-on-primary: #14213d;
+  --ruum-focus: #1e88e5;
+  --ruum-focus-ring: rgba(30, 136, 229, 0.24);
+  --ruum-action-primary: #ffc400;
+  --ruum-on-primary: #151515;
   --ruum-on-danger: #ffffff;
-  --ruum-overlay: rgba(7, 11, 20, 0.72);
-  --ruum-action-primary-hover: #d88f16;
-  --ruum-action-primary-active: #c77f0a;
-  --ruum-route: #0e5cab;
-  --ruum-route-hover: #0a4b8c;
-  --ruum-route-active: #083c70;
+  --ruum-overlay: rgba(21, 21, 21, 0.75);
+  --ruum-action-primary-hover: #e0ac00;
+  --ruum-action-primary-active: #c79800;
+  --ruum-route: #1e88e5;
+  --ruum-route-hover: #1565c0;
+  --ruum-route-active: #0d47a1;
   --ruum-success: #08734f;
   --ruum-warning: #76500e;
   --ruum-danger: #b32626;
   --ruum-danger-hover: #8f1d1d;
   --ruum-danger-active: #751616;
-  --ruum-action: #f5a623;
-  --ruum-action-hover: #d88f16;
+  --ruum-action: #ffc400;
+  --ruum-action-hover: #e0ac00;
   /* Acento "en vivo": reservado exclusivamente para estados que están ocurriendo
      ahora mismo (disponible, en ruta, GPS activo). No usar como color decorativo. */
   --ruum-pulse: #7fb519;
   --ruum-pulse-soft: #eaf6d2;
   --ruum-pulse-ink: #223300;
-  --ruum-shadow-1: 0 1px 2px rgba(26, 31, 46, 0.08);
-  --ruum-shadow-2: 0 6px 16px rgba(26, 31, 46, 0.1);
-  --ruum-shadow-3: 0 16px 40px rgba(26, 31, 46, 0.18);
-  --ruum-shadow-4: 0 24px 64px rgba(26, 31, 46, 0.24);
+  --ruum-shadow-1: 0 1px 2px rgba(21, 21, 21, 0.08);
+  --ruum-shadow-2: 0 6px 16px rgba(21, 21, 21, 0.1);
+  --ruum-shadow-3: 0 16px 40px rgba(21, 21, 21, 0.18);
+  --ruum-shadow-4: 0 24px 64px rgba(21, 21, 21, 0.24);
   --ruum-radius-field: 10px;
   --ruum-radius-card: 12px;
   --ruum-radius-modal: 16px;
@@ -130,11 +130,11 @@
 
   /* Tema oscuro explícito: solo tokens semánticos.
      Los aliases históricos ink/mist/paper conservan su significado original. */
-  --ruum-canvas: #070b14;
-  --ruum-surface: #101a2c;
-  --ruum-surface-elevated: #162238;
-  --ruum-surface-subtle: #0d1626;
-  --ruum-surface-strong: #05080f;
+  --ruum-canvas: #0f131a;
+  --ruum-surface: #151b26;
+  --ruum-surface-elevated: #1a2230;
+  --ruum-surface-subtle: #121721;
+  --ruum-surface-strong: #151515;
   --ruum-border: rgba(122, 162, 214, 0.2);
   --ruum-border-strong: rgba(77, 163, 255, 0.35);
   --ruum-text-primary: #e8edf6;
@@ -146,29 +146,29 @@
   --ruum-dark-text-tertiary: #8b98ad;
   --ruum-focus: #4da3ff;
   --ruum-focus-ring: rgba(77, 163, 255, 0.3);
-  --ruum-action-primary: #f5a623;
-  --ruum-on-primary: #14213d;
+  --ruum-action-primary: #ffc400;
+  --ruum-on-primary: #151515;
   --ruum-on-danger: #070b14;
   --ruum-overlay: rgba(0, 0, 0, 0.78);
-  --ruum-action-primary-hover: #d88f16;
-  --ruum-action-primary-active: #c77f0a;
+  --ruum-action-primary-hover: #e0ac00;
+  --ruum-action-primary-active: #c79800;
   --ruum-route: #4da3ff;
   --ruum-route-hover: #3a8ee6;
   --ruum-route-active: #2d79c8;
   --ruum-success: #3ddc97;
-  --ruum-warning: #f0b429;
+  --ruum-warning: #ffc400;
   --ruum-danger: #ff6b6b;
   --ruum-danger-hover: #e45a5a;
   --ruum-danger-active: #c94d4d;
-  --ruum-action: #f5a623;
-  --ruum-action-hover: #d88f16;
+  --ruum-action: #ffc400;
+  --ruum-action-hover: #e0ac00;
   --ruum-pulse: #aef22c;
   --ruum-pulse-soft: rgba(174, 242, 44, 0.14);
   --ruum-pulse-ink: #1c2b00;
-  --color-signal-soft: rgba(245, 166, 35, 0.1);
+  --color-signal-soft: rgba(255, 196, 0, 0.12);
   --color-route-soft: rgba(77, 163, 255, 0.1);
   --color-control-soft: rgba(61, 220, 151, 0.1);
-  --color-warn-soft: rgba(240, 180, 41, 0.1);
+  --color-warn-soft: rgba(255, 196, 0, 0.12);
   --color-danger-soft: rgba(255, 107, 107, 0.1);
   --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
   --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.4);
