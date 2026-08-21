@@ -430,7 +430,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                   <div className="flex flex-col min-w-0">
                     <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Persona quien Entrega (Origen)</span>
                     <span className="font-bold text-xs text-text-primary truncate">{entregaNombre}</span>
-                    <span className="font-mono text-[11px] text-text-secondary">{entregaTelefono || "Teléfono no disponible"}</span>
+                    <span className="font-mono text-[11px] text-text-secondary flex items-center gap-1">{entregaTelefono || "Teléfono no disponible"}{entregaTelefono && <button type="button" onClick={()=>{ copiar(entregaTelefono); setCopiado("ent"); setTimeout(()=>setCopiado(null),1200); }} className="text-[10px] font-bold text-route-action hover:underline px-1">{copiado==="ent"?"Copiado":"Copiar"}</button>}</span>
                   </div>
                 </div>
                 {entregaTelefono && (
@@ -439,21 +439,21 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                       href={enlaceWhatsApp(entregaTelefono, `Hola ${entregaNombre}, soy el conductor de Ruum Ruum asignado para recolectar el vehículo del traslado #TR-${folio}.`)}
                       target="_blank"
                       rel="noreferrer"
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25"
+                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`WhatsApp a ${entregaNombre}`}
                       title="Enviar WhatsApp"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
                         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                       </svg>
                     </a>
                     <a
                       href={enlaceTel(entregaTelefono)}
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-route-action/15 text-route-action flex items-center justify-center border border-route-action/30 active:scale-95 transition-transform hover:bg-route-action/25"
+                      className="min-h-[40px] min-w-[40px] rounded-xl bg-route-action/15 text-route-action flex items-center justify-center border border-route-action/30 active:scale-95 transition-transform hover:bg-route-action/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`Llamar a ${entregaNombre}`}
                       title="Llamar"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                       </svg>
                     </a>
@@ -470,7 +470,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                   <div className="flex flex-col min-w-0">
                     <span className="text-[9px] text-signal font-bold uppercase tracking-wider">Persona quien Recibe (Destino)</span>
                     <span className="font-bold text-xs text-text-primary truncate">{recepcionNombre}</span>
-                    <span className="font-mono text-[11px] text-text-secondary">{recepcionTelefono || "Teléfono no disponible"}</span>
+                    <span className="font-mono text-[11px] text-text-secondary flex items-center gap-1">{recepcionTelefono || "Teléfono no disponible"}{recepcionTelefono && <button type="button" onClick={()=>{ copiar(recepcionTelefono); setCopiado("rec"); setTimeout(()=>setCopiado(null),1200); }} className="text-[10px] font-bold text-route-action hover:underline px-1">{copiado==="rec"?"Copiado":"Copiar"}</button>}</span>
                   </div>
                 </div>
                 {recepcionTelefono && (
@@ -479,21 +479,21 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                       href={enlaceWhatsApp(recepcionTelefono, `Hola ${recepcionNombre}, soy el conductor de Ruum Ruum en camino a tu ubicación con el traslado #TR-${folio}.`)}
                       target="_blank"
                       rel="noreferrer"
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25"
+                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`WhatsApp a ${recepcionNombre}`}
                       title="Enviar WhatsApp"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
                         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                       </svg>
                     </a>
                     <a
                       href={enlaceTel(recepcionTelefono)}
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-route-action/15 text-route-action flex items-center justify-center border border-route-action/30 active:scale-95 transition-transform hover:bg-route-action/25"
+                      className="min-h-[40px] min-w-[40px] rounded-xl bg-route-action/15 text-route-action flex items-center justify-center border border-route-action/30 active:scale-95 transition-transform hover:bg-route-action/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`Llamar a ${recepcionNombre}`}
                       title="Llamar"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                       </svg>
                     </a>

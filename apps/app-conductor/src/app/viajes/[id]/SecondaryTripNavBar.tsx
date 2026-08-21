@@ -616,13 +616,13 @@ export function SecondaryTripNavBar({
       {/* ------------------------------------------------------------------ */}
       {/* BARRA DE NAVEGACIÓN SECUNDARIA INFERIOR (Fija en el fondo) */}
       {/* ------------------------------------------------------------------ */}
-      <nav aria-label="Navegación secundaria del traslado" className="fixed bottom-0 inset-x-0 z-50 bg-surface/95 border-t border-border/20 backdrop-blur-lg px-3 py-2 select-none shadow-lg">
+      <nav aria-label="Navegación secundaria del traslado" className="fixed bottom-0 inset-x-0 z-50 bg-surface/95 border-t border-border/20 backdrop-blur-lg px-3 py-2 pb-[calc(8px+env(safe-area-inset-bottom))] select-none shadow-lg">
         <div className="grid grid-cols-3 gap-2 max-w-md mx-auto">
           
           {/* Pestaña 1: Detalles del traslado */}
           <Link
             href={`/viajes/${trasladoId}/detalles`}
-            className="flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl transition-all duration-200 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-surface-elevated/60"
+            className="flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl transition-all duration-200 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-surface-elevated/60 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action min-h-11"
           >
             <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -636,7 +636,8 @@ export function SecondaryTripNavBar({
           <button
             type="button"
             onClick={() => setTabActiva("gastos")}
-            className={`flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl transition-all duration-200 cursor-pointer ${
+            aria-pressed={tabActiva === "gastos"}
+            className={`flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl transition-all duration-200 cursor-pointer min-h-11 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${
               tabActiva === "gastos"
                 ? "bg-signal/15 text-signal border border-signal/30 font-extrabold shadow-xs"
                 : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated/60"
@@ -654,7 +655,8 @@ export function SecondaryTripNavBar({
           <button
             type="button"
             onClick={() => setTabActiva("incidencia")}
-            className={`flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl transition-all duration-200 cursor-pointer ${
+            aria-pressed={tabActiva === "incidencia"}
+            className={`flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl transition-all duration-200 cursor-pointer min-h-11 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${
               tabActiva === "incidencia"
                 ? "bg-warning/15 text-warning border border-warning/30 font-extrabold shadow-xs"
                 : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated/60"
