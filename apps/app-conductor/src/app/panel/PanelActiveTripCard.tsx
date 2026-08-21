@@ -88,9 +88,17 @@ export function PanelActiveTripCard({ viaje }: PanelActiveTripCardProps) {
         <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
           Número de Traslado
         </span>
-        <span className="font-mono text-2xl sm:text-3xl font-black text-text-primary mt-0.5 tracking-tight">
+        <button
+          type="button"
+          onClick={() => {
+            if (navigator.clipboard) void navigator.clipboard.writeText(folioViaje(viaje));
+          }}
+          className="font-mono text-2xl sm:text-3xl font-black text-text-primary mt-0.5 tracking-tight text-left hover:text-signal transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action rounded"
+          title="Copiar folio"
+          aria-label={`Copiar folio ${folioViaje(viaje)}`}
+        >
           #{folioViaje(viaje)}
-        </span>
+        </button>
       </div>
 
       {/* 3. Paso Actual */}
@@ -114,9 +122,9 @@ export function PanelActiveTripCard({ viaje }: PanelActiveTripCardProps) {
       {/* 4. Botón de continuar traslado */}
       <Link
         href={getContinuarTrasladoHref(viaje)}
-        className="w-full min-h-12 rounded-2xl bg-signal hover:bg-signal/85 text-slate-950 font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-2 focus:outline-hidden mt-1"
+        className="w-full min-h-12 rounded-2xl bg-signal hover:bg-signal/85 text-slate-950 font-display text-sm font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-2 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal mt-1"
       >
-        CONTINUAR TRASLADO →
+        Continuar traslado →
       </Link>
     </div>
   );

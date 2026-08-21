@@ -61,6 +61,7 @@ export function usePanelData() {
   const [trasladosHoy, setTrasladosHoy] = useState<number>(0);
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
   const ultimoTriggerDisponibilidadRef = useRef(0);
   const recargaDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -177,6 +178,7 @@ export function usePanelData() {
       setTrasladosHoy(trasladosDelDia.length);
       setDocumentos(docsConductor);
       setDisponibilidad(aceptados.some((viaje) => viaje.estado === "traslado_en_curso") ? "en_viaje" : disponibilidadOperativa);
+      setUltimaActualizacion(new Date());
       setErrorDisponibilidad(null);
     } catch (err) {
       setErrorDisponibilidad(traducirErrorOperativo(err, "No pudimos cargar tu información operativa."));
@@ -304,6 +306,7 @@ export function usePanelData() {
   return {
     cargando,
     refrescando,
+    ultimaActualizacion,
     conductor,
     disponibilidad,
     disponibilidadPendiente,

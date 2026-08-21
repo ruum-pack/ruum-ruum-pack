@@ -18,25 +18,25 @@ export function PanelOpportunitiesCard({
   const primerViaje = viajesDisponibles[0] ?? null;
 
   return (
-    <div className="w-full p-5 rounded-3xl bg-surface-elevated border border-route-action/30 text-text-primary flex flex-col gap-4 shadow-lg text-left relative overflow-hidden">
+    <div className="w-full p-5 rounded-3xl bg-surface-elevated border border-border/30 text-text-primary flex flex-col gap-4 shadow-lg text-left relative overflow-hidden">
       <div className="flex justify-between items-start w-full">
         <div className="flex flex-col gap-1 max-w-[75%]">
           <span className="text-route-action text-[10px] font-extrabold uppercase tracking-widest leading-none flex items-center gap-1.5">
-            {esDisponible && <span className="h-2 w-2 rounded-full bg-route-action animate-ping" />}
+            {esDisponible && <span className="h-2 w-2 rounded-full bg-signal" aria-hidden />}
             {esDisponible ? "Traslados Disponibles" : "Modo No Disponible"}
           </span>
           <h2 className="font-display text-lg font-black tracking-tight text-text-primary leading-tight mt-2">
             {esDisponible
               ? cantidadDisponibles > 0
                 ? `${cantidadDisponibles} traslado${cantidadDisponibles > 1 ? "s" : ""} disponible${cantidadDisponibles > 1 ? "s" : ""} en tu zona`
-                : "Buscando nuevas oportunidades…"
+                : "Sin traslados por ahora"
               : "Actívate para recibir solicitudes"}
           </h2>
           <p className="font-body text-xs text-text-secondary mt-1 leading-normal">
             {esDisponible
               ? cantidadDisponibles > 0
                 ? "Revisa los detalles y toma el traslado que mejor se ajuste a tu ruta."
-                : "Mantente en línea. Te notificaremos en cuanto haya viajes en tu radio operativo."
+                : "Te avisaremos con sonido en cuanto haya viajes en tu radio operativo."
               : "Cambia tu estado a Disponible para que la plataforma te asigne nuevos viajes."}
           </p>
         </div>
@@ -68,13 +68,13 @@ export function PanelOpportunitiesCard({
 
       <Link
         href="/viajes"
-        className={`w-full min-h-12 rounded-2xl font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden mt-1 ${
+        className={`w-full min-h-12 rounded-2xl font-display text-sm font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action mt-1 ${
           esDisponible
-            ? "bg-route-action hover:bg-route-action/85 text-slate-950"
+            ? "bg-signal hover:bg-signal/85 text-slate-950"
             : "bg-surface hover:bg-surface-elevated text-text-primary border border-border/40"
         }`}
       >
-        {esDisponible ? (cantidadDisponibles > 0 ? `VER TRASLADOS (${cantidadDisponibles}) →` : "VER BANDEJA DE TRASLADOS →") : "EXPLORAR TRASLADOS →"}
+        {esDisponible ? (cantidadDisponibles > 0 ? `Ver traslados (${cantidadDisponibles}) →` : "Ver bandeja de traslados →") : "Explorar traslados →"}
       </Link>
     </div>
   );

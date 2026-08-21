@@ -39,14 +39,14 @@ export function PanelOperationalHealth({
         </span>
         <Link
           href="/cuenta"
-          className="text-xs font-bold text-route-action hover:underline inline-flex items-center gap-1 min-h-[36px] py-1 px-2 rounded-lg hover:bg-surface"
+          className="text-xs font-bold text-route-action hover:underline inline-flex items-center gap-1 min-h-11 py-2 px-3 rounded-lg hover:bg-surface focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
         >
           <span>Ver detalle</span>
-          <span className="text-[10px]">&gt;</span>
+          <span className="text-[10px]" aria-hidden>&gt;</span>
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4 mt-4 select-none">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-4 mt-4">
         {/* GPS */}
         <div className="flex items-center gap-2.5">
           <svg
