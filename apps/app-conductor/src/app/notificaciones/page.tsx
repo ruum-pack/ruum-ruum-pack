@@ -100,18 +100,19 @@ export default function CentroNotificaciones() {
 
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-8 sm:px-6 sm:py-12">
-      {/* Encabezado y Acción en Bloque */}
+      {/* Encabezado — Brand Book p.22: título Montserrat Bold, subtítulo Inter, línea ruta */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-body text-xs font-bold uppercase tracking-wider text-route-action">
-            Comunicación Operativa
+          <p className="font-body text-[11px] font-bold uppercase tracking-widest text-text-tertiary">
+            Ruum Ruum · Seguridad · Evidencia · Trazabilidad
           </p>
-          <h1 className="mt-1 font-display text-2xl font-bold text-text-primary sm:text-3xl">
+          <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
             Notificaciones y Avisos
           </h1>
-          <p className="mt-1 font-body text-xs text-text-tertiary">
+          <p className="mt-1 font-body text-sm text-text-secondary">
             Tus avisos y alertas operativas permanecen guardados en este centro.
           </p>
+          <div className="conductor-ruta-divider mt-3 max-w-[280px]" aria-hidden />
         </div>
 
         {/* 3. Acciones Globales en Bloque */}

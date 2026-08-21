@@ -1,8 +1,9 @@
 @import "tailwindcss";
 @import "@ruum/ui/styles/tokens.css";
 
-/* App conductor: la operación de campo usa la misma base visual, con
-   prioridad para evidencia, estados de viaje y controles táctiles. */
+/* App conductor — BRAND BOOK RUUM RUUM V1
+   Proporción 60% blanco evidencia / 25% negro asfalto / 10% amarillo ruta / 5% azul trazabilidad + gris acero.
+   Amarillo solo como acento (ruta, check, CTA). Fondo limpio, mucho blanco, línea de ruta como recurso. */
 .conductor-page {
   --conductor-sticky-action-top: calc(6rem + env(safe-area-inset-top));
   min-height: 100vh;
@@ -16,9 +17,15 @@
 }
 
 .conductor-status-panel {
-  border: 1px solid color-mix(in srgb, var(--color-route) 25%, white);
+  border: 1px solid color-mix(in srgb, var(--color-route) 22%, white);
   border-radius: 12px;
   background: var(--color-route-soft);
+}
+/* Sello de trazabilidad: línea de ruta amarilla (Brand Book p.22) */
+.conductor-ruta-divider {
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-signal) 0 40px, transparent 40px 48px, var(--color-route) 48px 100%);
+  border-radius: 999px;
 }
 
 .conductor-auth-shell {
@@ -309,11 +316,11 @@
  * locales. No invertir aliases históricos como ink/mist/paper.
  * ========================================================================= */
 
-/* Lienzo con los mismos resplandores radiales del onboarding. */
+/* Lienzo Brand Book: negro asfalto #151515 protagonista, amarillo #FFC400 solo como acento, azul #1E88E5 para trazabilidad. */
 html[data-theme="dark"] body {
   background:
-    radial-gradient(circle at 12% 0%, rgba(58, 165, 255, 0.1), transparent 42%),
-    radial-gradient(circle at 95% 100%, rgba(168, 232, 32, 0.06), transparent 38%),
+    radial-gradient(circle at 12% 0%, rgba(30, 136, 229, 0.08), transparent 44%),
+    radial-gradient(circle at 95% 100%, rgba(255, 196, 0, 0.05), transparent 40%),
     var(--ruum-canvas);
   background-attachment: fixed;
 }
@@ -339,9 +346,9 @@ html[data-theme="dark"] .conductor-status-panel {
 
 html[data-theme="dark"] .conductor-auth-shell {
   background:
-    radial-gradient(circle at 18% 12%, rgba(47, 111, 237, 0.22), transparent 40%),
-    radial-gradient(circle at 88% 82%, var(--ruum-pulse-soft), transparent 38%),
-    linear-gradient(180deg, rgba(7, 11, 20, 0.78) 0%, rgba(7, 11, 20, 0.94) 62%, var(--ruum-canvas) 100%),
+    radial-gradient(circle at 18% 12%, rgba(255, 196, 0, 0.10), transparent 38%),
+    radial-gradient(circle at 88% 82%, rgba(30, 136, 229, 0.14), transparent 42%),
+    linear-gradient(180deg, rgba(21, 21, 21, 0.72) 0%, rgba(15, 19, 26, 0.94) 62%, var(--ruum-canvas) 100%),
     url("/imagenes/onboarding-paso2.webp") center / cover no-repeat,
     var(--ruum-canvas);
 }

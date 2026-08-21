@@ -27,7 +27,7 @@ export interface LogoMarcaProps {
   mostrarDescriptor?: boolean;
   /** Texto personalizado para el descriptor (por defecto 'Traslado vehicular con conductores certificados'). */
   descriptor?: string;
-  /** Subtítulo o lema adicional (por ejemplo 'Tu operación, tu control.'). */
+  /** Subtítulo o lema adicional (por ejemplo '.'). */
   subtitulo?: string;
   /** Color de apoyo opcional para el punto de destino (compatibilidad). */
   color?: "signal" | "route" | "control";

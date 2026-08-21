@@ -145,10 +145,11 @@ export default function PaginaPanel() {
         <PanelLoadingSkeleton />
       ) : (
         <div className="w-full flex flex-col flex-1 pb-20 md:pb-6">
-          {/* Header */}
+          {/* Header — Brand Book: logo horizontal + descriptor */}
           <header className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <LogoMarca tamano={28} color="signal" descriptor="Conductor" subtitulo="Tu operación, tu control." />
+              <LogoMarca tamano={28} color="signal" descriptor="Traslado vehicular con conductores certificados" mostrarDescriptor={false} mostrarRespaldo={false} />
+              <span className="hidden sm:inline font-body text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">by MoviliaX</span>
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
@@ -209,8 +210,8 @@ export default function PaginaPanel() {
             </div>
           )}
 
-          {/* ESTADO DEL CONDUCTOR */}
-          <section className="mt-5 bg-surface-elevated rounded-2xl p-5 border border-border/20 text-left shadow-xs">
+          {/* ESTADO DEL CONDUCTOR — amarillo ruta solo acento 10% */}
+          <section className="mt-5 bg-surface rounded-2xl p-5 border border-border/40 text-left shadow-sm">
             <div className="flex justify-between items-start">
               <div className="flex flex-col gap-1">
                 <span className="text-text-tertiary text-xs font-extrabold tracking-wider uppercase">

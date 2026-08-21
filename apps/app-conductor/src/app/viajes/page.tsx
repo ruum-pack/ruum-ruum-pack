@@ -362,10 +362,11 @@ export default function PaginaViajes() {
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-between min-h-[calc(100vh-100px)] text-text-primary">
       <div className="w-full flex flex-col flex-1 pb-16">
-        {/* Header */}
+        {/* Header — Brand Book p.22: fondo limpio, título Montserrat grande */}
         <header className="flex items-center justify-between gap-3 border-b border-border/20 pb-4">
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-text-primary leading-none">
+            <p className="font-body text-[10px] font-bold uppercase tracking-widest text-text-tertiary">Traslado vehicular · Conductores certificados</p>
+            <h1 className="mt-1 font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-text-primary leading-none">
               Traslados
             </h1>
             <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-text-tertiary">

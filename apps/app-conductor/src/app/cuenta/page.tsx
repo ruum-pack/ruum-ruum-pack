@@ -83,14 +83,15 @@ const CATEGORIAS_CUENTA: CategoriaCuenta[] = [
 export default function PaginaCuenta() {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-      {/* Cabecera con Sello Oficial de Conductor */}
+      {/* Cabecera con Sello Oficial de Conductor — Brand Book p.12 */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/40 pb-6">
         <CuentaHeader
           titulo="Cuenta del Conductor"
-          descripcion="Centro de configuración, expediente operativo y soporte del servicio Ruum Ruum by MoviliaX."
+          descripcion="Centro de configuración, expediente operativo y soporte del servicio Ruum Ruum by MoviliaX. Seguridad, evidencia y trazabilidad en cada viaje."
         />
         <SelloConductor compacto tema="dorado" className="self-start sm:self-auto shrink-0" />
       </div>
+      <p className="mt-3 font-body text-xs font-medium tracking-wide text-text-tertiary">Traslado vehicular con conductores certificados · by MoviliaX</p>
 
       {/* 2. Agrupación Temática por Categorías */}
       <div className="mt-8 grid gap-8">

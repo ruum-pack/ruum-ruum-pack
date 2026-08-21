@@ -1,10 +1,11 @@
 /*
- * Ruum Ruum — Sistema visual compartido
+ * Ruum Ruum — Sistema visual compartido · BRAND BOOK RUUM RUUM V1
  *
- * Este archivo es la fuente de verdad para todas las experiencias:
- * app de usuario, app de conductor y Torre de Control administrativa.
- * La marca comunica control, trazabilidad y seguridad mediante una base
- * neutra, superficies claras y señal dorada para acciones de alta intención.
+ * Fuente de verdad institucional. Paleta oficial:
+ *   60% Blanco evidencia #F8F8F5 · 25% Negro asfalto #151515
+ *   10% Amarillo ruta #FFC400 (acento, ruta, check, CTA) · 5% Azul trazabilidad #1E88E5 / Gris acero #5F6368
+ * Tipografía: Montserrat Bold/SemiBold (títulos/botones), Inter Regular/Medium (cuerpo), IBM Plex Mono (datos).
+ * Concepto: Ruta + Check + Evidencia + Trazabilidad + Conductor certificado.
  */
 @theme {
   --color-ink: #151515;
@@ -62,7 +63,7 @@
   --color-ok: var(--color-control);
   --color-ok-soft: var(--color-control-soft);
 
-  --font-display: var(--font-display-loaded), "Montserrat", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-loaded), "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-body-loaded), "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono-ruum: var(--font-mono-loaded), "IBM Plex Mono", ui-monospace, monospace;
 

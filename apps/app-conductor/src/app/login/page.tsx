@@ -75,19 +75,22 @@ export default function PaginaLogin() {
 
   return (
     <div
-      className="flex items-center justify-center px-4 py-10 sm:px-6"
+      className="flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-10 sm:px-6"
       style={{
         background:
-          "radial-gradient(circle at 12% 8%, rgba(58,165,255,0.08), transparent 42%)," +
-          "radial-gradient(circle at 92% 88%, rgba(168,232,32,0.05), transparent 38%)" +
+          "radial-gradient(circle at 12% 8%, rgba(30,136,229,0.06), transparent 42%)," +
+          "radial-gradient(circle at 92% 88%, rgba(255,196,0,0.05), transparent 38%)," +
           "var(--ruum-canvas)"
       }}
     >
       <section className="conductor-auth-card p-6 sm:p-8" aria-labelledby="titulo-inicio-conductor">
         <div className="flex items-center gap-3">
-          <LogoMarca tamano={34} color="signal" descriptor="Conductor" subtitulo="" />
+          <LogoMarca tamano={34} color="signal" descriptor="Traslado vehicular con conductores certificados" />
         </div>
-        <h1 id="titulo-inicio-conductor" className="mt-8 font-display text-2xl font-bold text-text-primary">Iniciar sesión</h1>
+        <p className="mt-2 font-body text-[11px] font-medium tracking-wide text-text-tertiary">Seguridad, evidencia y trazabilidad en cada viaje. · by MoviliaX</p>
+        <div className="conductor-ruta-divider mt-4" aria-hidden />
+        <h1 id="titulo-inicio-conductor" className="mt-6 font-display text-2xl font-bold tracking-tight text-text-primary">Iniciar sesión</h1>
+        <p className="mt-1 font-body text-sm text-text-secondary">Conductores certificados — acceso operativo.</p>
 
         {!tieneSupabaseConfigurado() && (
           <div className="mt-6">

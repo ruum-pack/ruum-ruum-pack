@@ -8,8 +8,9 @@ export function CuentaHeader({ titulo, descripcion }: { titulo: string; descripc
         <span className="mx-2">/</span>
         <Link href="/cuenta" className="underline-offset-4 hover:underline">Cuenta</Link>
       </nav>
-      <h1 className="font-display text-3xl font-semibold">{titulo}</h1>
+      <h1 className="font-display text-3xl font-bold tracking-tight text-text-primary">{titulo}</h1>
       <p className="font-body text-sm leading-6 text-text-secondary">{descripcion}</p>
+      <div className="conductor-ruta-divider mt-1 max-w-[320px]" aria-hidden />
     </header>
   );
 }

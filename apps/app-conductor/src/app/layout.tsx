@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
 import { TextInputUppercaseBridge } from "@ruum/ui";
 import "./globals.css";
 import { SincronizadorEvidenciaOffline } from "./SincronizadorEvidenciaOffline";
@@ -13,9 +13,9 @@ import { LiveRegionProvider } from "../components/LiveRegionProvider";
 import { VersionGate } from "./VersionGate";
 import { OperationalAccessibilityBridge } from "./OperationalAccessibilityBridge";
 
-const spaceGrotesk = Space_Grotesk({
+const montserrat = Montserrat({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["600", "700", "800"],
   variable: "--font-display-loaded",
   display: "swap"
 });
@@ -69,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           })();
         ` }} />
       </head>
-      <body className={`${spaceGrotesk.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
+      <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">Saltar al contenido principal</a>
         <LiveRegionProvider>
           <ViajeActivoProvider>

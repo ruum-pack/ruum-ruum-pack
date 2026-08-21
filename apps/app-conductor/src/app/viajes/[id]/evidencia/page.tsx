@@ -414,15 +414,15 @@ export default function PaginaEvidencia() {
           </div>
         </header>
 
-        {/* Step Breadcrumbs Tracker */}
+        {/* Step Breadcrumbs — Brand Book: titular Montserrat Bold + línea ruta */}
         <div className="mt-6 flex flex-col gap-1">
           <span className="font-body text-[10px] text-text-tertiary font-bold tracking-wide">
             Traslados › {tipo === "inicial" ? origen : (pasaporte?.destino_ciudad || "Destino")} › <span className="text-text-primary">Paso 2 de 2</span>
           </span>
           <span className="font-display text-[9px] font-black text-route-action tracking-widest uppercase mt-0.5">
-            {tipo === "inicial" ? "RECOLECCIÓN DE UNIDAD" : "ENTREGA DE UNIDAD"}
+            {tipo === "inicial" ? "RECOLECCIÓN DE UNIDAD" : "ENTREGA DE UNIDAD"} · Evidencia documentada
           </span>
-          <h1 className="font-display text-2xl font-black text-text-primary leading-tight mt-1">
+          <h1 className="font-display text-2xl font-black tracking-tight text-text-primary leading-tight mt-1">
             {tipo === "inicial" ? "Checklist de Origen" : "Checklist de Destino"}
           </h1>
           <p className="font-body text-xs text-text-secondary leading-relaxed mt-1">
@@ -430,9 +430,10 @@ export default function PaginaEvidencia() {
               {tipo === "inicial" ? "Verificación y evidencia de salida" : "Verificación y evidencia de entrega"}
             </span>
             {tipo === "inicial" 
-              ? "Captura las fotografías y datos del vehículo antes de iniciar el traslado." 
-              : "Captura las fotografías y datos del vehículo en el punto de entrega de destino."}
+              ? "Captura las fotografías y datos del vehículo antes de iniciar el traslado. Cada traslado inicia con evidencia." 
+              : "Captura las fotografías y datos del vehículo en el punto de entrega de destino. Cada traslado termina con confirmación."}
           </p>
+          <div className="conductor-ruta-divider mt-2 max-w-[260px]" aria-hidden />
         </div>
 
         {/* Progress Bar Container with Prominent Percent Badge */}

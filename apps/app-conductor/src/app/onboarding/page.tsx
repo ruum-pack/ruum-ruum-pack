@@ -26,14 +26,14 @@ interface Paso {
 
 const PASOS: Paso[] = [
   {
-    tag: "Tu semana, de un vistazo",
+    tag: "Seguridad · Evidencia · Trazabilidad",
     titulo: (
       <>
-        Todos tus viajes y <span className="text-success">ganancias</span>, en un solo panel
+        No entregues tu auto a ciegas. <span className="text-signal">Un traslado serio deja evidencia.</span>
       </>
     ),
     descripcion:
-      "Consulta viajes realizados, pendientes y tus ganancias acumuladas sin salir de la pantalla principal.",
+      "Ruum Ruum es traslado vehicular con conductores certificados. Cada viaje inicia con evidencia, continúa con seguimiento y termina con confirmación.",
       hero: (
         <Image
           src="/imagenes/onboarding-paso1.webp"
@@ -47,14 +47,14 @@ const PASOS: Paso[] = [
       )
   },
   {
-    tag: "Viajes compatibles, al instante",
+    tag: "Conductores certificados",
     titulo: (
       <>
-        Acepta viajes <span className="text-route-action">fácilmente</span>
+        No cualquiera mueve un <span className="text-signal">Ruum Ruum.</span>
       </>
     ),
     descripcion:
-      "Revisa las solicitudes compatibles con tu perfil, acéptalas con un toque y sigue tu ruta con todo bajo control.",
+      "Cada conductor cumple validación, identidad y protocolo operativo. Trazabilidad y bitácora de principio a fin.",
       hero: (
         <Image
           src="/imagenes/onboarding-paso2.webp"
@@ -63,19 +63,19 @@ const PASOS: Paso[] = [
           height={675}
           sizes="(max-width: 640px) 90vw, 400px"
           priority={false}
-          className="w-full rounded-3xl object-cover shadow-[0_24px_60px_-24px_rgba(58,165,255,0.35)]"
+          className="w-full rounded-3xl object-cover shadow-[0_24px_60px_-24px_rgba(30,136,229,0.25)]"
         />
       )
   },
   {
-    tag: "Registro que protege tu pago",
+    tag: "Evidencia documentada",
     titulo: (
       <>
-        Registro del vehículo que respalda <span className="text-success">pagos claros</span>
+        Cada viaje se <span className="text-signal">documenta.</span>
       </>
     ),
     descripcion:
-      "Documenta cada operación con registro fotográfico del vehículo y recibe cortes puntuales con su desglose. Sin sorpresas.",
+      "Kilometraje, carrocería, placas y entrega final con evidencia fotográfica. La confianza también se documenta.",
       hero: (
         <Image
           src="/imagenes/onboarding-paso3.webp"
@@ -125,22 +125,22 @@ export default function PaginaOnboarding() {
       className="flex min-h-dvh flex-col text-text-primary"
       style={{
         background:
-          "radial-gradient(circle at 12% 8%, rgba(58,165,255,0.14), transparent 42%)," +
-          "radial-gradient(circle at 92% 88%, rgba(168,232,32,0.08), transparent 38%)," +
+          "radial-gradient(circle at 12% 8%, rgba(30,136,229,0.10), transparent 42%)," +
+          "radial-gradient(circle at 92% 88%, rgba(255,196,0,0.06), transparent 38%)," +
           "var(--ruum-canvas)"
       }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* encabezado */}
+      {/* encabezado — Brand Book p.9-11 */}
       <header className="flex items-center justify-between px-5 pb-2 pt-5">
         <div className="flex items-center gap-2.5">
-          <LogoMarca tamano={30} color="signal" />
+          <LogoMarca tamano={30} color="signal" descriptor="Traslado vehicular con conductores certificados" mostrarDescriptor={false} mostrarRespaldo={false} />
           <div>
             <p className="font-display text-sm font-extrabold tracking-tight">
-              ruum<span className="text-signal">ruum</span>
+              Ruum<span className="text-signal"> Ruum</span>
             </p>
-            <p className="font-body text-xs font-semibold text-text-tertiary">Conductor</p>
+            <p className="font-body text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Conductores certificados · by MoviliaX</p>
           </div>
         </div>
         <button
@@ -156,8 +156,8 @@ export default function PaginaOnboarding() {
       {/* hero */}
       <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-2">
         <div className="relative flex h-full max-h-[46dvh] w-full max-w-sm items-center justify-center">
-          <span className="absolute left-0 top-1 z-10 rounded-full border border-border bg-surface-elevated px-3 py-1.5 font-body text-xs font-semibold text-route-action backdrop-blur">
-            Paso {paso + 1} de {PASOS.length}
+          <span className="absolute left-0 top-1 z-10 rounded-full border border-signal/30 bg-surface-elevated px-3 py-1.5 font-body text-xs font-semibold text-text-secondary backdrop-blur">
+            <span className="inline-block size-1.5 rounded-full bg-signal mr-1.5 align-middle" aria-hidden /> Paso {paso + 1} de {PASOS.length}
           </span>
           {actual.hero}
         </div>
