@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { Aviso, Button } from "@ruum/ui";
 import { MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { RegistroViajeActivo } from "../../../ViajeActivoContext";
@@ -131,6 +132,16 @@ export function EvidenciaStepper() {
 
 export function EvidenciaInspeccion() {
   const { inspeccion, camposInspeccionPendientes, inspeccionCompletada, enviando, setInspeccion, onSaveInspection } = useEvidenceWizard();
+  const [docsAbierto, setDocsAbierto] = useState(true);
+  const [notasAbierto, setNotasAbierto] = useState(true);
+
+  const docsRevisados = [
+    inspeccion.hologramaVerificacion,
+    inspeccion.talonVerificacion,
+    inspeccion.tarjetaCirculacion,
+    inspeccion.placaDelantera,
+    inspeccion.placaTrasera
+  ].filter((v) => v === "si").length;
 
   return (
     <section className="mt-6 rounded-xl border border-border bg-surface p-4" aria-labelledby="datos-inspeccion-titulo">
@@ -171,24 +182,79 @@ export function EvidenciaInspeccion() {
           opciones={OPCIONES_LLAVES}
           onChange={(valor) => setInspeccion((actual) => ({ ...actual, llavesRecibidas: valor }))}
         />
-        <CampoSiNo
-          etiqueta="Holograma de verificación *"
-          valor={inspeccion.hologramaVerificacion}
-          onChange={(valor) => setInspeccion((actual) => ({ ...actual, hologramaVerificacion: valor }))}
-        />
-        <CampoSelect etiqueta="Talón de verificación *" valor={inspeccion.talonVerificacion} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, talonVerificacion: valor }))} />
-        <CampoSelect etiqueta="Tarjeta de circulación *" valor={inspeccion.tarjetaCirculacion} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, tarjetaCirculacion: valor }))} />
-        <CampoSelect etiqueta="Placa delantera *" valor={inspeccion.placaDelantera} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaDelantera: valor }))} />
-        <CampoSelect etiqueta="Placa trasera *" valor={inspeccion.placaTrasera} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaTrasera: valor }))} />
-        <label className="grid gap-1 sm:col-span-2">
-          <span className="font-body text-sm font-semibold text-text-tertiary">Notas o comentarios <span className="font-normal">(opcional)</span></span>
-          <textarea
-            value={inspeccion.notas}
-            onChange={(event) => setInspeccion((actual) => ({ ...actual, notas: event.target.value }))}
-            rows={3}
-            className="rounded-lg border border-border bg-surface px-3 py-2 font-body text-base text-text-primary outline-none focus:border-signal"
-          />
-        </label>
+      </div>
+
+      {/* Acordeón: Documentos y Placas */}
+      <div className="mt-4 rounded-xl border border-border bg-surface-elevated/40 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setDocsAbierto(!docsAbierto)}
+          className="w-full flex items-center justify-between p-3.5 hover:bg-surface-elevated text-left cursor-pointer transition-colors"
+          aria-expanded={docsAbierto}
+        >
+          <div className="flex items-center gap-2">
+            <span className="font-display text-xs font-bold uppercase tracking-wider text-text-primary">
+              📄 Documentos y Placas
+            </span>
+            <span className="font-body text-[11px] text-text-tertiary">
+              ({docsRevisados}/5 verificados)
+            </span>
+          </div>
+          <span className="font-display text-xs font-bold text-text-tertiary">
+            {docsAbierto ? "▲" : "▼"}
+          </span>
+        </button>
+
+        {docsAbierto && (
+          <div className="p-3.5 border-t border-border/40 grid gap-3 sm:grid-cols-2">
+            <CampoSiNo
+              etiqueta="Holograma de verificación *"
+              valor={inspeccion.hologramaVerificacion}
+              onChange={(valor) => setInspeccion((actual) => ({ ...actual, hologramaVerificacion: valor }))}
+            />
+            <CampoSelect etiqueta="Talón de verificación *" valor={inspeccion.talonVerificacion} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, talonVerificacion: valor }))} />
+            <CampoSelect etiqueta="Tarjeta de circulación *" valor={inspeccion.tarjetaCirculacion} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, tarjetaCirculacion: valor }))} />
+            <CampoSelect etiqueta="Placa delantera *" valor={inspeccion.placaDelantera} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaDelantera: valor }))} />
+            <CampoSelect etiqueta="Placa trasera *" valor={inspeccion.placaTrasera} opciones={OPCIONES_SI_NO} onChange={(valor) => setInspeccion((actual) => ({ ...actual, placaTrasera: valor }))} />
+          </div>
+        )}
+      </div>
+
+      {/* Acordeón: Notas o Comentarios */}
+      <div className="mt-4 rounded-xl border border-border bg-surface-elevated/40 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setNotasAbierto(!notasAbierto)}
+          className="w-full flex items-center justify-between p-3.5 hover:bg-surface-elevated text-left cursor-pointer transition-colors"
+          aria-expanded={notasAbierto}
+        >
+          <div className="flex items-center gap-2">
+            <span className="font-display text-xs font-bold uppercase tracking-wider text-text-primary">
+              📝 Notas o Comentarios
+            </span>
+            <span className="font-body text-[11px] text-text-tertiary">
+              {inspeccion.notas ? "(Capturado)" : "(Opcional)"}
+            </span>
+          </div>
+          <span className="font-display text-xs font-bold text-text-tertiary">
+            {notasAbierto ? "▲" : "▼"}
+          </span>
+        </button>
+
+        {notasAbierto && (
+          <div className="p-3.5 border-t border-border/40">
+            <textarea
+              value={inspeccion.notas}
+              onChange={(event) => setInspeccion((actual) => ({ ...actual, notas: event.target.value }))}
+              rows={3}
+              placeholder="Detalla cualquier observación o daño previo encontrado..."
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-body text-base text-text-primary outline-none focus:border-signal"
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4">
         <Button variant="secondary" onClick={onSaveInspection} loading={enviando === "inspeccion"}>
           Guardar inspección
         </Button>

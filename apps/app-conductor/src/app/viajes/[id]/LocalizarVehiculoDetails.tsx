@@ -30,6 +30,11 @@ export function LocalizarVehiculoDetails({
 
   const placas = pasaporte.vehiculo_placas || "POR CONFIRMAR";
   const vin = pasaporte.vehiculo_vin || "POR CONFIRMAR";
+  const marca = pasaporte.vehiculo_marca || (pasaporte.vehiculo_modelo ? pasaporte.vehiculo_modelo.split(" ")[0] : "No especificada");
+  const modelo = pasaporte.vehiculo_modelo || "No especificado";
+  const anio = pasaporte.vehiculo_anio ? String(pasaporte.vehiculo_anio) : "No especificado";
+  const color = pasaporte.vehiculo_color || "No especificado";
+
   const contactoNombre = pasaporte.contacto_entrega_nombre || "Contacto en origen";
   const contactoTelefono = pasaporte.contacto_entrega_telefono || "";
   const telefonoLimpio = contactoTelefono.replace(/[^0-9]/g, "");
@@ -198,19 +203,52 @@ export function LocalizarVehiculoDetails({
           )}
         </div>
 
-        {/* VEHÍCULO A BUSCAR */}
-        <div className="mt-5 flex flex-col gap-2">
-          <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest">
-            VEHÍCULO A LOCALIZAR
-          </span>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 bg-surface border border-border/20 rounded-xl p-3 flex flex-col">
-              <span className="text-[9px] text-text-tertiary uppercase font-bold">PLACAS</span>
-              <span className="font-mono font-black text-lg mt-0.5 text-text-primary">{placas}</span>
+        {/* VEHÍCULO A LOCALIZAR */}
+        <div className="mt-5 flex flex-col gap-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-text-tertiary font-extrabold uppercase tracking-widest">
+              VEHÍCULO A LOCALIZAR
+            </span>
+            <span className="text-[10px] font-bold text-signal uppercase tracking-wider">
+              {marca} {modelo}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            {/* 1. Placas */}
+            <div className="flex flex-col bg-surface border border-border/20 rounded-xl p-3 shadow-2xs">
+              <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider">PLACAS</span>
+              <span className="font-mono font-black text-base mt-0.5 text-signal">{placas}</span>
             </div>
-            <div className="flex-1 bg-surface border border-border/20 rounded-xl p-3 flex flex-col">
-              <span className="text-[9px] text-text-tertiary uppercase font-bold">VIN</span>
-              <span className="font-mono font-black text-xs mt-1 uppercase truncate text-text-primary">{vin}</span>
+
+            {/* 2. VIN */}
+            <div className="flex flex-col bg-surface border border-border/20 rounded-xl p-3 shadow-2xs">
+              <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider">NÚMERO VIN</span>
+              <span className="font-mono font-bold text-xs mt-1 uppercase truncate text-text-primary" title={vin}>{vin}</span>
+            </div>
+
+            {/* 3. Marca */}
+            <div className="flex flex-col bg-surface border border-border/20 rounded-xl p-3 shadow-2xs">
+              <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider">MARCA</span>
+              <span className="font-semibold text-xs mt-0.5 text-text-primary">{marca}</span>
+            </div>
+
+            {/* 4. Modelo */}
+            <div className="flex flex-col bg-surface border border-border/20 rounded-xl p-3 shadow-2xs">
+              <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider">MODELO</span>
+              <span className="font-semibold text-xs mt-0.5 text-text-primary truncate" title={modelo}>{modelo}</span>
+            </div>
+
+            {/* 5. Año */}
+            <div className="flex flex-col bg-surface border border-border/20 rounded-xl p-3 shadow-2xs">
+              <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider">AÑO</span>
+              <span className="font-semibold text-xs mt-0.5 text-text-primary tabular-nums">{anio}</span>
+            </div>
+
+            {/* 6. Color */}
+            <div className="flex flex-col bg-surface border border-border/20 rounded-xl p-3 shadow-2xs">
+              <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider">COLOR</span>
+              <span className="font-semibold text-xs mt-0.5 text-text-primary capitalize">{color}</span>
             </div>
           </div>
         </div>

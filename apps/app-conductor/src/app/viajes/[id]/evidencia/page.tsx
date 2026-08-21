@@ -54,6 +54,10 @@ export default function PaginaEvidencia() {
   const [placaTrasera, setPlacaTrasera] = useState("");
   const [notas, setNotas] = useState("");
 
+  // Accordion states for Documentos/Placas and Notas
+  const [acordeonDocsAbierto, setAcordeonDocsAbierto] = useState(true);
+  const [acordeonNotasAbierto, setAcordeonNotasAbierto] = useState(true);
+
   // Custom states for damages and receipt modal
   const [presentaDanosNuevos, setPresentaDanosNuevos] = useState(false);
   const [mostrarRecibo, setMostrarRecibo] = useState(false);
@@ -730,224 +734,295 @@ export default function PaginaEvidencia() {
           </div>
         </section>
 
-        {/* Section 4: DOCUMENTOS Y PLACAS */}
-        <section className="mt-8 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-md bg-surface-elevated text-text-secondary flex items-center justify-center font-display text-[10px] font-bold">
-              4
-            </span>
-            <h2 className="font-display text-xs font-black text-text-tertiary tracking-widest uppercase">
-              DOCUMENTOS Y PLACAS
-            </h2>
-          </div>
-
-          <div className="flex flex-col gap-2.5 text-xs font-body text-text-secondary">
-            {/* Tarjeta de circulación */}
-            <label className="bg-surface-elevated/20 border border-border/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-route-action/40 transition-all select-none">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={tarjetaCirculacion === "si"}
-                  onChange={(e) => setTarjetaCirculacion(e.target.checked ? "si" : "no")}
-                  className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
-                />
-                <span className="font-body text-sm font-semibold text-text-primary">💳 Tarjeta de circulación</span>
-              </div>
-              <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
-                tarjetaCirculacion === "si"
-                  ? "bg-signal/15 text-signal border border-signal/25"
-                  : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
-              }`}>
-                {tarjetaCirculacion === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
+        {/* Section 4: DOCUMENTOS Y PLACAS - Menú Tipo Acordeón */}
+        <section className="mt-8 flex flex-col rounded-2xl border border-border/30 bg-surface-elevated/20 overflow-hidden shadow-xs">
+          <button
+            type="button"
+            onClick={() => setAcordeonDocsAbierto(!acordeonDocsAbierto)}
+            className="w-full flex items-center justify-between p-4 bg-surface-elevated/40 hover:bg-surface-elevated/70 transition-colors text-left cursor-pointer select-none"
+            aria-expanded={acordeonDocsAbierto}
+            aria-label="Alternar sección de documentos y placas"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="w-6 h-6 rounded-lg bg-surface-elevated border border-border/40 text-text-secondary flex items-center justify-center font-display text-xs font-black">
+                4
               </span>
-            </label>
-
-            {/* Talón de verificación */}
-            <label className="bg-surface-elevated/20 border border-border/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-route-action/40 transition-all select-none">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={talonVerificacion === "si"}
-                  onChange={(e) => setTalonVerificacion(e.target.checked ? "si" : "no")}
-                  className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
-                />
-                <span className="font-body text-sm font-semibold text-text-primary">📄 Talón de verificación</span>
-              </div>
-              <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
-                talonVerificacion === "si"
-                  ? "bg-signal/15 text-signal border border-signal/25"
-                  : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
-              }`}>
-                {talonVerificacion === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
-              </span>
-            </label>
-
-            {/* Holograma de verificación */}
-            <label className="bg-surface-elevated/20 border border-border/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-route-action/40 transition-all select-none">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={hologramaVerificacion === "si"}
-                  onChange={(e) => setHologramaVerificacion(e.target.checked ? "si" : "no")}
-                  className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
-                />
-                <span className="font-body text-sm font-semibold text-text-primary">🔖 Holograma de verificación</span>
-              </div>
-              <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
-                hologramaVerificacion === "si"
-                  ? "bg-signal/15 text-signal border border-signal/25"
-                  : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
-              }`}>
-                {hologramaVerificacion === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
-              </span>
-            </label>
-
-            {/* Placa delantera */}
-            <label className="bg-surface-elevated/20 border border-border/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-route-action/40 transition-all select-none">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={placaDelantera === "si"}
-                  onChange={(e) => setPlacaDelantera(e.target.checked ? "si" : "no")}
-                  className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
-                />
-                <span className="font-body text-sm font-semibold text-text-primary">◽ Placa delantera</span>
-              </div>
-              <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
-                placaDelantera === "si"
-                  ? "bg-signal/15 text-signal border border-signal/25"
-                  : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
-              }`}>
-                {placaDelantera === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
-              </span>
-            </label>
-
-            {/* Placa trasera */}
-            <label className="bg-surface-elevated/20 border border-border/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-route-action/40 transition-all select-none">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={placaTrasera === "si"}
-                  onChange={(e) => setPlacaTrasera(e.target.checked ? "si" : "no")}
-                  className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
-                />
-                <span className="font-body text-sm font-semibold text-text-primary">◽ Placa trasera</span>
-              </div>
-              <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
-                placaTrasera === "si"
-                  ? "bg-signal/15 text-signal border border-signal/25"
-                  : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
-              }`}>
-                {placaTrasera === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
-              </span>
-            </label>
-          </div>
-        </section>
-
-        {/* Section 5: NOTAS DE RECOGIDA / ENTREGA */}
-        <section className="mt-8 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-md bg-route-action/15 border border-route-action/30 text-route-action flex items-center justify-center font-display text-[10px] font-bold">
-              5
-            </span>
-            <h2 className="font-display text-xs font-black text-text-tertiary tracking-widest uppercase flex-1">
-              {tipo === "inicial" ? "NOTAS DE RECOGIDA" : "NOTAS DE ENTREGA"}
-            </h2>
-            {notas.trim().length > 5 && (
-              <span className="font-display text-[9px] font-extrabold text-signal tracking-wider uppercase">
-                ✓ REGISTRADO
-              </span>
-            )}
-          </div>
-
-          {tipo === "final" && (
-            <div className="bg-surface-elevated/25 border border-border/20 rounded-2xl p-4 flex flex-col gap-3 mb-2">
-              <div className="flex justify-between items-center">
-                <span className="font-body text-xs font-bold text-text-primary">
-                  ¿Presenta daños nuevos respecto al Origen?
+              <div className="flex flex-col">
+                <h2 className="font-display text-xs font-black text-text-primary tracking-widest uppercase">
+                  DOCUMENTOS Y PLACAS
+                </h2>
+                <span className="font-body text-[11px] text-text-tertiary">
+                  {docsCapturados} de 5 elementos verificados
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setPresentaDanosNuevos(!presentaDanosNuevos)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                    presentaDanosNuevos ? "bg-signal" : "bg-border/40"
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                      presentaDanosNuevos ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
               </div>
+            </div>
 
-              {presentaDanosNuevos && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex flex-col gap-1.5 text-[11px] font-body text-amber-500 leading-relaxed">
-                  <span className="font-bold flex items-center gap-1">
-                    ⚠️ SUGERENCIA DE REGISTRO FOTOGRÁFICO:
-                  </span>
-                  <p>
-                    Se recomienda capturar fotos a detalle de la incidencia usando las opciones de subida de arriba (sección 1) y documentar claramente en las notas de abajo:
-                  </p>
-                  <ul className="list-disc pl-4 flex flex-col gap-1 font-medium mt-1 text-text-secondary">
-                    <li>Fotografía en primer plano del rayón, abolladura o daño nuevo.</li>
-                    <li>Fotografía de contexto que muestre la zona del vehículo afectada.</li>
-                    <li>Detalla en el cuadro de texto los hallazgos y especifica el daño.</li>
-                  </ul>
+            <div className="flex items-center gap-3">
+              <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
+                docsCapturados === 5
+                  ? "bg-signal/15 text-signal border border-signal/25"
+                  : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
+              }`}>
+                {docsCapturados === 5 ? "✓ COMPLETADO" : `${docsCapturados}/5 VERIFICADOS`}
+              </span>
+              <svg
+                className={`w-5 h-5 text-text-secondary transition-transform duration-200 ${
+                  acordeonDocsAbierto ? "rotate-180" : "rotate-0"
+                }`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+          </button>
+
+          {acordeonDocsAbierto && (
+            <div className="p-4 border-t border-border/20 flex flex-col gap-2.5 text-xs font-body text-text-secondary">
+              {/* Tarjeta de circulación */}
+              <label className="bg-surface-elevated/20 border border-border/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-route-action/40 transition-all select-none">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={tarjetaCirculacion === "si"}
+                    onChange={(e) => setTarjetaCirculacion(e.target.checked ? "si" : "no")}
+                    className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
+                  />
+                  <span className="font-body text-sm font-semibold text-text-primary">💳 Tarjeta de circulación</span>
                 </div>
-              )}
+                <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
+                  tarjetaCirculacion === "si"
+                    ? "bg-signal/15 text-signal border border-signal/25"
+                    : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
+                }`}>
+                  {tarjetaCirculacion === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
+                </span>
+              </label>
+
+              {/* Talón de verificación */}
+              <label className="bg-surface-elevated/20 border border-border/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-route-action/40 transition-all select-none">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={talonVerificacion === "si"}
+                    onChange={(e) => setTalonVerificacion(e.target.checked ? "si" : "no")}
+                    className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
+                  />
+                  <span className="font-body text-sm font-semibold text-text-primary">📄 Talón de verificación</span>
+                </div>
+                <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
+                  talonVerificacion === "si"
+                    ? "bg-signal/15 text-signal border border-signal/25"
+                    : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
+                }`}>
+                  {talonVerificacion === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
+                </span>
+              </label>
+
+              {/* Holograma de verificación */}
+              <label className="bg-surface-elevated/20 border border-border/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-route-action/40 transition-all select-none">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={hologramaVerificacion === "si"}
+                    onChange={(e) => setHologramaVerificacion(e.target.checked ? "si" : "no")}
+                    className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
+                  />
+                  <span className="font-body text-sm font-semibold text-text-primary">🔖 Holograma de verificación</span>
+                </div>
+                <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
+                  hologramaVerificacion === "si"
+                    ? "bg-signal/15 text-signal border border-signal/25"
+                    : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
+                }`}>
+                  {hologramaVerificacion === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
+                </span>
+              </label>
+
+              {/* Placa delantera */}
+              <label className="bg-surface-elevated/20 border border-border/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-route-action/40 transition-all select-none">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={placaDelantera === "si"}
+                    onChange={(e) => setPlacaDelantera(e.target.checked ? "si" : "no")}
+                    className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
+                  />
+                  <span className="font-body text-sm font-semibold text-text-primary">◽ Placa delantera</span>
+                </div>
+                <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
+                  placaDelantera === "si"
+                    ? "bg-signal/15 text-signal border border-signal/25"
+                    : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
+                }`}>
+                  {placaDelantera === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
+                </span>
+              </label>
+
+              {/* Placa trasera */}
+              <label className="bg-surface-elevated/20 border border-border/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-route-action/40 transition-all select-none">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={placaTrasera === "si"}
+                    onChange={(e) => setPlacaTrasera(e.target.checked ? "si" : "no")}
+                    className="w-5 h-5 rounded border-border/60 text-signal focus:ring-signal focus:ring-offset-2 cursor-pointer"
+                  />
+                  <span className="font-body text-sm font-semibold text-text-primary">◽ Placa trasera</span>
+                </div>
+                <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
+                  placaTrasera === "si"
+                    ? "bg-signal/15 text-signal border border-signal/25"
+                    : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
+                }`}>
+                  {placaTrasera === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
+                </span>
+              </label>
             </div>
           )}
+        </section>
 
-          {/* Quick Tags Pills */}
-          <div className="flex flex-col gap-1.5 my-1">
-            <span className="font-display text-[9px] font-extrabold text-text-tertiary uppercase tracking-wider">
-              Atajos de observaciones (toca para insertar):
-            </span>
-            <div className="flex flex-wrap gap-1.5 select-none">
-              {[
-                "Rayón",
-                "Golpe",
-                "Mancha",
-                "Sin llanta de refacción",
-                "Parabrisas estrellado",
-                "Asiento sucio",
-                "Sin tapetes",
-                "Rayón en fascia"
-              ].map((etiqueta) => (
-                <button
-                  key={etiqueta}
-                  type="button"
-                  onClick={() => {
-                    setNotas((prev) => {
-                      const trimmed = prev.trim();
-                      if (!trimmed) return `[${etiqueta}]`;
-                      return `${trimmed}, [${etiqueta}]`;
-                    });
-                  }}
-                  className="px-2.5 py-1 rounded-lg bg-surface-elevated/60 border border-border/30 hover:border-route-action text-text-secondary hover:text-white font-body text-[11px] font-bold transition-all cursor-pointer active:scale-95"
-                >
-                  + {etiqueta}
-                </button>
-              ))}
+        {/* Section 5: NOTAS DE RECOGIDA / ENTREGA - Menú Tipo Acordeón */}
+        <section className="mt-6 flex flex-col rounded-2xl border border-border/30 bg-surface-elevated/20 overflow-hidden shadow-xs">
+          <button
+            type="button"
+            onClick={() => setAcordeonNotasAbierto(!acordeonNotasAbierto)}
+            className="w-full flex items-center justify-between p-4 bg-surface-elevated/40 hover:bg-surface-elevated/70 transition-colors text-left cursor-pointer select-none"
+            aria-expanded={acordeonNotasAbierto}
+            aria-label="Alternar sección de notas"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="w-6 h-6 rounded-lg bg-route-action/15 border border-route-action/30 text-route-action flex items-center justify-center font-display text-xs font-black">
+                5
+              </span>
+              <div className="flex flex-col">
+                <h2 className="font-display text-xs font-black text-text-primary tracking-widest uppercase">
+                  {tipo === "inicial" ? "NOTAS DE RECOGIDA" : "NOTAS DE ENTREGA"}
+                </h2>
+                <span className="font-body text-[11px] text-text-tertiary">
+                  {notas.trim().length > 0 ? "Comentarios capturados" : "Observaciones y atajos rápidos"}
+                </span>
+              </div>
             </div>
-          </div>
 
-          <textarea
-            value={notas}
-            onChange={(e) => setNotas(e.target.value)}
-            rows={4}
-            placeholder={
-              tipo === "inicial"
-                ? "Documenta cualquier detalle observado durante la recolección..."
-                : "Detalla rayones, golpes nuevos o cualquier novedad respecto al punto de origen..."
-            }
-            className={`w-full border rounded-2xl p-4.5 text-xs font-body text-text-secondary leading-relaxed outline-hidden transition-all font-inherit ${
-              notas.trim().length > 5 
-                ? "border-signal/40 bg-signal/5 focus:border-signal/60" 
-                : "border-border/30 bg-surface-elevated/20 focus:border-route-action/50"
-            }`}
-          />
+            <div className="flex items-center gap-3">
+              {notas.trim().length > 5 ? (
+                <span className="font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide bg-signal/15 text-signal border border-signal/25">
+                  ✓ REGISTRADO
+                </span>
+              ) : (
+                <span className="font-display text-[10px] font-bold text-text-tertiary px-2 py-0.5 rounded-md bg-surface border border-border/30">
+                  OPCIONAL
+                </span>
+              )}
+              <svg
+                className={`w-5 h-5 text-text-secondary transition-transform duration-200 ${
+                  acordeonNotasAbierto ? "rotate-180" : "rotate-0"
+                }`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+          </button>
+
+          {acordeonNotasAbierto && (
+            <div className="p-4 border-t border-border/20 flex flex-col gap-3">
+              {tipo === "final" && (
+                <div className="bg-surface-elevated/25 border border-border/20 rounded-2xl p-4 flex flex-col gap-3 mb-2">
+                  <div className="flex justify-between items-center">
+                    <span className="font-body text-xs font-bold text-text-primary">
+                      ¿Presenta daños nuevos respecto al Origen?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPresentaDanosNuevos(!presentaDanosNuevos)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        presentaDanosNuevos ? "bg-signal" : "bg-border/40"
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                          presentaDanosNuevos ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {presentaDanosNuevos && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex flex-col gap-1.5 text-[11px] font-body text-amber-500 leading-relaxed">
+                      <span className="font-bold flex items-center gap-1">
+                        ⚠️ SUGERENCIA DE REGISTRO FOTOGRÁFICO:
+                      </span>
+                      <p>
+                        Se recomienda capturar fotos a detalle de la incidencia usando las opciones de subida de arriba (sección 1) y documentar claramente en las notas de abajo:
+                      </p>
+                      <ul className="list-disc pl-4 flex flex-col gap-1 font-medium mt-1 text-text-secondary">
+                        <li>Fotografía en primer plano del rayón, abolladura o daño nuevo.</li>
+                        <li>Fotografía de contexto que muestre la zona del vehículo afectada.</li>
+                        <li>Detalla en el cuadro de texto los hallazgos y especifica el daño.</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Quick Tags Pills */}
+              <div className="flex flex-col gap-1.5 my-1">
+                <span className="font-display text-[9px] font-extrabold text-text-tertiary uppercase tracking-wider">
+                  Atajos de observaciones (toca para insertar):
+                </span>
+                <div className="flex flex-wrap gap-1.5 select-none">
+                  {[
+                    "Rayón",
+                    "Golpe",
+                    "Mancha",
+                    "Sin llanta de refacción",
+                    "Parabrisas estrellado",
+                    "Asiento sucio",
+                    "Sin tapetes",
+                    "Rayón en fascia"
+                  ].map((etiqueta) => (
+                    <button
+                      key={etiqueta}
+                      type="button"
+                      onClick={() => {
+                        setNotas((prev) => {
+                          const trimmed = prev.trim();
+                          if (!trimmed) return `[${etiqueta}]`;
+                          return `${trimmed}, [${etiqueta}]`;
+                        });
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-surface-elevated/60 border border-border/30 hover:border-route-action text-text-secondary hover:text-white font-body text-[11px] font-bold transition-all cursor-pointer active:scale-95"
+                    >
+                      + {etiqueta}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                rows={4}
+                placeholder={
+                  tipo === "inicial"
+                    ? "Documenta cualquier detalle observado durante la recolección..."
+                    : "Detalla rayones, golpes nuevos o cualquier novedad respecto al punto de origen..."
+                }
+                className={`w-full border rounded-2xl p-4.5 text-xs font-body text-text-secondary leading-relaxed outline-hidden transition-all font-inherit ${
+                  notas.trim().length > 5 
+                    ? "border-signal/40 bg-signal/5 focus:border-signal/60" 
+                    : "border-border/30 bg-surface-elevated/20 focus:border-route-action/50"
+                }`}
+              />
+            </div>
+          )}
         </section>
 
         {error && (

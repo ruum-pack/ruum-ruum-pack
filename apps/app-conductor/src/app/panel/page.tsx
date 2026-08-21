@@ -42,7 +42,7 @@ function PanelLoadingSkeleton() {
 }
 
 export default function PaginaPanel() {
-  const { cerrarSesion } = useCerrarSesion();
+  const { cerrarSesion, cerrandoSesion, errorCerrarSesion } = useCerrarSesion();
   const [soporteAbierto, setSoporteAbierto] = useState(false);
   const [gpsActivo, setGpsActivo] = useState<boolean | null>(null);
   const [estaOnline, setEstaOnline] = useState(
@@ -198,8 +198,35 @@ export default function PaginaPanel() {
                   </span>
                 )}
               </Link>
+
+              {/* Botón de Cerrar Sesión */}
+              <button
+                type="button"
+                onClick={() => void cerrarSesion()}
+                disabled={cerrandoSesion}
+                aria-label="Cerrar sesión"
+                title="Cerrar sesión"
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-secondary hover:text-red-400 rounded-full hover:bg-red-500/10 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {cerrandoSesion ? (
+                  <span className="text-xs font-bold text-red-400 animate-pulse">...</span>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                )}
+              </button>
             </div>
           </header>
+
+          {/* Error al cerrar sesión si ocurre */}
+          {errorCerrarSesion && (
+            <div className="mt-4">
+              <Aviso tono="danger">{errorCerrarSesion}</Aviso>
+            </div>
+          )}
 
           {/* Aviso Modo Offline si se pierde la conexión */}
           {!estaOnline && (
