@@ -79,12 +79,13 @@ export default function PaginaEvidencia() {
     registrarFotoEnCola
   } = useEvidenceQueue({ trasladoId: id, tipo });
 
-  const totalRequisitos = 12; // 6 photos + 1 mileage + 5 documents/plates
-
+  const fotosObligatorias = 5; // frente, lado_piloto, lado_copiloto, trasera, tablero (adicional es opcional)
+  const totalRequisitos = fotosObligatorias + 1 + 5; // fotos obligatorias + kilometraje + 5 docs/placas = 11
   // Calculate progress count
-  const fotosCapturadas = fotos.length;
+  const angulosObligatorios: AnguloEvidencia[] = ["frente", "lado_piloto", "lado_copiloto", "trasera", "tablero"];
+  const fotosObligCapturadas = angulosObligatorios.filter((a) => fotos.some((f) => f.angulo === a)).length;
   const docsCapturados = [tarjetaCirculacion, talonVerificacion, hologramaVerificacion, placaDelantera, placaTrasera].filter((v) => v === "si").length;
-  const totalCapturados = fotosCapturadas + docsCapturados + (kilometraje ? 1 : 0);
+  const totalCapturados = fotosObligCapturadas + docsCapturados + (kilometraje.trim() ? 1 : 0);
 
   const origen = pasaporte?.origen_ciudad || "San Mateo Atenco";
   const folio = pasaporte?.traslado_id?.slice(0, 8).toUpperCase() || id.slice(0, 8).toUpperCase();
@@ -489,8 +490,53 @@ export default function PaginaEvidencia() {
           );
         })()}
 
+        {/* Stepper sticky 5 pasos — P1 + sync status */}
+        {(() => {
+          const pasos = [
+            { id: "evid-fotos", label: "Fotos", sub: `${fotosObligCapturadas}/${fotosObligatorias}`, done: fotosObligCapturadas === fotosObligatorias },
+            { id: "evid-km", label: "KM", sub: kilometraje.trim() ? "OK" : "Falta", done: Boolean(kilometraje.trim()) },
+            { id: "evid-llaves", label: "Llaves", sub: `${llavesCount}`, done: true },
+            { id: "evid-docs", label: "Docs", sub: `${docsCapturados}/5`, done: docsCapturados === 5 },
+            { id: "evid-notas", label: "Notas", sub: notas.trim().length > 5 ? "OK" : "Opc.", done: true },
+          ] as const;
+          const pendientes = fotosObligatorias - fotosObligCapturadas;
+          return (
+            <>
+              <nav aria-label="Pasos de evidencia" className="sticky top-0 z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80 border-y border-border/20 mt-6 -mb-2 py-2 overflow-x-auto scrollbar-none">
+                <ol className="flex items-center gap-2 min-w-max">
+                  {pasos.map((p, idx) => (
+                    <li key={p.id} className="flex items-center gap-2">
+                      <a
+                        href={`#${p.id}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          document.getElementById(p.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }}
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 min-h-9 text-xs font-bold transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${p.done ? "bg-signal/15 border-signal/30 text-signal" : "bg-surface-elevated border-border/30 text-text-secondary hover:text-text-primary"}`}
+                      >
+                        <span className={`flex size-5 items-center justify-center rounded-full text-[11px] font-black ${p.done ? "bg-signal text-slate-950" : "bg-surface border border-border/30 text-text-tertiary"}`}>
+                          {p.done ? "✓" : idx + 1}
+                        </span>
+                        <span className="hidden sm:inline">{p.label}</span>
+                        <span className="text-[10px] opacity-70 tabular-nums">{p.sub}</span>
+                      </a>
+                      {idx < pasos.length - 1 && <span className="h-px w-4 bg-border/30 hidden sm:block" aria-hidden />}
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+              {pendientes > 0 && (
+                <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 flex items-center justify-between">
+                  <span className="font-body text-xs font-semibold text-amber-600 dark:text-amber-400">Faltan {pendientes} fotos obligatorias</span>
+                  <a href="#evid-fotos" onClick={(e) => { e.preventDefault(); document.getElementById("evid-fotos")?.scrollIntoView({ behavior: "smooth" }); }} className="font-body text-xs font-bold text-amber-600 hover:underline">Ir a fotos →</a>
+                </div>
+              )}
+            </>
+          );
+        })()}
+
         {/* Section 1: FOTOGRAFÍAS DEL VEHÍCULO */}
-        <section className="mt-8 flex flex-col gap-3">
+        <section id="evid-fotos" className="mt-8 flex flex-col gap-3 scroll-mt-20">
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded-md bg-route-action/15 border border-route-action/30 text-route-action flex items-center justify-center font-display text-[10px] font-bold">
               1
@@ -614,7 +660,7 @@ export default function PaginaEvidencia() {
         </section>
 
         {/* Section 2: KILOMETRAJE Y COMBUSTIBLE */}
-        <section className="mt-8 flex flex-col gap-3">
+        <section id="evid-km" className="mt-8 flex flex-col gap-3 scroll-mt-20">
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded-md bg-surface-elevated text-text-secondary flex items-center justify-center font-display text-[10px] font-bold">
               2
@@ -644,9 +690,14 @@ export default function PaginaEvidencia() {
               <div className="flex items-baseline gap-1 mt-1">
                 <input 
                   type="text" 
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
+                  placeholder="0"
+                  aria-label="Kilometraje actual"
                   value={kilometraje} 
-                  onChange={(e) => setKilometraje(e.target.value)}
-                  className="font-display text-2xl font-black text-white bg-transparent border-none outline-hidden p-0 w-24 max-w-full focus:outline-hidden"
+                  onChange={(e) => setKilometraje(e.target.value.replace(/[^0-9,.\s]/g, ""))}
+                  className="font-display text-2xl font-black text-white bg-transparent border-none outline-hidden p-0 w-24 max-w-full focus:outline-hidden placeholder:text-text-tertiary/60"
                 />
                 <span className="font-body text-[10px] font-bold text-text-secondary">km</span>
               </div>
@@ -697,7 +748,7 @@ export default function PaginaEvidencia() {
         </section>
 
         {/* Section 3: LLAVES ENTREGADAS */}
-        <section className="mt-8 flex flex-col gap-3">
+        <section id="evid-llaves" className="mt-8 flex flex-col gap-3 scroll-mt-20">
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded-md bg-surface-elevated text-text-secondary flex items-center justify-center font-display text-[10px] font-bold">
               3
@@ -735,7 +786,7 @@ export default function PaginaEvidencia() {
         </section>
 
         {/* Section 4: DOCUMENTOS Y PLACAS - Menú Tipo Acordeón */}
-        <section className="mt-8 flex flex-col rounded-2xl border border-border/30 bg-surface-elevated/20 overflow-hidden shadow-xs">
+        <section id="evid-docs" className="mt-8 flex flex-col rounded-2xl border border-border/30 bg-surface-elevated/20 overflow-hidden shadow-xs scroll-mt-20">
           <button
             type="button"
             onClick={() => setAcordeonDocsAbierto(!acordeonDocsAbierto)}
@@ -885,7 +936,7 @@ export default function PaginaEvidencia() {
         </section>
 
         {/* Section 5: NOTAS DE RECOGIDA / ENTREGA - Menú Tipo Acordeón */}
-        <section className="mt-6 flex flex-col rounded-2xl border border-border/30 bg-surface-elevated/20 overflow-hidden shadow-xs">
+        <section id="evid-notas" className="mt-6 flex flex-col rounded-2xl border border-border/30 bg-surface-elevated/20 overflow-hidden shadow-xs scroll-mt-20">
           <button
             type="button"
             onClick={() => setAcordeonNotasAbierto(!acordeonNotasAbierto)}
@@ -1042,33 +1093,39 @@ export default function PaginaEvidencia() {
 
       </div>
 
-      {/* Sticky Primary Action Buttons Bar (Fixed directly ABOVE Secondary Trip Bottom Bar) */}
-      <div className="fixed bottom-[60px] inset-x-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border/20 py-3 px-4 shadow-2xl select-none">
+      {/* Sticky Primary Action Buttons Bar — respeta secondary nav + safe-area */}
+      <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom))] inset-x-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border/20 py-3 px-4 shadow-2xl select-none">
         <div className="max-w-md mx-auto flex gap-3">
           {/* GUARDAR BORRADOR (Estilo Outline Definido) */}
           <button
             type="button"
             onClick={guardarBorrador}
-            disabled={procesando}
-            className="flex-1 min-h-[48px] rounded-xl bg-transparent border-2 border-border/60 hover:border-white text-text-primary font-display text-xs font-black tracking-wider transition-all cursor-pointer shadow-xs select-none flex items-center justify-center focus:outline-hidden"
+            disabled={Boolean(enviando)}
+            className="flex-1 min-h-11 rounded-xl bg-transparent border-2 border-border/60 hover:border-white text-text-primary font-display text-xs font-bold tracking-wide transition-all cursor-pointer shadow-xs select-none flex items-center justify-center focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action disabled:opacity-50"
           >
-            GUARDAR BORRADOR
+            {enviando === "guardar" ? "Guardando…" : "Guardar borrador"}
           </button>
           
-          {/* FINALIZAR EVIDENCIAS (Botón Primario Verde con Validación) */}
+          {/* FINALIZAR EVIDENCIAS (Botón Primario con validación) */}
           <button
             type="button"
             onClick={finalizar}
-            disabled={procesando}
-            className={`flex-1 min-h-[48px] rounded-xl font-display text-xs font-black tracking-wider transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus:outline-hidden ${
+            disabled={Boolean(enviando) || totalCapturados < totalRequisitos}
+            title={totalCapturados < totalRequisitos ? `Faltan ${totalRequisitos - totalCapturados} requisitos` : undefined}
+            className={`flex-1 min-h-11 rounded-xl font-display text-xs font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal disabled:cursor-not-allowed ${
               totalCapturados === totalRequisitos
                 ? "bg-signal hover:bg-signal/90 text-slate-950"
-                : "bg-signal/70 hover:bg-signal text-slate-950/90"
+                : "bg-signal/60 text-slate-950/60 cursor-not-allowed"
             }`}
           >
-            {procesando ? TEXTOS_CARGANDO.actualizando : "FINALIZAR EVIDENCIAS"}
+            {enviando === "confirmar" ? TEXTOS_CARGANDO.actualizando : `Finalizar evidencias ${totalCapturados === totalRequisitos ? "✓" : `(${totalCapturados}/${totalRequisitos})`}`}
           </button>
         </div>
+        {totalCapturados < totalRequisitos && (
+          <p className="max-w-md mx-auto mt-2 text-center font-body text-[11px] font-semibold text-text-tertiary">
+            Completa {totalRequisitos - totalCapturados} requisitos para habilitar el envío
+          </p>
+        )}
       </div>
 
       {/* Secondary Bottom Navigation Bar (Detalles, Gastos, Incidencia) */}

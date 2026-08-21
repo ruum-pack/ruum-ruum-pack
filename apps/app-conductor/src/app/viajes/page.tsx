@@ -65,8 +65,11 @@ export default function PaginaViajes() {
   const [refreshCount, setRefreshCount] = useState(0);
   const [soporteAbierto, setSoporteAbierto] = useState(false);
   const [notificacionesCount, setNotificacionesCount] = useState(0);
-  const [orden, setOrden] = useState<OrdenViajes>("recientes");
-  const [ciudadFiltro, setCiudadFiltro] = useState<string>("todas");
+  const [orden, setOrden] = useState<OrdenViajes>(() => {
+    const v = searchParams.get("orden") as OrdenViajes | null;
+    return v === "mayor_ganancia" || v === "menor_distancia" ? v : "recientes";
+  });
+  const [ciudadFiltro, setCiudadFiltro] = useState<string>(() => searchParams.get("ciudad") ?? "todas");
   const [estaOnline, setEstaOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -78,11 +81,15 @@ export default function PaginaViajes() {
   const queryActual = searchParams.toString();
   const rutaActual = queryActual ? `/viajes?${queryActual}` : "/viajes";
 
-  function actualizarUrl(cambios: Partial<Record<"vista" | "fecha" | "estado", string>>) {
+  function actualizarUrl(cambios: Partial<Record<"vista" | "fecha" | "estado" | "orden" | "ciudad", string>>) {
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(cambios).forEach(([clave, valor]) => {
-      if (!valor || valor === "todos") {
-        params.delete(clave);
+      if (!valor || valor === "todos" || valor === "recientes") {
+        // rec recientes es default -> limpia URL
+        if (clave === "orden" && valor === "recientes") params.delete(clave);
+        else if (clave === "ciudad" && (valor === "todas" || !valor)) params.delete(clave);
+        else if (clave !== "orden" && clave !== "ciudad") params.delete(clave);
+        else if (valor === "todos" || !valor) params.delete(clave);
       } else {
         params.set(clave, valor);
       }
@@ -362,16 +369,22 @@ export default function PaginaViajes() {
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-between min-h-[calc(100vh-100px)] text-text-primary">
       <div className="w-full flex flex-col flex-1 pb-16">
-        {/* Header — Brand Book p.22: fondo limpio, título Montserrat grande */}
-        <header className="flex items-center justify-between gap-3 border-b border-border/20 pb-4">
+        {/* Header — sticky con acciones 44px y barra fina */}
+        {refrescando && (
+          <div className="pointer-events-none fixed left-0 right-0 top-0 z-50 h-1 bg-signal/20" aria-hidden>
+            <div className="h-full w-1/3 animate-pulse bg-signal" style={{ animationDuration: "0.9s" }} />
+          </div>
+        )}
+        <header className="sticky top-0 z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80 border-b border-border/20 py-3 flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="font-body text-[10px] font-bold uppercase tracking-widest text-text-tertiary">Traslado vehicular · Conductores certificados</p>
             <h1 className="mt-1 font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-text-primary leading-none">
               Traslados
             </h1>
             <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-text-tertiary">
-              <span className={`h-1.5 w-1.5 rounded-full ${estaOnline ? "bg-signal animate-pulse" : "bg-danger"}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${estaOnline ? "bg-signal animate-pulse" : "bg-danger"}`} aria-hidden />
               <span>{estaOnline ? "En vivo" : "Sin conexión"}</span>
+              <span className="text-text-tertiary/60" aria-hidden>·</span>
               <button
                 type="button"
                 onClick={() => {
@@ -379,10 +392,10 @@ export default function PaginaViajes() {
                   setRefreshCount((prev) => prev + 1);
                 }}
                 disabled={refrescando}
-                className="text-route-action underline-offset-2 hover:underline cursor-pointer select-none ml-1 flex items-center gap-0.5 min-h-6 px-1"
+                aria-busy={refrescando || undefined}
+                className="inline-flex items-center gap-1 min-h-11 rounded-lg border border-border/30 bg-surface-elevated px-3 py-1.5 text-xs font-bold text-route-action hover:bg-surface disabled:opacity-50 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
               >
-                <span>Recargar</span>
-                <span className={`text-xs ${refrescando ? "animate-spin" : ""}`}>↻</span>
+                Recargar
               </button>
             </div>
           </div>
@@ -391,7 +404,7 @@ export default function PaginaViajes() {
             <button
               type="button"
               onClick={() => setSoporteAbierto(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-border/20 bg-surface-elevated text-text-primary hover:text-route-action transition-colors cursor-pointer shadow-xs"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-border/20 bg-surface-elevated text-text-primary hover:text-route-action transition-colors cursor-pointer shadow-xs focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
               aria-label="Ayuda y soporte rápido"
             >
               <span className="font-display text-sm font-black">?</span>
@@ -399,16 +412,16 @@ export default function PaginaViajes() {
 
             <Link
               href="/notificaciones"
-              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border/20 bg-surface-elevated text-text-primary hover:text-route-action transition-colors shadow-xs"
-              aria-label={notificacionesCount > 0 ? `Notificaciones (${notificacionesCount} sin leer)` : "Notificaciones"}
+              className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border/20 bg-surface-elevated text-text-primary hover:text-route-action transition-colors shadow-xs focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+              aria-label={notificacionesCount > 0 ? `Notificaciones (${notificacionesCount > 99 ? "99+" : notificacionesCount} sin leer)` : "Notificaciones"}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
                 <path d="M10 21h4" />
               </svg>
               {notificacionesCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-danger text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center border border-surface shadow-xs">
-                  {notificacionesCount > 9 ? "9+" : notificacionesCount}
+                <span className="absolute -top-0.5 -right-0.5 bg-danger text-white text-[11px] font-black rounded-full min-w-5 h-5 px-1 flex items-center justify-center border-2 border-surface shadow-xs tabular-nums">
+                  {notificacionesCount > 99 ? "99+" : notificacionesCount > 9 ? "9+" : notificacionesCount}
                 </span>
               )}
             </Link>
@@ -424,11 +437,11 @@ export default function PaginaViajes() {
           </div>
         )}
 
-        {/* Tab switch con accesibilidad ARIA */}
+        {/* Tab switch 44px real, normal-case, signal activo */}
         <div
           role="tablist"
           aria-label="Vistas de traslados"
-          className="mt-5 flex w-full rounded-full border border-border/20 bg-surface-elevated p-1 select-none"
+          className="mt-5 flex w-full rounded-2xl border border-border/20 bg-surface-elevated p-1 select-none"
         >
           <button
             type="button"
@@ -437,13 +450,13 @@ export default function PaginaViajes() {
             aria-selected={vista === "disponibles"}
             aria-controls="panel-traslados"
             onClick={() => actualizarUrl({ vista: "disponibles" })}
-            className={`flex-1 rounded-full px-3 py-2.5 text-center text-xs font-black uppercase tracking-widest transition-all duration-200 cursor-pointer min-h-[44px] flex items-center justify-center ${
+            className={`flex-1 rounded-xl px-3 text-center text-sm font-bold transition-all duration-200 cursor-pointer min-h-11 flex items-center justify-center tabular-nums focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${
               vista === "disponibles"
-                ? "bg-route-action text-slate-950 shadow-md"
+                ? "bg-signal text-slate-950 shadow-md"
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
-            Ofertas ({disponiblesVisibles.length})
+            Ofertas <span className="ml-1 tabular-nums">({disponiblesVisibles.length})</span>
           </button>
           <button
             type="button"
@@ -452,13 +465,13 @@ export default function PaginaViajes() {
             aria-selected={vista === "mis-viajes"}
             aria-controls="panel-traslados"
             onClick={() => actualizarUrl({ vista: "mis-viajes" })}
-            className={`flex-1 rounded-full px-3 py-2.5 text-center text-xs font-black uppercase tracking-widest transition-all duration-200 cursor-pointer min-h-[44px] flex items-center justify-center ${
+            className={`flex-1 rounded-xl px-3 text-center text-sm font-bold transition-all duration-200 cursor-pointer min-h-11 flex items-center justify-center tabular-nums focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${
               vista === "mis-viajes"
-                ? "bg-route-action text-slate-950 shadow-md"
+                ? "bg-signal text-slate-950 shadow-md"
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
-            Aceptados ({aceptados.length})
+            Aceptados <span className="ml-1 tabular-nums">({aceptados.length})</span>
           </button>
         </div>
 
@@ -474,9 +487,15 @@ export default function PaginaViajes() {
         {rawListToRender.length > 1 && (
           <ViajesFilters
             orden={orden}
-            onCambiarOrden={setOrden}
+            onCambiarOrden={(v) => {
+              setOrden(v);
+              actualizarUrl({ orden: v });
+            }}
             ciudadFiltro={ciudadFiltro}
-            onCambiarCiudad={setCiudadFiltro}
+            onCambiarCiudad={(v) => {
+              setCiudadFiltro(v);
+              actualizarUrl({ ciudad: v });
+            }}
             ciudadesDisponibles={ciudadesDisponibles}
           />
         )}
@@ -500,9 +519,14 @@ export default function PaginaViajes() {
           {cargando ? (
             <TripsLoadingList />
           ) : listToRender.length === 0 ? (
-            <div className="text-center py-10 flex flex-col items-center bg-surface-elevated/40 border border-border/15 rounded-3xl p-6">
-              <span className="text-2xl">⏳</span>
-              <p className="mt-2 font-display text-sm font-bold text-text-primary">Sin traslados para este día</p>
+            <div className="text-center py-10 flex flex-col items-center bg-surface-elevated border border-border/20 rounded-3xl p-6">
+              <div className="size-12 rounded-2xl bg-surface border border-border/20 flex items-center justify-center" aria-hidden>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="text-text-tertiary">
+                  <rect x="3" y="4" width="18" height="14" rx="2" />
+                  <path d="M8 14h8M8 10h8" />
+                </svg>
+              </div>
+              <p className="mt-3 font-display text-sm font-bold text-text-primary">Sin traslados para este día</p>
               <p className="mt-1 font-body text-xs text-text-secondary max-w-[280px]">
                 {vista === "disponibles"
                   ? "No hay ofertas programadas en esta fecha."
@@ -513,17 +537,27 @@ export default function PaginaViajes() {
                 <button
                   type="button"
                   onClick={() => actualizarUrl({ vista: "disponibles" })}
-                  className="mt-4 bg-route-action text-slate-950 font-display text-xs font-black px-4 py-2.5 rounded-xl uppercase tracking-wider transition-all shadow-sm cursor-pointer select-none min-h-[44px]"
+                  className="mt-4 bg-signal text-slate-950 font-display text-sm font-bold px-5 py-3 rounded-xl transition-all shadow-sm cursor-pointer select-none min-h-11 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal"
                 >
-                  Buscar Ofertas Disponibles
+                  Buscar ofertas disponibles
                 </button>
-              ) : (
-                tieneOfertasOtrosDias && (
-                  <p className="mt-4 font-body text-xs text-route-action font-bold select-none">
-                    💡 ¡Hay ofertas disponibles en otros días de la semana! Revisa los días con punto en el selector.
-                  </p>
-                )
-              )}
+              ) : tieneOfertasOtrosDias ? (
+                (() => {
+                  const diaConOfertas = calendario.find(({ dia, viajes }) => claveDia(dia) !== diaSeleccionado && viajes.some((v) => v.tipo === "Ofertado"));
+                  const label = diaConOfertas
+                    ? new Intl.DateTimeFormat("es-MX", { weekday: "long", day: "numeric", timeZone: "America/Mexico_City" }).format(diaConOfertas.dia)
+                    : "otro día";
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => diaConOfertas && setDiaSeleccionado(claveDia(diaConOfertas.dia))}
+                      className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-route-action/30 bg-route-soft px-5 py-3 font-body text-sm font-bold text-route-action hover:bg-route-soft/70 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                    >
+                      Ver ofertas del {label} →
+                    </button>
+                  );
+                })()
+              ) : null}
             </div>
           ) : (
             listToRender.map((item, index) => {

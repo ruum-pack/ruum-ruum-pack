@@ -344,6 +344,24 @@ export function TrasladoAsignadoDetails({
         </div>
       )}
 
+      {/* FAB Navegación — replica /panel, evita scroll hasta grid de navegación */}
+      {navigationTargetLat != null && navigationTargetLng != null && (
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&destination=${navigationTargetLat},${navigationTargetLng}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Navegar al punto de recolección"
+          className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] right-4 z-30 inline-flex items-center gap-2 rounded-full bg-signal px-5 py-3.5 font-display text-sm font-black text-slate-950 shadow-lg shadow-signal/20 hover:bg-signal/90 active:scale-[0.98] transition-all focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal lg:hidden"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+            <line x1="8" y1="2" x2="8" y2="18" />
+            <line x1="16" y1="6" x2="16" y2="22" />
+          </svg>
+          Navegar
+        </a>
+      )}
+
       {/* Secondary Bottom Navigation Bar (Detalles del traslado, Gastos, Incidencia) */}
       <div className="mt-auto pt-5 -mx-4 -mb-6">
         <SecondaryTripNavBar trasladoId={trasladoId} pasaporte={pasaporte} />

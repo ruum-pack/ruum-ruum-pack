@@ -53,11 +53,19 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
     <div className="w-full rounded-2xl border border-border/20 bg-surface-elevated overflow-hidden shadow-sm select-none text-left flex flex-col gap-0">
       {/* Cabecera: ID + Tipo de Auto + Tarifa */}
       <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-border/15">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-signal animate-pulse shrink-0" />
-          <span className="font-mono text-[11px] font-extrabold text-text-tertiary tracking-widest uppercase">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="h-2 w-2 rounded-full bg-signal animate-pulse shrink-0" aria-hidden />
+          <button
+            type="button"
+            onClick={() => {
+              if (navigator.clipboard) void navigator.clipboard.writeText(folio);
+            }}
+            className="font-mono text-[11px] font-extrabold text-text-tertiary tracking-widest uppercase hover:text-text-primary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action rounded"
+            aria-label={`Copiar folio ${folio}`}
+            title="Copiar folio"
+          >
             ID {folio}
-          </span>
+          </button>
           {tipoVehiculo && (
             <span className="px-2 py-0.5 rounded-md bg-surface border border-border/30 text-[10px] font-bold text-text-secondary uppercase">
               {tipoVehiculo}
@@ -72,7 +80,14 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
       {/* Vehículo si tiene marca/modelo */}
       {autoNombre !== "Vehículo" && (
         <div className="px-4 pt-2.5 pb-0 flex items-center gap-2">
-          <span className="text-sm">🚗</span>
+          <span className="flex size-7 items-center justify-center rounded-lg bg-surface border border-border/20 text-text-tertiary" aria-hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+              <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2" />
+              <circle cx="7" cy="17" r="2" />
+              <circle cx="17" cy="17" r="2" />
+              <path d="M13 6h5l2 3v4h-3" />
+            </svg>
+          </span>
           <span className="font-display text-xs font-bold text-text-primary leading-tight truncate">
             {autoNombre}
           </span>
@@ -141,7 +156,7 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
       <div className="p-3 bg-surface/60 border-t border-border/15">
         <Link
           href={hrefDetalle}
-          className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-route-action hover:bg-route-action/85 active:scale-[0.98] px-4 font-display text-xs font-black tracking-widest text-slate-950 uppercase transition-all shadow-sm cursor-pointer"
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-signal hover:bg-signal/90 active:scale-[0.98] px-4 font-display text-sm font-bold tracking-wide text-slate-950 transition-all shadow-sm cursor-pointer focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal"
         >
           Ver oferta →
         </Link>
