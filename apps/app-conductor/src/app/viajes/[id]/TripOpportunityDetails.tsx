@@ -4,21 +4,24 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
-import { ETIQUETA_TIPO_VEHICULO, TEXTOS_CARGANDO } from "@ruum/shared/constants";
+import { ETIQUETA_TIPO_VEHICULO, TEXTOS_CARGANDO, type MotivoRechazo } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
-import { aceptarViaje } from "@ruum/api/services";
+import { aceptarViaje, registrarEvento } from "@ruum/api/services";
 import { obtenerUbicacionActualConEstado, distanciaMetrosEntre, type Coordenadas } from "../../../lib/ubicacion";
 import { nombreVehiculo } from "../trips-utils";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
+import { RejectTripDialog } from "../RejectTripDialog";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
-function extraerColonia(direccion: string | null): string {
-  if (!direccion) return "";
-  const partes = direccion.split(",").map((p) => p.trim());
-  return partes[1] ?? partes[0] ?? "";
+function formatearTiempoEstimado(horasDecimal: number | null): string {
+  if (horasDecimal == null || isNaN(horasDecimal)) return "Por confirmar";
+  const totalMinutos = Math.round(horasDecimal * 60);
+  const horas = Math.floor(totalMinutos / 60);
+  const mins = totalMinutos % 60;
+  return `${horas}:${mins.toString().padStart(2, "0")} hrs`;
 }
 
 export function TripOpportunityDetails({
@@ -35,6 +38,7 @@ export function TripOpportunityDetails({
   const [ofertaTomada, setOfertaTomada] = useState(false);
   const [posicionConductor, setPosicionConductor] = useState<Coordenadas | null>(null);
   const [calculandoAproximacion, setCalculandoAproximacion] = useState(true);
+  const [mostrarModalRechazo, setMostrarModalRechazo] = useState(false);
 
   const trasladoId = pasaporte.traslado_id!;
 
@@ -132,28 +136,32 @@ export function TripOpportunityDetails({
         { lat: pasaporte.origen_lat, lng: pasaporte.origen_lng }
       );
       const km = (metros / 1000).toFixed(1);
-      const min = Math.max(1, Math.round((metros / 1000) * 2.5));
-      return { distancia: `${km} km`, tiempo: `${min} min`, exacto: true };
+      const totalMinutos = Math.max(1, Math.round((metros / 1000) * 2.5));
+      const horas = Math.floor(totalMinutos / 60);
+      const mins = totalMinutos % 60;
+      const tiempoTexto = horas > 0 ? `${horas}:${mins.toString().padStart(2, "0")} hrs` : `${mins} min`;
+      return { distancia: `${km} km`, tiempo: tiempoTexto, exacto: true };
     }
 
     if (pasaporte.distancia_km) {
       const kmAprox = (pasaporte.distancia_km * 0.08).toFixed(1);
-      const minAprox = Math.max(5, Math.round(pasaporte.distancia_km * 0.2));
-      return { distancia: `${kmAprox} km`, tiempo: `${minAprox} min`, exacto: false };
+      const totalMinutos = Math.max(5, Math.round(pasaporte.distancia_km * 0.2));
+      const horas = Math.floor(totalMinutos / 60);
+      const mins = totalMinutos % 60;
+      const tiempoTexto = horas > 0 ? `${horas}:${mins.toString().padStart(2, "0")} hrs` : `${mins} min`;
+      return { distancia: `${kmAprox} km`, tiempo: tiempoTexto, exacto: false };
     }
 
     return { distancia: "Por calcular", tiempo: "Por calcular", exacto: false };
   }, [posicionConductor, pasaporte.origen_lat, pasaporte.origen_lng, pasaporte.distancia_km]);
 
   const origenCiudad = pasaporte.origen_ciudad || "Por confirmar";
-  const origenColonia = extraerColonia(pasaporte.origen_direccion);
+  const origenDireccionCompleta = pasaporte.origen_direccion || "Dirección de recolección por confirmar";
   const destinoCiudad = pasaporte.destino_ciudad || "Por confirmar";
-  const destinoColonia = extraerColonia(pasaporte.destino_direccion);
+  const destinoDireccionCompleta = pasaporte.destino_direccion || "Dirección de entrega por confirmar";
 
   const distanciaTotal = pasaporte.distancia_km ? `${pasaporte.distancia_km.toFixed(1)} km` : "Por confirmar";
-  const tiempoEstimado = pasaporte.tiempo_estimado_horas
-    ? `${Math.round(pasaporte.tiempo_estimado_horas * 60)} min`
-    : "Por confirmar";
+  const tiempoEstimado = formatearTiempoEstimado(pasaporte.tiempo_estimado_horas);
 
   const gananciaNeta = pasaporte.ganancia_conductor || 0;
   const autoNombre = nombreVehiculo(pasaporte);
@@ -187,6 +195,36 @@ export function TripOpportunityDetails({
       }, 1000);
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos aceptar el traslado."));
+      setProcesando(false);
+    }
+  }
+
+  async function handleConfirmarRechazo(motivo: MotivoRechazo) {
+    setMostrarModalRechazo(false);
+    setProcesando(true);
+    setError(null);
+
+    try {
+      const cliente = crearClienteNavegador();
+      const { data: { session } } = await cliente.auth.getSession();
+      if (session?.user) {
+        const { data: conductorData } = await cliente
+          .from("conductores")
+          .select("id")
+          .eq("auth_user_id", session.user.id)
+          .maybeSingle();
+
+        if (conductorData) {
+          await registrarEvento(cliente, "modificacion_traslado_activo", "conductor", conductorData.id, {
+            traslado_id: trasladoId,
+            accion: "rechazo_oferta_conductor",
+            motivo
+          });
+        }
+      }
+      router.push(volver);
+    } catch (err) {
+      setError(traducirErrorOperativo(err, "No pudimos registrar el rechazo de la oferta."));
       setProcesando(false);
     }
   }
@@ -238,8 +276,8 @@ export function TripOpportunityDetails({
       <div className="flex flex-col flex-1 gap-5 mt-4">
         {/* GANANCIA DESTACADA */}
         <div className="flex flex-col items-center bg-surface-elevated rounded-3xl p-5 border border-border/20 shadow-xs">
-          <span className="font-mono text-xs font-extrabold tracking-widest mb-2 px-3 py-1 rounded-full border text-signal border-signal/30 bg-signal/10">
-            DISPONIBLE PARA ACEPTAR
+          <span className="font-mono text-xs font-extrabold tracking-widest mb-2 px-3 py-1 rounded-full border text-signal border-signal/30 bg-signal/10 uppercase">
+            ACEPTA O RECHAZA
           </span>
 
           <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest mt-1">
@@ -304,40 +342,46 @@ export function TripOpportunityDetails({
             <div className="flex items-start gap-3">
               <div className="mt-1 flex flex-col items-center">
                 <span className="h-3 w-3 rounded-full border-2 border-emerald-400 bg-transparent" />
-                <span className="w-[1px] h-8 bg-border/40 my-1" />
+                <span className="w-[1px] h-full min-h-[40px] bg-border/40 my-1" />
               </div>
-              <div className="flex flex-col min-w-0">
+              <div className="flex flex-col min-w-0 flex-1">
                 <span className="font-display text-[9px] font-bold text-emerald-400 tracking-widest uppercase">
-                  Punto de Recolección
+                  Punto de Recolección (Datos Completos)
                 </span>
-                {origenColonia && (
-                  <span className="font-display text-sm font-black text-text-primary leading-tight truncate mt-0.5">
-                    {origenColonia}
-                  </span>
-                )}
-                <span className="font-body text-xs text-text-secondary truncate mt-0.5">
+                <span className="font-body text-sm font-semibold text-text-primary mt-1 leading-snug break-words">
+                  {origenDireccionCompleta}
+                </span>
+                <span className="font-body text-xs text-text-secondary mt-0.5">
                   {origenCiudad}
                 </span>
+                {pasaporte.origen_referencias && (
+                  <span className="font-body text-[11px] text-text-tertiary mt-1 italic">
+                    Ref: {pasaporte.origen_referencias}
+                  </span>
+                )}
               </div>
             </div>
 
             {/* Destino */}
             <div className="flex items-start gap-3">
-              <div className="mt-0.5">
+              <div className="mt-1">
                 <span className="h-3 w-3 rounded-full bg-route-action block" />
               </div>
-              <div className="flex flex-col min-w-0">
+              <div className="flex flex-col min-w-0 flex-1">
                 <span className="font-display text-[9px] font-bold text-route-action tracking-widest uppercase">
-                  Punto de Entrega
+                  Punto de Entrega (Datos Completos)
                 </span>
-                {destinoColonia && (
-                  <span className="font-display text-sm font-black text-text-primary leading-tight truncate mt-0.5">
-                    {destinoColonia}
-                  </span>
-                )}
-                <span className="font-body text-xs text-text-secondary truncate mt-0.5">
+                <span className="font-body text-sm font-semibold text-text-primary mt-1 leading-snug break-words">
+                  {destinoDireccionCompleta}
+                </span>
+                <span className="font-body text-xs text-text-secondary mt-0.5">
                   {destinoCiudad}
                 </span>
+                {pasaporte.destino_referencias && (
+                  <span className="font-body text-[11px] text-text-tertiary mt-1 italic">
+                    Ref: {pasaporte.destino_referencias}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -415,7 +459,7 @@ export function TripOpportunityDetails({
         </div>
       )}
 
-      {/* BOTONES DE ACCIÓN */}
+      {/* BOTONES DE ACCIÓN: ACEPTAR O RECHAZAR */}
       <div className="mt-6 flex flex-col gap-3">
         <button
           type="button"
@@ -426,13 +470,30 @@ export function TripOpportunityDetails({
           {procesando ? TEXTOS_CARGANDO.actualizando : "ACEPTAR TRASLADO →"}
         </button>
 
+        <button
+          type="button"
+          onClick={() => setMostrarModalRechazo(true)}
+          disabled={procesando || ofertaTomada}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-surface-elevated hover:bg-surface border border-danger/40 hover:border-danger text-danger px-4 min-h-[48px] font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer select-none"
+        >
+          RECHAZAR TRASLADO
+        </button>
+
         <Link
           href={volver}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-surface-elevated hover:bg-surface border border-border/30 text-text-secondary hover:text-text-primary px-4 min-h-[44px] font-display text-xs font-bold tracking-widest uppercase transition-all text-center"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-transparent hover:bg-surface-elevated/40 text-text-secondary hover:text-text-primary px-4 min-h-[40px] font-body text-xs font-semibold tracking-wide transition-all text-center"
         >
-          Volver y ver más ofertas
+          Volver a la lista de ofertas
         </Link>
       </div>
+
+      {mostrarModalRechazo && (
+        <RejectTripDialog
+          viaje={pasaporte}
+          onClose={() => setMostrarModalRechazo(false)}
+          onConfirm={handleConfirmarRechazo}
+        />
+      )}
     </div>
   );
 }

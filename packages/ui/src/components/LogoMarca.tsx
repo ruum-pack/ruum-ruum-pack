@@ -25,6 +25,10 @@ export interface LogoMarcaProps {
   mostrarRespaldo?: boolean;
   /** Muestra o no el descriptor oficial (por defecto true en horizontal y vertical). */
   mostrarDescriptor?: boolean;
+  /** Texto personalizado para el descriptor (por defecto 'Traslado vehicular con conductores certificados'). */
+  descriptor?: string;
+  /** Subtítulo o lema adicional (por ejemplo 'Tu operación, tu control.'). */
+  subtitulo?: string;
   /** Color de apoyo opcional para el punto de destino (compatibilidad). */
   color?: "signal" | "route" | "control";
   /** Clases CSS adicionales. */
@@ -128,6 +132,8 @@ export function LogoMarca({
   tamano,
   mostrarRespaldo = true,
   mostrarDescriptor = true,
+  descriptor,
+  subtitulo,
   color = "signal",
   className = ""
 }: LogoMarcaProps) {
@@ -167,8 +173,13 @@ export function LogoMarca({
           </div>
           {mostrarDescriptor && (
             <p className={`mt-1 font-body text-xs font-semibold uppercase tracking-wider ${colorTextoSecundario}`}>
-              Traslado vehicular con conductores certificados
+              {descriptor ?? "Traslado vehicular con conductores certificados"}
             </p>
+          )}
+          {subtitulo && (
+            <span className={`mt-0.5 block font-body text-[10px] font-medium tracking-wide ${colorTextoSecundario}`}>
+              {subtitulo}
+            </span>
           )}
           {mostrarRespaldo && (
             <span className={`mt-0.5 block font-body text-[10px] font-medium tracking-widest ${colorTextoRespaldo}`}>
@@ -192,7 +203,12 @@ export function LogoMarca({
         </div>
         {mostrarDescriptor && (
           <span className={`font-body text-[11px] font-semibold leading-none tracking-normal ${colorTextoSecundario}`}>
-            Traslado vehicular con conductores certificados
+            {descriptor ?? "Traslado vehicular con conductores certificados"}
+          </span>
+        )}
+        {subtitulo && (
+          <span className={`mt-0.5 font-body text-[10px] font-medium leading-none ${colorTextoSecundario}`}>
+            {subtitulo}
           </span>
         )}
         {mostrarRespaldo && (

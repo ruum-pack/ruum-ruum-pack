@@ -554,27 +554,6 @@ export default function PaginaViajes() {
           )}
         </div>
 
-        {/* Tarjeta de Información Operativa */}
-        <div className="mt-6 flex items-start justify-between gap-3 bg-surface-elevated border border-border/20 rounded-2xl p-4 text-left select-none">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-route-action/10 flex items-center justify-center text-route-action shrink-0 font-bold font-display text-sm">
-              i
-            </div>
-            <div className="flex flex-col">
-              <span className="font-display text-xs font-bold text-text-primary leading-tight">Protocolo Operativo</span>
-              <p className="font-body text-[11px] text-text-secondary mt-1 leading-snug">
-                Registra la evidencia física al recibir y entregar el vehículo para garantizar la cobertura y pago puntual.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/cuenta/soporte"
-            className="font-display text-[11px] font-bold text-route-action shrink-0 mt-0.5 hover:underline flex items-center gap-0.5 min-h-[36px]"
-          >
-            Ver más ›
-          </Link>
-        </div>
-
         {aviso && (
           <output className="mt-4 block" aria-live="polite" aria-atomic="true">
             <Aviso tono="info">{aviso}</Aviso>

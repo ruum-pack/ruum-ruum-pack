@@ -101,7 +101,6 @@ const DESTINOS_MOVIL = [
   { href: "/panel", etiqueta: "Inicio", Icono: IcoHome },
   { href: "/viajes", etiqueta: "Traslados", Icono: IcoViajes },
   { href: "/ganancias", etiqueta: "Ganancias", Icono: IcoGanancias },
-  { href: "/notificaciones", etiqueta: "Avisos", Icono: IcoNotificaciones },
   { href: "/cuenta", etiqueta: "Cuenta", Icono: IcoCuenta },
 ];
 
@@ -249,10 +248,9 @@ export function NavegacionConductor() {
         )}
 
         <nav aria-label="Navegación principal móvil" className="w-full px-2 max-w-md mx-auto">
-          <div className="grid grid-cols-5 gap-1">
+          <div className="grid grid-cols-4 gap-1">
             {DESTINOS_MOVIL.map((destino) => {
               const activo = esActivo(pathname, destino.href);
-              const isAvisos = destino.href === "/notificaciones";
               const notificar = destino.href === "/viajes" && hayAccionPendiente;
               
               return (

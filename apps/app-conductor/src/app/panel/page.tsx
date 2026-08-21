@@ -148,10 +148,24 @@ export default function PaginaPanel() {
           {/* Header */}
           <header className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <LogoMarca tamano={28} color="signal" />
+              <LogoMarca tamano={28} color="signal" descriptor="Conductor" subtitulo="Tu operación, tu control." />
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
+              {/* Botón de Ayuda / Soporte */}
+              <button
+                type="button"
+                onClick={() => setSoporteAbierto(true)}
+                aria-label="Ayuda y soporte operativo"
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-secondary hover:text-signal rounded-full hover:bg-surface-elevated transition-all cursor-pointer"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </button>
+
               {/* Botón de Recarga / Refresco Manual */}
               <button
                 type="button"
