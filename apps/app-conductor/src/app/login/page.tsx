@@ -84,23 +84,13 @@ export default function PaginaLogin() {
       }}
     >
       <section className="conductor-auth-card p-6 sm:p-8" aria-labelledby="titulo-inicio-conductor">
-        <div className="flex items-center gap-3">
-          <LogoMarca tamano={34} color="signal" />
-          <div>
-            <p className="font-display text-lg font-extrabold tracking-wide text-text-primary">
-              ruum<span className="text-signal tracking-normal">ruum</span>
-            </p>
-            <p className="font-body text-xs font-semibold text-text-secondary">Tu operación, tu control</p>
-          </div>
-        </div>
-
-        <h1 id="titulo-inicio-conductor" className="mt-8 font-display text-2xl font-bold text-text-primary">Iniciar sesión</h1>
-        <p className="mt-2 font-body text-sm leading-6 text-text-secondary/90">Accede a tus viajes, registro del vehículo y ganancias operativas.</p>
+       <h1 id="titulo-inicio-conductor" className="mt-8 font-display text-2xl font-bold text-text-primary">Iniciar sesión</h1>
+        <p className="mt-2 font-body text-sm leading-6 text-text-secondary/90">Tu operación, tu control.</p>
 
         {!tieneSupabaseConfigurado() && (
           <div className="mt-6">
             <Aviso tono="danger">
-              Supabase no está configurado. No es posible iniciar sesión en este entorno.
+              No es posible iniciar sesión en este entorno.
             </Aviso>
           </div>
         )}
@@ -152,7 +142,7 @@ export default function PaginaLogin() {
             className="inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-xl px-5 py-3 w-full font-display text-sm font-bold leading-5 transition-[background-color,border-color,box-shadow,transform] duration-150 border border-border-strong bg-surface text-text-primary shadow-sm hover:-translate-y-0.5 hover:border-route-action hover:bg-surface-elevated hover:shadow-md active:translate-y-0 active:bg-surface-elevated focus-visible:outline-route-action focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:transform-none disabled:border-border disabled:bg-surface-elevated disabled:text-disabled disabled:shadow-none"
             aria-label="Solicitar certificación como conductor"
           >
-            Solicitar certificación
+            Crear cuenta
           </Link>
         </div>
       </section>
