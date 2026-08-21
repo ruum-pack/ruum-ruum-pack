@@ -34,16 +34,17 @@ const PASOS: Paso[] = [
     ),
     descripcion:
       "Consulta viajes realizados, pendientes y tus ganancias acumuladas sin salir de la pantalla principal.",
-    hero: (
-      <Image
-        src="/imagenes/onboarding-paso1.webp"
-        alt="Teléfono con el panel del conductor sobre un mapa con ruta iluminada"
-        width={860}
-        height={860}
-        priority
-        className="max-h-full w-auto rounded-3xl object-contain"
-      />
-    )
+      hero: (
+        <Image
+          src="/imagenes/onboarding-paso1.webp"
+          alt="Teléfono con el panel del conductor sobre un mapa con ruta iluminada"
+          width={860}
+          height={860}
+          priority
+          sizes="(max-width: 640px) 90vw, 430px"
+          className="max-h-full w-auto rounded-3xl object-contain"
+        />
+      )
   },
   {
     tag: "Viajes compatibles, al instante",
@@ -54,15 +55,17 @@ const PASOS: Paso[] = [
     ),
     descripcion:
       "Revisa las solicitudes compatibles con tu perfil, acéptalas con un toque y sigue tu ruta con todo bajo control.",
-    hero: (
-      <Image
-        src="/imagenes/onboarding-paso2.webp"
-        alt="Vista nocturna desde el volante con navegación proyectada sobre la carretera"
-        width={1200}
-        height={675}
-        className="w-full rounded-3xl object-cover shadow-[0_24px_60px_-24px_rgba(58,165,255,0.35)]"
-      />
-    )
+      hero: (
+        <Image
+          src="/imagenes/onboarding-paso2.webp"
+          alt="Vista nocturna desde el volante con navegación proyectada sobre la carretera"
+          width={1200}
+          height={675}
+          sizes="(max-width: 640px) 90vw, 400px"
+          priority={false}
+          className="w-full rounded-3xl object-cover shadow-[0_24px_60px_-24px_rgba(58,165,255,0.35)]"
+        />
+      )
   },
   {
     tag: "Registro que protege tu pago",
@@ -73,15 +76,16 @@ const PASOS: Paso[] = [
     ),
     descripcion:
       "Documenta cada operación con registro fotográfico del vehículo y recibe cortes puntuales con su desglose. Sin sorpresas.",
-    hero: (
-      <Image
-        src="/imagenes/onboarding-paso3.webp"
-        alt="Vehículo con puntos de registro fotográfico verificados alrededor"
-        width={860}
-        height={860}
-        className="max-h-full w-auto rounded-3xl object-contain"
-      />
-    )
+      hero: (
+        <Image
+          src="/imagenes/onboarding-paso3.webp"
+          alt="Vehículo con puntos de registro fotográfico verificados alrededor"
+          width={860}
+          height={860}
+          sizes="(max-width: 640px) 90vw, 430px"
+          className="max-h-full w-auto rounded-3xl object-contain"
+        />
+      )
   }
 ];
 

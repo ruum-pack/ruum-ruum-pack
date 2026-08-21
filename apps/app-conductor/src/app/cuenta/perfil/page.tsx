@@ -385,7 +385,8 @@ export default function PaginaPerfilCuenta() {
           <div
             aria-live="polite"
             aria-atomic="true"
-            className={`conductor-toast-bottom fixed right-4 z-50 max-w-[calc(100vw-2rem)] rounded-xl border px-4 py-3 font-body text-sm font-semibold shadow-[0_18px_48px_rgba(0,0,0,0.42)] sm:right-6 sm:max-w-sm ${claseToast(notificacion.tipo)}`}
+            className={`conductor-toast-bottom fixed inset-x-4 z-50 rounded-xl border px-4 py-3 font-body text-sm font-semibold shadow-[0_18px_48px_rgba(0,0,0,0.42)] sm:left-auto sm:right-6 sm:max-w-sm ${claseToast(notificacion.tipo)}`}
+            style={{ bottom: "calc(var(--conductor-mobile-nav-offset,80px) + env(safe-area-inset-bottom) + 16px)" }}
           >
             {notificacion.mensaje}
           </div>
@@ -427,8 +428,8 @@ export default function PaginaPerfilCuenta() {
             </div>
           ) : (
             <div className="grid gap-6">
-              <div className="flex flex-col items-center gap-4 rounded-2xl border border-border/40 bg-surface-elevated/40 p-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-4">
+              <div className="flex flex-col items-center gap-4 rounded-2xl border border-border/40 bg-surface-elevated/40 p-4 sm:p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
                   <div className="relative group flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-signal bg-signal-soft font-display text-2xl font-bold text-text-primary shadow-md transition hover:opacity-90">
                     {vistaPreviaFoto || conductor?.foto_perfil_url ? (
                       <Image
@@ -436,6 +437,7 @@ export default function PaginaPerfilCuenta() {
                         alt="Fotografía del conductor"
                         width={80}
                         height={80}
+                        sizes="80px"
                         className="h-full w-full object-cover"
                       />
                     ) : (
@@ -475,7 +477,7 @@ export default function PaginaPerfilCuenta() {
 
               {/* 1. Segmentación por Pestañas (Tabs) */}
               <div className="border-b border-border/40" role="tablist" aria-label="Secciones del perfil">
-                <nav className="-mb-px flex space-x-2 sm:space-x-6 overflow-x-auto no-scrollbar" aria-label="Tabs">
+                <nav className="-mb-px flex space-x-2 sm:space-x-6 overflow-x-auto no-scrollbar snap-x snap-mandatory" aria-label="Tabs">
                   {PESTANAS.map((tab) => {
                     const activa = tab.id === pestanaActiva;
                     return (
@@ -486,7 +488,7 @@ export default function PaginaPerfilCuenta() {
                         aria-selected={activa}
                         onClick={() => setPestanaActiva(tab.id)}
                         className={[
-                          "inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3 font-display text-sm font-bold transition-all",
+                          "inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3.5 font-display text-sm font-bold transition-all min-h-11 snap-start",
                           activa
                             ? "border-signal text-signal"
                             : "border-transparent text-text-tertiary hover:border-border hover:text-text-primary"
@@ -651,7 +653,7 @@ export default function PaginaPerfilCuenta() {
         </Card>
 
         {/* 3. Botón de acción flotante (Sticky Button) para móvil y escritorio */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-surface/95 px-4 py-3 backdrop-blur-md shadow-lg sm:relative sm:z-auto sm:mt-6 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-surface/95 px-4 py-3 backdrop-blur-md shadow-lg sm:relative sm:z-auto sm:mt-6 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
           <div className="mx-auto max-w-3xl flex items-center justify-between gap-4">
             <p className="hidden font-body text-xs text-text-tertiary sm:block">
               {hayCambiosReales ? "Hay cambios pendientes por guardar" : "Sin cambios detectados"}
@@ -661,7 +663,7 @@ export default function PaginaPerfilCuenta() {
               onClick={() => void guardarPerfil()}
               loading={guardando}
               disabled={!conductor || !hayCambiosReales || guardando}
-              className={`w-full sm:w-auto min-w-[200px] transition-all ${hayCambiosReales ? "shadow-md animate-pulse sm:animate-none" : "opacity-75"}`}
+              className={`w-full sm:w-auto min-w-[200px] min-h-12 transition-all ${hayCambiosReales ? "shadow-md animate-pulse sm:animate-none" : "opacity-75"}`}
             >
               {guardando ? "Guardando perfil..." : "Guardar perfil"}
             </Button>

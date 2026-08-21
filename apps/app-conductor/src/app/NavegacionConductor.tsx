@@ -218,7 +218,7 @@ export function NavegacionConductor() {
       </header>
 
       {/* Navegación móvil fija al fondo adaptada al Brand Book */}
-      <div className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-surface/95 border-t border-border/20 backdrop-blur-md pb-[calc(env(safe-area-inset-bottom)+8px)] pt-3 shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
+      <div className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-surface/95 border-t border-border/20 backdrop-blur-md pb-[max(8px,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-8px_30px_rgba(0,0,0,0.5)] supports-[backdrop-filter]:bg-surface/80">
         
         {/* Banner de viaje activo en móvil: flotante arriba de la barra fija */}
         {viajeActivo && !pathname.startsWith("/viajes") && pathname !== "/panel" && (
@@ -260,7 +260,7 @@ export function NavegacionConductor() {
                   aria-current={activo ? "page" : undefined}
                   aria-label={notificar ? `${destino.etiqueta}: acción pendiente` : destino.etiqueta}
                   className={[
-                    "relative flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 font-body text-[10px] transition-colors duration-200 select-none",
+                    "relative flex flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 min-h-14 font-body text-[11px] leading-none transition-colors duration-200 select-none",
                     activo ? "text-signal font-black" : "text-text-secondary hover:text-text-primary"
                   ].join(" ")}
                 >
@@ -270,7 +270,7 @@ export function NavegacionConductor() {
                     )}
                     <destino.Icono />
                   </div>
-                  <span className="max-w-full truncate tracking-tight text-[10px]">{destino.etiqueta}</span>
+                  <span className="max-w-full truncate tracking-tight text-[11px] leading-none">{destino.etiqueta}</span>
                 </Link>
               );
             })}

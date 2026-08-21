@@ -368,7 +368,7 @@ export default function PaginaViajes() {
             <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-text-primary leading-none">
               Traslados
             </h1>
-            <div className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-text-tertiary">
+            <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-text-tertiary">
               <span className={`h-1.5 w-1.5 rounded-full ${estaOnline ? "bg-signal animate-pulse" : "bg-danger"}`} />
               <span>{estaOnline ? "En vivo" : "Sin conexión"}</span>
               <button
@@ -378,10 +378,10 @@ export default function PaginaViajes() {
                   setRefreshCount((prev) => prev + 1);
                 }}
                 disabled={refrescando}
-                className="text-route-action underline-offset-2 hover:underline cursor-pointer select-none ml-1 flex items-center gap-0.5"
+                className="text-route-action underline-offset-2 hover:underline cursor-pointer select-none ml-1 flex items-center gap-0.5 min-h-6 px-1"
               >
                 <span>Recargar</span>
-                <span className={`text-[11px] ${refrescando ? "animate-spin" : ""}`}>↻</span>
+                <span className={`text-xs ${refrescando ? "animate-spin" : ""}`}>↻</span>
               </button>
             </div>
           </div>

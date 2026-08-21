@@ -213,7 +213,7 @@ export default function PaginaPanel() {
           <section className="mt-5 bg-surface-elevated rounded-2xl p-5 border border-border/20 text-left shadow-xs">
             <div className="flex justify-between items-start">
               <div className="flex flex-col gap-1">
-                <span className="text-text-tertiary text-[10px] font-extrabold tracking-wider uppercase">
+                <span className="text-text-tertiary text-xs font-extrabold tracking-wider uppercase">
                   Estado del Conductor
                 </span>
                 <div className="flex items-center gap-2 mt-1.5">
@@ -292,7 +292,7 @@ export default function PaginaPanel() {
               </div>
               <div className="flex flex-col leading-tight">
                 <span className="text-text-primary font-bold text-sm tracking-tight">Soporte</span>
-                <span className="text-[10px] text-text-secondary mt-0.5">Estamos contigo</span>
+                <span className="text-xs text-text-secondary mt-0.5">Estamos contigo</span>
               </div>
             </button>
 
@@ -309,7 +309,7 @@ export default function PaginaPanel() {
               </div>
               <div className="flex flex-col leading-tight">
                 <span className="text-text-primary font-bold text-sm tracking-tight">Emergencia</span>
-                <span className="text-[10px] text-text-secondary mt-0.5">Asistencia SOS</span>
+                <span className="text-xs text-text-secondary mt-0.5">Asistencia SOS</span>
               </div>
             </a>
           </div>

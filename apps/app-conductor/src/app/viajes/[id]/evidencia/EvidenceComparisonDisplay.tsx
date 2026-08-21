@@ -92,9 +92,87 @@ export function EvidenceComparisonDisplay({
         </div>
       )}
 
-      {/* Tabla de comparación */}
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[400px] table-fixed border-collapse font-body text-sm">
+      {/* Comparación responsive: cards en móvil, tabla en desktop */}
+      {/* Vista móvil - cards */}
+      <div className="mt-4 grid gap-3 md:hidden">
+        {/* Kilometraje */}
+        <div className="rounded-xl border border-border/20 bg-surface-elevated p-3">
+          <p className="font-body text-xs font-bold uppercase tracking-wide text-text-tertiary">Kilometraje</p>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-surface p-2.5 text-center">
+              <p className="text-[11px] font-semibold uppercase text-text-tertiary">Inicial</p>
+              <p className="mt-1 font-body text-sm font-semibold text-text-primary">{kilometraje.inicial !== null ? `${kilometraje.inicial.toLocaleString()} km` : "-"}</p>
+            </div>
+            <div className={`rounded-lg p-2.5 text-center ${kilometraje.valido ? "bg-surface" : "bg-danger-soft border border-danger/20"}`}>
+              <p className="text-[11px] font-semibold uppercase text-text-tertiary">Final</p>
+              <p className={`mt-1 font-body text-sm font-semibold ${kilometraje.valido ? "text-text-primary" : "text-danger"}`}>{kilometraje.final !== null ? `${kilometraje.final.toLocaleString()} km` : "-"}</p>
+            </div>
+          </div>
+          {kilometraje.diferencia !== null && (
+            <p className="mt-2 text-center font-body text-xs font-semibold text-text-secondary">
+              Diferencia: {kilometraje.diferencia >= 0 ? `+${kilometraje.diferencia.toLocaleString()}` : `${kilometraje.diferencia.toLocaleString()}`} km
+            </p>
+          )}
+        </div>
+        {/* Llaves */}
+        <div className="rounded-xl border border-border/20 bg-surface-elevated p-3">
+          <p className="font-body text-xs font-bold uppercase tracking-wide text-text-tertiary">Llaves</p>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-surface p-2.5 text-center">
+              <p className="text-[11px] font-semibold uppercase text-text-tertiary">Inicial</p>
+              <p className="mt-1 font-body text-sm font-semibold text-text-primary">{llaves.inicial ?? "-"}</p>
+            </div>
+            <div className={`rounded-lg p-2.5 text-center ${llaves.coincide ? "bg-surface" : "bg-danger-soft border border-danger/20"}`}>
+              <p className="text-[11px] font-semibold uppercase text-text-tertiary">Final</p>
+              <p className={`mt-1 font-body text-sm font-semibold ${llaves.coincide ? "text-text-primary" : "text-danger"}`}>{llaves.final ?? "-"}</p>
+            </div>
+          </div>
+        </div>
+        {/* Combustible */}
+        <div className="rounded-xl border border-border/20 bg-surface-elevated p-3">
+          <p className="font-body text-xs font-bold uppercase tracking-wide text-text-tertiary">Combustible</p>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-surface p-2.5 text-center">
+              <p className="text-[11px] font-semibold uppercase text-text-tertiary">Inicial</p>
+              <p className="mt-1 font-body text-sm font-semibold text-text-primary">{combustible.inicial ?? "-"}</p>
+            </div>
+            <div className={`rounded-lg p-2.5 text-center ${combustible.coincide ? "bg-surface" : "bg-warn-soft border border-warning/20"}`}>
+              <p className="text-[11px] font-semibold uppercase text-text-tertiary">Final</p>
+              <p className={`mt-1 font-body text-sm font-semibold ${combustible.coincide ? "text-text-primary" : "text-warning"}`}>{combustible.final ?? "-"}</p>
+            </div>
+          </div>
+        </div>
+        {/* Documentos - móvil */}
+        <div className="rounded-xl border border-border/20 bg-surface-elevated p-3">
+          <p className="font-body text-xs font-bold uppercase tracking-wide text-text-tertiary">Documentos</p>
+          <div className="mt-2 grid gap-2">
+            {documentosClave.map((doc) => {
+              const tieneInicial = documentos.inicial[doc];
+              const tieneFinal = documentos.final[doc];
+              const hayCambio = tieneInicial !== tieneFinal;
+              return (
+                <div key={doc} className="flex items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2.5">
+                  <span className="font-body text-xs font-medium text-text-primary min-w-0 flex-1">{doc}</span>
+                  <span className="flex items-center gap-3 shrink-0">
+                    <span className="text-center min-w-[32px]">
+                      <span className="block text-[10px] font-bold uppercase text-text-tertiary">Ini</span>
+                      <span className="block text-sm">{tieneInicial ? "✓" : "✗"}</span>
+                    </span>
+                    <span className={`text-center min-w-[32px] ${hayCambio ? "text-danger font-bold" : ""}`}>
+                      <span className="block text-[10px] font-bold uppercase text-text-tertiary">Fin</span>
+                      <span className="block text-sm">{tieneFinal ? "✓" : "✗"}</span>
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Vista desktop - tabla */}
+      <div className="mt-4 hidden md:block overflow-x-auto -mx-1">
+        <table className="w-full min-w-[420px] table-fixed border-collapse font-body text-sm">
           <thead>
             <tr className="border-b border-border/22">
               <th className="w-1/3 px-2 py-2 text-left font-semibold text-text-tertiary"></th>
@@ -103,7 +181,6 @@ export function EvidenceComparisonDisplay({
             </tr>
           </thead>
           <tbody>
-            {/* Kilometraje */}
             <tr className="border-b border-border/22">
               <td className="px-2 py-2 font-body text-text-primary">Kilometraje</td>
               <td className="px-2 py-2 text-center text-text-primary">
@@ -113,8 +190,6 @@ export function EvidenceComparisonDisplay({
                 {kilometraje.final !== null ? `${kilometraje.final.toLocaleString()} km` : "-"}
               </td>
             </tr>
-            
-            {/* Diferencia de kilometraje */}
             {kilometraje.diferencia !== null && (
               <tr className="border-b border-border/22">
                 <td className="px-2 py-2 font-body text-text-secondary" colSpan={1}>Diferencia</td>
@@ -123,44 +198,25 @@ export function EvidenceComparisonDisplay({
                 </td>
               </tr>
             )}
-
-            {/* Llaves */}
             <tr className="border-b border-border/22">
               <td className="px-2 py-2 font-body text-text-primary">Llaves</td>
-              <td className="px-2 py-2 text-center text-text-primary">
-                {llaves.inicial ?? "-"}
-              </td>
-              <td className={`px-2 py-2 text-center ${llaves.coincide ? "text-text-primary" : "text-danger font-semibold"}`}>
-                {llaves.final ?? "-"}
-              </td>
+              <td className="px-2 py-2 text-center text-text-primary">{llaves.inicial ?? "-"}</td>
+              <td className={`px-2 py-2 text-center ${llaves.coincide ? "text-text-primary" : "text-danger font-semibold"}`}>{llaves.final ?? "-"}</td>
             </tr>
-
-            {/* Combustible */}
             <tr className="border-b border-border/22">
               <td className="px-2 py-2 font-body text-text-primary">Combustible</td>
-              <td className="px-2 py-2 text-center text-text-primary">
-                {combustible.inicial ?? "-"}
-              </td>
-              <td className={`px-2 py-2 text-center ${combustible.coincide ? "text-text-primary" : "text-warning font-semibold"}`}>
-                {combustible.final ?? "-"}
-              </td>
+              <td className="px-2 py-2 text-center text-text-primary">{combustible.inicial ?? "-"}</td>
+              <td className={`px-2 py-2 text-center ${combustible.coincide ? "text-text-primary" : "text-warning font-semibold"}`}>{combustible.final ?? "-"}</td>
             </tr>
-
-            {/* Documentos */}
             {documentosClave.map((doc) => {
               const tieneInicial = documentos.inicial[doc];
               const tieneFinal = documentos.final[doc];
               const hayCambio = tieneInicial !== tieneFinal;
-              
               return (
                 <tr key={doc} className="border-b border-border/22">
                   <td className="px-2 py-2 font-body text-text-primary">{doc}</td>
-                  <td className="px-2 py-2 text-center text-text-primary">
-                    {tieneInicial ? "✓" : "✗"}
-                  </td>
-                  <td className={`px-2 py-2 text-center ${hayCambio ? "text-danger font-semibold" : "text-text-primary"}`}>
-                    {tieneFinal ? "✓" : "✗"}
-                  </td>
+                  <td className="px-2 py-2 text-center text-text-primary">{tieneInicial ? "✓" : "✗"}</td>
+                  <td className={`px-2 py-2 text-center ${hayCambio ? "text-danger font-semibold" : "text-text-primary"}`}>{tieneFinal ? "✓" : "✗"}</td>
                 </tr>
               );
             })}

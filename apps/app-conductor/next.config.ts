@@ -9,8 +9,13 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
         pathname: "/**"
       }
-    ]
+    ],
+    formats: ["image/avif", "image/webp"],
+    deviceSizes: [320, 420, 640, 750, 828, 1080, 1200],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256]
   },
+  compress: true,
+  poweredByHeader: false,
   // Nunca configuramos ESLint en este proyecto (la validación real se apoya
   // en tsc, no en linting — ver README, "Por qué este repo no repite los
   // errores de la sesión anterior"). Sin esto, `next build` intenta abrir un

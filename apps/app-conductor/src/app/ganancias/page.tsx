@@ -169,16 +169,16 @@ export default function PaginaGanancias() {
   const tieneContenido = !cargando && (traslados.length > 0 || payouts.length > 0);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-5xl px-4 py-6 pb-24 sm:px-6 sm:py-12 sm:pb-12">
       {/* Encabezado con Información Bancaria Agrupada y Botón Simplificado */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/40 pb-5">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border/40 pb-5">
         <div>
           <div className="flex items-center gap-2">
             <Link href="/panel" className="font-body text-xs text-text-tertiary hover:underline">
               ← Volver al Panel
             </Link>
           </div>
-          <h1 className="mt-1 font-display text-3xl font-bold text-text-primary">Mis ganancias y pagos</h1>
+          <h1 className="mt-1 font-display text-2xl sm:text-3xl font-bold text-text-primary">Mis ganancias y pagos</h1>
           <p className="mt-1 font-body text-sm text-text-tertiary">
             Consulta las ganancias reales generadas por tus traslados y el estado de tus depósitos bancarios.
           </p>
@@ -307,35 +307,32 @@ export default function PaginaGanancias() {
             </FinancialCard>
           </section>
 
-          {/* Pestañas de Vista */}
-          <div className="mt-8 flex items-center justify-between border-b border-border/60 pb-3">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setVistaActiva("viajes")}
-                className={[
-                  "rounded-xl px-4 py-2 font-display text-xs font-bold transition",
-                  vistaActiva === "viajes"
-                    ? "bg-signal text-slate-950 shadow-xs"
-                    : "border border-border bg-surface text-text-tertiary hover:border-signal/60 hover:text-text-primary"
-                ].join(" ")}
-              >
-                🚘 Desglose por Viaje ({registrosViajes.length})
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setVistaActiva("payouts")}
-                className={[
-                  "rounded-xl px-4 py-2 font-display text-xs font-bold transition",
-                  vistaActiva === "payouts"
-                    ? "bg-signal text-slate-950 shadow-xs"
-                    : "border border-border bg-surface text-text-tertiary hover:border-signal/60 hover:text-text-primary"
-                ].join(" ")}
-              >
-                🏦 Depósitos y Transferencias ({payouts.length})
-              </button>
-            </div>
+          {/* Pestañas de Vista - scroll horizontal en móvil */}
+          <div className="mt-8 flex items-center gap-2 border-b border-border/60 pb-3 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setVistaActiva("viajes")}
+              className={[
+                "shrink-0 rounded-xl px-4 py-2.5 font-display text-xs font-bold transition min-h-11",
+                vistaActiva === "viajes"
+                  ? "bg-signal text-slate-950 shadow-xs"
+                  : "border border-border bg-surface text-text-tertiary hover:border-signal/60 hover:text-text-primary"
+              ].join(" ")}
+            >
+              🚘 Desglose por Viaje ({registrosViajes.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setVistaActiva("payouts")}
+              className={[
+                "shrink-0 rounded-xl px-4 py-2.5 font-display text-xs font-bold transition min-h-11",
+                vistaActiva === "payouts"
+                  ? "bg-signal text-slate-950 shadow-xs"
+                  : "border border-border bg-surface text-text-tertiary hover:border-signal/60 hover:text-text-primary"
+              ].join(" ")}
+            >
+              🏦 Depósitos ({payouts.length})
+            </button>
           </div>
 
           {/* Vista 1: Desglose por Viaje Realizado (Con Affordance, Alto Contraste y Badges Sin Duplicidad) */}
@@ -379,7 +376,7 @@ export default function PaginaGanancias() {
                         {/* Ganancia y Única Etiqueta Consolidada sin Duplicaciones + Affordance */}
                         <div className="flex items-center justify-between sm:justify-end gap-5 shrink-0 border-t border-border/40 sm:border-t-0 pt-3 sm:pt-0">
                           <div className="text-left sm:text-right">
-                            <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
+                            <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">
                               Ganancia Conductor
                             </p>
                             <p className="font-display text-base font-bold text-emerald-500 dark:text-emerald-400 mt-0.5">
@@ -387,8 +384,7 @@ export default function PaginaGanancias() {
                             </p>
                           </div>
 
-                          {/* ÚNICO BADGE CONSOLIDADO (Eliminada duplicación) */}
-                          <span className={`inline-flex items-center rounded-full border px-3 py-1 font-body text-xs font-bold ${badgeEstado.clase}`}>
+                          <span className={`inline-flex items-center rounded-full border px-3 py-1.5 font-body text-xs font-bold shrink-0 ${badgeEstado.clase}`}>
                             {badgeEstado.texto}
                           </span>
 

@@ -55,11 +55,11 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
       <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-border/15">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-signal animate-pulse shrink-0" />
-          <span className="font-mono text-[10px] font-extrabold text-text-tertiary tracking-widest uppercase">
+          <span className="font-mono text-[11px] font-extrabold text-text-tertiary tracking-widest uppercase">
             ID {folio}
           </span>
           {tipoVehiculo && (
-            <span className="px-2 py-0.5 rounded-md bg-surface border border-border/30 text-[9px] font-bold text-text-secondary uppercase">
+            <span className="px-2 py-0.5 rounded-md bg-surface border border-border/30 text-[10px] font-bold text-text-secondary uppercase">
               {tipoVehiculo}
             </span>
           )}
@@ -93,7 +93,7 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
                 {coloniaOrigen}
               </span>
             )}
-            <span className="font-body text-[11px] text-text-secondary leading-tight truncate mt-0.5">
+            <span className="font-body text-xs text-text-secondary leading-tight truncate mt-0.5">
               {ciudadOrigen || "Origen por confirmar"}
             </span>
           </div>
@@ -110,7 +110,7 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
                 {coloniaDestino}
               </span>
             )}
-            <span className="font-body text-[11px] text-text-secondary leading-tight truncate mt-0.5">
+            <span className="font-body text-xs text-text-secondary leading-tight truncate mt-0.5">
               {ciudadDestino || "Destino por confirmar"}
             </span>
           </div>
@@ -120,19 +120,19 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
       {/* Stats: Hora · Distancia · Duración */}
       <div className="flex items-center divide-x divide-border/15 border-t border-border/15 bg-surface/40">
         {horaInicio ? (
-          <div className="flex flex-1 flex-col items-center gap-0.5 py-2">
-            <span className="text-text-tertiary text-[8px] font-extrabold uppercase tracking-widest leading-none">Inicio</span>
+          <div className="flex flex-1 flex-col items-center gap-0.5 py-2.5">
+            <span className="text-text-tertiary text-[10px] font-extrabold uppercase tracking-widest leading-none">Inicio</span>
             <span className="font-display text-xs font-black text-text-primary mt-1 tabular-nums leading-none">{horaInicio}</span>
           </div>
         ) : null}
         {distanciaTexto ? (
-          <div className="flex flex-1 flex-col items-center gap-0.5 py-2">
-            <span className="text-text-tertiary text-[8px] font-extrabold uppercase tracking-widest leading-none">Distancia</span>
+          <div className="flex flex-1 flex-col items-center gap-0.5 py-2.5">
+            <span className="text-text-tertiary text-[10px] font-extrabold uppercase tracking-widest leading-none">Distancia</span>
             <span className="font-display text-xs font-black text-text-primary mt-1 tabular-nums leading-none">{distanciaTexto}</span>
           </div>
         ) : null}
-        <div className="flex flex-1 flex-col items-center gap-0.5 py-2">
-          <span className="text-text-tertiary text-[8px] font-extrabold uppercase tracking-widest leading-none">Duración</span>
+        <div className="flex flex-1 flex-col items-center gap-0.5 py-2.5">
+          <span className="text-text-tertiary text-[10px] font-extrabold uppercase tracking-widest leading-none">Duración</span>
           <span className="font-display text-xs font-black text-text-primary mt-1 tabular-nums leading-none">{duracionTexto}</span>
         </div>
       </div>
