@@ -453,7 +453,21 @@ export default function PaginaPerfilCuenta() {
                     <h2 className="font-display text-lg font-bold text-text-primary">
                       {conductor?.nombre || "Conductor Ruum Ruum"}
                     </h2>
-                    <p className="font-body text-xs text-text-tertiary">
+                    {/* Calificación del conductor */}
+                    <div className="mt-1 flex items-center gap-2">
+                      <div className="inline-flex items-center gap-1.5 rounded-full bg-signal/15 border border-signal/30 px-2.5 py-0.5 text-xs font-bold text-signal shadow-2xs">
+                        <span className="text-amber-400 text-sm leading-none" aria-hidden="true">★</span>
+                        <span className="font-display font-extrabold tracking-wide">
+                          {typeof conductor?.calificacion_promedio === "number"
+                            ? conductor.calificacion_promedio.toFixed(1)
+                            : "5.0"}
+                        </span>
+                      </div>
+                      <span className="font-body text-xs font-medium text-text-tertiary">
+                        Calificación del conductor
+                      </span>
+                    </div>
+                    <p className="mt-1 font-body text-xs text-text-tertiary">
                       Fotografía de perfil activa para identificación operativa
                     </p>
                   </div>

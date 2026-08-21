@@ -311,7 +311,7 @@ export default function PaginaPanel() {
                 <button
                   type="button"
                   onClick={() => void recargar()}
-                  className="shrink-0 inline-flex min-h-11 items-center rounded-lg border border-warning/30 bg-surface px-3 py-2 font-body text-xs font-bold text-warning hover:bg-surface-elevated focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-warning"
+                  className="shrink-0 inline-flex min-h-11 items-center rounded-lg border border-warning/30 bg-surface px-3 py-2 font-body text-sm font-bold text-warning hover:bg-surface-elevated focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-warning"
                 >
                   Reintentar
                 </button>
