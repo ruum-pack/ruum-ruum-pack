@@ -44,15 +44,15 @@ export default function PaginaEvidencia() {
   const [soporteAbierto, setSoporteAbierto] = useState(false);
   
   // Inspeccion Form Values
-  const [kilometraje, setKilometraje] = useState("48,213");
+  const [kilometraje, setKilometraje] = useState("");
   const [gasolinaSegments, setGasolinaSegments] = useState(4); // default 4/8 (1/2)
   const [llavesCount, setLlavesCount] = useState(2);
-  const [tarjetaCirculacion, setTarjetaCirculacion] = useState("si");
-  const [talonVerificacion, setTalonVerificacion] = useState("no");
-  const [hologramaVerificacion, setHologramaVerificacion] = useState("no");
-  const [placaDelantera, setPlacaDelantera] = useState("si");
-  const [placaTrasera, setPlacaTrasera] = useState("no");
-  const [notas, setNotas] = useState("Vehículo con rayón leve en puerta trasera derecha, ya documentado en fotografía. Sin faltantes visibles. Entrega conforme.");
+  const [tarjetaCirculacion, setTarjetaCirculacion] = useState("");
+  const [talonVerificacion, setTalonVerificacion] = useState("");
+  const [hologramaVerificacion, setHologramaVerificacion] = useState("");
+  const [placaDelantera, setPlacaDelantera] = useState("");
+  const [placaTrasera, setPlacaTrasera] = useState("");
+  const [notas, setNotas] = useState("");
 
   // Custom states for damages and receipt modal
   const [presentaDanosNuevos, setPresentaDanosNuevos] = useState(false);
