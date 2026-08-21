@@ -84,13 +84,16 @@ export default function PaginaLogin() {
       }}
     >
       <section className="conductor-auth-card p-6 sm:p-8" aria-labelledby="titulo-inicio-conductor">
+        <div className="flex items-center gap-3">
+          <LogoMarca tamano={34} color="signal" />
+        </div>
        <h1 id="titulo-inicio-conductor" className="mt-8 font-display text-2xl font-bold text-text-primary">Iniciar sesión</h1>
         <p className="mt-2 font-body text-sm leading-6 text-text-secondary/90">Tu operación, tu control.</p>
 
         {!tieneSupabaseConfigurado() && (
           <div className="mt-6">
             <Aviso tono="danger">
-              No es posible iniciar sesión en este entorno.
+              Supabase no está configurado. No es posible iniciar sesión en este entorno.
             </Aviso>
           </div>
         )}
