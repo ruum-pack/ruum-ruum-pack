@@ -63,14 +63,12 @@ Deno.serve(async (req) => {
     return json({ error: "La solicitud debe estar en revisión para iniciar la verificación automática." }, 409);
   }
 
-  const { data: pendiente } = await servicio
+  // Si existen sesiones pendientes previas para la misma solicitud, las marcamos como expiradas
+  await servicio
     .from("verificaciones_identidad_didit")
-    .select("session_id")
+    .update({ estado: "expirado" })
     .eq("solicitud_id", solicitudId)
-    .in("estado", ["pendiente", "en_revision"])
-    .order("creado_en", { ascending: false })
-    .maybeSingle();
-  if (pendiente) return json({ session_id: pendiente.session_id, reutilizada: true }, 200);
+    .in("estado", ["pendiente", "en_revision"]);
 
   const respuestaDidit = await fetch("https://verification.didit.me/v2/session/", {
     method: "POST",

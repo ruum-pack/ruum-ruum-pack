@@ -555,16 +555,18 @@ export default function PaginaRegistroConductor() {
 
     // Auto-iniciar verificación Didit tras envío exitoso (solicitud en_revision)
     if (resultado.solicitudId) {
+      solicitudRemotaIdRef.current = resultado.solicitudId;
+      setSolicitudRemotaId(resultado.solicitudId);
       registrarTelemetria("didit_iniciado", PASOS_REGISTRO.length, "auto");
+      setMostrarVerificacionDidit(true);
+      setIniciandoVerificacionDidit(true);
+      setErrorVerificacionDidit(null);
       try {
-        setIniciandoVerificacionDidit(true);
-        setErrorVerificacionDidit(null);
         const { url } = await iniciarVerificacionDidit(cliente, resultado.solicitudId);
         setUrlVerificacionDidit(url);
-        setMostrarVerificacionDidit(true);
       } catch (err) {
-        // No bloqueamos el flujo si Didit falla; el usuario puede iniciarlo desde el panel
-        const mensaje = traducirErrorOperativo(err, "No pudimos iniciar la verificación de identidad automáticamente. Podrás hacerlo desde tu panel.");
+        // No bloqueamos el flujo si Didit falla; el usuario puede reintentar desde el modal o hacerlo desde el panel
+        const mensaje = traducirErrorOperativo(err, "No pudimos iniciar la verificación de identidad automáticamente. Podrás reintentar o completarla desde tu panel.");
         setErrorVerificacionDidit(mensaje);
         registrarTelemetria("didit_error", PASOS_REGISTRO.length, "auto_inicio_fallido");
       } finally {
@@ -842,12 +844,18 @@ export default function PaginaRegistroConductor() {
   }
 
   function reintentarVerificacionDidit() {
+    const id = solicitudRemotaIdRef.current ?? solicitudRemotaId;
+    if (!id) {
+      setErrorVerificacionDidit("No encontramos la solicitud activa para reintentar la verificación.");
+      return;
+    }
     setErrorVerificacionDidit(null);
     setIniciandoVerificacionDidit(true);
+    setMostrarVerificacionDidit(true);
     (async () => {
       try {
         const cliente = crearClienteNavegador();
-        const { url } = await iniciarVerificacionDidit(cliente, solicitudRemotaIdRef.current ?? solicitudRemotaId ?? "");
+        const { url } = await iniciarVerificacionDidit(cliente, id);
         setUrlVerificacionDidit(url);
       } catch (err) {
         setErrorVerificacionDidit(traducirErrorOperativo(err, "No pudimos reintentar la verificación."));
@@ -901,13 +909,44 @@ export default function PaginaRegistroConductor() {
             <p className="mt-3 font-body text-sm leading-6 text-text-tertiary/80">
               Tu cuenta está pendiente de validación. Cuando la revisión esté completa, podrás consultar y aceptar viajes.
             </p>
-            <Button
-              variant="secondary"
-              className="mt-7"
-              onClick={() => router.push(sesionActivaTrasRegistro ? "/panel" : "/login")}
-            >
-              {sesionActivaTrasRegistro ? "Ver estado de mi solicitud" : "Volver al acceso"}
-            </Button>
+
+            {/* Tarjeta destacada de verificación de identidad con Didit */}
+            <div className="mt-6 rounded-2xl border border-route-action/30 bg-surface p-5 text-left shadow-sm">
+              <div className="flex items-start gap-3.5">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-route-soft text-lg text-route-action">
+                  🪪
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-display text-base font-bold text-text-primary">
+                    Verificación de identidad automática
+                  </h3>
+                  <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
+                    Agiliza la validación de tu cuenta completando la prueba de vida y validación biométrica con Didit.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-col sm:flex-row items-center gap-3">
+                <Button
+                  className="w-full sm:w-auto"
+                  onClick={() => {
+                    setMostrarVerificacionDidit(true);
+                    if (!urlVerificacionDidit) {
+                      reintentarVerificacionDidit();
+                    }
+                  }}
+                  disabled={iniciandoVerificacionDidit}
+                >
+                  {iniciandoVerificacionDidit ? "Iniciando verificación…" : "Completar verificación de identidad"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                  onClick={() => router.push(sesionActivaTrasRegistro ? "/panel" : "/login")}
+                >
+                  {sesionActivaTrasRegistro ? "Ir al panel" : "Volver al acceso"}
+                </Button>
+              </div>
+            </div>
           </div>
         ) : (
           <>

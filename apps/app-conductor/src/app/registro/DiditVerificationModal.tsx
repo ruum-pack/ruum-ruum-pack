@@ -27,7 +27,19 @@ export function DiditVerificationModal({
   useEffect(() => {
     if (!isOpen) return;
     const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "didit:complete" || event.data?.type === "didit:cancel") {
+      const data = event.data;
+      if (!data) return;
+      if (
+        data === "didit:complete" ||
+        data === "didit:cancel" ||
+        data?.type === "didit:complete" ||
+        data?.type === "didit:cancel" ||
+        data?.type === "didit:verification:complete" ||
+        data?.status === "complete" ||
+        data?.status === "approved" ||
+        data?.status === "declined" ||
+        data?.event === "verification.completed"
+      ) {
         onFinalizar();
       }
     };
@@ -37,13 +49,22 @@ export function DiditVerificationModal({
 
   if (!isOpen) return null;
 
+  const abrirEnNuevaVentana = () => {
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-10 bg-black/60" role="dialog" aria-modal="true" aria-labelledby="titulo-didit">
-      <div className="w-full max-w-xl bg-surface rounded-2xl shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between border-b border-border p-4">
-          <h2 id="titulo-didit" className="font-display text-lg font-semibold text-text-primary">
-            Verificación de identidad
-          </h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:py-10 bg-black/60 backdrop-blur-xs" role="dialog" aria-modal="true" aria-labelledby="titulo-didit">
+      <div className="w-full max-w-xl bg-surface rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between border-b border-border p-4 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🪪</span>
+            <h2 id="titulo-didit" className="font-display text-base sm:text-lg font-semibold text-text-primary">
+              Verificación de identidad (Didit)
+            </h2>
+          </div>
           <Button
             variant="quiet"
             onClick={onCerrar}
@@ -57,15 +78,16 @@ export function DiditVerificationModal({
 
         {cargando ? (
           <div className="p-8 text-center">
-            <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-route-soft font-display text-xl font-bold text-route-action" aria-hidden>⟳</div>
-            <p className="mt-4 font-body text-sm text-text-secondary">Iniciando verificación de identidad…</p>
+            <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-route-soft font-display text-xl font-bold text-route-action animate-spin" aria-hidden>⟳</div>
+            <p className="mt-4 font-body text-sm font-semibold text-text-primary">Iniciando verificación de identidad…</p>
+            <p className="mt-1 font-body text-xs text-text-secondary">Conectando con el servicio seguro de Didit.</p>
           </div>
         ) : error ? (
           <div className="p-6">
             <Aviso tono="danger">{error}</Aviso>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Button variant="secondary" onClick={onCerrar} className="sm:col-start-2">
-                Volver al panel
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <Button variant="secondary" onClick={onCerrar}>
+                Cerrar
               </Button>
               <Button onClick={onReintentar} disabled={cargando}>
                 Reintentar verificación
@@ -76,27 +98,51 @@ export function DiditVerificationModal({
             </p>
           </div>
         ) : url ? (
-          <div className="relative h-[500px] sm:h-[600px]">
-            <iframe
-              ref={iframeRef}
-              src={url}
-              className="w-full h-full border-0"
-              title="Verificación de identidad Didit"
-              allow="camera; microphone"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-            />
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-surface/95 to-transparent p-4 pointer-events-none">
-              <p className="text-center font-body text-xs text-text-tertiary pointer-events-auto">
-                Completa la verificación en la ventana segura de Didit. Se cerrará automáticamente al terminar.
+          <div className="flex flex-col flex-1 min-h-0">
+            <div className="flex items-center justify-between gap-2 bg-surface-elevated px-4 py-2 border-b border-border text-xs">
+              <span className="text-text-secondary truncate">Prueba de vida y validación biométrica</span>
+              <button
+                type="button"
+                onClick={abrirEnNuevaVentana}
+                className="shrink-0 font-display font-bold text-route-action hover:underline inline-flex items-center gap-1 cursor-pointer"
+              >
+                Abrir en nueva ventana ↗
+              </button>
+            </div>
+            <div className="relative h-[440px] sm:h-[520px] w-full bg-black/5">
+              <iframe
+                ref={iframeRef}
+                src={url}
+                className="w-full h-full border-0"
+                title="Verificación de identidad Didit"
+                allow="camera; microphone; geolocation; fullscreen; accelerometer; gyroscope; display-capture; autoplay"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-top-navigation allow-top-navigation-by-user-activation"
+              />
+            </div>
+            <div className="p-3 bg-surface border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2">
+              <p className="text-xs text-text-tertiary text-center sm:text-left">
+                Se detectará automáticamente al concluir en Didit.
               </p>
+              <Button
+                variant="secondary"
+                onClick={onFinalizar}
+                className="w-full sm:w-auto text-xs py-2 px-4 min-h-10"
+              >
+                Ya completé la verificación
+              </Button>
             </div>
           </div>
         ) : (
           <div className="p-8 text-center">
             <Aviso tono="atencion">No se recibió la URL de verificación.</Aviso>
-            <Button variant="secondary" onClick={onCerrar} className="mt-4">
-              Volver al panel
-            </Button>
+            <div className="mt-4 flex justify-center gap-3">
+              <Button variant="secondary" onClick={onCerrar}>
+                Cerrar
+              </Button>
+              <Button onClick={onReintentar}>
+                Reintentar
+              </Button>
+            </div>
           </div>
         )}
       </div>
