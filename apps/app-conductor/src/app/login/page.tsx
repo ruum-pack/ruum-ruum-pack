@@ -128,7 +128,7 @@ export default function PaginaLogin() {
         <div className="conductor-ruta-divider mt-4" aria-hidden />
         <h1 id="titulo-inicio-conductor" className="mt-6 font-display text-2xl font-bold tracking-tight text-text-primary">Iniciar sesión</h1>
         <p className="mt-1 font-body text-sm text-text-secondary">Solo conductores verificados. Tu sesión inicia trazabilidad.</p>
-        <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-signal/20 bg-signal/10 px-3 py-1 font-body text-[11px] font-semibold text-signal">
+        <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated px-3 py-1 font-body text-[11px] font-semibold text-text-primary">
           <span className="size-1.5 rounded-full bg-signal" aria-hidden /> Evidencia · GPS · Pagos trazables
         </p>
 
@@ -198,7 +198,7 @@ export default function PaginaLogin() {
             ¿Aún no estás certificado?{" "}
             <Link
               href="/registro"
-              className="font-display text-sm font-bold text-signal hover:underline focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action rounded"
+              className="font-display text-sm font-black text-route-action hover:underline focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action rounded"
               aria-label="Solicitar certificación como conductor"
             >
               Crea tu cuenta →

@@ -150,7 +150,7 @@ export function LocalizarVehiculoDetails({
 
       {/* TU PRÓXIMA ACCIÓN */}
       <div className="mt-6 flex flex-col">
-        <span className="text-[10px] font-bold text-signal uppercase tracking-widest">TU PRÓXIMA ACCIÓN</span>
+        <span className="text-[10px] font-bold text-route-action uppercase tracking-widest">TU PRÓXIMA ACCIÓN</span>
         <h2 className="font-display text-2xl font-black leading-tight mt-1 text-text-primary">
           {getTituloAccion()}
         </h2>
@@ -161,7 +161,7 @@ export function LocalizarVehiculoDetails({
 
       {/* ORIGEN CONTACTO */}
       <div className="mt-6 bg-surface-elevated rounded-3xl border border-border/20 p-5 shadow-lg relative">
-        <span className="text-[10px] text-signal font-bold uppercase tracking-widest mb-3 block">
+        <span className="text-[10px] text-route-action font-bold uppercase tracking-widest mb-3 block">
           CONTACTO DE RECOLECCIÓN
         </span>
 
@@ -183,7 +183,7 @@ export function LocalizarVehiculoDetails({
                 href={`https://wa.me/52${telefonoLimpio}`}
                 target="_blank"
                 rel="noreferrer"
-                className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 active:scale-95 transition-transform"
+                className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 active:scale-95 transition-transform"
                 aria-label={`Enviar WhatsApp a ${contactoNombre}`}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -209,7 +209,7 @@ export function LocalizarVehiculoDetails({
             <span className="text-[10px] text-text-tertiary font-extrabold uppercase tracking-widest">
               VEHÍCULO A LOCALIZAR
             </span>
-            <span className="text-[10px] font-bold text-signal uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-text-primary uppercase tracking-wider">
               {marca} {modelo}
             </span>
           </div>
@@ -218,7 +218,7 @@ export function LocalizarVehiculoDetails({
             {/* 1. Placas */}
             <div className="flex flex-col bg-surface border border-border/20 rounded-xl p-3 shadow-2xs">
               <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider">PLACAS</span>
-              <span className="font-mono font-black text-base mt-0.5 text-signal">{placas}</span>
+              <span className="font-mono font-black text-base mt-0.5 text-text-primary">{placas}</span>
             </div>
 
             {/* 2. VIN */}

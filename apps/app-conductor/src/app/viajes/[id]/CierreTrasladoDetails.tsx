@@ -327,12 +327,12 @@ export function CierreTrasladoDetails({
       <div className="mx-auto w-full max-w-md bg-surface min-h-[calc(100vh-100px)] flex flex-col items-center justify-center text-text-primary pb-6 px-4 animate-in fade-in zoom-in duration-500">
         
         <div className="w-24 h-24 rounded-full bg-signal/15 border-2 border-signal/30 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(255,196,0,0.15)]">
-          <svg className="w-12 h-12 text-signal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="w-12 h-12 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
           </svg>
         </div>
 
-        <span className="text-[10px] text-signal font-bold uppercase tracking-widest mb-2">
+        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest mb-2">
           TRASLADO COMPLETADO
         </span>
         <h1 className="font-display text-3xl font-black text-center mb-2 leading-tight text-text-primary">
@@ -347,7 +347,7 @@ export function CierreTrasladoDetails({
             Ganancia Neta del Viaje
           </span>
           <div className="text-center">
-            <span className="font-display text-4xl font-black text-signal tabular-nums">
+            <span className="font-display text-4xl font-black text-text-primary tabular-nums">
               ${gananciaTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
             <span className="text-xs text-text-secondary ml-1.5 font-bold uppercase">MXN</span>
@@ -506,10 +506,10 @@ export function CierreTrasladoDetails({
               </div>
 
               {getKmDiff() !== null && (
-                <div className="grid grid-cols-3 gap-2 p-2.5 bg-signal/10 items-center">
-                  <span className="font-bold text-signal pl-1 text-[11px]">Distancia recorrida</span>
+                <div className="grid grid-cols-3 gap-2 p-2.5 bg-surface-elevated items-center border-t border-b border-border/30">
+                  <span className="font-bold text-text-primary pl-1 text-[11px]">Distancia recorrida</span>
                   <span />
-                  <span className="text-center text-signal font-black font-display text-[13px] font-mono">
+                  <span className="text-center text-text-primary font-black font-display text-[13px] font-mono">
                     +{getKmDiff()?.toLocaleString("es-MX")} km
                   </span>
                 </div>
@@ -697,7 +697,7 @@ export function CierreTrasladoDetails({
               <button
                 type="submit"
                 disabled={procesando}
-                className="w-full min-h-[46px] rounded-xl bg-route-action/15 hover:bg-route-action/25 border border-route-action/40 text-route-action hover:text-white font-display text-xs font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 select-none shadow-xs mt-1 active:scale-98"
+                className="w-full min-h-[46px] rounded-xl bg-route-action/15 hover:bg-route-action hover:text-white border border-route-action/40 text-route-action font-display text-xs font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 select-none shadow-xs mt-1 active:scale-98"
               >
                 + REGISTRAR GASTO
               </button>
@@ -748,7 +748,7 @@ export function CierreTrasladoDetails({
                 {/* Sum of expenses */}
                 <div className="grid grid-cols-12 p-3.5 bg-surface font-bold items-center border-t border-border/15">
                   <span className="col-span-7 font-display text-[10px] font-black text-text-tertiary tracking-widest uppercase">Total Gastos Registrados</span>
-                  <span className="col-span-3 text-right font-display text-sm font-black text-signal font-mono">${totalGastos.toFixed(2)}</span>
+                  <span className="col-span-3 text-right font-display text-sm font-black text-text-primary font-mono">${totalGastos.toFixed(2)}</span>
                   <span className="col-span-2" />
                 </div>
               </div>

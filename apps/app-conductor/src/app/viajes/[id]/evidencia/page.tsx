@@ -697,7 +697,7 @@ export default function PaginaEvidencia() {
                   aria-label="Kilometraje actual"
                   value={kilometraje} 
                   onChange={(e) => setKilometraje(e.target.value.replace(/[^0-9,.\s]/g, ""))}
-                  className="font-display text-2xl font-black text-white bg-transparent border-none outline-hidden p-0 w-24 max-w-full focus:outline-hidden placeholder:text-text-tertiary/60"
+                  className="font-display text-2xl font-black text-text-primary bg-transparent border-none outline-hidden p-0 w-24 max-w-full focus:outline-hidden placeholder:text-text-tertiary/60"
                 />
                 <span className="font-body text-[10px] font-bold text-text-secondary">km</span>
               </div>
@@ -715,11 +715,11 @@ export default function PaginaEvidencia() {
                 </span>
                 <div className="flex items-center gap-1.5">
                   {gasolinaSegments > 0 && (
-                    <span className="font-display text-[8px] font-extrabold text-emerald-400 uppercase tracking-wider">
+                    <span className="font-display text-[8px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                       ✓ REGISTRADO
                     </span>
                   )}
-                  <span className="font-body text-[8px] font-bold text-signal">{getFuelText(gasolinaSegments)}</span>
+                  <span className="font-body text-[8px] font-bold text-text-secondary">{getFuelText(gasolinaSegments)}</span>
                 </div>
               </div>
 
@@ -774,7 +774,7 @@ export default function PaginaEvidencia() {
               >
                 -
               </button>
-              <span className="font-display text-base font-extrabold text-white w-5 text-center">{llavesCount}</span>
+              <span className="font-display text-base font-extrabold text-text-primary w-5 text-center">{llavesCount}</span>
               <button
                 type="button"
                 onClick={() => setLlavesCount(llavesCount + 1)}
@@ -1050,7 +1050,7 @@ export default function PaginaEvidencia() {
                           return `${trimmed}, [${etiqueta}]`;
                         });
                       }}
-                      className="px-2.5 py-1 rounded-lg bg-surface-elevated/60 border border-border/30 hover:border-route-action text-text-secondary hover:text-white font-body text-[11px] font-bold transition-all cursor-pointer active:scale-95"
+                      className="px-2.5 py-1 rounded-lg bg-surface-elevated/60 border border-border/30 hover:border-route-action text-text-secondary hover:text-text-primary hover:bg-surface-elevated font-body text-[11px] font-bold transition-all cursor-pointer active:scale-95"
                     >
                       + {etiqueta}
                     </button>

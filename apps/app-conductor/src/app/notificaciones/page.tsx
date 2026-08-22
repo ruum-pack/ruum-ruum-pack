@@ -145,7 +145,7 @@ export default function CentroNotificaciones() {
                 className={[
                   "inline-flex items-center gap-2 border-b-2 px-3 py-3 font-display text-sm font-bold transition-all",
                   activa
-                    ? "border-signal text-signal"
+                    ? "border-route-action text-route-action"
                     : "border-transparent text-text-tertiary hover:border-border hover:text-text-primary"
                 ].join(" ")}
               >

@@ -130,7 +130,7 @@ export function NavegacionConductor() {
       <header role="banner" className="hidden md:block sticky top-0 z-30 border-b border-border bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur supports-[backdrop-filter]:bg-surface/85">
         <div className="ruum-container flex min-h-16 items-center gap-3 py-3">
           <Link href="/panel" aria-label="Ir al inicio de Ruum Ruum Conductor" className="flex shrink-0 items-center gap-2.5 rounded-lg">
-            <LogoMarca variante="horizontal" tema="oscuro" tamano={30} mostrarDescriptor={false} mostrarRespaldo={false} />
+            <LogoMarca variante="horizontal" tema="auto" tamano={30} mostrarDescriptor={false} mostrarRespaldo={false} />
             <span className="hidden font-body text-xs font-semibold text-text-tertiary lg:inline">Conductor</span>
           </Link>
 
@@ -261,7 +261,7 @@ export function NavegacionConductor() {
                   aria-label={notificar ? `${destino.etiqueta}: acción pendiente` : destino.etiqueta}
                   className={[
                     "relative flex flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 min-h-14 font-body text-[11px] leading-none transition-colors duration-200 select-none",
-                    activo ? "text-signal font-black" : "text-text-secondary hover:text-text-primary"
+                    activo ? "text-text-primary dark:text-signal font-black bg-signal/20 dark:bg-signal/15 shadow-2xs" : "text-text-secondary hover:text-text-primary"
                   ].join(" ")}
                 >
                   <div className="relative flex items-center justify-center p-1">

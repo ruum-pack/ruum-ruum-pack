@@ -23,7 +23,7 @@ export default function PaginaSoporteCuenta() {
         <div className="relative overflow-hidden rounded-2xl border border-signal/40 bg-surface-elevated/90 p-5 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3.5">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-signal/20 font-display text-xl font-bold text-signal">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface border border-border/80 font-display text-xl font-bold text-text-primary shadow-2xs">
                 🚨
               </div>
               <div>
@@ -38,7 +38,7 @@ export default function PaginaSoporteCuenta() {
 
             <Link
               href="/viajes"
-              className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-signal px-5 py-3 font-display text-xs font-bold text-text-primary shadow-xs transition hover:bg-signal/90 active:scale-95 sm:w-auto"
+              className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-signal px-5 py-3 font-display text-xs font-black text-slate-950 shadow-xs transition hover:bg-signal/90 active:scale-95 sm:w-auto"
             >
               Ayuda con mi viaje actual →
             </Link>

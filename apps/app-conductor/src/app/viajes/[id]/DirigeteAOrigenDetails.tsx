@@ -115,7 +115,7 @@ export function DirigeteAOrigenDetails({
 
       {/* TU PRÓXIMA ACCIÓN */}
       <div className="mt-5 flex flex-col">
-        <span className="text-[10px] font-bold text-signal uppercase tracking-widest">TU PRÓXIMA ACCIÓN</span>
+        <span className="text-[10px] font-bold text-route-action uppercase tracking-widest">TU PRÓXIMA ACCIÓN</span>
         <h2 className="font-display text-2xl font-black leading-tight mt-1 text-text-primary">
           Dirígete al origen
         </h2>
@@ -126,12 +126,12 @@ export function DirigeteAOrigenDetails({
 
       {/* ORIGEN */}
       <div className="mt-5 bg-surface-elevated rounded-3xl border border-border/20 p-5 shadow-lg relative">
-        <span className="text-[10px] text-signal font-bold uppercase tracking-widest mb-3 block">
+        <span className="text-[10px] text-route-action font-bold uppercase tracking-widest mb-3 block">
           PUNTO DE RECOLECCIÓN
         </span>
 
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-signal/15 text-signal flex items-center justify-center shrink-0 font-bold mt-0.5">
+          <div className="w-8 h-8 rounded-full bg-route-action/15 text-route-action flex items-center justify-center shrink-0 font-bold mt-0.5">
             📍
           </div>
           <div className="flex flex-col flex-1">

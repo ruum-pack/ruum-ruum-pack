@@ -77,7 +77,7 @@ export function PanelActiveTripCard({ viaje }: PanelActiveTripCardProps) {
     <div className="w-full p-5 rounded-3xl bg-surface-elevated border border-border/30 text-text-primary flex flex-col gap-4 shadow-lg text-left relative">
       {/* 1. Header: Traslado Activo */}
       <div className="flex justify-between items-center w-full">
-        <span className="text-signal text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 bg-signal/10 border border-signal/25 px-3 py-1 rounded-full">
+        <span className="text-text-primary dark:text-signal text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 bg-signal/20 dark:bg-signal/10 border border-signal/40 px-3 py-1 rounded-full">
           <span className="h-2 w-2 rounded-full bg-signal animate-pulse" />
           Traslado Activo
         </span>
@@ -93,7 +93,7 @@ export function PanelActiveTripCard({ viaje }: PanelActiveTripCardProps) {
           onClick={() => {
             if (navigator.clipboard) void navigator.clipboard.writeText(folioViaje(viaje));
           }}
-          className="font-mono text-2xl sm:text-3xl font-black text-text-primary mt-0.5 tracking-tight text-left hover:text-signal transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action rounded"
+          className="font-mono text-2xl sm:text-3xl font-black text-text-primary mt-0.5 tracking-tight text-left hover:text-route-action transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action rounded"
           title="Copiar folio"
           aria-label={`Copiar folio ${folioViaje(viaje)}`}
         >

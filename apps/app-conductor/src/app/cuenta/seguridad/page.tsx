@@ -34,7 +34,7 @@ export default function PaginaSeguridadCuenta() {
           <div className="grid gap-4">
             {/* 2. Rediseño del Callout Informativo de Seguridad (sin bordes de input, con ícono 🛡️) */}
             <div className="flex items-start gap-3.5 rounded-xl border border-border/60 bg-surface-elevated/70 p-4">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-signal/20 font-display text-lg text-signal">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-route-action/15 font-display text-lg text-route-action">
                 🛡️
               </div>
               <div className="font-body text-xs leading-5 text-text-secondary">

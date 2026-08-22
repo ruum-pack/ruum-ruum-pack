@@ -60,7 +60,7 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
             onClick={() => {
               if (navigator.clipboard) void navigator.clipboard.writeText(folio);
             }}
-            className="inline-flex items-center gap-1.5 rounded-lg border-2 border-signal bg-signal/15 px-2.5 py-1 font-mono text-xs font-black tracking-widest uppercase text-signal hover:bg-signal hover:text-slate-950 transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-surface px-2.5 py-1 font-mono text-xs font-bold tracking-widest uppercase text-text-primary hover:border-route-action hover:text-route-action transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
             aria-label={`Copiar folio ${folio}`}
             title="Copiar ID"
           >
@@ -73,7 +73,7 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
             </span>
           )}
         </div>
-        <span className="font-display text-base font-black text-signal leading-none tabular-nums shrink-0">
+        <span className="font-display text-base font-black text-text-primary leading-none tabular-nums shrink-0">
           {ganancia}
         </span>
       </div>

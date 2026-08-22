@@ -455,8 +455,8 @@ export default function PaginaPerfilCuenta() {
                     </h2>
                     {/* Calificación del conductor */}
                     <div className="mt-1 flex items-center gap-2">
-                      <div className="inline-flex items-center gap-1.5 rounded-full bg-signal/15 border border-signal/30 px-2.5 py-0.5 text-xs font-bold text-signal shadow-2xs">
-                        <span className="text-amber-400 text-sm leading-none" aria-hidden="true">★</span>
+                      <div className="inline-flex items-center gap-1.5 rounded-full bg-signal/20 border border-signal/40 px-2.5 py-0.5 text-xs font-bold text-text-primary shadow-2xs">
+                        <span className="text-amber-500 text-sm leading-none" aria-hidden="true">★</span>
                         <span className="font-display font-extrabold tracking-wide">
                           {typeof conductor?.calificacion_promedio === "number"
                             ? conductor.calificacion_promedio.toFixed(1)
@@ -473,7 +473,7 @@ export default function PaginaPerfilCuenta() {
                   </div>
                 </div>
 
-                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 font-body text-sm font-semibold text-text-primary shadow-xs transition hover:border-signal hover:bg-surface-elevated active:scale-95">
+                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 font-body text-sm font-semibold text-text-primary shadow-xs transition hover:border-route-action hover:bg-surface-elevated active:scale-95">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                     <circle cx="12" cy="13" r="4" />
@@ -504,7 +504,7 @@ export default function PaginaPerfilCuenta() {
                         className={[
                           "inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3.5 font-display text-sm font-bold transition-all min-h-11 snap-start",
                           activa
-                            ? "border-signal text-signal"
+                            ? "border-route-action text-route-action"
                             : "border-transparent text-text-tertiary hover:border-border hover:text-text-primary"
                         ].join(" ")}
                       >

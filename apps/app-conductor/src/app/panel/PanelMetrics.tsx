@@ -18,8 +18,8 @@ function Sparkline({ value }: { value: number }) {
   const fillD = `${d} L ${w} ${h} L 0 ${h} Z`;
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden className="shrink-0">
-      <path d={fillD} fill="currentColor" className="text-signal/15" />
-      <path d={d} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-signal" />
+      <path d={fillD} fill="currentColor" className="text-route-action/15" />
+      <path d={d} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-route-action" />
     </svg>
   );
 }
@@ -43,7 +43,7 @@ function ProgressRing({ value, max = 3 }: { value: number; max?: number }) {
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={offset}
-          className={pct >= 1 ? "text-signal" : "text-route-action"}
+          className={pct >= 1 ? "text-emerald-600 dark:text-emerald-400" : "text-route-action"}
           style={{ transition: "stroke-dashoffset 600ms ease" }}
         />
       </svg>
@@ -63,7 +63,7 @@ export function PanelMetrics({ gananciasHoy, trasladosHoy }: PanelMetricsProps) 
           <span className="text-text-tertiary text-[10px] font-extrabold tracking-widest uppercase leading-none">
             Ganancias del día
           </span>
-          <div className="font-display text-xl font-black text-signal mt-1.5 leading-none tabular-nums">
+          <div className="font-display text-xl font-black text-text-primary mt-1.5 leading-none tabular-nums">
             {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(gananciasHoy)}
           </div>
         </div>

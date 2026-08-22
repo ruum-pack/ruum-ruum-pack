@@ -140,7 +140,7 @@ export function DriverDocumentChecklist({
         {/* Doble Opción: Cámara Móvil (📸) vs Selector de Archivos (📁) */}
         <div className="flex flex-wrap items-center justify-center gap-3 w-full">
           {/* Opción 1: Cámara Móvil */}
-          <label className="inline-flex items-center justify-center gap-2 rounded-xl bg-signal/15 border border-signal/40 px-4 py-2.5 font-display text-xs font-bold text-signal transition hover:bg-signal hover:text-slate-950 active:scale-95 cursor-pointer">
+          <label className="inline-flex items-center justify-center gap-2 rounded-xl bg-surface-elevated border border-border/80 px-4 py-2.5 font-display text-xs font-bold text-text-primary transition hover:border-route-action hover:text-route-action active:scale-95 cursor-pointer">
             <span>📸 Tomar foto con cámara</span>
             <input
               type="file"
@@ -254,7 +254,7 @@ export function DriverDocumentChecklist({
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface font-display text-lg text-signal shadow-2xs">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface font-display text-lg text-text-primary shadow-2xs">
                         📅
                       </div>
                       <div>

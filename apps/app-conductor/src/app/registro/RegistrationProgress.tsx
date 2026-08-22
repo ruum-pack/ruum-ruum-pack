@@ -28,11 +28,11 @@ export function RegistrationProgress({
               {paso + 1}
             </span>
             <span className="font-display text-sm font-bold text-text-primary">
-              Paso {paso + 1} de {PASOS_REGISTRO.length} — <span className="text-signal">{pasoActualInfo.shortTitle}</span>
+              Paso {paso + 1} de {PASOS_REGISTRO.length} — <span className="text-text-primary font-extrabold">{pasoActualInfo.shortTitle}</span>
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="rounded-full border border-signal/30 bg-signal/10 px-2.5 py-0.5 font-display text-xs font-extrabold text-signal">
+            <span className="rounded-full border border-border/60 bg-surface-elevated px-2.5 py-0.5 font-display text-xs font-black text-text-primary">
               {porcentaje}% completado
             </span>
             <span className="hidden font-body text-xs text-text-tertiary sm:inline">
@@ -80,7 +80,7 @@ export function RegistrationProgress({
                     className={[
                       "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-black transition-all",
                       completado
-                        ? "bg-control text-mist font-bold"
+                        ? "bg-control text-white font-bold"
                         : activo
                         ? "bg-signal text-slate-950 font-black shadow-xs"
                         : "bg-surface-elevated border border-border text-text-tertiary"
@@ -89,7 +89,7 @@ export function RegistrationProgress({
                     {completado ? "✓" : pasoInfo.icono}
                   </span>
                   <div className="flex flex-col">
-                    <span className={`font-display text-xs font-bold whitespace-nowrap ${activo ? "text-signal" : completado ? "text-text-primary" : "text-text-tertiary"}`}>
+                    <span className={`font-display text-xs font-bold whitespace-nowrap ${activo ? "text-text-primary font-black" : completado ? "text-text-primary" : "text-text-tertiary"}`}>
                       {pasoInfo.shortTitle}
                     </span>
                     <span className="text-[10px] text-text-tertiary">{pasoInfo.tiempo}</span>
@@ -129,7 +129,7 @@ export function RegistrationProgress({
                       className={[
                         "flex size-7 shrink-0 items-center justify-center rounded-xl font-display text-xs font-bold transition-all",
                         completado
-                          ? "bg-control text-mist font-black shadow-xs"
+                          ? "bg-control text-white font-black shadow-xs"
                           : activo
                           ? "bg-signal text-slate-950 font-black shadow-md ring-2 ring-signal/50"
                           : "bg-surface-elevated border border-border/60 text-text-tertiary"
@@ -147,7 +147,7 @@ export function RegistrationProgress({
                       className={[
                         "font-display text-xs font-bold truncate transition-colors",
                         activo
-                          ? "text-signal font-extrabold"
+                          ? "text-text-primary font-black"
                           : completado
                           ? "text-text-primary font-bold"
                           : "text-text-tertiary font-medium"
@@ -170,11 +170,11 @@ export function RegistrationProgress({
       <div className="rounded-2xl border border-border/80 bg-surface p-4 shadow-sm sm:p-5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-signal/15 text-xl font-bold text-signal shadow-xs">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-surface-elevated border border-border/60 text-xl font-bold text-text-primary shadow-xs">
               {pasoActualInfo.icono}
             </div>
             <div>
-              <p className="font-body text-xs font-bold uppercase tracking-wider text-signal">
+              <p className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">
                 Paso {paso + 1} de {PASOS_REGISTRO.length}
               </p>
               <h2 className="font-display text-base font-bold text-text-primary sm:text-lg">

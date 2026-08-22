@@ -1,7 +1,7 @@
 import type { SVGProps } from "react";
 
 export type LogoVariante = "horizontal" | "vertical" | "simbolo" | "avatar";
-export type LogoTema = "oscuro" | "claro" | "monocromatico";
+export type LogoTema = "oscuro" | "claro" | "monocromatico" | "auto";
 
 export interface LogoMarcaProps {
   /**
@@ -14,6 +14,7 @@ export interface LogoMarcaProps {
   variante?: LogoVariante;
   /**
    * Tema de contraste:
+   * - "auto": Adaptable automáticamente según el tema activo claro/oscuro (por defecto).
    * - "oscuro": Para fondos oscuros (texto blanco/claro).
    * - "claro": Para fondos claros (texto negro asfalto #151515).
    * - "monocromatico": En un solo tono neutro cuando sea requerido.
@@ -43,7 +44,7 @@ export interface LogoMarcaProps {
  */
 export function SimboloVectorial({
   tamano = 36,
-  tema = "oscuro",
+  tema = "auto",
   colorDestino = "#FFC400",
   className = "",
   ...props
@@ -56,9 +57,9 @@ export function SimboloVectorial({
   const esClaro = tema === "claro";
   const esMono = tema === "monocromatico";
 
-  const colorFondo = esClaro ? "#F8F8F5" : "#151515";
+  const colorFondo = esClaro ? "#F8F8F5" : tema === "auto" ? "var(--ruum-canvas, #151515)" : "#151515";
   const colorBorde = esMono ? (esClaro ? "#151515" : "#F8F8F5") : "#FFC400";
-  const colorLetras = esMono ? (esClaro ? "#151515" : "#F8F8F5") : esClaro ? "#151515" : "#FFFFFF";
+  const colorLetras = esMono ? (esClaro ? "#151515" : "#F8F8F5") : esClaro ? "#151515" : tema === "auto" ? "var(--ruum-text-primary, #FFFFFF)" : "#FFFFFF";
   const colorRuta = esMono ? (esClaro ? "#151515" : "#F8F8F5") : "#FFC400";
   const colorPuntoFin = esMono ? (esClaro ? "#151515" : "#F8F8F5") : colorDestino;
 
@@ -128,7 +129,7 @@ export function SimboloVectorial({
  */
 export function LogoMarca({
   variante = "horizontal",
-  tema = "oscuro",
+  tema = "auto",
   tamano,
   mostrarRespaldo = true,
   mostrarDescriptor = true,
@@ -140,10 +141,10 @@ export function LogoMarca({
   const colorDestino = color === "route" ? "#1E88E5" : color === "control" ? "#08734F" : "#FFC400";
   const esClaro = tema === "claro";
 
-  const colorTextoTitulo = esClaro ? "text-[#151515]" : "text-white";
+  const colorTextoTitulo = esClaro ? "text-[#151515]" : tema === "auto" ? "text-text-primary" : "text-white";
   const colorTextoAcento = "text-[#FFC400]";
-  const colorTextoSecundario = esClaro ? "text-[#5F6368]" : "text-[#B7C2D4]";
-  const colorTextoRespaldo = esClaro ? "text-[#5F6368]/80" : "text-white/45";
+  const colorTextoSecundario = esClaro ? "text-[#5F6368]" : tema === "auto" ? "text-text-secondary" : "text-[#B7C2D4]";
+  const colorTextoRespaldo = esClaro ? "text-[#5F6368]/80" : tema === "auto" ? "text-text-tertiary" : "text-white/45";
 
   // Símbolo independiente o avatar
   if (variante === "simbolo" || variante === "avatar") {

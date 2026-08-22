@@ -353,7 +353,7 @@ export default function PaginaPreferenciasCuenta() {
               </div>
 
               {guardandoAuto && (
-                <span className="font-body text-xs font-semibold text-signal animate-pulse">
+                <span className="font-body text-xs font-semibold text-route-action animate-pulse">
                   Sincronizando...
                 </span>
               )}
@@ -466,7 +466,7 @@ export default function PaginaPreferenciasCuenta() {
                 {preferenciasActivas.map((pref) => (
                   <span
                     key={pref}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-signal/40 bg-signal/10 px-3 py-1 font-body text-xs font-bold text-signal"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated px-3 py-1 font-body text-xs font-bold text-text-primary"
                   >
                     ✓ {pref}
                   </span>
@@ -501,9 +501,9 @@ export default function PaginaPreferenciasCuenta() {
                     key={opc.valor}
                     type="button"
                     onClick={() => cambiarTema(opc.valor as "auto" | "light" | "dark")}
-                    className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center cursor-pointer transition-all focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00B4D8] focus-visible:ring-offset-2 ${
+                    className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center cursor-pointer transition-all focus:outline-hidden focus-visible:ring-2 focus-visible:ring-route-action focus-visible:ring-offset-2 ${
                       seleccionado 
-                        ? "border-[#00B4D8] bg-[#00B4D8]/10 text-white font-extrabold" 
+                        ? "border-route-action bg-route-action/10 text-text-primary font-extrabold shadow-xs" 
                         : "border-border/60 bg-surface-elevated/40 text-text-secondary hover:border-border"
                     }`}
                   >

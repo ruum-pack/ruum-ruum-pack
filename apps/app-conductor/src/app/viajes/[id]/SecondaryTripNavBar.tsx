@@ -298,18 +298,18 @@ export function SecondaryTripNavBar({
             
             {/* Header del Modal Gastos */}
             <div className="flex items-center justify-between border-b border-border/15 pb-3">
-              <div className="flex items-center gap-2 text-signal">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <div className="flex items-center gap-2 text-text-primary">
+                <svg className="w-5 h-5 text-route-action" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <h3 className="font-display text-base font-black text-mist uppercase tracking-wider">
+                <h3 className="font-display text-base font-black text-text-primary uppercase tracking-wider">
                   Gastos del Traslado
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setTabActiva("detalles")}
-                className="p-1.5 text-text-tertiary hover:text-mist rounded-full hover:bg-surface cursor-pointer transition-colors"
+                className="p-1.5 text-text-tertiary hover:text-text-primary rounded-full hover:bg-surface cursor-pointer transition-colors"
                 aria-label="Cerrar gastos"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -330,7 +330,7 @@ export function SecondaryTripNavBar({
                     id="tipo-gasto"
                     value={tipoGasto}
                     onChange={(e) => setTipoGasto(e.target.value as GastoTipoDb)}
-                    className="bg-surface border border-border/30 rounded-xl px-3 py-2.5 text-xs text-mist focus:outline-none focus:border-signal"
+                    className="bg-surface border border-border/30 rounded-xl px-3 py-2.5 text-xs text-text-primary focus:outline-none focus:border-route-action"
                   >
                     <option value="combustible">⛽ Combustible</option>
                     <option value="caseta">🛣️ Casetas / Peaje</option>
@@ -354,7 +354,7 @@ export function SecondaryTripNavBar({
                       placeholder="0.00"
                       value={monto}
                       onChange={(e) => setMonto(e.target.value)}
-                      className="w-full bg-surface border border-border/30 rounded-xl pl-7 pr-3 py-2.5 text-xs font-mono font-bold text-mist focus:outline-none focus:border-signal"
+                      className="w-full bg-surface border border-border/30 rounded-xl pl-7 pr-3 py-2.5 text-xs font-mono font-bold text-text-primary focus:outline-none focus:border-route-action"
                       required
                     />
                   </div>
@@ -371,7 +371,7 @@ export function SecondaryTripNavBar({
                   placeholder="Ej. Ticket Gasolinera Pemex #4820"
                   value={notas}
                   onChange={(e) => setNotas(e.target.value)}
-                  className="bg-surface border border-border/30 rounded-xl px-3 py-2 text-xs text-mist focus:outline-none focus:border-signal"
+                  className="bg-surface border border-border/30 rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-route-action"
                 />
               </div>
 
@@ -410,9 +410,9 @@ export function SecondaryTripNavBar({
                     <button
                       type="button"
                       onClick={() => camaraInputRef.current?.click()}
-                      className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-surface border border-border/30 hover:border-signal/50 text-mist text-xs font-bold transition-all cursor-pointer hover:bg-surface-elevated active:scale-95"
+                      className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-surface border border-border/30 hover:border-route-action/50 text-text-primary text-xs font-bold transition-all cursor-pointer hover:bg-surface-elevated active:scale-95"
                     >
-                      <svg className="w-4 h-4 text-signal shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg className="w-4 h-4 text-route-action shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
                         <circle cx="12" cy="13" r="4" />
                       </svg>
@@ -422,9 +422,9 @@ export function SecondaryTripNavBar({
                     <button
                       type="button"
                       onClick={() => archivoInputRef.current?.click()}
-                      className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-surface border border-border/30 hover:border-signal/50 text-mist text-xs font-bold transition-all cursor-pointer hover:bg-surface-elevated active:scale-95"
+                      className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-surface border border-border/30 hover:border-route-action/50 text-text-primary text-xs font-bold transition-all cursor-pointer hover:bg-surface-elevated active:scale-95"
                     >
-                      <svg className="w-4 h-4 text-route shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg className="w-4 h-4 text-route-action shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
@@ -450,7 +450,7 @@ export function SecondaryTripNavBar({
                         </div>
                       )}
                       <div className="flex flex-col overflow-hidden">
-                        <span className="text-xs font-semibold text-mist truncate">
+                        <span className="text-xs font-semibold text-text-primary truncate">
                           {archivoComprobante.name}
                         </span>
                         <span className="text-[10px] text-text-tertiary">
@@ -492,7 +492,7 @@ export function SecondaryTripNavBar({
                 <span className="font-display font-bold text-text-tertiary uppercase tracking-wider text-[10px]">
                   Gastos Registrados ({gastosList.length})
                 </span>
-                <span className="font-display font-black text-signal text-sm tabular-nums">
+                <span className="font-display font-black text-text-primary text-sm tabular-nums">
                   Total: ${totalGastos.toFixed(2)} MXN
                 </span>
               </div>
@@ -510,7 +510,7 @@ export function SecondaryTripNavBar({
                     >
                       <div className="flex flex-col flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-mist">
+                          <span className="font-bold text-text-primary">
                             {obtenerEtiquetaGasto(g.tipo)}
                           </span>
                           {g.comprobante_url && (
@@ -518,7 +518,7 @@ export function SecondaryTripNavBar({
                               href={g.comprobante_url}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-[10px] text-route font-semibold hover:underline"
+                              className="inline-flex items-center gap-1 text-[10px] text-route-action font-semibold hover:underline"
                               title="Ver comprobante adjunto"
                             >
                               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -535,7 +535,7 @@ export function SecondaryTripNavBar({
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="font-mono font-bold text-mist tabular-nums">
+                        <span className="font-mono font-bold text-text-primary tabular-nums">
                           ${g.monto.toFixed(2)}
                         </span>
                         <button

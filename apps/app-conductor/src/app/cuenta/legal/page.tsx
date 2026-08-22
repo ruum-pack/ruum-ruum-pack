@@ -93,7 +93,7 @@ export default function PaginaLegalCuenta() {
 
                   <Link
                     href={doc.href}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-signal/15 border border-signal/40 px-3.5 py-2 font-display text-xs font-bold text-signal transition hover:bg-signal hover:text-slate-950 active:scale-95"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-signal hover:bg-signal/85 text-slate-950 px-3.5 py-2 font-display text-xs font-black transition active:scale-95 shadow-xs"
                   >
                     Ver completo →
                   </Link>

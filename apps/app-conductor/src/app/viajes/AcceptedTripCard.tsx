@@ -8,17 +8,17 @@ function getEstadoCardInfo(estado: string) {
   switch (estado) {
     case "conductor_asignado":
       return {
-        dotColor: "bg-amber-400",
-        textColor: "text-amber-300",
-        badgeBg: "bg-amber-400/20 text-amber-300 border-amber-400/40",
+        dotColor: "bg-amber-500",
+        textColor: "text-amber-700 dark:text-amber-300",
+        badgeBg: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
         titulo: "PENDIENTE DE INICIO",
         descripcion: "Dirígete al punto de origen."
       };
     case "conductor_en_camino_al_origen":
       return {
-        dotColor: "bg-emerald-400",
-        textColor: "text-emerald-300",
-        badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+        dotColor: "bg-emerald-500",
+        textColor: "text-emerald-700 dark:text-emerald-300",
+        badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
         titulo: "EN CAMINO AL ORIGEN",
         descripcion: "Dirígete al punto de recolección."
       };
@@ -28,17 +28,17 @@ function getEstadoCardInfo(estado: string) {
     case "evidencia_inicial_completada":
     case "vehiculo_recibido":
       return {
-        dotColor: "bg-emerald-400",
-        textColor: "text-emerald-300",
-        badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+        dotColor: "bg-emerald-500",
+        textColor: "text-emerald-700 dark:text-emerald-300",
+        badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
         titulo: "EN PUNTO DE ORIGEN",
         descripcion: "Realiza la recepción y evidencia del vehículo."
       };
     case "traslado_en_curso":
       return {
-        dotColor: "bg-emerald-400",
-        textColor: "text-emerald-300",
-        badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+        dotColor: "bg-emerald-500",
+        textColor: "text-emerald-700 dark:text-emerald-300",
+        badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
         titulo: "TRASLADO EN CURSO",
         descripcion: "Conduce de forma segura al destino."
       };
@@ -46,26 +46,26 @@ function getEstadoCardInfo(estado: string) {
     case "evidencia_final_en_proceso":
     case "evidencia_final_completada":
       return {
-        dotColor: "bg-emerald-400",
-        textColor: "text-emerald-300",
-        badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+        dotColor: "bg-emerald-500",
+        textColor: "text-emerald-700 dark:text-emerald-300",
+        badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
         titulo: "LLEGADA A DESTINO",
         descripcion: "Entrega la unidad y registra la evidencia final."
       };
     case "entrega_confirmada":
     case "servicio_cerrado":
       return {
-        dotColor: "bg-emerald-400",
-        textColor: "text-emerald-300",
-        badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+        dotColor: "bg-emerald-500",
+        textColor: "text-emerald-700 dark:text-emerald-300",
+        badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
         titulo: "TRASLADO FINALIZADO",
         descripcion: "El traslado ha sido concluido."
       };
     default:
       return {
-        dotColor: "bg-amber-400",
-        textColor: "text-amber-300",
-        badgeBg: "bg-amber-400/20 text-amber-300 border-amber-400/40",
+        dotColor: "bg-amber-500",
+        textColor: "text-amber-700 dark:text-amber-300",
+        badgeBg: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
         titulo: "PENDIENTE DE INICIO",
         descripcion: "Dirígete al punto de origen."
       };
@@ -109,8 +109,8 @@ export function AcceptedTripCard({
       {/* Cabecera: ID + Tarifa + Botón de Opciones */}
       <div className="flex items-center justify-between gap-2 border-b border-border/15 pb-2.5">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-body text-[9.5px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-            <svg className="w-2.5 h-2.5 shrink-0 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-body text-[9.5px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+            <svg className="w-2.5 h-2.5 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
               <polyline points="20 6 9 17 4 12" />
             </svg>
             ACEPTADO
@@ -164,13 +164,13 @@ export function AcceptedTripCard({
       {/* Conector gráfico de Línea de Ruta */}
       <div className="flex items-center justify-between gap-3 py-2 bg-surface/60 border border-border/15 rounded-xl px-3">
         <div className="flex flex-col text-left min-w-0 flex-1">
-          <span className="font-display text-[8.5px] font-bold text-emerald-400 tracking-widest uppercase">Origen</span>
+          <span className="font-display text-[8.5px] font-bold text-emerald-600 dark:text-emerald-400 tracking-widest uppercase">Origen</span>
           <span className="font-display text-xs font-black text-text-primary leading-tight truncate mt-0.5">{origen}</span>
         </div>
 
         <div className="flex items-center gap-1 shrink-0 px-1 select-none" aria-hidden="true">
-          <span className="h-2 w-2 rounded-full border-2 border-emerald-400 bg-transparent shrink-0" />
-          <div className="h-[2px] w-6 sm:w-10 bg-gradient-to-r from-emerald-400 via-border/40 to-route-action rounded-full" />
+          <span className="h-2 w-2 rounded-full border-2 border-emerald-500 bg-transparent shrink-0" />
+          <div className="h-[2px] w-6 sm:w-10 bg-gradient-to-r from-emerald-500 via-border/40 to-route-action rounded-full" />
           <span className="h-2 w-2 rounded-full bg-route-action shrink-0" />
         </div>
 
@@ -220,7 +220,7 @@ export function AcceptedTripCard({
       {/* CTA Button */}
       <Link
         href={hrefDetalle}
-        className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-route-action hover:bg-route-action/85 active:scale-[0.98] px-4 font-display text-xs font-black tracking-widest text-slate-950 uppercase transition-all shadow-sm select-none cursor-pointer mt-0.5"
+        className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-route-action hover:bg-route-action/85 active:scale-[0.98] px-4 font-display text-xs font-black tracking-widest text-white uppercase transition-all shadow-sm select-none cursor-pointer mt-0.5"
       >
         INICIAR TRASLADO →
       </Link>

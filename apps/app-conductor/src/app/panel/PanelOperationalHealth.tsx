@@ -35,7 +35,7 @@ export function PanelOperationalHealth({
   const getDocumentoColor = () => {
     if (documentoBloqueante) return "text-danger";
     if (documentoPorVencer) return "text-warning";
-    return "text-signal";
+    return "text-emerald-600 dark:text-emerald-400";
   };
 
   const getDocumentoLabel = () => {
@@ -53,15 +53,15 @@ export function PanelOperationalHealth({
       label: "Documentos",
       value: getDocumentoLabel(),
       color: getDocumentoColor(),
-      dot: documentoBloqueante ? "bg-danger" : documentoPorVencer ? "bg-warning" : "bg-signal"
+      dot: documentoBloqueante ? "bg-danger" : documentoPorVencer ? "bg-warning" : "bg-emerald-500"
     },
     {
       href: "/cuenta/perfil",
       icon: "user",
       label: "Perfil",
       value: vehiculoHabilitado ? "Habilitado" : "En validación",
-      color: vehiculoHabilitado ? "text-signal" : "text-warning",
-      dot: vehiculoHabilitado ? "bg-signal" : "bg-warning"
+      color: vehiculoHabilitado ? "text-emerald-600 dark:text-emerald-400" : "text-warning",
+      dot: vehiculoHabilitado ? "bg-emerald-500" : "bg-warning"
     },
     {
       href: "/cuenta",
@@ -75,16 +75,16 @@ export function PanelOperationalHealth({
           : gpsActivo === false
             ? "Inactivo"
             : "Verificando…",
-      color: gpsActivo ? "text-signal" : gpsActivo === false ? "text-danger" : "text-text-disabled",
-      dot: gpsActivo ? "bg-signal" : gpsActivo === false ? "bg-danger" : "bg-text-disabled"
+      color: gpsActivo ? "text-emerald-600 dark:text-emerald-400" : gpsActivo === false ? "text-danger" : "text-text-disabled",
+      dot: gpsActivo ? "bg-emerald-500" : gpsActivo === false ? "bg-danger" : "bg-text-disabled"
     },
     {
       href: null as string | null,
       icon: "wifi",
       label: "Conexión",
       value: estaOnline ? "Conectado" : "Sin conexión",
-      color: estaOnline ? "text-signal" : "text-danger",
-      dot: estaOnline ? "bg-signal" : "bg-danger"
+      color: estaOnline ? "text-emerald-600 dark:text-emerald-400" : "text-danger",
+      dot: estaOnline ? "bg-emerald-500" : "bg-danger"
     }
   ];
 

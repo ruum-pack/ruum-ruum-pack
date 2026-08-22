@@ -38,14 +38,14 @@ const TEXTO_AUXILIAR: Partial<Record<EstadoEconomicoExplicito, string>> = {
 };
 
 const ESTILO_ESTATUS_FINANCIERO: Record<EstadoEconomicoExplicito, string> = {
-  sin_calcular: "border-[rgba(183,194,212,0.26)] bg-[rgba(183,194,212,0.10)] text-[#B7C2D4]",
-  estimado: "border-[rgba(142,197,255,0.32)] bg-[rgba(142,197,255,0.10)] text-[#8EC5FF]",
-  en_validacion: "border-[rgba(245,183,73,0.36)] bg-[rgba(245,183,73,0.12)] text-warning",
-  confirmado: "border-[rgba(61,220,151,0.32)] bg-[rgba(61,220,151,0.10)] text-[#65E3AD]",
-  programado: "border-[rgba(142,197,255,0.32)] bg-[rgba(142,197,255,0.10)] text-[#8EC5FF]",
-  pagado: "border-[rgba(61,220,151,0.32)] bg-[rgba(61,220,151,0.10)] text-[#65E3AD]",
-  retenido: "border-[rgba(245,183,73,0.36)] bg-[rgba(245,183,73,0.12)] text-warning",
-  rechazado: "border-[rgba(255,92,122,0.34)] bg-[rgba(255,92,122,0.12)] text-danger-action"
+  sin_calcular: "border-border bg-surface-elevated text-text-tertiary",
+  estimado: "border-route-action/30 bg-route-action/10 text-route-action",
+  en_validacion: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  confirmado: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  programado: "border-route-action/30 bg-route-action/10 text-route-action",
+  pagado: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  retenido: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  rechazado: "border-danger-action/34 bg-danger-action/12 text-danger-action"
 };
 
 function formatearMoneda(amount: number, currency: string) {
@@ -72,7 +72,7 @@ export function FinancialAmount({
 
   return (
     <div className={["grid gap-1", className].join(" ")}>
-      <p className={["font-mono-ruum font-semibold tabular-nums text-[#E8EDF6]", amountClassName].join(" ")}>{textoPrincipal}</p>
+      <p className={["font-mono-ruum font-semibold tabular-nums text-text-primary", amountClassName].join(" ")}>{textoPrincipal}</p>
       <div className="flex flex-wrap items-center gap-2">
         <span
           className={[
@@ -82,7 +82,7 @@ export function FinancialAmount({
         >
           {ETIQUETA_ESTATUS_ECONOMICO[estado]}
         </span>
-        {textoAuxiliar && <span className="font-body text-xs leading-5 text-[#B7C2D4]">{textoAuxiliar}</span>}
+        {textoAuxiliar && <span className="font-body text-xs leading-5 text-text-secondary">{textoAuxiliar}</span>}
       </div>
     </div>
   );

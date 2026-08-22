@@ -249,7 +249,7 @@ export function TripOpportunityDetails({
             <polyline points="12 19 5 12 12 5" />
           </svg>
         </Link>
-        <span className="font-display text-sm font-black uppercase tracking-widest text-signal flex items-center gap-1.5">
+        <span className="font-display text-sm font-black uppercase tracking-widest text-text-primary dark:text-signal flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-signal animate-pulse" />
           NUEVA OFERTA DISPONIBLE
         </span>
@@ -276,7 +276,7 @@ export function TripOpportunityDetails({
       <div className="flex flex-col flex-1 gap-5 mt-4">
         {/* GANANCIA DESTACADA */}
         <div className="flex flex-col items-center bg-surface-elevated rounded-3xl p-5 border border-border/20 shadow-xs">
-          <span className="font-mono text-xs font-extrabold tracking-widest mb-2 px-3 py-1 rounded-full border text-signal border-signal/30 bg-signal/10 uppercase">
+          <span className="font-mono text-xs font-extrabold tracking-widest mb-2 px-3 py-1 rounded-full border text-text-primary border-border/60 bg-surface uppercase">
             ACEPTA O RECHAZA
           </span>
 
@@ -285,8 +285,8 @@ export function TripOpportunityDetails({
           </span>
 
           <div className="flex items-start mt-1.5">
-            <span className="text-xl font-bold text-signal mt-1 mr-1">$</span>
-            <span className="font-display text-[48px] font-black text-signal leading-none tracking-tight tabular-nums">
+            <span className="text-xl font-bold text-text-primary mt-1 mr-1">$</span>
+            <span className="font-display text-[48px] font-black text-text-primary leading-none tracking-tight tabular-nums">
               {gananciaNeta.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>

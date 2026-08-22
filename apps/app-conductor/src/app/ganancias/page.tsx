@@ -472,10 +472,10 @@ export default function PaginaGanancias() {
             </div>
 
             {/* Tarjeta única: Depósito acumulado + Desglose completo con tooltips */}
-            <FinancialCard className="overflow-hidden p-0 border-signal/30" padding="none">
+            <FinancialCard className="overflow-hidden p-0 border-border/60" padding="none">
               <div className="px-4 sm:px-6 pt-5 sm:pt-6">
                 <h2 className="font-display text-xl sm:text-2xl font-black tracking-tight text-text-primary">Deposito acumulado</h2>
-                <p className="mt-2 font-display text-3xl sm:text-4xl font-black tracking-tight text-signal tabular-nums">{formatearMoneda(resumen.depositoAcumulado)}</p>
+                <p className="mt-2 font-display text-3xl sm:text-4xl font-black tracking-tight text-text-primary tabular-nums">{formatearMoneda(resumen.depositoAcumulado)}</p>
                 <p className="mt-1.5 font-body text-xs font-semibold text-text-tertiary">(Dispersión {fechaDispersion})</p>
               </div>
 
@@ -580,7 +580,7 @@ export default function PaginaGanancias() {
                           <h3 className="font-display text-sm font-bold text-text-primary truncate">{viaje.vehiculo}</h3>
                           <p className="mt-0.5 font-body text-xs font-semibold text-text-primary flex items-center gap-1.5 flex-wrap">
                             <span>{viaje.origen}</span>
-                            <span className="text-signal font-bold">➔</span>
+                            <span className="text-route-action font-bold">➔</span>
                             <span>{viaje.destino}</span>
                             <span className="text-text-tertiary font-normal">•</span>
                             <span className="text-text-tertiary font-normal">{formatearFechaCorta(viaje.fecha)}</span>
@@ -588,11 +588,11 @@ export default function PaginaGanancias() {
                         </div>
                         <div className="hidden sm:block text-right shrink-0">
                           <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Ganancia</p>
-                          <p className="font-display text-sm font-bold text-emerald-500 dark:text-emerald-400">{formatearMoneda(viaje.montoGanado)}</p>
+                          <p className="font-display text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatearMoneda(viaje.montoGanado)}</p>
                         </div>
                         <span className={`hidden sm:inline-flex items-center rounded-full border px-2.5 py-1 font-body text-[11px] font-bold shrink-0 ${badge.clase}`}>{badge.texto}</span>
                         <span
-                          className={`flex size-8 shrink-0 items-center justify-center rounded-full border bg-surface-elevated text-text-tertiary transition-transform ${expandido ? "rotate-180 border-signal/40 text-signal" : "border-border"}`}
+                          className={`flex size-8 shrink-0 items-center justify-center rounded-full border bg-surface-elevated text-text-tertiary transition-transform ${expandido ? "rotate-180 border-route-action text-route-action" : "border-border"}`}
                           aria-hidden
                         >
                           ⌄
@@ -667,9 +667,9 @@ export default function PaginaGanancias() {
                                   <span className="font-display text-xs font-bold text-text-primary tabular-nums">+ {formatearMoneda(viaje.gastosAutorizados)}</span>
                                 </div>
                               </div>
-                              <div className="flex items-center justify-between gap-2 rounded-lg bg-signal/10 border border-signal/20 px-3 py-2">
-                                <span className="font-body text-xs font-bold text-signal">Aporte del viaje al depósito</span>
-                                <span className="font-display text-xs font-black text-signal tabular-nums">{formatearMoneda(viaje.precioBase + viaje.bonos + viaje.ajuste - viaje.comisionRuum + viaje.gastosAutorizados)}</span>
+                              <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-elevated border border-border px-3 py-2">
+                                <span className="font-body text-xs font-bold text-text-secondary">Aporte del viaje al depósito</span>
+                                <span className="font-display text-xs font-black text-text-primary tabular-nums">{formatearMoneda(viaje.precioBase + viaje.bonos + viaje.ajuste - viaje.comisionRuum + viaje.gastosAutorizados)}</span>
                               </div>
                             </div>
 
@@ -728,9 +728,9 @@ export default function PaginaGanancias() {
                             <p className="text-text-tertiary font-semibold uppercase">Ajustes</p>
                             <p className="mt-1 font-display text-sm font-bold text-text-primary">{formatearMoneda(Number(payout.ajustes ?? 0))}</p>
                           </div>
-                          <div className="rounded-xl border border-signal/40 bg-signal/10 p-3">
-                            <p className="text-signal font-bold uppercase">Monto Neto</p>
-                            <p className="mt-1 font-display text-sm font-extrabold text-signal">{formatearMoneda(Number(payout.monto_neto ?? 0))}</p>
+                          <div className="rounded-xl border border-border/60 bg-surface-elevated p-3">
+                            <p className="text-text-primary font-bold uppercase text-[11px]">Monto Neto</p>
+                            <p className="mt-1 font-display text-sm font-black text-text-primary">{formatearMoneda(Number(payout.monto_neto ?? 0))}</p>
                           </div>
                         </div>
                         {payout.referencia_pago && (

@@ -159,7 +159,7 @@ export function TrasladoAsignadoDetails({
 
       {/* TU PRÓXIMA ACCIÓN */}
       <div className="mt-5 flex flex-col">
-        <span className="text-[10px] font-bold text-signal uppercase tracking-widest">
+        <span className="text-[10px] font-bold text-route-action uppercase tracking-widest">
           TU PRÓXIMA ACCIÓN
         </span>
         <h2 className="font-display text-2xl font-black leading-tight mt-1 text-text-primary">
@@ -202,7 +202,7 @@ export function TrasladoAsignadoDetails({
         <div className="mt-4 pt-3 border-t border-border/15 grid grid-cols-3 gap-2 text-center">
           <div className="flex flex-col bg-surface p-2 rounded-xl border border-border/10">
             <span className="text-[9px] text-text-tertiary uppercase font-bold">TARIFA NETA</span>
-            <span className="font-display text-sm font-black text-signal mt-0.5">
+            <span className="font-display text-sm font-black text-text-primary mt-0.5">
               ${gananciaNeta.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
             </span>
           </div>
@@ -219,12 +219,12 @@ export function TrasladoAsignadoDetails({
 
       {/* 2. PUNTO DE RECOLECCIÓN Y MAPA */}
       <div className="mt-4 bg-surface-elevated rounded-3xl border border-border/20 p-4 shadow-sm relative">
-        <span className="text-[10px] text-signal font-bold uppercase tracking-widest mb-2.5 block">
+        <span className="text-[10px] text-route-action font-bold uppercase tracking-widest mb-2.5 block">
           PUNTO DE RECOLECCIÓN
         </span>
 
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-signal/15 text-signal flex items-center justify-center shrink-0 font-bold mt-0.5">
+          <div className="w-8 h-8 rounded-full bg-route-action/15 text-route-action flex items-center justify-center shrink-0 font-bold mt-0.5">
             📍
           </div>
           <div className="flex flex-col flex-1">

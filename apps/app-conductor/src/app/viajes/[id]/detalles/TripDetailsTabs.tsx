@@ -206,7 +206,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
             onClick={() => setActiveTab(tab.id as TabId)}
             className={`flex-1 rounded-full px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest transition-all duration-200 cursor-pointer min-w-max ${
               activeTab === tab.id
-                ? "bg-route-action text-slate-950 shadow-md"
+                ? "bg-route-action text-white shadow-md"
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
@@ -221,13 +221,13 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
           <div className="bg-surface-elevated rounded-3xl border border-border/20 p-5 shadow-sm relative flex flex-col gap-5">
             <div className="flex gap-4">
               <div className="flex flex-col items-center mt-1">
-                <span className="h-3 w-3 rounded-full border-2 border-emerald-400 bg-transparent shrink-0" />
+                <span className="h-3 w-3 rounded-full border-2 border-emerald-500 bg-transparent shrink-0" />
                 <div className="w-[1px] h-10 bg-border/40 my-1" />
                 <span className="h-3 w-3 rounded-full bg-route-action shrink-0 block" />
               </div>
               <div className="flex flex-col justify-between py-0.5 min-w-0">
                 <div className="flex flex-col mb-3">
-                  <span className="font-display text-[9px] font-bold text-emerald-400 tracking-widest uppercase">PUNTO DE RECOLECCIÓN</span>
+                  <span className="font-display text-[9px] font-bold text-emerald-600 dark:text-emerald-400 tracking-widest uppercase">PUNTO DE RECOLECCIÓN</span>
                   <span className="font-display text-base font-black text-text-primary leading-tight mt-0.5">{origenCiudad}</span>
                   <span className="font-body text-xs text-text-secondary mt-0.5 leading-snug">{origenDir}</span>
                 </div>
@@ -261,8 +261,8 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                  <span className="text-[10px] text-text-tertiary font-extrabold uppercase tracking-widest">Unidad a trasladar</span>
                  <span className="font-display text-lg font-black text-text-primary mt-0.5">{vehiculo}</span>
                </div>
-               <div className="border border-border/30 bg-surface px-3 py-1.5 rounded-xl shadow-xs">
-                 <span className="font-mono text-xs font-black tracking-widest text-signal">{placas}</span>
+               <div className="border border-border/60 bg-surface px-3 py-1.5 rounded-xl shadow-xs">
+                 <span className="font-mono text-xs font-black tracking-widest text-text-primary">{placas}</span>
                </div>
              </div>
 
@@ -339,7 +339,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                  <div className="flex items-center gap-2 mt-0.5">
                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${
                      estadoRecepcionTono === "success"
-                       ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                       ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
                        : "bg-warning/15 text-warning border border-warning/30"
                    }`}>
                      <span>{estadoRecepcionTono === "success" ? "✓" : "⏳"}</span>
@@ -366,9 +366,9 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
         {activeTab === "pago" && (
           <div className="bg-surface-elevated rounded-3xl border border-border/20 p-5 shadow-sm relative flex flex-col gap-4">
             {/* Mismo desglose que /ganancias — Depósito acumulado */}
-            <div className="flex flex-col p-4 bg-surface rounded-2xl border border-signal/20 text-left">
+            <div className="flex flex-col p-4 bg-surface rounded-2xl border border-border/60 text-left">
               <h3 className="font-display text-lg font-black tracking-tight text-text-primary">Deposito acumulado</h3>
-              <p className="mt-1 font-display text-3xl font-black tracking-tight text-signal tabular-nums">{formatearMoneda(depositoPago)}</p>
+              <p className="mt-1 font-display text-3xl font-black tracking-tight text-text-primary tabular-nums">{formatearMoneda(depositoPago)}</p>
               <p className="mt-1 font-body text-xs font-semibold text-text-tertiary">Traslado #{folio}</p>
               <button type="button" onClick={() => { copiar(String(depositoPago)); setCopiado("pago"); setTimeout(()=>setCopiado(null),1200); }} className="mt-2 self-start text-xs font-bold text-route-action hover:underline focus-visible:outline focus-visible:outline-[2px] focus-visible:outline-offset-1 focus-visible:outline-route-action rounded px-2 py-1 min-h-8">{copiado==="pago"?"Copiado ✓":"Copiar depósito"}</button>
             </div>
@@ -394,7 +394,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                       <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Incentivos por puntualidad/campañas.</span>
                     </span>
                   </span>
-                  <span className="font-display text-xs font-bold text-emerald-400 tabular-nums">+ {formatearMoneda(bonosPago)}</span>
+                  <span className="font-display text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">+ {formatearMoneda(bonosPago)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-3 px-4 py-3">
                   <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
@@ -436,7 +436,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
               </div>
               <div className="flex flex-col text-right">
                 <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest">Acreditación</span>
-                <span className="text-xs font-black text-signal mt-0.5">Al Cierre Operativo</span>
+                <span className="text-xs font-black text-text-primary mt-0.5">Al Cierre Operativo</span>
               </div>
             </div>
           </div>
@@ -534,11 +534,11 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
               {/* 2. Persona quien entrega */}
               <div className="flex items-center justify-between bg-surface rounded-2xl p-3.5 border border-border/15">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0">
                     {entregaNombre.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Persona quien Entrega (Origen)</span>
+                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Persona quien Entrega (Origen)</span>
                     <span className="font-bold text-xs text-text-primary truncate">{entregaNombre}</span>
                     <span className="font-mono text-[11px] text-text-secondary flex items-center gap-1">{entregaTelefono || "Teléfono no disponible"}{entregaTelefono && <button type="button" onClick={()=>{ copiar(entregaTelefono); setCopiado("ent"); setTimeout(()=>setCopiado(null),1200); }} className="text-[10px] font-bold text-route-action hover:underline px-1">{copiado==="ent"?"Copiado":"Copiar"}</button>}</span>
                   </div>
@@ -549,7 +549,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                       href={enlaceWhatsApp(entregaTelefono, `Hola ${entregaNombre}, soy el conductor de Ruum Ruum asignado para recolectar el vehículo del traslado #TR-${folio}.`)}
                       target="_blank"
                       rel="noreferrer"
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`WhatsApp a ${entregaNombre}`}
                       title="Enviar WhatsApp"
                     >
@@ -574,11 +574,11 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
               {/* 3. Persona quien recibe */}
               <div className="flex items-center justify-between bg-surface rounded-2xl p-3.5 border border-border/15">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-signal/10 text-signal flex items-center justify-center font-bold text-sm shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-surface-elevated border border-border/60 text-text-primary flex items-center justify-center font-bold text-sm shrink-0">
                     {recepcionNombre.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[9px] text-signal font-bold uppercase tracking-wider">Persona quien Recibe (Destino)</span>
+                    <span className="text-[9px] text-text-secondary font-bold uppercase tracking-wider">Persona quien Recibe (Destino)</span>
                     <span className="font-bold text-xs text-text-primary truncate">{recepcionNombre}</span>
                     <span className="font-mono text-[11px] text-text-secondary flex items-center gap-1">{recepcionTelefono || "Teléfono no disponible"}{recepcionTelefono && <button type="button" onClick={()=>{ copiar(recepcionTelefono); setCopiado("rec"); setTimeout(()=>setCopiado(null),1200); }} className="text-[10px] font-bold text-route-action hover:underline px-1">{copiado==="rec"?"Copiado":"Copiar"}</button>}</span>
                   </div>
@@ -589,7 +589,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                       href={enlaceWhatsApp(recepcionTelefono, `Hola ${recepcionNombre}, soy el conductor de Ruum Ruum en camino a tu ubicación con el traslado #TR-${folio}.`)}
                       target="_blank"
                       rel="noreferrer"
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`WhatsApp a ${recepcionNombre}`}
                       title="Enviar WhatsApp"
                     >
@@ -621,8 +621,8 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
               {/* Notas de recogida */}
               <div className="flex flex-col bg-surface p-3.5 rounded-2xl border border-border/15">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                  <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest">Notas de Recogida (Origen)</span>
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest">Notas de Recogida (Origen)</span>
                 </div>
                 <span className="font-body text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">{notasRecogida}</span>
               </div>

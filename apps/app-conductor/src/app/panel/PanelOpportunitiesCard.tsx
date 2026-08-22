@@ -83,7 +83,7 @@ export function PanelOpportunitiesCard({
               {primerViaje.origen_ciudad || "Origen"} ➔ {primerViaje.destino_ciudad || "Destino"}
             </span>
           </div>
-          <span className="text-xs font-black text-signal tabular-nums">
+          <span className="text-xs font-black text-text-primary tabular-nums">
             {primerViaje.ganancia_conductor
               ? new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(primerViaje.ganancia_conductor)
               : "Ver pago"}
