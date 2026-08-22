@@ -101,6 +101,7 @@ const DESTINOS_MOVIL = [
   { href: "/panel", etiqueta: "Inicio", Icono: IcoHome },
   { href: "/viajes", etiqueta: "Traslados", Icono: IcoViajes },
   { href: "/ganancias", etiqueta: "Ganancias", Icono: IcoGanancias },
+  { href: "/notificaciones", etiqueta: "Avisos", Icono: IcoNotificaciones },
   { href: "/cuenta", etiqueta: "Cuenta", Icono: IcoCuenta },
 ];
 
@@ -247,8 +248,8 @@ export function NavegacionConductor() {
           </div>
         )}
 
-        <nav aria-label="Navegación principal móvil" className="w-full px-2 max-w-md mx-auto">
-          <div className="grid grid-cols-4 gap-1">
+        <nav aria-label="Navegación principal móvil" className="w-full px-1 max-w-md mx-auto">
+          <div className="grid grid-cols-5 gap-0.5">
             {DESTINOS_MOVIL.map((destino) => {
               const activo = esActivo(pathname, destino.href);
               const notificar = destino.href === "/viajes" && hayAccionPendiente;
@@ -260,7 +261,7 @@ export function NavegacionConductor() {
                   aria-current={activo ? "page" : undefined}
                   aria-label={notificar ? `${destino.etiqueta}: acción pendiente` : destino.etiqueta}
                   className={[
-                    "relative flex flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 min-h-14 font-body text-[11px] leading-none transition-colors duration-200 select-none",
+                    "relative flex flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 min-h-[56px] font-body text-[10px] leading-none transition-colors duration-200 select-none",
                     activo ? "text-text-primary dark:text-signal font-black bg-signal/20 dark:bg-signal/15 shadow-2xs" : "text-text-secondary hover:text-text-primary"
                   ].join(" ")}
                 >
@@ -270,7 +271,7 @@ export function NavegacionConductor() {
                     )}
                     <destino.Icono />
                   </div>
-                  <span className="max-w-full truncate tracking-tight text-[11px] leading-none">{destino.etiqueta}</span>
+                  <span className="max-w-full truncate tracking-tight text-[10px] leading-none">{destino.etiqueta}</span>
                 </Link>
               );
             })}
