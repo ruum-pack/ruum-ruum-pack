@@ -229,8 +229,7 @@ export default function PaginaPanel() {
           {/* Header — Brand Book: logo horizontal + descriptor */}
           <header className="flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <LogoMarca tamano={28} color="signal" descriptor="Traslado vehicular con conductores certificados" mostrarDescriptor={false} mostrarRespaldo={false} />
-              <span className="hidden sm:inline font-body text-[10px] font-semibold uppercase tracking-wider text-text-tertiary whitespace-nowrap">by MoviliaX</span>
+              <LogoMarca tamano={28} color="signal" descriptor="Conductor" mostrarDescriptor={true} mostrarRespaldo={false} />
             </div>
 
             <div className="flex items-center gap-1 shrink-0">

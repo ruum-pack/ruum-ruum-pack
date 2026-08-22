@@ -17,9 +17,9 @@ export function RegistrationShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <LogoMarca tamano={34} color="signal" descriptor="Traslado vehicular con conductores certificados" />
+          <LogoMarca tamano={34} color="signal" descriptor="Conductor" mostrarRespaldo={false} />
         </div>
-        <p className="mt-2 font-body text-[11px] font-medium tracking-wide text-text-tertiary">Seguridad, evidencia y trazabilidad en cada viaje. · by MoviliaX</p>
+        <p className="mt-2 font-body text-[11px] font-medium tracking-wide text-text-tertiary">Seguridad, evidencia y trazabilidad en cada viaje.</p>
         <div className="conductor-ruta-divider mt-3" aria-hidden />
 
         {children}

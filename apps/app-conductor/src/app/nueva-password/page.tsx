@@ -56,9 +56,9 @@ export default function PaginaNuevaPasswordConductor() {
     <div className="conductor-auth-shell flex items-center justify-center px-4 py-10 sm:px-6">
       <section className="conductor-auth-card p-6 sm:p-8" aria-labelledby="titulo-nueva-pwd">
         <div className="flex items-center gap-3">
-          <LogoMarca tamano={34} color="signal" descriptor="Traslado vehicular con conductores certificados" />
+          <LogoMarca tamano={34} color="signal" descriptor="Conductor" mostrarRespaldo={false} />
         </div>
-        <p className="mt-2 font-body text-[11px] font-medium tracking-wide text-text-tertiary">Seguridad, evidencia y trazabilidad · by MoviliaX</p>
+        <p className="mt-2 font-body text-[11px] font-medium tracking-wide text-text-tertiary">Seguridad, evidencia y trazabilidad</p>
         <div className="conductor-ruta-divider mt-3" aria-hidden />
 
         <h1 id="titulo-nueva-pwd" className="mt-6 font-display text-2xl font-bold tracking-tight text-text-primary">

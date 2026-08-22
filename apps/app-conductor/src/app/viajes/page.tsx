@@ -394,7 +394,7 @@ export default function PaginaViajes() {
         )}
         <header className="sticky top-0 z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80 border-b border-border/20 py-3 flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="font-body text-[10px] font-bold uppercase tracking-widest text-text-tertiary">Traslado vehicular · Conductores certificados</p>
+            <p className="font-body text-[10px] font-bold uppercase tracking-widest text-text-tertiary">Conductor</p>
             <h1 className="mt-1 font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-text-primary leading-none">
               Traslados
             </h1>

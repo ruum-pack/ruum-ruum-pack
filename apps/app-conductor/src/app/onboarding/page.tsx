@@ -135,13 +135,7 @@ export default function PaginaOnboarding() {
       {/* encabezado — Brand Book p.9-11 */}
       <header className="flex items-center justify-between px-5 pb-2 pt-5">
         <div className="flex items-center gap-2.5">
-          <LogoMarca tamano={30} color="signal" descriptor="Traslado vehicular con conductores certificados" mostrarDescriptor={false} mostrarRespaldo={false} />
-          <div>
-            <p className="font-display text-sm font-extrabold tracking-tight">
-              Ruum<span className="text-signal"> Ruum</span>
-            </p>
-            <p className="font-body text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Conductores certificados · by MoviliaX</p>
-          </div>
+          <LogoMarca tamano={30} color="signal" descriptor="Conductor" mostrarDescriptor={true} mostrarRespaldo={false} />
         </div>
         <button
           type="button"

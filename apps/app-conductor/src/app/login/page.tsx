@@ -122,9 +122,9 @@ export default function PaginaLogin() {
     >
       <section className="conductor-auth-card p-6 sm:p-8" aria-labelledby="titulo-inicio-conductor">
         <div className="flex items-center gap-3">
-          <LogoMarca tamano={34} color="signal" descriptor="Traslado vehicular con conductores certificados" />
+          <LogoMarca tamano={34} color="signal" descriptor="Conductor" mostrarRespaldo={false} />
         </div>
-        <p className="mt-2 font-body text-[11px] font-medium tracking-wide text-text-tertiary">Seguridad, evidencia y trazabilidad en cada viaje. · by MoviliaX</p>
+        <p className="mt-2 font-body text-[11px] font-medium tracking-wide text-text-tertiary">Seguridad, evidencia y trazabilidad en cada viaje.</p>
         <div className="conductor-ruta-divider mt-4" aria-hidden />
         <h1 id="titulo-inicio-conductor" className="mt-6 font-display text-2xl font-bold tracking-tight text-text-primary">Iniciar sesión</h1>
         <p className="mt-1 font-body text-sm text-text-secondary">Solo conductores verificados. Tu sesión inicia trazabilidad.</p>
