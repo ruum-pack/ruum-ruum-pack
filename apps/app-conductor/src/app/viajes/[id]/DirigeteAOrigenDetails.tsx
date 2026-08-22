@@ -13,6 +13,7 @@ import { createNavigationOptions, type NavigationOption } from "../../../lib/nav
 import { formatearDuracion } from "../trips-utils";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
+import { EmergencyPanel } from "./EmergencyPanel";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
@@ -215,6 +216,8 @@ export function DirigeteAOrigenDetails({
           <Aviso tono="danger">{error}</Aviso>
         </div>
       )}
+
+      <EmergencyPanel trasladoId={trasladoId} />
 
       {/* Secondary Bottom Navigation Bar */}
       <div className="mt-auto pt-5 -mx-4 -mb-6">

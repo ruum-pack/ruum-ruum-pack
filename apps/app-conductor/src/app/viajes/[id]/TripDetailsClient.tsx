@@ -1,3 +1,8 @@
+/**
+ * @deprecated Hallazgo 5.1 — código muerto: page.tsx no importa TripDetailsClient (routing real por
+ * estado hacia 6 Details). Mantener solo hasta limpieza para no confundir con pantalla vigente.
+ * Ya corregido Hallazgo 4 (fallback distancia). No usar en producción.
+ */
 "use client";
 
 import { useState } from "react";
@@ -46,10 +51,13 @@ export function TripDetailsClient({
   }).format(new Date(fechaReferencia));
 
   // Dynamic Details - formato HH:MM (ej 12:57)
+  // NOTA Hallazgo 4: TripDetailsClient es código muerto no usado en page.tsx (routing real usa 6 Details especializados).
+  // Se corrige fallback para no mostrar dato falso si se reactiva: usar "Por confirmar" como ConduceADestinoDetails.
   const duracionTexto = formatearDuracion(pasaporte.tiempo_estimado_horas);
-  const distanciaTexto = `${(pasaporte.distancia_km || 138.2).toFixed(1)}Km`;
-  const pasajeroCount = "01";
-  const autoCount = "01";
+  const distanciaTexto = pasaporte.distancia_km != null ? `${pasaporte.distancia_km.toFixed(1)} km` : "Por confirmar";
+  // Hallazgo 4: pasajero/auto eran literales "01" de maqueta sin campo real; si se reactiva, derivar de traslado.
+  const pasajeroCount = (pasaporte as unknown as { pasajeros?: number }).pasajeros?.toString().padStart(2, "0") ?? "—";
+  const autoCount = "01"; // Traslados actuales son 1 vehículo; multi-vehículo (RT38 masivos) requiere campo vehiculos_count
 
   // Notes text from solicitor (notas de origen)
   const notasTexto = pasaporte.origen_referencias || 

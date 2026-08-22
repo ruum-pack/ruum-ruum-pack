@@ -1,3 +1,15 @@
+/**
+ * DECISIÓN CONSCIENTE — Enumeración de correo (Baja severidad)
+ * Mensajes `email_exists` / `user_already_exists` revelan si un correo ya está
+ * registrado. Se mantiene INTENCIONALMENTE por UX: el conductor ve al instante
+ * "ya existe, inicia sesión o recupera" en lugar de un genérico ambiguo.
+ * Alternativa (mensaje genérico "si el correo existe recibirás instrucciones")
+ * oculta la enumeración pero empeora la conversión y soporte.
+ * Mitigaciones vigentes: rate-limit en Supabase Auth (over_request_rate_limit),
+ * sin exposición de datos adicionales. Si en el futuro se requiere endurecer,
+ * cambiar aquí a mensaje genérico y en `registro/page.tsx:crearCuentaParaContinuar`.
+ * Revisado: 2026-08-22 — se acepta el riesgo bajo.
+ */
 const MENSAJES_AUTH = {
   email_exists: "Ya existe una cuenta con ese correo. Inicia sesión o recupera tu contraseña.",
   user_already_exists: "Ya existe una cuenta con ese correo. Inicia sesión o recupera tu contraseña.",

@@ -9,7 +9,7 @@ import type { AnguloEvidencia, FotoEvidencia, TipoEvidencia } from "@ruum/shared
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
 import { esNativo } from "../../../../lib/capacitor";
-import { capturarFoto, seleccionarFotoGaleria } from "../../../../lib/camara";
+import { capturarFoto, seleccionarFotoGaleria, comprimirDataUrl } from "../../../../lib/camara";
 import {
   obtenerPasaporteDigital,
   obtenerEvidenciaDeTraslado,
@@ -245,7 +245,10 @@ export default function PaginaEvidencia() {
       const reader = new FileReader();
       reader.onload = async () => {
         if (reader.result) {
-          await registrarFotoLocal(angulo, String(reader.result));
+          let dataUrl = String(reader.result);
+          // Hallazgo 5.4 — comprimir antes de encolar (10 fotos por traslado)
+          try { dataUrl = await comprimirDataUrl(dataUrl, 1280, 0.72); } catch {}
+          await registrarFotoLocal(angulo, dataUrl);
         }
       };
       reader.readAsDataURL(archivo);
@@ -310,14 +313,33 @@ export default function PaginaEvidencia() {
     setAviso(null);
     setAvisoExito(null);
 
-    // Validate that required photos are present
+    // Hallazgo 5.2 — doble validación: cliente rápido vs servidor. Diferenciar sincronización pendiente.
     const requiredAngles: AnguloEvidencia[] = ["frente", "lado_piloto", "lado_copiloto", "trasera", "tablero"];
     const missingPhotos = requiredAngles.filter(
       (angle) => !fotos.some((f) => f.angulo === angle)
     );
+    const pendingSync = requiredAngles.filter(
+      (angle) => {
+        const f = fotos.find((x) => x.angulo === angle);
+        return f && !f.sincronizada;
+      }
+    );
 
     if (missingPhotos.length > 0) {
-      setError(`Falta registrar fotografías obligatorias: ${missingPhotos.join(", ")}.`);
+      setError(`Falta capturar fotografías obligatorias: ${missingPhotos.join(", ")}. Toca cada cuadro para tomar la foto.`);
+      setEnviando(null);
+      return;
+    }
+    if (pendingSync.length > 0) {
+      setError(`Fotografías aún sincronizando: ${pendingSync.join(", ")}. Espera a que suban (revisa el indicador de conexión) y reintenta. No necesitas recapturar.`);
+      setEnviando(null);
+      // Intentar drenar cola en segundo plano
+      void drenarCola();
+      return;
+    }
+    // Hallazgo 5.3 — si el conductor marcó "¿Presenta daños nuevos?" exigir foto dano_previo para que la detección automática tenga con qué comparar
+    if (tipo === "final" && presentaDanosNuevos && !fotos.some((f) => f.angulo === "dano_previo")) {
+      setError("Marcaste que hay daños nuevos: captura la foto de \"Daño previo\" para documentarlos. Si no hay daños, desmarca la casilla.");
       setEnviando(null);
       return;
     }

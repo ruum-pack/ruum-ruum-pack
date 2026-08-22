@@ -13,6 +13,7 @@ import { createNavigationOptions, type NavigationOption } from "../../../lib/nav
 import { formatearDuracion, nombreVehiculo } from "../trips-utils";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
+import { EmergencyPanel } from "./EmergencyPanel";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
@@ -198,7 +199,7 @@ export function ConduceADestinoDetails({
             {telefonoLimpio && (
               <div className="flex items-center gap-2">
                 <a
-                  href={`https://wa.me/52${telefonoLimpio}`}
+                  href={`https://wa.me/${telefonoLimpio}`}
                   target="_blank"
                   rel="noreferrer"
                   className="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 active:scale-95 transition-transform"
@@ -209,7 +210,7 @@ export function ConduceADestinoDetails({
                   </svg>
                 </a>
                 <a
-                  href={`tel:${telefonoLimpio}`}
+                  href={`tel:+${telefonoLimpio}`}
                   className="w-9 h-9 rounded-full bg-route-action/10 text-route-action flex items-center justify-center border border-route-action/20 active:scale-95 transition-transform"
                   aria-label={`Llamar a ${contactoNombre}`}
                 >
@@ -297,6 +298,8 @@ export function ConduceADestinoDetails({
           <Aviso tono="danger">{error}</Aviso>
         </div>
       )}
+
+      <EmergencyPanel trasladoId={trasladoId} />
 
       {/* Secondary Bottom Navigation Bar */}
       <div className="mt-auto pt-5 -mx-4 -mb-6">

@@ -37,7 +37,15 @@ export const TRANSICIONES: Record<EstadoTraslado, EstadoTraslado[]> = {
   evidencia_inicial_completada: ["vehiculo_recibido"],
   vehiculo_recibido: ["traslado_en_curso"],
   traslado_en_curso: ["llegada_a_destino", "incidencia_reportada"],
-  incidencia_reportada: ["traslado_en_curso", "traslado_fallido", "llegada_a_destino"],
+  // Hallazgo 2 — simetría: incidencia puede venir de 3 orígenes, ahora puede volver a cada uno
+  // + mantener salidas existentes. Si se implementa RPC incidencia_reportada, el retorno será simétrico.
+  incidencia_reportada: [
+    "conductor_en_camino_al_origen",
+    "conductor_en_punto_de_recoleccion",
+    "traslado_en_curso",
+    "traslado_fallido",
+    "llegada_a_destino"
+  ],
   llegada_a_destino: ["evidencia_final_en_proceso"],
   evidencia_final_en_proceso: ["evidencia_final_completada"],
   evidencia_final_completada: ["entrega_confirmada"],

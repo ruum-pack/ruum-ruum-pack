@@ -1,3 +1,9 @@
+/**
+ * @deprecated Hallazgo 5 — código muerto: page.tsx usa enrutamiento real por 6 Details especializados
+ * (TrasladoAsignadoDetails, DirigeteAOrigenDetails, ...). Este archivo nunca se importa.
+ * Mantener solo como referencia histórica hasta eliminar en limpieza. No reactivar sin revisar
+ * Hallazgo 4 (fallback 138.2) y sincronía con transiciones.ts.
+ */
 "use client";
 
 import { useState } from "react";

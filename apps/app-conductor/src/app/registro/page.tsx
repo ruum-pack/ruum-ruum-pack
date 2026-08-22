@@ -107,6 +107,7 @@ const RETRASO_GUARDADO_REMOTO_MS = 900;
 
 const CODIGO_OTP_LONGITUD = 6;
 const ESPERA_REENVIO_OTP_SEGUNDOS = 60;
+const MAX_INTENTOS_OTP = 5;
 
 export default function PaginaRegistroConductor() {
   const router = useRouter();
@@ -160,6 +161,7 @@ export default function PaginaRegistroConductor() {
   const [errorOtp, setErrorOtp] = useState<string | null>(null);
   const [reenviandoOtp, setReenviandoOtp] = useState(false);
   const [esperaReenvioOtp, setEsperaReenvioOtp] = useState(0);
+  const [intentosFallidosOtp, setIntentosFallidosOtp] = useState(0);
 
   // Verificación de identidad Didit (auto-iniciada tras envío exitoso)
   const [mostrarVerificacionDidit, setMostrarVerificacionDidit] = useState(false);
@@ -612,6 +614,10 @@ export default function PaginaRegistroConductor() {
   
   async function confirmarCodigoOtp(e: FormEvent) {
     e.preventDefault();
+    if (intentosFallidosOtp >= MAX_INTENTOS_OTP) {
+      setErrorOtp(`Has superado el máximo de ${MAX_INTENTOS_OTP} intentos. Solicita un nuevo código.`);
+      return;
+    }
     const codigo = codigoOtp.trim();
     if (!new RegExp(`^\\d{${CODIGO_OTP_LONGITUD}}$`).test(codigo)) {
       setErrorOtp(`Escribe el código de ${CODIGO_OTP_LONGITUD} dígitos que enviamos a tu correo.`);
@@ -632,6 +638,7 @@ export default function PaginaRegistroConductor() {
       if (!data.session) throw new Error("El código se validó pero no pudimos iniciar tu sesión. Entra desde el acceso.");
       cuentaVerificada=true;
 
+      setIntentosFallidosOtp(0);
       setSesionActivaTrasRegistro(true);
       if (paso < PASOS_REGISTRO.length - 1) {
         await prepararSolicitudBorrador(cliente);
@@ -650,7 +657,10 @@ export default function PaginaRegistroConductor() {
         setError(traducirErrorOperativo(err,"Tu cuenta quedó verificada, pero no pudimos enviar la solicitud. Puedes reintentar."));
       } else {
         registrarTelemetria("otp_error",paso+1,"verificar_otp");
-        setErrorOtp(traducirErrorAuth(err));
+        setIntentosFallidosOtp((prev) => prev + 1);
+        const restantes = MAX_INTENTOS_OTP - (intentosFallidosOtp + 1);
+        const base = traducirErrorAuth(err);
+        setErrorOtp(restantes > 0 ? `${base} Te quedan ${restantes} intentos.` : `${base} Has agotado los intentos. Solicita un nuevo código.`);
       }
     } finally {
       setVerificandoOtp(false);
@@ -672,6 +682,8 @@ export default function PaginaRegistroConductor() {
       });
       if (errorReenvio) throw errorReenvio;
       setEsperaReenvioOtp(ESPERA_REENVIO_OTP_SEGUNDOS);
+      setIntentosFallidosOtp(0);
+      setCodigoOtp("");
     } catch (err) {
       registrarTelemetria("otp_error",paso+1,"reenviar_otp");
       setErrorOtp(traducirErrorAuth(err));
@@ -876,6 +888,8 @@ export default function PaginaRegistroConductor() {
             reenviandoOtp={reenviandoOtp}
             esperaReenvioOtp={esperaReenvioOtp}
             codigoLongitud={CODIGO_OTP_LONGITUD}
+            intentosFallidos={intentosFallidosOtp}
+            maxIntentos={MAX_INTENTOS_OTP}
             onSubmit={confirmarCodigoOtp}
             onResend={() => void reenviarCodigoOtp()}
             onAlreadyConfirmed={() => router.push("/login")}

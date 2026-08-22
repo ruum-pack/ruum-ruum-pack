@@ -23,10 +23,17 @@ export default function PaginaNuevaPasswordConductor() {
     }
 
     const cliente = crearClienteNavegador();
-    return observarSesionRecuperacion(cliente.auth, ({ sesionLista: lista, verificando: enVerificacion }) => {
-      setSesionLista(lista);
-      setVerificando(enVerificacion);
-    });
+    // Solo PASSWORD_RECOVERY debe habilitar el formulario. Una sesión SIGNED_IN
+    // normal debe ir a /cuenta/seguridad -> /recuperar-password para flujo seguro.
+    return observarSesionRecuperacion(
+      cliente.auth,
+      ({ sesionLista: lista, verificando: enVerificacion }) => {
+        setSesionLista(lista);
+        setVerificando(enVerificacion);
+      },
+      7000,
+      { soloRecovery: true }
+    );
   }, []);
 
   async function establecer(e: React.FormEvent) {
@@ -81,6 +88,7 @@ export default function PaginaNuevaPasswordConductor() {
             <Aviso tono="danger">
               El enlace expiró, ya fue usado, o se abrió en un dispositivo o navegador distinto al que lo solicitó.
               Los enlaces son válidos por 60 minutos y solo funcionan en el mismo teléfono/navegador.
+              Si ya iniciaste sesión y quieres cambiar tu contraseña, hazlo desde <Link href="/cuenta/seguridad" className="underline">Seguridad y Sesión</Link>.
             </Aviso>
             <Link href="/recuperar-password" className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-signal font-display text-sm font-bold text-text-primary transition hover:bg-signal/90">
               Solicitar un nuevo enlace

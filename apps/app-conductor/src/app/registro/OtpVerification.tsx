@@ -12,6 +12,8 @@ export function OtpVerification({
   reenviandoOtp,
   esperaReenvioOtp,
   codigoLongitud,
+  intentosFallidos = 0,
+  maxIntentos = 5,
   onSubmit,
   onResend,
   onAlreadyConfirmed
@@ -25,10 +27,14 @@ export function OtpVerification({
   reenviandoOtp: boolean;
   esperaReenvioOtp: number;
   codigoLongitud: number;
+  intentosFallidos?: number;
+  maxIntentos?: number;
   onSubmit: (event: FormEvent) => void;
   onResend: () => void;
   onAlreadyConfirmed: () => void;
 }) {
+  const bloqueado = intentosFallidos >= maxIntentos;
+  const restantes = Math.max(0, maxIntentos - intentosFallidos);
   return (
     <div className="py-4">
       <h1 id="titulo-registro-conductor" className="mt-4 font-display text-2xl font-bold text-text-primary">
@@ -52,14 +58,20 @@ export function OtpVerification({
             setCodigoOtp(soloDigitos(e.target.value, codigoLongitud));
             if (errorOtp) clearErrorOtp();
           }}
-          ayuda="Revisa también tu carpeta de spam o promociones."
+          ayuda={bloqueado ? `Has agotado los ${maxIntentos} intentos. Solicita un nuevo código.` : `Revisa también tu carpeta de spam o promociones. ${intentosFallidos > 0 ? `Te quedan ${restantes} intentos.` : ""}`}
           required
+          disabled={bloqueado}
         />
 
         {errorOtp && <Aviso tono="danger">{errorOtp}</Aviso>}
+        {bloqueado && (
+          <Aviso tono="atencion">
+            Por seguridad bloqueamos los intentos. Espera 60 s y pulsa “Reenviar código” para obtener uno nuevo.
+          </Aviso>
+        )}
 
-        <Button type="submit" loading={verificandoOtp} disabled={verificandoOtp || codigoOtp.length !== codigoLongitud}>
-          {verificandoOtp ? "Verificando…" : "Confirmar y activar"}
+        <Button type="submit" loading={verificandoOtp} disabled={verificandoOtp || codigoOtp.length !== codigoLongitud || bloqueado}>
+          {verificandoOtp ? "Verificando…" : bloqueado ? "Bloqueado — reenvía el código" : "Confirmar y activar"}
         </Button>
 
         <div className="flex flex-wrap items-center justify-between gap-2">

@@ -56,6 +56,18 @@ password_requirements = "lower_upper_letters_digits"
 # passwords" (requiere plan Pro o superior). Debe habilitarse manualmente en
 # staging y en producción como parte del despliegue de este PR.
 
+# CAPTCHA (Info severidad) — config.toml local no lo refleja para producción.
+# El proyecto Supabase en Dashboard → Authentication → Security → CAPTCHA
+# debe tener habilitado hCaptcha / Turnstile si se desea mitigar bots en
+# signUp/recuperación. Estado local: deshabilitado (desarrollo). Verificar en
+# producción que esté activo y que site_key/secret estén configurados.
+# Para启用 local, descomentar:
+# [auth.captcha]
+# enabled = true
+# provider = "hcaptcha" # o "turnstile"
+# site_key = ""
+# secret = ""
+
 [auth.email]
 enable_signup = true
 double_confirm_changes = true

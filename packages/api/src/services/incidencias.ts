@@ -46,6 +46,19 @@ async function resolverActorReporte(cliente: Cliente, trasladoId: string): Promi
   throw new Error("No tienes acceso para reportar problemas en este traslado.");
 }
 
+/**
+ * Hallazgo 1 — incidencia_reportada es estado modelado en TRANSICIONES y
+ * estado_transiciones_validas pero ningún camino de código lo produce.
+ * Esta función solo INSERTA en `incidencias` + auditoría; NO actualiza
+ * traslados.estado. El traslado permanece en su estado operativo y se marca
+ * por flag `tiene_incidencia_abierta`. La pantalla "Espera Torre de Control"
+ * de trip-presentation para incidencia_reportada nunca se renderiza hoy.
+ * Dos lecturas: función pendiente (falta RPC conductor_reporta_incidencia que
+ * transicione estado) o diseño cambió a "flag paralelo sin bloquear estado".
+ * Hasta definir con producto, NO se auto-transiciona aquí para no bloquear
+ * flujo operativo. Si se implementa, añadir RPC y transiciones simétricas
+ * Hallazgo 2 (ya agregadas en shared/transiciones.ts).
+ */
 export async function reportarIncidencia(
   cliente: Cliente,
   trasladoId: string,
