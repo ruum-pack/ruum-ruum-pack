@@ -222,7 +222,7 @@ export function AcceptedTripCard({
         href={hrefDetalle}
         className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-route-action hover:bg-route-action/85 active:scale-[0.98] px-4 font-display text-xs font-black tracking-widest text-slate-950 uppercase transition-all shadow-sm select-none cursor-pointer mt-0.5"
       >
-        CONTINUAR TRASLADO →
+        INICIAR TRASLADO →
       </Link>
     </div>
   );

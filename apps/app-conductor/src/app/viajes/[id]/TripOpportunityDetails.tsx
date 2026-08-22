@@ -189,10 +189,10 @@ export function TripOpportunityDetails({
       }
 
       await aceptarViaje(cliente, trasladoId, conductorData.id);
-      setAvisoExito("¡Traslado aceptado con éxito! Redirigiendo...");
+      setAvisoExito("¡Traslado aceptado con éxito! Redirigiendo a tus traslados aceptados...");
       setTimeout(() => {
-        router.push(`/viajes/${trasladoId}`);
-      }, 1000);
+        router.push(`/viajes?vista=mis-viajes`);
+      }, 900);
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos aceptar el traslado."));
       setProcesando(false);

@@ -8,6 +8,10 @@ import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador } from "../../../../lib/supabase-browser";
 import { formatearDuracion, nombreVehiculo } from "../../trips-utils";
 
+function formatearMoneda(valor: number) {
+  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 }).format(valor);
+}
+
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
 function limpiarTelefono(tel?: string | null) {
@@ -39,6 +43,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>("itinerario");
   const [copiado, setCopiado] = useState<string | null>(null);
+  const [reembolsoPago, setReembolsoPago] = useState(0);
   
   const trasladoId = pasaporte.traslado_id!;
   const folio = trasladoId.slice(0, 8).toUpperCase();
@@ -148,6 +153,33 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
 
   const notasRecogida = pasaporte.origen_referencias || "Sin notas adicionales de recogida registradas.";
   const notasEntrega = pasaporte.destino_referencias || "Sin notas adicionales de entrega registradas.";
+
+  // Pago — mismo desglose que /ganancias: Precio base + Bonos + Ajuste - Tasa Ruum-Ruum + Reembolso
+  const precioBasePago = Number(pasaporte.precio_final ?? pasaporte.precio_cotizado ?? (pagoTotal ? pagoTotal / 0.85 : 0));
+  const tasaPago = precioBasePago > 0 ? Math.max(0, precioBasePago - pagoTotal) : 0;
+  const bonosPago = 0;
+  const ajustesPago = 0;
+
+  useEffect(() => {
+    let cancelado = false;
+    async function cargarReembolso() {
+      try {
+        const cliente = crearClienteNavegador();
+        const resp = await (cliente as unknown as { from: (table: string) => { select: (cols: string) => { eq: (col: string, val: string) => Promise<{ data: { monto: number }[] | null }> } } }).from("gastos_traslado").select("monto").eq("traslado_id", trasladoId);
+        const data = (resp as { data: { monto: number }[] | null }).data;
+        if (!cancelado && data) {
+          const total = data.reduce((s: number, g: { monto: number }) => s + Number(g.monto || 0), 0);
+          setReembolsoPago(total);
+        }
+      } catch {
+        // ignora
+      }
+    }
+    void cargarReembolso();
+    return () => { cancelado = true; };
+  }, [trasladoId]);
+
+  const depositoPago = Math.max(0, precioBasePago + bonosPago + ajustesPago - tasaPago + reembolsoPago);
 
   return (
     <div className="mx-auto w-full max-w-md bg-surface min-h-screen flex flex-col text-text-primary pb-6 px-4">
@@ -332,28 +364,70 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
         )}
 
         {activeTab === "pago" && (
-          <div className="bg-surface-elevated rounded-3xl border border-border/20 p-5 shadow-sm relative flex flex-col gap-5">
-            <div className="flex flex-col items-center p-4 bg-surface rounded-2xl border border-border/20 text-center">
-              <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest">Ganancia Neta Conductor</span>
-              <div className="flex items-start mt-1">
-                <span className="text-lg font-bold text-signal mr-1 mt-0.5">$</span>
-                <span className="font-display text-4xl font-black text-signal tabular-nums">
-                  {pagoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+          <div className="bg-surface-elevated rounded-3xl border border-border/20 p-5 shadow-sm relative flex flex-col gap-4">
+            {/* Mismo desglose que /ganancias — Depósito acumulado */}
+            <div className="flex flex-col p-4 bg-surface rounded-2xl border border-signal/20 text-left">
+              <h3 className="font-display text-lg font-black tracking-tight text-text-primary">Deposito acumulado</h3>
+              <p className="mt-1 font-display text-3xl font-black tracking-tight text-signal tabular-nums">{formatearMoneda(depositoPago)}</p>
+              <p className="mt-1 font-body text-xs font-semibold text-text-tertiary">Traslado #{folio}</p>
+              <button type="button" onClick={() => { copiar(String(depositoPago)); setCopiado("pago"); setTimeout(()=>setCopiado(null),1200); }} className="mt-2 self-start text-xs font-bold text-route-action hover:underline focus-visible:outline focus-visible:outline-[2px] focus-visible:outline-offset-1 focus-visible:outline-route-action rounded px-2 py-1 min-h-8">{copiado==="pago"?"Copiado ✓":"Copiar depósito"}</button>
+            </div>
+
+            <div className="rounded-2xl border border-border/40 bg-surface overflow-hidden">
+              <p className="px-4 pt-3 pb-1 font-body text-[11px] font-bold uppercase tracking-widest text-text-tertiary">Desglose:</p>
+              <div className="grid divide-y divide-border/30">
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
+                    Precio base
+                    <span className="group relative inline-flex">
+                      <button type="button" aria-label="Qué es el precio base" className="flex size-4 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-text-tertiary">?</button>
+                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Tarifa cotizada antes de comisiones. Base de cálculo.</span>
+                    </span>
+                  </span>
+                  <span className="font-display text-xs font-bold text-text-primary tabular-nums">{formatearMoneda(precioBasePago)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
+                    Bonos
+                    <span className="group relative inline-flex">
+                      <button type="button" aria-label="Qué son los bonos" className="flex size-4 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-text-tertiary">?</button>
+                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Incentivos por puntualidad/campañas.</span>
+                    </span>
+                  </span>
+                  <span className="font-display text-xs font-bold text-emerald-400 tabular-nums">+ {formatearMoneda(bonosPago)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
+                    Ajustes
+                    <span className="group relative inline-flex">
+                      <button type="button" aria-label="Qué son los ajustes" className="flex size-4 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-text-tertiary">?</button>
+                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Correcciones operativas. Pueden ser positivas o negativas.</span>
+                    </span>
+                  </span>
+                  <span className="font-display text-xs font-bold text-text-primary tabular-nums">+ {formatearMoneda(ajustesPago)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 py-3 bg-danger/5">
+                  <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-red-500">
+                    Tasa Ruum-Ruum (-)
+                    <span className="group relative inline-flex">
+                      <button type="button" aria-label="Qué es la tasa" className="flex size-4 items-center justify-center rounded-full border border-danger/30 bg-surface text-[10px] font-bold text-red-500">?</button>
+                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Comisión de plataforma.</span>
+                    </span>
+                  </span>
+                  <span className="font-display text-xs font-bold text-red-500 tabular-nums">− {formatearMoneda(tasaPago)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
+                    Reembolso gastos (+)
+                    <span className="group relative inline-flex">
+                      <button type="button" aria-label="Qué es reembolso" className="flex size-4 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-text-tertiary">?</button>
+                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Gastos autorizados comprobados.</span>
+                    </span>
+                  </span>
+                  <span className="font-display text-xs font-bold text-text-primary tabular-nums">+ {formatearMoneda(reembolsoPago)}</span>
+                </div>
               </div>
-              <span className="text-[11px] text-text-secondary mt-1 font-semibold">Tarifa garantizada por entrega completada</span>
-              <button type="button" onClick={() => { copiar(String(pagoTotal)); setCopiado("pago"); setTimeout(()=>setCopiado(null),1200); }} className="mt-2 text-xs font-bold text-route-action hover:underline focus-visible:outline focus-visible:outline-[2px] focus-visible:outline-offset-1 focus-visible:outline-route-action rounded px-2 py-1 min-h-8">{copiado==="pago"?"Copiado ✓":"Copiar monto"}</button>
             </div>
-
-            {/* Desglose simulado */}
-            <div className="bg-surface rounded-xl border border-border/15 p-3 grid gap-2">
-              <div className="flex justify-between text-xs"><span className="text-text-tertiary">Tarifa base cliente</span><span className="font-semibold text-text-primary tabular-nums">${(pagoTotal/0.85).toLocaleString("es-MX", { maximumFractionDigits: 0 })} MXN</span></div>
-              <div className="flex justify-between text-xs"><span className="text-text-tertiary">Comisión plataforma (15%)</span><span className="font-semibold text-danger tabular-nums">- ${(pagoTotal/0.85*0.15).toLocaleString("es-MX", { maximumFractionDigits: 0 })} MXN</span></div>
-              <div className="h-px bg-border/15 my-1" />
-              <div className="flex justify-between text-sm font-bold"><span className="text-text-primary">Neto a recibir</span><span className="text-signal tabular-nums">${pagoTotal.toLocaleString("es-MX", { maximumFractionDigits: 0 })} MXN</span></div>
-            </div>
-
-            <div className="h-px w-full bg-border/20 my-0.5" />
 
             <div className="flex justify-between items-center bg-surface p-3 rounded-xl border border-border/15">
               <div className="flex flex-col">

@@ -51,8 +51,8 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
 
   return (
     <div className="w-full rounded-2xl border border-border/20 bg-surface-elevated overflow-hidden shadow-sm select-none text-left flex flex-col gap-0">
-      {/* Cabecera: ID + Tipo de Auto + Tarifa */}
-      <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-border/15">
+      {/* Cabecera: ID resaltado + Tipo de Auto + Tarifa */}
+      <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-border/15 gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="h-2 w-2 rounded-full bg-signal animate-pulse shrink-0" aria-hidden />
           <button
@@ -60,10 +60,11 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
             onClick={() => {
               if (navigator.clipboard) void navigator.clipboard.writeText(folio);
             }}
-            className="font-mono text-[11px] font-extrabold text-text-tertiary tracking-widest uppercase hover:text-text-primary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action rounded"
+            className="inline-flex items-center gap-1.5 rounded-lg border-2 border-signal bg-signal/15 px-2.5 py-1 font-mono text-xs font-black tracking-widest uppercase text-signal hover:bg-signal hover:text-slate-950 transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal"
             aria-label={`Copiar folio ${folio}`}
-            title="Copiar folio"
+            title="Copiar ID"
           >
+            <span className="size-1.5 rounded-full bg-signal animate-pulse" aria-hidden />
             ID {folio}
           </button>
           {tipoVehiculo && (
@@ -72,7 +73,7 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
             </span>
           )}
         </div>
-        <span className="font-display text-base font-black text-signal leading-none tabular-nums">
+        <span className="font-display text-base font-black text-signal leading-none tabular-nums shrink-0">
           {ganancia}
         </span>
       </div>
@@ -94,7 +95,7 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
         </div>
       )}
 
-      {/* Ruta: Origen ➔ Destino */}
+      {/* Ruta: Origen ➔ Destino — colonia, ciudad o municipio */}
       <div className="px-4 py-3 flex flex-col gap-2.5">
         {/* Origen */}
         <div className="flex items-start gap-2.5">
@@ -103,14 +104,23 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
             <span className="w-[1px] h-3.5 bg-border/30" />
           </div>
           <div className="flex flex-col min-w-0">
-            {coloniaOrigen && (
+            {coloniaOrigen ? (
               <span className="font-display text-xs sm:text-sm font-black text-text-primary leading-tight truncate">
                 {coloniaOrigen}
               </span>
+            ) : (
+              <span className="font-display text-xs sm:text-sm font-black text-text-primary leading-tight truncate">
+                {viaje.origen_direccion?.split(",")[0]?.trim() || "Origen por confirmar"}
+              </span>
             )}
             <span className="font-body text-xs text-text-secondary leading-tight truncate mt-0.5">
-              {ciudadOrigen || "Origen por confirmar"}
+              {ciudadOrigen || viaje.origen_ciudad || "Ciudad / Municipio por confirmar"}
             </span>
+            {viaje.origen_direccion && viaje.origen_direccion.split(",").length > 2 && (
+              <span className="font-body text-[11px] text-text-tertiary leading-tight truncate">
+                {viaje.origen_direccion}
+              </span>
+            )}
           </div>
         </div>
 
@@ -120,14 +130,23 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
             <span className="h-2.5 w-2.5 rounded-full bg-route-action flex-none block" />
           </div>
           <div className="flex flex-col min-w-0">
-            {coloniaDestino && (
+            {coloniaDestino ? (
               <span className="font-display text-xs sm:text-sm font-black text-text-primary leading-tight truncate">
                 {coloniaDestino}
               </span>
+            ) : (
+              <span className="font-display text-xs sm:text-sm font-black text-text-primary leading-tight truncate">
+                {viaje.destino_direccion?.split(",")[0]?.trim() || "Destino por confirmar"}
+              </span>
             )}
             <span className="font-body text-xs text-text-secondary leading-tight truncate mt-0.5">
-              {ciudadDestino || "Destino por confirmar"}
+              {ciudadDestino || viaje.destino_ciudad || "Ciudad / Municipio por confirmar"}
             </span>
+            {viaje.destino_direccion && viaje.destino_direccion.split(",").length > 2 && (
+              <span className="font-body text-[11px] text-text-tertiary leading-tight truncate">
+                {viaje.destino_direccion}
+              </span>
+            )}
           </div>
         </div>
       </div>
