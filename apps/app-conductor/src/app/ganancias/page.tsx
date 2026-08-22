@@ -279,6 +279,7 @@ export default function PaginaGanancias() {
   // Resumen filtrado por periodo activo
   const resumen = useMemo(() => {
     const gananciasBrutas = viajesFiltrados.reduce((tot, v) => tot + v.montoGanado, 0);
+    const precioBase = viajesFiltrados.reduce((tot, v) => tot + v.precioBase, 0);
     const bonos = viajesFiltrados.reduce((tot, v) => tot + v.bonos, 0);
     // Ajuste viene de payouts del periodo (ajustes puede ser positivo o negativo)
     const ajuste = payoutsFiltrados.reduce((tot, p) => tot + Number(p.ajustes ?? 0), 0);
@@ -290,9 +291,12 @@ export default function PaginaGanancias() {
       .filter((v) => v.estatusEconomico === "rechazado" || v.estatusEconomico === "retenido")
       .reduce((tot, v) => tot + v.montoGanado, 0);
     const depositoAcumulado = Math.max(0, gananciaNeta + reembolsoGastos - retenciones);
+    const totalVehiculos = new Set(viajesFiltrados.map((v) => v.vehiculo)).size;
     return {
       totalViajes: viajesFiltrados.length,
+      totalVehiculos: viajesFiltrados.length === 0 ? 0 : totalVehiculos,
       gananciasBrutas,
+      precioBase,
       bonos,
       ajuste,
       comisionRuum,
@@ -302,8 +306,6 @@ export default function PaginaGanancias() {
       depositoAcumulado
     };
   }, [viajesFiltrados, payoutsFiltrados]);
-
-  const ultimoPayout = payoutsFiltrados[0] ?? payouts[0] ?? null;
   const tieneDatosBancarios = Boolean(datosBancarios?.clabe || datosBancarios?.numero_tarjeta);
   const sinDatosTotales = !cargando && traslados.length === 0 && payouts.length === 0 && !error;
 
@@ -472,94 +474,86 @@ export default function PaginaGanancias() {
             </div>
           </div>
 
-          {/* Fórmula financiera: Ganancia bruta+bonos+ajuste-comisión Ruum = Ganancia neta + reembolso = Depósito */}
-          <section className="mt-5" aria-label="Resumen financiero del periodo">
-            <FinancialCard className="overflow-hidden p-0" padding="none">
-              <div className="px-4 sm:px-5 pt-5 pb-4">
-                <h2 className="font-display text-sm font-bold text-text-primary flex items-center gap-2">
-                  <span className="inline-flex size-7 items-center justify-center rounded-full bg-signal/15 border border-signal/30 text-signal text-xs">∑</span>
-                  Resumen del periodo
-                </h2>
-                <p className="mt-1 font-body text-xs text-text-tertiary">Operaciones aritméticas auditables del depósito.</p>
+          {/* Resumen en ventanas solicitadas — mismo nivel #Traslados / #Vehículos + Depósito + Ganancia neta */}
+          <section className="mt-5 grid gap-4" aria-label="Resumen financiero del periodo">
+            {/* Fila 1: #Traslados | #Vehículos — mismo nivel */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <Card className="flex flex-col p-4 sm:p-5 border-border/40" padding="none">
+                <div className="p-4 sm:p-5">
+                  <p className="font-body text-[11px] font-bold uppercase tracking-widest text-text-tertiary">#Traslados</p>
+                  <p className="mt-2 font-display text-3xl sm:text-4xl font-black tracking-tight text-text-primary tabular-nums">{resumen.totalViajes}</p>
+                  <p className="mt-1 font-body text-xs font-semibold text-text-tertiary">viajes en el periodo</p>
+                </div>
+              </Card>
+              <Card className="flex flex-col p-4 sm:p-5 border-border/40" padding="none">
+                <div className="p-4 sm:p-5">
+                  <p className="font-body text-[11px] font-bold uppercase tracking-widest text-text-tertiary">#Vehículos</p>
+                  <p className="mt-2 font-display text-3xl sm:text-4xl font-black tracking-tight text-text-primary tabular-nums">{resumen.totalVehiculos}</p>
+                  <p className="mt-1 font-body text-xs font-semibold text-text-tertiary">vehículos trasladados</p>
+                </div>
+              </Card>
+            </div>
+
+            {/* Ventana: Depósito acumulado */}
+            <FinancialCard className="overflow-hidden p-0 border-signal/30" padding="none">
+              <div className="px-4 sm:px-6 pt-5 sm:pt-6">
+                <h2 className="font-display text-xl sm:text-2xl font-black tracking-tight text-text-primary">Depósito acumulado</h2>
+                <p className="mt-2 font-display text-3xl sm:text-4xl font-black tracking-tight text-signal tabular-nums">{formatearMoneda(resumen.depositoAcumulado)}</p>
+                <div className="mt-1 h-1 w-full max-w-[220px] rounded-full bg-signal/20 overflow-hidden" aria-hidden>
+                  <div className="h-full bg-signal" style={{ width: "100%" }} />
+                </div>
               </div>
-
-              {/* Fórmula en cards */}
-              <div className="px-4 sm:px-5 pb-5">
-                <div className="grid gap-3">
-                  {/* Línea 1: Ganancia bruta + bonos + ajuste - comisión = Ganancia neta */}
-                  <div className="rounded-2xl border border-border/40 bg-surface-elevated p-3 sm:p-4">
-                    <div className="flex flex-wrap items-stretch gap-2">
-                      <div className="flex-1 min-w-[110px] rounded-xl border border-border/30 bg-surface p-3 text-center">
-                        <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Ganancia bruta</p>
-                        <p className="mt-1 font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.gananciasBrutas)}</p>
-                      </div>
-                      <span className="hidden sm:flex items-center font-display font-black text-text-tertiary text-lg px-1">+</span>
-                      <span className="flex sm:hidden items-center justify-center w-full font-display font-black text-text-tertiary text-sm">+</span>
-                      <div className="flex-1 min-w-[110px] rounded-xl border border-border/30 bg-surface p-3 text-center">
-                        <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Bonos</p>
-                        <p className="mt-1 font-display text-sm font-bold text-emerald-500 dark:text-emerald-400 tabular-nums">{formatearMoneda(resumen.bonos)}</p>
-                      </div>
-                      <span className="hidden sm:flex items-center font-display font-black text-text-tertiary text-lg px-1">+</span>
-                      <span className="flex sm:hidden items-center justify-center w-full font-display font-black text-text-tertiary text-sm">+</span>
-                      <div className="flex-1 min-w-[110px] rounded-xl border border-border/30 bg-surface p-3 text-center">
-                        <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Ajuste</p>
-                        <p className={`mt-1 font-display text-sm font-bold tabular-nums ${resumen.ajuste < 0 ? "text-red-500" : "text-text-primary"}`}>{formatearMoneda(resumen.ajuste)}</p>
-                      </div>
-                      <span className="hidden sm:flex items-center font-display font-black text-danger text-lg px-1">−</span>
-                      <span className="flex sm:hidden items-center justify-center w-full font-display font-black text-danger text-sm">−</span>
-                      <div className="flex-1 min-w-[110px] rounded-xl border border-danger/30 bg-danger/5 p-3 text-center">
-                        <p className="font-body text-[10px] font-bold uppercase tracking-wider text-red-500">Comisión Ruum</p>
-                        <p className="mt-1 font-display text-sm font-bold text-red-500 tabular-nums">{formatearMoneda(resumen.comisionRuum)}</p>
-                      </div>
-                      <span className="hidden sm:flex items-center font-display font-black text-signal text-lg px-1">=</span>
-                      <span className="flex sm:hidden items-center justify-center w-full font-display font-black text-signal">=</span>
-                      <div className="flex-1 min-w-[130px] rounded-xl border border-signal/40 bg-signal/10 p-3 text-center">
-                        <p className="font-body text-[10px] font-bold uppercase tracking-wider text-signal">Ganancia neta</p>
-                        <p className="mt-1 font-display text-sm font-extrabold text-signal tabular-nums">{formatearMoneda(resumen.gananciaNeta)}</p>
-                      </div>
-                    </div>
-                    {resumen.retenciones > 0 && (
-                      <p className="mt-2 font-body text-[11px] text-amber-600 dark:text-amber-400 text-center">Incluye retenciones en revisión: {formatearMoneda(resumen.retenciones)} descontadas del depósito.</p>
-                    )}
+              <div className="mt-4 mx-4 sm:mx-6 mb-4 sm:mb-6 rounded-2xl border border-border/40 bg-surface-elevated overflow-hidden">
+                <div className="grid divide-y divide-border/30">
+                  <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+                    <span className="font-body text-sm font-semibold text-text-secondary">Ganancia neta</span>
+                    <span className="font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.gananciaNeta)}</span>
                   </div>
-
-                  {/* Línea 2: Ganancia neta + reembolso = Depósito */}
-                  <div className="rounded-2xl border border-signal/30 bg-signal/5 p-3 sm:p-4 flex flex-wrap items-center gap-2 justify-center">
-                    <div className="flex-1 min-w-[130px] rounded-xl border border-signal/30 bg-surface p-3 text-center">
-                      <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Ganancia neta</p>
-                      <p className="mt-1 font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.gananciaNeta)}</p>
-                    </div>
-                    <span className="font-display font-black text-signal text-lg px-1">+</span>
-                    <div className="flex-1 min-w-[130px] rounded-xl border border-border/30 bg-surface p-3 text-center">
-                      <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Reembolso gastos</p>
-                      <p className="mt-1 font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.reembolsoGastos)}</p>
-                    </div>
-                    <span className="font-display font-black text-signal text-lg px-1">=</span>
-                    <div className="flex-1 min-w-[150px] rounded-xl border border-signal bg-signal p-3 text-center shadow-sm">
-                      <p className="font-body text-[10px] font-bold uppercase tracking-wider text-slate-900">Depósito acumulado</p>
-                      <p className="mt-1 font-display text-base font-black text-slate-950 tabular-nums">{formatearMoneda(resumen.depositoAcumulado)}</p>
-                    </div>
+                  <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+                    <span className="font-body text-sm font-semibold text-text-secondary">Reembolso gtos.</span>
+                    <span className="font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.reembolsoGastos)}</span>
                   </div>
                 </div>
+                <div className="flex items-center justify-between gap-3 px-4 py-3 bg-signal/5 border-t border-signal/20">
+                  <span className="font-body text-xs font-bold uppercase tracking-wider text-signal">Depósito = Ganancia neta + Reembolso</span>
+                  <span className="font-display text-sm font-black text-signal tabular-nums">{formatearMoneda(resumen.depositoAcumulado)}</span>
+                </div>
+                {resumen.retenciones > 0 && (
+                  <p className="px-4 py-2 font-body text-[11px] text-amber-600 dark:text-amber-400 bg-amber-500/5 border-t border-amber-500/20">
+                    Retenciones en revisión descontadas: {formatearMoneda(resumen.retenciones)}
+                  </p>
+                )}
+              </div>
+            </FinancialCard>
 
-                {/* Métricas compactas */}
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div className="rounded-xl border border-border/40 bg-surface-elevated px-3 py-2.5">
-                    <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Viajes</p>
-                    <p className="font-display text-lg font-bold text-text-primary">{resumen.totalViajes}</p>
+            {/* Ventana: Ganancia neta */}
+            <FinancialCard className="overflow-hidden p-0" padding="none">
+              <div className="px-4 sm:px-6 pt-5 sm:pt-6">
+                <h2 className="font-display text-xl sm:text-2xl font-black tracking-tight text-text-primary">Ganancia neta</h2>
+                <p className="mt-2 font-display text-3xl sm:text-4xl font-black tracking-tight text-text-primary tabular-nums">{formatearMoneda(resumen.gananciaNeta)}</p>
+              </div>
+              <div className="mt-4 mx-4 sm:mx-6 mb-4 sm:mb-6 rounded-2xl border border-border/40 bg-surface-elevated overflow-hidden">
+                <div className="grid divide-y divide-border/30">
+                  <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+                    <span className="font-body text-sm font-semibold text-text-secondary">Precio base</span>
+                    <span className="font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.precioBase)}</span>
                   </div>
-                  <div className="rounded-xl border border-border/40 bg-surface-elevated px-3 py-2.5">
-                    <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Ganancia bruta</p>
-                    <p className="font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.gananciasBrutas)}</p>
+                  <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+                    <span className="font-body text-sm font-semibold text-text-secondary">Bonos (+)</span>
+                    <span className="font-display text-sm font-bold text-emerald-500 dark:text-emerald-400 tabular-nums">{formatearMoneda(resumen.bonos)}</span>
                   </div>
-                  <div className="rounded-xl border border-border/40 bg-surface-elevated px-3 py-2.5">
-                    <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Reembolso</p>
-                    <p className="font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.reembolsoGastos)}</p>
+                  <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+                    <span className="font-body text-sm font-semibold text-text-secondary">Ajuste (+)</span>
+                    <span className={`font-display text-sm font-bold tabular-nums ${resumen.ajuste < 0 ? "text-red-500" : "text-text-primary"}`}>{formatearMoneda(resumen.ajuste)}</span>
                   </div>
-                  <div className="rounded-xl border border-signal/40 bg-signal/10 px-3 py-2.5">
-                    <p className="font-body text-[10px] font-bold uppercase tracking-wider text-signal">Depósito</p>
-                    <FinancialAmount amount={resumen.depositoAcumulado} status={ultimoPayout ? estatusPayout(ultimoPayout) : "confirmado"} currency="MXN" amountClassName="font-display text-sm font-extrabold !text-signal" className="gap-0" />
+                  <div className="flex items-center justify-between gap-3 px-4 py-3.5 bg-danger/5">
+                    <span className="font-body text-sm font-semibold text-red-500">Comisión (−)</span>
+                    <span className="font-display text-sm font-bold text-red-500 tabular-nums">− {formatearMoneda(resumen.comisionRuum)}</span>
                   </div>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 py-3 bg-surface border-t border-border/30">
+                  <span className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">Fórmula: Precio base + Bonos + Ajuste − Comisión</span>
+                  <span className="font-display text-sm font-black text-text-primary tabular-nums">{formatearMoneda(resumen.gananciaNeta)}</span>
                 </div>
               </div>
             </FinancialCard>
