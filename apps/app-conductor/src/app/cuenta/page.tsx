@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Aviso, Card, SelloConductor } from "@ruum/ui";
-import { CuentaHeader } from "./CuentaHeader";
+import { Aviso, Card, LogoMarca, SelloConductor } from "@ruum/ui";
 import { useCerrarSesion } from "../../lib/use-cerrar-sesion";
 
 type SeccionCuenta = {
@@ -90,39 +89,24 @@ export default function PaginaCuenta() {
 
   return (
     <div ref={contRef} className="mx-auto w-full max-w-5xl px-0 sm:px-6 sm:py-12 pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-12">
-      {/* Header — desktop: completo. Móvil: módulo perfil compacto integrado */}
-      {/* Desktop */}
-      <div className="hidden md:flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/40 pb-6 px-4 sm:px-0">
-        <CuentaHeader
-          titulo="Cuenta del Conductor"
-          descripcion="Centro de configuración, expediente operativo y soporte del servicio Ruum Ruum."
-        />
-        <div className="flex items-center gap-3 self-start sm:self-auto shrink-0">
-          <SelloConductor compacto tema="dorado" />
-          <button
-            type="button"
-            onClick={() => { vibrar(14); setSheetAbierto(true); }}
-            disabled={cerrandoSesion}
-            className="inline-flex min-h-12 items-center gap-1.5 rounded-xl border border-red-500/30 bg-surface px-4 py-2.5 font-display text-xs font-bold text-red-500 shadow-2xs transition hover:border-red-500 hover:bg-red-500/10 active:scale-95 disabled:opacity-50 cursor-pointer"
-            aria-label="Cerrar sesión activa"
-          >
-            🚪 Cerrar sesión
-          </button>
+      {/* Header — Logo RUUM Conductor, renglón abajo Cuenta, tarjeta CONDUCTOR CERTIFICADO alineada a la derecha */}
+      <header className="flex items-center justify-between gap-4 border-b border-border/30 px-4 pt-4 pb-5 sm:px-0 sm:pt-0 sm:pb-6">
+        <div className="flex flex-col gap-1 min-w-0">
+          <LogoMarca
+            tamano={28}
+            color="signal"
+            descriptor="Conductor"
+            mostrarDescriptor={true}
+            mostrarRespaldo={false}
+          />
+          <h1 className="mt-1 font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-text-primary">
+            Cuenta
+          </h1>
         </div>
-      </div>
-      <p className="hidden md:block mt-3 px-4 sm:px-0 font-body text-xs font-medium tracking-wide text-text-tertiary">Conductor</p>
-
-      {/* Móvil — Encabezado Integrado compacto */}
-      <div className="md:hidden px-4 pt-4 pb-3">
-        <div className="flex items-center gap-3 rounded-2xl border border-border/30 bg-surface-elevated px-4 py-3 shadow-xs">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface border border-border text-xl">👤</div>
-          <div className="min-w-0 flex-1">
-            <p className="font-display text-sm font-black text-text-primary leading-tight">Cuenta del Conductor</p>
-            <p className="font-body text-[11px] font-semibold text-text-secondary leading-tight">Perfil y configuración</p>
-          </div>
-          <SelloConductor compacto tema="dorado" className="scale-[0.85] origin-right" />
+        <div className="flex items-center shrink-0">
+          <SelloConductor compacto tema="dorado" className="scale-90 sm:scale-100 origin-right" />
         </div>
-      </div>
+      </header>
 
       {errorCerrarSesion && (
         <div className="mt-3 px-4 sm:px-0">
@@ -190,6 +174,7 @@ export default function PaginaCuenta() {
           type="button"
           onClick={() => { vibrar(14); setSheetAbierto(true); }}
           className="flex w-full items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3.5 min-h-14 active:bg-red-500/10 transition-colors"
+          aria-label="Cerrar sesión activa"
         >
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-red-500/20 bg-surface text-red-500">🚪</span>
           <span className="text-left flex-1">
@@ -215,6 +200,7 @@ export default function PaginaCuenta() {
               onClick={() => { vibrar(14); setSheetAbierto(true); }}
               disabled={cerrandoSesion}
               className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-surface px-6 py-2.5 font-display text-xs font-bold text-red-500 shadow-xs transition hover:border-red-500 hover:bg-red-500/10 active:scale-95 disabled:opacity-50 cursor-pointer"
+              aria-label="Cerrar sesión activa"
             >
               {cerrandoSesion ? "Cerrando..." : "🚪 Cerrar sesión"}
             </button>
