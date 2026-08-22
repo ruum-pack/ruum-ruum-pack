@@ -78,6 +78,9 @@ export function MapaRutaConduccion({ origen, destino }: MapaRutaConduccionProps)
         src={urlMapa}
         alt="Mapa del trayecto desde origen hasta el destino del traslado"
         className="w-full h-full object-cover"
+        loading="lazy"
+        decoding="async"
+        sizes="(max-width: 767px) 100vw, 400px"
       />
     </div>
   );

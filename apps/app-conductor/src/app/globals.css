@@ -75,8 +75,8 @@
 
   /* Evitar overflow horizontal en toda la app móvil */
   html, body {
-    overflow-x: hidden;
-    max-width: 100vw;
+    overflow-x: clip;
+    max-width: 100%;
   }
 
   .conductor-content {
@@ -86,7 +86,7 @@
 
   .conductor-page {
     padding-bottom: max(104px, calc(var(--conductor-mobile-nav-offset) + env(safe-area-inset-bottom))) !important;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   /* Mejorar scroll en móvil */

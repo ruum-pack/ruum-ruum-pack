@@ -509,7 +509,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                       href={enlaceWhatsApp(solicitanteTelefono, `Hola ${solicitanteNombre}, me comunico como tu conductor certificado de Ruum Ruum respecto al traslado #TR-${folio}.`)}
                       target="_blank"
                       rel="noreferrer"
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                      className="min-h-11 min-w-11 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`WhatsApp a ${solicitanteNombre}`}
                       title="Enviar WhatsApp"
                     >
@@ -519,7 +519,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                     </a>
                     <a
                       href={enlaceTel(solicitanteTelefono)}
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-route-action/15 text-route-action flex items-center justify-center border border-route-action/30 active:scale-95 transition-transform hover:bg-route-action/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                      className="min-h-11 min-w-11 rounded-xl bg-route-action/15 text-route-action flex items-center justify-center border border-route-action/30 active:scale-95 transition-transform hover:bg-route-action/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`Llamar a ${solicitanteNombre}`}
                       title="Llamar"
                     >
@@ -549,7 +549,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                       href={enlaceWhatsApp(entregaTelefono, `Hola ${entregaNombre}, soy el conductor de Ruum Ruum asignado para recolectar el vehículo del traslado #TR-${folio}.`)}
                       target="_blank"
                       rel="noreferrer"
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                      className="min-h-11 min-w-11 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`WhatsApp a ${entregaNombre}`}
                       title="Enviar WhatsApp"
                     >
@@ -559,7 +559,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                     </a>
                     <a
                       href={enlaceTel(entregaTelefono)}
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-route-action/15 text-route-action flex items-center justify-center border border-route-action/30 active:scale-95 transition-transform hover:bg-route-action/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                      className="min-h-11 min-w-11 rounded-xl bg-route-action/15 text-route-action flex items-center justify-center border border-route-action/30 active:scale-95 transition-transform hover:bg-route-action/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`Llamar a ${entregaNombre}`}
                       title="Llamar"
                     >
@@ -589,7 +589,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                       href={enlaceWhatsApp(recepcionTelefono, `Hola ${recepcionNombre}, soy el conductor de Ruum Ruum en camino a tu ubicación con el traslado #TR-${folio}.`)}
                       target="_blank"
                       rel="noreferrer"
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                      className="min-h-11 min-w-11 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30 active:scale-95 transition-transform hover:bg-emerald-500/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`WhatsApp a ${recepcionNombre}`}
                       title="Enviar WhatsApp"
                     >
@@ -599,7 +599,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
                     </a>
                     <a
                       href={enlaceTel(recepcionTelefono)}
-                      className="min-h-[40px] min-w-[40px] rounded-xl bg-route-action/15 text-route-action flex items-center justify-center border border-route-action/30 active:scale-95 transition-transform hover:bg-route-action/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                      className="min-h-11 min-w-11 rounded-xl bg-route-action/15 text-route-action flex items-center justify-center border border-route-action/30 active:scale-95 transition-transform hover:bg-route-action/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
                       aria-label={`Llamar a ${recepcionNombre}`}
                       title="Llamar"
                     >

@@ -486,7 +486,7 @@ export default function PaginaGanancias() {
                     <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
                       Precio base
                       <span className="group relative inline-flex">
-                        <button type="button" aria-label="Qué es el precio base" className="flex size-5 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
+                        <button type="button" aria-label="Qué es el precio base" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
                         <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Tarifa cotizada del traslado antes de comisiones y ajustes. Base para el cálculo de tu ganancia.</span>
                       </span>
                     </span>
@@ -496,7 +496,7 @@ export default function PaginaGanancias() {
                     <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
                       Bonos
                       <span className="group relative inline-flex">
-                        <button type="button" aria-label="Qué son los bonos" className="flex size-5 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
+                        <button type="button" aria-label="Qué son los bonos" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
                         <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Incentivos por puntualidad, disponibilidad o campañas vigentes. Se suman a tu ganancia.</span>
                       </span>
                     </span>
@@ -506,7 +506,7 @@ export default function PaginaGanancias() {
                     <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
                       Ajustes
                       <span className="group relative inline-flex">
-                        <button type="button" aria-label="Qué son los ajustes" className="flex size-5 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
+                        <button type="button" aria-label="Qué son los ajustes" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
                         <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Correcciones operativas del periodo (diferencias de tarifa, compensaciones). Pueden ser positivos o negativos.</span>
                       </span>
                     </span>
@@ -516,7 +516,7 @@ export default function PaginaGanancias() {
                     <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-red-500">
                       Tasa Ruum-Ruum (-)
                       <span className="group relative inline-flex">
-                        <button type="button" aria-label="Qué es la tasa Ruum-Ruum" className="flex size-5 items-center justify-center rounded-full border border-danger/30 bg-surface text-[11px] font-bold text-red-500">?</button>
+                        <button type="button" aria-label="Qué es la tasa Ruum-Ruum" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-danger/30 bg-surface text-[11px] font-bold text-red-500">?</button>
                         <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Comisión de plataforma por intermediación, soporte operativo y seguro. Se descuenta del precio base.</span>
                       </span>
                     </span>
@@ -526,7 +526,7 @@ export default function PaginaGanancias() {
                     <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
                       Reembolso gastos (+)
                       <span className="group relative inline-flex">
-                        <button type="button" aria-label="Qué es el reembolso de gastos" className="flex size-5 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
+                        <button type="button" aria-label="Qué es el reembolso de gastos" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
                         <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Gastos autorizados y comprobados (combustible, peajes, etc.) que Ruum te reembolsa. Se suma al depósito final.</span>
                       </span>
                     </span>

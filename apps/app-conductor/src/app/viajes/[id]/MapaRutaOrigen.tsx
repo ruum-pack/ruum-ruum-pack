@@ -54,6 +54,9 @@ export function MapaRutaOrigen({ destino }: MapaRutaOrigenProps) {
       src={urlMapa}
       alt="Mapa de la ruta hacia el punto de recolección"
       className="h-40 w-full rounded-xl border border-border object-cover"
+      loading="lazy"
+      decoding="async"
+      sizes="(max-width: 767px) 100vw, 400px"
     />
   );
 }

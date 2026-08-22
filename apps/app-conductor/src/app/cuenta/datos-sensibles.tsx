@@ -95,7 +95,7 @@ export function DatosSensiblesTooltip({
         onKeyDown={(evento) => {
           if (evento.key === "Escape") setAbierto(false);
         }}
-        className="inline-flex size-7 items-center justify-center rounded-full border border-route-action/40 bg-surface-elevated font-body text-sm font-bold text-route-action shadow-sm transition hover:border-route-action hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-route-action/40 bg-surface-elevated font-body text-sm font-bold text-route-action shadow-sm transition hover:border-route-action hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
       >
         i
       </button>

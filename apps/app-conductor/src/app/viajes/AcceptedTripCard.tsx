@@ -130,7 +130,7 @@ export function AcceptedTripCard({
               e.stopPropagation();
               onReject(viaje);
             }}
-            className="p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center text-text-tertiary hover:text-text-primary transition-colors shrink-0 cursor-pointer rounded-lg hover:bg-surface"
+            className="p-2 min-h-11 min-w-11 flex items-center justify-center text-text-tertiary hover:text-text-primary transition-colors shrink-0 cursor-pointer rounded-lg hover:bg-surface"
             aria-label="Opciones de traslado"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

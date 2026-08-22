@@ -156,7 +156,7 @@ export function DocumentUploadField({
         <div className="flex items-center gap-3 rounded-[10px] border border-dashed border-border-strong bg-surface-elevated/30 px-3.5 py-3 transition-all hover:border-route-action">
           {previewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- preview local de un File antes de subir, next/image no soporta blob: directamente
-            <img src={previewUrl} alt="" className="size-12 shrink-0 rounded-lg object-cover ring-1 ring-border" />
+            <img src={previewUrl} alt="" className="size-12 shrink-0 rounded-lg object-cover ring-1 ring-border" loading="lazy" decoding="async" />
           ) : (
             <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-surface-elevated font-body text-xs font-semibold text-text-tertiary/80" aria-hidden>
               PDF
@@ -180,7 +180,7 @@ export function DocumentUploadField({
             <button
               type="button"
               onClick={abrirSelectorArchivo}
-              className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 font-body text-xs font-semibold text-text-tertiary/80 hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 font-body text-xs font-semibold text-text-tertiary/80 hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
               aria-label="Reemplazar documento"
             >
               Reemplazar
@@ -188,7 +188,7 @@ export function DocumentUploadField({
             <button
               type="button"
               onClick={handleEliminar}
-                className="inline-flex size-7 items-center justify-center rounded-lg text-text-tertiary/80 hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-text-tertiary/80 hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
               aria-label="Eliminar documento"
             >
               <svg

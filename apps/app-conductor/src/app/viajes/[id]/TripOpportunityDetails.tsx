@@ -481,7 +481,7 @@ export function TripOpportunityDetails({
 
         <Link
           href={volver}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-transparent hover:bg-surface-elevated/40 text-text-secondary hover:text-text-primary px-4 min-h-[40px] font-body text-xs font-semibold tracking-wide transition-all text-center"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-transparent hover:bg-surface-elevated/40 text-text-secondary hover:text-text-primary px-4 min-h-11 font-body text-xs font-semibold tracking-wide transition-all text-center"
         >
           Volver a la lista de ofertas
         </Link>

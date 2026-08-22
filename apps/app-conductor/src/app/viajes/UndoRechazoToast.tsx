@@ -36,7 +36,7 @@ export function UndoRechazoToast({
       <button
         type="button"
         onClick={onDeshacer}
-        className="px-3 py-2 min-h-[36px] bg-route-action/20 hover:bg-route-action/30 border border-route-action/40 text-route-action font-display text-xs font-black rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0"
+        className="px-4 py-2 min-h-11 bg-route-action/20 hover:bg-route-action/30 border border-route-action/40 text-route-action font-display text-xs font-black rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0"
       >
         Deshacer
       </button>

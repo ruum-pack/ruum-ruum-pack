@@ -50,7 +50,7 @@ export function EvidencePreview({
   return (
     <div className="mt-4 overflow-hidden rounded-2xl border border-border/24 bg-[var(--ruum-surface-subtle)]">
       {/* eslint-disable-next-line @next/next/no-img-element -- la foto puede estar en dataUrl local offline. */}
-      <img src={src} alt="Vista previa de la evidencia capturada" className="h-52 w-full object-cover" />
+      <img src={src} alt="Vista previa de la evidencia capturada" className="h-52 w-full object-cover" loading="lazy" decoding="async" />
       <div className="flex items-center justify-between gap-3 px-3 py-3">
         <BadgeSincronizacion sincronizada={Boolean(foto.sincronizada)} />
         <Button variant="secondary" onClick={onRepeat} disabled={disabled}>
