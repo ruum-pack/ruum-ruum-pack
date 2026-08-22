@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Aviso, Button, Card, FinancialAmount, FinancialCard } from "@ruum/ui";
+import { Aviso, Card, FinancialAmount, FinancialCard } from "@ruum/ui";
 import type { EstadoEconomicoExplicito } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
@@ -276,26 +276,23 @@ export default function PaginaGanancias() {
     });
   }, [payouts, rangoActual]);
 
-  // Resumen filtrado por periodo activo
+  // Resumen filtrado por periodo activo — fórmula única: Depósito = Precio base + Bonos + Ajustes - Tasa + Reembolso
   const resumen = useMemo(() => {
-    const gananciasBrutas = viajesFiltrados.reduce((tot, v) => tot + v.montoGanado, 0);
     const precioBase = viajesFiltrados.reduce((tot, v) => tot + v.precioBase, 0);
     const bonos = viajesFiltrados.reduce((tot, v) => tot + v.bonos, 0);
-    // Ajuste viene de payouts del periodo (ajustes puede ser positivo o negativo)
     const ajuste = payoutsFiltrados.reduce((tot, p) => tot + Number(p.ajustes ?? 0), 0);
     const comisionRuum = viajesFiltrados.reduce((tot, v) => tot + v.comisionRuum, 0);
-    const gananciaNeta = gananciasBrutas + bonos + ajuste - comisionRuum;
     const reembolsoGastos = viajesFiltrados.reduce((tot, v) => tot + v.gastosAutorizados, 0);
-    // Retenciones de viajes rechazados/retenidos no suman al depósito
     const retenciones = viajesFiltrados
       .filter((v) => v.estatusEconomico === "rechazado" || v.estatusEconomico === "retenido")
       .reduce((tot, v) => tot + v.montoGanado, 0);
-    const depositoAcumulado = Math.max(0, gananciaNeta + reembolsoGastos - retenciones);
+    // Ganancia neta para compatibilidad histórica (precio base - tasa + bonos + ajuste)
+    const gananciaNeta = precioBase + bonos + ajuste - comisionRuum;
+    const depositoAcumulado = Math.max(0, precioBase + bonos + ajuste - comisionRuum + reembolsoGastos - retenciones);
     const totalVehiculos = new Set(viajesFiltrados.map((v) => v.vehiculo)).size;
     return {
       totalViajes: viajesFiltrados.length,
       totalVehiculos: viajesFiltrados.length === 0 ? 0 : totalVehiculos,
-      gananciasBrutas,
       precioBase,
       bonos,
       ajuste,
@@ -306,7 +303,22 @@ export default function PaginaGanancias() {
       depositoAcumulado
     };
   }, [viajesFiltrados, payoutsFiltrados]);
-  const tieneDatosBancarios = Boolean(datosBancarios?.clabe || datosBancarios?.numero_tarjeta);
+
+  const fechaDispersion = useMemo(() => {
+    // Dispersión siempre el sábado del periodo actual (semana: sábado; mes/año: último día del periodo)
+    const fin = rangoActual.fin;
+    try {
+      return new Intl.DateTimeFormat("es-MX", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        timeZone: "America/Mexico_City"
+      }).format(fin);
+    } catch {
+      return formatearFecha(fin.toISOString().slice(0, 10));
+    }
+  }, [rangoActual.fin]);
   const sinDatosTotales = !cargando && traslados.length === 0 && payouts.length === 0 && !error;
 
   // Cambiar periodo resetea offset y acordeón
@@ -345,44 +357,9 @@ export default function PaginaGanancias() {
         </div>
       </header>
 
-      {/* Fila secundaria: cuenta de depósito + CTA datos bancarios (sin Buscar Traslados) */}
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        {datosBancarios && (
-          <span className="inline-flex items-center gap-1.5 rounded-xl border border-border/60 bg-surface-elevated px-3 py-2 font-body text-xs text-text-tertiary">
-            <span>🏦 Cuenta de Depósito:</span>
-            <strong className="text-text-primary font-semibold">
-              {datosBancarios.banco} ({datosBancarios.clabe.slice(-4)})
-            </strong>
-          </span>
-        )}
-        <Link href="/cuenta/datos-bancarios">
-          <Button variant="secondary" className="text-xs">
-            💳 Datos Bancarios
-          </Button>
-        </Link>
-      </div>
-
       {error && (
         <div className="mt-6">
           <Aviso tono="danger">{error}</Aviso>
-        </div>
-      )}
-
-      {!cargando && !tieneDatosBancarios && (
-        <div className="mt-6">
-          <Aviso tono="atencion">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-bold text-amber-600 dark:text-amber-400">⚠️ No tienes una cuenta bancaria registrada</p>
-                <p className="text-xs text-text-primary mt-0.5">Registra tu CLABE o número de tarjeta para poder recibir la transferencia semanal de tus ganancias.</p>
-              </div>
-              <Link href="/cuenta/datos-bancarios" className="shrink-0">
-                <Button variant="secondary" className="text-xs">
-                  Configurar cuenta CLABE
-                </Button>
-              </Link>
-            </div>
-          </Aviso>
         </div>
       )}
 
@@ -474,48 +451,90 @@ export default function PaginaGanancias() {
             </div>
           </div>
 
-          {/* Resumen en ventanas solicitadas — mismo nivel #Traslados / #Vehículos + Depósito + Ganancia neta */}
+          {/* Resumen — mismo nivel Traslados / Vehículos + tarjeta única Depósito acumulado */}
           <section className="mt-5 grid gap-4" aria-label="Resumen financiero del periodo">
-            {/* Fila 1: #Traslados | #Vehículos — mismo nivel */}
+            {/* Fila 1: Traslados | Vehículos — mismo nivel, sin # */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <Card className="flex flex-col p-4 sm:p-5 border-border/40" padding="none">
+              <Card className="flex flex-col border-border/40" padding="none">
                 <div className="p-4 sm:p-5">
-                  <p className="font-body text-[11px] font-bold uppercase tracking-widest text-text-tertiary">#Traslados</p>
+                  <p className="font-body text-[11px] font-bold uppercase tracking-widest text-text-tertiary">Traslados</p>
                   <p className="mt-2 font-display text-3xl sm:text-4xl font-black tracking-tight text-text-primary tabular-nums">{resumen.totalViajes}</p>
-                  <p className="mt-1 font-body text-xs font-semibold text-text-tertiary">viajes en el periodo</p>
+                  <p className="mt-1 font-body text-xs font-semibold text-text-tertiary">Traslados realizados</p>
                 </div>
               </Card>
-              <Card className="flex flex-col p-4 sm:p-5 border-border/40" padding="none">
+              <Card className="flex flex-col border-border/40" padding="none">
                 <div className="p-4 sm:p-5">
-                  <p className="font-body text-[11px] font-bold uppercase tracking-widest text-text-tertiary">#Vehículos</p>
+                  <p className="font-body text-[11px] font-bold uppercase tracking-widest text-text-tertiary">Vehículos</p>
                   <p className="mt-2 font-display text-3xl sm:text-4xl font-black tracking-tight text-text-primary tabular-nums">{resumen.totalVehiculos}</p>
                   <p className="mt-1 font-body text-xs font-semibold text-text-tertiary">vehículos trasladados</p>
                 </div>
               </Card>
             </div>
 
-            {/* Ventana: Depósito acumulado */}
+            {/* Tarjeta única: Depósito acumulado + Desglose completo con tooltips */}
             <FinancialCard className="overflow-hidden p-0 border-signal/30" padding="none">
               <div className="px-4 sm:px-6 pt-5 sm:pt-6">
-                <h2 className="font-display text-xl sm:text-2xl font-black tracking-tight text-text-primary">Depósito acumulado</h2>
+                <h2 className="font-display text-xl sm:text-2xl font-black tracking-tight text-text-primary">Deposito acumulado</h2>
                 <p className="mt-2 font-display text-3xl sm:text-4xl font-black tracking-tight text-signal tabular-nums">{formatearMoneda(resumen.depositoAcumulado)}</p>
-                <div className="mt-1 h-1 w-full max-w-[220px] rounded-full bg-signal/20 overflow-hidden" aria-hidden>
-                  <div className="h-full bg-signal" style={{ width: "100%" }} />
-                </div>
+                <p className="mt-1.5 font-body text-xs font-semibold text-text-tertiary">(Dispersión {fechaDispersion})</p>
               </div>
-              <div className="mt-4 mx-4 sm:mx-6 mb-4 sm:mb-6 rounded-2xl border border-border/40 bg-surface-elevated overflow-hidden">
+
+              <div className="mt-4 mx-4 sm:mx-6 mb-5 sm:mb-6 rounded-2xl border border-border/40 bg-surface-elevated overflow-hidden">
+                <p className="px-4 pt-3 pb-1 font-body text-[11px] font-bold uppercase tracking-widest text-text-tertiary">Desglose:</p>
                 <div className="grid divide-y divide-border/30">
                   <div className="flex items-center justify-between gap-3 px-4 py-3.5">
-                    <span className="font-body text-sm font-semibold text-text-secondary">Ganancia neta</span>
-                    <span className="font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.gananciaNeta)}</span>
+                    <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
+                      Precio base
+                      <span className="group relative inline-flex">
+                        <button type="button" aria-label="Qué es el precio base" className="flex size-5 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
+                        <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Tarifa cotizada del traslado antes de comisiones y ajustes. Base para el cálculo de tu ganancia.</span>
+                      </span>
+                    </span>
+                    <span className="font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.precioBase)}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3 px-4 py-3.5">
-                    <span className="font-body text-sm font-semibold text-text-secondary">Reembolso gtos.</span>
-                    <span className="font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.reembolsoGastos)}</span>
+                    <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
+                      Bonos
+                      <span className="group relative inline-flex">
+                        <button type="button" aria-label="Qué son los bonos" className="flex size-5 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
+                        <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Incentivos por puntualidad, disponibilidad o campañas vigentes. Se suman a tu ganancia.</span>
+                      </span>
+                    </span>
+                    <span className="font-display text-sm font-bold text-emerald-500 dark:text-emerald-400 tabular-nums">+ {formatearMoneda(resumen.bonos)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+                    <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
+                      Ajustes
+                      <span className="group relative inline-flex">
+                        <button type="button" aria-label="Qué son los ajustes" className="flex size-5 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
+                        <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Correcciones operativas del periodo (diferencias de tarifa, compensaciones). Pueden ser positivos o negativos.</span>
+                      </span>
+                    </span>
+                    <span className={`font-display text-sm font-bold tabular-nums ${resumen.ajuste < 0 ? "text-red-500" : "text-text-primary"}`}>{resumen.ajuste >= 0 ? "+" : ""} {formatearMoneda(resumen.ajuste)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 px-4 py-3.5 bg-danger/5">
+                    <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-red-500">
+                      Tasa Ruum-Ruum (-)
+                      <span className="group relative inline-flex">
+                        <button type="button" aria-label="Qué es la tasa Ruum-Ruum" className="flex size-5 items-center justify-center rounded-full border border-danger/30 bg-surface text-[11px] font-bold text-red-500">?</button>
+                        <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Comisión de plataforma por intermediación, soporte operativo y seguro. Se descuenta del precio base.</span>
+                      </span>
+                    </span>
+                    <span className="font-display text-sm font-bold text-red-500 tabular-nums">− {formatearMoneda(resumen.comisionRuum)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+                    <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
+                      Reembolso gastos (+)
+                      <span className="group relative inline-flex">
+                        <button type="button" aria-label="Qué es el reembolso de gastos" className="flex size-5 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
+                        <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Gastos autorizados y comprobados (combustible, peajes, etc.) que Ruum te reembolsa. Se suma al depósito final.</span>
+                      </span>
+                    </span>
+                    <span className="font-display text-sm font-bold text-text-primary tabular-nums">+ {formatearMoneda(resumen.reembolsoGastos)}</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-3 px-4 py-3 bg-signal/5 border-t border-signal/20">
-                  <span className="font-body text-xs font-bold uppercase tracking-wider text-signal">Depósito = Ganancia neta + Reembolso</span>
+                  <span className="font-body text-xs font-bold uppercase tracking-wider text-signal">Depósito = Precio base + Bonos + Ajustes − Tasa + Reembolso</span>
                   <span className="font-display text-sm font-black text-signal tabular-nums">{formatearMoneda(resumen.depositoAcumulado)}</span>
                 </div>
                 {resumen.retenciones > 0 && (
@@ -523,38 +542,6 @@ export default function PaginaGanancias() {
                     Retenciones en revisión descontadas: {formatearMoneda(resumen.retenciones)}
                   </p>
                 )}
-              </div>
-            </FinancialCard>
-
-            {/* Ventana: Ganancia neta */}
-            <FinancialCard className="overflow-hidden p-0" padding="none">
-              <div className="px-4 sm:px-6 pt-5 sm:pt-6">
-                <h2 className="font-display text-xl sm:text-2xl font-black tracking-tight text-text-primary">Ganancia neta</h2>
-                <p className="mt-2 font-display text-3xl sm:text-4xl font-black tracking-tight text-text-primary tabular-nums">{formatearMoneda(resumen.gananciaNeta)}</p>
-              </div>
-              <div className="mt-4 mx-4 sm:mx-6 mb-4 sm:mb-6 rounded-2xl border border-border/40 bg-surface-elevated overflow-hidden">
-                <div className="grid divide-y divide-border/30">
-                  <div className="flex items-center justify-between gap-3 px-4 py-3.5">
-                    <span className="font-body text-sm font-semibold text-text-secondary">Precio base</span>
-                    <span className="font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.precioBase)}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 px-4 py-3.5">
-                    <span className="font-body text-sm font-semibold text-text-secondary">Bonos (+)</span>
-                    <span className="font-display text-sm font-bold text-emerald-500 dark:text-emerald-400 tabular-nums">{formatearMoneda(resumen.bonos)}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 px-4 py-3.5">
-                    <span className="font-body text-sm font-semibold text-text-secondary">Ajuste (+)</span>
-                    <span className={`font-display text-sm font-bold tabular-nums ${resumen.ajuste < 0 ? "text-red-500" : "text-text-primary"}`}>{formatearMoneda(resumen.ajuste)}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 px-4 py-3.5 bg-danger/5">
-                    <span className="font-body text-sm font-semibold text-red-500">Comisión (−)</span>
-                    <span className="font-display text-sm font-bold text-red-500 tabular-nums">− {formatearMoneda(resumen.comisionRuum)}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between gap-3 px-4 py-3 bg-surface border-t border-border/30">
-                  <span className="font-body text-xs font-bold uppercase tracking-wider text-text-tertiary">Fórmula: Precio base + Bonos + Ajuste − Comisión</span>
-                  <span className="font-display text-sm font-black text-text-primary tabular-nums">{formatearMoneda(resumen.gananciaNeta)}</span>
-                </div>
               </div>
             </FinancialCard>
           </section>
