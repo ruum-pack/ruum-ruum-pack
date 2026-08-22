@@ -533,10 +533,6 @@ export default function PaginaGanancias() {
                     <span className="font-display text-sm font-bold text-text-primary tabular-nums">+ {formatearMoneda(resumen.reembolsoGastos)}</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between gap-3 px-4 py-3 bg-signal/5 border-t border-signal/20">
-                  <span className="font-body text-xs font-bold uppercase tracking-wider text-signal">Depósito = Precio base + Bonos + Ajustes − Tasa + Reembolso</span>
-                  <span className="font-display text-sm font-black text-signal tabular-nums">{formatearMoneda(resumen.depositoAcumulado)}</span>
-                </div>
                 {resumen.retenciones > 0 && (
                   <p className="px-4 py-2 font-body text-[11px] text-amber-600 dark:text-amber-400 bg-amber-500/5 border-t border-amber-500/20">
                     Retenciones en revisión descontadas: {formatearMoneda(resumen.retenciones)}
@@ -616,40 +612,64 @@ export default function PaginaGanancias() {
                               <span className="font-display text-sm font-bold text-emerald-500 dark:text-emerald-400">{formatearMoneda(viaje.montoGanado)}</span>
                             </div>
 
-                            {/* Desglose fórmula por viaje */}
+                            {/* Desglose por viaje — mismos datos que tarjeta Deposito acumulado: Precio base + Bono + Ajuste - Tasa + Reembolso */}
                             <div className="grid gap-2 rounded-xl border border-border/40 bg-surface p-3">
-                              <p className="font-body text-[11px] font-bold uppercase tracking-wider text-text-tertiary">Desglose del viaje</p>
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-body text-xs">
-                                <div className="rounded-lg bg-surface-elevated border border-border/30 p-2.5">
-                                  <p className="text-text-tertiary font-semibold uppercase text-[10px]">Precio base</p>
-                                  <p className="font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(viaje.precioBase)}</p>
+                              <p className="font-body text-[11px] font-bold uppercase tracking-widest text-text-tertiary">Desglose:</p>
+                              <div className="grid divide-y divide-border/30 rounded-xl border border-border/30 bg-surface-elevated overflow-hidden">
+                                <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+                                  <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
+                                    Precio base
+                                    <span className="group relative inline-flex">
+                                      <button type="button" aria-label="Qué es el precio base" className="flex size-4 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-text-tertiary">?</button>
+                                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Tarifa cotizada del traslado antes de comisiones.</span>
+                                    </span>
+                                  </span>
+                                  <span className="font-display text-xs font-bold text-text-primary tabular-nums">{formatearMoneda(viaje.precioBase)}</span>
                                 </div>
-                                <div className="rounded-lg bg-surface-elevated border border-border/30 p-2.5">
-                                  <p className="text-text-tertiary font-semibold uppercase text-[10px]">Ganancia bruta</p>
-                                  <p className="font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(viaje.montoGanado)}</p>
+                                <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+                                  <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
+                                    Bonos
+                                    <span className="group relative inline-flex">
+                                      <button type="button" aria-label="Qué son los bonos" className="flex size-4 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-text-tertiary">?</button>
+                                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Incentivos por puntualidad o campañas.</span>
+                                    </span>
+                                  </span>
+                                  <span className="font-display text-xs font-bold text-emerald-500 dark:text-emerald-400 tabular-nums">+ {formatearMoneda(viaje.bonos)}</span>
                                 </div>
-                                <div className="rounded-lg bg-danger/5 border border-danger/20 p-2.5">
-                                  <p className="text-red-500 font-bold uppercase text-[10px]">Comisión Ruum</p>
-                                  <p className="font-display text-sm font-bold text-red-500 tabular-nums">{formatearMoneda(viaje.comisionRuum)}</p>
+                                <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+                                  <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
+                                    Ajustes
+                                    <span className="group relative inline-flex">
+                                      <button type="button" aria-label="Qué son los ajustes" className="flex size-4 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-text-tertiary">?</button>
+                                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Correcciones operativas. Pueden ser positivas o negativas.</span>
+                                    </span>
+                                  </span>
+                                  <span className="font-display text-xs font-bold text-text-primary tabular-nums">+ {formatearMoneda(viaje.ajuste)}</span>
                                 </div>
-                                <div className="rounded-lg bg-signal/10 border border-signal/30 p-2.5">
-                                  <p className="text-signal font-bold uppercase text-[10px]">Ganancia neta</p>
-                                  <p className="font-display text-sm font-extrabold text-signal tabular-nums">{formatearMoneda(viaje.montoGanado - viaje.comisionRuum + viaje.bonos + viaje.ajuste)}</p>
+                                <div className="flex items-center justify-between gap-3 px-3 py-2.5 bg-danger/5">
+                                  <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-red-500">
+                                    Tasa Ruum-Ruum (-)
+                                    <span className="group relative inline-flex">
+                                      <button type="button" aria-label="Qué es la tasa Ruum-Ruum" className="flex size-4 items-center justify-center rounded-full border border-danger/30 bg-surface text-[10px] font-bold text-red-500">?</button>
+                                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Comisión de plataforma por intermediación y soporte.</span>
+                                    </span>
+                                  </span>
+                                  <span className="font-display text-xs font-bold text-red-500 tabular-nums">− {formatearMoneda(viaje.comisionRuum)}</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+                                  <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
+                                    Reembolso gastos (+)
+                                    <span className="group relative inline-flex">
+                                      <button type="button" aria-label="Qué es el reembolso" className="flex size-4 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-text-tertiary">?</button>
+                                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Gastos autorizados comprobados (peajes, combustible).</span>
+                                    </span>
+                                  </span>
+                                  <span className="font-display text-xs font-bold text-text-primary tabular-nums">+ {formatearMoneda(viaje.gastosAutorizados)}</span>
                                 </div>
                               </div>
-                              <div className="flex flex-wrap gap-2 text-[11px] font-body">
-                                <span className="inline-flex items-center gap-1 rounded-full bg-surface-elevated border border-border px-2.5 py-1">
-                                  <span className="text-text-tertiary">Bonos:</span> <strong className="text-text-primary">{formatearMoneda(viaje.bonos)}</strong>
-                                </span>
-                                <span className="inline-flex items-center gap-1 rounded-full bg-surface-elevated border border-border px-2.5 py-1">
-                                  <span className="text-text-tertiary">Ajuste:</span> <strong className="text-text-primary">{formatearMoneda(viaje.ajuste)}</strong>
-                                </span>
-                                <span className="inline-flex items-center gap-1 rounded-full bg-surface-elevated border border-border px-2.5 py-1">
-                                  <span className="text-text-tertiary">Reembolso:</span> <strong className="text-text-primary">{formatearMoneda(viaje.gastosAutorizados)}</strong>
-                                </span>
-                                <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-signal border-signal/30 bg-signal/10">
-                                  <span>Depósito:</span> <strong>{formatearMoneda(viaje.montoGanado - viaje.comisionRuum + viaje.gastosAutorizados)}</strong>
-                                </span>
+                              <div className="flex items-center justify-between gap-2 rounded-lg bg-signal/10 border border-signal/20 px-3 py-2">
+                                <span className="font-body text-xs font-bold text-signal">Aporte del viaje al depósito</span>
+                                <span className="font-display text-xs font-black text-signal tabular-nums">{formatearMoneda(viaje.precioBase + viaje.bonos + viaje.ajuste - viaje.comisionRuum + viaje.gastosAutorizados)}</span>
                               </div>
                             </div>
 
