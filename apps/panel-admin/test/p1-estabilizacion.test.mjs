@@ -103,6 +103,12 @@ test('didit separa inicio con CORS y webhook firmado',()=>{
   assert.match(nextConfigConductor,/frame-src 'self' https:\/\/verify\.didit\.me/);
   assert.match(middlewareConductor,/frame-src 'self' https:\/\/verify\.didit\.me/);
   assert.match(nextConfigConductor,/Permissions-Policy.*https:\/\/verify\.didit\.me/);
+
+  // Verificación de migración de estados y robustez de webhook/sesión
+  const migrationDidit=read('supabase/migrations/20260823000300_fix_verificaciones_identidad_didit_estados.sql');
+  assert.match(migrationDidit,/check \(estado in \('pendiente', 'en_revision', 'aprobado', 'rechazado', 'error', 'expirado', 'cancelado'\)\)/);
+  assert.match(iniciar,/session_url/);
+  assert.match(webhook,/x-signature-v2/);
 });
 test('documentos usa tarjetas operativas con badges tooltip y recordatorios',()=>{
   const page=read('apps/panel-admin/src/app/documentos/page.tsx');

@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
   }
 
   const payloadCrudo = await req.text();
-  const firma = req.headers.get("x-signature") ?? req.headers.get("X-Signature");
+  const firma = req.headers.get("x-signature-v2") ?? req.headers.get("X-Signature-V2") ?? req.headers.get("x-signature") ?? req.headers.get("X-Signature");
   const timestamp = req.headers.get("x-timestamp") ?? req.headers.get("X-Timestamp");
   if (!(await firmaValida(payloadCrudo, firma, timestamp, webhookSecret))) {
     console.error("Firma de webhook Didit inválida");
@@ -61,8 +61,12 @@ Deno.serve(async (req) => {
 
   let evento: {
     session_id?: string;
+    sessionId?: string;
+    id?: string;
     status?: string;
+    event?: string;
     vendor_data?: string;
+    vendorData?: string;
     decision?: unknown;
   };
   try {
@@ -71,30 +75,39 @@ Deno.serve(async (req) => {
     return json({ error: "JSON inválido." }, 400);
   }
 
-  const sessionId = evento.session_id;
-  const estadoDidit = (evento.status ?? "").toString();
-  const solicitudId = evento.vendor_data;
+  const sessionId = evento.session_id ?? evento.sessionId ?? evento.id;
+  const estadoDiditRaw = (evento.status ?? evento.event ?? "").toString().toLowerCase().trim();
+  const solicitudId = evento.vendor_data ?? evento.vendorData;
   if (!sessionId || !solicitudId) return json({ error: "Payload incompleto." }, 400);
 
-  // Estados que requieren acción automática (llamada a RPCs)
-  const estadosConDecision = ["Approved", "Declined", "In Review"];
-  // Estados terminales que no requieren RPC pero sí actualizan el registro
-  const estadosTerminales = ["Expired", "Cancelled", "Error"];
-
-  if (![...estadosConDecision, ...estadosTerminales].includes(estadoDidit)) {
-    return json({ recibido: true, ignorado: estadoDidit }, 200);
-  }
-
   const servicio = createClient(url, serviceKey);
-  // Mapeo de estados Didit -> estados internos
+
+  // Mapeo de estados Didit normalizados -> estados internos
   let estadoInterno: string;
-  if (estadoDidit === "Approved") estadoInterno = "aprobado";
-  else if (estadoDidit === "Declined") estadoInterno = "rechazado";
-  else if (estadoDidit === "In Review") estadoInterno = "en_revision";
-  else if (estadoDidit === "Expired") estadoInterno = "expirado";
-  else if (estadoDidit === "Cancelled") estadoInterno = "cancelado";
-  else if (estadoDidit === "Error") estadoInterno = "error";
-  else estadoInterno = "pendiente";
+  let esAprobado = false;
+  let esRechazado = false;
+  let esTerminal = false;
+
+  if (estadoDiditRaw === "approved" || estadoDiditRaw === "completed" || estadoDiditRaw === "verification.completed") {
+    estadoInterno = "aprobado";
+    esAprobado = true;
+  } else if (estadoDiditRaw === "declined" || estadoDiditRaw === "rejected") {
+    estadoInterno = "rechazado";
+    esRechazado = true;
+  } else if (estadoDiditRaw === "in review" || estadoDiditRaw === "in_review" || estadoDiditRaw === "review") {
+    estadoInterno = "en_revision";
+  } else if (estadoDiditRaw === "expired") {
+    estadoInterno = "expirado";
+    esTerminal = true;
+  } else if (estadoDiditRaw === "cancelled" || estadoDiditRaw === "canceled") {
+    estadoInterno = "cancelado";
+    esTerminal = true;
+  } else if (estadoDiditRaw === "error" || estadoDiditRaw === "failed") {
+    estadoInterno = "error";
+    esTerminal = true;
+  } else {
+    estadoInterno = "pendiente";
+  }
 
   const { data: verificacion, error: errorUpdate } = await servicio
     .from("verificaciones_identidad_didit")
@@ -108,19 +121,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    if (estadoDidit === "Approved") {
+    if (esAprobado) {
       const { error } = await servicio.rpc("aprobar_solicitud_conductor_sistema", {
         p_solicitud_id: verificacion.solicitud_id,
         p_verificacion_id: verificacion.id,
       });
       if (error) throw error;
-    } else if (estadoDidit === "Declined") {
+    } else if (esRechazado) {
       const { error } = await servicio.rpc("rechazar_solicitud_por_verificacion_sistema", {
         p_solicitud_id: verificacion.solicitud_id,
         p_verificacion_id: verificacion.id,
       });
       if (error) throw error;
-    } else if (estadosTerminales.includes(estadoDidit)) {
+    } else if (esTerminal) {
       // Para estados terminales (Expired, Cancelled, Error), marcamos la verificación
       // como procesada pero NO llamamos a RPCs de aprobación/rechazo.
       // El usuario podrá reintentar la verificación desde el panel.
@@ -128,7 +141,7 @@ Deno.serve(async (req) => {
         .from("verificaciones_identidad_didit")
         .update({ procesado_en: new Date().toISOString() })
         .eq("id", verificacion.id);
-      console.log(`Verificación Didit ${estadoDidit} registrada para sesión ${sessionId}, solicitud ${solicitudId}`);
+      console.log(`Verificación Didit ${estadoDiditRaw} registrada para sesión ${sessionId}, solicitud ${solicitudId}`);
     }
   } catch (error) {
     console.error("Error aplicando decisión Didit", error instanceof Error ? error.message : error);

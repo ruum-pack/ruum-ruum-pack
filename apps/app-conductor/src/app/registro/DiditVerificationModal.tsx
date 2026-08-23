@@ -27,18 +27,29 @@ export function DiditVerificationModal({
   useEffect(() => {
     if (!isOpen) return;
     const handleMessage = (event: MessageEvent) => {
-      const data = event.data;
+      let data = event.data;
       if (!data) return;
+      if (typeof data === "string") {
+        try {
+          data = JSON.parse(data);
+        } catch {
+          // Mantener como string si no es JSON
+        }
+      }
       if (
         data === "didit:complete" ||
         data === "didit:cancel" ||
         data?.type === "didit:complete" ||
         data?.type === "didit:cancel" ||
         data?.type === "didit:verification:complete" ||
+        data?.type === "didit:verification:completed" ||
         data?.status === "complete" ||
+        data?.status === "completed" ||
         data?.status === "approved" ||
         data?.status === "declined" ||
-        data?.event === "verification.completed"
+        data?.event === "verification.completed" ||
+        data?.event === "didit:completed" ||
+        data?.message === "didit:complete"
       ) {
         onFinalizar();
       }

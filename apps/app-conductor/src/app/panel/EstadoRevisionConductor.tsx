@@ -102,6 +102,17 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
     registrarTelemetriaDidit("didit_completado");
   }
 
+  function finalizarVerificacionDidit() {
+    setMostrarVerificacionDidit(false);
+    setUrlVerificacionDidit(null);
+    setErrorVerificacionDidit(null);
+    registrarTelemetriaDidit("didit_completado");
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("ruum:recargar-panel"));
+      window.location.reload();
+    }
+  }
+
   function reintentarVerificacionDidit() {
     setErrorVerificacionDidit(null);
     setVerificando(true);
@@ -290,7 +301,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
             error={errorVerificacionDidit}
             onCerrar={cerrarVerificacionDidit}
             onReintentar={reintentarVerificacionDidit}
-            onFinalizar={cerrarVerificacionDidit}
+            onFinalizar={finalizarVerificacionDidit}
           />
         )}
 

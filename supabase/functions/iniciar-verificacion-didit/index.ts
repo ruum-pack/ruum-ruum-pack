@@ -72,7 +72,11 @@ Deno.serve(async (req) => {
 
   const respuestaDidit = await fetch("https://verification.didit.me/v2/session/", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": diditApiKey },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": diditApiKey,
+      "Authorization": `Bearer ${diditApiKey}`
+    },
     body: JSON.stringify({
       workflow_id: diditWorkflowId,
       vendor_data: solicitudId,
@@ -85,10 +89,26 @@ Deno.serve(async (req) => {
     return json({ error: "No fue posible iniciar la verificación de identidad." }, 502);
   }
 
-  const datosDidit = await respuestaDidit.json() as { session_id: string; url: string; session_token?: string };
+  const datosDidit = (await respuestaDidit.json()) as {
+    session_id?: string;
+    sessionId?: string;
+    id?: string;
+    url?: string;
+    session_url?: string;
+    session_token?: string;
+  };
+
+  const sessionId = datosDidit.session_id ?? datosDidit.sessionId ?? datosDidit.id ?? datosDidit.session_token ?? "";
+  const verificationUrl = datosDidit.url ?? datosDidit.session_url ?? "";
+
+  if (!sessionId || !verificationUrl) {
+    console.error("Respuesta incompleta de Didit", datosDidit);
+    return json({ error: "Respuesta incompleta del proveedor de identidad." }, 502);
+  }
+
   const { error: errorInsert } = await servicio.from("verificaciones_identidad_didit").insert({
     solicitud_id: solicitudId,
-    session_id: datosDidit.session_id,
+    session_id: sessionId,
     workflow_id: diditWorkflowId,
     estado: "pendiente",
   });
@@ -97,5 +117,5 @@ Deno.serve(async (req) => {
     return json({ error: "No fue posible registrar la verificación." }, 500);
   }
 
-  return json({ session_id: datosDidit.session_id, url: datosDidit.url }, 201);
+  return json({ session_id: sessionId, url: verificationUrl }, 201);
 });
