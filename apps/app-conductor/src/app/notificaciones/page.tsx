@@ -46,12 +46,12 @@ export default function CentroNotificaciones() {
 
   const cargar = useCallback(async () => {
     const cliente = crearClienteNavegador();
-    const { data, error } = await (cliente as any)
+    const { data, error } = await cliente
       .from("notificaciones_conductor")
       .select("id,tipo,titulo,cuerpo,destino,entidad_tipo,entidad_id,leida_en,estado,creado_en")
       .order("creado_en", { ascending: false })
       .limit(100);
-    if (!error) setItems((data ?? []) as Notificacion[]);
+    if (!error && data) setItems(data as unknown as Notificacion[]);
     setCargando(false);
   }, []);
 
@@ -64,7 +64,7 @@ export default function CentroNotificaciones() {
 
   async function abrir(item: Notificacion) {
     const cliente = crearClienteNavegador();
-    await (cliente as any).rpc("marcar_notificacion_leida", { p_notificacion_id: item.id });
+    await cliente.rpc("marcar_notificacion_leida", { p_notificacion_id: item.id });
     setItems((actuales) =>
       actuales.map((n) => (n.id === item.id ? { ...n, leida_en: n.leida_en ?? new Date().toISOString() } : n))
     );
@@ -78,7 +78,7 @@ export default function CentroNotificaciones() {
     try {
       const cliente = crearClienteNavegador();
       for (const item of sinLeer) {
-        await (cliente as any).rpc("marcar_notificacion_leida", { p_notificacion_id: item.id });
+        await cliente.rpc("marcar_notificacion_leida", { p_notificacion_id: item.id });
       }
       const ahora = new Date().toISOString();
       setItems((actuales) => actuales.map((n) => ({ ...n, leida_en: n.leida_en ?? ahora })));

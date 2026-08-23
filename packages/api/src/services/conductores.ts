@@ -290,7 +290,7 @@ export interface DatosBancariosConductorInput {
   titularCuenta: string;
   banco: string;
   clabe: string;
-  numeroTarjeta: string;
+  numeroTarjeta?: string | null;
 }
 
 export async function guardarDatosBancariosConductor(
@@ -298,10 +298,10 @@ export async function guardarDatosBancariosConductor(
   datos: DatosBancariosConductorInput
 ): Promise<DatosBancariosRow> {
   const { data, error } = await cliente.rpc("conductor_guarda_datos_bancarios", {
-    p_titular_cuenta: datos.titularCuenta,
-    p_banco: datos.banco,
-    p_clabe: datos.clabe,
-    p_numero_tarjeta: datos.numeroTarjeta
+    p_titular_cuenta: datos.titularCuenta.trim(),
+    p_banco: datos.banco.trim(),
+    p_clabe: datos.clabe.replace(/\D/g, ""),
+    p_numero_tarjeta: datos.numeroTarjeta && datos.numeroTarjeta.trim().length > 0 ? datos.numeroTarjeta.trim() : null
   });
 
   if (error) throw error;

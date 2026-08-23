@@ -560,7 +560,7 @@ export type Database = {
           estado: Database["public"]["Enums"]["estado_datos_bancarios_conductor"]
           id: string
           motivo_rechazo: string | null
-          numero_tarjeta: string
+          numero_tarjeta: string | null
           titular_cuenta: string
         }
         Insert: {
@@ -572,7 +572,7 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_datos_bancarios_conductor"]
           id?: string
           motivo_rechazo?: string | null
-          numero_tarjeta: string
+          numero_tarjeta?: string | null
           titular_cuenta: string
         }
         Update: {
@@ -584,7 +584,7 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_datos_bancarios_conductor"]
           id?: string
           motivo_rechazo?: string | null
-          numero_tarjeta?: string
+          numero_tarjeta?: string | null
           titular_cuenta?: string
         }
         Relationships: [
@@ -1538,6 +1538,47 @@ export type Database = {
           },
           {
             foreignKeyName: "evidencia_inspecciones_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gastos_traslado: {
+        Row: {
+          comprobante_ruta: string | null
+          descripcion: string | null
+          id: string
+          monto: number
+          registrado_en: string
+          registrado_por: string | null
+          tipo: string
+          traslado_id: string
+        }
+        Insert: {
+          comprobante_ruta?: string | null
+          descripcion?: string | null
+          id?: string
+          monto: number
+          registrado_en?: string
+          registrado_por?: string | null
+          tipo: string
+          traslado_id: string
+        }
+        Update: {
+          comprobante_ruta?: string | null
+          descripcion?: string | null
+          id?: string
+          monto?: number
+          registrado_en?: string
+          registrado_por?: string | null
+          tipo?: string
+          traslado_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_traslado_traslado_id_fkey"
             columns: ["traslado_id"]
             isOneToOne: false
             referencedRelation: "traslados"
@@ -4047,7 +4088,7 @@ export type Database = {
         Args: {
           p_banco: string
           p_clabe: string
-          p_numero_tarjeta: string
+          p_numero_tarjeta?: string | null
           p_titular_cuenta: string
         }
         Returns: {
@@ -4059,7 +4100,7 @@ export type Database = {
           estado: Database["public"]["Enums"]["estado_datos_bancarios_conductor"]
           id: string
           motivo_rechazo: string | null
-          numero_tarjeta: string
+          numero_tarjeta: string | null
           titular_cuenta: string
         }
         SetofOptions: {

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
-import { traducirErrorAuth } from "@ruum/shared/utils";
+import { traducirErrorAuth, validarDestinoSeguro } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { onboardingVisto } from "../../lib/onboarding-visto";
 import { CONTACTOS_SOPORTE_CONDUCTOR } from "../../lib/contactos-soporte";
@@ -23,8 +23,10 @@ function LoginSkeleton() {
   );
 }
 
-export default function PaginaLogin() {
+function FormularioLogin() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const destinoPostLogin = validarDestinoSeguro(searchParams.get("next"), "/panel");
 
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   // Primer arranque: mostrar el recorrido de bienvenida antes del acceso.
@@ -96,7 +98,7 @@ export default function PaginaLogin() {
       const cliente = crearClienteNavegador();
       const { error: errorAuth } = await cliente.auth.signInWithPassword({ email: email.trim(), password });
       if (errorAuth) throw errorAuth;
-      router.replace("/panel");
+      router.replace(destinoPostLogin);
     } catch (err) {
       setError(traducirErrorAuth(err));
     } finally {
@@ -226,5 +228,13 @@ export default function PaginaLogin() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function PaginaLogin() {
+  return (
+    <Suspense fallback={<LoginSkeleton />}>
+      <FormularioLogin />
+    </Suspense>
   );
 }

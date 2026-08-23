@@ -11,4 +11,5 @@ export * from "./polyline";
 export * from "./requisitos-password";
 export * from "./traducir-error-auth";
 export * from "./traducir-error-operativo";
+export * from "./validar-destino-seguro";
 export * from "./validar-documentos";

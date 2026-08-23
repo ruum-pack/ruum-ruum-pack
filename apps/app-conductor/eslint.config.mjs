@@ -1,6 +1,7 @@
 import { defineConfig } from 'eslint/config'
 import { FlatCompat } from '@eslint/eslintrc'
 import jsxA11y from 'eslint-plugin-jsx-a11y'
+import tsPlugin from '@typescript-eslint/eslint-plugin'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -25,7 +26,8 @@ const eslintConfig = defineConfig([
   {
     files: ['**/*.{ts,tsx}'],
     plugins: {
-      'jsx-a11y': jsxA11y
+      'jsx-a11y': jsxA11y,
+      '@typescript-eslint': tsPlugin
     },
     rules: {
       // Reglas de accesibilidad (jsx-a11y)
@@ -85,7 +87,9 @@ const eslintConfig = defineConfig([
       'jsx-a11y/role-supports-aria-props': 'error',
       'jsx-a11y/scope': 'error',
       'jsx-a11y/tabindex-no-positive': 'error',
-      'jsx-a11y/anchor-has-content': 'error'
+      'jsx-a11y/anchor-has-content': 'error',
+      // Reglas de tipado seguro (H5)
+      '@typescript-eslint/no-explicit-any': 'warn'
     }
   }
 ])

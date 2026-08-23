@@ -104,4 +104,20 @@ describe("Almacenamiento Seguro Local y Evidencia Offline", () => {
     await storage.clear();
     expect(await storage.read()).toEqual([]);
   });
+
+  it("H3: utiliza la semilla de Android Keystore cuando está disponible", async () => {
+    // Si la plataforma soporta Keystore nativo, debe preferir esa semilla para derivar la llave
+    const mockSecret = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    const trackingModule = await import("../src/lib/background-tracking");
+    const spy = vi.spyOn(trackingModule, "obtenerSecretoKeystoreNativo")
+      .mockResolvedValue({ secret: mockSecret, backedByKeystore: true });
+
+    resetCachedKeyForTesting();
+    await guardarJsonLocalSeguro("keystore_test_key", { datoSeguro: "ok" });
+    const leido = await leerJsonLocalSeguro<{ datoSeguro: string }>("keystore_test_key");
+    expect(leido).toEqual({ datoSeguro: "ok" });
+
+    spy.mockRestore();
+    resetCachedKeyForTesting();
+  });
 });

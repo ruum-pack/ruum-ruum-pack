@@ -27,6 +27,7 @@ interface BackgroundTrackingPlugin {
   requestBackgroundLocation(): Promise<{ granted: boolean; state: string }>;
   getStatus(): Promise<BackgroundTrackingStatus>;
   updateTripState(options: { tripState: string }): Promise<BackgroundTrackingStatus>;
+  getSecureInstallationSecret(): Promise<{ secret: string; backedByKeystore: boolean }>;
 }
 
 const BackgroundTracking = registerPlugin<BackgroundTrackingPlugin>("BackgroundTracking");
@@ -49,4 +50,13 @@ export async function obtenerEstadoTrackingNativo() {
 
 export async function actualizarEstadoTrackingNativo(tripState: string) {
   return BackgroundTracking.updateTripState({ tripState });
+}
+
+export async function obtenerSecretoKeystoreNativo(): Promise<{ secret: string; backedByKeystore: boolean } | null> {
+  if (!soportaTrackingNativo()) return null;
+  try {
+    return await BackgroundTracking.getSecureInstallationSecret();
+  } catch {
+    return null;
+  }
 }

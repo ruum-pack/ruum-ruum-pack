@@ -71,7 +71,7 @@ export function CierreTrasladoDetails({
       setCargando(true);
       setError(null);
       try {
-        const cliente = crearClienteNavegador() as any;
+        const cliente = crearClienteNavegador();
         
         // Fetch inspections
         const { data: insps, error: inspError } = await cliente
@@ -82,8 +82,8 @@ export function CierreTrasladoDetails({
         if (inspError) throw inspError;
 
         if (insps) {
-          const inicial = insps.find((i: any) => i.tipo === "inicial") as InspeccionData | undefined;
-          const final = insps.find((i: any) => i.tipo === "final") as InspeccionData | undefined;
+          const inicial = insps.find((i) => i.tipo === "inicial") as InspeccionData | undefined;
+          const final = insps.find((i) => i.tipo === "final") as InspeccionData | undefined;
           if (inicial) setInspeccionInicial(inicial);
           if (final) setInspeccionFinal(final);
         }
@@ -157,7 +157,7 @@ export function CierreTrasladoDetails({
 
     setProcesando(true);
     try {
-      const cliente = crearClienteNavegador() as any;
+      const cliente = crearClienteNavegador();
       let comprobanteRutaSubida: string | null = null;
 
       if (comprobanteArchivo) {
@@ -221,7 +221,7 @@ export function CierreTrasladoDetails({
     setError(null);
     setProcesando(true);
     try {
-      const cliente = crearClienteNavegador() as any;
+      const cliente = crearClienteNavegador();
       const { error: deleteError } = await cliente
         .from("gastos_traslado")
         .delete()
@@ -288,7 +288,7 @@ export function CierreTrasladoDetails({
             ? `[COMPROBANTE_RUTA: ${comprobanteRutaSubida}] ${descGasto.trim() || labelGasto(tipoGasto)}`
             : descGasto.trim() || null;
 
-          const { error: insertError } = await (cliente as any)
+          const { error: insertError } = await cliente
             .from("gastos_traslado")
             .insert({
               traslado_id: trasladoId,

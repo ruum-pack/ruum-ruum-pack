@@ -356,3 +356,63 @@ test('P2 tracking nativo previene arranque tardío tras cleanup o cambio de viaj
   assert.match(tracking,/iniciarTrackingNativo/);
   assert.match(tracking,/return \(\) => \{\s*cancelado = true;\s*void detenerTrackingNativo/);
 });
+test('H1 datos bancarios nunca almacena PAN completo en texto plano',()=>{
+  const migration=read('supabase/migrations/20260823000200_h1_sanitizar_pan_datos_bancarios.sql');
+  const service=read('packages/api/src/services/conductores.ts');
+  const ui=read('apps/app-conductor/src/app/cuenta/datos-bancarios/page.tsx');
+
+  assert.match(migration,/numero_tarjeta is null or numero_tarjeta ~ '\^\[0-9\*\]\{4,19\}\$'/);
+  assert.match(migration,/repeat\('\*',/);
+  assert.match(service,/numeroTarjeta\?: string \| null/);
+  assert.match(service,/p_numero_tarjeta:/);
+  assert.match(ui,/Número de tarjeta de débito \(opcional/);
+  assert.match(ui,/enmascararUltimos/);
+});
+test('H2 higiene de repositorio no contiene scripts de debug con service role en apps',()=>{
+  assert.strictEqual(fs.existsSync(new URL('../../../apps/app-conductor/debug_save_evidence.js', import.meta.url)), false);
+  assert.strictEqual(fs.existsSync(new URL('../../../scripts/dev-only/README.md', import.meta.url)), true);
+  assert.strictEqual(fs.existsSync(new URL('../../../scripts/dev-only/.gitignore', import.meta.url)), true);
+});
+test('H3 almacenamiento seguro se enlaza a Android Keystore y documenta modelo de amenazas',()=>{
+  const seguro=read('apps/app-conductor/src/lib/almacenamiento-seguro-local.ts');
+  const plugin=read('apps/app-conductor/android/app/src/main/java/com/moviliax/ruumruum/conductor/tracking/BackgroundTrackingPlugin.java');
+  const tracking=read('apps/app-conductor/src/lib/background-tracking.ts');
+
+  assert.match(seguro,/obtenerSecretoKeystoreNativo/);
+  assert.match(seguro,/ARQUITECTURA DE ALMACENAMIENTO SEGURO LOCAL \(H3\)/);
+  assert.match(seguro,/Hardware-Backed Keystore/);
+  assert.match(plugin,/getSecureInstallationSecret/);
+  assert.match(plugin,/SecureTrackingPreferences\.get/);
+  assert.match(tracking,/getSecureInstallationSecret/);
+});
+test('H4 umbral de cobertura y pruebas de sincronización offline',()=>{
+  const vitestConfig=read('apps/app-conductor/vitest.config.ts');
+  assert.match(vitestConfig,/Hoja de ruta de escalamiento de cobertura \(H4\)/);
+  assert.match(vitestConfig,/lines:\s*[5-9]/);
+  assert.strictEqual(fs.existsSync(new URL('../../../apps/app-conductor/test/orquestador-sync-offline.test.ts', import.meta.url)), true);
+});
+test('H5 tipado seguro y visibilidad con ESLint',()=>{
+  const eslint=read('apps/app-conductor/eslint.config.mjs');
+  const notificaciones=read('apps/app-conductor/src/app/notificaciones/page.tsx');
+  const gastos=read('apps/app-conductor/src/app/viajes/[id]/SecondaryTripNavBar.tsx');
+
+  assert.match(eslint,/@typescript-eslint\/no-explicit-any/);
+  assert.doesNotMatch(notificaciones,/await\s*\(cliente\s*as\s*any\)/);
+  assert.doesNotMatch(gastos,/\.from\("gastos_traslado"\)[^;]*as any/);
+});
+test('H6 login honra parámetro next con protección anti open-redirect',()=>{
+  const loginConductor=read('apps/app-conductor/src/app/login/page.tsx');
+  const loginAdmin=read('apps/panel-admin/src/app/login/page.tsx');
+  const util=read('packages/shared/src/utils/validar-destino-seguro.ts');
+
+  assert.match(loginConductor,/validarDestinoSeguro\(searchParams\.get\("next"\)/);
+  assert.match(loginAdmin,/validarDestinoSeguro\(searchParams\.get\("next"\)/);
+  assert.match(util,/!limpio\.startsWith\("\/\/"\)/);
+  assert.match(util,/!limpio\.includes\("\\\\"\)/);
+});
+test('H7 higiene de repositorio ignora y excluye work/ y logs',()=>{
+  const gitignore=read('.gitignore');
+  assert.match(gitignore,/work\//);
+  assert.match(gitignore,/\*\.log/);
+  assert.strictEqual(fs.existsSync(new URL('../../../work', import.meta.url)), false);
+});

@@ -92,6 +92,25 @@ public class BackgroundTrackingPlugin extends Plugin {
         call.resolve(status());
     }
 
+    @PluginMethod public void getSecureInstallationSecret(PluginCall call) {
+        try {
+            android.content.SharedPreferences p = SecureTrackingPreferences.get(getContext());
+            String secret = p.getString("installation_keystore_secret_v1", null);
+            if (secret == null || secret.isEmpty()) {
+                byte[] bytes = new byte[32];
+                new java.security.SecureRandom().nextBytes(bytes);
+                secret = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP);
+                p.edit().putString("installation_keystore_secret_v1", secret).apply();
+            }
+            JSObject out = new JSObject();
+            out.put("secret", secret);
+            out.put("backedByKeystore", true);
+            call.resolve(out);
+        } catch (Exception e) {
+            call.reject("keystore_secret_failed", e);
+        }
+    }
+
     private JSObject status() {
         android.content.SharedPreferences p = SecureTrackingPreferences.get(getContext());
         JSObject out = new JSObject();

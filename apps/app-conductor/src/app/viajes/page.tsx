@@ -119,7 +119,7 @@ export default function PaginaViajes() {
       if (!tieneSupabaseConfigurado()) return;
       try {
         const cliente = crearClienteNavegador();
-        const { count } = await (cliente as any)
+        const { count } = await cliente
           .from("notificaciones_conductor")
           .select("id", { count: "exact", head: true })
           .is("leida_en", null);

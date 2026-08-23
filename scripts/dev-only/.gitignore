@@ -1,0 +1,4 @@
+# Ignorar todos los scripts locales de desarrollo
+*
+!.gitignore
+!README.md

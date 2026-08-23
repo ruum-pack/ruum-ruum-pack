@@ -94,7 +94,7 @@ export default function PaginaDatosBancarios() {
            titularCuenta: datos.titular_cuenta,
            banco: datos.banco,
            clabe: datos.clabe,
-           numeroTarjeta: datos.numero_tarjeta
+           numeroTarjeta: datos.numero_tarjeta ?? ""
          });
          const detectado = obtenerBancoPorClabe(datos.clabe);
          setBancoDetectadoAuto(detectado);
@@ -402,7 +402,7 @@ export default function PaginaDatosBancarios() {
                     {/* 3. Máscara de Entrada Tarjeta en bloques de 4 */}
                     <div className="grid gap-1">
                       <Field
-                        etiqueta="Número de tarjeta de débito (16 dígitos)"
+                        etiqueta="Número de tarjeta de débito (opcional, 16 dígitos)"
                         value={formatearTarjeta(formulario.numeroTarjeta)}
                         onChange={(e) => actualizarCampo("numeroTarjeta", e.target.value)}
                         inputMode="numeric"
@@ -411,7 +411,7 @@ export default function PaginaDatosBancarios() {
                         placeholder="1234 5678 9012 3456"
                       />
                       <span className="font-body text-xs text-text-tertiary">
-                        {formulario.numeroTarjeta.length}/16 dígitos capturados
+                        {formulario.numeroTarjeta.length > 0 ? `${formulario.numeroTarjeta.length}/16 dígitos capturados` : "Opcional (el depósito se procesa por CLABE SPEI)"}
                       </span>
                     </div>
                   </div>
@@ -425,7 +425,7 @@ export default function PaginaDatosBancarios() {
                       formulario.titularCuenta.trim().length < 3 ||
                       formulario.banco.trim().length < 2 ||
                       formulario.clabe.length !== 18 ||
-                      formulario.numeroTarjeta.length < 16
+                      (formulario.numeroTarjeta.length > 0 && formulario.numeroTarjeta.length < 16)
                     }
                     className="w-full sm:w-auto"
                   >

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
-import { traducirErrorAuth } from "@ruum/shared/utils";
+import { traducirErrorAuth, validarDestinoSeguro } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 function errorInicialDesdeUrl(): string | null {
+  if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
   // Auditoría H-2 — si el middleware rechazó una sesión no-admin, muestra el
   // motivo en vez de un formulario en blanco.
@@ -16,8 +17,10 @@ function errorInicialDesdeUrl(): string | null {
 }
 
 /** Pantalla de acceso para el equipo interno de operación. */
-export default function PaginaLogin() {
+function FormularioLoginAdmin() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const destinoPostLogin = validarDestinoSeguro(searchParams.get("next"), "/");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -36,7 +39,7 @@ export default function PaginaLogin() {
       const cliente = crearClienteNavegador();
       const { error: errorAuth } = await cliente.auth.signInWithPassword({ email, password });
       if (errorAuth) throw errorAuth;
-      router.push("/");
+      router.push(destinoPostLogin);
       router.refresh();
     } catch (err) {
       setError(traducirErrorAuth(err));
@@ -100,5 +103,13 @@ export default function PaginaLogin() {
         )}
       </section>
     </main>
+  );
+}
+
+export default function PaginaLogin() {
+  return (
+    <Suspense fallback={<div className="admin-auth-shell flex items-center justify-center p-8 text-text-tertiary">Cargando acceso...</div>}>
+      <FormularioLoginAdmin />
+    </Suspense>
   );
 }

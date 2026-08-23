@@ -119,7 +119,7 @@ export function SecondaryTripNavBar({
     async function cargarGastos() {
       try {
         const cliente = crearClienteNavegador();
-        const { data, error } = await (cliente as any)
+        const { data, error } = await cliente
           .from("gastos_traslado")
           .select("*")
           .eq("traslado_id", trasladoId)
@@ -132,7 +132,7 @@ export function SecondaryTripNavBar({
 
         if (data) {
           setGastosList(
-            (data as any[]).map((g) => {
+            data.map((g) => {
               const { ruta, texto } = extraerRutaComprobante(g.descripcion, g.comprobante_ruta);
               return {
                 id: String(g.id),
@@ -140,7 +140,7 @@ export function SecondaryTripNavBar({
                 monto: Number(g.monto || 0),
                 descripcion: texto || g.descripcion || null,
                 comprobante_ruta: ruta,
-                registrado_en: g.registrado_en || g.created_at || new Date().toISOString()
+                registrado_en: g.registrado_en || new Date().toISOString()
               };
             })
           );
@@ -221,7 +221,7 @@ export function SecondaryTripNavBar({
       // P1 limpieza total: guardar ruta solo en columna comprobante_ruta, no duplicar en descripcion
       const descripcionFinal = notas.trim() || null;
 
-      const { data, error: insertError } = await (cliente as any)
+      const { data, error: insertError } = await cliente
         .from("gastos_traslado")
         .insert({
           traslado_id: trasladoId,
@@ -253,9 +253,9 @@ export function SecondaryTripNavBar({
         handleQuitarComprobante();
         setExitoGasto("Gasto registrado y comprobante guardado con éxito.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error al registrar gasto:", err);
-      setErrorGasto(err?.message || "No se pudo registrar el gasto. Verifica la conexión e intenta nuevamente.");
+      setErrorGasto(err instanceof Error ? err.message : "No se pudo registrar el gasto. Verifica la conexión e intenta nuevamente.");
     } finally {
       setGuardandoGasto(false);
     }
@@ -267,7 +267,7 @@ export function SecondaryTripNavBar({
     setErrorGasto(null);
     try {
       const cliente = crearClienteNavegador();
-      const { error: deleteError } = await (cliente as any)
+      const { error: deleteError } = await cliente
         .from("gastos_traslado")
         .delete()
         .eq("id", id);

@@ -133,11 +133,11 @@ export function usePanelData() {
         listarViajesAceptados(cliente, real.id),
         listarViajesDisponibles(cliente),
         obtenerDisponibilidadConductor(cliente, real.id),
-        (cliente as any)
+        cliente
           .from("notificaciones_conductor")
           .select("id", { count: "exact", head: true })
           .is("leida_en", null),
-        (cliente as any)
+        cliente
           .from("traslados")
           .select("ganancia_conductor_congelada, precio_final, precio_cotizado")
           .eq("conductor_id", real.id)
@@ -156,14 +156,16 @@ export function usePanelData() {
         ? resultados[2].value
         : ("no_disponible" as const);
       const countNoLeidas =
-        resultados[3].status === "fulfilled"
-          ? ((resultados[3].value as any)?.count ?? 0)
+        resultados[3].status === "fulfilled" && "count" in resultados[3].value
+          ? (resultados[3].value.count ?? 0)
           : 0;
       const trasladosDelDia: Array<{ ganancia_conductor_congelada: number | null; precio_final: number | null; precio_cotizado: number | null }> =
-        resultados[4].status === "fulfilled" ? ((resultados[4].value as any)?.data ?? []) : [];
+        resultados[4].status === "fulfilled" && "data" in resultados[4].value
+          ? ((resultados[4].value.data as Array<{ ganancia_conductor_congelada: number | null; precio_final: number | null; precio_cotizado: number | null }>) ?? [])
+          : [];
       const docsConductor: DocumentoConductorRow[] =
-        resultados[5].status === "fulfilled" && (resultados[5].value as any)?.data
-          ? ((resultados[5].value as any).data as DocumentoConductorRow[])
+        resultados[5].status === "fulfilled" && "data" in resultados[5].value && resultados[5].value.data
+          ? (resultados[5].value.data as DocumentoConductorRow[])
           : [];
 
       const gananciaDelDia = trasladosDelDia.reduce((acc, t) => {

@@ -1,4 +1,27 @@
 import { Preferences } from "@capacitor/preferences";
+import { obtenerSecretoKeystoreNativo } from "./background-tracking";
+
+/**
+ * ============================================================================
+ * ARQUITECTURA DE ALMACENAMIENTO SEGURO LOCAL (H3)
+ * ============================================================================
+ * Modelo de Amenazas y Fronteras de Protección:
+ *
+ * 1. Entorno Nativo Android (Hardware-Backed Keystore):
+ *    - El secreto maestro se genera con SecureRandom y se almacena en el hardware
+ *      seguro (Android Keystore) mediante MasterKey (AES256-GCM) y EncryptedSharedPreferences
+ *      (AES256-SIV / AES256-GCM), alineado con SecureTrackingPreferences.
+ *    - Protege contra extracción física del dispositivo, volcados de memoria y copias de seguridad.
+ *
+ * 2. Entorno Web / Híbrido (Capacitor Preferences + WebCrypto):
+ *    - La clave AES-GCM (256-bit) se deriva mediante PBKDF2 (120,000 iteraciones SHA-256)
+ *      a partir del secreto de instalación local y sal determinística.
+ *    - Frontera de protección: Cifra y protege contra inspección casual de almacenamiento local,
+ *      logs accidentales, extensiones sin privilegios y lecturas no estructuradas del sandbox.
+ *    - Limitación conocida en web/root: En un dispositivo rooteado o depuración USB sin Keystore,
+ *      quien tenga acceso total al sandbox de la app puede leer el almacén.
+ * ============================================================================
+ */
 
 const VERSION_PAYLOAD = 1;
 const CLAVE_SECRETO = "ruum_offline_installation_secret_v1";
@@ -26,6 +49,17 @@ function base64ToBytes(value: string) {
 }
 
 async function obtenerSecretoInstalacion() {
+  // 1. En Android Nativo: intentar obtener la semilla respaldada por Android Keystore
+  try {
+    const keystore = await obtenerSecretoKeystoreNativo();
+    if (keystore?.secret) {
+      return keystore.secret;
+    }
+  } catch {
+    // Continuar a fallback de preferencias en web/híbrido
+  }
+
+  // 2. Fallback de preferencias locales
   const existente = await Preferences.get({ key: CLAVE_SECRETO });
   if (existente.value) return existente.value;
 

@@ -1,3 +1,4 @@
+import type { Json } from "@ruum/shared/types";
 import { crearClienteNavegador } from "./supabase-browser";
 
 export type OperationalEvent =
@@ -20,7 +21,7 @@ function appVersion(): string {
   return process.env.NEXT_PUBLIC_APP_VERSION?.trim() || "1.0.0";
 }
 
-function sanitize(input: Record<string, unknown> = {}) {
+function sanitize(input: Record<string, unknown> = {}): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(input)
       .filter(([k]) => !FORBIDDEN.test(k))
@@ -45,14 +46,14 @@ export async function recordOperationalEvent(
     await client.rpc("registrar_evento_operativo_app", {
       p_tipo: type,
       p_version_app: appVersion(),
-      p_detalle: sanitize({ ...details, severity, ruta, timestamp: new Date().toISOString() }) as any
+      p_detalle: sanitize({ ...details, severity, ruta, timestamp: new Date().toISOString() }) as unknown as Json
     });
   } catch {
     /* observability must never break operation */
   }
   // Mirror a Sentry si está configurado (no-op si no existe DSN)
   try {
-    const w = typeof window !== "undefined" ? (window as any) : null;
+    const w = typeof window !== "undefined" ? (window as unknown as { Sentry?: { captureMessage: (msg: string, opts: unknown) => void } }) : null;
     if (w?.Sentry?.captureMessage) {
       w.Sentry.captureMessage(`[operational:${type}]`, { level: severity, extra: details });
     }

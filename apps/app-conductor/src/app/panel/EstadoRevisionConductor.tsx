@@ -10,6 +10,7 @@ import {
   registrarEventoRegistroConductor,
   subirDocumentoConductor,
   subirDocumentoSolicitudConductor,
+  type EventoRegistroConductor,
   type TipoDocumentoConductor
 } from "@ruum/api/services";
 import { enmascararNombreArchivo } from "../cuenta/datos-sensibles";
@@ -73,12 +74,12 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
   const sesionTelemetriaRef = useRef("");
   const inicioTelemetriaRef = useRef(0);
 
-  const registrarTelemetriaDidit = useCallback((evento: string) => {
+  const registrarTelemetriaDidit = useCallback((evento: EventoRegistroConductor) => {
     if (!tieneSupabaseConfigurado() || !sesionTelemetriaRef.current) return;
     const duracionMs = inicioTelemetriaRef.current ? Math.max(0, Date.now() - inicioTelemetriaRef.current) : undefined;
     void registrarEventoRegistroConductor(crearClienteNavegador(), {
       sesionId: sesionTelemetriaRef.current,
-      evento: evento as any,
+      evento,
       duracionMs
     }).catch(() => {});
   }, []);
