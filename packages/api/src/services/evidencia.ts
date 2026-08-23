@@ -255,8 +255,33 @@ export async function confirmarEvidenciaCompleta(
   }
 
   const estadoEsperado: EstadoTraslado = tipo === "inicial" ? "evidencia_inicial_en_proceso" : "evidencia_final_en_proceso";
-  if (estadoActual !== estadoEsperado) {
-    throw new Error(`No se puede confirmar el registro ${tipo} del vehículo desde ${estadoActual}`);
+  const estadosFinalizados: EstadoTraslado[] = tipo === "inicial"
+    ? ["evidencia_inicial_completada", "vehiculo_recibido", "traslado_en_curso"]
+    : ["evidencia_final_completada", "entrega_confirmada", "servicio_cerrado"];
+
+  if (estadosFinalizados.includes(estadoActual)) {
+    return estadoActual;
+  }
+
+  // Si está en estado previo de llegada o verificación, avanzar a en_proceso
+  if (tipo === "final" && estadoActual === "llegada_a_destino") {
+    try {
+      await cliente.rpc("conductor_avanza_traslado", {
+        p_traslado_id: trasladoId,
+        p_evento: "iniciar_evidencia_final"
+      });
+    } catch {
+      // Si falló por concurrencia, continuar
+    }
+  } else if (tipo === "inicial" && (estadoActual === "verificacion_vehiculo_en_proceso" || estadoActual === "conductor_en_punto_de_recoleccion")) {
+    try {
+      await cliente.rpc("conductor_avanza_traslado", {
+        p_traslado_id: trasladoId,
+        p_evento: "iniciar_evidencia_inicial"
+      });
+    } catch {
+      // Si falló por concurrencia, continuar
+    }
   }
 
   const siguienteEstado: EstadoTraslado =
@@ -268,7 +293,18 @@ export async function confirmarEvidenciaCompleta(
     p_evento: evento
   });
 
-  if (error) throw error;
+  if (error) {
+    // Si el error indica que ya está completado, no fallar
+    const { data: pasaporteFresco } = await cliente
+      .from("traslados")
+      .select("estado")
+      .eq("id", trasladoId)
+      .maybeSingle();
+    if (pasaporteFresco?.estado && estadosFinalizados.includes(pasaporteFresco.estado as EstadoTraslado)) {
+      return pasaporteFresco.estado as EstadoTraslado;
+    }
+    throw error;
+  }
 
   const conductorId = await obtenerConductorIdActual(cliente);
   await registrarEvento(

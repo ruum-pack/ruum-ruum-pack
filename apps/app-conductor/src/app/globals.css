@@ -309,6 +309,33 @@
  */
 
 /* =========================================================================
+ * TEMA CLARO — app-conductor (Texto 100% negro en modo claro)
+ * ========================================================================= */
+html:not([data-theme="dark"]) body,
+html[data-theme="light"] body {
+  color: #000000;
+}
+
+html:not([data-theme="dark"]) .text-text-primary,
+html:not([data-theme="dark"]) .text-text-secondary,
+html:not([data-theme="dark"]) .text-text-tertiary,
+html[data-theme="light"] .text-text-primary,
+html[data-theme="light"] .text-text-secondary,
+html[data-theme="light"] .text-text-tertiary {
+  color: #000000;
+}
+
+html:not([data-theme="dark"]) .conductor-auth-card,
+html[data-theme="light"] .conductor-auth-card {
+  color: #000000;
+}
+
+html:not([data-theme="dark"]) .ruum-card,
+html[data-theme="light"] .ruum-card {
+  color: #000000;
+}
+
+/* =========================================================================
  * TEMA NOCTURNO NEÓN — app-conductor
  *
  * El tema se activa explícitamente con <html data-theme="dark">.

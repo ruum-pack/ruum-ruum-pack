@@ -127,21 +127,21 @@ export function DriverDocumentChecklist({
         onDrop={(e) => manejarDrop(e, tipo, documentoAnteriorId)}
         aria-label={`Zona de carga para ${tipo}`}
         className={[
-          "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 text-center transition-all duration-150",
+          "relative flex w-full max-w-full min-w-0 flex-col items-center justify-center rounded-2xl border-2 border-dashed p-3.5 text-center transition-all duration-150 overflow-hidden box-border",
           arrastrandoSobre === tipo
             ? "border-signal bg-signal/10 scale-[1.01] shadow-md"
             : "border-signal/50 bg-surface-elevated/40 hover:border-signal hover:bg-signal/5"
         ].join(" ")}
       >
-        <p className="font-display text-xs font-bold text-text-primary mb-3">
+        <p className="mb-3 font-display text-xs font-bold text-text-primary">
           {estaSubiendo ? "⏳ Registrando documento..." : "Captura o selecciona el nuevo archivo para actualizar"}
         </p>
 
         {/* Doble Opción: Cámara Móvil (📸) vs Selector de Archivos (📁) */}
-        <div className="flex flex-wrap items-center justify-center gap-3 w-full">
+        <div className="flex w-full max-w-full min-w-0 flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-center">
           {/* Opción 1: Cámara Móvil */}
-          <label className="inline-flex items-center justify-center gap-2 rounded-xl bg-surface-elevated border border-border/80 px-4 py-2.5 font-display text-xs font-bold text-text-primary transition hover:border-route-action hover:text-route-action active:scale-95 cursor-pointer">
-            <span>📸 Tomar foto con cámara</span>
+          <label className="inline-flex min-h-10 w-full max-w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border/80 bg-surface-elevated px-3.5 py-2 font-display text-xs font-bold text-text-primary transition hover:border-route-action hover:text-route-action active:scale-95 sm:w-auto">
+            <span className="truncate">📸 Tomar foto con cámara</span>
             <input
               type="file"
               accept="image/*"
@@ -153,8 +153,8 @@ export function DriverDocumentChecklist({
           </label>
 
           {/* Opción 2: Archivo de Galería / PDF */}
-          <label className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 font-display text-xs font-bold text-text-primary transition hover:border-signal hover:bg-surface-elevated active:scale-95 cursor-pointer">
-            <span>📁 Subir imagen o PDF</span>
+          <label className="inline-flex min-h-10 w-full max-w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2 font-display text-xs font-bold text-text-primary transition hover:border-signal hover:bg-surface-elevated active:scale-95 sm:w-auto">
+            <span className="truncate">📁 Subir imagen o PDF</span>
             <input
               type="file"
               accept="image/*,.pdf"
@@ -201,7 +201,7 @@ export function DriverDocumentChecklist({
               <article
                 key={requerido.tipo}
                 className={[
-                  "relative rounded-2xl border p-5 transition-all duration-200",
+                  "relative w-full max-w-full min-w-0 rounded-2xl border p-4 sm:p-5 transition-all duration-200 overflow-hidden box-border",
                   esBloqueanteAccion
                     ? "border-red-500/40 bg-red-500/5 shadow-xs"
                     : "border-border bg-surface"
@@ -306,7 +306,7 @@ export function DriverDocumentChecklist({
               const estaSubiendo = subiendo === requerido.tipo;
 
               return (
-                <article key={requerido.tipo} className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 transition">
+                <article key={requerido.tipo} className="w-full max-w-full min-w-0 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 transition overflow-hidden box-border">
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-3">

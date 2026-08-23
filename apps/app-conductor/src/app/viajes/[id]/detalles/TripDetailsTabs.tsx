@@ -105,9 +105,9 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
   // Ventanas desde formulario de solicitud (traslados.ventana_*), con fallback si pasaporte no las proyecta
   const [ventanaRecoleccion, setVentanaRecoleccion] = useState<string | null>((pasaporte as unknown as { ventana_recoleccion?: string | null }).ventana_recoleccion ?? null);
   const [ventanaEntrega, setVentanaEntrega] = useState<string | null>((pasaporte as unknown as { ventana_entrega?: string | null }).ventana_entrega ?? null);
-  // Solicitante = titular de la cuenta usuario (traslados.usuario_id -> usuarios)
-  const [solicitanteNombre, setSolicitanteNombre] = useState<string>(pasaporte.contacto_entrega_nombre || "Cliente Solicitante");
-  const [solicitanteTelefono, setSolicitanteTelefono] = useState<string>(pasaporte.contacto_entrega_telefono || "");
+  // Solicitante = titular de la cuenta de usuario de la app-usuario (traslados.usuario_id -> usuarios)
+  const [solicitanteNombre, setSolicitanteNombre] = useState<string>("Titular de la cuenta");
+  const [solicitanteTelefono, setSolicitanteTelefono] = useState<string>("");
 
   useEffect(() => {
     let cancelado = false;
@@ -115,27 +115,29 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
       try {
         const cliente = crearClienteNavegador();
         const trasladoId = pasaporte.traslado_id;
-        const usuarioId = pasaporte.usuario_id;
         if (!trasladoId) return;
-        // Ventanas: si pasaporte no las trae, leer traslados
-        if (!ventanaRecoleccion || !ventanaEntrega) {
-          const { data: d } = await cliente
-            .from("traslados")
-            .select("ventana_recoleccion, ventana_entrega")
-            .eq("id", trasladoId)
-            .maybeSingle();
-          if (!cancelado && d) {
-            if (d.ventana_recoleccion) setVentanaRecoleccion(d.ventana_recoleccion);
-            if (d.ventana_entrega) setVentanaEntrega(d.ventana_entrega);
-          }
+
+        // 1. Consultar datos del traslado (ventanas y usuario_id del solicitante)
+        const { data: d } = await cliente
+          .from("traslados")
+          .select("ventana_recoleccion, ventana_entrega, usuario_id")
+          .eq("id", trasladoId)
+          .maybeSingle();
+
+        if (!cancelado && d) {
+          if (d.ventana_recoleccion) setVentanaRecoleccion(d.ventana_recoleccion);
+          if (d.ventana_entrega) setVentanaEntrega(d.ventana_entrega);
         }
-        // Titular: usuarios.id = traslados.usuario_id
-        if (usuarioId) {
+
+        const effectiveUserId = d?.usuario_id || pasaporte.usuario_id;
+        // 2. Invocar al titular de la cuenta de usuario (app-usuario) desde la tabla usuarios
+        if (effectiveUserId) {
           const { data: u } = await cliente
             .from("usuarios")
             .select("nombre, telefono")
-            .eq("id", usuarioId)
+            .eq("id", effectiveUserId)
             .maybeSingle();
+
           if (!cancelado && u) {
             if (u.nombre) setSolicitanteNombre(u.nombre);
             if (u.telefono) setSolicitanteTelefono(u.telefono);

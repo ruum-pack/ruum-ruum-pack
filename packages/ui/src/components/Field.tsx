@@ -48,7 +48,7 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field({
         {props.required ? <span className="ml-1 text-danger-action" aria-hidden> *</span> : null}
       </label>
       {esPassword ? (
-        <div className="relative">
+        <div className="relative flex items-center w-full">
           <input
             ref={ref}
             id={inputId}
@@ -62,18 +62,7 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field({
           <button
             type="button"
             onClick={() => setPasswordVisible((visible) => !visible)}
-            className={`absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-action disabled:cursor-not-allowed disabled:text-text-disabled ${passwordToggleClassName}`}
-            style={{
-              position: "absolute",
-              top: "50%",
-              right: "0.375rem",
-              width: "2.75rem",
-              height: "2.75rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transform: "translateY(-50%)"
-            }}
+            className={`absolute right-1.5 inset-y-0 my-auto flex h-9 w-9 items-center justify-center rounded-lg p-0 m-0 text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-action disabled:cursor-not-allowed disabled:text-text-disabled ${passwordToggleClassName}`}
             aria-label={passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"}
             disabled={props.disabled}
           >

@@ -372,9 +372,7 @@ export default function PaginaEvidencia() {
       const estadoEsperado = tipo === "inicial" ? "evidencia_inicial_en_proceso" : "evidencia_final_en_proceso";
       await confirmarEvidenciaCompleta(cliente, id, estadoActual || estadoEsperado, tipo);
       setAvisoExito("Evidencias completadas y enviadas con éxito.");
-      setTimeout(() => {
-        router.push(`/viajes/${id}`);
-      }, 500);
+      router.push(`/viajes/${id}`);
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos finalizar el registro de evidencias."));
     } finally {

@@ -131,14 +131,14 @@ export function DocumentUploadField({
   );
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex w-full max-w-full min-w-0 flex-col gap-1.5 overflow-hidden">
       <label className="font-body text-sm font-semibold text-text-primary">
         {etiqueta}
         <span className="ml-1 text-danger-action" aria-hidden> *</span>
       </label>
 
       {/* Especificaciones del archivo */}
-      <p className="font-body text-xs text-text-tertiary/80">
+      <p className="font-body text-xs text-text-tertiary">
         Formatos: {FORMATOS_PERMITIDOS.join(", ")} · Máximo 5 MB
       </p>
 
@@ -153,34 +153,36 @@ export function DocumentUploadField({
       />
 
       {archivo && estado !== "subido" ? (
-        <div className="flex items-center gap-3 rounded-[10px] border border-dashed border-border-strong bg-surface-elevated/30 px-3.5 py-3 transition-all hover:border-route-action">
-          {previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- preview local de un File antes de subir, next/image no soporta blob: directamente
-            <img src={previewUrl} alt="" className="size-12 shrink-0 rounded-lg object-cover ring-1 ring-border" loading="lazy" decoding="async" />
-          ) : (
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-surface-elevated font-body text-xs font-semibold text-text-tertiary/80" aria-hidden>
-              PDF
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-body text-sm text-text-primary">{enmascararNombreArchivo(archivo.name)}</p>
-            {estado !== "pendiente" && (
-              <p className={`font-body text-sm font-medium leading-5 ${colorTexto}`}>
-                {textoEstadoDocumento(estado, archivo.name)}
-              </p>
-            )}
-            {/* Barra de progreso durante la subida */}
-            {estado === "subiendo" && progreso === null && (
-              <div className="mt-1 h-1.5 w-full max-w-[120px] overflow-hidden rounded-full bg-surface-elevated">
-                <div className="h-full w-1/2 animate-pulse bg-signal" />
+        <div className="flex w-full max-w-full min-w-0 flex-col gap-3 rounded-[10px] border border-dashed border-border-strong bg-surface-elevated/30 p-3 transition-all hover:border-route-action sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            {previewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- preview local de un File antes de subir, next/image no soporta blob: directamente
+              <img src={previewUrl} alt="" className="size-11 shrink-0 rounded-lg object-cover ring-1 ring-border" loading="lazy" decoding="async" />
+            ) : (
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-surface-elevated font-body text-xs font-semibold text-text-tertiary" aria-hidden>
+                PDF
               </div>
             )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-body text-sm font-medium text-text-primary">{enmascararNombreArchivo(archivo.name)}</p>
+              {estado !== "pendiente" && (
+                <p className={`truncate font-body text-xs font-medium leading-5 ${colorTexto}`}>
+                  {textoEstadoDocumento(estado, archivo.name)}
+                </p>
+              )}
+              {/* Barra de progreso durante la subida */}
+              {estado === "subiendo" && progreso === null && (
+                <div className="mt-1 h-1.5 w-full max-w-[120px] overflow-hidden rounded-full bg-surface-elevated">
+                  <div className="h-full w-1/2 animate-pulse bg-signal" />
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center justify-end gap-1.5 self-end sm:self-center">
             <button
               type="button"
               onClick={abrirSelectorArchivo}
-              className="inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 font-body text-xs font-semibold text-text-tertiary/80 hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
+              className="inline-flex min-h-9 items-center justify-center rounded-lg px-2.5 py-1.5 font-body text-xs font-semibold text-text-secondary hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
               aria-label="Reemplazar documento"
             >
               Reemplazar
@@ -188,7 +190,7 @@ export function DocumentUploadField({
             <button
               type="button"
               onClick={handleEliminar}
-                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-text-tertiary/80 hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
+              className="inline-flex size-9 items-center justify-center rounded-lg p-1.5 text-text-secondary hover:bg-surface-elevated hover:text-danger-action focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-route-action"
               aria-label="Eliminar documento"
             >
               <svg
@@ -207,12 +209,12 @@ export function DocumentUploadField({
           </div>
         </div>
       ) : estado === "subido" ? (
-        <div className="rounded-[10px] border border-success bg-control-soft px-3.5 py-3">
+        <div className="w-full max-w-full min-w-0 rounded-[10px] border border-success bg-control-soft p-3.5">
           <div className="flex items-center gap-2">
             <IconoCheck />
             <p className="font-body text-sm font-semibold text-success">Documento guardado en tu expediente</p>
           </div>
-          <p className="mt-1 font-body text-sm text-text-tertiary/80">
+          <p className="mt-1 font-body text-xs text-text-secondary">
             No necesitas volver a cargarlo en este dispositivo.
           </p>
         </div>
@@ -221,16 +223,16 @@ export function DocumentUploadField({
           type="button"
           onClick={abrirSelectorArchivo}
           className={[
-            "flex w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] border-2 border-dashed",
-            "border-border-strong bg-surface-elevated/30 px-4 py-3.5",
-            "font-body text-sm font-semibold text-text-tertiary/80 transition-all",
+            "flex w-full max-w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-[10px] border-2 border-dashed",
+            "border-border-strong bg-surface-elevated/30 px-3.5 py-3 text-center",
+            "font-body text-sm font-semibold text-text-secondary transition-all",
             "hover:border-route-action hover:bg-surface hover:text-route-action",
             "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
           ].join(" ")}
           aria-label={`Seleccionar archivo para ${etiqueta}`}
         >
           <IconoNube />
-          <span>Elegir o tomar foto</span>
+          <span className="truncate">Elegir o tomar foto</span>
         </button>
       )}
 
