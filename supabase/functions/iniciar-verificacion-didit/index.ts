@@ -86,7 +86,9 @@ Deno.serve(async (req) => {
   if (!respuestaDidit.ok) {
     const detalle = await respuestaDidit.text().catch(() => "");
     console.error("Error creando sesión Didit", respuestaDidit.status, detalle);
-    return json({ error: "No fue posible iniciar la verificación de identidad." }, 502);
+    return json({
+      error: `Error al conectar con Didit (HTTP ${respuestaDidit.status}): ${detalle || "Verifica que DIDIT_API_KEY y DIDIT_WORKFLOW_ID sean válidos."}`
+    }, 502);
   }
 
   const datosDidit = (await respuestaDidit.json()) as {

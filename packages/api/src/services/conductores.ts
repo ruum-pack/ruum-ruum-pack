@@ -505,7 +505,12 @@ export async function iniciarVerificacionDidit(cliente: Cliente, solicitudId: st
     }
     throw new Error(mensaje);
   }
-  return data as { url: string };
+  const respuesta = data as { url?: string; session_url?: string; session_id?: string } | null;
+  const urlFinal = respuesta?.url ?? respuesta?.session_url;
+  if (!urlFinal || typeof urlFinal !== "string" || !urlFinal.startsWith("https://")) {
+    throw new Error("No se recibió una URL válida del servicio de verificación de identidad.");
+  }
+  return { url: urlFinal, sessionId: respuesta?.session_id };
 }
 
 export type PerfilConductorActualizable = {

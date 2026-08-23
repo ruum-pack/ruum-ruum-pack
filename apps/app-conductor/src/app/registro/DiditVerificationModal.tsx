@@ -13,6 +13,22 @@ interface Props {
   onFinalizar: () => void;
 }
 
+function esUrlDiditValida(url: string | null | undefined): url is string {
+  if (!url || typeof url !== "string") return false;
+  const trimmed = url.trim();
+  if (!trimmed.startsWith("https://")) return false;
+  try {
+    const parsed = new URL(trimmed);
+    return (
+      parsed.hostname === "verify.didit.me" ||
+      parsed.hostname.endsWith(".didit.me") ||
+      parsed.hostname === "didit.me"
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function DiditVerificationModal({
   isOpen,
   url,
@@ -60,8 +76,10 @@ export function DiditVerificationModal({
 
   if (!isOpen) return null;
 
+  const urlValida = esUrlDiditValida(url);
+
   const abrirEnNuevaVentana = () => {
-    if (url) {
+    if (urlValida && url) {
       window.open(url, "_blank", "noopener,noreferrer");
     }
   };
@@ -108,7 +126,7 @@ export function DiditVerificationModal({
               También puedes completar la verificación más tarde desde tu panel de conductor.
             </p>
           </div>
-        ) : url ? (
+        ) : urlValida && url ? (
           <div className="flex flex-col flex-1 min-h-0">
             <div className="flex items-center justify-between gap-2 bg-surface-elevated px-4 py-2 border-b border-border text-xs">
               <span className="text-text-secondary truncate">Prueba de vida y validación biométrica</span>
@@ -145,7 +163,7 @@ export function DiditVerificationModal({
           </div>
         ) : (
           <div className="p-8 text-center">
-            <Aviso tono="atencion">No se recibió la URL de verificación.</Aviso>
+            <Aviso tono="atencion">No se recibió una URL válida de verificación de Didit.</Aviso>
             <div className="mt-4 flex justify-center gap-3">
               <Button variant="secondary" onClick={onCerrar}>
                 Cerrar
