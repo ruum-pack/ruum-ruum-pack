@@ -71,6 +71,12 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: App conductor quality gate — typecheck (bloqueante)
+        run: pnpm --filter @ruum/app-conductor typecheck
+
+      - name: App conductor quality gate — lint (bloqueante, sin ignoreDuringBuilds)
+        run: pnpm --filter @ruum/app-conductor lint
+
       - name: Unit tests
         run: pnpm test:unit
 

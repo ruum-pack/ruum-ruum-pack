@@ -16,10 +16,9 @@ export function UndoRechazoToast({
   onDeshacer
 }: UndoRechazoToastProps) {
   return (
-    <div
-      role="status"
+    <output
       aria-live="polite"
-      className="fixed bottom-20 left-4 right-4 max-w-md mx-auto z-40 bg-surface-elevated border border-warning/40 text-text-primary p-4 rounded-2xl shadow-xl flex items-center justify-between gap-3 animate-slideUp"
+      className="fixed bottom-20 left-4 right-4 max-w-md mx-auto z-40 bg-surface-elevated border border-warning/40 text-text-primary p-4 rounded-2xl shadow-xl flex items-center justify-between gap-3 animate-slideUp block"
     >
       <div className="flex items-center gap-3 min-w-0">
         <span className="text-xl">↩️</span>
@@ -40,6 +39,6 @@ export function UndoRechazoToast({
       >
         Deshacer
       </button>
-    </div>
+    </output>
   );
 }

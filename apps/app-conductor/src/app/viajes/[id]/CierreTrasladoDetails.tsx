@@ -7,7 +7,7 @@ import { Aviso } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
-import { avanzarEstadoTraslado } from "@ruum/api/services";
+import { avanzarEstadoTraslado, extraerRutaComprobante, resolverUrlEvidencia } from "@ruum/api/services";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -31,6 +31,7 @@ interface GastoData {
   tipo: "combustible" | "caseta" | "maniobra" | "estadia" | "penalizacion" | "otro";
   monto: number;
   descripcion: string | null;
+  comprobante_ruta?: string | null;
   registrado_en: string;
 }
 
@@ -97,13 +98,17 @@ export function CierreTrasladoDetails({
         if (gstError) throw gstError;
         if (gst) {
           setGastos(
-            gst.map((g: any) => ({
-              id: g.id,
-              tipo: g.tipo as GastoData["tipo"],
-              monto: Number(g.monto),
-              descripcion: g.descripcion,
-              registrado_en: g.registrado_en
-            }))
+            gst.map((g: any) => {
+              const { ruta, texto } = extraerRutaComprobante(g.descripcion, g.comprobante_ruta);
+              return {
+                id: g.id,
+                tipo: g.tipo as GastoData["tipo"],
+                monto: Number(g.monto),
+                descripcion: texto || g.descripcion,
+                comprobante_ruta: ruta,
+                registrado_en: g.registrado_en
+              };
+            })
           );
         }
       } catch (err) {
@@ -114,6 +119,25 @@ export function CierreTrasladoDetails({
     }
     loadCierreData();
   }, [trasladoId]);
+
+  const [resolviendoGastoId, setResolviendoGastoId] = useState<string | null>(null);
+
+  async function handleVerComprobante(gastoId: string, ruta: string) {
+    setResolviendoGastoId(gastoId);
+    try {
+      const cliente = crearClienteNavegador();
+      const urlTemporal = await resolverUrlEvidencia(cliente, ruta, 60 * 30);
+      if (urlTemporal) {
+        window.open(urlTemporal, "_blank", "noopener,noreferrer");
+      } else {
+        setError("No se pudo generar el enlace temporal para ver el comprobante.");
+      }
+    } catch {
+      setError("No se pudo abrir el comprobante.");
+    } finally {
+      setResolviendoGastoId(null);
+    }
+  }
 
   async function handleAgregarGasto(e: React.FormEvent) {
     e.preventDefault();
@@ -134,9 +158,26 @@ export function CierreTrasladoDetails({
     setProcesando(true);
     try {
       const cliente = crearClienteNavegador() as any;
+      let comprobanteRutaSubida: string | null = null;
+
+      if (comprobanteArchivo) {
+        const { data: sesion } = await cliente.auth.getUser();
+        const authUserId = sesion?.user?.id || "conductor";
+        const extension = comprobanteArchivo.name.split(".").pop()?.toLowerCase() || "jpg";
+        const nombreLimpio = comprobanteArchivo.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`;
+        const ruta = `${authUserId}/${trasladoId}/gastos/${id}-${nombreLimpio}.${extension}`;
+
+        const { error: uploadError } = await cliente.storage.from("evidencia").upload(ruta, comprobanteArchivo, {
+          upsert: false,
+          contentType: comprobanteArchivo.type || "image/jpeg"
+        });
+        if (uploadError) throw uploadError;
+        comprobanteRutaSubida = ruta;
+      }
       
-      const finalDesc = comprobanteArchivo 
-        ? `[TICKET ADJUNTO] ${descGasto.trim() || labelGasto(tipoGasto)}`
+      const finalDesc = comprobanteRutaSubida 
+        ? `[COMPROBANTE_RUTA: ${comprobanteRutaSubida}] ${descGasto.trim() || labelGasto(tipoGasto)}`
         : descGasto.trim() || null;
 
       const { data, error: insertError } = await cliente
@@ -145,7 +186,8 @@ export function CierreTrasladoDetails({
           traslado_id: trasladoId,
           tipo: tipoGasto,
           monto: montoVal,
-          descripcion: finalDesc
+          descripcion: finalDesc,
+          comprobante_ruta: comprobanteRutaSubida || null
         })
         .select()
         .single();
@@ -153,11 +195,13 @@ export function CierreTrasladoDetails({
       if (insertError) throw insertError;
 
       if (data) {
+        const { ruta, texto } = extraerRutaComprobante(data.descripcion, data.comprobante_ruta);
         const nuevoGasto: GastoData = {
           id: data.id,
           tipo: data.tipo as GastoData["tipo"],
           monto: Number(data.monto),
-          descripcion: data.descripcion,
+          descripcion: texto || data.descripcion,
+          comprobante_ruta: ruta || comprobanteRutaSubida || null,
           registrado_en: data.registrado_en
         };
         setGastos((prev) => [nuevoGasto, ...prev]);
@@ -223,8 +267,25 @@ export function CierreTrasladoDetails({
             return;
           }
 
-          const finalDesc = comprobanteArchivo 
-            ? `[TICKET ADJUNTO] ${descGasto.trim() || labelGasto(tipoGasto)}`
+          let comprobanteRutaSubida: string | null = null;
+          if (comprobanteArchivo) {
+            const { data: sesion } = await cliente.auth.getUser();
+            const authUserId = sesion?.user?.id || "conductor";
+            const extension = comprobanteArchivo.name.split(".").pop()?.toLowerCase() || "jpg";
+            const nombreLimpio = comprobanteArchivo.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+            const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`;
+            const ruta = `${authUserId}/${trasladoId}/gastos/${id}-${nombreLimpio}.${extension}`;
+
+            const { error: uploadError } = await cliente.storage.from("evidencia").upload(ruta, comprobanteArchivo, {
+              upsert: false,
+              contentType: comprobanteArchivo.type || "image/jpeg"
+            });
+            if (uploadError) throw uploadError;
+            comprobanteRutaSubida = ruta;
+          }
+
+          const finalDesc = comprobanteRutaSubida 
+            ? `[COMPROBANTE_RUTA: ${comprobanteRutaSubida}] ${descGasto.trim() || labelGasto(tipoGasto)}`
             : descGasto.trim() || null;
 
           const { error: insertError } = await (cliente as any)
@@ -233,7 +294,8 @@ export function CierreTrasladoDetails({
               traslado_id: trasladoId,
               tipo: tipoGasto,
               monto: montoVal,
-              descripcion: finalDesc
+              descripcion: finalDesc,
+              comprobante_ruta: comprobanteRutaSubida || null
             });
           if (insertError) throw insertError;
           
@@ -722,7 +784,20 @@ export function CierreTrasladoDetails({
                 {gastos.map((g) => (
                   <div key={g.id} className="grid grid-cols-12 p-3 items-center">
                     <div className="col-span-4 flex flex-col">
-                      <span className="font-semibold text-text-primary truncate">{g.descripcion || "Sin descripción"}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-text-primary truncate">{g.descripcion || "Sin descripción"}</span>
+                        {g.comprobante_ruta && (
+                          <button
+                            type="button"
+                            onClick={() => handleVerComprobante(g.id, g.comprobante_ruta!)}
+                            disabled={resolviendoGastoId === g.id}
+                            className="inline-flex items-center gap-0.5 text-[9px] text-route-action font-semibold hover:underline cursor-pointer bg-transparent border-0 p-0 shrink-0"
+                            title="Ver ticket adjunto (enlace seguro temporal)"
+                          >
+                            <span>{resolviendoGastoId === g.id ? "⏳" : "📎 Ticket"}</span>
+                          </button>
+                        )}
+                      </div>
                       <span className="text-[9px] text-text-tertiary font-mono">
                         {new Date(g.registrado_en).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
                       </span>

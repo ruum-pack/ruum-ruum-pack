@@ -103,38 +103,50 @@ export function configurarStorageColaEvidencia(storage: EvidenceQueueStorage) {
  * de EvidenceQueueStorage para poder sustituir Preferences por SQLite o
  * IndexedDB sin cambiar el contrato que consume la pantalla de evidencia.
  */
+
+/**
+ * Lectura cruda sin filtro de usuario — uso interno para escrituras que
+ * deben preservar todos los usuarios en el dispositivo.
+ * Exportada solo para tests/ diagnóstico; la UI debe seguir usando leerColaEvidencia().
+ */
+export async function leerColaEvidenciaCompleta(): Promise<ItemColaEvidencia[]> {
+  return normalizarItemsCola(await storageColaEvidencia.read());
+}
+
 export async function encolarEvidencia(item: ItemColaEvidencia): Promise<void> {
   if (!item.usuarioId) throw new Error("evidence_queue_user_required");
-  const cola = await leerColaEvidencia(undefined, item.usuarioId);
+  const colaCompleta = await leerColaEvidenciaCompleta();
   const itemNormalizado = normalizarItemCola(item);
-  const sinDuplicados = cola.filter(
-    (existente) =>
-      existente.localId !== itemNormalizado.localId &&
-      !(
-        existente.trasladoId === itemNormalizado.trasladoId &&
-        existente.tipo === itemNormalizado.tipo &&
-        existente.angulo === itemNormalizado.angulo
-      ) &&
-      !(
-        Boolean(existente.sha256 && itemNormalizado.sha256) &&
-        existente.trasladoId === itemNormalizado.trasladoId &&
-        existente.sha256 === itemNormalizado.sha256
-      )
-  );
-  await storageColaEvidencia.write([...sinDuplicados, itemNormalizado]);
+  // Deduplicar SOLO contra items del mismo usuario + mismo traslado/tipo/ángulo/sha — nunca contra otros usuarios
+  const restantes = colaCompleta.filter((existente) => {
+    if (existente.localId === itemNormalizado.localId) return false;
+    if (existente.usuarioId !== itemNormalizado.usuarioId) return true;
+    const mismoSlot =
+      existente.trasladoId === itemNormalizado.trasladoId &&
+      existente.tipo === itemNormalizado.tipo &&
+      existente.angulo === itemNormalizado.angulo;
+    if (mismoSlot) return false;
+    const mismoSha =
+      Boolean(existente.sha256 && itemNormalizado.sha256) &&
+      existente.trasladoId === itemNormalizado.trasladoId &&
+      existente.sha256 === itemNormalizado.sha256;
+    if (mismoSha) return false;
+    return true;
+  });
+  await storageColaEvidencia.write([...restantes, itemNormalizado]);
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("ruum:evidencia-pendiente"));
 }
 
 export async function leerColaEvidencia(trasladoId?: string, usuarioIdExplicito?: string): Promise<ItemColaEvidencia[]> {
-  const cola = normalizarItemsCola(await storageColaEvidencia.read());
+  const cola = await leerColaEvidenciaCompleta();
   const usuarioId = usuarioIdExplicito ?? await usuarioActualId();
   const porUsuario = usuarioId ? cola.filter((item) => item.usuarioId === usuarioId) : cola;
   return trasladoId ? porUsuario.filter((item) => item.trasladoId === trasladoId) : porUsuario;
 }
 
 export async function quitarDeColaEvidencia(localId: string): Promise<void> {
-  const cola = await leerColaEvidencia();
-  const restante = cola.filter((item) => item.localId !== localId);
+  const colaCompleta = await leerColaEvidenciaCompleta();
+  const restante = colaCompleta.filter((item) => item.localId !== localId);
   await storageColaEvidencia.write(restante);
 }
 
@@ -148,8 +160,37 @@ export async function leerColaEvidenciaDeTraslado(trasladoId: string): Promise<I
   return cola.filter((item) => item.trasladoId === trasladoId);
 }
 
-export async function limpiarColaEvidencia(): Promise<void> {
+export async function limpiarColaEvidenciaDeUsuario(usuarioId: string): Promise<void> {
+  const colaCompleta = await leerColaEvidenciaCompleta();
+  const restante = colaCompleta.filter((item) => item.usuarioId !== usuarioId);
+  await storageColaEvidencia.write(restante);
+}
+
+export async function limpiarColaEvidenciaCompleta(): Promise<void> {
   await storageColaEvidencia.clear();
+}
+
+/**
+ * Limpieza segura: por defecto solo borra evidencia del usuario actual,
+ * nunca de otros usuarios en el mismo dispositivo. Pasar `null` fuerza borrado
+ * total (uso exclusivo en force-logout con autorización explícita).
+ */
+export async function limpiarColaEvidencia(usuarioIdExplicito?: string | null): Promise<void> {
+  if (usuarioIdExplicito !== undefined) {
+    if (usuarioIdExplicito === null) {
+      await limpiarColaEvidenciaCompleta();
+      return;
+    }
+    await limpiarColaEvidenciaDeUsuario(usuarioIdExplicito);
+    return;
+  }
+  const usuarioId = await usuarioActualId();
+  if (usuarioId) {
+    await limpiarColaEvidenciaDeUsuario(usuarioId);
+  } else {
+    // Sin sesión (tests / preview sin Supabase): clear total por compatibilidad
+    await limpiarColaEvidenciaCompleta();
+  }
 }
 
 function extensionDesdeDataUrl(dataUrl: string) {
@@ -207,11 +248,11 @@ function puedeReintentarse(item: ItemColaEvidencia, ahoraMs = Date.now()) {
 }
 
 async function registrarIntentoFallido(item: ItemColaEvidencia, error: unknown) {
-  const cola = await leerColaEvidencia();
+  const colaCompleta = await leerColaEvidenciaCompleta();
   const codigo = errorCode(error);
   const ahora = new Date().toISOString();
   await storageColaEvidencia.write(
-    cola.map((existente) =>
+    colaCompleta.map((existente) =>
       existente.localId === item.localId
         ? {
             ...existente,

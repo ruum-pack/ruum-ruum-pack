@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { MOTIVOS_RECHAZO, type MotivoRechazo } from "@ruum/shared/constants";
 import { nombreVehiculo, type PasaporteRow } from "./trips-utils";
 
@@ -10,6 +11,16 @@ export function RejectTripDialog({
   onClose: () => void;
   onConfirm: (motivo: MotivoRechazo) => void;
 }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (viaje) {
+      // Foco programático controlado — evita autoFocus y respeta prefers-reduced-motion / TalkBack
+      const id = requestAnimationFrame(() => closeRef.current?.focus());
+      return () => cancelAnimationFrame(id);
+    }
+  }, [viaje]);
+
   if (!viaje) return null;
 
   return (
@@ -20,11 +31,11 @@ export function RejectTripDialog({
         onClick={onClose}
         className="absolute inset-0 w-full h-full bg-transparent border-none cursor-default"
       />
-      <div
-        role="dialog"
+      <dialog
+        open
         aria-modal="true"
         aria-labelledby="rechazo-viaje-titulo"
-        className="relative w-full max-w-md rounded-t-3xl border-t border-border/30 bg-surface-elevated p-6 shadow-2xl animate-in slide-in-from-bottom-5 duration-200"
+        className="relative w-full max-w-md rounded-t-3xl border-t border-border/30 bg-surface-elevated p-6 shadow-2xl animate-in slide-in-from-bottom-5 duration-200 m-0 block"
       >
         <div className="flex items-start justify-between gap-4 pb-3 border-b border-border/15">
           <div>
@@ -36,9 +47,9 @@ export function RejectTripDialog({
             </p>
           </div>
           <button
+            ref={closeRef}
             type="button"
             onClick={onClose}
-            autoFocus
             className="min-h-11 px-4 py-2 rounded-xl border border-border/40 bg-surface hover:bg-surface-elevated font-body text-sm font-bold text-text-secondary hover:text-text-primary transition-colors cursor-pointer focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
           >
             Cerrar
@@ -56,7 +67,7 @@ export function RejectTripDialog({
             </button>
           ))}
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

@@ -25,9 +25,9 @@ export function DraftRecoveryModal({
     : null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
-      role="dialog"
+    <dialog
+      open
+      className="fixed inset-0 z-50 m-0 flex h-[100dvh] w-[100vw] max-h-none max-w-none items-center justify-center border-0 bg-overlay/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
       aria-modal="true"
       aria-labelledby="modal-borrador-titulo"
     >
@@ -65,6 +65,6 @@ export function DraftRecoveryModal({
           </Button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

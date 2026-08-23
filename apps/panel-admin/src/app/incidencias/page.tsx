@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
-import { listarIncidenciasAdmin } from "@ruum/api/services";
+import { listarIncidenciasAdmin, extraerRutaIncidencia, resolverUrlEvidencia } from "@ruum/api/services";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { AdminPageHeader, AdminPanel, limpiarParamsFiltroUrl } from "../admin-ui";
@@ -277,13 +277,37 @@ function IncidenciaCard({
   const sla = slaIncidencia(incidencia, ahora);
   const estado = incidencia.resuelta ? "resuelta" : "abierta";
   const trasladoHref = incidencia.traslado_id ? `/viajes/${incidencia.traslado_id}` : "/viajes";
+  const { ruta: evidenciaRuta, nombre: evidenciaNombre, textoLimpio } = extraerRutaIncidencia(incidencia.descripcion);
+  const [cargandoEvidencia, setCargandoEvidencia] = useState(false);
+
+  async function handleVerEvidencia() {
+    if (!evidenciaRuta) return;
+    setCargandoEvidencia(true);
+    try {
+      const cliente = crearClienteNavegador();
+      const urlTemporal = await resolverUrlEvidencia(cliente, evidenciaRuta, 60 * 30);
+      if (urlTemporal) {
+        window.open(urlTemporal, "_blank", "noopener,noreferrer");
+      } else {
+        onAccion("No se pudo generar la URL temporal de la evidencia.");
+      }
+    } catch {
+      onAccion("Error al abrir la evidencia.");
+    } finally {
+      setCargandoEvidencia(false);
+    }
+  }
+
   return (
     <AdminPanel className="p-5 sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="font-mono-ruum text-xs uppercase tracking-wide text-text-tertiary">Caso {incidencia.id.slice(0, 16).toUpperCase()}</p>
           <h2 className="mt-1 font-display text-xl font-semibold capitalize text-ink">{etiquetaTipo(incidencia.tipo)}</h2>
-          <p className="mt-2 max-w-3xl font-body text-sm text-text-secondary">{incidencia.descripcion}</p>
+          <p className="mt-2 max-w-3xl font-body text-sm text-text-secondary whitespace-pre-line">{textoLimpio || incidencia.descripcion}</p>
+          {evidenciaNombre && (
+            <p className="mt-1 font-body text-xs text-text-tertiary">📎 Evidencia: {evidenciaNombre}</p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end">
           <BadgeIncidencia className={CLASE_BADGE.estado[estado]}>{incidencia.resuelta ? "Resuelta" : "Abierta"}</BadgeIncidencia>
@@ -340,11 +364,22 @@ function IncidenciaCard({
           <AdminButton variant="quiet" type="button" onClick={() => onAccion("Escalamiento registrado en vista")}>Escalar</AdminButton>
           <AdminButton variant="quiet" type="button" onClick={() => onAccion("Resolución preparada en vista")}>Resolver</AdminButton>
           <AdminButton variant="quiet" type="button" onClick={() => onAccion("Cierre preparado en vista")}>Cerrar</AdminButton>
-          <AdminTooltip label="Este registro no tiene evidencia adjunta en la bandeja actual.">
-            <span>
-              <AdminButton variant="quiet" type="button" disabled>Vista previa evidencia</AdminButton>
-            </span>
-          </AdminTooltip>
+          {evidenciaRuta ? (
+            <AdminButton
+              variant="secondary"
+              type="button"
+              loading={cargandoEvidencia}
+              onClick={() => void handleVerEvidencia()}
+            >
+              Vista previa evidencia
+            </AdminButton>
+          ) : (
+            <AdminTooltip label="Este registro no tiene evidencia adjunta en la bandeja actual.">
+              <span>
+                <AdminButton variant="quiet" type="button" disabled>Vista previa evidencia</AdminButton>
+              </span>
+            </AdminTooltip>
+          )}
         </div>
       </div>
 

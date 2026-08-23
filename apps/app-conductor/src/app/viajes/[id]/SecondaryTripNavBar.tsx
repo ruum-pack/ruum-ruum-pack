@@ -6,6 +6,7 @@ import { ReportarIncidencia } from "./ReportarIncidencia";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import type { Database } from "@ruum/shared/types";
 import { Aviso } from "@ruum/ui";
+import { extraerRutaComprobante, resolverUrlEvidencia } from "@ruum/api/services";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 export type GastoTipoDb = "combustible" | "caseta" | "maniobra" | "estadia" | "penalizacion" | "otro";
@@ -15,7 +16,7 @@ interface GastoRegistro {
   tipo: GastoTipoDb;
   monto: number;
   descripcion: string | null;
-  comprobante_url: string | null;
+  comprobante_ruta: string | null;
   registrado_en: string;
 }
 
@@ -40,22 +41,11 @@ function obtenerEtiquetaGasto(tipo: GastoTipoDb): string {
   }
 }
 
-function extraerUrlComprobante(descripcion: string | null): { url: string | null; texto: string | null } {
-  if (!descripcion) return { url: null, texto: null };
-  const match = descripcion.match(/\[COMPROBANTE:\s*([^\]]+)\]/);
-  if (match && match[1]) {
-    const url = match[1].trim();
-    const texto = descripcion.replace(match[0], "").trim();
-    return { url, texto: texto || null };
-  }
-  return { url: null, texto: descripcion };
-}
-
 async function subirComprobanteGasto(
   cliente: ReturnType<typeof crearClienteNavegador>,
   trasladoId: string,
   archivo: File
-): Promise<{ url: string | null; ruta: string }> {
+): Promise<{ ruta: string }> {
   if (archivo.size > MAX_COMPROBANTE_BYTES) {
     throw new Error("El comprobante debe pesar máximo 10 MB.");
   }
@@ -68,26 +58,17 @@ async function subirComprobanteGasto(
   const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`;
   const ruta = `${authUserId}/${trasladoId}/gastos/${id}-${nombreLimpio}.${extension}`;
 
-  try {
-    const { error: uploadError } = await cliente.storage.from(BUCKET_EVIDENCIA).upload(ruta, archivo, {
-      upsert: false,
-      contentType: archivo.type || "image/jpeg"
-    });
+  const { error: uploadError } = await cliente.storage.from(BUCKET_EVIDENCIA).upload(ruta, archivo, {
+    upsert: false,
+    contentType: archivo.type || "image/jpeg"
+  });
 
-    if (uploadError) {
-      console.warn("Aviso al subir comprobante a storage:", uploadError);
-      return { url: null, ruta };
-    }
-
-    const { data: signedData } = await cliente.storage.from(BUCKET_EVIDENCIA).createSignedUrl(ruta, 60 * 60 * 24 * 30);
-    return {
-      url: signedData?.signedUrl || null,
-      ruta
-    };
-  } catch (err) {
-    console.warn("Excepción al subir comprobante:", err);
-    return { url: null, ruta };
+  if (uploadError) {
+    console.warn("Aviso al subir comprobante a storage:", uploadError);
+    throw uploadError;
   }
+
+  return { ruta };
 }
 
 export function SecondaryTripNavBar({
@@ -130,6 +111,8 @@ export function SecondaryTripNavBar({
     }
   }, [archivoComprobante]);
 
+  const [resolviendoGastoId, setResolviendoGastoId] = useState<string | null>(null);
+
   // Fetch registered expenses on load
   useEffect(() => {
     async function cargarGastos() {
@@ -149,13 +132,13 @@ export function SecondaryTripNavBar({
         if (data) {
           setGastosList(
             (data as any[]).map((g) => {
-              const { url, texto } = extraerUrlComprobante(g.descripcion);
+              const { ruta, texto } = extraerRutaComprobante(g.descripcion, g.comprobante_ruta);
               return {
                 id: String(g.id),
                 tipo: (g.tipo as GastoTipoDb) || "otro",
                 monto: Number(g.monto || 0),
                 descripcion: texto || g.descripcion || null,
-                comprobante_url: url || g.comprobante_url || null,
+                comprobante_ruta: ruta,
                 registrado_en: g.registrado_en || g.created_at || new Date().toISOString()
               };
             })
@@ -190,6 +173,23 @@ export function SecondaryTripNavBar({
     if (archivoInputRef.current) archivoInputRef.current.value = "";
   }
 
+  async function handleVerComprobante(gastoId: string, ruta: string) {
+    setResolviendoGastoId(gastoId);
+    try {
+      const cliente = crearClienteNavegador();
+      const urlTemporal = await resolverUrlEvidencia(cliente, ruta, 60 * 30);
+      if (urlTemporal) {
+        window.open(urlTemporal, "_blank", "noopener,noreferrer");
+      } else {
+        setErrorGasto("No se pudo generar el enlace seguro para ver el comprobante.");
+      }
+    } catch {
+      setErrorGasto("No se pudo abrir el comprobante.");
+    } finally {
+      setResolviendoGastoId(null);
+    }
+  }
+
   async function handleAgregarGasto(e: React.FormEvent) {
     e.preventDefault();
     const montoNum = parseFloat(monto);
@@ -204,22 +204,23 @@ export function SecondaryTripNavBar({
 
     try {
       const cliente = crearClienteNavegador();
-      let comprobanteUrlSubido: string | null = null;
+      let comprobanteRutaSubida: string | null = null;
 
-      // Subir archivo a Supabase Storage si se adjuntó
+      // Subir archivo a Supabase Storage si se adjuntó (solo retorna la ruta privada)
       if (archivoComprobante) {
         try {
           const resultado = await subirComprobanteGasto(cliente, trasladoId, archivoComprobante);
-          comprobanteUrlSubido = resultado.url;
+          comprobanteRutaSubida = resultado.ruta;
         } catch (subidaErr: any) {
           console.warn("Error al subir archivo:", subidaErr);
+          throw new Error("No se pudo subir el archivo de comprobante.");
         }
       }
 
-      // Construir descripción incluyendo etiqueta del comprobante si existe
+      // Construir descripción estructurada sin signed URLs
       let descripcionFinal = notas.trim();
-      if (comprobanteUrlSubido) {
-        descripcionFinal = `[COMPROBANTE: ${comprobanteUrlSubido}] ${descripcionFinal}`.trim();
+      if (comprobanteRutaSubida) {
+        descripcionFinal = `[COMPROBANTE_RUTA: ${comprobanteRutaSubida}] ${descripcionFinal}`.trim();
       } else if (archivoComprobante) {
         descripcionFinal = `[COMPROBANTE ADJUNTO: ${archivoComprobante.name}] ${descripcionFinal}`.trim();
       }
@@ -230,7 +231,8 @@ export function SecondaryTripNavBar({
           traslado_id: trasladoId,
           tipo: tipoGasto,
           monto: montoNum,
-          descripcion: descripcionFinal || null
+          descripcion: descripcionFinal || null,
+          comprobante_ruta: comprobanteRutaSubida || null
         })
         .select("*")
         .single();
@@ -240,13 +242,13 @@ export function SecondaryTripNavBar({
       }
 
       if (data) {
-        const { url, texto } = extraerUrlComprobante(data.descripcion);
+        const { ruta, texto } = extraerRutaComprobante(data.descripcion, data.comprobante_ruta);
         const nuevoGasto: GastoRegistro = {
           id: String(data.id),
           tipo: data.tipo as GastoTipoDb,
           monto: Number(data.monto || montoNum),
           descripcion: texto || (notas.trim() || null),
-          comprobante_url: url || comprobanteUrlSubido || null,
+          comprobante_ruta: ruta || comprobanteRutaSubida || null,
           registrado_en: data.registrado_en || new Date().toISOString()
         };
         setGastosList((prev) => [nuevoGasto, ...prev]);
@@ -513,20 +515,20 @@ export function SecondaryTripNavBar({
                           <span className="font-bold text-text-primary">
                             {obtenerEtiquetaGasto(g.tipo)}
                           </span>
-                          {g.comprobante_url && (
-                            <a
-                              href={g.comprobante_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-[10px] text-route-action font-semibold hover:underline"
-                              title="Ver comprobante adjunto"
+                          {g.comprobante_ruta && (
+                            <button
+                              type="button"
+                              onClick={() => handleVerComprobante(g.id, g.comprobante_ruta!)}
+                              disabled={resolviendoGastoId === g.id}
+                              className="inline-flex items-center gap-1 text-[10px] text-route-action font-semibold hover:underline cursor-pointer bg-transparent border-0 p-0 disabled:opacity-50"
+                              title="Ver comprobante adjunto (genera enlace seguro temporal)"
                             >
                               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
                                 <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                               </svg>
-                              <span>Ticket</span>
-                            </a>
+                              <span>{resolviendoGastoId === g.id ? "Cargando…" : "Ticket"}</span>
+                            </button>
                           )}
                         </div>
                         {g.descripcion && (

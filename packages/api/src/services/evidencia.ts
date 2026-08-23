@@ -60,6 +60,86 @@ export function rutaEvidenciaDesdeUrl(valor: string | null | undefined): string 
   }
 }
 
+/**
+ * Extrae la ruta privada de storage para un comprobante de gasto, soportando
+ * la columna dedicada 'comprobante_ruta', tags estructurados '[COMPROBANTE_RUTA: ...]'
+ * y migrando limpiamente registros legados con '[COMPROBANTE: ...]'.
+ */
+export function extraerRutaComprobante(
+  descripcion: string | null | undefined,
+  comprobanteRutaCol?: string | null | undefined
+): { ruta: string | null; texto: string | null } {
+  if (comprobanteRutaCol) {
+    const rutaLimpia = rutaEvidenciaDesdeUrl(comprobanteRutaCol) ?? comprobanteRutaCol;
+    let texto = descripcion || null;
+    if (texto) {
+      texto = texto
+        .replace(/\[COMPROBANTE_RUTA:\s*[^\]]+\]/g, "")
+        .replace(/\[COMPROBANTE:\s*[^\]]+\]/g, "")
+        .trim() || null;
+    }
+    return { ruta: rutaLimpia, texto };
+  }
+
+  if (!descripcion) return { ruta: null, texto: null };
+
+  const matchRuta = descripcion.match(/\[COMPROBANTE_RUTA:\s*([^\]]+)\]/);
+  if (matchRuta && matchRuta[1]) {
+    const ruta = matchRuta[1].trim();
+    const texto = descripcion.replace(matchRuta[0], "").trim() || null;
+    return { ruta: rutaEvidenciaDesdeUrl(ruta) ?? ruta, texto };
+  }
+
+  const matchLegado = descripcion.match(/\[COMPROBANTE:\s*([^\]]+)\]/);
+  if (matchLegado && matchLegado[1]) {
+    const raw = matchLegado[1].trim();
+    const ruta = rutaEvidenciaDesdeUrl(raw) ?? (raw.startsWith("http") ? null : raw);
+    const texto = descripcion.replace(matchLegado[0], "").trim() || null;
+    return { ruta, texto };
+  }
+
+  return { ruta: null, texto: descripcion };
+}
+
+/**
+ * Extrae la ruta privada de evidencia y el nombre del archivo en la descripción
+ * de una incidencia, sanitizando y eliminando cualquier URL firmada histórica.
+ */
+export function extraerRutaIncidencia(descripcion: string | null | undefined): {
+  ruta: string | null;
+  nombre: string | null;
+  textoLimpio: string;
+} {
+  if (!descripcion) return { ruta: null, nombre: null, textoLimpio: "" };
+
+  let ruta: string | null = null;
+  let nombre: string | null = null;
+
+  const matchRuta = descripcion.match(/Ruta:\s*([^\n\r]+)/i);
+  if (matchRuta && matchRuta[1]) {
+    ruta = rutaEvidenciaDesdeUrl(matchRuta[1].trim()) ?? matchRuta[1].trim();
+  }
+
+  const matchNombre = descripcion.match(/Evidencia adjunta:\s*([^\n\r]+)/i);
+  if (matchNombre && matchNombre[1]) {
+    nombre = matchNombre[1].trim();
+  }
+
+  if (!ruta) {
+    const matchUrl = descripcion.match(/URL temporal:\s*([^\n\r\s]+)/i);
+    if (matchUrl && matchUrl[1]) {
+      ruta = rutaEvidenciaDesdeUrl(matchUrl[1].trim());
+    }
+  }
+
+  const textoLimpio = descripcion
+    .replace(/\n*URL temporal:\s*https?:\/\/[^\n\r]+/gi, "")
+    .replace(/https?:\/\/[^\s]+\/storage\/v1\/object\/sign\/[^\s]+/gi, "")
+    .trim();
+
+  return { ruta, nombre, textoLimpio };
+}
+
 export async function resolverUrlEvidencia(
   cliente: Cliente,
   storagePathOrUrl: string | null | undefined,

@@ -2,8 +2,8 @@ import { detenerTrackingNativo, limpiarCredencialesTrackingNativo, obtenerEstado
 import { desactivarPushDelDispositivo } from "./push-notifications";
 import { limpiarCacheViajeActivo } from "./offline-active-trip-cache";
 import { limpiarBorradorRegistroLocal } from "./borrador-registro";
-import { crearClienteNavegador } from "./supabase-browser";
-import { contarColaEvidencia, limpiarColaEvidencia } from "./cola-offline";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "./supabase-browser";
+import { contarColaEvidencia, limpiarColaEvidencia, limpiarColaEvidenciaCompleta } from "./cola-offline";
 import { limpiarColaTelemetria } from "./cola-telemetria-offline";
 import { recordOperationalEvent } from "./observability";
 
@@ -55,6 +55,17 @@ export async function limpiarSesionIntegral(options: { force?: boolean; autoriza
     });
   }
 
+  // Capturar usuario antes de signOut para limpieza scoped (preserva cola de otros usuarios en el dispositivo)
+  let userIdAntes: string | null = null;
+  if (tieneSupabaseConfigurado()) {
+    try {
+      const { data } = await crearClienteNavegador().auth.getUser();
+      userIdAntes = data.user?.id ?? null;
+    } catch {
+      userIdAntes = null;
+    }
+  }
+
   const errores: unknown[] = [];
   if (soportaTrackingNativo()) {
     try { await detenerTrackingNativo(); } catch (e) { errores.push(e); }
@@ -63,7 +74,16 @@ export async function limpiarSesionIntegral(options: { force?: boolean; autoriza
   try { await desactivarPushDelDispositivo(); } catch (e) { errores.push(e); }
   try { await crearClienteNavegador().auth.signOut({ scope: "local" }); } catch (e) { errores.push(e); }
   try { await limpiarCacheViajeActivo(); } catch (e) { errores.push(e); }
-  try { await limpiarColaEvidencia(); } catch (e) { errores.push(e); }
+  try {
+    if (options.force && hasPending) {
+      // Force autorizado: solo borra del usuario que hace logout, nunca de otros salvo que se pase null explícitamente
+      if (userIdAntes) await limpiarColaEvidencia(userIdAntes);
+      else await limpiarColaEvidenciaCompleta();
+    } else {
+      if (userIdAntes) await limpiarColaEvidencia(userIdAntes);
+      else await limpiarColaEvidencia();
+    }
+  } catch (e) { errores.push(e); }
   try { await limpiarColaTelemetria(); } catch (e) { errores.push(e); }
   limpiarBorradorRegistroLocal();
   if (typeof window !== "undefined") {

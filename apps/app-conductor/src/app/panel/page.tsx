@@ -61,6 +61,7 @@ export default function PaginaPanel() {
   const [estaOnline, setEstaOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
+  const [verMasAbierto, setVerMasAbierto] = useState(false);
 
   useEffect(() => {
     const actualizar = () => setEstaOnline(navigator.onLine);
@@ -95,22 +96,7 @@ export default function PaginaPanel() {
     recargar
   } = usePanelData();
 
-  if (enRevision) {
-    return (
-      <EstadoRevisionConductor
-        conductorId={enRevision.conductorId}
-        solicitudId={enRevision.solicitudId}
-        nombre={enRevision.nombre}
-        documentosIniciales={enRevision.documentos}
-        estadoExpediente={enRevision.estado}
-        enviadoEn={enRevision.enviadoEn}
-        onSalir={() => void cerrarSesion()}
-      />
-    );
-  }
-
   const esDisponible = disponibilidad === "disponible";
-  const [verMasAbierto, setVerMasAbierto] = useState(false);
   const alCambiarDisponibilidad = () => {
     if (disponibilidad === "en_viaje" || persistiendoDisponibilidad) return;
     const nuevoEstado = esDisponible ? "no_disponible" : "disponible";
@@ -200,6 +186,20 @@ export default function PaginaPanel() {
     );
     return () => navigator.geolocation.clearWatch(id);
   }, [disponibilidad, viajeActivoPrincipal]);
+
+  if (enRevision) {
+    return (
+      <EstadoRevisionConductor
+        conductorId={enRevision.conductorId}
+        solicitudId={enRevision.solicitudId}
+        nombre={enRevision.nombre}
+        documentosIniciales={enRevision.documentos}
+        estadoExpediente={enRevision.estado}
+        enviadoEn={enRevision.enviadoEn}
+        onSalir={() => void cerrarSesion()}
+      />
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-between min-h-[calc(100vh-100px)] lg:max-w-5xl">

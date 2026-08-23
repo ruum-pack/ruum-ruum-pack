@@ -178,9 +178,9 @@ export function PanelOperationalHealth({
                     {Row}
                   </Link>
                 ) : (
-                  <div className="mx-1 rounded-xl" aria-label={`${it.label}: ${it.value}`} role="status">
+                  <output className="mx-1 rounded-xl block" aria-label={`${it.label}: ${it.value}`}>
                     {Row}
-                  </div>
+                  </output>
                 )}
               </li>
             );

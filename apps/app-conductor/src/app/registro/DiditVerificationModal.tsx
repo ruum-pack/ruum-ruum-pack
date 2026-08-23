@@ -56,7 +56,7 @@ export function DiditVerificationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:py-10 bg-black/60 backdrop-blur-xs" role="dialog" aria-modal="true" aria-labelledby="titulo-didit">
+    <dialog open className="fixed inset-0 z-50 m-0 flex h-[100dvh] w-[100vw] max-h-none max-w-none items-center justify-center border-0 bg-black/60 px-4 py-6 backdrop-blur-xs sm:py-10" aria-modal="true" aria-labelledby="titulo-didit">
       <div className="w-full max-w-xl bg-surface rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between border-b border-border p-4 shrink-0">
           <div className="flex items-center gap-2">
@@ -146,6 +146,6 @@ export function DiditVerificationModal({
           </div>
         )}
       </div>
-    </div>
+    </dialog>
   );
 }

@@ -210,7 +210,7 @@ export default function PaginaCuenta() {
 
       {/* Bottom sheet confirmación — evita tap accidental cerca de bottom nav */}
       {sheetAbierto && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-labelledby="titulo-cerrar-sesion-sheet">
+        <dialog open className="fixed inset-0 z-50 m-0 flex h-[100dvh] w-[100vw] max-h-none max-w-none items-end justify-center border-0 bg-transparent p-0" aria-modal="true" aria-labelledby="titulo-cerrar-sesion-sheet">
           <button type="button" className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={() => setSheetAbierto(false)} aria-label="Cerrar diálogo" />
           <div className="relative w-full max-w-md rounded-t-[1.75rem] border-t border-border/40 bg-surface-elevated p-5 pb-[calc(20px+env(safe-area-inset-bottom))] shadow-2xl animate-slideUp">
             <div className="mx-auto h-1 w-10 rounded-full bg-border/60 mb-4" aria-hidden />
@@ -234,7 +234,7 @@ export default function PaginaCuenta() {
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

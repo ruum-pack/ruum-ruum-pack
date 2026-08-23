@@ -18,7 +18,10 @@ import {
   encolarEvidencia,
   InMemoryEvidenceStorage,
   leerColaEvidencia,
+  leerColaEvidenciaCompleta,
   leerColaEvidenciaDeTraslado,
+  limpiarColaEvidencia,
+  limpiarColaEvidenciaDeUsuario,
   quitarDeColaEvidencia,
   sincronizarColaEvidencia,
   type EvidenceQueueStorage,
@@ -239,5 +242,96 @@ describe("cola offline de evidencia", () => {
     configurarStorageColaEvidencia(storageConFallo);
 
     await expect(encolarEvidencia(item())).rejects.toThrow("storage lleno");
+  });
+
+  describe("regresión P1 - cola multiusuario no debe borrar datos de otros usuarios", () => {
+    it("preserva cola completa en lectura cruda y filtrada por usuario", async () => {
+      await encolarEvidencia(item({ usuarioId: "user-a", localId: "local-a", trasladoId: "t1", angulo: "frontal" }));
+      await encolarEvidencia(item({ usuarioId: "user-b", localId: "local-b", trasladoId: "t1", angulo: "frontal" }));
+
+      // lectura cruda debe ver ambos aunque compartan traslado/tipo/angulo pero sean usuarios distintos
+      const completa = await leerColaEvidenciaCompleta();
+      expect(completa).toHaveLength(2);
+      expect(completa.map((i) => i.usuarioId).sort()).toEqual(["user-a", "user-b"]);
+
+      // lectura filtrada explícita por usuario
+      expect(await leerColaEvidencia(undefined, "user-a")).toMatchObject([{ localId: "local-a" }]);
+      expect(await leerColaEvidencia(undefined, "user-b")).toMatchObject([{ localId: "local-b" }]);
+    });
+
+    it("encolar dedica deduplicación por usuario+traslado+tipo+angulo, no global", async () => {
+      await encolarEvidencia(item({ usuarioId: "user-a", localId: "local-a1", trasladoId: "t1", tipo: "inicial", angulo: "frontal" }));
+      await encolarEvidencia(item({ usuarioId: "user-b", localId: "local-b1", trasladoId: "t1", tipo: "inicial", angulo: "frontal" }));
+      // mismo slot pero distinto usuario no debe deduplicar
+      expect(await leerColaEvidenciaCompleta()).toHaveLength(2);
+
+      // mismo usuario + mismo slot sí debe reemplazar
+      await encolarEvidencia(item({ usuarioId: "user-a", localId: "local-a2", trasladoId: "t1", tipo: "inicial", angulo: "frontal" }));
+      const completa = await leerColaEvidenciaCompleta();
+      expect(completa).toHaveLength(2);
+      expect(completa.filter((i) => i.usuarioId === "user-a")).toMatchObject([{ localId: "local-a2" }]);
+      expect(completa.filter((i) => i.usuarioId === "user-b")).toMatchObject([{ localId: "local-b1" }]);
+    });
+
+    it("quitarDeColaEvidencia solo remueve ese localId y preserva otros usuarios", async () => {
+      await encolarEvidencia(item({ usuarioId: "user-a", localId: "local-a", trasladoId: "t1" }));
+      await encolarEvidencia(item({ usuarioId: "user-b", localId: "local-b", trasladoId: "t2" }));
+
+      await quitarDeColaEvidencia("local-a");
+
+      const completa = await leerColaEvidenciaCompleta();
+      expect(completa).toHaveLength(1);
+      expect(completa[0]).toMatchObject({ localId: "local-b", usuarioId: "user-b" });
+    });
+
+    it("registrarIntentoFallido (vía sincronizar) preserva cola de otro usuario", async () => {
+      await encolarEvidencia(item({ usuarioId: "user-a", localId: "local-a", trasladoId: "t1" }));
+      await encolarEvidencia(item({ usuarioId: "user-b", localId: "local-b", trasladoId: "t2" }));
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+      // Cliente mock autenticado como user-a intentará sincronizar solo user-a si hubiera filtro, pero en test sin Supabase config, sincroniza ambos;
+      // Para forzar el caso multiusuario, verificamos que tras fallo, el item de user-b sigue intacto (retryCount 0)
+      // Forzamos fallo de storage para el primer item: usamos mock que falla en upload
+      const clienteFalla = clienteSupabaseMock({ uploadError: new Error("sin red") });
+      // En entorno sin Supabase config, leerColaEvidencia() devuelve todo, así que sincroniza el primero y falla
+      // Verificamos que registrarIntentoFallido no borró user-b
+      await expect(sincronizarColaEvidencia(clienteFalla.cliente as never)).rejects.toThrow("sin red");
+
+      const completa = await leerColaEvidenciaCompleta();
+      expect(completa).toHaveLength(2);
+      const a = completa.find((i) => i.localId === "local-a");
+      const b = completa.find((i) => i.localId === "local-b");
+      expect(a).toMatchObject({ retryCount: 1 });
+      expect(b).toMatchObject({ retryCount: 0, usuarioId: "user-b" });
+    });
+
+    it("sincronizar y quitar de user-a no borra user-b (flujo completo)", async () => {
+      await encolarEvidencia(item({ usuarioId: "user-a", localId: "local-a", trasladoId: "t1" }));
+      await encolarEvidencia(item({ usuarioId: "user-b", localId: "local-b", trasladoId: "t2" }));
+
+      // Simular sincronización exitosa solo de user-a: quitar manualmente local-a
+      await quitarDeColaEvidencia("local-a");
+      expect(await leerColaEvidenciaCompleta()).toMatchObject([{ localId: "local-b" }]);
+
+      // Verificar que deduplicación sha también respeta usuario
+      await encolarEvidencia(item({ usuarioId: "user-a", localId: "local-a2", trasladoId: "t-shared", sha256: "abc123" }));
+      await encolarEvidencia(item({ usuarioId: "user-b", localId: "local-b2", trasladoId: "t-shared", sha256: "abc123" }));
+      expect(await leerColaEvidenciaCompleta()).toHaveLength(3); // local-b, local-a2, local-b2 (no deduplica cross-user)
+    });
+
+    it("limpiarColaEvidenciaDeUsuario solo borra de ese usuario", async () => {
+      await encolarEvidencia(item({ usuarioId: "user-a", localId: "local-a" }));
+      await encolarEvidencia(item({ usuarioId: "user-b", localId: "local-b" }));
+      await limpiarColaEvidenciaDeUsuario("user-a");
+      expect(await leerColaEvidenciaCompleta()).toMatchObject([{ usuarioId: "user-b" }]);
+      await limpiarColaEvidenciaDeUsuario("user-b");
+      expect(await leerColaEvidenciaCompleta()).toEqual([]);
+    });
+
+    it("limpiarColaEvidencia sin args en modo test hace clear total (compatibilidad)", async () => {
+      await encolarEvidencia(item({ usuarioId: "user-a", localId: "local-a" }));
+      await limpiarColaEvidencia();
+      expect(await leerColaEvidenciaCompleta()).toEqual([]);
+    });
   });
 });

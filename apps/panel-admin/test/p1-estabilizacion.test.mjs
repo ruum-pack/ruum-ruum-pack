@@ -302,3 +302,31 @@ test('incidencias usa bandeja operativa sin filtro duplicado',()=>{
   assert.match(dashboard,/incidenciasPorTipo/);
   assert.match(dashboard,/href=\{`\/incidencias\?tipo=\$\{tipo\}`\}/);
 });
+test('P1 storage evidencia nunca persiste signed URLs en datos operativos',()=>{
+  const navbar=read('apps/app-conductor/src/app/viajes/[id]/SecondaryTripNavBar.tsx');
+  const incidencia=read('apps/app-conductor/src/app/viajes/[id]/ReportarIncidencia.tsx');
+  const cierre=read('apps/app-conductor/src/app/viajes/[id]/CierreTrasladoDetails.tsx');
+  const servicio=read('packages/api/src/services/evidencia.ts');
+  const migration=read('supabase/migrations/20260823000100_p1_sanear_signed_urls_datos_operativos.sql');
+
+  assert.match(navbar,/extraerRutaComprobante/);
+  assert.match(navbar,/comprobante_ruta/);
+  assert.doesNotMatch(navbar,/createSignedUrl\(/);
+  assert.doesNotMatch(navbar,/\[COMPROBANTE: http/);
+
+  assert.match(incidencia,/Evidencia adjunta:/);
+  assert.match(incidencia,/Ruta:/);
+  assert.doesNotMatch(incidencia,/URL temporal:/);
+  assert.doesNotMatch(incidencia,/createSignedUrl\(/);
+
+  assert.match(cierre,/extraerRutaComprobante/);
+  assert.match(cierre,/comprobante_ruta/);
+
+  assert.match(servicio,/extraerRutaComprobante/);
+  assert.match(servicio,/extraerRutaIncidencia/);
+  assert.match(servicio,/resolverUrlEvidencia/);
+
+  assert.match(migration,/comprobante_ruta/);
+  assert.match(migration,/public\.gastos_traslado/);
+  assert.match(migration,/public\.incidencias/);
+});

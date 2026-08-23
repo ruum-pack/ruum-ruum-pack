@@ -27,9 +27,9 @@ export function PanelSupportSheet({ abierto, onCerrar }: PanelSupportSheetProps)
   if (!abierto) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center"
-      role="dialog"
+    <dialog
+      open
+      className="fixed inset-0 z-50 m-0 flex h-[100dvh] w-[100vw] max-h-none max-w-none items-end justify-center border-0 bg-transparent p-0"
       aria-modal="true"
       aria-labelledby="titulo-soporte"
     >
@@ -109,6 +109,6 @@ export function PanelSupportSheet({ abierto, onCerrar }: PanelSupportSheetProps)
           Cerrar
         </button>
       </div>
-    </div>
+    </dialog>
   );
 }

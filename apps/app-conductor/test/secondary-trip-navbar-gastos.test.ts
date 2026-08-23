@@ -40,4 +40,12 @@ describe("SecondaryTripNavBar - Pestaña y Modal de Gastos con Comprobante", () 
     expect(COMPONENT_FILE).toContain('.order("registrado_en", { ascending: false })');
     expect(COMPONENT_FILE).toContain("handleEliminarGasto");
   });
+
+  it("P1: nunca persiste signed URLs en gastos y resuelve bajo demanda", () => {
+    expect(COMPONENT_FILE).toContain("comprobante_ruta");
+    expect(COMPONENT_FILE).toContain("extraerRutaComprobante");
+    expect(COMPONENT_FILE).toContain("resolverUrlEvidencia");
+    expect(COMPONENT_FILE).not.toContain("createSignedUrl(");
+    expect(COMPONENT_FILE).not.toContain("[COMPROBANTE: http");
+  });
 });

@@ -132,7 +132,7 @@ async function subirEvidenciaIncidencia(
   cliente: ReturnType<typeof crearClienteNavegador>,
   trasladoId: string,
   archivo: File
-) {
+): Promise<{ nombre: string; ruta: string }> {
   if (!archivo.type.startsWith("image/")) {
     throw new Error("La evidencia debe ser una imagen.");
   }
@@ -155,13 +155,9 @@ async function subirEvidenciaIncidencia(
   });
   if (uploadError) throw uploadError;
 
-  const { data, error: signedUrlError } = await cliente.storage.from(BUCKET_EVIDENCIA).createSignedUrl(ruta, 60 * 60 * 24 * 7);
-  if (signedUrlError) throw signedUrlError;
-
   return {
     nombre: archivo.name,
-    ruta,
-    urlTemporal: data.signedUrl
+    ruta
   };
 }
 
@@ -244,7 +240,7 @@ export function ReportarIncidencia({ trasladoId }: { trasladoId: string }) {
         opcion.etiqueta,
         detalle.trim(),
         evidencia
-          ? `Evidencia adjunta: ${evidencia.nombre}\nRuta: ${evidencia.ruta}\nURL temporal: ${evidencia.urlTemporal}`
+          ? `Evidencia adjunta: ${evidencia.nombre}\nRuta: ${evidencia.ruta}`
           : null,
         opcion.urgente ? "Escalamiento automático: caso urgente." : null
       ].filter(Boolean).join("\n\n");

@@ -17,7 +17,8 @@ const eslintConfig = defineConfig([
       'results/**',
       'test-results/**',
       'storybook-static/**',
-      'android/**/build/**'
+      'android/**/build/**',
+      'coverage/**'
     ]
   },
   ...compat.extends('next/core-web-vitals'),
