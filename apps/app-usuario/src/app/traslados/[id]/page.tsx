@@ -200,9 +200,88 @@ async function obtenerDatos(id: string) {
     };
   }
 
-  const cliente = await crearClienteServidor();
-  const pasaporte = await obtenerPasaporteDigital(cliente, id);
-  if (!pasaporte) {
+  try {
+    const cliente = await crearClienteServidor();
+    const pasaporte = await obtenerPasaporteDigital(cliente, id);
+    if (!pasaporte) {
+      return {
+        pasaporte: null,
+        traslado: null,
+        vehiculo: null,
+        conductor: null,
+        evidencia: [] as FotoEvidenciaVisual[],
+        incidencias: [] as Incidencia[],
+        disputas: [] as Disputa[],
+        reclamosSeguro: [] as ReclamoSeguroUsuario[],
+        calificacion: null as Calificacion | null,
+        pagos: [] as Pago[],
+        ultimaUbicacion: null as UbicacionTraslado | null
+      };
+    }
+
+    const [
+      trasladoRes,
+      vehiculoRes,
+      conductorRes,
+      evidenciaRes,
+      incidenciasRes,
+      disputasRes,
+      reclamosSeguroRes,
+      calificacionRes,
+      pagosRes,
+      ultimaUbicacion
+    ] = await Promise.all([
+      cliente
+        .from("traslados")
+        .select(
+          "origen_direccion, origen_ciudad, destino_direccion, destino_ciudad, contacto_entrega_nombre, contacto_entrega_telefono, contacto_recepcion_nombre, contacto_recepcion_telefono, fecha_hora_programada, cotizacion_expira_en"
+        )
+        .eq("id", id)
+        .maybeSingle(),
+      pasaporte.vehiculo_id
+        ? cliente
+            .from("vehiculos")
+            .select(
+              "tipo, marca, modelo, anio, tiene_tarjeta_circulacion, tiene_verificacion, tiene_placas, puede_circular_rodando"
+            )
+            .eq("id", pasaporte.vehiculo_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      pasaporte.conductor_id
+        ? cliente
+            .from("conductores")
+            .select("id, nombre, estado, nivel_operativo_vigente, calificacion_promedio, traslados_completados")
+            .eq("id", pasaporte.conductor_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      cliente.from("evidencia_fotos").select("*").eq("traslado_id", id).order("capturada_en", { ascending: true }),
+      cliente.from("incidencias").select("*").eq("traslado_id", id).order("creada_en", { ascending: false }),
+      cliente.from("disputas").select("*").eq("traslado_id", id).order("abierta_en", { ascending: false }),
+      cliente
+        .from("reclamos_seguro")
+        .select("id, traslado_id, estado, abierto_en, resuelto_en")
+        .eq("traslado_id", id)
+        .order("abierto_en", { ascending: false }),
+      cliente.from("calificaciones_traslado").select("*").eq("traslado_id", id).maybeSingle(),
+      cliente.from("pagos").select("*").eq("traslado_id", id).order("registrado_en", { ascending: false }),
+      obtenerUltimaUbicacionTraslado(cliente, id)
+    ]);
+
+    return {
+      pasaporte,
+      traslado: trasladoRes.data ?? null,
+      vehiculo: vehiculoRes.data ?? null,
+      conductor: conductorRes.data ?? null,
+      evidencia: await firmarUrlsEvidencia(cliente, evidenciaRes.data ?? []),
+      incidencias: incidenciasRes.data ?? [],
+      disputas: disputasRes.data ?? [],
+      reclamosSeguro: reclamosSeguroRes.data ?? [],
+      calificacion: calificacionRes.data ?? null,
+      pagos: pagosRes.data ?? [],
+      ultimaUbicacion
+    };
+  } catch (error) {
+    console.error("[obtenerDatos]", error);
     return {
       pasaporte: null,
       traslado: null,
@@ -217,72 +296,6 @@ async function obtenerDatos(id: string) {
       ultimaUbicacion: null as UbicacionTraslado | null
     };
   }
-
-  const [
-    trasladoRes,
-    vehiculoRes,
-    conductorRes,
-    evidenciaRes,
-    incidenciasRes,
-    disputasRes,
-    reclamosSeguroRes,
-    calificacionRes,
-    pagosRes,
-    ultimaUbicacion
-  ] = await Promise.all([
-    cliente
-      .from("traslados")
-      .select(
-        "origen_direccion, origen_ciudad, destino_direccion, destino_ciudad, contacto_entrega_nombre, contacto_entrega_telefono, contacto_recepcion_nombre, contacto_recepcion_telefono, fecha_hora_programada, cotizacion_expira_en"
-      )
-      .eq("id", id)
-      .maybeSingle(),
-    pasaporte.vehiculo_id
-      ? cliente
-          .from("vehiculos")
-          .select(
-            "tipo, marca, modelo, anio, tiene_tarjeta_circulacion, tiene_verificacion, tiene_placas, puede_circular_rodando"
-          )
-          .eq("id", pasaporte.vehiculo_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    pasaporte.conductor_id
-      ? cliente
-          .from("conductores")
-          .select("id, nombre, estado, nivel_operativo_vigente, calificacion_promedio, traslados_completados")
-          .eq("id", pasaporte.conductor_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    cliente.from("evidencia_fotos").select("*").eq("traslado_id", id).order("capturada_en", { ascending: true }),
-    cliente.from("incidencias").select("*").eq("traslado_id", id).order("creada_en", { ascending: false }),
-    cliente.from("disputas").select("*").eq("traslado_id", id).order("abierta_en", { ascending: false }),
-    cliente
-      .from("reclamos_seguro")
-      .select("id, traslado_id, estado, abierto_en, resuelto_en")
-      .eq("traslado_id", id)
-      .order("abierto_en", { ascending: false }),
-    cliente.from("calificaciones_traslado").select("*").eq("traslado_id", id).maybeSingle(),
-    cliente.from("pagos").select("*").eq("traslado_id", id).order("registrado_en", { ascending: false }),
-    obtenerUltimaUbicacionTraslado(cliente, id)
-  ]);
-
-  for (const resultado of [trasladoRes, vehiculoRes, conductorRes, evidenciaRes, incidenciasRes, disputasRes, reclamosSeguroRes, calificacionRes, pagosRes]) {
-    if (resultado.error) throw resultado.error;
-  }
-
-  return {
-    pasaporte,
-    traslado: trasladoRes.data,
-    vehiculo: vehiculoRes.data,
-    conductor: conductorRes.data,
-    evidencia: await firmarUrlsEvidencia(cliente, evidenciaRes.data ?? []),
-    incidencias: incidenciasRes.data ?? [],
-    disputas: disputasRes.data ?? [],
-    reclamosSeguro: reclamosSeguroRes.data ?? [],
-    calificacion: calificacionRes.data ?? null,
-    pagos: pagosRes.data ?? [],
-    ultimaUbicacion
-  };
 }
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | number | null | undefined }) {
