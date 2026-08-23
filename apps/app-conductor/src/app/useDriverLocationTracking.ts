@@ -28,34 +28,71 @@ export function useDriverLocationTracking(viajeActivo: ViajeActivo | null) {
 
     let cancelado = false;
     const viaje = viajeActivo!;
+    const trasladoIdActual = viaje.trasladoId;
     const cliente = crearClienteNavegador();
 
     if (soportaTrackingNativo()) {
-      void cliente.auth.getSession().then(async ({ data }) => {
-        const accessToken = data.session?.access_token;
-        const userId = data.session?.user.id;
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!userId || !accessToken || !supabaseUrl || !anonKey || cancelado) return;
+      void (async () => {
         try {
-          const background = await solicitarUbicacionSegundoPlanoNativa();
-          if (!background.granted) logger.warn("background_location_not_granted", { state: background.state, tripId: viaje.trasladoId }, "authorization");
-        } catch (error) {
-          logger.warn("background_location_request_failed", { tripId: viaje.trasladoId, errorCode: errorCode(error) }, "authorization");
-        }
-        return iniciarTrackingNativo({
-          userId,
-          tripId: viaje.trasladoId,
-          tripCode: viaje.folio,
-          tripState: viaje.estado,
-          supabaseUrl,
-          anonKey,
-          accessToken,
-          refreshToken: data.session?.refresh_token
-        });
-      }).catch((error) => logger.warn("native_tracking_start_failed", { tripId: viaje.trasladoId, errorCode: errorCode(error) }, "integration_failure"));
+          // Detener tracking previo antes de iniciar uno nuevo
+          await detenerTrackingNativo().catch(() => undefined);
+          if (cancelado) return;
 
-      return () => { cancelado = true; };
+          const { data } = await cliente.auth.getSession();
+          if (cancelado) return;
+
+          const accessToken = data.session?.access_token;
+          const userId = data.session?.user.id;
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+          const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+          if (!userId || !accessToken || !supabaseUrl || !anonKey || cancelado) return;
+
+          try {
+            const background = await solicitarUbicacionSegundoPlanoNativa();
+            if (cancelado) return;
+            if (!background.granted) {
+              logger.warn(
+                "background_location_not_granted",
+                { state: background.state, tripId: trasladoIdActual },
+                "authorization"
+              );
+            }
+          } catch (error) {
+            if (cancelado) return;
+            logger.warn(
+              "background_location_request_failed",
+              { tripId: trasladoIdActual, errorCode: errorCode(error) },
+              "authorization"
+            );
+          }
+
+          if (cancelado) return;
+
+          await iniciarTrackingNativo({
+            userId,
+            tripId: trasladoIdActual,
+            tripCode: viaje.folio,
+            tripState: viaje.estado,
+            supabaseUrl,
+            anonKey,
+            accessToken,
+            refreshToken: data.session?.refresh_token
+          });
+        } catch (error) {
+          if (!cancelado) {
+            logger.warn(
+              "native_tracking_start_failed",
+              { tripId: trasladoIdActual, errorCode: errorCode(error) },
+              "integration_failure"
+            );
+          }
+        }
+      })();
+
+      return () => {
+        cancelado = true;
+        void detenerTrackingNativo().catch(() => undefined);
+      };
     }
 
     let ultimaReportada: Coordenadas | null = null;

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
+import Script from "next/script";
 import { TextInputUppercaseBridge } from "@ruum/ui";
 import "./globals.css";
 import { SincronizadorEvidenciaOffline } from "./SincronizadorEvidenciaOffline";
@@ -55,19 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="es" data-theme="dark">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `
-          (function() {
-            var theme = localStorage.getItem('ruum-theme');
-            if (!theme) {
-              if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-                theme = 'light';
-              } else {
-                theme = 'dark';
-              }
-            }
-            document.documentElement.setAttribute('data-theme', theme);
-          })();
-        ` }} />
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
       </head>
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">Saltar al contenido principal</a>

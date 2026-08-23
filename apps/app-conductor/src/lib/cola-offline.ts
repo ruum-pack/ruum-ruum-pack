@@ -1,8 +1,12 @@
-import { Preferences } from "@capacitor/preferences";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
 import { createLogger, errorCode } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "./supabase-browser";
+import {
+  eliminarJsonLocalSeguro,
+  guardarJsonLocalSeguro,
+  leerJsonLocalSeguro
+} from "./almacenamiento-seguro-local";
 
 const CLAVE_COLA = "ruum_cola_evidencia";
 const BUCKET_EVIDENCIA = "evidencia";
@@ -13,6 +17,9 @@ const BACKOFF_REINTENTO_MS = [
   15 * 60_000,
   60 * 60_000
 ];
+
+export const TTL_COLA_EVIDENCIA_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
+export const MAX_REINTENTOS_EVIDENCIA = 15;
 
 export interface ItemColaEvidencia {
   usuarioId: string;
@@ -42,21 +49,22 @@ export interface EvidenceQueueStorage {
 
 export class CapacitorPreferencesEvidenceStorage implements EvidenceQueueStorage {
   async read(): Promise<ItemColaEvidencia[]> {
-    const { value } = await Preferences.get({ key: CLAVE_COLA });
-    if (!value) return [];
     try {
-      return normalizarItemsCola(JSON.parse(value));
-    } catch {
+      const data = await leerJsonLocalSeguro<ItemColaEvidencia[]>(CLAVE_COLA);
+      if (!data) return [];
+      return normalizarItemsCola(data);
+    } catch (err) {
+      logger.warn("evidence_queue_read_failed", { error: errorCode(err) });
       return [];
     }
   }
 
   async write(items: ItemColaEvidencia[]): Promise<void> {
-    await Preferences.set({ key: CLAVE_COLA, value: JSON.stringify(items) });
+    await guardarJsonLocalSeguro(CLAVE_COLA, normalizarItemsCola(items));
   }
 
   async clear(): Promise<void> {
-    await this.write([]);
+    await eliminarJsonLocalSeguro(CLAVE_COLA);
   }
 }
 
@@ -221,18 +229,47 @@ function isOnline() {
   return navigator.onLine;
 }
 
+function esItemValidoYTolerable(item: ItemColaEvidencia, ahoraMs = Date.now()): boolean {
+  if (!item || typeof item !== "object") return false;
+  if (!item.localId || !item.usuarioId || !item.trasladoId || !item.dataUrl) return false;
+
+  if (item.capturadaEn) {
+    const capturadaMs = new Date(item.capturadaEn).getTime();
+    if (Number.isFinite(capturadaMs) && ahoraMs - capturadaMs > TTL_COLA_EVIDENCIA_MS) {
+      logger.warn("evidence_item_purged_ttl", { localId: item.localId, tripId: item.trasladoId });
+      return false;
+    }
+  }
+
+  if (typeof item.retryCount === "number" && item.retryCount > MAX_REINTENTOS_EVIDENCIA) {
+    logger.warn("evidence_item_purged_max_retries", { localId: item.localId, tripId: item.trasladoId, retryCount: item.retryCount });
+    return false;
+  }
+
+  return true;
+}
+
 function normalizarItemCola(item: ItemColaEvidencia): ItemColaEvidencia {
+  let fileSizeBytes = item.fileSizeBytes;
+  if (!fileSizeBytes && typeof item.dataUrl === "string") {
+    const b64 = item.dataUrl.split(",")[1] ?? "";
+    fileSizeBytes = Math.floor(b64.length * 0.75);
+  }
+
   return {
     ...item,
+    fileSizeBytes,
     retryCount: Number.isInteger(item.retryCount) && item.retryCount >= 0 ? item.retryCount : 0,
     ...(typeof item.lastAttemptAt === "string" ? { lastAttemptAt: item.lastAttemptAt } : {}),
     ...(typeof item.lastErrorCode === "string" ? { lastErrorCode: item.lastErrorCode } : {})
   };
 }
 
-function normalizarItemsCola(valor: unknown): ItemColaEvidencia[] {
+function normalizarItemsCola(valor: unknown, ahoraMs = Date.now()): ItemColaEvidencia[] {
   if (!Array.isArray(valor)) return [];
-  return valor.map((item) => normalizarItemCola(item as ItemColaEvidencia));
+  return valor
+    .filter((item) => esItemValidoYTolerable(item as ItemColaEvidencia, ahoraMs))
+    .map((item) => normalizarItemCola(item as ItemColaEvidencia));
 }
 
 function backoffMsParaIntentos(retryCount: number) {

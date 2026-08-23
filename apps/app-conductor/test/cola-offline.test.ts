@@ -41,7 +41,7 @@ function item(overrides: Partial<ItemColaEvidencia> = {}): ItemColaEvidencia {
     dataUrl: DATA_URL_JPG,
     lat: 19.4326,
     lng: -99.1332,
-    capturadaEn: "2026-07-17T12:00:00.000Z",
+    capturadaEn: new Date().toISOString(),
     retryCount: 0,
     ...overrides
   };
@@ -229,6 +229,47 @@ describe("cola offline de evidencia", () => {
     preferencesStore.set(CLAVE_COLA, "{");
 
     await expect(leerColaEvidencia()).resolves.toEqual([]);
+  });
+
+  it("P1: cifra la cola en Capacitor Preferences y nunca persiste data:image en texto claro", async () => {
+    const storage = new CapacitorPreferencesEvidenceStorage();
+    configurarStorageColaEvidencia(storage);
+
+    await encolarEvidencia(item({ localId: "local-seguro-1", dataUrl: DATA_URL_JPG }));
+
+    const rawPersisted = preferencesStore.get(CLAVE_COLA);
+    expect(rawPersisted).toBeDefined();
+    // Debe usar el formato cifrado ruum:v1:<iv>:<ciphertext>
+    expect(rawPersisted).toMatch(/^ruum:v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$/);
+    // Nunca debe contener data:image o payload sensible en claro
+    expect(rawPersisted).not.toContain("data:image");
+    expect(rawPersisted).not.toContain("user-test");
+    expect(rawPersisted).not.toContain("traslado-1");
+
+    // Al restaurar con nuevo storage, descifra y recupera la evidencia íntegra
+    const nuevoStorage = new CapacitorPreferencesEvidenceStorage();
+    const recuperados = await nuevoStorage.read();
+    expect(recuperados).toHaveLength(1);
+    expect(recuperados[0].localId).toBe("local-seguro-1");
+    expect(recuperados[0].dataUrl).toBe(DATA_URL_JPG);
+    expect(recuperados[0].trasladoId).toBe("traslado-1");
+  });
+
+  it("P1: purga automáticamente items expirados por TTL (7 días)", async () => {
+    const storage = new InMemoryEvidenceStorage();
+    configurarStorageColaEvidencia(storage);
+
+    const haceOchoDias = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+    const reciente = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString();
+
+    await storage.write([
+      item({ localId: "expirado", capturadaEn: haceOchoDias }),
+      item({ localId: "vigente", capturadaEn: reciente })
+    ]);
+
+    const leidos = await storage.read();
+    expect(leidos).toHaveLength(1);
+    expect(leidos[0].localId).toBe("vigente");
   });
 
   it("propaga fallos del storage para que puedan simularse en unitarias", async () => {

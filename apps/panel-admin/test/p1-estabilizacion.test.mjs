@@ -330,3 +330,29 @@ test('P1 storage evidencia nunca persiste signed URLs en datos operativos',()=>{
   assert.match(migration,/public\.gastos_traslado/);
   assert.match(migration,/public\.incidencias/);
 });
+test('P1 evidencia offline cifra la cola en Preferences y previene texto claro',()=>{
+  const cola=read('apps/app-conductor/src/lib/cola-offline.ts');
+  const seguro=read('apps/app-conductor/src/lib/almacenamiento-seguro-local.ts');
+
+  assert.match(cola,/guardarJsonLocalSeguro/);
+  assert.match(cola,/leerJsonLocalSeguro/);
+  assert.match(cola,/eliminarJsonLocalSeguro/);
+  assert.match(cola,/TTL_COLA_EVIDENCIA_MS/);
+  assert.match(cola,/MAX_REINTENTOS_EVIDENCIA/);
+  assert.doesNotMatch(cola,/Preferences\.set\(\{\s*key:\s*CLAVE_COLA/);
+
+  assert.match(seguro,/ruum:v1:/);
+  assert.match(seguro,/crypto_subtle_unavailable_secure_storage_required/);
+  assert.match(seguro,/AES-GCM/);
+  assert.match(seguro,/PBKDF2/);
+});
+test('P2 tracking nativo previene arranque tardío tras cleanup o cambio de viaje',()=>{
+  const tracking=read('apps/app-conductor/src/app/useDriverLocationTracking.ts');
+
+  assert.match(tracking,/let cancelado = false;/);
+  assert.match(tracking,/await detenerTrackingNativo\(\)\.catch/);
+  assert.match(tracking,/if \(cancelado\) return;/);
+  assert.match(tracking,/solicitarUbicacionSegundoPlanoNativa/);
+  assert.match(tracking,/iniciarTrackingNativo/);
+  assert.match(tracking,/return \(\) => \{\s*cancelado = true;\s*void detenerTrackingNativo/);
+});

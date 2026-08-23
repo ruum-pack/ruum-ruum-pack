@@ -1,0 +1,1 @@
+(function(){try{var t=localStorage.getItem("ruum-theme");if(!t&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches){t="light"}else if(!t){t="dark"}document.documentElement.setAttribute("data-theme",t)}catch(e){}})();

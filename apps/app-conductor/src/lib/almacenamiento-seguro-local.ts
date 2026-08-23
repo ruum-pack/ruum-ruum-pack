@@ -41,10 +41,22 @@ async function obtenerSecretoInstalacion() {
   return secreto;
 }
 
+let cachedKey: CryptoKey | null = null;
+let cachedSecret: string | null = null;
+
+export function resetCachedKeyForTesting() {
+  cachedKey = null;
+  cachedSecret = null;
+}
+
 async function llaveAes() {
   const secreto = await obtenerSecretoInstalacion();
+  if (cachedKey && cachedSecret === secreto) {
+    return cachedKey;
+  }
+
   const material = await crypto.subtle.importKey("raw", base64ToBytes(secreto), "PBKDF2", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey(
+  const key = await crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
       salt: new TextEncoder().encode("ruum-conductor-offline-v1"),
@@ -56,19 +68,28 @@ async function llaveAes() {
     false,
     ["encrypt", "decrypt"]
   );
+
+  cachedKey = key;
+  cachedSecret = secreto;
+  return key;
 }
 
 export async function guardarJsonLocalSeguro<T>(key: string, payload: T) {
   const value = JSON.stringify({ version: VERSION_PAYLOAD, payload });
 
   if (!cryptoDisponible()) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("crypto_subtle_unavailable_secure_storage_required");
+    }
+    console.warn(`[almacenamiento-seguro-local] WebCrypto no está disponible en este entorno (${process.env.NODE_ENV}). Guardando sin cifrar sólo en modo no productivo.`);
     await Preferences.set({ key, value });
     return;
   }
 
   const iv = new Uint8Array(12);
   crypto.getRandomValues(iv);
-  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await llaveAes(), new TextEncoder().encode(value));
+  const aesKey = await llaveAes();
+  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, new TextEncoder().encode(value));
   await Preferences.set({
     key,
     value: `${PREFIJO_CIFRADO}${bytesToBase64(iv)}:${bytesToBase64(new Uint8Array(encrypted))}`
@@ -80,12 +101,19 @@ export async function leerJsonLocalSeguro<T>(key: string): Promise<T | null> {
   if (!value) return null;
 
   try {
-    if (value.startsWith(PREFIJO_CIFRADO) && cryptoDisponible()) {
+    if (value.startsWith(PREFIJO_CIFRADO)) {
+      if (!cryptoDisponible()) {
+        if (process.env.NODE_ENV === "production") {
+          throw new Error("crypto_subtle_unavailable_cannot_decrypt");
+        }
+        return null;
+      }
       const [ivB64, payloadB64] = value.slice(PREFIJO_CIFRADO.length).split(":");
       if (!ivB64 || !payloadB64) return null;
+      const aesKey = await llaveAes();
       const decrypted = await crypto.subtle.decrypt(
         { name: "AES-GCM", iv: base64ToBytes(ivB64) },
-        await llaveAes(),
+        aesKey,
         base64ToBytes(payloadB64)
       );
       const parsed = JSON.parse(new TextDecoder().decode(decrypted));

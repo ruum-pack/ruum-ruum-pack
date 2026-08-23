@@ -394,17 +394,6 @@ export default function PaginaEvidencia() {
 
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-between min-h-screen text-text-primary">
-      
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.3s ease-out forwards;
-        }
-      ` }} />
-
       <div className="w-full flex flex-col flex-1 animate-fade-in pb-20">
         
         {/* Top Navbar Header */}

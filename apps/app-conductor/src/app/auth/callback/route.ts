@@ -97,6 +97,7 @@ export async function GET(request: NextRequest) {
   }
 
   // 3. Respuesta HTML/JS ligera para capturar fragmentos de hash en el navegador (#access_token=...)
+  // P2 CSP: script externo sin interpolación para permitir hash/nonce y evitar 'unsafe-inline'
   const htmlFallback = `
     <!DOCTYPE html>
     <html lang="es">
@@ -112,21 +113,7 @@ export async function GET(request: NextRequest) {
       <div class="card">
         <p>Verificando tu enlace...</p>
       </div>
-      <script>
-        (function() {
-          const hash = window.location.hash || '';
-          const search = window.location.search || '';
-          const isRecovery = "${type}" === "recovery" || hash.includes("type=recovery") || search.includes("type=recovery") || search.includes("nueva-password");
-          const fallback = isRecovery ? "${origin}/recuperar-password?error=enlace_invalido" : "${origin}/registro?error=enlace_invalido";
-
-          if (hash.includes("access_token=") || hash.includes("refresh_token=") || hash.includes("code=")) {
-            const target = isRecovery ? "${origin}/nueva-password" : "${origin}/registro?verificado=1";
-            window.location.replace(target + hash);
-          } else {
-            window.location.replace(fallback);
-          }
-        })();
-      </script>
+      <script src="/auth-callback-fallback.js"></script>
     </body>
     </html>
   `;
