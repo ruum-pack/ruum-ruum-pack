@@ -390,15 +390,22 @@ test('H4 umbral de cobertura y pruebas de sincronización offline',()=>{
   assert.match(vitestConfig,/Hoja de ruta de escalamiento de cobertura \(H4\)/);
   assert.match(vitestConfig,/lines:\s*[5-9]/);
   assert.strictEqual(fs.existsSync(new URL('../../../apps/app-conductor/test/orquestador-sync-offline.test.ts', import.meta.url)), true);
+  assert.strictEqual(fs.existsSync(new URL('../../../apps/app-conductor/test/session-cleanup.test.ts', import.meta.url)), true);
+  assert.strictEqual(fs.existsSync(new URL('../../../apps/app-conductor/test/cola-telemetria-offline.test.ts', import.meta.url)), true);
+  assert.strictEqual(fs.existsSync(new URL('../../../apps/app-conductor/test/borrador-registro.test.ts', import.meta.url)), true);
 });
 test('H5 tipado seguro y visibilidad con ESLint',()=>{
   const eslint=read('apps/app-conductor/eslint.config.mjs');
   const notificaciones=read('apps/app-conductor/src/app/notificaciones/page.tsx');
   const gastos=read('apps/app-conductor/src/app/viajes/[id]/SecondaryTripNavBar.tsx');
+  const push=read('apps/app-conductor/src/lib/push-notifications.ts');
+  const tabs=read('apps/app-conductor/src/app/viajes/[id]/detalles/TripDetailsTabs.tsx');
 
   assert.match(eslint,/@typescript-eslint\/no-explicit-any/);
   assert.doesNotMatch(notificaciones,/await\s*\(cliente\s*as\s*any\)/);
   assert.doesNotMatch(gastos,/\.from\("gastos_traslado"\)[^;]*as any/);
+  assert.doesNotMatch(push,/\(cliente\s*as\s*any\)\.rpc/);
+  assert.doesNotMatch(tabs,/@ts-ignore\s*supabase\s*any/);
 });
 test('H6 login honra parámetro next con protección anti open-redirect',()=>{
   const loginConductor=read('apps/app-conductor/src/app/login/page.tsx');

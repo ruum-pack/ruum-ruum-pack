@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
-import type { AnguloEvidencia, FotoEvidencia, TipoEvidencia } from "@ruum/shared/types";
+import type { AnguloEvidencia, Database, FotoEvidencia, TipoEvidencia } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
 import { esNativo } from "../../../../lib/capacitor";
@@ -19,6 +19,7 @@ import {
 import { useEvidenceQueue } from "./useEvidenceQueue";
 import { SecondaryTripNavBar } from "../SecondaryTripNavBar";
 
+type PasaporteDigitalRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = "pendiente_de_conductor" | "conductor_asignado" | "conductor_en_camino_al_origen" | "conductor_en_punto_de_recoleccion" | "verificacion_vehiculo_en_proceso" | "evidencia_inicial_en_proceso" | "traslado_en_curso" | "llegada_a_destino" | "evidencia_final_en_proceso" | "servicio_cerrado";
 
 // Map trip state to evidence type
@@ -39,7 +40,7 @@ export default function PaginaEvidencia() {
   const anguloArchivoRef = useRef<AnguloEvidencia | null>(null);
 
   const [estadoActual, setEstadoActual] = useState<EstadoTraslado | null>(null);
-  const [pasaporte, setPasaporte] = useState<any>(null);
+  const [pasaporte, setPasaporte] = useState<PasaporteDigitalRow | null>(null);
   const [tipo, setTipo] = useState<TipoEvidencia | null>(null);
   const [soporteAbierto, setSoporteAbierto] = useState(false);
   

@@ -212,7 +212,7 @@ export function SecondaryTripNavBar({
         try {
           const resultado = await subirComprobanteGasto(cliente, trasladoId, archivoComprobante);
           comprobanteRutaSubida = resultado.ruta;
-        } catch (subidaErr: any) {
+        } catch (subidaErr: unknown) {
           console.warn("Error al subir archivo:", subidaErr);
           throw new Error("No se pudo subir el archivo de comprobante.");
         }

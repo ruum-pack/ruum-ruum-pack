@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { Aviso } from "@ruum/ui";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import type { Database } from "@ruum/shared/types";
 import type { InspeccionEvidencia } from "./evidencia/evidence-requirements";
 import { EvidenceComparisonDisplay } from "./evidencia/EvidenceComparisonDisplay";
 import type { ResultadosComparacion } from "./evidencia/useEvidenceComparison";
+
+type InspeccionRow = Database["public"]["Tables"]["evidencia_inspecciones"]["Row"];
 
 interface TripEvidenceComparisonProps {
   trasladoId: string;
@@ -28,8 +31,8 @@ function calcularComparacion(inicial: InspeccionEvidencia | null, final: Inspecc
   const kmValido = kmDiferencia === null || kmDiferencia >= 0;
   
   let kmMensaje: string | null = null;
-  if (kmInicial !== null && kmFinal !== null && kmFinal < kmInicial) {
-    kmMensaje = `Kilometraje final (${kmFinal.toLocaleString()}) menor al inicial (${kmInicial.toLocaleString()})`;
+  if (!kmValido && kmDiferencia !== null) {
+    kmMensaje = `Inconsistencia: El kilometraje final es menor al inicial (${Math.abs(kmDiferencia)} km de diferencia)`;
     alertas.push({ tipo: "critico", mensaje: kmMensaje });
   } else if (kmDiferencia !== null && kmDiferencia > 1000) {
     kmMensaje = `Kilometraje recorrido alto: ${kmDiferencia.toLocaleString()} km`;
@@ -120,7 +123,7 @@ function calcularComparacion(inicial: InspeccionEvidencia | null, final: Inspecc
   };
 }
 
-function dataToInspeccion(data: any | null): InspeccionEvidencia | null {
+function dataToInspeccion(data: InspeccionRow | null): InspeccionEvidencia | null {
   if (!data) return null;
 
   return {
@@ -171,8 +174,8 @@ export function TripEvidenceComparison({ trasladoId }: TripEvidenceComparisonPro
             .maybeSingle()
         ]);
 
-        const evidenciaInicial = dataToInspeccion(inicialData);
-        const evidenciaFinal = dataToInspeccion(finalData);
+        const evidenciaInicial = dataToInspeccion(inicialData.data);
+        const evidenciaFinal = dataToInspeccion(finalData.data);
 
         setInicial(evidenciaInicial);
         setFinal(evidenciaFinal);

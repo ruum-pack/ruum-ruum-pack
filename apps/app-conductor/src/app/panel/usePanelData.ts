@@ -215,7 +215,7 @@ export function usePanelData() {
     const canalTraslados = cliente
       .channel(`panel_traslados_${conductor.id}`)
       .on(
-        "postgres_changes" as any,
+        "postgres_changes",
         { event: "*", schema: "public", table: "traslados" },
         () => triggerRecarga()
       )
@@ -224,7 +224,7 @@ export function usePanelData() {
     const canalNotificaciones = cliente
       .channel(`panel_notificaciones_${conductor.id}`)
       .on(
-        "postgres_changes" as any,
+        "postgres_changes",
         {
           event: "*",
           schema: "public",

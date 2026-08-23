@@ -37,7 +37,7 @@ async function registrarToken(token: Token) {
     const { Device } = await import("@capacitor/device");
     const [{ data: sesion }, info] = await Promise.all([cliente.auth.getSession(), Device.getInfo()]);
     if (!sesion.session) return;
-    const { error } = await (cliente as any).rpc("registrar_dispositivo_push", {
+    const { error } = await cliente.rpc("registrar_dispositivo_push", {
       p_device_id: uuidLocal(),
       p_token_push: token.value,
       p_plataforma: "android",
@@ -91,7 +91,7 @@ export async function inicializarPush(onNavigate: (destino: string) => void) {
         const cliente = crearClienteNavegador();
         const notificacionId = notification.data?.notificacion_id;
         if (typeof notificacionId === "string") {
-          await (cliente as any).rpc("registrar_apertura_push", { p_notificacion_id: notificacionId, p_device_id: uuidLocal() });
+          await cliente.rpc("registrar_apertura_push", { p_notificacion_id: notificacionId, p_device_id: uuidLocal() });
         }
         onNavigate(destinoDesdePush(notification));
       })
@@ -116,7 +116,7 @@ export async function desactivarPushDelDispositivo() {
   const deviceId = obtenerDeviceIdPush();
   if (!deviceId) return;
   const cliente = crearClienteNavegador();
-  await (cliente as any).rpc("desactivar_dispositivo_push", { p_device_id: deviceId });
+  await cliente.rpc("desactivar_dispositivo_push", { p_device_id: deviceId });
   
   try {
     // @ts-ignore - Módulo solo disponible en entorno nativo

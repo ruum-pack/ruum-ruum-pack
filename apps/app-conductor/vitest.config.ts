@@ -12,10 +12,10 @@ export default defineConfig({
       // - Fase 2: Escalar gate global a 30/25% integrando pruebas de componentes de viajes y evidencia.
       // - Fase 3 (Target Final): 60/50% → 80/70% en todo el código de aplicación.
       thresholds: {
-        lines: 5,
-        branches: 35,
-        functions: 15,
-        statements: 5
+        lines: 6,
+        branches: 40,
+        functions: 20,
+        statements: 6
       },
       exclude: ["test/**", "tests/**", "node_modules/**", ".next/**", "cap-shell/**", "android/**", "storybook-static/**", "**/storybook-static/**"]
     }

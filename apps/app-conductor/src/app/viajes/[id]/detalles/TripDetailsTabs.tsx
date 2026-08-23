@@ -119,19 +119,23 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
         if (!trasladoId) return;
         // Ventanas: si pasaporte no las trae, leer traslados
         if (!ventanaRecoleccion || !ventanaEntrega) {
-          // @ts-ignore supabase any
-          const resVent = await (cliente as unknown as { from: any }).from("traslados").select("ventana_recoleccion, ventana_entrega").eq("id", trasladoId).maybeSingle();
-          const d = (resVent as { data: { ventana_recoleccion: string | null; ventana_entrega: string | null } | null }).data;
-          if (!cancelado) {
-            if (d?.ventana_recoleccion) setVentanaRecoleccion(d.ventana_recoleccion);
-            if (d?.ventana_entrega) setVentanaEntrega(d.ventana_entrega);
+          const { data: d } = await cliente
+            .from("traslados")
+            .select("ventana_recoleccion, ventana_entrega")
+            .eq("id", trasladoId)
+            .maybeSingle();
+          if (!cancelado && d) {
+            if (d.ventana_recoleccion) setVentanaRecoleccion(d.ventana_recoleccion);
+            if (d.ventana_entrega) setVentanaEntrega(d.ventana_entrega);
           }
         }
         // Titular: usuarios.id = traslados.usuario_id
         if (usuarioId) {
-          // @ts-ignore supabase any
-          const resUser = await (cliente as unknown as { from: any }).from("usuarios").select("nombre, telefono").eq("id", usuarioId).maybeSingle();
-          const u = (resUser as { data: { nombre: string | null; telefono: string | null } | null }).data;
+          const { data: u } = await cliente
+            .from("usuarios")
+            .select("nombre, telefono")
+            .eq("id", usuarioId)
+            .maybeSingle();
           if (!cancelado && u) {
             if (u.nombre) setSolicitanteNombre(u.nombre);
             if (u.telefono) setSolicitanteTelefono(u.telefono);

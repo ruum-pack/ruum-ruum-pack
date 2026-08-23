@@ -56,14 +56,14 @@ export function TripOpportunityDetails({
     const canal = cliente
       .channel(`oferta_detalle_${trasladoId}`)
       .on(
-        "postgres_changes" as any,
+        "postgres_changes",
         {
           event: "UPDATE",
           schema: "public",
           table: "traslados",
           filter: `id=eq.${trasladoId}`
         },
-        (payload: any) => {
+        (payload: { new: { conductor_id?: string | null; estado?: string | null } }) => {
           const nuevo = payload.new;
           if (nuevo && nuevo.conductor_id && nuevo.estado !== "pendiente_de_conductor") {
             setOfertaTomada(true);

@@ -98,7 +98,7 @@ export function CierreTrasladoDetails({
         if (gstError) throw gstError;
         if (gst) {
           setGastos(
-            gst.map((g: any) => {
+            gst.map((g) => {
               const { ruta, texto } = extraerRutaComprobante(g.descripcion, g.comprobante_ruta);
               return {
                 id: g.id,

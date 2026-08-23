@@ -266,7 +266,7 @@ export default function PaginaViajes() {
     const canalTraslados = cliente
       .channel("viajes_lista_traslados")
       .on(
-        "postgres_changes" as any,
+        "postgres_changes",
         { event: "*", schema: "public", table: "traslados" },
         () => triggerRecarga()
       )
