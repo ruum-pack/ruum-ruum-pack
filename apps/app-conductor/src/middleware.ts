@@ -23,8 +23,45 @@ function esRutaPublicaConductor(pathname: string): boolean {
  * 3. Gate de autenticación: rutas protegidas sin sesión → /login?next=...
  * 4. Redirección inversa: sesión válida en /login|/registro → /panel.
  */
+function buildCsp(nonce: string, isProd: boolean, isStaging: boolean) {
+  const scriptSrc = isProd
+    ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.sentry.io`
+    : `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io`;
+  const styleSrc = `style-src 'self' 'unsafe-inline' 'nonce-${nonce}'`;
+  const base = [
+    "default-src 'self'",
+    scriptSrc,
+    styleSrc,
+    "connect-src 'self' https://*.supabase.co https://*.mapbox.com https://*.sentry.io" + (isProd ? "" : " ws: wss: http://localhost:* http://127.0.0.1:*"),
+    "img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com",
+    "font-src 'self' data:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "worker-src 'self' blob:"
+  ].join("; ");
+  return base;
+}
+
+function applyCspHeaders(res: NextResponse, nonce: string) {
+  const isProd = process.env.NODE_ENV === "production";
+  const isStaging = process.env.NEXT_PUBLIC_RUUM_AMBIENTE === "staging";
+  const csp = buildCsp(nonce, isProd, isStaging);
+  res.headers.set("Content-Security-Policy", csp);
+  res.headers.set("x-nonce", nonce);
+  if (isStaging) {
+    res.headers.set("Content-Security-Policy-Report-Only", csp + "; report-uri /api/csp-report; report-to csp-endpoint");
+  }
+  return res;
+}
+
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("x-nonce", nonce);
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -34,11 +71,11 @@ export async function middleware(request: NextRequest) {
     console.error("[security] app-conductor bloqueado: Supabase no configurado en producción", {
       pathname: request.nextUrl.pathname
     });
-    return new NextResponse("Configuración de producción incompleta", { status: 503 });
+    return applyCspHeaders(new NextResponse("Configuración de producción incompleta", { status: 503 }), nonce);
   }
 
   if (!url || !anonKey) {
-    return response;
+    return applyCspHeaders(response, nonce);
   }
 
   const supabase = crearClienteServidor(url, anonKey, {
@@ -48,6 +85,7 @@ export async function middleware(request: NextRequest) {
     setAll(cookiesToSet) {
       cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
       response = NextResponse.next({ request });
+      response.headers.set("x-nonce", nonce);
       cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
     }
   });
@@ -63,15 +101,15 @@ export async function middleware(request: NextRequest) {
   if (!user && !esPublica) {
     const destino = new URL("/login", request.url);
     destino.searchParams.set("next", pathname);
-    return NextResponse.redirect(destino);
+    return applyCspHeaders(NextResponse.redirect(destino), nonce);
   }
 
   if (user && esRutaAuth) {
     // Usuario ya autenticado no debe ver login/registro/onboarding
-    return NextResponse.redirect(new URL("/panel", request.url));
+    return applyCspHeaders(NextResponse.redirect(new URL("/panel", request.url)), nonce);
   }
 
-  return response;
+  return applyCspHeaders(response, nonce);
 }
 
 export const config = {

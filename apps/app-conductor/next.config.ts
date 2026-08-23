@@ -23,8 +23,7 @@ const nextConfig: NextConfig = {
     const isProd = process.env.NODE_ENV === "production";
     const isStaging = process.env.NEXT_PUBLIC_RUUM_AMBIENTE === "staging";
     // P2 CSP — prod sin unsafe-eval, dev con unsafe-eval para HMR
-    // Deuda documentada: style-src 'unsafe-inline' requerido por Tailwind/Next;
-    // script-src 'unsafe-inline' requerido por Next hydration hasta migrar a nonce/hash (ver docs/CSP_DEUDA.md)
+    // CSP con nonce vía middleware (ver src/middleware.ts); deuda residual style-src documentada en docs/CSP_DEUDA.md
     const cspProd = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' https://*.sentry.io",

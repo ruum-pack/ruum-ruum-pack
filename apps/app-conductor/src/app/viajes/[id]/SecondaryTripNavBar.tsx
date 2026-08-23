@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ReportarIncidencia } from "./ReportarIncidencia";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import type { Database } from "@ruum/shared/types";
@@ -217,13 +218,8 @@ export function SecondaryTripNavBar({
         }
       }
 
-      // Construir descripción estructurada sin signed URLs
-      let descripcionFinal = notas.trim();
-      if (comprobanteRutaSubida) {
-        descripcionFinal = `[COMPROBANTE_RUTA: ${comprobanteRutaSubida}] ${descripcionFinal}`.trim();
-      } else if (archivoComprobante) {
-        descripcionFinal = `[COMPROBANTE ADJUNTO: ${archivoComprobante.name}] ${descripcionFinal}`.trim();
-      }
+      // P1 limpieza total: guardar ruta solo en columna comprobante_ruta, no duplicar en descripcion
+      const descripcionFinal = notas.trim() || null;
 
       const { data, error: insertError } = await (cliente as any)
         .from("gastos_traslado")
@@ -438,9 +434,12 @@ export function SecondaryTripNavBar({
                   <div className="flex items-center justify-between bg-surface-elevated rounded-xl p-2.5 border border-border/30">
                     <div className="flex items-center gap-2.5 overflow-hidden">
                       {previewUrl ? (
-                        <img
+                        <Image
                           src={previewUrl}
                           alt="Vista previa comprobante"
+                          width={40}
+                          height={40}
+                          unoptimized
                           className="w-10 h-10 object-cover rounded-lg border border-border/30 shrink-0"
                         />
                       ) : (

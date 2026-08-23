@@ -9,6 +9,7 @@ import {
 } from "./almacenamiento-seguro-local";
 
 const CLAVE_COLA = "ruum_cola_evidencia";
+const CLAVE_BIN_PREFIX = "ruum_evidencia_bin_";
 const BUCKET_EVIDENCIA = "evidencia";
 const logger = createLogger("evidencia_offline");
 const BACKOFF_REINTENTO_MS = [
@@ -105,6 +106,40 @@ export function configurarStorageColaEvidencia(storage: EvidenceQueueStorage) {
   storageColaEvidencia = storage;
 }
 
+// P1 mediano plazo: binarios fuera del JSON principal, en storage privado cifrado por item
+const CLAVE_BIN_PREFIX_INTERNAL = CLAVE_BIN_PREFIX;
+async function guardarBinarioEvidencia(localId: string, dataUrl: string): Promise<void> {
+  if (!dataUrl || !dataUrl.startsWith("data:")) return;
+  try {
+    await guardarJsonLocalSeguro(CLAVE_BIN_PREFIX_INTERNAL + localId, { dataUrl });
+  } catch (err) {
+    logger.warn("evidence_binary_store_failed", { localId, error: errorCode(err) });
+    throw err;
+  }
+}
+async function leerBinarioEvidencia(localId: string): Promise<string | null> {
+  try {
+    const data = await leerJsonLocalSeguro<{ dataUrl: string }>(CLAVE_BIN_PREFIX_INTERNAL + localId);
+    return data?.dataUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+async function eliminarBinarioEvidencia(localId: string): Promise<void> {
+  try {
+    await eliminarJsonLocalSeguro(CLAVE_BIN_PREFIX_INTERNAL + localId);
+  } catch {}
+}
+async function obtenerDataUrlParaItem(item: ItemColaEvidencia): Promise<string> {
+  if (item.dataUrl && item.dataUrl.startsWith("data:")) return item.dataUrl;
+  const fromFile = await leerBinarioEvidencia(item.localId);
+  if (fromFile) return fromFile;
+  return item.dataUrl;
+}
+async function limpiarBinariosDeCola(items: ItemColaEvidencia[]): Promise<void> {
+  await Promise.all(items.map((it) => eliminarBinarioEvidencia(it.localId)));
+}
+
 /**
  * Cola local de evidencia pendiente de subir. La propuesta de arquitectura
  * original (sección 11) planteaba SQLite local; la lógica de cola ya depende
@@ -125,30 +160,50 @@ export async function encolarEvidencia(item: ItemColaEvidencia): Promise<void> {
   if (!item.usuarioId) throw new Error("evidence_queue_user_required");
   const colaCompleta = await leerColaEvidenciaCompleta();
   const itemNormalizado = normalizarItemCola(item);
+  const dataUrlOriginal = itemNormalizado.dataUrl;
+  // P1 mediano plazo: guardar binario fuera del JSON principal (cifrado por item)
+  if (dataUrlOriginal && dataUrlOriginal.startsWith("data:")) {
+    await guardarBinarioEvidencia(itemNormalizado.localId, dataUrlOriginal);
+  }
+  // En la cola principal guardar solo metadata (sin dataUrl grande) — se reconstruye al leer para UI/sync
+  const itemParaCola: ItemColaEvidencia = { ...itemNormalizado, dataUrl: "" };
   // Deduplicar SOLO contra items del mismo usuario + mismo traslado/tipo/ángulo/sha — nunca contra otros usuarios
   const restantes = colaCompleta.filter((existente) => {
-    if (existente.localId === itemNormalizado.localId) return false;
-    if (existente.usuarioId !== itemNormalizado.usuarioId) return true;
+    if (existente.localId === itemParaCola.localId) return false;
+    if (existente.usuarioId !== itemParaCola.usuarioId) return true;
     const mismoSlot =
-      existente.trasladoId === itemNormalizado.trasladoId &&
-      existente.tipo === itemNormalizado.tipo &&
-      existente.angulo === itemNormalizado.angulo;
+      existente.trasladoId === itemParaCola.trasladoId &&
+      existente.tipo === itemParaCola.tipo &&
+      existente.angulo === itemParaCola.angulo;
     if (mismoSlot) return false;
     const mismoSha =
-      Boolean(existente.sha256 && itemNormalizado.sha256) &&
-      existente.trasladoId === itemNormalizado.trasladoId &&
-      existente.sha256 === itemNormalizado.sha256;
+      Boolean(existente.sha256 && itemParaCola.sha256) &&
+      existente.trasladoId === itemParaCola.trasladoId &&
+      existente.sha256 === itemParaCola.sha256;
     if (mismoSha) return false;
     return true;
   });
-  await storageColaEvidencia.write([...restantes, itemNormalizado]);
+  // Si se reemplaza un slot, limpiar binario del item reemplazado
+  const reemplazados = colaCompleta.filter((ex) => !restantes.includes(ex) && ex.localId !== itemParaCola.localId);
+  if (reemplazados.length > 0) await limpiarBinariosDeCola(reemplazados);
+  await storageColaEvidencia.write([...restantes, itemParaCola]);
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("ruum:evidencia-pendiente"));
 }
 
 export async function leerColaEvidencia(trasladoId?: string, usuarioIdExplicito?: string): Promise<ItemColaEvidencia[]> {
   const cola = await leerColaEvidenciaCompleta();
+  // Enriquecer con binario para UI/sync (mantener cola principal ligera)
+  const colaConBinario = await Promise.all(
+    cola.map(async (it) => {
+      if (!it.dataUrl || !it.dataUrl.startsWith("data:")) {
+        const bin = await leerBinarioEvidencia(it.localId);
+        if (bin) return { ...it, dataUrl: bin };
+      }
+      return it;
+    })
+  );
   const usuarioId = usuarioIdExplicito ?? await usuarioActualId();
-  const porUsuario = usuarioId ? cola.filter((item) => item.usuarioId === usuarioId) : cola;
+  const porUsuario = usuarioId ? colaConBinario.filter((item) => item.usuarioId === usuarioId) : colaConBinario;
   return trasladoId ? porUsuario.filter((item) => item.trasladoId === trasladoId) : porUsuario;
 }
 
@@ -156,6 +211,7 @@ export async function quitarDeColaEvidencia(localId: string): Promise<void> {
   const colaCompleta = await leerColaEvidenciaCompleta();
   const restante = colaCompleta.filter((item) => item.localId !== localId);
   await storageColaEvidencia.write(restante);
+  await eliminarBinarioEvidencia(localId);
 }
 
 export async function contarColaEvidencia(trasladoId?: string): Promise<number> {
@@ -170,12 +226,16 @@ export async function leerColaEvidenciaDeTraslado(trasladoId: string): Promise<I
 
 export async function limpiarColaEvidenciaDeUsuario(usuarioId: string): Promise<void> {
   const colaCompleta = await leerColaEvidenciaCompleta();
+  const aBorrar = colaCompleta.filter((item) => item.usuarioId === usuarioId);
   const restante = colaCompleta.filter((item) => item.usuarioId !== usuarioId);
   await storageColaEvidencia.write(restante);
+  await limpiarBinariosDeCola(aBorrar);
 }
 
 export async function limpiarColaEvidenciaCompleta(): Promise<void> {
+  const colaCompleta = await leerColaEvidenciaCompleta();
   await storageColaEvidencia.clear();
+  await limpiarBinariosDeCola(colaCompleta);
 }
 
 /**
@@ -231,7 +291,8 @@ function isOnline() {
 
 function esItemValidoYTolerable(item: ItemColaEvidencia, ahoraMs = Date.now()): boolean {
   if (!item || typeof item !== "object") return false;
-  if (!item.localId || !item.usuarioId || !item.trasladoId || !item.dataUrl) return false;
+  if (!item.localId || !item.usuarioId || !item.trasladoId) return false;
+  // dataUrl puede estar vacío si el binario está en storage separado (mediano plazo); se valida al sincronizar
 
   if (item.capturadaEn) {
     const capturadaMs = new Date(item.capturadaEn).getTime();
@@ -356,15 +417,17 @@ export async function sincronizarColaEvidencia(
     }
 
     let blob: Blob;
+    let dataUrlEfectivo: string;
     try {
-      blob = blobDesdeDataUrl(item.dataUrl);
+      dataUrlEfectivo = await obtenerDataUrlParaItem(item);
+      blob = blobDesdeDataUrl(dataUrlEfectivo);
     } catch (error) {
       const actualizado = await registrarIntentoFallido(item, error);
       logEvidenceSyncFailed(actualizado, "local_payload", error, itemsBase.length);
       throw error;
     }
 
-    const extension = extensionDesdeDataUrl(item.dataUrl);
+    const extension = extensionDesdeDataUrl(dataUrlEfectivo);
     const ruta = `${authUserId}/${item.trasladoId}/${item.tipo}/${item.localId}-${item.angulo}.${extension}`;
     const { error: uploadError } = await cliente.storage.from(BUCKET_EVIDENCIA).upload(ruta, blob, {
       upsert: true,

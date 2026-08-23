@@ -241,18 +241,30 @@ describe("cola offline de evidencia", () => {
     expect(rawPersisted).toBeDefined();
     // Debe usar el formato cifrado ruum:v1:<iv>:<ciphertext>
     expect(rawPersisted).toMatch(/^ruum:v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$/);
-    // Nunca debe contener data:image o payload sensible en claro
+    // Nunca debe contener data:image o payload sensible en claro (cola principal ahora sin binario)
     expect(rawPersisted).not.toContain("data:image");
     expect(rawPersisted).not.toContain("user-test");
     expect(rawPersisted).not.toContain("traslado-1");
 
-    // Al restaurar con nuevo storage, descifra y recupera la evidencia íntegra
-    const nuevoStorage = new CapacitorPreferencesEvidenceStorage();
-    const recuperados = await nuevoStorage.read();
+    // El binario se guarda separado y también cifrado
+    const rawBinario = preferencesStore.get("ruum_evidencia_bin_local-seguro-1");
+    expect(rawBinario).toBeDefined();
+    expect(rawBinario).toMatch(/^ruum:v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$/);
+    expect(rawBinario).not.toContain("data:image");
+
+    // Al restaurar via leerColaEvidencia (enriquecida) se reconstruye el dataUrl desde el binario separado
+    const recuperados = await leerColaEvidencia();
     expect(recuperados).toHaveLength(1);
     expect(recuperados[0].localId).toBe("local-seguro-1");
     expect(recuperados[0].dataUrl).toBe(DATA_URL_JPG);
     expect(recuperados[0].trasladoId).toBe("traslado-1");
+
+    // Lectura cruda directa del storage principal ya no contiene el binario (mediano plazo)
+    const nuevoStorage = new CapacitorPreferencesEvidenceStorage();
+    const crudo = await nuevoStorage.read();
+    expect(crudo).toHaveLength(1);
+    expect(crudo[0].localId).toBe("local-seguro-1");
+    expect(crudo[0].dataUrl).toBe(""); // binario fuera del JSON principal
   });
 
   it("P1: purga automáticamente items expirados por TTL (7 días)", async () => {

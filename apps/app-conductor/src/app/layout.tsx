@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
 import Script from "next/script";
+import { headers } from "next/headers";
 import { TextInputUppercaseBridge } from "@ruum/ui";
 import "./globals.css";
 import { SincronizadorEvidenciaOffline } from "./SincronizadorEvidenciaOffline";
@@ -53,10 +54,11 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="es" data-theme="dark">
       <head>
-        <Script src="/theme-init.js" strategy="beforeInteractive" />
+        <Script src="/theme-init.js" strategy="beforeInteractive" nonce={nonce} />
       </head>
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">Saltar al contenido principal</a>

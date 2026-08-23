@@ -64,13 +64,16 @@ export function ConfirmDialog({
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-4 sm:items-center backdrop-blur-xs"
-      role="presentation"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget && !busy) onCancel();
-      }}
-    >
+    <div className="fixed inset-0 z-[100] flex items-end justify-center p-4 sm:items-center">
+      <button
+        type="button"
+        aria-label="Cerrar diálogo"
+        onClick={() => {
+          if (!busy) onCancel();
+        }}
+        disabled={busy}
+        className="absolute inset-0 w-full h-full bg-black/70 backdrop-blur-xs border-none cursor-default disabled:cursor-not-allowed"
+      />
       <dialog
         ref={dialogRef}
         open
@@ -78,7 +81,7 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="w-full max-w-lg rounded-2xl border border-border bg-surface p-5 shadow-2xl text-text-primary m-0 block"
+        className="relative w-full max-w-lg rounded-2xl border border-border bg-surface p-5 shadow-2xl text-text-primary m-0 block z-10"
       >
         <h2 id={titleId} className="font-display text-xl font-bold text-text-primary">
           {title}
