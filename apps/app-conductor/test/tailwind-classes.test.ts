@@ -1,10 +1,13 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+const appRoot = resolve(__dirname, "..");
+const repoRoot = resolve(__dirname, "../../..");
+
 const RAICES_REVISION = [
-  join(process.cwd(), "src"),
-  join(process.cwd(), "..", "..", "packages", "ui", "src")
+  join(appRoot, "src"),
+  join(repoRoot, "packages", "ui", "src")
 ];
 
 const EXTENSIONES_REVISADAS = new Set([".css", ".ts", ".tsx"]);
@@ -43,7 +46,7 @@ describe("clases Tailwind semánticas", () => {
   });
 
   it("define color-scheme de controles nativos por tema", () => {
-    const tokensCss = readFileSync(join(process.cwd(), "..", "..", "packages", "ui", "src", "styles", "tokens.css"), "utf8");
+    const tokensCss = readFileSync(join(repoRoot, "packages", "ui", "src", "styles", "tokens.css"), "utf8");
 
     expect(tokensCss).toContain('[data-theme="light"] input');
     expect(tokensCss).toContain('[data-theme="dark"] input');

@@ -1,9 +1,11 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+const appRoot = resolve(__dirname, "..");
+
 function readProjectFile(path: string) {
-  return readFileSync(join(process.cwd(), path), "utf8");
+  return readFileSync(join(appRoot, path), "utf8");
 }
 
 describe("validacion de arranque sin red", () => {
