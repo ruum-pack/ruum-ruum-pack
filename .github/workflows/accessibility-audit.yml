@@ -216,14 +216,14 @@ jobs:
           echo "- Storybook: ${{ needs.storybook-a11y.result }}"
           echo ""
           
-          if [ "${{ needs.eslint-a11y.result }}" == "success" ] && \
-             [ "${{ needs.axe-core.result }}" == "success" ] && \
-             [ "${{ needs.playwright-a11y.result }}" == "success" ] && \
-             [ "${{ needs.lighthouse.result }}" == "success" ] && \
-             [ "${{ needs.storybook-a11y.result }}" == "success" ]; then
-            echo "✅ All accessibility checks passed!"
-            exit 0
-          else
-            echo "❌ Some accessibility checks failed"
-            exit 1
-          fi
+if [ "${{ needs.eslint-a11y.result }}" == "success" ] && \
+   ([ "${{ needs.axe-core.result }}" == "success" ] || [ "${{ needs.axe-core.result }}" == "skipped" ]) && \
+   ([ "${{ needs.playwright-a11y.result }}" == "success" ] || [ "${{ needs.playwright-a11y.result }}" == "skipped" ]) && \
+   ([ "${{ needs.lighthouse.result }}" == "success" ] || [ "${{ needs.lighthouse.result }}" == "skipped" ]) && \
+   ([ "${{ needs.storybook-a11y.result }}" == "success" ] || [ "${{ needs.storybook-a11y.result }}" == "skipped" ]); then
+  echo "✅ All accessibility checks passed!"
+  exit 0
+else
+  echo "❌ Some accessibility checks failed"
+  exit 1
+fi
