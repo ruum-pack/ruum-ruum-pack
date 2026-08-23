@@ -26,7 +26,7 @@ export interface LogoMarcaProps {
   mostrarRespaldo?: boolean;
   /** Muestra o no el descriptor oficial (por defecto true en horizontal y vertical). */
   mostrarDescriptor?: boolean;
-  /** Texto personalizado para el descriptor (por defecto 'Traslado vehicular con conductores certificados'). */
+  /** Texto personalizado para el descriptor (por defecto 'Conductores certificados'). */
   descriptor?: string;
   /** Subtítulo o lema adicional (por ejemplo '.'). */
   subtitulo?: string;

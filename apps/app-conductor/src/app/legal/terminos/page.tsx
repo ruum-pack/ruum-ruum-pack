@@ -32,7 +32,7 @@ export default function PaginaTerminosConductor() {
             Términos y Condiciones de Uso
           </h1>
           <p className="mt-1.5 font-body text-xs text-text-tertiary">
-            Ruum Ruum by Movilia • Última actualización: 3 de julio de 2026 • App v{appVersion.version} (mín. {appVersion.minimumSupported})
+            Ruum Ruum by Moviliax • Última actualización: 3 de julio de 2026 • App v{appVersion.version} (mín. {appVersion.minimumSupported})
           </p>
         </header>
 

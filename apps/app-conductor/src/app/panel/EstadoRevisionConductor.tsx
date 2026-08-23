@@ -248,7 +248,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
             <p className="font-display text-lg font-extrabold tracking-tight text-text-primary">
               ruum<span className="text-signal">ruum</span>
             </p>
-            <p className="font-body text-xs font-semibold text-text-tertiary">ruum by Movilia</p>
+            <p className="font-body text-xs font-semibold text-text-tertiary">ruum by Moviliax</p>
           </div>
         </div>
 

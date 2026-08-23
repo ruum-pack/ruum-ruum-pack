@@ -124,7 +124,7 @@ export function ReviewStep({
           <a href="/legal/terminos" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-route-action underline underline-offset-2 hover:no-underline">
             términos y condiciones
           </a>{" "}
-          de ruum ruum by Movilia.
+          de ruum ruum by Moviliax.
         </span>
       </label>
       {erroresCampos.aceptaTerminos && <p className="font-body text-sm font-medium text-danger-action">{erroresCampos.aceptaTerminos}</p>}
@@ -144,7 +144,7 @@ export function ReviewStep({
           <a href="/legal/privacidad" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-route-action underline underline-offset-2 hover:no-underline">
             aviso de privacidad
           </a>{" "}
-          de ruum ruum by Movilia.
+          de ruum ruum by Moviliax.
         </span>
       </label>
       {erroresCampos.confirmaPrivacidad && <p className="font-body text-sm font-medium text-danger-action">{erroresCampos.confirmaPrivacidad}</p>}
