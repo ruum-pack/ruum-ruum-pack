@@ -85,6 +85,9 @@ test('didit separa inicio con CORS y webhook firmado',()=>{
   const iniciar=read('supabase/functions/iniciar-verificacion-didit/index.ts');
   const webhook=read('supabase/functions/webhook-didit/index.ts');
   const conductores=read('packages/api/src/services/conductores.ts');
+  const nextConfigConductor=read('apps/app-conductor/next.config.ts');
+  const middlewareConductor=read('apps/app-conductor/src/middleware.ts');
+
   assert.match(conductores,/functions\.invoke\("iniciar-verificacion-didit"/);
   assert.match(iniciar,/Access-Control-Allow-Origin/);
   assert.match(iniciar,/req\.method === "OPTIONS"/);
@@ -95,6 +98,11 @@ test('didit separa inicio con CORS y webhook firmado',()=>{
   assert.match(webhook,/firmaValida/);
   assert.match(webhook,/aprobar_solicitud_conductor_sistema/);
   assert.doesNotMatch(webhook,/verification\.didit\.me\/v2\/session/);
+
+  // Verificación CSP frame-src y Permissions-Policy para iframe de Didit
+  assert.match(nextConfigConductor,/frame-src 'self' https:\/\/verify\.didit\.me/);
+  assert.match(middlewareConductor,/frame-src 'self' https:\/\/verify\.didit\.me/);
+  assert.match(nextConfigConductor,/Permissions-Policy.*https:\/\/verify\.didit\.me/);
 });
 test('documentos usa tarjetas operativas con badges tooltip y recordatorios',()=>{
   const page=read('apps/panel-admin/src/app/documentos/page.tsx');
