@@ -2,16 +2,19 @@
 
 create or replace function public.usuario_ids_de_traslados_asignados_conductor()
 returns setof uuid
-language sql
+language plpgsql
 security definer
 stable
 set search_path = public, pg_temp
 as $$
+begin
+  return query
   select t.usuario_id
   from public.traslados t
   join public.conductores c on c.id = t.conductor_id
   where c.auth_user_id = auth.uid()
     and t.usuario_id is not null;
+end;
 $$;
 
 revoke all on function public.usuario_ids_de_traslados_asignados_conductor() from public;
