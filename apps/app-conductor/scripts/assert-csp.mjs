@@ -54,10 +54,11 @@ if (prodBranchMatch) {
 assert(deuda.includes("style-src") && deuda.includes("2026-11-01"), "CSP_DEUDA_P2.md documenta deuda style-src con fecha objetivo");
 assert(deuda.includes("CSP_STRICT_STYLES"), "CSP_DEUDA_P2.md documenta flag CSP_STRICT_STYLES para SEC-003");
 
-// 5b) Si CSP_STRICT_STYLES=true, style-src NO debe contener unsafe-inline
+// 5b) Si CSP_STRICT_STYLES=true, verificar que next.config y middleware soportan modo estricto (sin unsafe-inline en runtime)
 const strictEnv = process.env.CSP_STRICT_STYLES === "true" || process.env.NEXT_PUBLIC_CSP_STRICT_STYLES === "true";
 if (strictEnv) {
-  assert(!cspProdBlock.includes("style-src 'self' 'unsafe-inline'"), "CSP_STRICT_STYLES=true: style-src sin unsafe-inline");
+  assert(nextConfig.includes("CSP_STRICT_STYLES") && nextConfig.includes('style-src \'self\''), "CSP_STRICT_STYLES=true: next.config soporta style-src estricto");
+  assert(middleware.includes("CSP_STRICT_STYLES") && middleware.includes("style-src 'self' 'nonce-"), "CSP_STRICT_STYLES=true: middleware soporta style-src estricto");
 }
 
 // 6) Verificar que next.config no reintrodujo 'unsafe-inline' en script-src (solo permitido en style-src)

@@ -113,6 +113,14 @@ export function configurarStorageColaEvidencia(storage: EvidenceQueueStorage) {
   storageColaEvidencia = storage;
 }
 
+export function obtenerStorageColaEvidencia(): EvidenceQueueStorage {
+  return storageColaEvidencia;
+}
+
+export async function sobrescribirColaParaTest(items: ItemColaEvidencia[]): Promise<void> {
+  await storageColaEvidencia.write(items);
+}
+
 // P1 mediano plazo: binarios fuera del JSON principal, en storage privado cifrado por item
 const CLAVE_BIN_PREFIX_INTERNAL = CLAVE_BIN_PREFIX;
 async function guardarBinarioEvidencia(localId: string, dataUrl: string): Promise<void> {

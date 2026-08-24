@@ -21,6 +21,8 @@ jobs:
       NEXT_PUBLIC_PANEL_ADMIN_DEMO: "false"
       NEXT_PUBLIC_APP_VERSION: ci
       NEXT_PUBLIC_RUUM_AMBIENTE: staging
+      CSP_STRICT_STYLES: "true"
+      NEXT_PUBLIC_CSP_STRICT_STYLES: "true"
       NEXT_PUBLIC_RUUM_SOPORTE_TELEFONO: "5500000000"
       NEXT_PUBLIC_RUUM_SOPORTE_CORREO: soporte-conductores-pruebas@example.test
       NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO: "911"
@@ -71,6 +73,12 @@ jobs:
       - name: Assert CSP (SEC-002 — bloqueante, sin unsafe-eval en prod)
         run: pnpm --filter @ruum/app-conductor assert:csp
 
+      - name: Assert CSP strict staging (SEC-003 — 7d ventana, style-src sin unsafe-inline)
+        env:
+          CSP_STRICT_STYLES: "true"
+          NEXT_PUBLIC_CSP_STRICT_STYLES: "true"
+        run: pnpm --filter @ruum/app-conductor assert:csp
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -119,6 +127,8 @@ jobs:
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
       NEXT_PUBLIC_APP_VERSION: ci
       NEXT_PUBLIC_RUUM_AMBIENTE: staging
+      CSP_STRICT_STYLES: "true"
+      NEXT_PUBLIC_CSP_STRICT_STYLES: "true"
 
     steps:
       - name: Checkout
@@ -360,6 +370,8 @@ jobs:
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
       NEXT_PUBLIC_APP_VERSION: ci
       NEXT_PUBLIC_RUUM_AMBIENTE: staging
+      CSP_STRICT_STYLES: "true"
+      NEXT_PUBLIC_CSP_STRICT_STYLES: "true"
       NEXT_PUBLIC_RUUM_SOPORTE_TELEFONO: "5500000000"
       NEXT_PUBLIC_RUUM_SOPORTE_CORREO: soporte-conductores-pruebas@example.test
       NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO: "911"
@@ -423,6 +435,8 @@ jobs:
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
       NEXT_PUBLIC_APP_VERSION: ci
       NEXT_PUBLIC_RUUM_AMBIENTE: staging
+      CSP_STRICT_STYLES: "true"
+      NEXT_PUBLIC_CSP_STRICT_STYLES: "true"
       NEXT_PUBLIC_RUUM_SOPORTE_TELEFONO: "5500000000"
       NEXT_PUBLIC_RUUM_SOPORTE_CORREO: soporte-conductores-pruebas@example.test
       NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO: "911"

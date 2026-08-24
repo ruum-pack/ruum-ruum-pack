@@ -51,11 +51,10 @@ export async function purgarColaExpirada(): Promise<number> {
   const excedidas = todas.filter((it) => typeof it.retryCount === "number" && it.retryCount > MAX_REINTENTOS_EVIDENCIA);
   const aPurgar = new Set([...expiradas, ...excedidas].map((i) => i.localId));
   if (aPurgar.size === 0) return 0;
-  // Reescribir cola sin purgados y limpiar binarios (limpiarColaEvidenciaCompleta hace fallback, aquí manual)
   const restantes = todas.filter((it) => !aPurgar.has(it.localId));
-  // Usar storage directo para no borrar por usuario
-  const { guardarJsonLocalSeguro, eliminarJsonLocalSeguro } = await import("../almacenamiento-seguro-local");
-  await guardarJsonLocalSeguro("ruum_cola_evidencia", restantes);
+  const { sobrescribirColaParaTest } = await import("../cola-offline");
+  const { eliminarJsonLocalSeguro } = await import("../almacenamiento-seguro-local");
+  await sobrescribirColaParaTest(restantes);
   for (const id of aPurgar) {
     await eliminarJsonLocalSeguro(`ruum_evidencia_bin_${id}`);
   }
