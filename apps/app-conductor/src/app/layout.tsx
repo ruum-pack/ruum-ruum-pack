@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
 import Script from "next/script";
 import { headers } from "next/headers";
-import dynamic from "next/dynamic";
 import { TextInputUppercaseBridge } from "@ruum/ui";
 import "./globals.css";
 import { NavegacionConductor } from "./NavegacionConductor";
@@ -11,14 +10,11 @@ import { LiveRegionProvider } from "../components/LiveRegionProvider";
 import { ErrorBoundaryConductor } from "../components/ErrorBoundaryConductor";
 import { VersionGate } from "./VersionGate";
 import { OperationalAccessibilityBridge } from "./OperationalAccessibilityBridge";
-
-// PERF-002 — Providers pesados con dynamic import (ssr:false) para no bloquear First Load
-// Sincronizador, tracking, push y offline shell solo se necesitan en cliente y tras hidratación
-const SincronizadorEvidenciaOffline = dynamic(() => import("./SincronizadorEvidenciaOffline").then((m) => m.SincronizadorEvidenciaOffline), { ssr: false });
-const EstadoSincronizacionGlobal = dynamic(() => import("./EstadoSincronizacionGlobal").then((m) => m.EstadoSincronizacionGlobal), { ssr: false });
-const EstadoTrackingGlobal = dynamic(() => import("./EstadoTrackingGlobal").then((m) => m.EstadoTrackingGlobal), { ssr: false });
-const PushNotificationsBootstrap = dynamic(() => import("./PushNotificationsBootstrap").then((m) => m.PushNotificationsBootstrap), { ssr: false });
-const OfflineShell = dynamic(() => import("./OfflineShell").then((m) => m.OfflineShell), { ssr: false });
+import { SincronizadorEvidenciaOffline } from "./SincronizadorEvidenciaOffline";
+import { EstadoSincronizacionGlobal } from "./EstadoSincronizacionGlobal";
+import { EstadoTrackingGlobal } from "./EstadoTrackingGlobal";
+import { PushNotificationsBootstrap } from "./PushNotificationsBootstrap";
+import { OfflineShell } from "./OfflineShell";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
