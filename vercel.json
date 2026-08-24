@@ -5,27 +5,6 @@
   "framework": "nextjs",
   "outputDirectory": "apps/app-conductor/.next",
   "regions": ["iad1"],
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": {
-      "description": "URL del proyecto Supabase (ej: https://xxx.supabase.co)",
-      "example": "https://project-id.supabase.co"
-    },
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": {
-      "description": "Clave anónima pública de Supabase (desde Supabase Settings → API)"
-    },
-    "NEXT_PUBLIC_APP_URL": {
-      "description": "URL base de la aplicación conductor (ej: https://conductor.ruum.mx)",
-      "example": "https://conductor.ruum.mx"
-    },
-    "NEXT_PUBLIC_APP_VERSION": {
-      "description": "Version SemVer - Se carga automáticamente desde config/app-version.json si no está definida",
-      "example": "1.0.0"
-    },
-    "NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN": {
-      "description": "Token público de Mapbox (debe comenzar con 'pk.')",
-      "example": "pk.eyJ..."
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
