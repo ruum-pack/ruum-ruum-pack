@@ -49,8 +49,8 @@ function AccesoRapido({
 }) {
   const contenido = (
     <>
-      <p className="font-display text-sm font-semibold leading-snug">{titulo}</p>
-      <p className="mt-1 font-body text-xs text-ink/55">{descripcion}</p>
+      <p className="font-display text-sm font-bold text-text-primary leading-snug">{titulo}</p>
+      <p className="mt-1 font-body text-xs text-text-secondary leading-relaxed">{descripcion}</p>
     </>
   );
 
@@ -58,21 +58,21 @@ function AccesoRapido({
     return (
       <Link
         href={href}
-        className="app-card app-card-interactive block rounded-card bg-mist p-4 hover:border-signal/60 hover:bg-signal-soft/40"
+        className="app-card app-card-interactive block rounded-card bg-surface p-4 hover:border-route/60 hover:bg-surface-elevated"
       >
         {contenido}
       </Link>
     );
   }
 
-  /* Estado vacío: card visible con CTA contextual — nunca solo opacidad */
+  /* Estado vacío: card visible con CTA contextual */
   return (
-    <div className="app-card rounded-card bg-mist-dim/30 p-4">
+    <div className="app-card rounded-card bg-surface/50 p-4 border border-border/40">
       {contenido}
       {ctaVacio && ctaHref && (
         <Link
           href={ctaHref}
-          className="mt-3 inline-block font-body text-xs font-medium text-route-dark underline-offset-4 hover:underline"
+          className="mt-3 inline-flex items-center gap-1 font-body text-xs font-semibold text-route-action underline-offset-4 hover:underline"
         >
           {ctaVacio} →
         </Link>
@@ -83,7 +83,7 @@ function AccesoRapido({
 
 function SeccionTitulo({ children }: { children: ReactNode }) {
   return (
-    <h2 className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">
+    <h2 className="font-display text-xs font-bold uppercase tracking-wider text-text-tertiary">
       {children}
     </h2>
   );
@@ -101,42 +101,42 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
   const primerNombre = usuario?.nombre?.trim().split(" ")[0];
 
   return (
-    <div>
+    <div className="space-y-8 sm:space-y-10">
       {/* Hero + CTA principal */}
-      <section className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="font-body text-sm text-ink/55">
+          <p className="font-body text-sm font-medium text-text-secondary">
             {primerNombre ? `Hola, ${primerNombre}` : "Hola"}
           </p>
-          <h1 className="mt-1 font-display text-3xl font-semibold leading-[1.1] tracking-tight sm:text-4xl">
+          <h1 className="mt-1 font-display text-2xl font-black leading-tight tracking-tight sm:text-4xl text-text-primary">
             Mueve tu auto sin soltar el control.
           </h1>
-          <p className="mt-3 max-w-md font-body text-sm text-ink/65">
+          <p className="mt-2 max-w-md font-body text-sm text-text-secondary">
             Solicita un traslado, sigue cada paso en tiempo real y consulta el
             Pasaporte Digital cuando quieras.
           </p>
         </div>
         <Link href="/traslados/nuevo" className="sm:shrink-0">
-          <Button className="w-full sm:w-auto">Solicitar traslado</Button>
+          <Button className="w-full sm:w-auto font-display font-bold">Solicitar traslado</Button>
         </Link>
       </section>
 
       {/* Traslado activo */}
-      <section className="mt-10">
+      <section>
         <SeccionTitulo>Traslado activo</SeccionTitulo>
 
         {viajeActivoVisible ? (
           <Link href={`/traslados/${viajeActivoVisible.traslado_id}`} className="mt-3 block">
             <PassportCard
-              className="app-card-interactive"
+              className="app-card-interactive shadow-lg"
               folio={viajeActivoVisible.traslado_id.slice(0, 8).toUpperCase()}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-display text-base font-semibold">
+                  <p className="font-display text-base font-bold text-text-primary">
                     {tarjetaVehiculo(viajeActivoVisible)}
                   </p>
-                  <p className="mt-0.5 font-body text-xs text-ink/50">
+                  <p className="mt-0.5 font-body text-xs text-text-secondary">
                     {ETIQUETA_CATEGORIA[CATEGORIA_POR_ESTADO[viajeActivoVisible.estado]]} ·{" "}
                     {formatearFechaRelativa(viajeActivoVisible.creado_en ?? viajeActivoVisible.actualizado_en ?? new Date().toISOString())}
                   </p>
@@ -156,13 +156,13 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
             </PassportCard>
           </Link>
         ) : (
-          <div className="mt-3 rounded-card border border-dashed border-ink/15 px-6 py-8 text-center">
-            <p className="font-body text-sm text-ink/60">
+          <div className="mt-3 rounded-card border border-dashed border-border bg-surface/30 px-6 py-8 text-center">
+            <p className="font-body text-sm text-text-secondary">
               Aún no tienes ningún traslado en curso.
             </p>
             <Link
               href="/traslados/nuevo"
-              className="mt-2 inline-block font-body text-sm font-medium text-route-dark underline-offset-4 hover:underline"
+              className="mt-3 inline-flex items-center gap-1 font-body text-sm font-semibold text-route-action underline-offset-4 hover:underline"
             >
               Solicita un traslado →
             </Link>
@@ -172,7 +172,7 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
 
       {/* Notificaciones */}
       {notificaciones.length > 0 && (
-        <section className="mt-10">
+        <section>
           <SeccionTitulo>Notificaciones</SeccionTitulo>
           <div className="mt-3 grid gap-2.5">
             {notificaciones.map((n) => {
@@ -189,15 +189,15 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
         </section>
       )}
 
-      {/* Accesos rápidos — nunca deshabilitados, siempre con CTA */}
-      <section className="mt-10">
+      {/* Accesos rápidos */}
+      <section>
         <SeccionTitulo>Accesos rápidos</SeccionTitulo>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
           <AccesoRapido
             titulo="Pasaporte Digital"
             descripcion={
               viajeActivoVisible
-                ? "Consulta tu Pasaporte Digital"
+                ? "Consulta el estatus y evidencia de tu traslado"
                 : "Disponible con un traslado activo"
             }
             href={viajeActivoVisible ? `/traslados/${viajeActivoVisible.traslado_id}` : undefined}
@@ -206,7 +206,7 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
           />
           <AccesoRapido
             titulo="Mis traslados"
-            descripcion="Activos, programados e historial"
+            descripcion="Activos, programados e historial completo"
             href="/mis-viajes"
           />
           <AccesoRapido
@@ -224,28 +224,28 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
       </section>
 
       {/* Últimos traslados */}
-      <section id="ultimos-viajes" className="mt-10">
+      <section id="ultimos-viajes">
         <SeccionTitulo>Últimos traslados</SeccionTitulo>
         {historial.length === 0 ? (
-          <p className="mt-3 font-body text-sm text-ink/55">
+          <p className="mt-3 font-body text-sm text-text-secondary">
             Cuando completes tu primer traslado, aparecerá aquí.
           </p>
         ) : (
-          <div className="mt-3 divide-y divide-ink/10 rounded-card border border-ink/10">
+          <div className="mt-3 divide-y divide-border rounded-card border border-border bg-surface">
             {historial.slice(0, 6).map((t, index) => {
               const trasladoId = t.traslado_id;
               const contenido = (
                 <>
                 <div>
-                  <p className="font-body text-sm font-medium">
+                  <p className="font-body text-sm font-semibold text-text-primary">
                     {tarjetaVehiculo(t)}
                     {t.vehiculo_tipo && (
-                      <span className="ml-2 font-body text-xs text-ink/45">
+                      <span className="ml-2 font-body text-xs font-normal text-text-tertiary">
                         · {ETIQUETA_TIPO_VEHICULO[t.vehiculo_tipo]}
                       </span>
                     )}
                   </p>
-                  <p className="mt-0.5 font-mono-ruum text-xs text-ink/45">
+                  <p className="mt-0.5 font-mono-ruum text-xs text-text-secondary">
                     {formatearFechaRelativa(t.creado_en ?? t.actualizado_en ?? new Date().toISOString())} ·{" "}
                     {formatearPrecio(t.precio_final ?? t.precio_cotizado ?? 0)}
                   </p>
@@ -258,7 +258,7 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
                 <Link
                   key={trasladoId}
                   href={`/traslados/${trasladoId}`}
-                  className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-ink/[0.03]"
+                  className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-surface-elevated"
                 >
                   {contenido}
                 </Link>
@@ -273,17 +273,16 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
       </section>
 
       {/* Pilares de confianza */}
-      <section className="mt-12 grid gap-8 border-t border-ink/10 pt-10 sm:grid-cols-3">
+      <section className="mt-10 grid gap-6 border-t border-border pt-8 sm:grid-cols-3">
         {PILARES_CONFIANZA.map((pilar) => (
-          <div key={pilar.titulo}>
-            <h3 className="font-display text-sm font-semibold">{pilar.titulo}</h3>
-            <p className="mt-2 font-body text-xs leading-relaxed text-ink/60">
+          <div key={pilar.titulo} className="rounded-xl border border-border/40 bg-surface/40 p-4">
+            <h3 className="font-display text-sm font-bold text-text-primary">{pilar.titulo}</h3>
+            <p className="mt-2 font-body text-xs leading-relaxed text-text-secondary">
               {pilar.cuerpo}
             </p>
           </div>
         ))}
       </section>
-
     </div>
   );
 }

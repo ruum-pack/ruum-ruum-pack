@@ -13,8 +13,8 @@ const focoAcentoPublico = "focus-visible:ring-[#FFC400]/70 focus-visible:ring-of
 
 export function PantallaPublica({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <main className={`ruum-auth-shell min-h-screen ${fondoPublico} px-5 text-white sm:px-6 ${className}`}>
-      <div className={`relative mx-auto min-h-screen w-full max-w-[390px] overflow-hidden ${fondoPublicoTransparente} shadow-[0_24px_64px_rgba(0,0,0,0.4)]`}>
+    <main className={`ruum-auth-shell min-h-screen ${fondoPublico} px-4 text-white sm:px-6 ${className}`}>
+      <div className={`relative mx-auto min-h-screen w-full max-w-md overflow-hidden ${fondoPublicoTransparente} shadow-[0_24px_64px_rgba(0,0,0,0.4)]`}>
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-40"

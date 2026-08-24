@@ -111,8 +111,8 @@ function dinero(valor: number | null | undefined) {
 export function Campo({ etiqueta, valor }: { etiqueta: string; valor?: string | null | undefined }) {
   return (
     <div>
-      <dt className="font-body text-xs uppercase tracking-wide text-ink/45">{etiqueta}</dt>
-      <dd className="mt-1 font-body text-sm font-medium">{dato(valor)}</dd>
+      <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">{etiqueta}</dt>
+      <dd className="mt-1 font-body text-sm font-semibold text-text-primary">{dato(valor)}</dd>
     </div>
   );
 }
@@ -129,8 +129,8 @@ export function Seccion({
   return (
     <PassportCard>
       <div className="flex flex-col gap-1">
-        <h2 className="font-display text-xl font-semibold">{titulo}</h2>
-        {descripcion && <p className="font-body text-sm text-ink/55">{descripcion}</p>}
+        <h2 className="font-display text-xl font-bold text-text-primary">{titulo}</h2>
+        {descripcion && <p className="font-body text-sm text-text-secondary">{descripcion}</p>}
       </div>
       <div className="mt-6">{children}</div>
     </PassportCard>
@@ -153,17 +153,17 @@ function FilaConfiguracion({
   return (
     <Link
       href={href}
-      className="group flex items-center gap-3 app-card app-card-interactive rounded-xl bg-mist px-4 py-4 font-body text-sm hover:border-route/50 hover:bg-route-soft/40"
+      className="group flex items-center gap-3.5 app-card app-card-interactive rounded-xl bg-surface px-4 py-4 font-body text-sm border border-border hover:border-route-action hover:bg-surface-elevated"
     >
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-route/30 bg-route-soft font-display text-sm font-bold text-route-dark">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-route-action/30 bg-route-action/10 font-display text-sm font-bold text-route-action">
         {inicial}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-display text-sm font-bold leading-tight text-ink">{titulo}</span>
-        {descripcion && <span className="mt-1 block text-xs leading-4 text-ink/55">{descripcion}</span>}
+        <span className="block font-display text-sm font-bold leading-tight text-text-primary">{titulo}</span>
+        {descripcion && <span className="mt-1 block text-xs leading-4 text-text-secondary">{descripcion}</span>}
       </span>
-      {detalle && <span className="shrink-0 rounded-full border border-route/30 px-2 py-1 text-xs text-route-dark">{detalle}</span>}
-      <span className="text-lg leading-none text-route-dark transition-transform group-hover:translate-x-0.5">›</span>
+      {detalle && <span className="shrink-0 rounded-full border border-route-action/30 bg-route-action/10 px-2 py-0.5 text-xs font-semibold text-route-action">{detalle}</span>}
+      <span className="text-lg leading-none text-text-tertiary transition-transform group-hover:translate-x-0.5 group-hover:text-signal">›</span>
     </Link>
   );
 }
@@ -171,7 +171,7 @@ function FilaConfiguracion({
 function GrupoConfiguracion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-2 font-mono-ruum text-xs uppercase tracking-wide text-route-dark">{titulo}</p>
+      <p className="mb-2 font-mono-ruum text-xs font-semibold uppercase tracking-wider text-route-action">{titulo}</p>
       <div className="grid gap-3 sm:grid-cols-2">{children}</div>
     </div>
   );
@@ -179,14 +179,14 @@ function GrupoConfiguracion({ titulo, children }: { titulo: string; children: Re
 
 export function AvisoSinSesion() {
   return (
-    <main className="mx-auto max-w-xl px-6 py-20">
+    <main className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20 text-center">
       <Aviso tono="info">Inicia sesión para consultar y actualizar los datos de tu cuenta.</Aviso>
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row justify-center">
         <Link href="/login?next=/cuenta">
-          <Button>Iniciar sesión</Button>
+          <Button className="w-full sm:w-auto">Iniciar sesión</Button>
         </Link>
         <Link href="/registro">
-          <Button variant="secondary">Crear cuenta</Button>
+          <Button variant="secondary" className="w-full sm:w-auto">Crear cuenta</Button>
         </Link>
       </div>
     </main>
@@ -195,19 +195,19 @@ export function AvisoSinSesion() {
 
 export function HeaderCuenta({ usuario }: { usuario?: Usuario }) {
   return (
-    <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <Link href="/" className="font-body text-sm text-ink/55 hover:underline">
-          Inicio
+        <Link href="/" className="font-body text-xs font-medium text-text-tertiary underline-offset-4 hover:text-text-primary hover:underline">
+          ← Volver al inicio
         </Link>
-        <h1 className="mt-2 font-display text-3xl font-semibold leading-tight">Cuenta</h1>
-        <p className="mt-2 max-w-2xl font-body text-sm text-ink/60">
+        <h1 className="mt-2 font-display text-2xl sm:text-3xl font-black leading-tight text-text-primary">Cuenta</h1>
+        <p className="mt-1 max-w-2xl font-body text-sm text-text-secondary">
           Administra tu perfil, vehículos frecuentes, métodos de pago y datos de facturación.
         </p>
       </div>
       <div className="hidden sm:block">
         <Link href="/soporte">
-          <Button>¿Necesitas ayuda?</Button>
+          <Button variant="secondary" className="font-display font-semibold text-xs">¿Necesitas ayuda?</Button>
         </Link>
       </div>
       {usuario && (
@@ -215,13 +215,13 @@ export function HeaderCuenta({ usuario }: { usuario?: Usuario }) {
           {usuario.foto_url ? (
             <Image src={usuario.foto_url} alt="Foto de perfil" width={48} height={48} className="size-12 rounded-full object-cover" />
           ) : (
-            <div className="flex size-12 items-center justify-center rounded-full bg-route-soft font-display text-sm font-bold text-route-dark">
+            <div className="flex size-12 items-center justify-center rounded-full bg-route-action/15 font-display text-sm font-bold text-route-action border border-route-action/30">
               {iniciales(usuario.nombre)}
             </div>
           )}
           <div>
-            <p className="font-body text-sm font-semibold">{dato(usuario.nombre)}</p>
-            <p className="font-body text-xs text-ink/55">{etiquetaVerificacion(usuario.estado_verificacion)}</p>
+            <p className="font-body text-sm font-bold text-text-primary">{dato(usuario.nombre)}</p>
+            <p className="font-body text-xs text-text-secondary">{etiquetaVerificacion(usuario.estado_verificacion)}</p>
           </div>
         </div>
       )}

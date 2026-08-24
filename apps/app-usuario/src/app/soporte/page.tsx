@@ -82,8 +82,8 @@ function Seccion({
   return (
     <PassportCard>
       <div className="flex flex-col gap-1">
-        <h2 className="font-display text-xl font-semibold">{titulo}</h2>
-        {descripcion && <p className="font-body text-sm text-ink/55">{descripcion}</p>}
+        <h2 className="font-display text-xl font-bold text-text-primary">{titulo}</h2>
+        {descripcion && <p className="font-body text-sm text-text-secondary">{descripcion}</p>}
       </div>
       <div className="mt-6">{children}</div>
     </PassportCard>
@@ -93,7 +93,7 @@ function Seccion({
 function CampoReporte({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="font-body text-sm font-medium">{etiqueta}</span>
+      <span className="font-body text-xs font-semibold uppercase tracking-wider text-text-tertiary">{etiqueta}</span>
       {children}
     </label>
   );
@@ -101,7 +101,7 @@ function CampoReporte({ etiqueta, children }: { etiqueta: string; children: Reac
 
 function SelectBase({ children }: { children: React.ReactNode }) {
   return (
-    <select className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark">
+    <select className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 font-body text-sm text-text-primary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-action">
       {children}
     </select>
   );
@@ -111,7 +111,7 @@ function TextAreaBase() {
   return (
     <textarea
       rows={4}
-      className="w-full rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+      className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 font-body text-sm text-text-primary placeholder:text-text-tertiary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-action"
       placeholder="Describe lo que pasó, incluye ubicación aproximada, hora y cualquier evidencia relevante."
     />
   );
@@ -119,29 +119,12 @@ function TextAreaBase() {
 
 function TogglePreferencia({ etiqueta, activo }: { etiqueta: string; activo: boolean }) {
   return (
-    <label className="flex items-center justify-between gap-4 border-t border-ink/10 py-3 first:border-t-0">
-      <span className="font-body text-sm font-semibold text-ink">{etiqueta}</span>
-      <span className={`rounded-full border px-2.5 py-1 font-body text-xs ${activo ? "border-route/30 bg-route-soft text-route-dark" : "border-ink/15 bg-ink/[0.05] text-ink/60"}`}>
+    <label className="flex items-center justify-between gap-4 border-t border-border/40 py-3 first:border-t-0">
+      <span className="font-body text-sm font-semibold text-text-primary">{etiqueta}</span>
+      <span className={`rounded-full border px-2.5 py-1 font-body text-xs ${activo ? "border-route-action/30 bg-route-action/10 text-route-action font-semibold" : "border-border bg-surface-elevated text-text-secondary"}`}>
         {activo ? "Activa" : "Pausada"}
       </span>
     </label>
-  );
-}
-
-function LinkSoporte({
-  href,
-  titulo,
-  descripcion
-}: {
-  href: string;
-  titulo: string;
-  descripcion: string;
-}) {
-  return (
-    <Link href={href} className="block rounded-lg border border-ink/10 bg-mist px-4 py-4 transition-colors hover:border-route/40 hover:bg-route-soft/30">
-      <p className="font-display text-sm font-semibold text-ink">{titulo}</p>
-      <p className="mt-1 font-body text-xs leading-5 text-ink/55">{descripcion}</p>
-    </Link>
   );
 }
 
@@ -154,23 +137,23 @@ export default async function PaginaSoporte({ searchParams }: { searchParams: Pr
   return (
     <main className="app-page">
       {usuario ? <NavegacionUsuario /> : null}
-      <div className="app-container py-10 sm:py-14">
-      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="app-container py-6 sm:py-10 lg:py-14">
+      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Link href="/" className="font-body text-sm text-ink/55 underline-offset-4 hover:underline">
-            Inicio
+          <Link href="/" className="font-body text-xs font-medium text-text-tertiary underline-offset-4 hover:text-text-primary hover:underline">
+            ← Volver al inicio
           </Link>
-          <h1 className="mt-2 font-display text-3xl font-semibold leading-tight">Soporte</h1>
-          <p className="mt-2 max-w-2xl font-body text-sm text-ink/60">
+          <h1 className="mt-2 font-display text-2xl sm:text-3xl font-black leading-tight text-text-primary">Soporte</h1>
+          <p className="mt-1 max-w-2xl font-body text-sm text-text-secondary">
             Resuelve dudas, reporta problemas y revisa la configuración de ayuda para tus traslados.
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-wrap gap-2">
           <Link href="/mis-viajes">
-            <Button variant="secondary">Mis viajes</Button>
+            <Button variant="secondary" className="font-display font-semibold text-xs">Mis viajes</Button>
           </Link>
           <Link href="/cuenta">
-            <Button>Mi cuenta</Button>
+            <Button className="font-display font-semibold text-xs">Mi cuenta</Button>
           </Link>
         </div>
       </header>
@@ -180,21 +163,21 @@ export default async function PaginaSoporte({ searchParams }: { searchParams: Pr
           <PassportCard folio={viajeActivoVisible.traslado_id.slice(0, 8).toUpperCase()}>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-body text-xs uppercase tracking-wide text-ink/45">Soporte durante viaje activo</p>
-                <h2 className="mt-1 font-display text-xl font-semibold">{tarjetaVehiculo(viajeActivoVisible)}</h2>
-                <p className="mt-1 font-body text-sm text-ink/55">
+                <p className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Soporte durante viaje activo</p>
+                <h2 className="mt-1 font-display text-lg sm:text-xl font-bold text-text-primary">{tarjetaVehiculo(viajeActivoVisible)}</h2>
+                <p className="mt-1 font-body text-sm text-text-secondary">
                   Usa este acceso si necesitas ayuda con evidencia, pagos, conductor, daño o incidente.
                 </p>
               </div>
               <Link href={`/traslados/${viajeActivoVisible.traslado_id}`}>
-                <Button>Ver viaje activo</Button>
+                <Button className="w-full sm:w-auto font-display font-bold">Ver viaje activo</Button>
               </Link>
             </div>
           </PassportCard>
         </section>
       )}
 
-      {/* Acción principal: contactar soporte — siempre lo primero */}
+      {/* Acción principal: contactar soporte */}
       <section className="mb-6">
         <Seccion titulo="Contactar soporte" descripcion="Elige el motivo para orientar mejor la respuesta.">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -226,29 +209,27 @@ export default async function PaginaSoporte({ searchParams }: { searchParams: Pr
               </CampoReporte>
             </div>
             <div className="sm:col-span-2">
-              {/* Endpoint de soporte en desarrollo — se muestra canal alternativo en lugar
-                  de botón deshabilitado sin contexto, para no bloquear al usuario */}
-              <div className="rounded-lg border border-ink/10 bg-mist px-4 py-4">
-                <p className="font-body text-sm font-semibold text-ink">
-                  Envío por formulario disponible próximamente
+              <div className="rounded-xl border border-border bg-surface p-4">
+                <p className="font-display text-sm font-bold text-text-primary">
+                  Canales de atención directa
                 </p>
-                <p className="mt-1 font-body text-xs leading-5 text-ink/60">
-                  Mientras tanto contáctanos directamente y te respondemos en menos de 24 horas.
+                <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
+                  Contáctanos directamente y nuestro equipo te responderá en minutos.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <a
                     href="mailto:soporte@ruumruum.mx"
-                    className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm font-medium text-ink transition hover:border-route-dark hover:text-route-dark"
+                    className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-surface-elevated px-4 py-2 font-body text-xs font-semibold text-text-primary transition hover:border-route-action hover:text-route-action"
                   >
-                    Enviar correo
+                    ✉️ Enviar correo
                   </a>
                   <a
                     href="https://wa.me/5215500000000"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-ink/20 bg-mist px-3 py-2 font-body text-sm font-medium text-ink transition hover:border-route-dark hover:text-route-dark"
+                    className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-signal text-slate-950 px-4 py-2 font-display text-xs font-bold shadow-sm transition hover:bg-signal/90"
                   >
-                    WhatsApp
+                    💬 WhatsApp Soporte
                   </a>
                 </div>
               </div>
@@ -257,24 +238,24 @@ export default async function PaginaSoporte({ searchParams }: { searchParams: Pr
         </Seccion>
       </section>
 
-      {/* Temas de soporte comunes — contexto antes del FAQ */}
-      <section className="mb-6 grid gap-4 sm:grid-cols-3">
+      {/* Temas de soporte comunes */}
+      <section className="mb-6 grid gap-3 sm:grid-cols-3">
         {TEMAS_SOPORTE.map(([titulo, descripcion]) => (
-          <div key={titulo} className="app-card rounded-card p-4">
-            <p className="font-display text-sm font-semibold">{titulo}</p>
-            <p className="mt-1 font-body text-xs leading-5 text-ink/60">{descripcion}</p>
+          <div key={titulo} className="app-card rounded-xl border border-border bg-surface p-4">
+            <p className="font-display text-sm font-bold text-text-primary">{titulo}</p>
+            <p className="mt-1 font-body text-xs leading-5 text-text-secondary">{descripcion}</p>
           </div>
         ))}
       </section>
 
-      {/* FAQ — después del contacto, como respaldo de autoservicio */}
+      {/* FAQ */}
       <section className="mb-6">
         <Seccion titulo="Preguntas frecuentes">
-          <div className="divide-y divide-ink/10">
+          <div className="divide-y divide-border">
             {FAQ.map(([pregunta, respuesta]) => (
               <details key={pregunta} className="py-3">
-                <summary className="cursor-pointer font-body text-sm font-semibold text-ink">{pregunta}</summary>
-                <p className="mt-2 font-body text-sm leading-6 text-ink/60">{respuesta}</p>
+                <summary className="cursor-pointer font-display text-sm font-bold text-text-primary hover:text-signal">{pregunta}</summary>
+                <p className="mt-2 font-body text-xs leading-relaxed text-text-secondary">{respuesta}</p>
               </details>
             ))}
           </div>
@@ -283,9 +264,9 @@ export default async function PaginaSoporte({ searchParams }: { searchParams: Pr
 
       <section className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <Seccion titulo="Notificaciones" descripcion="Eventos operativos que Ruum Ruum puede comunicarte.">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {NOTIFICACIONES.map((notificacion) => (
-              <span key={notificacion} className="rounded-full border border-ink/10 bg-mist px-2.5 py-1 font-body text-xs text-ink/60">
+              <span key={notificacion} className="rounded-full border border-border bg-surface-elevated px-2.5 py-1 font-body text-xs text-text-secondary">
                 {notificacion}
               </span>
             ))}
@@ -315,3 +296,4 @@ export default async function PaginaSoporte({ searchParams }: { searchParams: Pr
     </main>
   );
 }
+

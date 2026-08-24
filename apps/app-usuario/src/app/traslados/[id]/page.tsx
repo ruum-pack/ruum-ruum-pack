@@ -338,24 +338,24 @@ function AccionesRapidasPasaporte({ trasladoId }: { trasladoId: string }) {
   return (
     <nav
       aria-label="Acciones rápidas del traslado"
-      className="sticky top-0 z-30 mt-4 rounded-[var(--ruum-radius-modal)] border border-ink/10 bg-mist/95 p-2 shadow-3 backdrop-blur"
+      className="sticky top-0 z-30 mt-4 rounded-[var(--ruum-radius-modal)] border border-border bg-surface/95 p-2 shadow-3 backdrop-blur"
     >
       <div className="grid grid-cols-3 gap-2">
         <a
           href="#chat-conductor"
-          className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] bg-ink px-3 text-center font-body text-xs font-semibold text-mist transition hover:bg-ink-soft focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-dark"
+          className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] bg-surface-elevated border border-border px-3 text-center font-body text-xs font-bold text-text-primary transition hover:bg-surface hover:border-signal/40 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
         >
           Chat
         </a>
         <Link
           href={`/soporte?viaje=${trasladoId}`}
-          className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border border-route-dark bg-route-dark px-3 text-center font-body text-xs font-semibold text-mist transition hover:bg-[#0a4b8c] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-dark"
+          className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border border-route-action/40 bg-route-action/15 px-3 text-center font-body text-xs font-bold text-route-action transition hover:bg-route-action/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
         >
           Soporte
         </Link>
         <a
           href="#acciones-incidencia"
-          className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border border-ink/20 bg-mist px-3 text-center font-body text-xs font-semibold text-ink transition hover:border-ink/40 hover:bg-mist-dim focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-dark"
+          className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border border-warning/40 bg-warning/15 px-3 text-center font-body text-xs font-bold text-warning transition hover:bg-warning/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
         >
           Incidencia
         </a>
@@ -587,7 +587,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
   return (
     <main className="app-page">
       <NavegacionUsuario />
-      <div className="app-container py-12">
+      <div className="app-container py-6 sm:py-10 lg:py-14">
       <PassportCard folio={`#RM-${pasaporte.traslado_id.slice(0, 4).toUpperCase()}`}>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div>

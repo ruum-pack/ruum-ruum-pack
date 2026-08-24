@@ -42,7 +42,7 @@ export default async function PaginaInicio() {
     return (
       <main className="app-page">
         <NavegacionUsuario />
-        <div className="app-container py-10 sm:py-14">
+        <div className="app-container py-6 sm:py-10 lg:py-14">
           <InicioUsuario usuario={usuario} traslados={traslados} />
         </div>
       </main>
@@ -53,7 +53,7 @@ export default async function PaginaInicio() {
   return (
     <div className="min-h-screen bg-[#151515] text-[#F8F8F5]">
       {/* Barra de Navegación Pública */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#151515]/90 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#151515]/90 pt-[env(safe-area-inset-top)] backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
           <LogoMarca variante="horizontal" tema="oscuro" tamano={34} />
           <div className="flex items-center gap-3">

@@ -1305,13 +1305,13 @@ export function NuevoTrasladoForm() {
   return (
     <main className="app-page">
       <NavegacionUsuario />
-      <div className="mx-auto max-w-xl px-6 py-12">
-        <h1 className="font-display text-2xl font-semibold">Nuevo traslado</h1>
+      <div className="mx-auto max-w-xl px-4 sm:px-6 py-6 sm:py-12">
+        <h1 className="font-display text-2xl sm:text-3xl font-black text-text-primary">Nuevo traslado</h1>
 
         {borradorDisponible && (
-          <div className="mt-5 rounded-xl border border-route/25 bg-route-soft p-4">
-            <p className="font-body text-sm font-semibold text-ink">Encontramos una solicitud sin terminar</p>
-            <p className="mt-1 font-body text-xs leading-5 text-ink/65">
+          <div className="mt-4 rounded-xl border border-route-action/30 bg-route-action/10 p-4">
+            <p className="font-body text-sm font-semibold text-text-primary">Encontramos una solicitud sin terminar</p>
+            <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
               Guardada el {new Date(borradorDisponible.guardadoEn).toLocaleString("es-MX")} y disponible por 24 horas.
               Por seguridad no guardamos domicilio exacto, teléfonos de contacto, VIN, placas ni instrucciones especiales.
             </p>
@@ -1322,29 +1322,47 @@ export function NuevoTrasladoForm() {
           </div>
         )}
 
+      {/* Stepper móvil y de escritorio */}
       <div className="mt-6" aria-label={`Paso ${paso + 1} de ${PASOS.length} — ${PASOS[paso]}`}>
-        <p className="font-body text-sm font-semibold text-ink">
-          Paso {paso + 1} de {PASOS.length} — {PASOS[paso]}
-        </p>
-        <ol className="mt-3 flex items-center gap-3">
+        <div className="flex items-center justify-between text-xs font-bold font-display uppercase tracking-wider text-text-tertiary">
+          <span>Paso {paso + 1} de {PASOS.length}</span>
+          <span className="text-signal font-extrabold">{PASOS[paso]}</span>
+        </div>
+
+        {/* Barra de progreso fluida para móvil */}
+        <div className="mt-2 grid grid-cols-4 gap-1.5 sm:hidden">
+          {PASOS.map((_, i) => (
+            <div
+              key={i}
+              className={[
+                "h-1.5 rounded-full transition-all duration-300",
+                i <= paso ? "bg-signal" : "bg-surface-elevated border border-border/40"
+              ].join(" ")}
+            />
+          ))}
+        </div>
+
+        {/* Stepper completo para pantallas medianas/grandes */}
+        <ol className="mt-3 hidden sm:flex items-center gap-2">
           {PASOS.map((etiqueta, i) => (
             <li key={etiqueta} className="flex items-center gap-2">
               <span
                 className={[
-                  "flex size-8 items-center justify-center rounded-full border font-body text-sm font-semibold",
+                  "flex size-7 items-center justify-center rounded-full font-mono-ruum text-xs font-bold",
                   i === paso
-                    ? "border-signal bg-signal text-ink"
+                    ? "bg-signal text-slate-950 shadow-xs"
                     : i < paso
-                      ? "border-control bg-control-soft text-control"
-                      : "border-ink/20 bg-mist text-ink/70"
+                      ? "bg-control/20 text-control border border-control/40"
+                      : "bg-surface-elevated text-text-tertiary border border-border"
                 ].join(" ")}
                 aria-hidden="true"
               >
                 {i + 1}
               </span>
-              <span className={i === paso ? "font-body text-sm font-medium text-ink" : "font-body text-sm text-ink/70"}>
+              <span className={i === paso ? "font-body text-xs font-bold text-text-primary" : "font-body text-xs text-text-tertiary"}>
                 {etiqueta}
               </span>
+              {i < PASOS.length - 1 && <span className="text-border mx-1" aria-hidden>›</span>}
             </li>
           ))}
         </ol>
@@ -1360,7 +1378,7 @@ export function NuevoTrasladoForm() {
         Paso {paso + 1} de {PASOS.length}: {PASOS[paso]}
       </h2>
 
-      <div className="mt-8">
+      <div className="mt-6">
         {paso === 0 && (
           <div className="grid gap-4">
           <div className="grid grid-cols-1 gap-6">
