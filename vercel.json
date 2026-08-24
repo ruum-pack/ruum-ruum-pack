@@ -1,9 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm --filter @ruum/app-conductor build",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": "nextjs",
-  "outputDirectory": "apps/app-conductor/.next",
   "regions": ["iad1"],
   "headers": [
     {
