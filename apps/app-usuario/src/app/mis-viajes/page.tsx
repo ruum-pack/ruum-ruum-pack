@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Button, PassportCard } from "@ruum/ui";
+import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
+import type { Database } from "@ruum/shared/types";
+import { NavegacionUsuario } from "../NavegacionUsuario";
 
 export const metadata: Metadata = {
   title: "Mis viajes — Ruum Ruum",
   robots: { index: false, follow: false },
 };
-import { Button, PassportCard } from "@ruum/ui";
-import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
-import type { Database } from "@ruum/shared/types";
-
-import { NavegacionUsuario } from "../NavegacionUsuario";
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type Traslado = Pick<
   Database["public"]["Tables"]["traslados"]["Row"],

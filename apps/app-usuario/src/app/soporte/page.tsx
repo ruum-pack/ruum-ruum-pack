@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Aviso, Button, PassportCard } from "@ruum/ui";
+import type { Database } from "@ruum/shared/types";
+import { esTrasladoActivo } from "../../lib/inicio";
+import { AccionesCuenta } from "./AccionesCuenta";
+import { NavegacionUsuario } from "../NavegacionUsuario";
 
 export const metadata: Metadata = {
   title: "Ayuda y soporte — Ruum Ruum",
   robots: { index: false, follow: false },
 };
-import { Aviso, Button, PassportCard } from "@ruum/ui";
-import type { Database } from "@ruum/shared/types";
-import { esTrasladoActivo } from "../../lib/inicio";
-import { AccionesCuenta } from "./AccionesCuenta";
-
-import { NavegacionUsuario } from "../NavegacionUsuario";
 type Usuario = Database["public"]["Tables"]["usuarios"]["Row"];
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
