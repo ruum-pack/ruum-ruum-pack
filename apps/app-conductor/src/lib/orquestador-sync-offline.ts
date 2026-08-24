@@ -6,6 +6,7 @@ import { sincronizarColaEvidencia, leerColaEvidencia } from "./cola-offline";
 import { sincronizarColaTelemetria } from "./cola-telemetria-offline";
 import { crearCacheViajeActivoDesdePasaporte, guardarCacheViajeActivo, leerCacheViajeActivo } from "./offline-active-trip-cache";
 import { publicarSyncSnapshot } from "./offline-sync-status";
+import { withTimeout } from "./with-timeout";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
@@ -37,7 +38,7 @@ export async function orquestarSincronizacionOffline(cliente: SupabaseClient<Dat
   await publicarSyncSnapshot("sincronizando");
 
   try {
-    const { data: userResult, error: userError } = await cliente.auth.getUser();
+    const { data: userResult, error: userError } = await withTimeout(cliente.auth.getUser() as unknown as Promise<{ data: { user: unknown | null }; error: unknown | null }>, 5000, "auth.getUser");
     if (userError || !userResult.user) {
       await publicarSyncSnapshot("accion_requerida");
       return { status: "accion_requerida", reason: "sesion_expirada" };

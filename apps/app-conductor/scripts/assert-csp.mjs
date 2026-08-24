@@ -50,8 +50,15 @@ if (prodBranchMatch) {
   assert(!isProdPart.includes("'unsafe-eval'"), "middleware prod (isProd ? ...) sin unsafe-eval");
 }
 
-// 5) CSP_DEUDA_P2.md debe existir y documentar style-src deuda
+// 5) CSP_DEUDA_P2.md debe existir y documentar style-src deuda + flag SEC-003
 assert(deuda.includes("style-src") && deuda.includes("2026-11-01"), "CSP_DEUDA_P2.md documenta deuda style-src con fecha objetivo");
+assert(deuda.includes("CSP_STRICT_STYLES"), "CSP_DEUDA_P2.md documenta flag CSP_STRICT_STYLES para SEC-003");
+
+// 5b) Si CSP_STRICT_STYLES=true, style-src NO debe contener unsafe-inline
+const strictEnv = process.env.CSP_STRICT_STYLES === "true" || process.env.NEXT_PUBLIC_CSP_STRICT_STYLES === "true";
+if (strictEnv) {
+  assert(!cspProdBlock.includes("style-src 'self' 'unsafe-inline'"), "CSP_STRICT_STYLES=true: style-src sin unsafe-inline");
+}
 
 // 6) Verificar que next.config no reintrodujo 'unsafe-inline' en script-src (solo permitido en style-src)
 const scriptSrcInline = nextConfig.match(/script-src[^;]*?'unsafe-inline'[^;]*?;/g);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { obtenerEstadoTrackingNativo, soportaTrackingNativo, type BackgroundTrackingStatus } from "../lib/background-tracking";
+import { getBatteryState } from "../lib/battery";
 
 function etiqueta(status: BackgroundTrackingStatus) {
   if (status.lastError === "location_permission_missing") return "Permiso de ubicación revocado";
@@ -17,10 +18,16 @@ export function EstadoTrackingGlobal() {
   useEffect(() => {
     if (!soportaTrackingNativo()) return;
     let mounted = true;
+    let id: number | undefined;
     const refresh = () => void obtenerEstadoTrackingNativo().then((next) => { if (mounted) setStatus(next); }).catch(() => undefined);
-    refresh();
-    const id = window.setInterval(refresh, 15_000);
-    return () => { mounted = false; window.clearInterval(id); };
+    const iniciar = async () => {
+      refresh();
+      const battery = await getBatteryState().catch(() => ({ level: 1, charging: true, lowPower: false } as const));
+      const intervalo = battery.lowPower || battery.level < 0.2 ? 60_000 : 15_000;
+      id = window.setInterval(refresh, intervalo);
+    };
+    void iniciar();
+    return () => { mounted = false; if (id !== undefined) window.clearInterval(id); };
   }, []);
   if (!status?.active && !status?.lastError) return null;
   const warning = Boolean(status?.lastError || (status?.lastLocationAt && Date.now() - status.lastLocationAt > 120_000));

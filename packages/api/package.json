@@ -16,7 +16,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.47.0",
     "@supabase/ssr": "^0.5.2",
-    "@ruum/shared": "workspace:*"
+    "@ruum/shared": "workspace:*",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "vitest": "^2.1.8",

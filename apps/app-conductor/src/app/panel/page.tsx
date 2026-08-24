@@ -16,6 +16,7 @@ import { PanelMetrics } from "./PanelMetrics";
 import { PanelOperationalHealth } from "./PanelOperationalHealth";
 import { PanelSupportSheet } from "./PanelSupportSheet";
 import { soportaTrackingNativo, obtenerEstadoTrackingNativo } from "../../lib/background-tracking";
+import { getBatteryState, intervaloTrackingMs } from "../../lib/battery";
 
 function PanelLoadingSkeleton() {
   return (
@@ -143,27 +144,32 @@ export default function PaginaPanel() {
   }, [pullOffset, refrescando, recargar]);
 
   useEffect(() => {
-    // Tracking nativo con intervalo adaptado a disponibilidad para ahorrar batería
+    // Tracking nativo con intervalo adaptado a disponibilidad + batería (OFF-002)
     if (soportaTrackingNativo()) {
       let cancelado = false;
-      const intervaloMs = disponibilidad === "disponible" || viajeActivoPrincipal ? 20_000 : 60_000;
-      const verificarTracking = async () => {
-        try {
-          const status = await obtenerEstadoTrackingNativo();
-          const activo = Boolean(status.active && !status.lastError);
-          if (!cancelado) {
-            setGpsActivo(activo);
-            if (activo) setGpsUltimaSenal(new Date());
+      let interval: number | undefined;
+      const iniciar = async () => {
+        const battery = await getBatteryState();
+        const intervaloMs = intervaloTrackingMs({ disponible: disponibilidad === "disponible", enViaje: Boolean(viajeActivoPrincipal), battery });
+        const verificarTracking = async () => {
+          try {
+            const status = await obtenerEstadoTrackingNativo();
+            const activo = Boolean(status.active && !status.lastError);
+            if (!cancelado) {
+              setGpsActivo(activo);
+              if (activo) setGpsUltimaSenal(new Date());
+            }
+          } catch {
+            if (!cancelado) setGpsActivo(false);
           }
-        } catch {
-          if (!cancelado) setGpsActivo(false);
-        }
+        };
+        void verificarTracking();
+        interval = window.setInterval(verificarTracking, intervaloMs);
       };
-      void verificarTracking();
-      const interval = setInterval(verificarTracking, intervaloMs);
+      void iniciar();
       return () => {
         cancelado = true;
-        clearInterval(interval);
+        if (interval !== undefined) window.clearInterval(interval);
       };
     }
 

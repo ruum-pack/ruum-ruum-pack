@@ -27,7 +27,13 @@ function buildCsp(nonce: string, isProd: boolean, isStaging: boolean) {
   const scriptSrc = isProd
     ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.sentry.io`
     : `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io`;
-  const styleSrc = `style-src 'self' 'unsafe-inline' 'nonce-${nonce}'`;
+  // SEC-003: flag para eliminar unsafe-inline de style-src en prod (objetivo 2026-11-01)
+  // Cuando CSP_STRICT_STYLES=true, style-src queda solo con nonce (sin unsafe-inline)
+  // Validar 1 semana en staging report-only antes de activar en prod.
+  const strictStyles = process.env.CSP_STRICT_STYLES === "true" || process.env.NEXT_PUBLIC_CSP_STRICT_STYLES === "true";
+  const styleSrc = strictStyles && isProd
+    ? `style-src 'self' 'nonce-${nonce}'`
+    : `style-src 'self' 'unsafe-inline' 'nonce-${nonce}'`;
   const base = [
     "default-src 'self'",
     scriptSrc,

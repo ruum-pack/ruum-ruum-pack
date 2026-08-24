@@ -20,3 +20,5 @@ export * from "./preferencias-admin";
 export * from "./aprobaciones-admin";
 
 export * from "./configuracion-admin";
+export * from "./_rpc-validado";
+export * from "./repositorio-conductor";

@@ -30,10 +30,12 @@ const nextConfig: NextConfig = {
     // next.config mantiene fallback compatible con navegadores sin nonce/strict-dynamic:
     //   script-src conserva 'strict-dynamic' (sin unsafe-inline); style-src mantiene 'unsafe-inline' como fallback.
     // Ver CSP_DEUDA_P2.md y scripts/assert-csp.mjs — CI bloquea si next.config reintroduce unsafe-eval.
+    // SEC-003: CSP_STRICT_STYLES=true elimina unsafe-inline de style-src (validación 2026-11-01)
+    const strictStyles = process.env.CSP_STRICT_STYLES === "true" || process.env.NEXT_PUBLIC_CSP_STRICT_STYLES === "true";
     const cspProd = [
       "default-src 'self'",
       "script-src 'self' 'strict-dynamic' https://*.sentry.io",
-      "style-src 'self' 'unsafe-inline'",
+      strictStyles ? "style-src 'self'" : "style-src 'self' 'unsafe-inline'",
       "connect-src 'self' https://*.supabase.co https://*.mapbox.com https://*.sentry.io https://*.didit.me https://verify.didit.me",
       "img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com https://*.didit.me https://verify.didit.me",
       "font-src 'self' data:",

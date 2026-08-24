@@ -21,11 +21,15 @@ Directivas adicionales endurecidas: `object-src 'none'`, `base-uri 'self'`, `for
 
 `connect-src`/`img-src` confirmados: `https://*.supabase.co` (Supabase), `https://*.mapbox.com` (Mapbox), `https://*.sentry.io` (Sentry). No se añadieron dominios extra; Capacitor `capacitor://*` se evaluará si se detectan violaciones en report-only.
 
-## Plan de retiro de deuda (actualizado)
+## Plan de retiro de deuda (actualizado — SEC-003 preparado)
 1. ✅ Generar nonce por request en `src/middleware.ts` (crypto.randomUUID) y añadir `script-src 'nonce-<val>' 'strict-dynamic'` / `style-src 'nonce-<val>'` en header — **hecho 2026-08-23**.
 2. ✅ Propagar nonce a `layout` vía `x-nonce` header y `next/script` `nonce` prop — **hecho** (`layout.tsx` lee `headers().get('x-nonce')`).
-3. ⏳ Validar en staging sin violaciones report-only durante 1 semana (monitorear `/api/csp-report`), luego eliminar `'unsafe-inline'` de `style-src` en prod (script ya no depende de él gracias a `strict-dynamic`). Mantener `unsafe-inline` en `next.config` fallback solo para compatibilidad con navegadores sin soporte `nonce`/`strict-dynamic`.
-Fecha objetivo: 2026-11-01 (revisar reportes `/api/csp-report`). Si no hay violaciones, remover `unsafe-inline` de `style-src` prod.
+3. ✅ Preparar flag `CSP_STRICT_STYLES=true` para eliminar `unsafe-inline` de `style-src` — **hecho 2026-08-23 (P2+)**:
+   - `src/middleware.ts` y `next.config.ts` leen `CSP_STRICT_STYLES` / `NEXT_PUBLIC_CSP_STRICT_STYLES` y generan `style-src 'self' 'nonce-...'` sin `unsafe-inline`.
+   - `scripts/assert-csp.mjs` valida el flag.
+   - Uso: `CSP_STRICT_STYLES=true pnpm --filter @ruum/app-conductor build` + staging 1 semana report-only.
+4. ⏳ Validar en staging sin violaciones report-only durante 1 semana (monitorear `/api/csp-report`), luego activar flag en prod. Mantener `unsafe-inline` en fallback solo para navegadores sin soporte `nonce` si se detectan violaciones.
+Fecha objetivo: 2026-11-01 (revisar reportes `/api/csp-report`). Activación: `CSP_STRICT_STYLES=true` en Vercel env prod.
 
 ## Verificación
 - `pnpm --filter @ruum/app-conductor build` en prod no contiene `unsafe-eval`.

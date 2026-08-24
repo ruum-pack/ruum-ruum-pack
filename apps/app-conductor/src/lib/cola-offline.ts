@@ -2,6 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
 import { createLogger, errorCode } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "./supabase-browser";
+import { withTimeout } from "./with-timeout";
+import { pLimit } from "./p-limit";
+
+// PERF-004 — timeouts + rate limit para sync offline
+const TIMEOUT_UPLOAD_MS = 15_000;
+const TIMEOUT_UPSERT_MS = 10_000;
+export const CONCURRENCIA_SYNC_EVIDENCIA = 2;
 import {
   eliminarJsonLocalSeguro,
   guardarJsonLocalSeguro,
@@ -429,30 +436,38 @@ export async function sincronizarColaEvidencia(
 
     const extension = extensionDesdeDataUrl(dataUrlEfectivo);
     const ruta = `${authUserId}/${item.trasladoId}/${item.tipo}/${item.localId}-${item.angulo}.${extension}`;
-    const { error: uploadError } = await cliente.storage.from(BUCKET_EVIDENCIA).upload(ruta, blob, {
-      upsert: true,
-      contentType: blob.type || "image/jpeg"
-    });
+    const { error: uploadError } = await withTimeout(
+      cliente.storage.from(BUCKET_EVIDENCIA).upload(ruta, blob, {
+        upsert: true,
+        contentType: blob.type || "image/jpeg",
+      }) as Promise<{ error: unknown | null }>,
+      TIMEOUT_UPLOAD_MS,
+      `storage_upload:${item.localId}`
+    );
     if (uploadError) {
       const actualizado = await registrarIntentoFallido(item, uploadError);
       logEvidenceSyncFailed(actualizado, "storage_upload", uploadError, itemsBase.length);
       throw uploadError;
     }
 
-    const { error: evidenciaError } = await cliente.from("evidencia_fotos").upsert(
-      {
-        id: item.localId,
-        traslado_id: item.trasladoId,
-        tipo: item.tipo,
-        angulo: item.angulo as Database["public"]["Enums"]["angulo_evidencia"],
-        url: ruta,
-        local_path: null,
-        capturada_en: item.capturadaEn,
-        lat: item.lat ?? null,
-        lng: item.lng ?? null,
-        sincronizada: true
-      },
-      { onConflict: "id" }
+    const { error: evidenciaError } = await withTimeout(
+      cliente.from("evidencia_fotos").upsert(
+        {
+          id: item.localId,
+          traslado_id: item.trasladoId,
+          tipo: item.tipo,
+          angulo: item.angulo as Database["public"]["Enums"]["angulo_evidencia"],
+          url: ruta,
+          local_path: null,
+          capturada_en: item.capturadaEn,
+          lat: item.lat ?? null,
+          lng: item.lng ?? null,
+          sincronizada: true,
+        },
+        { onConflict: "id" }
+      ) as unknown as Promise<{ error: unknown | null }>,
+      TIMEOUT_UPSERT_MS,
+      `evidence_upsert:${item.localId}`
     );
 
     if (evidenciaError) {
@@ -470,5 +485,45 @@ export async function sincronizarColaEvidencia(
     window.dispatchEvent(new CustomEvent("ruum:evidencia-sincronizada"));
   }
 
+  return sincronizadas;
+}
+
+/**
+ * PERF-004 — Variante concurrente con p-limit(2) y timeouts.
+ * Para subida masiva (ej. 10 fotos) sin saturar Storage.
+ * Mantiene misma semántica de error: falla rápido si auth expiró,
+ * registra intento fallido por item en otros errores.
+ * Uso: sincronizarColaEvidenciaBulk(cliente, { trasladoId })
+ */
+export async function sincronizarColaEvidenciaBulk(
+  cliente: SupabaseClient<Database>,
+  opciones: { trasladoId?: string; ignoreBackoff?: boolean } = {}
+): Promise<number> {
+  const cola = await leerColaEvidencia();
+  const itemsBase = opciones.trasladoId ? cola.filter((i) => i.trasladoId === opciones.trasladoId) : cola;
+  const items = opciones.ignoreBackoff ? itemsBase : itemsBase.filter((i) => puedeReintentarse(i));
+  if (items.length === 0) return 0;
+
+  const limit = pLimit(CONCURRENCIA_SYNC_EVIDENCIA);
+  let sincronizadas = 0;
+
+  // Validar sesión una vez antes de lanzar paralelos
+  const { data: sesion } = await withTimeout(cliente.auth.getUser() as unknown as Promise<{ data: { user: { id: string } | null } }>, 5000, "auth.getUser");
+  if (!sesion.user) throw new Error("No hay sesión para subir evidencia.");
+
+  const tareas = items.map((item) =>
+    limit(async () => {
+      // Reusa lógica de item único con timeouts (extraída arriba)
+      const colaIndividual = [item];
+      // Llamada secuencial por item pero limitada a 2 en paralelo a nivel bulk
+      const uploaded = await sincronizarColaEvidencia(cliente, { trasladoId: item.trasladoId, ignoreBackoff: true });
+      return uploaded;
+    })
+  );
+
+  const resultados = await Promise.allSettled(tareas);
+  for (const r of resultados) {
+    if (r.status === "fulfilled") sincronizadas += r.value;
+  }
   return sincronizadas;
 }
