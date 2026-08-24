@@ -2,6 +2,7 @@
   "name": "ruum-ruum",
   "private": true,
   "scripts": {
+    "prepare": "node scripts/prepare-husky.mjs",
     "dev": "turbo run dev",
     "build": "pnpm -r --workspace-concurrency=1 --filter \"./packages/*\" --filter \"./apps/*\" run build",
     "lint": "turbo run lint",

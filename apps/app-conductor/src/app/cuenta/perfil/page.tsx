@@ -6,7 +6,7 @@ import { ChangeEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import { Aviso, Button, Card } from "@ruum/ui";
 import { actualizarPerfilConductor, subirFotoPerfilConductor } from "@ruum/api/services";
-import { consultarCodigoPostalMx, traducirErrorOperativo, type DatosCodigoPostal } from "@ruum/shared/utils";
+import { consultarCodigoPostalMx, traducirErrorOperativo, validarDimensionesMinimasImagen, type DatosCodigoPostal } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { CuentaHeader } from "../CuentaHeader";
 import { cargarConductorCuenta, telefonoE164, type ConductorCuenta } from "../cuenta-utils";
@@ -291,6 +291,19 @@ export default function PaginaPerfilCuenta() {
   async function subirFotoPerfil(evento: ChangeEvent<HTMLInputElement>) {
     const archivo = evento.target.files?.[0];
     if (!archivo || !conductor) return;
+
+    // Validación de resolución mínima (300x300px)
+    if (archivo.type.startsWith("image/")) {
+      const resDimensiones = await validarDimensionesMinimasImagen(archivo, 300, 300);
+      if (!resDimensiones.valido) {
+        setNotificacion({
+          tipo: "error",
+          mensaje: resDimensiones.error ?? "La fotografía de perfil debe tener una resolución mínima de 300x300 píxeles."
+        });
+        evento.target.value = "";
+        return;
+      }
+    }
 
     // Vista previa instantánea
     const urlTemp = URL.createObjectURL(archivo);

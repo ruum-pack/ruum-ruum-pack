@@ -70,7 +70,7 @@ describe("Cola de Telemetría Offline (cola-telemetria-offline)", () => {
       { usuarioId: "user-1", localId: "p-sync-1" }
     );
 
-    const clienteMock: any = {};
+    const clienteMock = {} as unknown as SupabaseClient<Database>;
     const sincronizados = await sincronizarColaTelemetria(clienteMock);
 
     expect(sincronizados).toBe(1);

@@ -19,18 +19,18 @@ export type TipoDocumentoConductor =
   | "constancia_situacion_fiscal"
   | "documento_operativo";
 
-const TAMANO_MAX_DOCUMENTO_BYTES = 10 * 1024 * 1024;
-const EXTENSIONES_DOCUMENTO_PERMITIDAS = new Set(["jpg", "jpeg", "png", "webp", "pdf"]);
-const TIPOS_MIME_DOCUMENTO_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
-const TAMANO_MAX_FOTO_PERFIL_BYTES = 5 * 1024 * 1024;
-const EXTENSIONES_FOTO_PERFIL_PERMITIDAS = new Set(["jpg", "jpeg", "png", "webp"]);
-const TIPOS_MIME_FOTO_PERFIL_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp"]);
+export const TAMANO_MAX_DOCUMENTO_BYTES = 10 * 1024 * 1024;
+export const EXTENSIONES_DOCUMENTO_PERMITIDAS = new Set(["jpg", "jpeg", "png", "webp", "pdf"]);
+export const TIPOS_MIME_DOCUMENTO_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+export const TAMANO_MAX_FOTO_PERFIL_BYTES = 5 * 1024 * 1024;
+export const EXTENSIONES_FOTO_PERFIL_PERMITIDAS = new Set(["jpg", "jpeg", "png", "webp"]);
+export const TIPOS_MIME_FOTO_PERFIL_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-function extensionArchivo(nombre: string) {
+export function extensionArchivo(nombre: string) {
   return nombre.split(".").pop()?.toLowerCase() ?? "";
 }
 
-function validarArchivoDocumentoConductor(archivo: File) {
+export function validarArchivoDocumentoConductor(archivo: File) {
   if (archivo.size > TAMANO_MAX_DOCUMENTO_BYTES) {
     throw new Error("El archivo debe pesar máximo 10 MB.");
   }
@@ -41,7 +41,7 @@ function validarArchivoDocumentoConductor(archivo: File) {
   }
 }
 
-function validarFotoPerfilConductor(archivo: File) {
+export function validarFotoPerfilConductor(archivo: File) {
   if (archivo.size > TAMANO_MAX_FOTO_PERFIL_BYTES) {
     throw new Error("La fotografía debe pesar máximo 5 MB.");
   }
@@ -54,12 +54,12 @@ function validarFotoPerfilConductor(archivo: File) {
   }
 }
 
-function textoONull(valor: string | null | undefined) {
+export function textoONull(valor: string | null | undefined) {
   const limpio = valor?.trim() ?? "";
   return limpio ? limpio : null;
 }
 
-function telefonoONull(valor: string | null | undefined) {
+export function telefonoONull(valor: string | null | undefined) {
   const telefono = valor?.trim() ?? "";
   if (!telefono) return null;
   return (telefono.startsWith("+") ? telefono : `+${telefono}`).replace(/\s+/g, "");

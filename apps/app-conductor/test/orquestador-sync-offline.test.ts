@@ -14,11 +14,18 @@ vi.mock("@capacitor/preferences", () => ({
   }
 }));
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@ruum/shared/types";
+import type { ItemColaEvidencia } from "../src/lib/cola-offline";
+
+type PasaporteDigitalRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
+type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
+
 const mockSincronizarColaEvidencia = vi.fn(async () => 0);
-const mockLeerColaEvidencia = vi.fn(async () => [] as any[]);
+const mockLeerColaEvidencia = vi.fn(async () => [] as ItemColaEvidencia[]);
 const mockSincronizarColaTelemetria = vi.fn(async () => 0);
-const mockObtenerEstadoTrasladoRealtime = vi.fn(async () => ({ estado: "verificacion_vehiculo_en_proceso" } as any));
-const mockObtenerPasaporteDigital = vi.fn(async () => null as any);
+const mockObtenerEstadoTrasladoRealtime = vi.fn(async () => ({ estado: "verificacion_vehiculo_en_proceso" as EstadoTraslado }));
+const mockObtenerPasaporteDigital = vi.fn(async () => null as PasaporteDigitalRow | null);
 
 vi.mock("../src/lib/cola-offline", () => ({
   sincronizarColaEvidencia: (...args: unknown[]) => mockSincronizarColaEvidencia(...args),
@@ -56,7 +63,7 @@ function clienteSupabaseMock({
     auth: {
       getUser: vi.fn(async () => ({ data: { user }, error: userError }))
     }
-  };
+  } as unknown as SupabaseClient<Database>;
 }
 
 describe("Orquestador de Sincronización Offline y Caché de Viaje", () => {
@@ -76,7 +83,7 @@ describe("Orquestador de Sincronización Offline y Caché de Viaje", () => {
     Object.defineProperty(navigator, "onLine", { value: false, configurable: true });
 
     const cliente = clienteSupabaseMock();
-    const resultado = await orquestarSincronizacionOffline(cliente as any);
+    const resultado = await orquestarSincronizacionOffline(cliente);
 
     expect(resultado).toEqual({ status: "sin_conexion" });
     expect(obtenerUltimoSyncSnapshot().status).toBe("sin_conexion");
@@ -86,7 +93,7 @@ describe("Orquestador de Sincronización Offline y Caché de Viaje", () => {
 
   it("retorna accion_requerida cuando la sesión ha expirado", async () => {
     const cliente = clienteSupabaseMock({ user: null });
-    const resultado = await orquestarSincronizacionOffline(cliente as any);
+    const resultado = await orquestarSincronizacionOffline(cliente);
 
     expect(resultado).toEqual({ status: "accion_requerida", reason: "sesion_expirada" });
   });
@@ -96,7 +103,7 @@ describe("Orquestador de Sincronización Offline y Caché de Viaje", () => {
     mockSincronizarColaTelemetria.mockResolvedValueOnce(5);
 
     const cliente = clienteSupabaseMock();
-    const resultado = await orquestarSincronizacionOffline(cliente as any);
+    const resultado = await orquestarSincronizacionOffline(cliente);
 
     expect(resultado).toEqual({
       status: "todo_sincronizado",
@@ -106,13 +113,13 @@ describe("Orquestador de Sincronización Offline y Caché de Viaje", () => {
   });
 
   it("detecta conflicto si la evidencia pendiente es incompatible con el estado del servidor", async () => {
-    const pasaporte: any = {
+    const pasaporte = {
       traslado_id: "t-12345678",
       estado: "verificacion_vehiculo_en_proceso",
       vehiculo_marca: "Nissan",
       vehiculo_modelo: "Versa",
       vehiculo_anio: "2024"
-    };
+    } as unknown as PasaporteDigitalRow;
     const cache = crearCacheViajeActivoDesdePasaporte(pasaporte);
     expect(cache).toBeDefined();
     await guardarCacheViajeActivo(cache!);
@@ -120,10 +127,19 @@ describe("Orquestador de Sincronización Offline y Caché de Viaje", () => {
     // Estado del servidor: entrega confirmada (solo admite final)
     mockObtenerEstadoTrasladoRealtime.mockResolvedValueOnce({ estado: "entrega_confirmada" });
     // Cola tiene evidencia inicial pendiente
-    mockLeerColaEvidencia.mockResolvedValueOnce([{ tipo: "inicial", localId: "ev-1" }]);
+    mockLeerColaEvidencia.mockResolvedValueOnce([{
+      tipo: "inicial",
+      localId: "ev-1",
+      usuarioId: "user-1",
+      trasladoId: "t-12345678",
+      angulo: "frente",
+      dataUrl: "data:image/jpeg;base64,...",
+      capturadaEn: new Date().toISOString(),
+      retryCount: 0
+    }]);
 
     const cliente = clienteSupabaseMock();
-    const resultado = await orquestarSincronizacionOffline(cliente as any);
+    const resultado = await orquestarSincronizacionOffline(cliente);
 
     expect(resultado).toMatchObject({
       status: "conflicto_revision",
@@ -132,13 +148,13 @@ describe("Orquestador de Sincronización Offline y Caché de Viaje", () => {
   });
 
   it("completa sincronización y actualiza caché cuando el viaje activo es compatible", async () => {
-    const pasaporte: any = {
+    const pasaporte = {
       traslado_id: "t-87654321",
       estado: "verificacion_vehiculo_en_proceso",
       vehiculo_marca: "Toyota",
       vehiculo_modelo: "Corolla",
       vehiculo_anio: "2025"
-    };
+    } as unknown as PasaporteDigitalRow;
     const cache = crearCacheViajeActivoDesdePasaporte(pasaporte);
     await guardarCacheViajeActivo(cache!);
 
@@ -149,7 +165,7 @@ describe("Orquestador de Sincronización Offline y Caché de Viaje", () => {
     mockObtenerPasaporteDigital.mockResolvedValueOnce(pasaporte);
 
     const cliente = clienteSupabaseMock();
-    const resultado = await orquestarSincronizacionOffline(cliente as any);
+    const resultado = await orquestarSincronizacionOffline(cliente);
 
     expect(resultado).toEqual({
       status: "todo_sincronizado",

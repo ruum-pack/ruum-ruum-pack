@@ -7,15 +7,16 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov", "html"],
-      // Hoja de ruta de escalamiento de cobertura (H4):
-      // - Fase 1 (actual): Elevar piso global y asegurar >80% en librerías críticas de sincronización y tracking.
-      // - Fase 2: Escalar gate global a 30/25% integrando pruebas de componentes de viajes y evidencia.
+      // Hoja de ruta de escalamiento de cobertura — P0 ejecutado 2026-08-23:
+      // - Fase 1 (previo): piso 6% (desactivado — permitía CI verde ficticio)
+      // - Fase 2 (ACTUAL P0): gate global 30/30 — bloqueante en CI. Próximo hito: 30→50%.
       // - Fase 3 (Target Final): 60/50% → 80/70% en todo el código de aplicación.
+      // Ver AUDITORIA_INTEGRAL_CONDUCTOR.md § TEST-001 — thresholds bajos = riesgo crítico.
       thresholds: {
-        lines: 6,
+        lines: 30,
         branches: 40,
-        functions: 20,
-        statements: 6
+        functions: 30,
+        statements: 30
       },
       exclude: ["test/**", "tests/**", "node_modules/**", ".next/**", "cap-shell/**", "android/**", "storybook-static/**", "**/storybook-static/**"]
     }

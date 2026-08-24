@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { validarDimensionesMinimasImagen } from "@ruum/shared/utils";
 import { enmascararNombreArchivo } from "../cuenta/datos-sensibles";
 import type { EstadoDocumento } from "./registration-types";
 
@@ -33,6 +34,7 @@ export function DocumentUploadField({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [progreso, setProgreso] = useState<number | null>(null);
+  const [errorLocal, setErrorLocal] = useState<string | null>(null);
 
   const previewUrl = useMemo(() => {
     if (!archivo || !archivo.type.startsWith("image/")) return null;
@@ -51,13 +53,15 @@ export function DocumentUploadField({
     inputRef.current?.click();
   };
 
-  const manejarSeleccionArchivo = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const manejarSeleccionArchivo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivoSeleccionado = e.target.files?.[0] ?? null;
     e.target.value = "";
+    setErrorLocal(null);
 
     if (archivoSeleccionado) {
       // Validar tamaño
       if (archivoSeleccionado.size > TAMANO_MAXIMO_BYTES) {
+        setErrorLocal("El archivo excede el tamaño máximo permitido de 5 MB.");
         onSeleccionar(null);
         return;
       }
@@ -66,8 +70,18 @@ export function DocumentUploadField({
         archivoSeleccionado.type.startsWith("image/") ||
         archivoSeleccionado.type === "application/pdf";
       if (!tipoValido) {
+        setErrorLocal("Formato de archivo no válido. Usa JPG, PNG o PDF.");
         onSeleccionar(null);
         return;
+      }
+      // Validar dimensiones mínimas si es imagen
+      if (archivoSeleccionado.type.startsWith("image/")) {
+        const resDimensiones = await validarDimensionesMinimasImagen(archivoSeleccionado, 300, 300);
+        if (!resDimensiones.valido) {
+          setErrorLocal(resDimensiones.error ?? "La imagen debe tener al menos 300x300 píxeles de resolución.");
+          onSeleccionar(null);
+          return;
+        }
       }
     }
 
@@ -76,6 +90,7 @@ export function DocumentUploadField({
   };
 
   const handleEliminar = () => {
+    setErrorLocal(null);
     onSeleccionar(null);
     setProgreso(null);
   };
@@ -236,9 +251,9 @@ export function DocumentUploadField({
         </button>
       )}
 
-      {error ? (
+      {error || errorLocal ? (
         <p role="alert" className="font-body text-sm font-medium leading-5 text-danger-action">
-          {error}
+          {error || errorLocal}
         </p>
       ) : null}
     </div>

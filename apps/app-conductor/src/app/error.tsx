@@ -1,6 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { EstadoError } from "./EstadoError";
+import { recordOperationalEvent } from "../lib/observability";
 
 export default function ErrorGlobalConductor({
   error,
@@ -10,7 +11,12 @@ export default function ErrorGlobalConductor({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[app-conductor/error]", { digest: error.digest ?? "sin-digest" });
+    void recordOperationalEvent("native_crash", { scope: "global", digest: error.digest ?? "sin-digest", message: error.message.slice(0, 240) }, "error");
+    try {
+      const w = window as unknown as { Sentry?: { captureException: (e: unknown) => void } };
+      w.Sentry?.captureException(error);
+    } catch {}
+    console.error("[app-conductor/error]", { digest: error.digest ?? "sin-digest", message: error.message });
   }, [error]);
 
   return (

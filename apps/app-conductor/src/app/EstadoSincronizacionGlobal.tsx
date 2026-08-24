@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { calcularSyncSnapshot, obtenerUltimoSyncSnapshot, publicarSyncSnapshot, SYNC_STATUS_EVENT, type GlobalSyncSnapshot } from "../lib/offline-sync-status";
+import { recordOperationalEvent } from "../lib/observability";
 
 const CLASES: Record<GlobalSyncSnapshot["status"], string> = {
   todo_sincronizado: "border-success/30 bg-success/10 text-success",
@@ -12,6 +14,40 @@ const CLASES: Record<GlobalSyncSnapshot["status"], string> = {
   error_recuperable: "border-warning/40 bg-warning/10 text-warning",
   conflicto_revision: "border-danger-action/45 bg-danger-soft text-danger-action"
 };
+
+// CODE-003 — mapeo de accion_requerida a UI accionable + observabilidad
+function AccionRequeridaCTA({ snapshot }: { snapshot: GlobalSyncSnapshot }) {
+  const isSesionExpirada = snapshot.status === "accion_requerida";
+  const isConflicto = snapshot.status === "conflicto_revision";
+  const isRelevante = snapshot.status === "accion_requerida" || snapshot.status === "conflicto_revision" || snapshot.status === "error_recuperable";
+
+  useEffect(() => {
+    if (!isRelevante) return;
+    void recordOperationalEvent(isConflicto ? "sync_failure" : "session_expired", { status: snapshot.status, message: snapshot.message }, "warning");
+  }, [snapshot.status, snapshot.message, isRelevante, isConflicto]);
+
+  if (!isRelevante) return null;
+
+  if (isSesionExpirada) {
+    return (
+      <Link href="/login?next=/panel" className="ml-3 inline-flex items-center rounded-lg bg-warning px-3 py-1 text-sm font-black text-slate-900 hover:bg-warning/90">
+        Iniciar sesión
+      </Link>
+    );
+  }
+  if (isConflicto) {
+    return (
+      <Link href="/viajes" className="ml-3 inline-flex items-center rounded-lg bg-danger-action px-3 py-1 text-sm font-black text-white hover:bg-danger-action/90">
+        Ver viajes
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={() => void publicarSyncSnapshot()} className="ml-3 inline-flex items-center rounded-lg border border-current px-3 py-1 text-sm font-bold hover:bg-white/10">
+      Reintentar
+    </button>
+  );
+}
 
 export function EstadoSincronizacionGlobal() {
   const [snapshot, setSnapshot] = useState<GlobalSyncSnapshot>(obtenerUltimoSyncSnapshot());
@@ -47,8 +83,9 @@ export function EstadoSincronizacionGlobal() {
   if (snapshot.status === "todo_sincronizado") return null;
 
   return (
-    <div aria-live="polite" aria-atomic="true" className={`mx-auto mt-3 w-[min(100%-24px,1120px)] rounded-xl border px-4 py-2 font-body text-sm font-semibold ${CLASES[snapshot.status]}`}>
-      {snapshot.message}
+    <div aria-live="polite" aria-atomic="true" className={`mx-auto mt-3 flex w-[min(100%-24px,1120px)] items-center justify-between gap-2 rounded-xl border px-4 py-2 font-body text-sm font-semibold ${CLASES[snapshot.status]}`}>
+      <span>{snapshot.message}</span>
+      <AccionRequeridaCTA snapshot={snapshot} />
     </div>
   );
 }

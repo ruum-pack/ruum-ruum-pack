@@ -23,8 +23,11 @@
     "typecheck": "tsc --noEmit",
     "test:e2e:critical": "playwright test tests/e2e/sprint-c5-critical-flows.spec.ts",
     "predev": "node ../../scripts/validate-env.mjs app-conductor",
-    "prebuild": "node ../../scripts/validate-env.mjs app-conductor",
-    "validate:env": "node ../../scripts/validate-env.mjs app-conductor"
+    "prebuild": "node ../../scripts/validate-env.mjs app-conductor; node scripts/assert-csp.mjs",
+    "validate:env": "node ../../scripts/validate-env.mjs app-conductor",
+    "assert:csp": "node scripts/assert-csp.mjs",
+    "analyze": "pnpm dlx @next/bundle-analyzer@latest 2>&1 | head -n 20; echo 'Para análisis visual: pnpm add -D @next/bundle-analyzer && ANALYZE=true pnpm build'",
+    "analyze:bundle": "ANALYZE=true next build"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

@@ -65,6 +65,12 @@ jobs:
           node apps/app-conductor/tests/android/sprint-close-fix-static.test.mjs
           node apps/app-conductor/tests/android/sprint-close-fix2-static.test.mjs
 
+      - name: Scan secrets (P0 SEC-006 — bloqueante)
+        run: pnpm scan:secrets
+
+      - name: Assert CSP (SEC-002 — bloqueante, sin unsafe-eval en prod)
+        run: pnpm --filter @ruum/app-conductor assert:csp
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -83,7 +89,7 @@ jobs:
       - name: App conductor tests
         run: pnpm --filter @ruum/app-conductor test
 
-      - name: App conductor coverage (P1 gate)
+      - name: App conductor coverage (P0 gate — 30/30 bloqueante)
         run: pnpm --filter @ruum/app-conductor test:coverage
 
       - name: Upload coverage report

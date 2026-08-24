@@ -2,18 +2,23 @@ import type { Metadata, Viewport } from "next";
 import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
 import Script from "next/script";
 import { headers } from "next/headers";
+import dynamic from "next/dynamic";
 import { TextInputUppercaseBridge } from "@ruum/ui";
 import "./globals.css";
-import { SincronizadorEvidenciaOffline } from "./SincronizadorEvidenciaOffline";
 import { NavegacionConductor } from "./NavegacionConductor";
 import { ViajeActivoProvider } from "./ViajeActivoContext";
-import { OfflineShell } from "./OfflineShell";
-import { EstadoSincronizacionGlobal } from "./EstadoSincronizacionGlobal";
-import { EstadoTrackingGlobal } from "./EstadoTrackingGlobal";
-import { PushNotificationsBootstrap } from "./PushNotificationsBootstrap";
 import { LiveRegionProvider } from "../components/LiveRegionProvider";
+import { ErrorBoundaryConductor } from "../components/ErrorBoundaryConductor";
 import { VersionGate } from "./VersionGate";
 import { OperationalAccessibilityBridge } from "./OperationalAccessibilityBridge";
+
+// PERF-002 — Providers pesados con dynamic import (ssr:false) para no bloquear First Load
+// Sincronizador, tracking, push y offline shell solo se necesitan en cliente y tras hidratación
+const SincronizadorEvidenciaOffline = dynamic(() => import("./SincronizadorEvidenciaOffline").then((m) => m.SincronizadorEvidenciaOffline), { ssr: false });
+const EstadoSincronizacionGlobal = dynamic(() => import("./EstadoSincronizacionGlobal").then((m) => m.EstadoSincronizacionGlobal), { ssr: false });
+const EstadoTrackingGlobal = dynamic(() => import("./EstadoTrackingGlobal").then((m) => m.EstadoTrackingGlobal), { ssr: false });
+const PushNotificationsBootstrap = dynamic(() => import("./PushNotificationsBootstrap").then((m) => m.PushNotificationsBootstrap), { ssr: false });
+const OfflineShell = dynamic(() => import("./OfflineShell").then((m) => m.OfflineShell), { ssr: false });
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -63,20 +68,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">Saltar al contenido principal</a>
         <LiveRegionProvider>
-          <ViajeActivoProvider>
-          <SincronizadorEvidenciaOffline />
-          <NavegacionConductor />
-          <EstadoSincronizacionGlobal />
-          <EstadoTrackingGlobal />
-          <PushNotificationsBootstrap />
-          <VersionGate />
-          <OperationalAccessibilityBridge />
-          <TextInputUppercaseBridge />
-          <OfflineShell />
-          <main id="contenido-principal" className="conductor-page" role="main">
-            {children}
-          </main>
-          </ViajeActivoProvider>
+          <ErrorBoundaryConductor scope="global">
+            <ViajeActivoProvider>
+              <SincronizadorEvidenciaOffline />
+              <NavegacionConductor />
+              <EstadoSincronizacionGlobal />
+              <EstadoTrackingGlobal />
+              <PushNotificationsBootstrap />
+              <VersionGate />
+              <OperationalAccessibilityBridge />
+              <TextInputUppercaseBridge />
+              <OfflineShell />
+              <main id="contenido-principal" className="conductor-page" role="main">
+                {children}
+              </main>
+            </ViajeActivoProvider>
+          </ErrorBoundaryConductor>
         </LiveRegionProvider>
       </body>
     </html>

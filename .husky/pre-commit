@@ -1,0 +1,37 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# P0 SEC-006 — Gate de secretos + validación env antes de commit
+echo "🔒 [pre-commit] scan:secrets + validate:env"
+
+# 1) Escaneo de secretos hardcodeados (falla si encuentra error)
+node scripts/scan-secrets.mjs
+STATUS_SECRETS=$?
+if [ $STATUS_SECRETS -ne 0 ]; then
+  echo "❌ [pre-commit] Bloqueado: secretos detectados. Revisa el reporte arriba."
+  echo "   Si es falso positivo, ajusta scripts/scan-secrets.mjs o usa env var (Deno.env.get / requiredEnv)."
+  exit $STATUS_SECRETS
+fi
+
+# 2) Validación rápida de tipos en conductor (solo si hay cambios en app-conductor o api/shared)
+CHANGED=$(git diff --cached --name-only)
+if echo "$CHANGED" | grep -qE "^(apps/app-conductor|packages/api|packages/shared)/"; then
+  echo "→ Cambios en app-conductor/api detectados, ejecutando typecheck rápido..."
+  pnpm --filter @ruum/app-conductor typecheck 2>&1 | tail -n 20
+  if [ ${PIPESTATUS[0]:-$?} -ne 0 ]; then
+    echo "❌ [pre-commit] typecheck falló — corrige antes de commitear"
+    exit 1
+  fi
+fi
+
+# 3) Lint rápido solo archivos staged (opcional — requiere lint-staged instalado)
+#    Para activarlo: pnpm add -D lint-staged && agregar config en package.json
+#    Si no está instalado, se omite sin bloquear.
+if [ -f "node_modules/.bin/lint-staged" ]; then
+  if echo "$CHANGED" | grep -qE "\.(ts|tsx|js|mjs)$"; then
+    echo "→ Lint de archivos staged (lint-staged)..."
+    npx lint-staged 2>/dev/null || true
+  fi
+fi
+
+echo "✅ [pre-commit] OK"
