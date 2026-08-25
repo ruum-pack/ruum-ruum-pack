@@ -10,9 +10,9 @@ import {
   ETIQUETA_CATEGORIA,
 } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
-import { formatearFechaRelativa, formatearPrecio } from "@ruum/shared/utils";
+import { formatearFechaRelativa } from "@ruum/shared/utils";
 import type { Database } from "@ruum/shared/types";
-import { construirNotificaciones, obtenerHistorial, obtenerViajeActivo } from "../lib/inicio";
+import { construirNotificaciones, obtenerViajeActivo } from "../lib/inicio";
 import { PILARES_CONFIANZA } from "../lib/pilares-confianza";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -69,57 +69,6 @@ function IconoAlertaAtencion({ className = "size-5" }: { className?: string }) {
       <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
       <line x1="12" y1="9" x2="12" y2="13" />
       <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
-}
-
-function IconoVehiculoTipo({ tipo, className = "size-5" }: { tipo?: string | null; className?: string }) {
-  if (tipo === "suv") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M3 14h18v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3z" />
-        <path d="M5 14l2.5-6h9l3.5 6" />
-        <circle cx="7.5" cy="17.5" r="2.5" />
-        <circle cx="16.5" cy="17.5" r="2.5" />
-        <path d="M2 10h20" />
-      </svg>
-    );
-  }
-  if (tipo === "pick_up") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M2 14h20v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-3z" />
-        <path d="M5 14l2-5h6v5" />
-        <circle cx="7" cy="17.5" r="2.5" />
-        <circle cx="17" cy="17.5" r="2.5" />
-      </svg>
-    );
-  }
-  if (tipo === "van") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <rect x="2" y="7" width="20" height="10" rx="2" />
-        <path d="M6 7v4" />
-        <path d="M14 7v4" />
-        <circle cx="7" cy="17.5" r="2.5" />
-        <circle cx="17" cy="17.5" r="2.5" />
-      </svg>
-    );
-  }
-  if (tipo === "luxury" || tipo === "coleccion") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-      </svg>
-    );
-  }
-  // Default / Sedán:
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 14h18v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3z" />
-      <path d="M5 14l2-5h10l2 5" />
-      <circle cx="7" cy="17.5" r="2.5" />
-      <circle cx="17" cy="17.5" r="2.5" />
     </svg>
   );
 }
@@ -263,9 +212,6 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
   const viajeActivoVisible = viajeActivo?.traslado_id && viajeActivo.estado
     ? { ...viajeActivo, traslado_id: viajeActivo.traslado_id, estado: viajeActivo.estado }
     : null;
-  const historial = obtenerHistorial(traslados).filter(
-    (t) => t.traslado_id !== viajeActivoVisible?.traslado_id
-  );
   const notificaciones = construirNotificaciones(usuario, traslados);
   const primerNombre = usuario?.nombre?.trim().split(" ")[0];
 
@@ -444,89 +390,6 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
             }
           />
         </div>
-      </section>
-
-      {/* Últimos traslados consolidados */}
-      <section id="ultimos-viajes">
-        <div className="flex items-center justify-between mb-3">
-          <SeccionTitulo>Últimos traslados</SeccionTitulo>
-          {historial.length > 0 && (
-            <Link
-              href="/mis-viajes"
-              className="font-body text-xs font-semibold text-route-action hover:text-route-action-hover underline-offset-4 hover:underline"
-            >
-              Ver todos ({historial.length}) →
-            </Link>
-          )}
-        </div>
-        {historial.length === 0 ? (
-          <p className="mt-3 font-body text-sm text-text-secondary">
-            Cuando completes tu primer traslado, aparecerá aquí.
-          </p>
-        ) : (
-          <div className="divide-y divide-border/60 rounded-card border border-border bg-surface overflow-hidden shadow-xs">
-            {historial.slice(0, 5).map((t, index) => {
-              const trasladoId = t.traslado_id;
-              const contenido = (
-                <div className="flex items-center justify-between gap-3 w-full">
-                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-elevated border border-border text-text-secondary group-hover:border-signal/40 group-hover:text-signal transition-colors">
-                      <IconoVehiculoTipo tipo={t.vehiculo_tipo} className="size-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <p className="font-display text-sm font-bold text-text-primary group-hover:text-route-action transition-colors truncate">
-                          {tarjetaVehiculo(t)}
-                        </p>
-                        {t.vehiculo_tipo && (
-                          <span className="font-body text-xs text-text-tertiary">
-                            · {ETIQUETA_TIPO_VEHICULO[t.vehiculo_tipo]}
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-0.5 font-mono-ruum text-xs text-text-secondary flex flex-wrap items-center gap-x-2">
-                        <span>{formatearFechaRelativa(t.creado_en ?? t.actualizado_en ?? new Date().toISOString())}</span>
-                        <span className="text-text-tertiary">·</span>
-                        <span className="font-semibold text-text-primary">{formatearPrecio(t.precio_final ?? t.precio_cotizado ?? 0)}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0">
-                    {t.estado ? (
-                      <div className="hidden sm:block">
-                        <EstadoBadge estado={t.estado} conTexto={true} />
-                      </div>
-                    ) : null}
-                    {t.estado ? (
-                      <div className="sm:hidden">
-                        <EstadoBadge estado={t.estado} conTexto={false} />
-                      </div>
-                    ) : null}
-                    <div className="flex size-12 items-center justify-center text-text-tertiary group-hover:text-route-action group-hover:translate-x-0.5 transition-all" aria-hidden="true">
-                      <IconoChevron className="size-5" />
-                    </div>
-                  </div>
-                </div>
-              );
-
-              return trasladoId ? (
-                <Link
-                  key={trasladoId}
-                  href={`/traslados/${trasladoId}`}
-                  aria-label={`Ver pasaporte del traslado ${tarjetaVehiculo(t)}`}
-                  className="app-card-interactive group flex min-h-[64px] items-center p-3.5 sm:px-4 transition-colors hover:bg-surface-elevated"
-                >
-                  {contenido}
-                </Link>
-              ) : (
-                <div key={`historial-${index}`} className="flex min-h-[64px] items-center p-3.5 sm:px-4">
-                  {contenido}
-                </div>
-              );
-            })}
-          </div>
-        )}
       </section>
 
       {/* Pilares de confianza */}
