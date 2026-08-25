@@ -26,7 +26,7 @@ export const ETAPAS_TRASLADO: EtapaTraslado[] = [
   {
     id: "confirmacion",
     etiqueta: "Confirmación",
-    estados: ["cotizacion_generada", "servicio_confirmado", "pendiente_de_conductor"]
+    estados: ["cotizacion_generada", "cotizacion_aceptada", "servicio_confirmado", "pendiente_de_conductor"]
   },
   {
     id: "conductor",

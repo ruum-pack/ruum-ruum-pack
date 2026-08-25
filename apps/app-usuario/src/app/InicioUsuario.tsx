@@ -33,32 +33,193 @@ function tarjetaVehiculo(t: PasaporteRow): string {
 }
 
 
- 
+/* Íconos ilustrativos SVG para accesos rápidos, estados y vehículos */
+function IconoEscudoPasaporte({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
+function IconoRutaViajes({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="6" cy="19" r="3" />
+      <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
+      <circle cx="18" cy="5" r="3" />
+    </svg>
+  );
+}
+
+function IconoCentroAyuda({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <circle cx="12" cy="17" r=".5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconoAlertaAtencion({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+
+function IconoVehiculoTipo({ tipo, className = "size-5" }: { tipo?: string | null; className?: string }) {
+  if (tipo === "suv") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 14h18v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3z" />
+        <path d="M5 14l2.5-6h9l3.5 6" />
+        <circle cx="7.5" cy="17.5" r="2.5" />
+        <circle cx="16.5" cy="17.5" r="2.5" />
+        <path d="M2 10h20" />
+      </svg>
+    );
+  }
+  if (tipo === "pick_up") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M2 14h20v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-3z" />
+        <path d="M5 14l2-5h6v5" />
+        <circle cx="7" cy="17.5" r="2.5" />
+        <circle cx="17" cy="17.5" r="2.5" />
+      </svg>
+    );
+  }
+  if (tipo === "van") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="2" y="7" width="20" height="10" rx="2" />
+        <path d="M6 7v4" />
+        <path d="M14 7v4" />
+        <circle cx="7" cy="17.5" r="2.5" />
+        <circle cx="17" cy="17.5" r="2.5" />
+      </svg>
+    );
+  }
+  if (tipo === "luxury" || tipo === "coleccion") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    );
+  }
+  // Default / Sedán:
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 14h18v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3z" />
+      <path d="M5 14l2-5h10l2 5" />
+      <circle cx="7" cy="17.5" r="2.5" />
+      <circle cx="17" cy="17.5" r="2.5" />
+    </svg>
+  );
+}
+
+function IconoChevron({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
+function getLlamadoAtencionViaje(viaje: PasaporteRow) {
+  if (viaje.tiene_incidencia_abierta) {
+    return {
+      titulo: "Incidencia en revisión operativa",
+      descripcion: "Este traslado cuenta con una incidencia reportada. Consulta los detalles y la asistencia.",
+      ctaTexto: "Ver reporte de incidencia",
+      href: `/traslados/${viaje.traslado_id}#acciones-incidencia`
+    };
+  }
+
+  if (viaje.estado === "cotizacion_generada" || viaje.estado === "cotizacion_aceptada") {
+    return {
+      titulo: "Cotización lista para revisión y autorización",
+      descripcion: "Tu cotización fue generada. Revisa los montos y autoriza el traslado para asignar conductor.",
+      ctaTexto: "Ver cotización y autorizar",
+      href: `/traslados/${viaje.traslado_id}`
+    };
+  }
+
+  if (viaje.estado === "documentacion_pendiente") {
+    return {
+      titulo: "Documentación requerida",
+      descripcion: "Sube la documentación del vehículo para continuar con la validación operativa.",
+      ctaTexto: "Subir documentación",
+      href: `/traslados/${viaje.traslado_id}`
+    };
+  }
+
+  if (viaje.estado === "pago_pendiente") {
+    return {
+      titulo: "Pago pendiente de confirmación",
+      descripcion: "Completa el pago del traslado para asegurar la asignación del conductor certificado.",
+      ctaTexto: "Continuar con el pago",
+      href: `/traslados/${viaje.traslado_id}`
+    };
+  }
+
+  return null;
+}
+
 function AccesoRapido({
   titulo,
   descripcion,
   href,
+  icono,
   ctaVacio,
   ctaHref,
+  colorVariante = "default",
 }: {
   titulo: string;
   descripcion: string;
   href?: string;
+  icono: ReactNode;
   ctaVacio?: string;
   ctaHref?: string;
+  colorVariante?: "route" | "warning" | "success" | "default";
 }) {
+  const estiloIcono = {
+    route: "bg-route-soft text-route-action border-route-action/20",
+    warning: "bg-amber-500/15 text-amber-400 border-amber-500/25",
+    success: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
+    default: "bg-surface-elevated text-text-primary border-border",
+  }[colorVariante];
+
   const contenido = (
-    <>
-      <p className="font-display text-sm font-bold text-text-primary leading-snug">{titulo}</p>
-      <p className="mt-1 font-body text-xs text-text-secondary leading-relaxed">{descripcion}</p>
-    </>
+    <div className="flex items-start gap-3.5 w-full">
+      <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl border ${estiloIcono} shadow-2xs`}>
+        {icono}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-display text-sm font-bold text-text-primary leading-snug group-hover:text-route-action transition-colors">
+          {titulo}
+        </p>
+        <p className="mt-1 font-body text-xs text-text-secondary leading-relaxed line-clamp-2">
+          {descripcion}
+        </p>
+      </div>
+      <div className="flex size-12 shrink-0 items-center justify-center -mr-2 text-text-tertiary group-hover:text-route-action group-hover:translate-x-0.5 transition-all">
+        <IconoChevron className="size-5" />
+      </div>
+    </div>
   );
 
   if (href) {
     return (
       <Link
         href={href}
-        className="app-card app-card-interactive block rounded-card bg-surface p-4 hover:border-route/60 hover:bg-surface-elevated"
+        className="app-card app-card-interactive group flex min-h-[88px] items-center rounded-card bg-surface p-4 border border-border shadow-xs hover:border-route-action/60 hover:bg-surface-elevated active:scale-[0.98] transition-all"
       >
         {contenido}
       </Link>
@@ -67,16 +228,24 @@ function AccesoRapido({
 
   /* Estado vacío: card visible con CTA contextual */
   return (
-    <div className="app-card rounded-card bg-surface/50 p-4 border border-border/40">
-      {contenido}
-      {ctaVacio && ctaHref && (
-        <Link
-          href={ctaHref}
-          className="mt-3 inline-flex items-center gap-1 font-body text-xs font-semibold text-route-action underline-offset-4 hover:underline"
-        >
-          {ctaVacio} →
-        </Link>
-      )}
+    <div className="app-card rounded-card bg-surface/50 p-4 border border-border/40 min-h-[88px]">
+      <div className="flex items-start gap-3.5">
+        <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl border ${estiloIcono} opacity-70`}>
+          {icono}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-sm font-bold text-text-primary leading-snug">{titulo}</p>
+          <p className="mt-1 font-body text-xs text-text-secondary leading-relaxed">{descripcion}</p>
+          {ctaVacio && ctaHref && (
+            <Link
+              href={ctaHref}
+              className="mt-2.5 inline-flex items-center gap-1 font-body text-xs font-semibold text-route-action underline-offset-4 hover:underline"
+            >
+              {ctaVacio} →
+            </Link>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -100,9 +269,11 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
   const notificaciones = construirNotificaciones(usuario, traslados);
   const primerNombre = usuario?.nombre?.trim().split(" ")[0];
 
+  const llamadoAtencion = viajeActivoVisible ? getLlamadoAtencionViaje(viajeActivoVisible) : null;
+
   return (
     <div className="space-y-8 sm:space-y-10">
-      {/* Hero + CTA principal */}
+      {/* Hero + CTA principal único destacado */}
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-body text-sm font-medium text-text-secondary">
@@ -117,7 +288,9 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
           </p>
         </div>
         <Link href="/traslados/nuevo" className="sm:shrink-0">
-          <Button className="w-full sm:w-auto font-display font-bold">Solicitar traslado</Button>
+          <Button variant="primary" className="w-full sm:w-auto font-display font-bold shadow-md">
+            Solicitar traslado
+          </Button>
         </Link>
       </section>
 
@@ -126,15 +299,20 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
         <SeccionTitulo>Traslado activo</SeccionTitulo>
 
         {viajeActivoVisible ? (
-          <Link href={`/traslados/${viajeActivoVisible.traslado_id}`} className="mt-3 block">
+          <div className="mt-3 block">
             <PassportCard
               className="app-card-interactive shadow-lg"
               folio={viajeActivoVisible.traslado_id.slice(0, 8).toUpperCase()}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-display text-base font-bold text-text-primary">
+                  <p className="font-display text-base font-bold text-text-primary sm:text-lg">
                     {tarjetaVehiculo(viajeActivoVisible)}
+                    {viajeActivoVisible.vehiculo_tipo && (
+                      <span className="ml-2 font-body text-xs font-normal text-text-tertiary">
+                        · {ETIQUETA_TIPO_VEHICULO[viajeActivoVisible.vehiculo_tipo]}
+                      </span>
+                    )}
                   </p>
                   <p className="mt-0.5 font-body text-xs text-text-secondary">
                     {ETIQUETA_CATEGORIA[CATEGORIA_POR_ESTADO[viajeActivoVisible.estado]]} ·{" "}
@@ -144,9 +322,48 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
                 <EstadoBadge estado={viajeActivoVisible.estado} />
               </div>
 
-              {viajeActivoVisible.tiene_incidencia_abierta && (
-                <div className="mt-4">
-                  <Aviso tono="atencion">Este traslado tiene una incidencia abierta.</Aviso>
+              {/* Contenedor de advertencia o llamado de atención directo */}
+              {llamadoAtencion ? (
+                <div className="mt-4 rounded-xl border border-amber-500/35 bg-amber-500/10 p-4 transition-all sm:flex sm:items-center sm:justify-between sm:gap-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      <IconoAlertaAtencion className="size-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-sm font-bold text-amber-300">
+                          {llamadoAtencion.titulo}
+                        </span>
+                        <span className="rounded-full bg-amber-500/20 px-2 py-0.5 font-body text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                          Acción requerida
+                        </span>
+                      </div>
+                      <p className="mt-1 font-body text-xs text-text-secondary leading-relaxed">
+                        {llamadoAtencion.descripcion}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex sm:mt-0 sm:shrink-0">
+                    <Link
+                      href={llamadoAtencion.href}
+                      className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl bg-action-primary px-4 py-2.5 font-display text-xs font-bold text-on-primary shadow-sm transition hover:bg-action-primary-hover active:scale-[0.98]"
+                    >
+                      {llamadoAtencion.ctaTexto}
+                      <IconoChevron className="size-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-surface-elevated/60 p-3.5">
+                  <p className="font-body text-xs text-text-secondary">
+                    Seguimiento continuo y evidencia sincronizada en tiempo real.
+                  </p>
+                  <Link
+                    href={`/traslados/${viajeActivoVisible.traslado_id}`}
+                    className="inline-flex min-h-9 items-center gap-1 font-display text-xs font-bold text-route-action hover:text-route-action-hover"
+                  >
+                    Ver Pasaporte Digital →
+                  </Link>
                 </div>
               )}
 
@@ -154,7 +371,7 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
                 <EstadoStepper estado={viajeActivoVisible.estado} />
               </div>
             </PassportCard>
-          </Link>
+          </div>
         ) : (
           <div className="mt-3 rounded-card border border-dashed border-border bg-surface/30 px-6 py-8 text-center">
             <p className="font-body text-sm text-text-secondary">
@@ -189,17 +406,19 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
         </section>
       )}
 
-      {/* Accesos rápidos */}
+      {/* Accesos rápidos en cuadrícula táctil */}
       <section>
         <SeccionTitulo>Accesos rápidos</SeccionTitulo>
-        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <AccesoRapido
             titulo="Pasaporte Digital"
             descripcion={
               viajeActivoVisible
-                ? "Consulta el estatus y evidencia de tu traslado"
+                ? "Consulta el estatus, evidencia y trazabilidad de tu traslado"
                 : "Disponible con un traslado activo"
             }
+            icono={<IconoEscudoPasaporte className="size-5" />}
+            colorVariante="route"
             href={viajeActivoVisible ? `/traslados/${viajeActivoVisible.traslado_id}` : undefined}
             ctaVacio="Ver mis traslados"
             ctaHref="/mis-viajes"
@@ -207,6 +426,8 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
           <AccesoRapido
             titulo="Mis traslados"
             descripcion="Activos, programados e historial completo"
+            icono={<IconoRutaViajes className="size-5" />}
+            colorVariante="warning"
             href="/mis-viajes"
           />
           <AccesoRapido
@@ -214,8 +435,10 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
             descripcion={
               viajeActivoVisible
                 ? "Reporta pagos, evidencia o incidentes"
-                : "Contacta con el equipo de soporte"
+                : "Contacta con el equipo de soporte 24/7"
             }
+            icono={<IconoCentroAyuda className="size-5" />}
+            colorVariante="success"
             href={
               viajeActivoVisible ? `/soporte?viaje=${viajeActivoVisible.traslado_id}` : "/soporte"
             }
@@ -223,47 +446,81 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
         </div>
       </section>
 
-      {/* Últimos traslados */}
+      {/* Últimos traslados consolidados */}
       <section id="ultimos-viajes">
-        <SeccionTitulo>Últimos traslados</SeccionTitulo>
+        <div className="flex items-center justify-between mb-3">
+          <SeccionTitulo>Últimos traslados</SeccionTitulo>
+          {historial.length > 0 && (
+            <Link
+              href="/mis-viajes"
+              className="font-body text-xs font-semibold text-route-action hover:text-route-action-hover underline-offset-4 hover:underline"
+            >
+              Ver todos ({historial.length}) →
+            </Link>
+          )}
+        </div>
         {historial.length === 0 ? (
           <p className="mt-3 font-body text-sm text-text-secondary">
             Cuando completes tu primer traslado, aparecerá aquí.
           </p>
         ) : (
-          <div className="mt-3 divide-y divide-border rounded-card border border-border bg-surface">
-            {historial.slice(0, 6).map((t, index) => {
+          <div className="divide-y divide-border/60 rounded-card border border-border bg-surface overflow-hidden shadow-xs">
+            {historial.slice(0, 5).map((t, index) => {
               const trasladoId = t.traslado_id;
               const contenido = (
-                <>
-                <div>
-                  <p className="font-body text-sm font-semibold text-text-primary">
-                    {tarjetaVehiculo(t)}
-                    {t.vehiculo_tipo && (
-                      <span className="ml-2 font-body text-xs font-normal text-text-tertiary">
-                        · {ETIQUETA_TIPO_VEHICULO[t.vehiculo_tipo]}
-                      </span>
-                    )}
-                  </p>
-                  <p className="mt-0.5 font-mono-ruum text-xs text-text-secondary">
-                    {formatearFechaRelativa(t.creado_en ?? t.actualizado_en ?? new Date().toISOString())} ·{" "}
-                    {formatearPrecio(t.precio_final ?? t.precio_cotizado ?? 0)}
-                  </p>
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-elevated border border-border text-text-secondary group-hover:border-signal/40 group-hover:text-signal transition-colors">
+                      <IconoVehiculoTipo tipo={t.vehiculo_tipo} className="size-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <p className="font-display text-sm font-bold text-text-primary group-hover:text-route-action transition-colors truncate">
+                          {tarjetaVehiculo(t)}
+                        </p>
+                        {t.vehiculo_tipo && (
+                          <span className="font-body text-xs text-text-tertiary">
+                            · {ETIQUETA_TIPO_VEHICULO[t.vehiculo_tipo]}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 font-mono-ruum text-xs text-text-secondary flex flex-wrap items-center gap-x-2">
+                        <span>{formatearFechaRelativa(t.creado_en ?? t.actualizado_en ?? new Date().toISOString())}</span>
+                        <span className="text-text-tertiary">·</span>
+                        <span className="font-semibold text-text-primary">{formatearPrecio(t.precio_final ?? t.precio_cotizado ?? 0)}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    {t.estado ? (
+                      <div className="hidden sm:block">
+                        <EstadoBadge estado={t.estado} conTexto={true} />
+                      </div>
+                    ) : null}
+                    {t.estado ? (
+                      <div className="sm:hidden">
+                        <EstadoBadge estado={t.estado} conTexto={false} />
+                      </div>
+                    ) : null}
+                    <div className="flex size-12 items-center justify-center text-text-tertiary group-hover:text-route-action group-hover:translate-x-0.5 transition-all" aria-hidden="true">
+                      <IconoChevron className="size-5" />
+                    </div>
+                  </div>
                 </div>
-                {t.estado ? <EstadoBadge estado={t.estado} conTexto={false} /> : null}
-                </>
               );
 
               return trasladoId ? (
                 <Link
                   key={trasladoId}
                   href={`/traslados/${trasladoId}`}
-                  className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-surface-elevated"
+                  aria-label={`Ver pasaporte del traslado ${tarjetaVehiculo(t)}`}
+                  className="app-card-interactive group flex min-h-[64px] items-center p-3.5 sm:px-4 transition-colors hover:bg-surface-elevated"
                 >
                   {contenido}
                 </Link>
               ) : (
-                <div key={`historial-${index}`} className="flex items-center justify-between gap-4 p-4">
+                <div key={`historial-${index}`} className="flex min-h-[64px] items-center p-3.5 sm:px-4">
                   {contenido}
                 </div>
               );

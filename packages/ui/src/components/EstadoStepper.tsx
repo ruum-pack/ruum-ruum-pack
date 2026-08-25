@@ -27,12 +27,20 @@ export function MobileProgress({ estado, currentLabel }: EstadoStepperProps) {
 
   return (
     <section className="md:hidden" aria-labelledby="mobile-progress-title">
-      <p id="mobile-progress-title" className="font-body text-sm font-semibold text-route-action">
-        Paso {paso} de {total}
+      <div className="flex items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-route-soft px-2.5 py-0.5 font-body text-xs font-semibold text-route-action">
+          <span className="size-1.5 rounded-full bg-route-action animate-pulse" aria-hidden />
+          Paso {paso} de {total}
+        </span>
+        <span className="font-body text-xs font-medium text-text-tertiary">
+          {Math.round((paso / total) * 100)}% completado
+        </span>
+      </div>
+      <p id="mobile-progress-title" className="mt-1.5 font-display text-base font-bold leading-tight text-text-primary">
+        {nombre}
       </p>
-      <p className="mt-1 font-display text-lg font-semibold leading-6 text-text-primary">{nombre}</p>
       <div
-        className="mt-3 grid grid-cols-7 gap-1"
+        className="mt-3 grid grid-cols-7 gap-1.5"
         role="progressbar"
         aria-label={`Progreso del traslado: paso ${paso} de ${total}, ${nombre}`}
         aria-valuemin={1}
@@ -41,24 +49,35 @@ export function MobileProgress({ estado, currentLabel }: EstadoStepperProps) {
         aria-valuetext={`Paso ${paso} de ${total}: ${nombre}`}
       >
         {ETAPAS_TRASLADO.map((etapa, i) => {
-          const activa = i <= indiceActual || esRamificado;
+          const pasada = !esRamificado && i < indiceActual;
+          const actual = !esRamificado && i === indiceActual;
+          const activa = pasada || actual || esRamificado;
           return (
             <span
               key={etapa.id}
-              className={["h-2 rounded-full", activa ? "bg-route-action" : "bg-surface-elevated"].join(" ")}
+              className={[
+                "h-2 rounded-full transition-all duration-300",
+                actual
+                  ? "bg-signal shadow-xs ring-1 ring-signal/40"
+                  : pasada
+                    ? "bg-control"
+                    : "bg-surface-elevated border border-border/30"
+              ].join(" ")}
+              title={`Paso ${i + 1}: ${etapa.etiqueta}`}
               aria-hidden
             />
           );
         })}
       </div>
-      <details className="mt-3 rounded-xl border border-border bg-surface">
+      <details className="mt-3 rounded-xl border border-border/80 bg-surface/80">
         <summary
-          className="cursor-pointer px-3 py-2 font-body text-sm font-semibold text-route-action"
+          className="flex min-h-[44px] cursor-pointer items-center justify-between px-3.5 py-2 font-body text-xs font-semibold text-route-action hover:text-route-action-hover"
           aria-label="Ver todas las etapas del traslado"
         >
-          Ver etapas
+          <span>Ver desglose de etapas ({paso}/{total})</span>
+          <span className="text-text-tertiary font-mono-ruum text-xs">▼</span>
         </summary>
-        <ol className="grid gap-2 border-t border-border px-3 py-3" aria-label="Etapas del traslado">
+        <ol className="grid gap-2 border-t border-border/60 px-3.5 py-3" aria-label="Etapas del traslado">
           {ETAPAS_TRASLADO.map((etapa, i) => {
             const actual = !esRamificado && i === indiceActual;
             const completa = esRamificado || i < indiceActual;
@@ -66,20 +85,24 @@ export function MobileProgress({ estado, currentLabel }: EstadoStepperProps) {
               <li
                 key={etapa.id}
                 aria-current={actual ? "step" : undefined}
-                className="flex items-center gap-2 font-body text-sm text-text-secondary"
+                className="flex items-center gap-2.5 font-body text-xs text-text-secondary min-h-[32px]"
               >
                 <span
                   className={[
-                    "flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
-                    actual ? "border-route-action bg-route-soft text-route-action" : completa ? "border-success bg-control-soft text-success" : "border-border bg-surface-elevated text-text-tertiary"
+                    "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                    actual
+                      ? "border border-signal bg-signal text-slate-950 shadow-xs"
+                      : completa
+                        ? "border border-control bg-control text-white"
+                        : "border border-border bg-surface-elevated text-text-tertiary"
                   ].join(" ")}
                   aria-hidden
                 >
-                  {i + 1}
+                  {completa && !actual ? "✓" : i + 1}
                 </span>
-                <span className={actual ? "font-semibold text-text-primary" : ""}>
+                <span className={actual ? "font-bold text-text-primary" : completa ? "text-text-secondary" : "text-text-tertiary"}>
                   {etapa.etiqueta}
-                  {actual ? " actual" : completa ? " completada" : ""}
+                  {actual ? " (Etapa actual)" : completa ? " (Completada)" : ""}
                 </span>
               </li>
             );
@@ -91,45 +114,67 @@ export function MobileProgress({ estado, currentLabel }: EstadoStepperProps) {
 }
 
 /**
- * Franja horizontal completa para escritorio. En móvil se sustituye por
- * MobileProgress para no comprimir etiquetas.
+ * Franja horizontal simplificada para escritorio con indicador de paso activo y
+ * distribución balanceada que previene desbordamiento.
  */
-export function DesktopStateStepper({ estado }: EstadoStepperProps) {
-  const { esRamificado, indiceActual } = getProgressData(estado);
+export function DesktopStateStepper({ estado, currentLabel }: EstadoStepperProps) {
+  const { esRamificado, indiceActual, total, etapaActual } = getProgressData(estado);
+  const paso = indiceActual + 1;
+  const nombre = currentLabel ?? (esRamificado ? "Revisión operativa" : etapaActual.etiqueta);
 
   return (
-    <div role="list" aria-label="Etapas completas del traslado" className="hidden w-full gap-1 md:flex">
-      {ETAPAS_TRASLADO.map((etapa, i) => {
-        const pasada = !esRamificado && i < indiceActual;
-        const actual = !esRamificado && i === indiceActual;
-        // Si el estado se ramificó después del cierre, todo el camino feliz
-        // se muestra sellado (ya ocurrió) y el aviso se da por separado.
-        const sellada = pasada || (esRamificado && etapa.id === "cierre");
+    <div className="hidden w-full md:block" aria-label="Progreso del traslado">
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-route-soft px-2.5 py-0.5 font-body text-xs font-semibold text-route-action">
+            <span className="size-1.5 rounded-full bg-route-action animate-pulse" aria-hidden />
+            Paso {paso} de {total}
+          </span>
+          <span className="font-display text-sm font-bold text-text-primary">
+            {nombre}
+          </span>
+        </div>
+        <span className="font-mono-ruum text-xs text-text-tertiary">
+          {Math.round((paso / total) * 100)}% completado
+        </span>
+      </div>
 
-        return (
-          <div
-            key={etapa.id}
-            role="listitem"
-            aria-label={`Paso ${i + 1} de ${ETAPAS_TRASLADO.length}: ${etapa.etiqueta}${actual ? ", etapa actual" : sellada ? ", completada" : ", pendiente"}`}
-            className="flex-1"
-          >
+      <div role="list" aria-label="Etapas completas del traslado" className="flex w-full gap-1.5">
+        {ETAPAS_TRASLADO.map((etapa, i) => {
+          const pasada = !esRamificado && i < indiceActual;
+          const actual = !esRamificado && i === indiceActual;
+          const sellada = pasada || (esRamificado && etapa.id === "cierre");
+
+          return (
             <div
-              className={[
-                "h-1.5 rounded-full transition-colors",
-                actual ? "bg-signal" : sellada ? "bg-surface-strong" : "bg-surface-elevated"
-              ].join(" ")}
-            />
-            <p
-              className={[
-                "mt-1.5 font-body text-xs font-semibold",
-                actual ? "text-text-primary" : sellada ? "text-text-primary" : "text-text-tertiary"
-              ].join(" ")}
+              key={etapa.id}
+              role="listitem"
+              aria-label={`Paso ${i + 1} de ${ETAPAS_TRASLADO.length}: ${etapa.etiqueta}${actual ? ", etapa actual" : sellada ? ", completada" : ", pendiente"}`}
+              className="flex-1 min-w-0"
             >
-              {String(i + 1).padStart(2, "0")} {etapa.etiqueta}
-            </p>
-          </div>
-        );
-      })}
+              <div
+                className={[
+                  "h-2 rounded-full transition-all duration-300",
+                  actual
+                    ? "bg-signal shadow-xs ring-1 ring-signal/50"
+                    : sellada
+                      ? "bg-control"
+                      : "bg-surface-elevated border border-border/40"
+                ].join(" ")}
+              />
+              <p
+                className={[
+                  "mt-1.5 truncate font-body text-xs",
+                  actual ? "font-bold text-text-primary" : sellada ? "font-medium text-text-secondary" : "text-text-tertiary"
+                ].join(" ")}
+                title={`${String(i + 1).padStart(2, "0")} ${etapa.etiqueta}`}
+              >
+                {String(i + 1).padStart(2, "0")} {etapa.etiqueta}
+              </p>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -138,7 +183,7 @@ export function EstadoStepper({ estado, currentLabel }: EstadoStepperProps) {
   return (
     <div>
       <MobileProgress estado={estado} currentLabel={currentLabel} />
-      <DesktopStateStepper estado={estado} />
+      <DesktopStateStepper estado={estado} currentLabel={currentLabel} />
     </div>
   );
 }

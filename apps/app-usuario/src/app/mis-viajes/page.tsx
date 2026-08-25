@@ -148,6 +148,64 @@ async function obtenerViajes(): Promise<ViajeLista[]> {
   }
 }
 
+function IconoVehiculoTipo({ tipo, className = "size-5" }: { tipo?: string | null; className?: string }) {
+  if (tipo === "suv") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 14h18v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3z" />
+        <path d="M5 14l2.5-6h9l3.5 6" />
+        <circle cx="7.5" cy="17.5" r="2.5" />
+        <circle cx="16.5" cy="17.5" r="2.5" />
+        <path d="M2 10h20" />
+      </svg>
+    );
+  }
+  if (tipo === "pick_up") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M2 14h20v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-3z" />
+        <path d="M5 14l2-5h6v5" />
+        <circle cx="7" cy="17.5" r="2.5" />
+        <circle cx="17" cy="17.5" r="2.5" />
+      </svg>
+    );
+  }
+  if (tipo === "van") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="2" y="7" width="20" height="10" rx="2" />
+        <path d="M6 7v4" />
+        <path d="M14 7v4" />
+        <circle cx="7" cy="17.5" r="2.5" />
+        <circle cx="17" cy="17.5" r="2.5" />
+      </svg>
+    );
+  }
+  if (tipo === "luxury" || tipo === "coleccion") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    );
+  }
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 14h18v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3z" />
+      <path d="M5 14l2-5h10l2 5" />
+      <circle cx="7" cy="17.5" r="2.5" />
+      <circle cx="17" cy="17.5" r="2.5" />
+    </svg>
+  );
+}
+
+function IconoChevron({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
 function ViajeCard({ viaje }: { viaje: ViajeLista }) {
   const { pasaporte, traslado } = viaje;
   if (!pasaporte.traslado_id) return null;
@@ -163,34 +221,39 @@ function ViajeCard({ viaje }: { viaje: ViajeLista }) {
       aria-label={`Ver Pasaporte Digital del viaje ${pasaporte.traslado_id.slice(0, 8).toUpperCase()}`}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-route-action/30 bg-route-action/10 px-2.5 py-1 font-body text-xs font-semibold text-route-action">
-              {estadoVisible}
-            </span>
-            {pasaporte.tiene_incidencia_abierta && (
-              <span className="rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 font-body text-xs font-semibold text-warning">
-                Incidencia abierta
-              </span>
-            )}
+        <div className="flex items-start gap-3.5">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-elevated border border-border text-text-secondary group-hover:border-signal/40 group-hover:text-signal transition-colors mt-0.5">
+            <IconoVehiculoTipo tipo={pasaporte.vehiculo_tipo} className="size-5" />
           </div>
-
-          <h2 className="mt-2.5 font-display text-base sm:text-lg font-bold text-text-primary">
-            {vehiculo(pasaporte)}
-            {pasaporte.vehiculo_tipo && (
-              <span className="ml-2 font-body text-xs font-normal text-text-tertiary">
-                · {ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo]}
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-route-action/30 bg-route-action/10 px-2.5 py-1 font-body text-xs font-semibold text-route-action">
+                {estadoVisible}
               </span>
-            )}
-          </h2>
-          <p className="mt-0.5 font-body text-xs text-text-secondary">
-            Folio <span className="font-mono-ruum font-semibold text-text-primary">{pasaporte.traslado_id.slice(0, 8).toUpperCase()}</span> · {fechaHora(pasaporte.creado_en)}
-          </p>
+              {pasaporte.tiene_incidencia_abierta && (
+                <span className="rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 font-body text-xs font-semibold text-warning">
+                  Incidencia abierta
+                </span>
+              )}
+            </div>
+
+            <h2 className="mt-2 font-display text-base sm:text-lg font-bold text-text-primary group-hover:text-route-action transition-colors">
+              {vehiculo(pasaporte)}
+              {pasaporte.vehiculo_tipo && (
+                <span className="ml-2 font-body text-xs font-normal text-text-tertiary">
+                  · {ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo]}
+                </span>
+              )}
+            </h2>
+            <p className="mt-0.5 font-body text-xs text-text-secondary">
+              Folio <span className="font-mono-ruum font-semibold text-text-primary">{pasaporte.traslado_id.slice(0, 8).toUpperCase()}</span> · {fechaHora(pasaporte.creado_en)}
+            </p>
+          </div>
         </div>
 
-        <span className="flex size-9 shrink-0 items-center justify-center self-end rounded-full border border-border bg-surface-elevated font-display text-lg text-text-secondary transition-colors group-hover:border-signal/40 group-hover:text-signal lg:self-start" aria-hidden="true">
-          ›
-        </span>
+        <div className="flex size-12 shrink-0 items-center justify-center self-end rounded-xl border border-border bg-surface-elevated text-text-secondary transition-all group-hover:border-signal/40 group-hover:text-signal lg:self-start min-w-[48px] min-h-[48px]" aria-hidden="true">
+          <IconoChevron className="size-5" />
+        </div>
       </div>
 
       <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 border-t border-border/40 pt-3">

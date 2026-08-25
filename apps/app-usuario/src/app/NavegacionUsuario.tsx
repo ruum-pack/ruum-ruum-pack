@@ -245,9 +245,9 @@ export function NavegacionUsuario() {
 
           <Link
             href="/traslados/nuevo"
-            className="ml-auto inline-flex min-h-11 items-center justify-center rounded-xl bg-action-primary px-4 py-2.5 font-display text-sm font-bold text-on-primary shadow-sm transition hover:-translate-y-0.5 hover:bg-action-primary-hover hover:shadow-md focus-visible:outline-route-dark"
+            className="ml-auto inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 py-2 font-display text-sm font-semibold text-text-primary shadow-xs transition hover:border-route-action/60 hover:bg-surface-elevated hover:text-text-primary focus-visible:outline-route-dark"
           >
-            <span className="mr-2 text-lg leading-none" aria-hidden>+</span>
+            <span className="mr-1.5 text-base font-bold text-route-action" aria-hidden>+</span>
             <span>Solicitar traslado</span>
           </Link>
         </div>
