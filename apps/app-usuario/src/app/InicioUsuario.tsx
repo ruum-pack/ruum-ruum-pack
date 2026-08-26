@@ -63,62 +63,12 @@ function IconoCentroAyuda({ className = "size-5" }: { className?: string }) {
   );
 }
 
-function IconoAlertaAtencion({ className = "size-5" }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
-}
-
 function IconoChevron({ className = "size-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m9 18 6-6-6-6" />
     </svg>
   );
-}
-
-function getLlamadoAtencionViaje(viaje: PasaporteRow) {
-  if (viaje.tiene_incidencia_abierta) {
-    return {
-      titulo: "Incidencia en revisión operativa",
-      descripcion: "Este traslado cuenta con una incidencia reportada. Consulta los detalles y la asistencia.",
-      ctaTexto: "Ver reporte de incidencia",
-      href: `/traslados/${viaje.traslado_id}#acciones-incidencia`
-    };
-  }
-
-  if (viaje.estado === "cotizacion_generada" || viaje.estado === "cotizacion_aceptada") {
-    return {
-      titulo: "Cotización lista para revisión y autorización",
-      descripcion: "Tu cotización fue generada. Revisa los montos y autoriza el traslado para asignar conductor.",
-      ctaTexto: "Ver cotización y autorizar",
-      href: `/traslados/${viaje.traslado_id}`
-    };
-  }
-
-  if (viaje.estado === "documentacion_pendiente") {
-    return {
-      titulo: "Documentación requerida",
-      descripcion: "Sube la documentación del vehículo para continuar con la validación operativa.",
-      ctaTexto: "Subir documentación",
-      href: `/traslados/${viaje.traslado_id}`
-    };
-  }
-
-  if (viaje.estado === "pago_pendiente") {
-    return {
-      titulo: "Pago pendiente de confirmación",
-      descripcion: "Completa el pago del traslado para asegurar la asignación del conductor certificado.",
-      ctaTexto: "Continuar con el pago",
-      href: `/traslados/${viaje.traslado_id}`
-    };
-  }
-
-  return null;
 }
 
 function AccesoRapido({
@@ -215,8 +165,6 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
   const notificaciones = construirNotificaciones(usuario, traslados);
   const primerNombre = usuario?.nombre?.trim().split(" ")[0];
 
-  const llamadoAtencion = viajeActivoVisible ? getLlamadoAtencionViaje(viajeActivoVisible) : null;
-
   return (
     <div className="space-y-8 sm:space-y-10">
       {/* Hero + CTA principal único destacado */}
@@ -245,7 +193,7 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
         <SeccionTitulo>Traslado activo</SeccionTitulo>
 
         {viajeActivoVisible ? (
-          <div className="mt-3 block">
+          <Link href={`/traslados/${viajeActivoVisible.traslado_id}`} className="mt-3 block">
             <PassportCard
               className="app-card-interactive shadow-lg"
               folio={viajeActivoVisible.traslado_id.slice(0, 8).toUpperCase()}
@@ -268,48 +216,9 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
                 <EstadoBadge estado={viajeActivoVisible.estado} />
               </div>
 
-              {/* Contenedor de advertencia o llamado de atención directo */}
-              {llamadoAtencion ? (
-                <div className="mt-4 rounded-xl border border-amber-500/35 bg-amber-500/10 p-4 transition-all sm:flex sm:items-center sm:justify-between sm:gap-4 shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                      <IconoAlertaAtencion className="size-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-display text-sm font-bold text-amber-300">
-                          {llamadoAtencion.titulo}
-                        </span>
-                        <span className="rounded-full bg-amber-500/20 px-2 py-0.5 font-body text-[10px] font-bold uppercase tracking-wider text-amber-300">
-                          Acción requerida
-                        </span>
-                      </div>
-                      <p className="mt-1 font-body text-xs text-text-secondary leading-relaxed">
-                        {llamadoAtencion.descripcion}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex sm:mt-0 sm:shrink-0">
-                    <Link
-                      href={llamadoAtencion.href}
-                      className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl bg-action-primary px-4 py-2.5 font-display text-xs font-bold text-on-primary shadow-sm transition hover:bg-action-primary-hover active:scale-[0.98]"
-                    >
-                      {llamadoAtencion.ctaTexto}
-                      <IconoChevron className="size-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-surface-elevated/60 p-3.5">
-                  <p className="font-body text-xs text-text-secondary">
-                    Seguimiento continuo y evidencia sincronizada en tiempo real.
-                  </p>
-                  <Link
-                    href={`/traslados/${viajeActivoVisible.traslado_id}`}
-                    className="inline-flex min-h-9 items-center gap-1 font-display text-xs font-bold text-route-action hover:text-route-action-hover"
-                  >
-                    Ver Pasaporte Digital →
-                  </Link>
+              {viajeActivoVisible.tiene_incidencia_abierta && (
+                <div className="mt-4">
+                  <Aviso tono="atencion">Este traslado tiene una incidencia abierta.</Aviso>
                 </div>
               )}
 
@@ -317,7 +226,7 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
                 <EstadoStepper estado={viajeActivoVisible.estado} />
               </div>
             </PassportCard>
-          </div>
+          </Link>
         ) : (
           <div className="mt-3 rounded-card border border-dashed border-border bg-surface/30 px-6 py-8 text-center">
             <p className="font-body text-sm text-text-secondary">
