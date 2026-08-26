@@ -67,7 +67,7 @@ export function ReviewStep({
       <div className="grid gap-3 rounded-xl border border-border bg-surface p-4 font-body text-sm">
         <ReviewSummary titulo="Cuenta" valores={[formatoTelefonoNacional(telefono), email.trim().toLowerCase(), sesionAutenticada ? "Cuenta verificada" : "Cuenta pendiente de verificación"]} onEditar={() => onEditar(0)} />
         <ReviewSummary titulo="Identidad" valores={[nombreCompleto, `CURP ${enmascararUltimos(curp.trim().toUpperCase())}`, `${calle} ${numero}`, `${colonia}, ${ciudad}`, `${estado}, C.P. ${codigoPostal}`, referencias, `Emergencia: contacto registrado · ${enmascararUltimos(contactoEmergenciaTelefono)}`]} onEditar={() => onEditar(1)} />
-        <ReviewSummary titulo="Licencia" valores={[`Licencia ${enmascararUltimos(numeroLicencia)}`, `Tipo ${tipoLicencia}`, `Vigente hasta ${vigenciaLicencia}`, autorizaVerificacion ? "Autoriza verificación de antecedentes" : "Verificación pendiente", declaraSinSuspensiones ? "Sin suspensiones ni procesos activos declarados" : "Declaración pendiente"]} onEditar={() => onEditar(2)} />
+        <ReviewSummary titulo="Licencia" valores={[`Licencia ${enmascararUltimos(numeroLicencia)}`, tipoLicencia, `Vigente hasta ${vigenciaLicencia}`, autorizaVerificacion ? "Autoriza verificación de antecedentes" : "Verificación pendiente", declaraSinSuspensiones ? "Sin suspensiones ni procesos activos declarados" : "Declaración pendiente"]} onEditar={() => onEditar(2)} />
 
         {/* Documentos con miniaturas (thumbnails) en lugar de texto plano */}
         <div className="border-t border-border pt-3 first:border-t-0 first:pt-0">

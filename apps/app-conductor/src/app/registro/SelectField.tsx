@@ -1,5 +1,13 @@
 import { useId } from "react";
 
+export type OpcionSelect =
+  | string
+  | {
+      valor: string;
+      etiqueta: string;
+      grupo?: string;
+    };
+
 export function SelectField({
   etiqueta,
   value,
@@ -13,13 +21,15 @@ export function SelectField({
   etiqueta: string;
   value: string;
   onChange: (valor: string) => void;
-  opciones: string[];
+  opciones: readonly OpcionSelect[];
   placeholder: string;
   error?: string;
   required?: boolean;
   disabled?: boolean;
 }) {
   const id = useId();
+
+  const tieneGrupos = opciones.some((o) => typeof o === "object" && Boolean(o.grupo));
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -42,9 +52,56 @@ export function SelectField({
         ].join(" ")}
       >
         <option value="">{placeholder}</option>
-        {opciones.map((opcion) => (
-          <option key={opcion} value={opcion}>{opcion}</option>
-        ))}
+        {tieneGrupos ? (
+          (() => {
+            const gruposMap = new Map<string, Array<{ valor: string; etiqueta: string }>>();
+            const sinGrupo: Array<{ valor: string; etiqueta: string }> = [];
+
+            opciones.forEach((opcion) => {
+              if (typeof opcion === "string") {
+                sinGrupo.push({ valor: opcion, etiqueta: opcion });
+              } else {
+                const grupo = opcion.grupo;
+                if (grupo) {
+                  const arr = gruposMap.get(grupo) ?? [];
+                  arr.push({ valor: opcion.valor, etiqueta: opcion.etiqueta });
+                  gruposMap.set(grupo, arr);
+                } else {
+                  sinGrupo.push({ valor: opcion.valor, etiqueta: opcion.etiqueta });
+                }
+              }
+            });
+
+            return (
+              <>
+                {sinGrupo.map((opcion) => (
+                  <option key={opcion.valor} value={opcion.valor}>
+                    {opcion.etiqueta}
+                  </option>
+                ))}
+                {Array.from(gruposMap.entries()).map(([nombreGrupo, items]) => (
+                  <optgroup key={nombreGrupo} label={nombreGrupo}>
+                    {items.map((item) => (
+                      <option key={item.valor} value={item.valor}>
+                        {item.etiqueta}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </>
+            );
+          })()
+        ) : (
+          opciones.map((opcion) => {
+            const valor = typeof opcion === "string" ? opcion : opcion.valor;
+            const etiqueta = typeof opcion === "string" ? opcion : opcion.etiqueta;
+            return (
+              <option key={valor} value={valor}>
+                {etiqueta}
+              </option>
+            );
+          })
+        )}
       </select>
       {error ? <p role="alert" className="font-body text-sm font-medium leading-5 text-danger-action">{error}</p> : null}
     </div>

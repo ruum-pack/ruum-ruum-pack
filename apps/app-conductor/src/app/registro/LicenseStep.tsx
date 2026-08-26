@@ -3,7 +3,7 @@ import { DIAS_ADVERTENCIA_VIGENCIA_LICENCIA, diasParaVencerLicencia } from "@ruu
 import type { CampoRegistroConductor } from "@ruum/shared/validacion";
 import { DatosSensiblesTooltip } from "../cuenta/datos-sensibles";
 import { formatoLicenciaMask } from "./registration-validation";
-import { TIPOS_LICENCIA } from "./registration-types";
+import { OPCIONES_LICENCIA_SELECT } from "./registration-types";
 import { SelectField } from "./SelectField";
 import { useRef, useEffect, useState } from "react";
 
@@ -127,7 +127,7 @@ export function LicenseStep({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <SelectField
-          etiqueta="Tipo de licencia"
+          etiqueta="Entidad, tipo y categoría de licencia"
           value={tipoLicencia}
           onChange={(valor) => {
             setTipoLicencia(valor);
@@ -135,8 +135,8 @@ export function LicenseStep({
           }}
           error={erroresCampos.tipoLicencia || undefined}
           required
-          placeholder="Selecciona el tipo de licencia"
-          opciones={TIPOS_LICENCIA}
+          placeholder="Selecciona entidad, tipo y categoría"
+          opciones={OPCIONES_LICENCIA_SELECT}
           aria-required="true"
         />
         <Field
