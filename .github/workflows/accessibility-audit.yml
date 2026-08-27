@@ -78,6 +78,24 @@ jobs:
     name: Playwright Accessibility Tests
     runs-on: ubuntu-latest
     needs: eslint-a11y
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      PLAYWRIGHT_E2E_CONDUCTOR_EMAIL: ${{ secrets.E2E_CONDUCTOR_EMAIL }}
+      PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD: ${{ secrets.E2E_CONDUCTOR_PASSWORD }}
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+      NEXT_PUBLIC_APP_VERSION: ci
+      NEXT_PUBLIC_APP_URL: http://localhost:3001
+      NEXT_PUBLIC_RUUM_AMBIENTE: staging
+      CSP_STRICT_STYLES: "true"
+      NEXT_PUBLIC_CSP_STRICT_STYLES: "true"
+      NEXT_PUBLIC_RUUM_SOPORTE_TELEFONO: "5500000000"
+      NEXT_PUBLIC_RUUM_SOPORTE_CORREO: soporte-conductores-pruebas@example.test
+      NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO: "911"
+      PLAYWRIGHT_DISABLE_AUTH_ARTIFACTS: "1"
+      PLAYWRIGHT_A11Y_PROJECT: chromium
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

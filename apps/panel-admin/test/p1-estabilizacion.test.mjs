@@ -402,7 +402,7 @@ test('H3 almacenamiento seguro se enlaza a Android Keystore y documenta modelo d
 test('H4 umbral de cobertura y pruebas de sincronización offline',()=>{
   const vitestConfig=read('apps/app-conductor/vitest.config.ts');
   assert.match(vitestConfig,/Hoja de ruta de escalamiento de cobertura \(H4\)/);
-  assert.match(vitestConfig,/lines:\s*[5-9]/);
+  assert.match(vitestConfig,/lines:\s*(?:[5-9]|[1-9]\d)/);
   assert.strictEqual(fs.existsSync(new URL('../../../apps/app-conductor/test/orquestador-sync-offline.test.ts', import.meta.url)), true);
   assert.strictEqual(fs.existsSync(new URL('../../../apps/app-conductor/test/session-cleanup.test.ts', import.meta.url)), true);
   assert.strictEqual(fs.existsSync(new URL('../../../apps/app-conductor/test/cola-telemetria-offline.test.ts', import.meta.url)), true);

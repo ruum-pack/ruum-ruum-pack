@@ -277,6 +277,17 @@ async function prepareFixture(admin: AdminClient, conductorId: string, ownerAuth
   });
 }
 
+function ensureStrongPassword(password: string): string {
+  let strong = (password || "").trim();
+  if (!strong) strong = "SeguraE2E2026!";
+  if (!/[a-z]/.test(strong)) strong += "a";
+  if (!/[A-Z]/.test(strong)) strong += "A";
+  if (!/[0-9]/.test(strong)) strong += "1";
+  if (!/[!@#$%^&*()_+\-=[\]{};':"|,.<>/?`~]/.test(strong)) strong += "!";
+  if (strong.length < 12) strong = strong.padEnd(12, "0");
+  return strong;
+}
+
 async function globalSetup(config: FullConfig) {
   // Cargar variables de entorno desde .env.test, .env.local y .env
   // Usar el directorio base de la configuración de Playwright
@@ -298,9 +309,11 @@ async function globalSetup(config: FullConfig) {
   const supabaseUrl = requiredEnv("PLAYWRIGHT_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL");
   const serviceRoleKey = requiredEnv("PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE_KEY");
   const conductorEmail = requiredEnv("PLAYWRIGHT_E2E_CONDUCTOR_EMAIL", "E2E_CONDUCTOR_EMAIL");
-  const conductorPassword = requiredEnv("PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD", "E2E_CONDUCTOR_PASSWORD");
+  const rawConductorPassword = requiredEnv("PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD", "E2E_CONDUCTOR_PASSWORD");
+  const conductorPassword = ensureStrongPassword(rawConductorPassword);
   const ownerEmail = optionalEnv("usuario-e2e-conductor@ruumruum.test", "PLAYWRIGHT_E2E_OWNER_EMAIL", "E2E_OWNER_EMAIL");
-  const ownerPassword = optionalEnv("RuumE2E-owner-2026!", "PLAYWRIGHT_E2E_OWNER_PASSWORD", "E2E_OWNER_PASSWORD");
+  const rawOwnerPassword = optionalEnv("RuumE2E-owner-2026!", "PLAYWRIGHT_E2E_OWNER_PASSWORD", "E2E_OWNER_PASSWORD");
+  const ownerPassword = ensureStrongPassword(rawOwnerPassword);
   const baseURL = String(config.projects[0].use.baseURL ?? "http://localhost:3001");
 
   const admin = createClient(supabaseUrl, serviceRoleKey, {

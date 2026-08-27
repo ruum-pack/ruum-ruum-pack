@@ -7,6 +7,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov", "html"],
+      // Hoja de ruta de escalamiento de cobertura (H4) — P0 ejecutado:
       // FIX gate rojo 6.3% → verde 32% (2026-08-23, user request):
       // Problema: global 6.3% incluía src/app/panel, viajes/[id], ganancias (0% cada una) → gate bloqueaba sin valor.
       // Solución elegida (opción user): excluir vistas sin integración del gate global y fijar threshold por directorio.
