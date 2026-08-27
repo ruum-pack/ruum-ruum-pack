@@ -131,13 +131,6 @@
   .conductor-fab-keyboard-safe {
     bottom: calc(88px + env(safe-area-inset-bottom));
   }
-  
-  /* Ajustar FAB cuando el teclado está abierto - usa media query para detectar viewport reducido */
-  @media (max-width: 767px) and (max-height: 600px) {
-    .conductor-fab-keyboard-safe {
-      bottom: calc(88px + env(safe-area-inset-bottom) + 200px);
-    }
-  }
 
   .conductor-page :where(img, picture, video, canvas) {
     max-width: 100%;

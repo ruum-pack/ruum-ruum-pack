@@ -11,7 +11,8 @@ import { CONTACTOS_SOPORTE_CONDUCTOR } from "../../lib/contactos-soporte";
 
 function LoginSkeleton() {
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4 py-10 sm:px-6" aria-busy="true" aria-label="Cargando acceso">
+    <div className="flex min-h-dvh items-center justify-center px-4 py-10 sm:px-6" aria-busy="true">
+      <output className="sr-only">Cargando acceso</output>
       <div className="conductor-auth-card p-6 sm:p-8 w-full animate-pulse">
         <div className="h-8 w-32 rounded bg-surface-elevated" />
         <div className="mt-4 h-2 w-full rounded bg-surface-elevated" />
@@ -127,11 +128,11 @@ function FormularioLogin() {
           <LogoMarca tamano={34} color="signal" descriptor="Conductor" mostrarRespaldo={false} />
         </div>
         <p className="mt-2 font-body text-[11px] font-medium tracking-wide text-text-tertiary">Seguridad, evidencia y trazabilidad en cada viaje.</p>
-        <div className="conductor-ruta-divider mt-4" aria-hidden />
+        <div className="conductor-ruta-divider mt-4" aria-hidden="true" />
         <h1 id="titulo-inicio-conductor" className="mt-6 font-display text-2xl font-bold tracking-tight text-text-primary">Iniciar sesión</h1>
         <p className="mt-1 font-body text-sm text-text-secondary">Solo conductores verificados. Tu sesión inicia trazabilidad.</p>
         <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated px-3 py-1 font-body text-[11px] font-semibold text-text-primary">
-          <span className="size-1.5 rounded-full bg-signal" aria-hidden /> Evidencia · GPS · Pagos trazables
+          <span className="size-1.5 rounded-full bg-signal" aria-hidden="true" /> Evidencia · GPS · Pagos trazables
         </p>
 
         {supabaseNoConfigurado && (
@@ -215,7 +216,7 @@ function FormularioLogin() {
             href={CONTACTOS_SOPORTE_CONDUCTOR.soporte.whatsapp.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 font-body text-xs font-bold text-emerald-600 hover:bg-emerald-500/15 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action dark:text-emerald-400"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 font-body text-xs font-bold text-emerald-700 hover:bg-emerald-500/15 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action dark:text-emerald-400"
           >
             WhatsApp soporte
           </a>

@@ -27,7 +27,7 @@ export function EvidenceReference({ evidenciaInicial, estaCargando }: EvidenceRe
   const { kilometraje, llavesRecibidas, combustible } = evidenciaInicial;
 
   return (
-    <div className="rounded-xl border border-border bg-surface-elevated p-4" aria-label="Valores iniciales de referencia">
+    <div className="rounded-xl border border-border bg-surface-elevated p-4">
       <h3 className="font-body text-sm font-semibold text-text-primary">Valores iniciales (referencia)</h3>
       <p className="mt-1 font-body text-xs text-text-secondary">
         Compara estos valores al capturar la evidencia final

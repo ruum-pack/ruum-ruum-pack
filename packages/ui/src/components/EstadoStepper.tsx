@@ -123,7 +123,7 @@ export function DesktopStateStepper({ estado, currentLabel }: EstadoStepperProps
   const nombre = currentLabel ?? (esRamificado ? "Revisión operativa" : etapaActual.etiqueta);
 
   return (
-    <div className="hidden w-full md:block" aria-label="Progreso del traslado">
+    <nav className="hidden w-full md:block" aria-label="Progreso del traslado">
       <div className="mb-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-route-soft px-2.5 py-0.5 font-body text-xs font-semibold text-route-action">
@@ -134,38 +134,37 @@ export function DesktopStateStepper({ estado, currentLabel }: EstadoStepperProps
             {nombre}
           </span>
         </div>
-        <span className="font-mono-ruum text-xs text-text-tertiary">
-          {Math.round((paso / total) * 100)}% completado
+        <span className="font-mono-ruum text-xs font-bold text-text-tertiary">
+          {Math.round((paso / total) * 100)}%
         </span>
       </div>
 
       <div role="list" aria-label="Etapas completas del traslado" className="flex w-full gap-1.5">
         {ETAPAS_TRASLADO.map((etapa, i) => {
-          const pasada = !esRamificado && i < indiceActual;
-          const actual = !esRamificado && i === indiceActual;
-          const sellada = pasada || (esRamificado && etapa.id === "cierre");
+          const actual = etapa.id === estado;
+          const sellada = i < indiceActual;
 
           return (
             <div
               key={etapa.id}
               role="listitem"
-              aria-label={`Paso ${i + 1} de ${ETAPAS_TRASLADO.length}: ${etapa.etiqueta}${actual ? ", etapa actual" : sellada ? ", completada" : ", pendiente"}`}
-              className="flex-1 min-w-0"
+              className="flex min-w-0 flex-1 flex-col gap-1.5"
             >
               <div
+                role="progressbar"
+                aria-valuenow={sellada ? 100 : actual ? 50 : 0}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`Paso ${i + 1} de ${ETAPAS_TRASLADO.length}: ${etapa.etiqueta}${actual ? ", etapa actual" : sellada ? ", completada" : ", pendiente"}`}
                 className={[
-                  "h-2 rounded-full transition-all duration-300",
-                  actual
-                    ? "bg-signal shadow-xs ring-1 ring-signal/50"
-                    : sellada
-                      ? "bg-control"
-                      : "bg-surface-elevated border border-border/40"
+                  "h-1.5 w-full rounded-full transition-colors",
+                  actual ? "bg-action-primary shadow-xs" : sellada ? "bg-signal-soft" : "bg-surface-elevated"
                 ].join(" ")}
               />
               <p
                 className={[
-                  "mt-1.5 truncate font-body text-xs",
-                  actual ? "font-bold text-text-primary" : sellada ? "font-medium text-text-secondary" : "text-text-tertiary"
+                  "truncate font-body text-[11px] font-medium leading-tight",
+                  actual ? "font-bold text-text-primary" : sellada ? "text-text-secondary" : "text-text-tertiary"
                 ].join(" ")}
                 title={`${String(i + 1).padStart(2, "0")} ${etapa.etiqueta}`}
               >
@@ -175,7 +174,7 @@ export function DesktopStateStepper({ estado, currentLabel }: EstadoStepperProps
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }
 

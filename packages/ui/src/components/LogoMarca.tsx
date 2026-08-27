@@ -154,7 +154,6 @@ export function LogoMarca({
         className={`inline-flex items-center justify-center ${
           variante === "avatar" ? "rounded-xl bg-[#151515] p-1.5 shadow-md" : ""
         } ${className}`}
-        aria-label="Ruum Ruum"
       >
         <SimboloVectorial tamano={tamanoSimbolo} tema={variante === "avatar" ? "oscuro" : tema} colorDestino={colorDestino} />
       </div>
@@ -165,7 +164,7 @@ export function LogoMarca({
   if (variante === "vertical") {
     const tamanoSimbolo = tamano ?? 48;
     return (
-      <div className={`inline-flex flex-col items-center text-center ${className}`} aria-label="Ruum Ruum by MoviliaX">
+      <div className={`inline-flex flex-col items-center text-center ${className}`}>
         <SimboloVectorial tamano={tamanoSimbolo} tema={tema} colorDestino={colorDestino} />
         <div className="mt-2.5">
           <div className="flex items-baseline justify-center gap-1.5">
@@ -195,7 +194,7 @@ export function LogoMarca({
   // Versión horizontal oficial (por defecto)
   const tamanoSimbolo = tamano ?? 36;
   return (
-    <div className={`inline-flex items-center gap-3 ${className}`} aria-label="Ruum Ruum by MoviliaX">
+    <div className={`inline-flex items-center gap-3 ${className}`}>
       <SimboloVectorial tamano={tamanoSimbolo} tema={tema} colorDestino={colorDestino} />
       <div className="flex flex-col justify-center leading-tight">
         <div className="flex items-baseline gap-1">

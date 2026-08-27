@@ -161,7 +161,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-report
-          path: .lighthouse-ci/
+          if-no-files-found: warn
+          path: |
+            apps/app-conductor/.lighthouse-ci/
+            apps/app-conductor/.lighthouseci/
 
   storybook-a11y:
     name: Storybook Accessibility Addon

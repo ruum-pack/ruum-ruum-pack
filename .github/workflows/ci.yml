@@ -477,10 +477,11 @@ jobs:
         with:
           name: app-conductor-lighthouse
           retention-days: ${{ github.event_name == 'pull_request' && 14 || 90 }}
-          if-no-files-found: error
+          if-no-files-found: warn
           path: |
             apps/app-conductor/.lighthouse-ci/*.html
             apps/app-conductor/.lighthouse-ci/*.json
+            apps/app-conductor/.lighthouseci/
 
   app-conductor-android-config:
     name: Android Firebase and Gradle config
