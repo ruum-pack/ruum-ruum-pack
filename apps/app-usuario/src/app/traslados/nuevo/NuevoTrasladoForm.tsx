@@ -2560,17 +2560,13 @@ export function NuevoTrasladoForm() {
               </div>
             ) : aceptandoCotizacion || !cotizacionAceptada ? (
               <p className="font-body text-sm text-ink/55">Confirmando tarifa para iniciar el pago…</p>
-            ) : !tieneSupabaseConfigurado() ? (
-              <Aviso tono="danger">Supabase no está configurado. No se puede capturar el pago.</Aviso>
-            ) : !tieneStripePublicoConfigurado() ? (
-              <Aviso tono="info">Stripe no está configurado — el cobro real no está disponible en este entorno.</Aviso>
             ) : (
               <div className="space-y-3">
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 font-body text-xs leading-5 text-ink/70">
-                  <span className="font-semibold text-emerald-700">Pago seguro</span> · 4.8/5 · Conductores verificados · Stripe con 3-D Secure · Soporte 24/7
-                </div>
-                <PagoStripe trasladoId={trasladoCreado.id} onPagado={() => setPagoConfirmado(true)} />
-                <p className="text-center font-body text-xs text-ink/40">Visa · Mastercard · Amex · SPEI · No guardamos datos de tarjeta</p>
+                <PagoStripe
+                  trasladoId={trasladoCreado.id}
+                  monto={trasladoCreado.precioCotizado ?? 0}
+                  onPagado={() => setPagoConfirmado(true)}
+                />
               </div>
             )}
 
