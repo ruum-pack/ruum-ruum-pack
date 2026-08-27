@@ -5,7 +5,7 @@ import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
-type Conductor = Pick<Database["public"]["Tables"]["conductores"]["Row"], "id" | "nombre" | "estado" | "nivel_operativo_vigente" | "calificacion_promedio" | "traslados_completados" | "telefono">;
+type Conductor = Pick<Database["public"]["Tables"]["conductores"]["Row"], "id" | "nombre" | "estado" | "nivel_operativo_vigente" | "calificacion_promedio" | "traslados_completados">;
 
 const ORDEN_ESTADOS = [
   "solicitud_creada","servicio_confirmado","pendiente_de_conductor","conductor_asignado","conductor_en_camino_al_origen","conductor_en_punto_de_recoleccion","verificacion_vehiculo_en_proceso","evidencia_inicial_en_proceso","evidencia_inicial_completada","vehiculo_recibido","traslado_en_curso","llegada_a_destino","evidencia_final_en_proceso","evidencia_final_completada","entrega_confirmada","servicio_cerrado",
@@ -100,12 +100,10 @@ export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }:
   const pct = progreso(estado);
   const accion = proximaAccion(estado);
   const vehiculoNombre = [pasaporte.vehiculo_marca, pasaporte.vehiculo_modelo, pasaporte.vehiculo_anio].filter(Boolean).join(" ");
-  const eta = calcularEta(estado, traslado?.fecha_hora_programada ?? pasaporte.fecha_hora_programada);
+  const eta = calcularEta(estado, traslado?.fecha_hora_programada);
   const puedeLlamarConductor = puedeLlamar(estado);
   const puedeChatearConductor = puedeChatear(estado);
   
-  const telefonoConductor = conductor?.telefono ?? pasaporte.conductor_telefono;
-
   return (
     <PassportCard folio={`#RM-${trasladoId.slice(0,4).toUpperCase()}`} acento={pasaporte.tiene_incidencia_abierta ?? false} className="mt-4">
       <div className="flex flex-col gap-4">
@@ -146,7 +144,7 @@ export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }:
                 <p className="font-body text-xs text-ink/55">
                   {conductor?.nivel_operativo_vigente ?? pasaporte.conductor_nivel ?? "Certificado"} · 
                   {pasaporte.conductor_calificacion ? `${pasaporte.conductor_calificacion.toFixed(1)}★` : "—"} · 
-                  {conductor?.traslados_completados ?? pasaporte.conductor_traslados_completados ?? "—"} traslados
+                  {conductor?.traslados_completados ?? "—"} traslados
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">
@@ -156,14 +154,6 @@ export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }:
                     className="inline-flex min-h-10 items-center justify-center rounded-xl bg-signal px-4 py-2 font-display text-xs font-bold text-ink shadow-sm hover:bg-signal/90 transition"
                   >
                     Chat
-                  </a>
-                )}
-                {puedeLlamarConductor && telefonoConductor && (
-                  <a 
-                    href={`tel:${telefonoConductor}`}
-                    className="inline-flex min-h-10 items-center justify-center rounded-xl border border-ink/15 bg-mist px-3 py-2 font-body text-xs font-semibold text-ink hover:border-ink/30 hover:bg-ink/[0.04] transition"
-                  >
-                    ✆ Llamar
                   </a>
                 )}
                 <Link 

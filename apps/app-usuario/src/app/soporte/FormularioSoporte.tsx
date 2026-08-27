@@ -216,7 +216,7 @@ export function FormularioSoporte({ traslados, preseleccionado, emailUsuario }: 
         {resultado && (
           <div className="mt-4">
             {resultado.folio ? (
-              <Aviso tono="info" className="mb-2">
+              <Aviso tono="info">
                 <p className="font-body text-sm">
                   <span className="font-bold">¡Mensaje recibido con éxito!</span>
                   <br />

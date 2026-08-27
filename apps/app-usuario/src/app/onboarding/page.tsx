@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { IconoLinea, LogoRuum, PantallaPublica } from "../experiencia-publica";
 import { obtenerUsuarioActual } from "@ruum/api/services";
+import { crearClienteNavegador } from "../../lib/supabase-browser";
 
 const pilares = [
   ["escudo", "Conductores certificados", "Verificación de identidad antes de cada traslado."],
@@ -100,7 +101,7 @@ function ContenidoOnboarding() {
     if (nombreUrl) {
       setNombreUsuario(nombreUrl);
     } else {
-      obtenerUsuarioActual()
+      obtenerUsuarioActual(crearClienteNavegador())
         .then((usr) => {
           if (usr?.nombre) setNombreUsuario(usr.nombre);
         })

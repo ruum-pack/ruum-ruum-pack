@@ -1,8 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { ETIQUETA_ANGULO, type AnguloFoto, type FotoEvidenciaVisual } from "@ruum/shared/constants";
+import type { AnguloEvidencia } from "@ruum/shared/types";
 
+type FotoEvidenciaVisual = {
+  angulo: AnguloEvidencia;
+  url_visual?: string | null;
+};
+
+const ETIQUETA_ANGULO: Record<AnguloEvidencia, string> = {
+  frente: "Frente",
+  lado_piloto: "Lado piloto",
+  lado_copiloto: "Lado copiloto",
+  trasera: "Trasera",
+  tablero: "Tablero",
+  dano_previo: "Daño visible",
+  adicional: "Adicional"
+};
 interface EvidenciaComparativaProps {
   inicial: FotoEvidenciaVisual[];
   final: FotoEvidenciaVisual[];
@@ -14,8 +28,8 @@ export function EvidenciaComparativa({
   final,
   tieneIncidenciaAbierta = false
 }: EvidenciaComparativaProps) {
-  const angulosPrincipales: AnguloFoto[] = ["frente", "costado_izquierdo", "costado_derecho", "tablero_odometro"];
-  const [anguloActivo, setAnguloActivo] = useState<AnguloFoto>("frente");
+  const angulosPrincipales: AnguloEvidencia[] = ["frente", "lado_piloto", "lado_copiloto", "tablero"];
+  const [anguloActivo, setAnguloActivo] = useState<AnguloEvidencia>("frente");
   const [posicionSlider, setPosicionSlider] = useState(50);
   const [vistaModal, setVistaModal] = useState<"slider" | "grid">("grid");
 

@@ -21,6 +21,7 @@ import { SeguimientoTrasladoTiempoReal } from "./SeguimientoTrasladoTiempoReal";
 import { PasaporteTabs } from "./PasaporteTabs";
 import { HeroAnsiedadCero } from "./HeroAnsiedadCero";
 import { EvidenciaComparativa } from "./EvidenciaComparativa";
+import { ExportarPasaportePdf } from "./ExportarPasaportePdf";
 
 import { NavegacionUsuario } from "../../NavegacionUsuario";
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];

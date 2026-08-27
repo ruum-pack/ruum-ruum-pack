@@ -348,6 +348,9 @@ export function SeccionPerfil({ usuario }: { usuario: Usuario }) {
     </Seccion>
   );
 }
+
+export function SeccionVehiculos({ vehiculos }: { vehiculos: Vehiculo[] }) {
+  return (
     <Seccion titulo="Mis vehículos" descripcion="Guarda vehículos frecuentes para acelerar solicitudes futuras.">
       <div className="grid gap-4 md:grid-cols-2">
         {vehiculos.length > 0 ? (

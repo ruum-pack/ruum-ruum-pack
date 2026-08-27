@@ -298,7 +298,8 @@ const TARIFAS_BASE_POR_TIPO: Record<TipoVehiculo, { min: number; max: number }> 
   suv: { min: 8, max: 15 },
   pick_up: { min: 10, max: 18 },
   van: { min: 12, max: 20 },
-  motocicleta: { min: 3, max: 8 },
+  luxury: { min: 14, max: 24 },
+  coleccion: { min: 16, max: 28 },
 };
 
 // Sprint 1: Distancia estimada por código postal (centroides de ciudades principales)
@@ -1544,6 +1545,7 @@ export function NuevoTrasladoForm() {
       setDetallesVehiculoExpandido(true);
     } else {
       setErrorPaso(null);
+    }
     return totalErrores === 0;
   }
 
