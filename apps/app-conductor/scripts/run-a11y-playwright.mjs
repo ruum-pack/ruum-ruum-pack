@@ -5,9 +5,14 @@ import { closeSync, existsSync, mkdirSync, openSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { config } from 'dotenv';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
+
+// Cargar variables de entorno desde .env.local y .env
+config({ path: resolve(projectRoot, '.env.local') });
+config({ path: resolve(projectRoot, '.env') });
 const requestedOrigin = process.env.A11Y_BASE_URL || 'http://localhost:3001';
 const serverTimeoutMs = 90_000;
 const resultsDir = resolve(projectRoot, 'results');

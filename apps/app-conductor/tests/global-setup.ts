@@ -1,6 +1,6 @@
 import { chromium, type FullConfig } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { loadEnvConfig } from "@next/env";
+import { config as loadDotenv } from "dotenv";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -278,7 +278,22 @@ async function prepareFixture(admin: AdminClient, conductorId: string, ownerAuth
 }
 
 async function globalSetup(config: FullConfig) {
-  loadEnvConfig(process.cwd());
+  // Cargar variables de entorno desde .env.test, .env.local y .env
+  // Usar el directorio base de la configuración de Playwright
+  const projectRoot = config.rootDir ?? process.cwd();
+  
+  // Cargar en orden de prioridad: .env.test > .env.local > .env
+  loadDotenv({ path: path.resolve(projectRoot, '.env.test') });
+  loadDotenv({ path: path.resolve(projectRoot, '.env.local') });
+  loadDotenv({ path: path.resolve(projectRoot, '.env') });
+
+  // Debug: Verificar que las variables se cargaron
+  if (!process.env.PLAYWRIGHT_E2E_CONDUCTOR_EMAIL) {
+    console.error('[DEBUG] projectRoot:', projectRoot);
+    console.error('[DEBUG] process.cwd():', process.cwd());
+    console.error('[DEBUG] PLAYWRIGHT_E2E_CONDUCTOR_EMAIL:', process.env.PLAYWRIGHT_E2E_CONDUCTOR_EMAIL);
+    console.error('[DEBUG] E2E_CONDUCTOR_EMAIL:', process.env.E2E_CONDUCTOR_EMAIL);
+  }
 
   const supabaseUrl = requiredEnv("PLAYWRIGHT_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL");
   const serviceRoleKey = requiredEnv("PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE_KEY");
