@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { NavegacionUsuario } from "../NavegacionUsuario";
-import { AvisoSinSesion, HeaderCuenta, HeroCuenta, NavegacionCuenta, SeccionHistorialEmpresa, obtenerCuenta } from "./cuenta-ui";
+import { CuentaCliente } from "./CuentaCliente";
+import { obtenerCuenta } from "./cuenta-ui";
 
 export const metadata: Metadata = {
   title: "Mi cuenta — Ruum Ruum",
@@ -9,25 +10,15 @@ export const metadata: Metadata = {
 
 export default async function PaginaCuenta() {
   const cuenta = await obtenerCuenta();
-
-  if (!cuenta) return <AvisoSinSesion />;
-
-  const { usuario, historialEmpresa } = cuenta;
-  const esTitularEmpresa = usuario.rol === "titular_empresa" && Boolean(usuario.empresa_id);
+  const usuario = cuenta?.usuario ?? null;
 
   return (
-    <main className="app-page">
+    <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
       <NavegacionUsuario />
-      <div className="app-container py-10 sm:py-14">
-        <HeaderCuenta usuario={usuario} />
-        <HeroCuenta usuario={usuario} />
-        <NavegacionCuenta usuario={usuario} />
-        {esTitularEmpresa && (
-          <section className="mt-6">
-            <SeccionHistorialEmpresa historialEmpresa={historialEmpresa} />
-          </section>
-        )}
+      <div className="w-full max-w-md mx-auto px-4 py-2">
+        <CuentaCliente usuario={usuario} />
       </div>
     </main>
   );
 }
+
