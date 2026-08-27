@@ -47,7 +47,7 @@ async function findAuthUserId(admin: AdminClient, email: string) {
 async function ensureAuthUser(admin: AdminClient, email: string, password: string, tipoRegistro: "conductor" | "usuario") {
   const existingId = await findAuthUserId(admin, email);
   if (existingId) {
-    const { error } = await admin.auth.admin.updateUserById(existingId, {
+    const { error } = await admin.auth.admin!.updateUserById(existingId, {
   email,
   password,
   email_confirm: true,
