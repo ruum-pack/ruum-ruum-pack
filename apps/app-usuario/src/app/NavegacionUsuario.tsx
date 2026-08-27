@@ -1,51 +1,32 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { LogoMarca } from "@ruum/ui";
-import { crearClienteNavegador } from "../lib/supabase-browser";
+import { usePathname } from "next/navigation";
 
-/* Íconos SVG inline optimizados */
+/* Íconos SVG exactos a la imagen de referencia */
 function IconoHome({ className }: { className?: string }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-      className={className} aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
       <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z" />
       <path d="M9 21V12h6v9" />
     </svg>
   );
 }
 
-function IconoViajes({ className }: { className?: string }) {
+function IconoTraslados({ className }: { className?: string }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-      className={className} aria-hidden="true">
-      <rect x="1" y="3" width="15" height="13" rx="2" />
-      <path d="M16 8h4l3 3v5h-7V8Z" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <rect x="1" y="4" width="14" height="12" rx="1.5" />
+      <path d="M15 8h4l3 3.5V16h-7V8z" />
       <circle cx="5.5" cy="18.5" r="2.5" />
       <circle cx="18.5" cy="18.5" r="2.5" />
     </svg>
   );
 }
 
-function IconoPlus({ className }: { className?: string }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-      className={className} aria-hidden="true">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
 function IconoAyuda({ className }: { className?: string }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-      className={className} aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
       <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
       <circle cx="12" cy="17" r=".5" fill="currentColor" />
@@ -55,26 +36,17 @@ function IconoAyuda({ className }: { className?: string }) {
 
 function IconoCuenta({ className }: { className?: string }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-      className={className} aria-hidden="true">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="10" r="3" />
+      <path d="M7 20.66V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.66" />
     </svg>
   );
 }
 
-const DESTINOS_ESCRITORIO = [
+const DESTINOS = [
   { href: "/", etiqueta: "Inicio", Icono: IconoHome },
-  { href: "/mis-viajes", etiqueta: "Viajes", Icono: IconoViajes },
-  { href: "/soporte", etiqueta: "Ayuda", Icono: IconoAyuda },
-  { href: "/cuenta", etiqueta: "Cuenta", Icono: IconoCuenta },
-] as const;
-
-const DESTINOS_MOVIL = [
-  { href: "/", etiqueta: "Inicio", Icono: IconoHome },
-  { href: "/mis-viajes", etiqueta: "Viajes", Icono: IconoViajes },
-  { href: "/traslados/nuevo", etiqueta: "Solicitar", Icono: IconoPlus, esDestacado: true },
+  { href: "/mis-viajes", etiqueta: "Traslados", Icono: IconoTraslados },
   { href: "/soporte", etiqueta: "Ayuda", Icono: IconoAyuda },
   { href: "/cuenta", etiqueta: "Cuenta", Icono: IconoCuenta },
 ] as const;
@@ -86,218 +58,109 @@ function estaActivo(pathname: string, href: string) {
 
 export function NavegacionUsuario() {
   const pathname = usePathname();
-  const router = useRouter();
-  const [menuAbierto, setMenuAbierto] = useState(false);
-  const menuCuentaRef = useRef<HTMLDivElement>(null);
-  const botonCuentaRef = useRef<HTMLButtonElement>(null);
-  const menuCuentaPanelRef = useRef<HTMLDivElement>(null);
-
   const esAcceso = pathname === "/login" || pathname === "/registro" || pathname === "/onboarding";
-
-  useEffect(() => {
-    if (!menuAbierto) return;
-
-    function cerrarSiClickFuera(evento: MouseEvent) {
-      if (menuCuentaRef.current?.contains(evento.target as Node)) return;
-      window.setTimeout(() => setMenuAbierto(false), 150);
-    }
-
-    document.addEventListener("click", cerrarSiClickFuera);
-    return () => document.removeEventListener("click", cerrarSiClickFuera);
-  }, [menuAbierto]);
-
-  async function cerrarSesion() {
-    const cliente = crearClienteNavegador();
-    await cliente.auth.signOut();
-    router.push("/");
-    router.refresh();
-  }
-
-  function cerrarMenuCuentaConFoco() {
-    setMenuAbierto(false);
-    window.requestAnimationFrame(() => botonCuentaRef.current?.focus());
-  }
-
-  function enfocarItemMenuCuenta(direccion: 1 | -1) {
-    const items = Array.from(menuCuentaPanelRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
-    if (items.length === 0) return;
-
-    const indiceActual = items.indexOf(document.activeElement as HTMLElement);
-    const siguienteIndice = indiceActual === -1 ? (direccion === 1 ? 0 : items.length - 1) : (indiceActual + direccion + items.length) % items.length;
-    items[siguienteIndice]?.focus();
-  }
-
-  function manejarTeclasMenuCuenta(evento: KeyboardEvent<HTMLDivElement>) {
-    if (evento.key === "Escape") {
-      evento.preventDefault();
-      cerrarMenuCuentaConFoco();
-      return;
-    }
-
-    if (evento.key === "ArrowDown" || evento.key === "ArrowUp") {
-      evento.preventDefault();
-      enfocarItemMenuCuenta(evento.key === "ArrowDown" ? 1 : -1);
-    }
-  }
-
-  function manejarTeclasBotonCuenta(evento: KeyboardEvent<HTMLButtonElement>) {
-    if (evento.key === "Escape" && menuAbierto) {
-      evento.preventDefault();
-      cerrarMenuCuentaConFoco();
-      return;
-    }
-
-    if (evento.key === "ArrowDown" || evento.key === "ArrowUp") {
-      evento.preventDefault();
-      setMenuAbierto(true);
-      window.requestAnimationFrame(() => enfocarItemMenuCuenta(evento.key === "ArrowDown" ? 1 : -1));
-    }
-  }
 
   if (esAcceso) return null;
 
   return (
     <>
-      {/* Encabezado para escritorio (oculto en móvil para diseño nativo) */}
-      <header role="banner" className="hidden md:block sticky top-0 z-30 border-b border-border bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur supports-[backdrop-filter]:bg-surface/85">
-        <div className="ruum-container flex min-h-16 items-center gap-4 py-3">
-          <Link
-            href="/"
-            aria-label="Ir al inicio de Ruum Ruum"
-            className="flex shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-route-dark"
-          >
-            <LogoMarca variante="horizontal" tema="oscuro" tamano={30} mostrarDescriptor={false} mostrarRespaldo={false} />
-            <span className="hidden font-body text-xs font-semibold text-text-tertiary lg:inline">Usuario</span>
+      {/* 1. Cabecera Superior (Top App Bar) */}
+      <header role="banner" className="sticky top-0 z-30 w-full bg-[#070D18]/90 backdrop-blur-md pt-[env(safe-area-inset-top)] border-b border-[#1C2A3E]/40">
+        <div className="w-full max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+          {/* Logo Ruum Ruum Usuario */}
+          <Link href="/" className="flex items-center gap-2.5 group select-none">
+            <div className="flex size-10 items-center justify-center rounded-full bg-[#151515] border-2 border-[#FFC400] shadow-sm">
+              <svg className="size-6 text-[#FFC400]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H8c-.7 0-1.3.3-1.8.7C5.3 8.6 4 10 4 10s-2.7.6-4.5 1.1C.7 11.3 0 12.1 0 13v3c0 .6.4 1 1 1h2" />
+                <circle cx="7" cy="17" r="2" />
+                <path d="M9 17h6" />
+                <circle cx="17" cy="17" r="2" />
+              </svg>
+            </div>
+            <div className="flex flex-col leading-tight">
+              <div className="flex items-baseline gap-1">
+                <span className="font-display text-base font-extrabold tracking-tight text-white">Ruum</span>
+                <span className="font-display text-base font-extrabold tracking-tight text-[#FFC400]">Ruum</span>
+              </div>
+              <span className="font-body text-xs text-[#8E9CAE] font-normal">Usuario</span>
+            </div>
           </Link>
 
-          {/* Navegación escritorio */}
-          <nav aria-label="Navegación principal" className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex">
-            {DESTINOS_ESCRITORIO.map(({ href, etiqueta, Icono }) => {
-              const activo = estaActivo(pathname, href);
-              if (href === "/cuenta") {
-                return (
-                  <div
-                    key={href}
-                    ref={menuCuentaRef}
-                    className="relative"
-                    onMouseEnter={() => setMenuAbierto(true)}
-                    onMouseLeave={() => setMenuAbierto(false)}
-                  >
-                    <button
-                      ref={botonCuentaRef}
-                      onClick={() => setMenuAbierto((v) => !v)}
-                      onKeyDown={manejarTeclasBotonCuenta}
-                      aria-expanded={menuAbierto}
-                      aria-haspopup="menu"
-                      aria-controls={menuAbierto ? "menu-cuenta-usuario" : undefined}
-                      aria-label="Menú de cuenta"
-                      className={[
-                        "inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 font-body text-sm font-semibold",
-                        activo || menuAbierto
-                          ? "bg-action-primary text-on-primary shadow-sm"
-                          : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary",
-                      ].join(" ")}
-                    >
-                      <Icono />
-                      {etiqueta}
-                    </button>
-                    {menuAbierto && (
-                      <div
-                        ref={menuCuentaPanelRef}
-                        id="menu-cuenta-usuario"
-                        role="menu"
-                        onKeyDown={manejarTeclasMenuCuenta}
-                        className="absolute right-0 top-full z-50 mt-1 w-56 rounded-[var(--ruum-radius-modal)] border border-border bg-surface py-1 shadow-3"
-                      >
-                        <Link href="/cuenta" role="menuitem" onClick={() => setMenuAbierto(false)} className="block px-4 py-2.5 font-body text-sm font-semibold text-text-primary hover:bg-surface-elevated">Mi cuenta</Link>
-                        <Link href="/cuenta/perfil" role="menuitem" onClick={() => setMenuAbierto(false)} className="block px-4 py-2 font-body text-sm text-text-secondary hover:bg-surface-elevated hover:text-text-primary">Perfil</Link>
-                        <Link href="/cuenta/vehiculos" role="menuitem" onClick={() => setMenuAbierto(false)} className="block px-4 py-2 font-body text-sm text-text-secondary hover:bg-surface-elevated hover:text-text-primary">Mis vehículos</Link>
-                        <Link href="/cuenta/metodos-pago" role="menuitem" onClick={() => setMenuAbierto(false)} className="block px-4 py-2 font-body text-sm text-text-secondary hover:bg-surface-elevated hover:text-text-primary">Métodos de pago</Link>
-                        <Link href="/cuenta/preferencias" role="menuitem" onClick={() => setMenuAbierto(false)} className="block px-4 py-2 font-body text-sm text-text-secondary hover:bg-surface-elevated hover:text-text-primary">Preferencias · Tema</Link>
-                        <div className="my-1 h-px bg-border" />
-                        <button role="menuitem" onClick={cerrarSesion} className="block w-full px-4 py-2.5 text-left font-body text-sm text-text-secondary hover:bg-surface-elevated hover:text-text-primary">Cerrar sesión</button>
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  aria-current={activo ? "page" : undefined}
-                  className={[
-                    "inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 font-body text-sm font-semibold",
-                    activo
-                      ? "bg-action-primary text-on-primary shadow-sm"
-                      : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary",
-                  ].join(" ")}
-                >
-                  <Icono />
-                  {etiqueta}
-                </Link>
-              );
-            })}
-          </nav>
+          {/* Iconos de la derecha: Campana (con badge 2) y Avatar */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/soporte"
+              className="relative flex size-9 items-center justify-center text-slate-200 transition hover:text-white"
+              aria-label="Notificaciones (2 pendientes)"
+            >
+              <svg className="size-6 text-[#CBD5E1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+              </svg>
+              <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-[#FFC400] text-[10px] font-black text-slate-950 shadow-sm">
+                2
+              </span>
+            </Link>
 
-          <Link
-            href="/traslados/nuevo"
-            className="ml-auto inline-flex min-h-11 items-center justify-center rounded-xl bg-signal px-5 py-2 font-display text-sm font-bold text-slate-950 shadow-md shadow-signal/20 transition hover:bg-signal/90 hover:shadow-lg hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal"
-          >
-            <span className="mr-1.5 text-base font-bold" aria-hidden>+</span>
-            <span>Solicitar traslado</span>
-          </Link>
+            <Link
+              href="/cuenta"
+              className="flex size-9 items-center justify-center rounded-full border border-slate-600/80 text-slate-300 transition hover:border-[#FFC400] hover:text-white"
+              aria-label="Mi Cuenta"
+            >
+              <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
+            </Link>
+          </div>
         </div>
       </header>
 
-      {/* Navegación móvil fija al fondo adaptada al Brand Book */}
-      <div className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-surface/95 border-t border-border/20 backdrop-blur-md pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.5)] supports-[backdrop-filter]:bg-surface/80">
-        <nav aria-label="Navegación principal móvil" className="w-full px-1 max-w-md mx-auto">
-          <div className="grid grid-cols-5 gap-0.5 items-end">
-            {DESTINOS_MOVIL.map((destino) => {
+      {/* 2. Barra de Navegación Inferior (4 Tabs con Indicador Amarillo Activo) */}
+      <nav
+        aria-label="Navegación principal"
+        className="fixed bottom-0 inset-x-0 z-40 bg-[#070D18]/95 border-t border-[#1C2A3E]/60 backdrop-blur-md pb-[max(10px,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_30px_rgba(0,0,0,0.6)]"
+      >
+        <div className="w-full max-w-md mx-auto px-2">
+          <div className="grid grid-cols-4 items-center">
+            {DESTINOS.map((destino) => {
               const activo = estaActivo(pathname, destino.href);
-
-              if ("esDestacado" in destino && destino.esDestacado) {
-                return (
-                  <Link
-                    key={destino.href}
-                    href={destino.href}
-                    aria-current={activo ? "page" : undefined}
-                    aria-label="Solicitar nuevo traslado"
-                    className="relative flex flex-col items-center justify-center gap-1 py-1 text-center select-none"
-                  >
-                    <span className="flex size-11 items-center justify-center rounded-full bg-signal text-slate-950 shadow-md shadow-signal/30 transition-transform active:scale-95">
-                      <destino.Icono />
-                    </span>
-                    <span className="max-w-full truncate font-display text-[10px] font-bold leading-none text-signal">
-                      {destino.etiqueta}
-                    </span>
-                  </Link>
-                );
-              }
 
               return (
                 <Link
                   key={destino.href}
                   href={destino.href}
                   aria-current={activo ? "page" : undefined}
-                  className={[
-                    "relative flex flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 min-h-[52px] font-body text-[10px] leading-none transition-colors duration-200 select-none",
-                    activo
-                      ? "text-text-primary dark:text-signal font-black bg-signal/20 dark:bg-signal/15 shadow-2xs"
-                      : "text-text-secondary hover:text-text-primary"
-                  ].join(" ")}
+                  className="relative flex flex-col items-center justify-center gap-1 py-1.5 select-none transition-colors group"
                 >
-                  <div className="relative flex items-center justify-center p-0.5">
-                    <destino.Icono />
+                  {/* Línea horizontal amarilla sobre el tab activo */}
+                  {activo && (
+                    <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-12 h-[3px] rounded-full bg-[#FFC400]" />
+                  )}
+
+                  <div className="relative flex items-center justify-center size-6">
+                    <destino.Icono
+                      className={`size-6 transition-colors ${
+                        activo ? "text-[#FFC400]" : "text-[#8E9CAE] group-hover:text-white"
+                      }`}
+                    />
                   </div>
-                  <span className="max-w-full truncate tracking-tight text-[10px] leading-none">{destino.etiqueta}</span>
+
+                  <span
+                    className={`font-body text-[11px] leading-none tracking-tight transition-colors ${
+                      activo
+                        ? "font-bold text-[#FFC400]"
+                        : "font-medium text-[#8E9CAE] group-hover:text-white"
+                    }`}
+                  >
+                    {destino.etiqueta}
+                  </span>
                 </Link>
               );
             })}
           </div>
-        </nav>
-      </div>
+        </div>
+      </nav>
     </>
   );
 }

@@ -75,27 +75,10 @@ export default async function PaginaMisViajes({
   const viajes = await obtenerViajes();
 
   return (
-    <main className="app-page">
+    <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
       <NavegacionUsuario />
-      <div className="app-container py-6 sm:py-10 lg:py-14">
-        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <Link href="/" className="font-body text-xs font-medium text-text-tertiary underline-offset-4 hover:text-text-primary hover:underline">
-              ← Volver al inicio
-            </Link>
-            <h1 className="mt-2 font-display text-2xl sm:text-3xl font-black leading-tight text-text-primary">Mis viajes</h1>
-            <p className="mt-1 max-w-2xl font-body text-sm text-text-secondary">
-              Consulta tus viajes activos, programados, finalizados y cancelados con evidencia y detalle operativo.
-            </p>
-          </div>
-          <Link href="/soporte" className="self-start sm:self-auto">
-            <Button variant="secondary" className="font-display font-semibold text-xs">¿Necesitas ayuda?</Button>
-          </Link>
-        </header>
-
-        <PassportCard>
-          <MisViajesCliente viajes={viajes} pestanaInicial={pestañaActiva} />
-        </PassportCard>
+      <div className="w-full max-w-md mx-auto px-4 py-2">
+        <MisViajesCliente viajes={viajes} pestanaInicial={pestañaActiva} />
       </div>
     </main>
   );

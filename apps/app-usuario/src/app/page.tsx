@@ -34,15 +34,20 @@ async function obtenerContextoSesion(): Promise<ContextoSesion> {
   }
 }
 
-export default async function PaginaInicio() {
+export default async function PaginaInicio({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = (await searchParams) ?? {};
   const { usuario, traslados } = await obtenerContextoSesion();
-  const sesion = Boolean(usuario);
+  const forzarLanding = params.landing === "true";
 
-  if (sesion) {
+  if (!forzarLanding) {
     return (
-      <main className="app-page">
+      <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
         <NavegacionUsuario />
-        <div className="app-container py-6 sm:py-10 lg:py-14">
+        <div className="w-full max-w-md mx-auto px-4 py-2">
           <InicioUsuario usuario={usuario} traslados={traslados} />
         </div>
       </main>

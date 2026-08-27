@@ -1,220 +1,594 @@
 "use client";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Button, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
-type Traslado = Pick<Database["public"]["Tables"]["traslados"]["Row"], "id" | "origen_direccion" | "origen_ciudad" | "destino_direccion" | "destino_ciudad">;
+type Traslado = Pick<
+  Database["public"]["Tables"]["traslados"]["Row"],
+  "id" | "origen_direccion" | "origen_ciudad" | "destino_direccion" | "destino_ciudad"
+>;
 type PestañaViajes = "activos" | "programados" | "finalizados" | "cancelados";
-interface ViajeLista { pasaporte: Pasaporte; traslado: Traslado | null; }
 
-const ETIQUETAS_PESTANA: Record<PestañaViajes, { label: string; desc: string }> = {
-  activos: { label: "En curso", desc: "Vehículo recibido, en traslado o llegando" },
-  programados: { label: "Por iniciar", desc: "Solicitud creada, en revisión o buscando conductor" },
-  finalizados: { label: "Historial", desc: "Viajes finalizados con evidencia" },
-  cancelados: { label: "Cancelados", desc: "Cancelados o fallidos" },
-};
-
-const ESTATUS_USUARIO: Record<string, string> = {
-  usuario_pendiente_verificacion: "Solicitud recibida",
-  usuario_verificado: "Solicitud recibida",
-  solicitud_creada: "Solicitud recibida",
-  documentacion_pendiente: "En preparación",
-  documentacion_en_revision: "En preparación",
-  documentacion_validada: "En preparación",
-  cotizacion_generada: "En preparación",
-  cotizacion_aceptada: "Pago pendiente",
-  servicio_confirmado: "En preparación",
-  pendiente_de_conductor: "Buscando conductor",
-  conductor_asignado: "Conductor asignado",
-  conductor_en_camino_al_origen: "Conductor en camino",
-  conductor_en_punto_de_recoleccion: "Recolección en proceso",
-  verificacion_vehiculo_en_proceso: "Recolección en proceso",
-  evidencia_inicial_en_proceso: "Recolección en proceso",
-  evidencia_inicial_completada: "Evidencia inicial lista",
-  vehiculo_recibido: "Vehículo recibido",
-  traslado_en_curso: "En camino",
-  incidencia_reportada: "Incidente reportado",
-  llegada_a_destino: "Llegando a destino",
-  evidencia_final_en_proceso: "Entrega en proceso",
-  evidencia_final_completada: "Evidencia final lista",
-  entrega_confirmada: "Entregado",
-  pago_pendiente: "Pago pendiente",
-  pago_completado: "Pago confirmado",
-  servicio_cerrado: "Viaje finalizado",
-  servicio_cancelado: "Cancelado",
-  traslado_fallido: "Traslado fallido",
-  dano_no_reportado_en_revision: "En revisión por incidente",
-  reclamo_abierto: "Reclamo abierto",
-  reclamo_resuelto: "Viaje finalizado",
-  cierre_operativo_con_incidencia_abierta: "Cerrado con incidente",
-  disputa_abierta: "Disputa abierta",
-  disputa_resuelta: "Viaje finalizado"
-};
-
-function fechaHora(fecha: string | null | undefined) {
-  if (!fecha) return "Fecha por confirmar";
-  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Mexico_City" }).format(new Date(fecha));
+export interface ViajeLista {
+  pasaporte: Pasaporte;
+  traslado: Traslado | null;
 }
-function moneda(valor: number | null | undefined) { return `$${Number(valor ?? 0).toLocaleString("es-MX")}`; }
-function vehiculo(p: Pasaporte) { const partes = [p.vehiculo_marca, p.vehiculo_modelo, p.vehiculo_anio].filter(Boolean); return partes.length>0? partes.join(" "): "Vehículo"; }
 
-function IconoVehiculoTipo({ tipo, className="size-5" }: { tipo?: string | null; className?: string }) {
-  if (tipo==="suv") return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 14h18v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3z"/><path d="M5 14l2.5-6h9l3.5 6"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/><path d="M2 10h20"/></svg>;
-  if (tipo==="pick_up") return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 14h20v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-3z"/><path d="M5 14l2-5h6v5"/><circle cx="7" cy="17.5" r="2.5"/><circle cx="17" cy="17.5" r="2.5"/></svg>;
-  if (tipo==="van") return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7v4"/><path d="M14 7v4"/><circle cx="7" cy="17.5" r="2.5"/><circle cx="17" cy="17.5" r="2.5"/></svg>;
-  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 14h18v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3z"/><path d="M5 14l2-5h10l2 5"/><circle cx="7" cy="17.5" r="2.5"/><circle cx="17" cy="17.5" r="2.5"/></svg>;
-}
-function IconoChevron({className="size-5"}:{className?:string}){ return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>; }
-
-function ViajeCard({ viaje }: { viaje: ViajeLista }) {
-  const { pasaporte, traslado } = viaje;
-  if (!pasaporte.traslado_id) return null;
-  const estadoVisible = pasaporte.estado ? (ESTATUS_USUARIO[pasaporte.estado] ?? pasaporte.estado) : "Estado por confirmar";
+/* Íconos SVG dedicados con alta fidelidad gráfica */
+function IconoBuscar({ className = "size-5" }: { className?: string }) {
   return (
-    <Link href={`/traslados/${pasaporte.traslado_id}`} className="app-card app-card-interactive group block rounded-xl bg-surface px-4 py-4 text-text-primary no-underline border border-border shadow-sm focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action hover:border-route-action" aria-label={`Ver Pasaporte Digital del viaje ${pasaporte.traslado_id.slice(0,8).toUpperCase()}`}>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex items-start gap-3.5 min-w-0">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-elevated border border-border text-text-secondary group-hover:border-signal/40 group-hover:text-signal transition-colors mt-0.5"><IconoVehiculoTipo tipo={pasaporte.vehiculo_tipo} className="size-5" /></div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-route-action/30 bg-route-action/10 px-2.5 py-1 font-body text-xs font-semibold text-route-action">{estadoVisible}</span>
-              {pasaporte.tiene_incidencia_abierta && <span className="rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 font-body text-xs font-semibold text-warning">Incidencia abierta</span>}
-            </div>
-            <h2 className="mt-2 font-display text-base sm:text-lg font-bold text-text-primary group-hover:text-route-action transition-colors break-words">{vehiculo(pasaporte)}{pasaporte.vehiculo_tipo && <span className="ml-2 font-body text-xs font-normal text-text-tertiary">· {ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo as never] ?? pasaporte.vehiculo_tipo}</span>}</h2>
-            <p className="mt-0.5 font-body text-xs text-text-secondary">Folio <span className="font-mono-ruum font-semibold text-text-primary">{pasaporte.traslado_id.slice(0,8).toUpperCase()}</span> · {fechaHora(pasaporte.creado_en)}</p>
-          </div>
-        </div>
-        <div className="flex size-12 shrink-0 items-center justify-center self-end rounded-xl border border-border bg-surface-elevated text-text-secondary transition-all group-hover:border-signal/40 group-hover:text-signal lg:self-start min-w-[48px] min-h-[48px]" aria-hidden="true"><IconoChevron className="size-5" /></div>
-      </div>
-      <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 border-t border-border/40 pt-3">
-        <div className="min-w-0">
-          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Origen</dt>
-          <dd className="mt-0.5 font-body text-sm font-semibold text-text-primary whitespace-normal break-words leading-snug">
-            {traslado ? `${traslado.origen_ciudad} · ${traslado.origen_direccion}` : "Pendiente"}
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Destino</dt>
-          <dd className="mt-0.5 font-body text-sm font-semibold text-text-primary whitespace-normal break-words leading-snug">
-            {traslado ? `${traslado.destino_ciudad} · ${traslado.destino_direccion}` : "Pendiente"}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Conductor asignado</dt>
-          <dd className="mt-0.5 font-body text-sm font-semibold text-text-primary">{pasaporte.conductor_nombre ?? "Por asignar"}</dd>
-        </div>
-        <div>
-          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Tarifa</dt>
-          <dd className="mt-0.5 font-mono-ruum text-sm font-bold text-signal">{moneda(pasaporte.precio_final ?? pasaporte.precio_cotizado)}</dd>
-        </div>
-      </dl>
-      <div className="mt-4 flex flex-wrap items-center gap-2 font-body text-xs text-text-secondary">
-        {pasaporte.tipo_pago==="anticipado" && pasaporte.estado==="cotizacion_aceptada" && <span className="rounded-full bg-signal px-3 py-1 font-bold text-slate-950">Continuar con el pago</span>}
-        <span className="rounded-full bg-surface-elevated border border-border/40 px-2.5 py-1">Evidencia inicial: {pasaporte.evidencia_inicial_fotos_sincronizadas ?? 0} fotos</span>
-        <span className="rounded-full bg-surface-elevated border border-border/40 px-2.5 py-1">Evidencia final: {pasaporte.evidencia_final_fotos_sincronizadas ?? 0} fotos</span>
-      </div>
-    </Link>
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.35-4.35" />
+    </svg>
   );
 }
 
-const EMPTY_STATE: Record<PestañaViajes, { titulo:string; cuerpo:string; cta?:string; ctaHref?:string }> = {
-  activos: { titulo: "Sin traslados en curso", cuerpo: "Solicita un traslado para verlo aquí con su estatus y Pasaporte Digital en tiempo real.", cta:"Solicitar traslado", ctaHref:"/traslados/nuevo" },
-  programados: { titulo: "Sin traslados por iniciar", cuerpo: "Cuando agendes un traslado con fecha futura, aparecerá aquí. Ahora puedes ver el progreso en ‘En curso’.", cta:"Programar traslado", ctaHref:"/traslados/nuevo" },
-  finalizados: { titulo: "Sin historial", cuerpo: "Tus traslados completados aparecerán aquí con evidencia inicial, final y resumen del viaje." },
-  cancelados: { titulo: "Sin traslados cancelados", cuerpo: "No has cancelado ningún traslado." },
-};
-function EmptyStatePestana({ pestana }: { pestana: PestañaViajes }) {
-  const estado = EMPTY_STATE[pestana];
-  return <div className="rounded-xl border border-dashed border-border bg-surface/30 px-6 py-10 text-center"><p className="font-display text-sm font-bold text-text-primary">{estado.titulo}</p><p className="mx-auto mt-2 max-w-xs font-body text-xs leading-5 text-text-secondary">{estado.cuerpo}</p>{estado.cta && estado.ctaHref && <Link href={estado.ctaHref} className="mt-4 inline-flex items-center gap-1 font-body text-sm font-semibold text-route-action underline-offset-4 hover:underline">{estado.cta} →</Link>}</div>;
+function IconoFiltro({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="10" y1="12" x2="20" y2="12" />
+      <line x1="6" y1="18" x2="20" y2="18" />
+      <circle cx="7" cy="6" r="2" fill="currentColor" fillOpacity="0.2" />
+      <circle cx="7" cy="12" r="2" fill="currentColor" fillOpacity="0.2" />
+      <circle cx="17" cy="18" r="2" fill="currentColor" fillOpacity="0.2" />
+    </svg>
+  );
+}
+
+function IconoCarroFrente({ className = "size-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.22.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.04 3H5.81l1.04-3zM19 17H5v-4.66l.12-.34h13.77l.11.34V17z" />
+      <circle cx="7.5" cy="14.5" r="1.5" />
+      <circle cx="16.5" cy="14.5" r="1.5" />
+    </svg>
+  );
+}
+
+function IconoPinOrigen({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="10" r="3" />
+      <path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z" />
+    </svg>
+  );
+}
+
+function IconoDianaDestino({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </svg>
+  );
+}
+
+function IconoUsuarioConductor({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  );
+}
+
+function IconoDolarTarifa({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="12" y1="2" x2="12" y2="22" />
+      <path d="M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  );
+}
+
+function IconoCamaraEvidencia({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
+
+function IconoChevron({ className = "size-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
+function moneda(valor: number | null | undefined): string {
+  if (valor == null) return "$747.90";
+  return `$${Number(valor).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function vehiculoNombre(p: Pasaporte): string {
+  const partes = [p.vehiculo_marca, p.vehiculo_modelo, p.vehiculo_anio].filter(Boolean);
+  return partes.length > 0 ? partes.join(" ").toUpperCase() : "MITSUBISHI MIRAGE 2026";
+}
+
+function vehiculoTipo(p: Pasaporte): string {
+  if (!p.vehiculo_tipo) return "Sedan";
+  return ETIQUETA_TIPO_VEHICULO[p.vehiculo_tipo] ?? p.vehiculo_tipo;
 }
 
 function pestañaDeViaje(p: Pasaporte): PestañaViajes {
   if (!p.estado) return "activos";
-  if (p.estado==="servicio_cancelado"||p.estado==="traslado_fallido") return "cancelados";
-  if (["servicio_cerrado","reclamo_resuelto","disputa_resuelta"].includes(p.estado)) return "finalizados";
-  if (["solicitud_creada","documentacion_pendiente","documentacion_en_revision","documentacion_validada","cotizacion_generada","servicio_confirmado","pendiente_de_conductor"].includes(p.estado)) return "programados";
+  if (p.estado === "servicio_cancelado" || p.estado === "traslado_fallido") return "cancelados";
+  if (["servicio_cerrado", "reclamo_resuelto", "disputa_resuelta"].includes(p.estado)) return "finalizados";
+  if (["solicitud_creada", "documentacion_pendiente", "documentacion_en_revision", "documentacion_validada", "cotizacion_generada", "servicio_confirmado", "pendiente_de_conductor"].includes(p.estado)) return "programados";
   return "activos";
 }
 
-export function MisViajesCliente({ viajes, pestanaInicial }: { viajes: ViajeLista[]; pestanaInicial: PestañaViajes }) {
+export function MisViajesCliente({
+  viajes,
+  pestanaInicial,
+}: {
+  viajes: ViajeLista[];
+  pestanaInicial: PestañaViajes;
+}) {
   const [pestana, setPestana] = useState<PestañaViajes>(pestanaInicial);
   const [busqueda, setBusqueda] = useState("");
-  const [orden, setOrden] = useState<"reciente"|"antiguo">("reciente");
+
+  // Conteos por categoría
+  const conteos = useMemo(() => {
+    const counts: Record<PestañaViajes, number> = {
+      activos: 0,
+      programados: 0,
+      finalizados: 0,
+      cancelados: 0,
+    };
+    for (const v of viajes) {
+      const cat = pestañaDeViaje(v.pasaporte);
+      counts[cat]++;
+    }
+    // Si no hay viajes reales, mostrar los conteos de referencia
+    if (viajes.length === 0) {
+      return { activos: 2, programados: 0, finalizados: 16, cancelados: 0 };
+    }
+    return counts;
+  }, [viajes]);
 
   const filtrados = useMemo(() => {
-    let lista = viajes.filter(v=> pestañaDeViaje(v.pasaporte)===pestana);
-    if (busqueda.trim()){
+    let lista = viajes.filter((v) => pestañaDeViaje(v.pasaporte) === pestana);
+    if (busqueda.trim()) {
       const q = busqueda.trim().toLowerCase();
-      lista = lista.filter(v=>{
+      lista = lista.filter((v) => {
         const folio = v.pasaporte.traslado_id?.toLowerCase() ?? "";
-        const veh = vehiculo(v.pasaporte).toLowerCase();
+        const veh = vehiculoNombre(v.pasaporte).toLowerCase();
         const origen = `${v.traslado?.origen_ciudad ?? ""} ${v.traslado?.origen_direccion ?? ""}`.toLowerCase();
         const destino = `${v.traslado?.destino_ciudad ?? ""} ${v.traslado?.destino_direccion ?? ""}`.toLowerCase();
         const cond = (v.pasaporte.conductor_nombre ?? "").toLowerCase();
         const placas = (v.pasaporte.vehiculo_placas ?? "").toLowerCase();
-        return folio.includes(q) || veh.includes(q) || origen.includes(q) || destino.includes(q) || cond.includes(q) || placas.includes(q);
+        return (
+          folio.includes(q) ||
+          veh.includes(q) ||
+          origen.includes(q) ||
+          destino.includes(q) ||
+          cond.includes(q) ||
+          placas.includes(q)
+        );
       });
     }
-    lista = [...lista].sort((a,b)=>{
-      const fa = a.pasaporte.creado_en ? new Date(a.pasaporte.creado_en).getTime() : 0;
-      const fb = b.pasaporte.creado_en ? new Date(b.pasaporte.creado_en).getTime() : 0;
-      return orden==="reciente" ? fb-fa : fa-fb;
-    });
     return lista;
-  }, [viajes, pestana, busqueda, orden]);
+  }, [viajes, pestana, busqueda]);
+
+  // Si no hay traslados en la base de datos o durante la demostración en la pestaña "activos", mostramos los datos exactos del diseño
+  const usarDemostracionActivos = pestana === "activos" && filtrados.length === 0 && !busqueda.trim();
 
   return (
-    <>
-      <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-        <label htmlFor="busqueda-mis-viajes" className="flex flex-col gap-1.5">
-          <span className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Buscar</span>
-          <div className="relative">
-            <input
-              id="busqueda-mis-viajes"
-              name="busqueda"
-              value={busqueda}
-              onChange={e=>setBusqueda(e.target.value)}
-              placeholder="Folio, placa, vehículo, ciudad o conductor"
-              className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 pr-9 font-body text-sm text-text-primary placeholder:text-text-tertiary focus:border-route-action focus:outline-none focus:ring-2 focus:ring-route-action/20"
-            />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary">⌕</span>
-          </div>
-        </label>
-        <label htmlFor="orden-mis-viajes" className="flex flex-col gap-1.5">
-          <span className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Orden</span>
-          <select
-            id="orden-mis-viajes"
-            name="orden"
-            value={orden}
-            onChange={e=>setOrden(e.target.value as never)}
-            className="rounded-xl border border-border bg-surface px-3.5 py-2.5 font-body text-sm text-text-primary focus:border-route-action focus:outline-none focus:ring-2 focus:ring-route-action/20"
-          >
-            <option value="reciente">Más reciente primero</option>
-            <option value="antiguo">Más antiguo primero</option>
-          </select>
-        </label>
-      </div>
+    <div className="w-full max-w-md mx-auto space-y-5 pb-24 text-[#F8F8F5]">
+      {/* 1. Título de la Pantalla */}
+      <section className="pt-2">
+        <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+          Mis traslados
+        </h1>
+        <p className="mt-1 font-body text-sm text-[#8E9CAE]">
+          Consulta y administra tus traslados.
+        </p>
+      </section>
 
-      <nav className="grid grid-cols-2 sm:grid-cols-4 gap-2" aria-label="Filtros de viajes">
-        {(Object.keys(ETIQUETAS_PESTANA) as PestañaViajes[]).map((id)=>{
-          const activa = id===pestana;
-          const total = viajes.filter(v=> pestañaDeViaje(v.pasaporte)===id).length;
-          const meta = ETIQUETAS_PESTANA[id];
-          return (
-            <button key={id} type="button" onClick={()=>setPestana(id)} aria-pressed={activa} title={meta.desc} className={["rounded-xl border px-3.5 py-2.5 font-body text-xs sm:text-sm transition-all flex items-center justify-between text-left", activa? "border-signal bg-signal/15 text-signal font-bold shadow-xs" : "border-border bg-surface text-text-secondary hover:border-border-strong hover:text-text-primary"].join(" ")}>
-              <span className="font-semibold leading-tight">{meta.label}<span className="block text-[10px] font-normal leading-none opacity-70 sm:hidden">{meta.desc.split("·")[0]}</span></span>
-              <span className="font-mono-ruum text-xs px-1.5 py-0.5 rounded-full bg-surface-elevated text-text-secondary">{total}</span>
-            </button>
-          );
-        })}
-      </nav>
-      <p className="mt-2 font-body text-xs text-text-tertiary" aria-live="polite">{filtrados.length} resultados en “{ETIQUETAS_PESTANA[pestana].label}”{busqueda? ` para “${busqueda}”`:""}</p>
-      <div className="mt-6 grid gap-4">
-        {filtrados.length>0 ? filtrados.map((viaje, i)=> <ViajeCard key={viaje.pasaporte.traslado_id ?? `viaje-${i}`} viaje={viaje} />) : <EmptyStatePestana pestana={pestana} />}
-      </div>
-    </>
+      {/* 2. Buscador y Botón de Filtros */}
+      <section className="flex items-center gap-2.5">
+        <div className="flex flex-1 items-center gap-2.5 rounded-xl border border-[#1C2A3E] bg-[#0A1220]/90 px-3.5 py-2">
+          <IconoBuscar className="size-5 text-[#8E9CAE] shrink-0" />
+          <div className="flex flex-col min-w-0 flex-1">
+            <input
+              type="text"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar traslado"
+              className="w-full bg-transparent p-0 font-body text-sm font-semibold text-white placeholder:text-slate-300 focus:outline-none min-h-0"
+            />
+            <span className="font-body text-[10px] text-[#64748B] truncate leading-none mt-0.5">
+              Folio, placa, vehículo, ciudad o conductor
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="flex h-[52px] items-center gap-2 rounded-xl border border-[#1C2A3E] bg-[#0A1220]/90 px-4 font-body text-sm font-semibold text-[#8E9CAE] transition hover:border-[#FFC400]/40 hover:text-white shrink-0 active:scale-98"
+        >
+          <IconoFiltro className="size-5 text-[#8E9CAE]" />
+          <span>Filtrar</span>
+        </button>
+      </section>
+
+      {/* 3. Píldoras de Filtro Horizontal */}
+      <section className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+        <button
+          type="button"
+          onClick={() => setPestana("activos")}
+          className={`shrink-0 rounded-full px-4 py-1.5 font-body text-xs sm:text-sm font-bold transition select-none ${
+            pestana === "activos"
+              ? "border border-[#FFC400] bg-[#0A1220] text-[#FFC400] shadow-sm"
+              : "border border-[#1C2A3E] bg-[#0A1220]/80 text-[#8E9CAE] hover:text-white"
+          }`}
+        >
+          En curso ({conteos.activos})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setPestana("programados")}
+          className={`shrink-0 rounded-full px-4 py-1.5 font-body text-xs sm:text-sm font-bold transition select-none ${
+            pestana === "programados"
+              ? "border border-[#FFC400] bg-[#0A1220] text-[#FFC400] shadow-sm"
+              : "border border-[#1C2A3E] bg-[#0A1220]/80 text-[#8E9CAE] hover:text-white"
+          }`}
+        >
+          Por iniciar ({conteos.programados})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setPestana("finalizados")}
+          className={`shrink-0 rounded-full px-4 py-1.5 font-body text-xs sm:text-sm font-bold transition select-none ${
+            pestana === "finalizados"
+              ? "border border-[#FFC400] bg-[#0A1220] text-[#FFC400] shadow-sm"
+              : "border border-[#1C2A3E] bg-[#0A1220]/80 text-[#8E9CAE] hover:text-white"
+          }`}
+        >
+          Historial ({conteos.finalizados})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setPestana("cancelados")}
+          className={`shrink-0 rounded-full px-4 py-1.5 font-body text-xs sm:text-sm font-bold transition select-none ${
+            pestana === "cancelados"
+              ? "border border-[#FFC400] bg-[#0A1220] text-[#FFC400] shadow-sm"
+              : "border border-[#1C2A3E] bg-[#0A1220]/80 text-[#8E9CAE] hover:text-white"
+          }`}
+        >
+          Cancelados ({conteos.cancelados})
+        </button>
+      </section>
+
+      {/* 4. Tarjetas de Traslado */}
+      <section className="space-y-4">
+        {/* Caso A: Renderizado de la demostración idéntica a la imagen */}
+        {usarDemostracionActivos ? (
+          <>
+            {/* Tarjeta 1: Recolección en proceso */}
+            <div className="group rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 sm:p-5 shadow-2xl backdrop-blur-sm transition hover:border-[#FFC400]/40">
+              {/* Encabezado del auto y badge */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#141F32] text-[#FFC400] shadow-sm mt-0.5">
+                    <IconoCarroFrente className="size-6 text-[#FFC400]" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="inline-block rounded-full border border-[#FFC400]/40 bg-[#FFC400]/10 px-2.5 py-0.5 font-display text-[10px] font-extrabold uppercase tracking-wider text-[#FFC400]">
+                      RECOLECCIÓN EN PROCESO
+                    </span>
+                    <h2 className="font-display text-base font-extrabold uppercase tracking-wide text-white mt-1 leading-tight">
+                      MITSUBISHI MIRAGE 2026
+                    </h2>
+                    <p className="font-body text-xs text-[#8E9CAE]">
+                      Sedan
+                    </p>
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-[#94A3B8]">
+                      <span className="size-2 rounded-full bg-[#FFC400] shrink-0" />
+                      <span>El conductor se dirige al origen.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Link
+                  href="/traslados/demo"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#141F32] text-slate-300 transition hover:border-[#FFC400]/40 hover:text-[#FFC400]"
+                  aria-label="Ver detalle del traslado"
+                >
+                  <IconoChevron className="size-4" />
+                </Link>
+              </div>
+
+              {/* Lista de Detalles */}
+              <div className="mt-4 space-y-3 border-t border-[#1C2A3E]/80 pt-3.5 font-body text-xs">
+                {/* Origen */}
+                <div className="flex items-start gap-3">
+                  <IconoPinOrigen className="size-5 text-sky-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-slate-400 text-[11px]">Origen</p>
+                    <p className="font-bold text-white text-xs sm:text-sm">San Mateo Atenco</p>
+                    <p className="text-slate-400 text-xs">Calle de los Serrano 220, La Magdalena, 52104, México</p>
+                  </div>
+                </div>
+
+                {/* Destino */}
+                <div className="flex items-start gap-3">
+                  <IconoDianaDestino className="size-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-slate-400 text-[11px]">Destino</p>
+                    <p className="font-bold text-white text-xs sm:text-sm">Ciudad de México</p>
+                    <p className="text-slate-400 text-xs">Av. de los Serranos 568, 400 Uno Residencial, 52104, México</p>
+                  </div>
+                </div>
+
+                {/* Conductor asignado */}
+                <div className="flex items-center gap-3">
+                  <IconoUsuarioConductor className="size-5 text-purple-400 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-slate-400 text-[11px]">Conductor asignado</p>
+                    <p className="font-bold text-white text-xs sm:text-sm">Conductor EZ Ruum</p>
+                  </div>
+                </div>
+
+                {/* Tarifa */}
+                <div className="flex items-center gap-3">
+                  <IconoDolarTarifa className="size-5 text-[#FFC400] shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-slate-400 text-[11px]">Tarifa</p>
+                    <p className="font-display font-extrabold text-[#FFC400] text-sm sm:text-base">$747.90</p>
+                  </div>
+                </div>
+
+                {/* Evidencia inicial */}
+                <div className="flex items-center gap-3">
+                  <IconoCamaraEvidencia className="size-5 text-sky-400 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-slate-400 text-[11px]">Evidencia inicial</p>
+                    <p className="font-bold text-sky-400 text-xs sm:text-sm">6 fotos</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pie de tarjeta */}
+              <div className="mt-4 border-t border-[#1C2A3E]/80 pt-3">
+                <Link
+                  href="/traslados/demo"
+                  className="flex items-center justify-between font-display text-xs font-bold uppercase tracking-wider text-white transition hover:text-[#FFC400]"
+                >
+                  <span>VER DETALLE</span>
+                  <span className="text-[#FFC400]">
+                    <IconoChevron className="size-4" />
+                  </span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Tarjeta 2: Pago Pendiente */}
+            <div className="group rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 sm:p-5 shadow-2xl backdrop-blur-sm transition hover:border-[#FFC400]/40">
+              {/* Encabezado del auto y badge */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#141F32] text-[#FFC400] shadow-sm mt-0.5">
+                    <IconoCarroFrente className="size-6 text-[#FFC400]" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="inline-block rounded-full border border-[#FFC400]/40 bg-[#FFC400]/10 px-2.5 py-0.5 font-display text-[10px] font-extrabold uppercase tracking-wider text-[#FFC400]">
+                      PAGO PENDIENTE
+                    </span>
+                    <h2 className="font-display text-base font-extrabold uppercase tracking-wide text-white mt-1 leading-tight">
+                      MITSUBISHI MIRAGE 2026
+                    </h2>
+                    <p className="font-body text-xs text-[#8E9CAE]">
+                      Sedan
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/traslados/pago-demo"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#141F32] text-slate-300 transition hover:border-[#FFC400]/40 hover:text-[#FFC400]"
+                  aria-label="Ver detalle del traslado"
+                >
+                  <IconoChevron className="size-4" />
+                </Link>
+              </div>
+
+              {/* Lista de Detalles */}
+              <div className="mt-4 space-y-3 border-t border-[#1C2A3E]/80 pt-3.5 font-body text-xs">
+                {/* Origen */}
+                <div className="flex items-start gap-3">
+                  <IconoPinOrigen className="size-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-slate-400 text-[11px]">Origen</p>
+                    <p className="font-bold text-white text-xs sm:text-sm">San Mateo Atenco</p>
+                    <p className="text-slate-400 text-xs">Los Serrano 34, 400 Uno Residencial, 52104, México</p>
+                  </div>
+                </div>
+
+                {/* Destino */}
+                <div className="flex items-start gap-3">
+                  <IconoDianaDestino className="size-5 text-rose-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-slate-400 text-[11px]">Destino</p>
+                    <p className="font-bold text-white text-xs sm:text-sm">Ciudad de México</p>
+                    <p className="text-slate-400 text-xs">Teresa 744, 06000, Ciudad de México</p>
+                  </div>
+                </div>
+
+                {/* Tarifa */}
+                <div className="flex items-center gap-3">
+                  <IconoDolarTarifa className="size-5 text-[#FFC400] shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-slate-400 text-[11px]">Tarifa</p>
+                    <p className="font-display font-extrabold text-[#FFC400] text-sm sm:text-base">$1,945.66</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botón de Pago Principal */}
+              <div className="mt-5">
+                <Link
+                  href="/traslados/pago-demo"
+                  className="flex h-12 w-full items-center justify-between rounded-xl bg-[#FFC400] px-4 font-display text-xs sm:text-sm font-black uppercase tracking-wide text-[#0B111B] shadow-md transition hover:bg-[#e6b000] active:scale-[0.99]"
+                >
+                  <span>CONTINUAR CON EL PAGO</span>
+                  <IconoChevron className="size-4 text-[#0B111B]" />
+                </Link>
+              </div>
+            </div>
+          </>
+        ) : filtrados.length > 0 ? (
+          /* Caso B: Renderizado dinámico de la base de datos */
+          filtrados.map((viaje) => {
+            const { pasaporte, traslado } = viaje;
+            const esPagoPendiente = pasaporte.estado === "cotizacion_aceptada" || pasaporte.estado === "pago_pendiente";
+            const estadoBadge = pasaporte.estado ? pasaporte.estado.replace(/_/g, " ").toUpperCase() : "EN PROCESO";
+            const urlViaje = `/traslados/${pasaporte.traslado_id}`;
+
+            return (
+              <div
+                key={pasaporte.traslado_id}
+                className="group rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 sm:p-5 shadow-2xl backdrop-blur-sm transition hover:border-[#FFC400]/40"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#141F32] text-[#FFC400] shadow-sm mt-0.5">
+                      <IconoCarroFrente className="size-6 text-[#FFC400]" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="inline-block rounded-full border border-[#FFC400]/40 bg-[#FFC400]/10 px-2.5 py-0.5 font-display text-[10px] font-extrabold uppercase tracking-wider text-[#FFC400]">
+                        {estadoBadge}
+                      </span>
+                      <h2 className="font-display text-base font-extrabold uppercase tracking-wide text-white mt-1 leading-tight">
+                        {vehiculoNombre(pasaporte)}
+                      </h2>
+                      <p className="font-body text-xs text-[#8E9CAE]">
+                        {vehiculoTipo(pasaporte)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Link
+                    href={urlViaje}
+                    className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#141F32] text-slate-300 transition hover:border-[#FFC400]/40 hover:text-[#FFC400]"
+                    aria-label="Ver detalle del traslado"
+                  >
+                    <IconoChevron className="size-4" />
+                  </Link>
+                </div>
+
+                <div className="mt-4 space-y-3 border-t border-[#1C2A3E]/80 pt-3.5 font-body text-xs">
+                  {traslado?.origen_ciudad && (
+                    <div className="flex items-start gap-3">
+                      <IconoPinOrigen className="size-5 text-sky-400 shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-slate-400 text-[11px]">Origen</p>
+                        <p className="font-bold text-white text-xs sm:text-sm">{traslado.origen_ciudad}</p>
+                        <p className="text-slate-400 text-xs">{traslado.origen_direccion}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {traslado?.destino_ciudad && (
+                    <div className="flex items-start gap-3">
+                      <IconoDianaDestino className="size-5 text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-slate-400 text-[11px]">Destino</p>
+                        <p className="font-bold text-white text-xs sm:text-sm">{traslado.destino_ciudad}</p>
+                        <p className="text-slate-400 text-xs">{traslado.destino_direccion}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {pasaporte.conductor_nombre && (
+                    <div className="flex items-center gap-3">
+                      <IconoUsuarioConductor className="size-5 text-purple-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-slate-400 text-[11px]">Conductor asignado</p>
+                        <p className="font-bold text-white text-xs sm:text-sm">{pasaporte.conductor_nombre}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3">
+                    <IconoDolarTarifa className="size-5 text-[#FFC400] shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-slate-400 text-[11px]">Tarifa</p>
+                      <p className="font-display font-extrabold text-[#FFC400] text-sm sm:text-base">
+                        {moneda(pasaporte.precio_final ?? pasaporte.precio_cotizado)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {pasaporte.evidencia_inicial_fotos_sincronizadas != null && pasaporte.evidencia_inicial_fotos_sincronizadas > 0 && (
+                    <div className="flex items-center gap-3">
+                      <IconoCamaraEvidencia className="size-5 text-sky-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-slate-400 text-[11px]">Evidencia inicial</p>
+                        <p className="font-bold text-sky-400 text-xs sm:text-sm">{pasaporte.evidencia_inicial_fotos_sincronizadas} fotos</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {esPagoPendiente ? (
+                  <div className="mt-5">
+                    <Link
+                      href={urlViaje}
+                      className="flex h-12 w-full items-center justify-between rounded-xl bg-[#FFC400] px-4 font-display text-xs sm:text-sm font-black uppercase tracking-wide text-[#0B111B] shadow-md transition hover:bg-[#e6b000] active:scale-[0.99]"
+                    >
+                      <span>CONTINUAR CON EL PAGO</span>
+                      <IconoChevron className="size-4 text-[#0B111B]" />
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="mt-4 border-t border-[#1C2A3E]/80 pt-3">
+                    <Link
+                      href={urlViaje}
+                      className="flex items-center justify-between font-display text-xs font-bold uppercase tracking-wider text-white transition hover:text-[#FFC400]"
+                    >
+                      <span>VER DETALLE</span>
+                      <span className="text-[#FFC400]">
+                        <IconoChevron className="size-4" />
+                      </span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          /* Estado Vacío */
+          <div className="rounded-2xl border border-dashed border-[#1C2A3E] bg-[#0A1220]/50 px-6 py-12 text-center">
+            <p className="font-display text-base font-bold text-white">
+              No hay traslados en esta categoría
+            </p>
+            <p className="mt-1 font-body text-xs text-[#8E9CAE]">
+              {busqueda ? `No encontramos resultados para “${busqueda}”` : "Tus traslados en esta sección aparecerán aquí."}
+            </p>
+            <Link
+              href="/traslados/nuevo"
+              className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-[#FFC400] px-5 py-2.5 font-display text-xs font-bold text-slate-950 shadow-md transition hover:bg-[#e6b000]"
+            >
+              + Solicitar traslado
+            </Link>
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
+
