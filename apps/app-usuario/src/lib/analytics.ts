@@ -27,7 +27,9 @@ export type EventoUxUsuario =
   | "traslado_nuevo_sin_sesion"
   | "traslado_nuevo_enviado"
   | "traslado_nuevo_exitoso"
-  | "traslado_nuevo_error";
+  | "traslado_nuevo_error"
+  | "soporte_enviado"
+  | "soporte_visto";
 
 export function registrarEventoUx(evento: EventoUxUsuario, propiedades: PropiedadesAnalitica = {}) {
   if (typeof window === "undefined") return;

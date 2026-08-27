@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Aviso, Button, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { esTrasladoActivo } from "../../lib/inicio";
-import { AccionesCuenta } from "./AccionesCuenta";
 import { NavegacionUsuario } from "../NavegacionUsuario";
+import { FormularioSoporte } from "./FormularioSoporte";
 
 export const metadata: Metadata = {
   title: "Ayuda y soporte — Ruum Ruum",
@@ -99,24 +99,6 @@ function CampoReporte({ etiqueta, children }: { etiqueta: string; children: Reac
   );
 }
 
-function SelectBase({ children }: { children: React.ReactNode }) {
-  return (
-    <select className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 font-body text-sm text-text-primary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-action">
-      {children}
-    </select>
-  );
-}
-
-function TextAreaBase() {
-  return (
-    <textarea
-      rows={4}
-      className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 font-body text-sm text-text-primary placeholder:text-text-tertiary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-action"
-      placeholder="Describe lo que pasó, incluye ubicación aproximada, hora y cualquier evidencia relevante."
-    />
-  );
-}
-
 function TogglePreferencia({ etiqueta, activo }: { etiqueta: string; activo: boolean }) {
   return (
     <label className="flex items-center justify-between gap-4 border-t border-border/40 py-3 first:border-t-0">
@@ -177,62 +159,20 @@ export default async function PaginaSoporte({ searchParams }: { searchParams: Pr
         </section>
       )}
 
-      {/* Acción principal: contactar soporte */}
+      {/* Acción principal: contactar soporte — Sprint 1 funcional */}
       <section className="mb-6">
-        <Seccion titulo="Contactar soporte" descripcion="Elige el motivo para orientar mejor la respuesta.">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <CampoReporte etiqueta="Motivo">
-              <SelectBase>
-                <option>Reportar problema con un viaje</option>
-                <option>Reportar daño o incidente</option>
-                <option>Ayuda con pagos</option>
-                <option>Ayuda con evidencia</option>
-                <option>Cancelaciones</option>
-              </SelectBase>
-            </CampoReporte>
-            <CampoReporte etiqueta="Viaje relacionado">
-              <SelectBase>
-                <option value="">Selecciona un viaje</option>
-                {traslados.filter((t) => t.traslado_id).map((t) => {
-                  const trasladoId = t.traslado_id as string;
-                  return (
-                    <option key={trasladoId} value={trasladoId}>
-                      {trasladoId.slice(0, 8).toUpperCase()} · {tarjetaVehiculo(t)}
-                    </option>
-                  );
-                })}
-              </SelectBase>
-            </CampoReporte>
-            <div className="sm:col-span-2">
-              <CampoReporte etiqueta="Descripción">
-                <TextAreaBase />
-              </CampoReporte>
-            </div>
-            <div className="sm:col-span-2">
-              <div className="rounded-xl border border-border bg-surface p-4">
-                <p className="font-display text-sm font-bold text-text-primary">
-                  Canales de atención directa
-                </p>
-                <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
-                  Contáctanos directamente y nuestro equipo te responderá en minutos.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <a
-                    href="mailto:soporte@ruumruum.mx"
-                    className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-surface-elevated px-4 py-2 font-body text-xs font-semibold text-text-primary transition hover:border-route-action hover:text-route-action"
-                  >
-                    ✉️ Enviar correo
-                  </a>
-                  <a
-                    href="https://wa.me/5215500000000"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-signal text-slate-950 px-4 py-2 font-display text-xs font-bold shadow-sm transition hover:bg-signal/90"
-                  >
-                    💬 WhatsApp Soporte
-                  </a>
-                </div>
-              </div>
+        <Seccion titulo="Contactar soporte" descripcion="Elige el motivo para orientar mejor la respuesta. Respondemos en <30 min.">
+          <FormularioSoporte
+            traslados={traslados.filter((t) => t.traslado_id).map((t) => ({ id: t.traslado_id as string, label: `${(t.traslado_id as string).slice(0, 8).toUpperCase()} · ${tarjetaVehiculo(t)}` }))}
+            preseleccionado={viajeActivoVisible?.traslado_id ?? undefined}
+            emailUsuario={usuario?.correo_facturacion ?? usuario?.telefono ?? null}
+          />
+          <div className="mt-4 rounded-xl border border-border bg-surface p-4">
+            <p className="font-display text-sm font-bold text-text-primary">Canales de atención directa</p>
+            <p className="mt-1 font-body text-xs leading-5 text-text-secondary">Si prefieres contacto directo, también puedes escribirnos. Horario: 8:00–22:00 MX, todos los días.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a href="mailto:soporte@ruumruum.mx" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-surface-elevated px-4 py-2 font-body text-xs font-semibold text-text-primary transition hover:border-route-action hover:text-route-action">✉️ soporte@ruumruum.mx</a>
+              <a href="https://wa.me/5215500000000" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-signal text-slate-950 px-4 py-2 font-display text-xs font-bold shadow-sm transition hover:bg-signal/90">💬 WhatsApp Soporte</a>
             </div>
           </div>
         </Seccion>

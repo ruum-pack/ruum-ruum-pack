@@ -86,6 +86,69 @@ export async function sugerirDireccionesPorCodigoPostal(codigoPostal: string): P
     .filter((valor): valor is string => Boolean(valor));
 }
 
+export interface SugerenciaDireccion {
+  textoCompleto: string;
+  direccion: string;
+  colonia?: string;
+  ciudad?: string;
+  estado?: string;
+  codigoPostal?: string;
+  lat?: number;
+  lng?: number;
+}
+
+interface FeatureDireccionDetallada {
+  geometry?: { coordinates?: [number, number] };
+  properties?: {
+    full_address?: string;
+    name?: string;
+    place_formatted?: string;
+    context?: {
+      postcode?: { name?: string };
+      place?: { name?: string };
+      region?: { name?: string };
+      locality?: { name?: string };
+      neighborhood?: { name?: string };
+      street?: { name?: string };
+      address?: { name?: string };
+    };
+    address?: string;
+    postcode?: string;
+  };
+}
+
+export async function sugerirDireccionesAutocomplete(consulta: string): Promise<SugerenciaDireccion[]> {
+  const q = consulta.trim();
+  if (q.length < 3 || !tieneMapboxConfigurado()) return [];
+  const params = new URLSearchParams({ q, limit: "5", autocomplete: "true", types: "address,street,place,locality,neighborhood" });
+  // consultarMapbox ya limita a MX y ES
+  if (!tokenPublico) return [];
+  params.set("access_token", tokenPublico);
+  params.set("country", "mx");
+  params.set("language", "es");
+  try {
+    const res = await fetch(`${URL_GEOCODIFICACION}?${params.toString()}`);
+    if (!res.ok) return [];
+    const datos = (await res.json()) as { features?: FeatureDireccionDetallada[] };
+    return (datos.features ?? []).slice(0, 5).map((f) => {
+      const coords = f.geometry?.coordinates;
+      const ctx = f.properties?.context;
+      return {
+        textoCompleto: f.properties?.full_address ?? [f.properties?.name, f.properties?.place_formatted].filter(Boolean).join(", ") ?? q,
+        direccion: f.properties?.address ?? f.properties?.name ?? "",
+        colonia: ctx?.neighborhood?.name ?? ctx?.locality?.name,
+        ciudad: ctx?.place?.name ?? ctx?.locality?.name,
+        estado: ctx?.region?.name,
+        codigoPostal: ctx?.postcode?.name ?? f.properties?.postcode,
+        lat: coords?.[1],
+        lng: coords?.[0],
+      };
+    }).filter(s => s.textoCompleto);
+  } catch {
+    return [];
+  }
+}
+
 export async function calcularRutaMapbox(
   origen: CoordenadasGeocodificadas,
   destino: CoordenadasGeocodificadas

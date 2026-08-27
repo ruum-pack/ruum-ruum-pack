@@ -14,7 +14,7 @@ import { esNativo } from "../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../lib/ubicacion";
 import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../lib/codigos-postales";
 import { registrarEventoUx } from "../../../lib/analytics";
-import { esErrorConfiguracionMapbox, mensajeErrorMapbox, sugerirDireccionesPorCodigoPostal, tieneMapboxConfigurado } from "../../../lib/mapbox";
+import { esErrorConfiguracionMapbox, mensajeErrorMapbox, sugerirDireccionesAutocomplete, sugerirDireccionesPorCodigoPostal, tieneMapboxConfigurado } from "../../../lib/mapbox";
 import { MARCAS_CATALOGO, clasificacionesPorVehiculo, modelosPorMarca, resumenClasificacionVehiculo, tipoSugeridoParaVehiculo } from "../../../lib/catalogo-vehiculos";
 import {
   guardarBorradorTrasladoLocal,
@@ -31,10 +31,9 @@ import { EstadoCreacion } from "./components/EstadoCreacion";
 
 const PASOS = ["¿Qué vehículo trasladamos?", "¿Dónde lo recogemos y llevamos?", "¿Cuándo lo trasladamos?", "Pago"] as const;
 
-const CAMPOS_PASO_VEHICULO = new Set([
-  "vehiculoSeleccionadoId", "marca", "modelo", "color", "placas", "vin", "anio",
-  "transmision", "condicion", "estadoGeneral", "tieneTarjeta", "tieneVerificacion", "tienePlacas", "puedeCircular"
-]);
+const CAMPOS_PASO_VEHICULO_ESENCIAL = new Set(["marca", "modelo", "anio", "condicion", "transmision"]);
+const CAMPOS_PASO_VEHICULO_DETALLE = new Set(["vehiculoSeleccionadoId", "color", "placas", "vin", "estadoGeneral", "tieneTarjeta", "tieneVerificacion", "tienePlacas", "puedeCircular"]);
+const CAMPOS_PASO_VEHICULO = new Set([...CAMPOS_PASO_VEHICULO_ESENCIAL, ...CAMPOS_PASO_VEHICULO_DETALLE]);
 const CAMPOS_PASO_RUTA = new Set([
   "origenCodigoPostal", "origenEstado", "origenCiudad", "origenColonia", "origenCalle", "origenNumero",
   "destinoCodigoPostal", "destinoEstado", "destinoCiudad", "destinoColonia", "destinoCalle", "destinoNumero",
@@ -52,6 +51,10 @@ function pasoDeCampo(campo: string): number {
   if (CAMPOS_PASO_VEHICULO.has(campo)) return 0;
   if (CAMPOS_PASO_RUTA.has(campo)) return 1;
   return 2;
+}
+
+function esCampoEsencialVehiculo(campo: string): boolean {
+  return CAMPOS_PASO_VEHICULO_ESENCIAL.has(campo);
 }
 
 // Geocodificación y sugerencias usan Mapbox mediante lib/mapbox.ts.
@@ -413,6 +416,13 @@ export function NuevoTrasladoForm() {
   const [vehiculoSeleccionadoId, setVehiculoSeleccionadoId] = useState<string>("");
   const [errorPaso, setErrorPaso] = useState<string | null>(null);
   const [errores, setErrores] = useState<ErroresFormulario>({});
+  const [detallesVehiculoExpandido, setDetallesVehiculoExpandido] = useState(false);
+  const [origenBusqueda, setOrigenBusqueda] = useState("");
+  const [destinoBusqueda, setDestinoBusqueda] = useState("");
+  const [origenSugerencias, setOrigenSugerencias] = useState<Awaited<ReturnType<typeof sugerirDireccionesAutocomplete>>>([]);
+  const [destinoSugerencias, setDestinoSugerencias] = useState<Awaited<ReturnType<typeof sugerirDireccionesAutocomplete>>>([]);
+  const [buscandoOrigen, setBuscandoOrigen] = useState(false);
+  const [buscandoDestino, setBuscandoDestino] = useState(false);
   // RT-13 — previsualización de tarifa en vivo (paso "Agenda + Servicio"):
   // reemplaza el presupuesto que antes tecleaba la persona. null = todavía
   // no hay suficientes datos o el vehículo no está en el catálogo de
@@ -628,9 +638,9 @@ export function NuevoTrasladoForm() {
     datos.origenLat, datos.origenLng, geocodificarRuta
   ]);
 
-  // RT-13 — calcula la tarifa en vivo apenas hay ruta y clasificación.
+  // Sprint 1 — tarifa temprana: calcula en vivo apenas hay vehículo + ruta, sin esperar al paso 2.
   useEffect(() => {
-    if (paso !== 2 || !sesionReal) {
+    if (!sesionReal) {
       return;
     }
     if (!datos.marca.trim() || !datos.modelo.trim() || !datos.condicion) {
@@ -641,7 +651,7 @@ export function NuevoTrasladoForm() {
       const timer = setTimeout(() => setPrevisualizacion(null), 0);
       return () => clearTimeout(timer);
     }
-    if (datos.modalidadProgramacion === "programado" && !datos.fechaHoraProgramada) {
+    if (paso === 2 && datos.modalidadProgramacion === "programado" && !datos.fechaHoraProgramada) {
       const timer = setTimeout(() => setPrevisualizacion(null), 0);
       return () => clearTimeout(timer);
     }
@@ -674,10 +684,48 @@ export function NuevoTrasladoForm() {
       cancelado = true;
       clearTimeout(timer);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- tarifa temprana intencionalmente sin depender de `paso`
   }, [
-    paso, sesionReal, datos.marca, datos.modelo, datos.condicion,
+    sesionReal, datos.marca, datos.modelo, datos.condicion,
     datos.modalidadProgramacion, datos.fechaHoraProgramada, rutaEstimacion
   ]);
+
+  // Buscador autocomplete Mapbox para origen/destino
+  useEffect(() => {
+    if (origenBusqueda.trim().length < 3) {
+      setOrigenSugerencias([]);
+      return;
+    }
+    let cancelado = false;
+    const t = setTimeout(async () => {
+      setBuscandoOrigen(true);
+      try {
+        const res = await sugerirDireccionesAutocomplete(origenBusqueda);
+        if (!cancelado) setOrigenSugerencias(res);
+      } finally {
+        if (!cancelado) setBuscandoOrigen(false);
+      }
+    }, 350);
+    return () => { cancelado = true; clearTimeout(t); };
+  }, [origenBusqueda]);
+
+  useEffect(() => {
+    if (destinoBusqueda.trim().length < 3) {
+      setDestinoSugerencias([]);
+      return;
+    }
+    let cancelado = false;
+    const t = setTimeout(async () => {
+      setBuscandoDestino(true);
+      try {
+        const res = await sugerirDireccionesAutocomplete(destinoBusqueda);
+        if (!cancelado) setDestinoSugerencias(res);
+      } finally {
+        if (!cancelado) setBuscandoDestino(false);
+      }
+    }, 350);
+    return () => { cancelado = true; clearTimeout(t); };
+  }, [destinoBusqueda]);
 
   function restaurarBorrador() {
     const borrador = borradorDisponible;
@@ -876,6 +924,22 @@ export function NuevoTrasladoForm() {
     }));
   }
 
+  function aplicarSugerenciaDireccion(prefijo: PrefijoDomicilio, s: Awaited<ReturnType<typeof sugerirDireccionesAutocomplete>>[number]) {
+    const calleExtraida = s.direccion || s.textoCompleto.split(",")[0] || "";
+    setDatos((prev) => ({
+      ...prev,
+      [`${prefijo}Calle`]: calleExtraida || prev[`${prefijo}Calle` as keyof DatosFormulario] as string,
+      [`${prefijo}Colonia`]: s.colonia || prev[`${prefijo}Colonia` as keyof DatosFormulario] as string,
+      [`${prefijo}Ciudad`]: s.ciudad || prev[`${prefijo}Ciudad` as keyof DatosFormulario] as string,
+      [`${prefijo}Estado`]: s.estado || prev[`${prefijo}Estado` as keyof DatosFormulario] as string,
+      [`${prefijo}CodigoPostal`]: s.codigoPostal || prev[`${prefijo}CodigoPostal` as keyof DatosFormulario] as string,
+      ...(prefijo === "origen" && s.lat && s.lng ? { origenLat: s.lat, origenLng: s.lng } : {}),
+    }));
+    if (prefijo === "origen") { setOrigenBusqueda(s.textoCompleto); setOrigenSugerencias([]); }
+    else { setDestinoBusqueda(s.textoCompleto); setDestinoSugerencias([]); }
+    if (s.codigoPostal && s.codigoPostal.length === 5) void consultarCodigoPostal(prefijo, s.codigoPostal);
+  }
+
   function aplicarVehiculoGuardado(vehiculo: VehiculoGuardado) {
     const transmisionGuardada =
       vehiculo.transmision === "manual" || vehiculo.transmision === "automatica" || vehiculo.transmision === "electrica"
@@ -943,6 +1007,32 @@ export function NuevoTrasladoForm() {
 
         {subpasoRuta === "origen" && (
           <div className="grid gap-4" aria-label="Origen del traslado">
+            <div className="rounded-lg border border-signal/30 bg-signal/10 p-3">
+              <label className="font-body text-xs font-semibold text-ink">Busca tu dirección (autocompleta calle, colonia y CP)</label>
+              <div className="relative mt-2">
+                <input
+                  value={origenBusqueda}
+                  onChange={(e) => setOrigenBusqueda(e.target.value)}
+                  placeholder="Ej. Av Patriotismo 12, Escandón, CDMX"
+                  className="w-full rounded-xl border border-ink/20 bg-mist px-3.5 py-2.5 pr-10 font-body text-sm text-ink placeholder:text-ink/45 focus:border-signal focus:outline-none focus:ring-2 focus:ring-signal/20"
+                  aria-label="Buscar dirección de origen"
+                  autoComplete="off"
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink/40">{buscandoOrigen ? "…" : "🔍"}</span>
+                {origenSugerencias.length > 0 && (
+                  <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-ink/10 bg-mist shadow-2">
+                    {origenSugerencias.map((s, i) => (
+                      <li key={`${s.textoCompleto}-${i}`}>
+                        <button type="button" onClick={() => aplicarSugerenciaDireccion("origen", s)} className="w-full px-3 py-2 text-left font-body text-xs leading-5 hover:bg-signal/10">
+                          <span className="font-semibold text-ink">{s.textoCompleto}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <p className="mt-1.5 font-body text-[11px] leading-4 text-ink/55">Escribe al menos 3 letras y elige una sugerencia. Precargamos calle, colonia, ciudad, estado y CP — puedes editarlos abajo.</p>
+            </div>
             <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
               <p className="font-body text-sm font-semibold">Domicilio de origen</p>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -994,6 +1084,32 @@ export function NuevoTrasladoForm() {
 
         {subpasoRuta === "destino_contactos" && (
           <div className="grid gap-4" aria-label="Destino y contactos del traslado">
+            <div className="rounded-lg border border-signal/30 bg-signal/10 p-3">
+              <label className="font-body text-xs font-semibold text-ink">Busca la dirección de destino</label>
+              <div className="relative mt-2">
+                <input
+                  value={destinoBusqueda}
+                  onChange={(e) => setDestinoBusqueda(e.target.value)}
+                  placeholder="Ej. Calle 5 123, Centro, Puebla"
+                  className="w-full rounded-xl border border-ink/20 bg-mist px-3.5 py-2.5 pr-10 font-body text-sm text-ink placeholder:text-ink/45 focus:border-signal focus:outline-none focus:ring-2 focus:ring-signal/20"
+                  aria-label="Buscar dirección de destino"
+                  autoComplete="off"
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink/40">{buscandoDestino ? "…" : "🔍"}</span>
+                {destinoSugerencias.length > 0 && (
+                  <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-ink/10 bg-mist shadow-2">
+                    {destinoSugerencias.map((s, i) => (
+                      <li key={`${s.textoCompleto}-${i}`}>
+                        <button type="button" onClick={() => aplicarSugerenciaDireccion("destino", s)} className="w-full px-3 py-2 text-left font-body text-xs leading-5 hover:bg-signal/10">
+                          <span className="font-semibold text-ink">{s.textoCompleto}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <p className="mt-1.5 font-body text-[11px] leading-4 text-ink/55">Elige una sugerencia para autocompletar el formulario.</p>
+            </div>
             <div className="grid gap-4 rounded-lg border border-ink/10 p-4">
               <p className="font-body text-sm font-semibold">Domicilio de destino</p>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -1090,13 +1206,69 @@ export function NuevoTrasladoForm() {
     return errores[campo] ? "border-danger" : "border-ink/50";
   }
 
+  function enfocarPrimerError(campos: string[]) {
+    if (campos.length === 0) return;
+    const primer = campos[0]!;
+    // Delay to allow DOM to update after setErrores
+    window.requestAnimationFrame(() => {
+      const el = document.getElementById(primer) ?? document.querySelector(`[name="${primer}"]`) as HTMLElement | null ?? document.querySelector(`[data-ruum-label]`) as HTMLElement | null;
+      // Try to find by id or name, fallback to first error input via aria-invalid
+      const candidato = document.getElementById(primer) ?? document.querySelector(`[name="${primer}"]`) as HTMLElement | null ?? document.querySelector('[aria-invalid="true"]') as HTMLElement | null;
+      if (candidato) {
+        (candidato as HTMLElement).focus();
+        candidato.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+  }
+
+  function validarCampo(campo: keyof DatosFormulario) {
+    const res = esquemaSolicitudTraslado.safeParse(datosParaValidacion());
+    if (!res.success) {
+      const map = erroresFormulario(res) as ErroresFormulario;
+      if (map[campo]) {
+        setErrores((prev) => ({ ...prev, [campo]: map[campo] }));
+      } else {
+        setErrores((prev) => {
+          if (!prev[campo]) return prev;
+          const n = { ...prev };
+          delete n[campo];
+          return n;
+        });
+      }
+    } else {
+      setErrores((prev) => {
+        if (!prev[campo]) return prev;
+        const n = { ...prev };
+        delete n[campo];
+        return n;
+      });
+    }
+  }
+
   function validarPasoActual() {
     const todos = erroresFormulario(esquemaSolicitudTraslado.safeParse(datosParaValidacion()));
-    const siguientesErrores = Object.fromEntries(Object.entries(todos).filter(([campo]) => pasoDeCampo(campo) === paso)) as ErroresFormulario;
+    // En paso 0 solo bloqueamos por campos esenciales; detalles (color, placas, VIN...) se pueden completar después
+    const siguientesErrores = Object.fromEntries(
+      Object.entries(todos).filter(([campo]) => {
+        if (paso === 0) return esCampoEsencialVehiculo(campo);
+        return pasoDeCampo(campo) === paso;
+      })
+    ) as ErroresFormulario;
+
+    // Si paso 0 esencial OK pero detalles faltan, avisamos suave y permitimos avanzar
+    const detallesFaltantes = paso === 0 ? Object.keys(todos).filter((c) => CAMPOS_PASO_VEHICULO_DETALLE.has(c)).length : 0;
 
     const totalErrores = Object.keys(siguientesErrores).length;
     setErrores(siguientesErrores);
-    setErrorPaso(totalErrores ? `${totalErrores} ${totalErrores === 1 ? "campo requiere" : "campos requieren"} atención.` : null);
+    if (totalErrores) {
+      setErrorPaso(`${totalErrores} ${totalErrores === 1 ? "campo requiere" : "campos requieren"} atención. Revisa el primer campo marcado.`);
+      enfocarPrimerError(Object.keys(siguientesErrores));
+    } else if (detallesFaltantes > 0 && paso === 0) {
+      setErrorPaso(null);
+      setDetallesVehiculoExpandido(true);
+    } else {
+      setErrorPaso(null);
+    }
     if (paso === 1 && totalErrores > 0) {
       const primerCampo = Object.keys(siguientesErrores)[0];
       setSubpasoRuta(CAMPOS_RUTA_ORIGEN.has(primerCampo) ? "origen" : "destino_contactos");
@@ -1120,8 +1292,13 @@ export function NuevoTrasladoForm() {
       const siguientesErrores = erroresFormulario(validacionFinal) as ErroresFormulario;
       setErrores(siguientesErrores);
       const primerCampo = String(validacionFinal.error.issues[0]?.path[0] ?? "");
-      setPaso(pasoDeCampo(primerCampo));
-      setErrorPaso(`${validacionFinal.error.issues.length} campos requieren atención.`);
+      const pasoDestino = pasoDeCampo(primerCampo);
+      setPaso(pasoDestino);
+      if (CAMPOS_PASO_VEHICULO_DETALLE.has(primerCampo)) setDetallesVehiculoExpandido(true);
+      if (CAMPOS_RUTA_ORIGEN.has(primerCampo)) setSubpasoRuta("origen");
+      else if (CAMPOS_RUTA_DESTINO_CONTACTOS.has(primerCampo)) setSubpasoRuta("destino_contactos");
+      setErrorPaso(`${validacionFinal.error.issues.length} campos requieren atención. Revisa los campos marcados.`);
+      enfocarPrimerError([primerCampo]);
       return;
     }
 
@@ -1307,6 +1484,15 @@ export function NuevoTrasladoForm() {
       <NavegacionUsuario />
       <div className="mx-auto max-w-xl px-4 sm:px-6 py-6 sm:py-12">
         <h1 className="font-display text-2xl sm:text-3xl font-black text-text-primary">Nuevo traslado</h1>
+        <div className="mt-3 flex flex-wrap items-center gap-2 font-body text-xs">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-signal/15 px-3 py-1 font-semibold text-ink border border-signal/30">⏱ Te tomará ~3 min</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface border border-border px-3 py-1 text-text-secondary">💾 Guardado automático</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-route-soft border border-route/20 px-3 py-1 text-route-dark">🔒 Pago seguro con Stripe</span>
+        </div>
+        {/* Slim sticky progress visible en móvil al hacer scroll */}
+        <div className="sticky top-0 z-10 -mx-4 mt-4 h-1 bg-surface-elevated sm:hidden" aria-hidden>
+          <div className="h-full bg-signal transition-all duration-300" style={{ width: `${((paso + 1) / PASOS.length) * 100}%` }} />
+        </div>
 
         {borradorDisponible && (
           <div className="mt-4 rounded-xl border border-route-action/30 bg-route-action/10 p-4">
@@ -1453,9 +1639,12 @@ export function NuevoTrasladoForm() {
                 <div>
                   <Field
                     etiqueta="Marca"
+                    name="marca"
+                    id="marca"
                     list="catalogo-marcas-vehiculos"
                     value={datos.marca}
                     onChange={(e) => actualizarMarcaCatalogo(e.target.value)}
+                    onBlur={() => validarCampo("marca")}
                     error={errores.marca}
                     ayuda="Selecciona una marca del catálogo o escríbela manualmente."
                   />
@@ -1466,9 +1655,12 @@ export function NuevoTrasladoForm() {
                 <div>
                   <Field
                     etiqueta="Modelo"
+                    name="modelo"
+                    id="modelo"
                     list="catalogo-modelos-vehiculos"
                     value={datos.modelo}
                     onChange={(e) => actualizarModeloCatalogo(e.target.value)}
+                    onBlur={() => validarCampo("modelo")}
                     disabled={!datos.marca.trim()}
                     error={errores.modelo}
                     ayuda={clasificacionCatalogo
@@ -1507,68 +1699,99 @@ export function NuevoTrasladoForm() {
                   onChange={(e) => actualizar("anio", e.target.value)}
                   error={errores.anio}
                 />
-                <Field etiqueta="Color" value={datos.color} onChange={(e) => actualizar("color", e.target.value)} error={errores.color} />
-                <Field
-                  etiqueta="Placas"
-                  value={datos.placas}
-                  onChange={(e) => actualizar("placas", e.target.value)}
-                  error={errores.placas}
-                  autoCapitalize="characters"
-                  autoCorrect="off"
-                />
-                <Field
-                  etiqueta="Número de serie / VIN"
-                  value={datos.vin}
-                  onChange={(e) => actualizar("vin", e.target.value)}
-                  error={errores.vin}
-                  autoCapitalize="characters"
-                  autoCorrect="off"
-                />
-                <label className="flex flex-col gap-1.5">
-                  <span className="font-body text-sm font-medium">Estado general declarado</span>
-                  <select
-                    value={datos.estadoGeneral}
-                    onChange={(e) => actualizar("estadoGeneral", e.target.value)}
-                    className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark ${claseControl("estadoGeneral")}`}
-                    aria-invalid={Boolean(errores.estadoGeneral)}
-                  >
-                    <option value="">Selecciona estado</option>
-                    {ESTADOS_GENERALES_VEHICULO.map((estado) => (
-                      <option key={estado} value={estado}>
-                        {estado}
-                      </option>
-                    ))}
-                  </select>
-                  {errores.estadoGeneral && <p className="font-body text-xs text-danger">{errores.estadoGeneral}</p>}
-                </label>
-              </div>
-              <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
-                <div>
-                  <p className="font-body text-sm font-semibold">Documentación mínima requerida</p>
-                  <p className="mt-1 font-body text-xs text-ink/65">Por el momento, el servicio está disponible únicamente para vehículos que encienden, cuentan con documentación vigente y pueden circular rodando.</p>
+                {/* Tarifa temprana Sprint1: visible desde paso 0 si hay ruta estimada */}
+                <div className="rounded-xl border border-signal/30 bg-signal/10 px-4 py-3" aria-live="polite">
+                  <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/55">Tarifa estimada</p>
+                  {previsualizando ? (
+                    <p className="mt-1 font-body text-sm font-medium text-ink/70">Calculando con tus datos…</p>
+                  ) : previsualizacion?.disponible ? (
+                    <>
+                      <p className="mt-1 font-display text-2xl font-black text-ink">${Number(previsualizacion.tarifa ?? 0).toLocaleString("es-MX")} <span className="font-body text-xs font-semibold text-ink/55">MXN</span></p>
+                      <p className="mt-1 font-body text-xs leading-4 text-ink/60">Precio final calculado. Se confirma al crear la solicitud.</p>
+                    </>
+                  ) : (
+                    <p className="mt-1 font-body text-xs leading-4 text-ink/60">Completa origen y destino (CP + dirección) para ver tu tarifa exacta. Por ahora: rango estimado según vehículo.</p>
+                  )}
                 </div>
-                {(
-                  [
-                    ["tieneTarjeta", "Tarjeta de circulación vigente"],
-                    ["tieneVerificacion", "Verificación vehicular vigente"],
-                    ["tienePlacas", "Ambas placas instaladas"],
-                    ["puedeCircular", "El vehículo enciende y puede circular rodando"]
-                  ] as const
-                ).map(([campo, etiqueta]) => (
-                  <div key={campo} className="grid gap-1">
-                    <label className="flex items-center gap-2.5 font-body text-sm">
-                      <input
-                        type="checkbox"
-                        checked={datos[campo]}
-                        onChange={(e) => actualizar(campo, e.target.checked)}
-                        className={`size-5 rounded text-signal focus-visible:outline-route-dark ${errores[campo] ? "border-danger" : "border-ink/50"}`}
-                        aria-invalid={Boolean(errores[campo])}
-                      />
-                      {etiqueta}
+                <button
+                  type="button"
+                  onClick={() => setDetallesVehiculoExpandido((v) => !v)}
+                  aria-expanded={detallesVehiculoExpandido}
+                  className="flex w-full items-center justify-between rounded-lg border border-ink/10 bg-mist px-3.5 py-3 font-body text-sm font-semibold text-ink transition hover:border-signal/30"
+                >
+                  <span>Detalles del vehículo {detallesVehiculoExpandido ? "▲" : "▼"}</span>
+                  <span className="font-body text-xs font-normal text-ink/55">{detallesVehiculoExpandido ? "Ocultar" : "Completar después (color, placas, VIN…)"} </span>
+                </button>
+                {detallesVehiculoExpandido && (
+                  <div className="grid gap-4 animate-fade-in">
+                    <Field etiqueta="Color" value={datos.color} onChange={(e) => actualizar("color", e.target.value)} error={errores.color} />
+                    <Field
+                      etiqueta="Placas"
+                      value={datos.placas}
+                      onChange={(e) => actualizar("placas", e.target.value)}
+                      error={errores.placas}
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                    />
+                    <Field
+                      etiqueta="Número de serie / VIN"
+                      value={datos.vin}
+                      onChange={(e) => actualizar("vin", e.target.value)}
+                      error={errores.vin}
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      ayuda="17 caracteres. Si no lo tienes a mano, podrás agregarlo antes de la recolección."
+                    />
+                    <label className="flex flex-col gap-1.5">
+                      <span className="font-body text-sm font-medium">Estado general declarado</span>
+                      <select
+                        value={datos.estadoGeneral}
+                        onChange={(e) => actualizar("estadoGeneral", e.target.value)}
+                        className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark ${claseControl("estadoGeneral")}`}
+                        aria-invalid={Boolean(errores.estadoGeneral)}
+                      >
+                        <option value="">Selecciona estado</option>
+                        {ESTADOS_GENERALES_VEHICULO.map((estado) => (
+                          <option key={estado} value={estado}>
+                            {estado}
+                          </option>
+                        ))}
+                      </select>
+                      {errores.estadoGeneral && <p className="font-body text-xs text-danger">{errores.estadoGeneral}</p>}
                     </label>
-                    {errores[campo] && <p className="pl-7 font-body text-xs text-danger">{errores[campo]}</p>}
+                    <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
+                      <div>
+                        <p className="font-body text-sm font-semibold">Documentación mínima requerida</p>
+                        <p className="mt-1 font-body text-xs text-ink/65">Por el momento, el servicio está disponible únicamente para vehículos que encienden, cuentan con documentación vigente y pueden circular rodando.</p>
+                      </div>
+                      {(
+                        [
+                          ["tieneTarjeta", "Tarjeta de circulación vigente"],
+                          ["tieneVerificacion", "Verificación vehicular vigente"],
+                          ["tienePlacas", "Ambas placas instaladas"],
+                          ["puedeCircular", "El vehículo enciende y puede circular rodando"]
+                        ] as const
+                      ).map(([campo, etiqueta]) => (
+                        <div key={campo} className="grid gap-1">
+                          <label className="flex items-center gap-2.5 font-body text-sm">
+                            <input
+                              type="checkbox"
+                              checked={datos[campo]}
+                              onChange={(e) => actualizar(campo, e.target.checked)}
+                              className={`size-5 rounded text-signal focus-visible:outline-route-dark ${errores[campo] ? "border-danger" : "border-ink/50"}`}
+                              aria-invalid={Boolean(errores[campo])}
+                            />
+                            {etiqueta}
+                          </label>
+                          {errores[campo] && <p className="pl-7 font-body text-xs text-danger">{errores[campo]}</p>}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                )}
+                {!detallesVehiculoExpandido && (
+                  <p className="rounded-lg border border-dashed border-ink/15 bg-ink/[0.02] px-3 py-2 font-body text-xs leading-5 text-ink/55">Completarás color, placas, VIN y documentación antes de confirmar. Puedes avanzar y volver después.</p>
+                )}
               </div>
             </div>
           </PassportCard>

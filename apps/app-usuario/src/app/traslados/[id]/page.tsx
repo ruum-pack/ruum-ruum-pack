@@ -20,6 +20,7 @@ import { AbrirDisputa } from "./AbrirDisputa";
 import { ExportarPasaportePdf } from "./ExportarPasaportePdf";
 import { SeguimientoTrasladoTiempoReal } from "./SeguimientoTrasladoTiempoReal";
 import { PasaporteTabs } from "./PasaporteTabs";
+import { HeroAnsiedadCero } from "./HeroAnsiedadCero";
 
 import { NavegacionUsuario } from "../../NavegacionUsuario";
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -334,31 +335,15 @@ function AcordeonPasaporte({
   );
 }
 
-function AccionesRapidasPasaporte({ trasladoId }: { trasladoId: string }) {
+function AccionesRapidasPasaporte({ trasladoId, estado }: { trasladoId: string; estado: EstadoTraslado }) {
+  const enCurso = ["conductor_asignado","conductor_en_camino_al_origen","conductor_en_punto_de_recoleccion","traslado_en_curso","llegada_a_destino"].includes(estado);
+  const primario = enCurso ? { href: "#chat-conductor", label: "Chatear con conductor", clase: "bg-signal text-ink border-signal hover:bg-signal/90" } : { href: "#acciones-incidencia", label: "Reportar incidencia", clase: "bg-surface-elevated border-border text-text-primary hover:border-signal/40" };
   return (
-    <nav
-      aria-label="Acciones rápidas del traslado"
-      className="sticky top-0 z-30 mt-4 rounded-[var(--ruum-radius-modal)] border border-border bg-surface/95 p-2 shadow-3 backdrop-blur"
-    >
-      <div className="grid grid-cols-3 gap-2">
-        <a
-          href="#chat-conductor"
-          className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] bg-surface-elevated border border-border px-3 text-center font-body text-xs font-bold text-text-primary transition hover:bg-surface hover:border-signal/40 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
-        >
-          Chat
-        </a>
-        <Link
-          href={`/soporte?viaje=${trasladoId}`}
-          className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border border-route-action/40 bg-route-action/15 px-3 text-center font-body text-xs font-bold text-route-action transition hover:bg-route-action/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
-        >
-          Soporte
-        </Link>
-        <a
-          href="#acciones-incidencia"
-          className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border border-warning/40 bg-warning/15 px-3 text-center font-body text-xs font-bold text-warning transition hover:bg-warning/25 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
-        >
-          Incidencia
-        </a>
+    <nav aria-label="Acciones rápidas del traslado" className="sticky top-0 z-30 mt-4 rounded-[var(--ruum-radius-modal)] border border-border bg-surface/95 p-2 shadow-3 backdrop-blur">
+      <div className="flex gap-2">
+        <a href={primario.href} className={`flex-1 inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border px-3 text-center font-body text-xs font-bold transition focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${primario.clase}`}>{primario.label}</a>
+        <Link href={`/soporte?viaje=${trasladoId}`} className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border border-route-action/40 bg-route-action/15 px-4 text-center font-body text-xs font-bold text-route-action transition hover:bg-route-action/25">Soporte</Link>
+        <a href="#detalles" className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] bg-surface-elevated border border-border px-3 text-center font-body text-xs font-bold text-text-secondary">Detalles</a>
       </div>
     </nav>
   );
@@ -651,10 +636,12 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
         </dl>
       </PassportCard>
 
-      <AccionesRapidasPasaporte trasladoId={pasaporte.traslado_id} />
+      <HeroAnsiedadCero pasaporte={pasaporte} conductor={conductor} traslado={traslado} trasladoId={pasaporte.traslado_id} />
+
+      <AccionesRapidasPasaporte trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />
 
       <section id="chat-conductor" className="mt-4 scroll-mt-28">
-        <AcordeonPasaporte titulo="Chat con el conductor" descripcion="Comunicación autorizada y llamada enmascarada.">
+        <AcordeonPasaporte titulo="Chat con el conductor" descripcion="Comunicación autorizada y llamada enmascarada." abierto={["conductor_asignado","conductor_en_camino_al_origen","conductor_en_punto_de_recoleccion","traslado_en_curso","llegada_a_destino"].includes(pasaporte.estado)}>
           <ChatTraslado trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />
         </AcordeonPasaporte>
       </section>
