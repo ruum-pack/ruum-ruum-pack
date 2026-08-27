@@ -481,9 +481,10 @@ jobs:
             apps/app-conductor/.lighthouse-ci/*.json
 
   app-conductor-android-config:
-    name: Android Firebase and Gradle config
-    env:
-      RUUM_REMOTE_URL: ${{ vars.RUUM_CONDUCTOR_REMOTE_URL_STAGING }}
+     name: Android Firebase and Gradle config
+     if: false  # Desactivado: no se utiliza Firebase
+     env:
+    RUUM_REMOTE_URL: ${{ vars.RUUM_CONDUCTOR_REMOTE_URL_STAGING }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

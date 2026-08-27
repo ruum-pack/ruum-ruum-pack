@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CONTACTOS_SOPORTE_CONDUCTOR } from "../../lib/contactos-soporte";
 
 interface PanelSupportSheetProps {
@@ -10,6 +10,8 @@ interface PanelSupportSheetProps {
 
 export function PanelSupportSheet({ abierto, onCerrar }: PanelSupportSheetProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const [startY, setStartY] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     if (!abierto) return;
@@ -24,6 +26,39 @@ export function PanelSupportSheet({ abierto, onCerrar }: PanelSupportSheetProps)
     return () => window.removeEventListener("keydown", manejarTecla);
   }, [abierto, onCerrar]);
 
+  // MOB-003: Swipe down para cerrar
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartY(e.touches[0].clientY);
+    setIsDragging(false);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (startY === null) return;
+    
+    const deltaY = e.touches[0].clientY - startY;
+    
+    // Solo activar si el movimiento es hacia abajo (deltaY > 0) y el sheet está abierto
+    if (deltaY > 0 && abierto && !isDragging) {
+      // Verificar que el touch inició en el sheet (no en el backdrop)
+      const target = e.target as HTMLElement;
+      if (modalRef.current?.contains(target)) {
+        setIsDragging(true);
+        
+        // Si el movimiento es lo suficientemente grande, cerrar
+        if (deltaY > 50) {
+          onCerrar();
+          setStartY(null);
+          setIsDragging(false);
+        }
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setStartY(null);
+    setIsDragging(false);
+  };
+
   if (!abierto) return null;
 
   return (
@@ -32,6 +67,9 @@ export function PanelSupportSheet({ abierto, onCerrar }: PanelSupportSheetProps)
       className="fixed inset-0 z-50 m-0 flex h-[100dvh] w-[100vw] max-h-none max-w-none items-end justify-center border-0 bg-transparent p-0"
       aria-modal="true"
       aria-labelledby="titulo-soporte"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Backdrop */}
       <button
@@ -41,11 +79,16 @@ export function PanelSupportSheet({ abierto, onCerrar }: PanelSupportSheetProps)
         aria-label="Cerrar soporte"
       />
 
-      {/* Sheet Container */}
+      {/* Sheet Container - MOB-003: Swipe down para cerrar */}
       <div
         ref={modalRef}
-        className="relative w-full max-w-md bg-surface-elevated rounded-t-[2rem] border-t border-border/40 p-6 flex flex-col gap-4 animate-slideUp shadow-2xl z-10"
+        className="relative w-full max-w-md bg-surface-elevated rounded-t-[2rem] border-t border-border/40 p-6 flex flex-col gap-4 animate-slideUp shadow-2xl z-10 touch-none"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
+        {/* Bar handle para swipe down - indicador visual */}
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1.5 rounded-full bg-border/60" aria-hidden />
         <div className="flex justify-between items-center pb-2 border-b border-border/20">
           <h2 id="titulo-soporte" className="font-display text-lg font-bold text-text-primary flex items-center gap-2">
             <span>💬</span> Soporte Operativo Ruum

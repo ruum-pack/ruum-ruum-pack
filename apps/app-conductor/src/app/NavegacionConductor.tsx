@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LogoMarca } from "@ruum/ui";
 import { useViajeActivo } from "./ViajeActivoContext";
 import { getTripPresentation } from "../lib/trip-presentation";
@@ -89,6 +89,61 @@ function IcoCuenta() {
 
 type DestinoIcono = React.ComponentType;
 
+/**
+ * Componente para navegar entre tabs con swipe gestures (MOB-002)
+ */
+function MobileNavWithSwipe({
+  children,
+  onSwipeLeft,
+  onSwipeRight,
+  activePath,
+}: {
+  children: React.ReactNode;
+  onSwipeLeft: () => void;
+  onSwipeRight: () => void;
+  activePath?: string;
+}) {
+  const navRef = useRef<HTMLDivElement>(null);
+  const [startX, setStartX] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (startX === null) return;
+    
+    const currentX = e.touches[0].clientX;
+    const deltaX = startX - currentX;
+    
+    // Swipe izquierdo (deltaX positivo) -> siguiente tab
+    if (deltaX > 50) {
+      onSwipeLeft();
+      setStartX(null);
+    }
+    // Swipe derecho (deltaX negativo) -> tab anterior
+    else if (deltaX < -50) {
+      onSwipeRight();
+      setStartX(null);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setStartX(null);
+  };
+
+  return (
+    <div
+      ref={navRef}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {children}
+    </div>
+  );
+}
+
 const DESTINOS_ESCRITORIO: { href: string; etiqueta: string; Icono: DestinoIcono }[] = [
   { href: "/panel", etiqueta: "Inicio", Icono: IcoHome },
   { href: "/viajes", etiqueta: "Traslados", Icono: IcoViajes },
@@ -113,6 +168,7 @@ function esActivo(pathname: string, href: string) {
 /** Navegación consistente para la operación del conductor. */
 export function NavegacionConductor() {
   const pathname = usePathname();
+  const router = useRouter();
   const { viajeActivo, viajeActivoSinActualizar } = useViajeActivo();
   const esAcceso = pathname === "/login" || pathname === "/registro" || pathname === "/onboarding";
   const presentacionViajeActivo = viajeActivo ? getTripPresentation(viajeActivo.estado) : null;
@@ -249,36 +305,51 @@ export function NavegacionConductor() {
           </div>
         )}
 
-        <nav aria-label="Navegación principal móvil" className="w-full px-1 max-w-md mx-auto">
-          <div className="grid grid-cols-5 gap-0.5">
-            {DESTINOS_MOVIL.map((destino) => {
-              const activo = esActivo(pathname, destino.href);
-              const notificar = destino.href === "/viajes" && hayAccionPendiente;
-              
-              return (
-                <Link
-                  key={destino.href}
-                  href={destino.href}
-                  prefetch={!activo}
-                  aria-current={activo ? "page" : undefined}
-                  aria-label={notificar ? `${destino.etiqueta}: acción pendiente` : destino.etiqueta}
-                  className={[
-                    "relative flex flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 min-h-[56px] font-body text-[10px] leading-none transition-colors duration-200 select-none",
-                    activo ? "text-text-primary dark:text-signal font-black bg-signal/20 dark:bg-signal/15 shadow-2xs" : "text-text-secondary hover:text-text-primary"
-                  ].join(" ")}
-                >
-                  <div className="relative flex items-center justify-center p-1">
-                    {notificar && (
-                      <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-warning ring-2 ring-surface animate-pulse" aria-hidden />
-                    )}
-                    <destino.Icono />
-                  </div>
-                  <span className="max-w-full truncate tracking-tight text-[10px] leading-none">{destino.etiqueta}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
+        {/* MOB-002: Swipe gestures para navegar entre tabs */}
+        <MobileNavWithSwipe 
+          activePath={pathname} 
+          onSwipeLeft={() => {
+            const currentIndex = DESTINOS_MOVIL.findIndex(d => esActivo(pathname, d.href));
+            const nextIndex = (currentIndex + 1) % DESTINOS_MOVIL.length;
+            router.push(DESTINOS_MOVIL[nextIndex].href);
+          }}
+          onSwipeRight={() => {
+            const currentIndex = DESTINOS_MOVIL.findIndex(d => esActivo(pathname, d.href));
+            const prevIndex = (currentIndex - 1 + DESTINOS_MOVIL.length) % DESTINOS_MOVIL.length;
+            router.push(DESTINOS_MOVIL[prevIndex].href);
+          }}
+        >
+          <nav aria-label="Navegación principal móvil" className="w-full px-1 max-w-md mx-auto">
+            <div className="grid grid-cols-5 gap-0.5">
+              {DESTINOS_MOVIL.map((destino) => {
+                const activo = esActivo(pathname, destino.href);
+                const notificar = destino.href === "/viajes" && hayAccionPendiente;
+                
+                return (
+                  <Link
+                    key={destino.href}
+                    href={destino.href}
+                    prefetch={!activo}
+                    aria-current={activo ? "page" : undefined}
+                    aria-label={notificar ? `${destino.etiqueta}: acción pendiente` : destino.etiqueta}
+                    className={[
+                      "relative flex flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 min-h-[56px] font-body text-[10px] leading-none transition-colors duration-200 select-none",
+                      activo ? "text-text-primary dark:text-signal font-black bg-signal/20 dark:bg-signal/15 shadow-2xs" : "text-text-secondary hover:text-text-primary"
+                    ].join(" ")}
+                  >
+                    <div className="relative flex items-center justify-center p-1">
+                      {notificar && (
+                        <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-warning ring-2 ring-surface animate-pulse" aria-hidden />
+                      )}
+                      <destino.Icono />
+                    </div>
+                    <span className="max-w-full truncate tracking-tight text-[10px] leading-none">{destino.etiqueta}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        </MobileNavWithSwipe>
       </div>
     </>
   );
