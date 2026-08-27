@@ -139,6 +139,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 2.1.9
         version: 2.1.9(vitest@2.1.9(@types/node@22.20.0)(@vitest/ui@4.1.10(vitest@2.1.9))(lightningcss@1.32.0)(terser@5.49.0))
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.6.1
       eslint:
         specifier: ^9.39.4
         version: 9.39.4(jiti@2.7.0)
