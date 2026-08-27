@@ -201,24 +201,15 @@ export function NavegacionUsuario() {
                         id="menu-cuenta-usuario"
                         role="menu"
                         onKeyDown={manejarTeclasMenuCuenta}
-                        className="absolute right-0 top-full z-50 mt-1 w-44 rounded-[var(--ruum-radius-modal)] border border-border bg-surface py-1 shadow-3"
+                        className="absolute right-0 top-full z-50 mt-1 w-56 rounded-[var(--ruum-radius-modal)] border border-border bg-surface py-1 shadow-3"
                       >
-                        <Link
-                          href="/cuenta"
-                          role="menuitem"
-                          onClick={() => setMenuAbierto(false)}
-                          className="block px-4 py-2.5 font-body text-sm text-text-primary hover:bg-surface-elevated"
-                        >
-                          Mi cuenta
-                        </Link>
+                        <Link href="/cuenta" role="menuitem" onClick={() => setMenuAbierto(false)} className="block px-4 py-2.5 font-body text-sm font-semibold text-text-primary hover:bg-surface-elevated">Mi cuenta</Link>
+                        <Link href="/cuenta/perfil" role="menuitem" onClick={() => setMenuAbierto(false)} className="block px-4 py-2 font-body text-sm text-text-secondary hover:bg-surface-elevated hover:text-text-primary">Perfil</Link>
+                        <Link href="/cuenta/vehiculos" role="menuitem" onClick={() => setMenuAbierto(false)} className="block px-4 py-2 font-body text-sm text-text-secondary hover:bg-surface-elevated hover:text-text-primary">Mis vehículos</Link>
+                        <Link href="/cuenta/metodos-pago" role="menuitem" onClick={() => setMenuAbierto(false)} className="block px-4 py-2 font-body text-sm text-text-secondary hover:bg-surface-elevated hover:text-text-primary">Métodos de pago</Link>
+                        <Link href="/cuenta/preferencias" role="menuitem" onClick={() => setMenuAbierto(false)} className="block px-4 py-2 font-body text-sm text-text-secondary hover:bg-surface-elevated hover:text-text-primary">Preferencias · Tema</Link>
                         <div className="my-1 h-px bg-border" />
-                        <button
-                          role="menuitem"
-                          onClick={cerrarSesion}
-                          className="block w-full px-4 py-2.5 text-left font-body text-sm text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
-                        >
-                          Cerrar sesión
-                        </button>
+                        <button role="menuitem" onClick={cerrarSesion} className="block w-full px-4 py-2.5 text-left font-body text-sm text-text-secondary hover:bg-surface-elevated hover:text-text-primary">Cerrar sesión</button>
                       </div>
                     )}
                   </div>
@@ -245,9 +236,9 @@ export function NavegacionUsuario() {
 
           <Link
             href="/traslados/nuevo"
-            className="ml-auto inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 py-2 font-display text-sm font-semibold text-text-primary shadow-xs transition hover:border-route-action/60 hover:bg-surface-elevated hover:text-text-primary focus-visible:outline-route-dark"
+            className="ml-auto inline-flex min-h-11 items-center justify-center rounded-xl bg-signal px-5 py-2 font-display text-sm font-bold text-slate-950 shadow-md shadow-signal/20 transition hover:bg-signal/90 hover:shadow-lg hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal"
           >
-            <span className="mr-1.5 text-base font-bold text-route-action" aria-hidden>+</span>
+            <span className="mr-1.5 text-base font-bold" aria-hidden>+</span>
             <span>Solicitar traslado</span>
           </Link>
         </div>

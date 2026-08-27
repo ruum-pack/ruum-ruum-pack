@@ -375,6 +375,13 @@ body {
   background-attachment: fixed;
   color: var(--ruum-text);
 }
+@media (max-width: 767px), (pointer: coarse) {
+  body { background-attachment: scroll; }
+}
+/* Evitar translate en hover en dispositivos sin hover (móvil) */
+@media (hover: none) {
+  .app-card-interactive:hover { transform: none; }
+}
 
 input,
 select,

@@ -442,6 +442,65 @@ function EvidenciaMomento({
   );
 }
 
+function EvidenciaComparativa({ inicial, final }: { inicial: FotoEvidenciaVisual[]; final: FotoEvidenciaVisual[] }) {
+  const angulos: Array<FotoEvidenciaVisual["angulo"]> = ["frente", "lado_piloto", "lado_copiloto", "trasera", "tablero"];
+  const pares = angulos
+    .map((angulo) => ({
+      angulo,
+      ini: inicial.find((f) => f.angulo === angulo) ?? null,
+      fin: final.find((f) => f.angulo === angulo) ?? null,
+    }))
+    .filter((p) => p.ini || p.fin);
+
+  if (inicial.length === 0 || final.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-ink/15 bg-ink/[0.02] px-4 py-6 text-center">
+        <p className="font-body text-sm font-semibold text-ink">Comparativa antes / después</p>
+        <p className="mt-1 font-body text-xs leading-5 text-ink/55">Cuando tengamos evidencia inicial y final del mismo ángulo, aquí verás la comparación lado a lado para detectar diferencias.</p>
+        <p className="mt-2 font-mono-ruum text-xs text-ink/40">{inicial.length} inicial · {final.length} final</p>
+      </div>
+    );
+  }
+
+  const sinDanos = final.length > 0 && inicial.length > 0;
+
+  return (
+    <div className="rounded-xl border border-ink/10 bg-mist p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="font-body text-sm font-bold text-ink">Comparativa antes / después</h3>
+          <p className="mt-1 font-body text-xs leading-5 text-ink/55">Frente, laterales y tablero alineados para revisión rápida. Toca cada foto para ampliar.</p>
+        </div>
+        {sinDanos && <span className="shrink-0 rounded-full bg-control/10 px-2.5 py-1 font-body text-xs font-bold text-control border border-control/20">Sin daños nuevos</span>}
+      </div>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        {pares.slice(0, 4).map(({ angulo, ini, fin }) => (
+          <div key={angulo} className="overflow-hidden rounded-lg border border-ink/10 bg-mist">
+            <div className="grid grid-cols-2 divide-x divide-ink/10">
+              <div>
+                <div className="bg-ink/5 aspect-[4/3] overflow-hidden">
+                  {ini?.url_visual?.startsWith("http") ? <img src={ini.url_visual} alt={`${ETIQUETA_ANGULO[angulo]} inicial`} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center px-2 text-center font-body text-xs text-ink/40">Sin foto inicial</div>}
+                </div>
+                <p className="border-t border-ink/10 px-2 py-1.5 text-center font-body text-xs font-semibold text-ink/70">{ETIQUETA_ANGULO[angulo]} · Inicial</p>
+              </div>
+              <div>
+                <div className="bg-ink/5 aspect-[4/3] overflow-hidden">
+                  {fin?.url_visual?.startsWith("http") ? <img src={fin.url_visual} alt={`${ETIQUETA_ANGULO[angulo]} final`} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center px-2 text-center font-body text-xs text-ink/40">Pendiente final</div>}
+                </div>
+                <p className="border-t border-ink/10 px-2 py-1.5 text-center font-body text-xs font-semibold text-ink/70">{ETIQUETA_ANGULO[angulo]} · Final</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className="rounded-full border border-border bg-surface-elevated px-2.5 py-1 font-body text-xs text-text-secondary">{inicial.length} fotos iniciales</span>
+        <span className="rounded-full border border-border bg-surface-elevated px-2.5 py-1 font-body text-xs text-text-secondary">{final.length} fotos finales</span>
+      </div>
+    </div>
+  );
+}
+
 function EvidenciaDurante({
   pasaporte,
   traslado,
@@ -692,12 +751,16 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
                   descripcion={MENSAJES_CLAVE_UX.evidencia_inicial}
                   fotos={evidenciaInicial}
                 />
+                <EvidenciaComparativa inicial={evidenciaInicial} final={evidenciaFinal} />
                 <EvidenciaDurante pasaporte={pasaporte} traslado={traslado} incidencias={incidencias} />
                 <EvidenciaMomento
                   titulo="Evidencia final"
                   descripcion="Fotos finales exteriores e interiores, kilometraje y combustible final, confirmación de entrega, observaciones finales y aceptación del receptor cuando aplique."
                   fotos={evidenciaFinal}
                 />
+                <div className="flex justify-end">
+                  <button type="button" onClick={() => window.print()} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-ink/15 bg-mist px-4 py-2 font-body text-xs font-semibold text-ink hover:border-ink/30">📄 Descargar evidencia (imprimir / PDF)</button>
+                </div>
               </div>
             </PassportCard>
           </section>
