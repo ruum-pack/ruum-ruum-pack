@@ -66,6 +66,21 @@ const ESTADOS_GENERALES_VEHICULO = [
   "Rayones o golpes visibles"
 ] as const;
 
+const SLOTS_HORARIOS = [
+  { id: "manana", etiqueta: "Mañana · 09:00–13:00", hora: "09:00" },
+  { id: "tarde", etiqueta: "Tarde · 13:00–18:00", hora: "14:00" },
+  { id: "noche", etiqueta: "Noche · 18:00–21:00", hora: "18:30" },
+  { id: "personalizado", etiqueta: "Elegir hora exacta", hora: "" },
+] as const;
+
+const VENTANAS_PREDEFINIDAS = [
+  "Flexible (sin preferencia)",
+  "Mañana 09:00–13:00",
+  "Tarde 13:00–18:00",
+  "Noche 18:00–21:00",
+  "Otra (especificar)",
+] as const;
+
 const CONDICIONES_VEHICULO: Array<{ valor: CondicionVehiculo; etiqueta: string }> = [
   { valor: "nueva", etiqueta: "Nueva" },
   { valor: "seminueva", etiqueta: "Seminueva" },
@@ -1627,14 +1642,20 @@ export function NuevoTrasladoForm() {
                 <label className="flex flex-col gap-1.5">
                   <span className="font-body text-sm font-medium">Transmisión</span>
                   <select
+                    id="transmision"
+                    name="transmision"
                     value={datos.transmision}
                     onChange={(e) => actualizar("transmision", e.target.value as TransmisionVehiculo)}
-                    className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
+                    onBlur={() => validarCampo("transmision")}
+                    aria-invalid={Boolean(errores.transmision)}
+                    aria-describedby={errores.transmision ? "transmision-error" : undefined}
+                    className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark ${claseControl("transmision")}`}
                   >
                     <option value="automatica">Automática</option>
                     <option value="manual">Manual</option>
                     <option value="electrica">Eléctrica</option>
                   </select>
+                  {errores.transmision && <p id="transmision-error" className="font-body text-xs text-danger">{errores.transmision}</p>}
                 </label>
                 <div>
                   <Field
@@ -1676,10 +1697,14 @@ export function NuevoTrasladoForm() {
                 <label className="flex flex-col gap-1.5">
                   <span className="font-body text-sm font-medium">Condición</span>
                   <select
+                    id="condicion"
+                    name="condicion"
                     value={datos.condicion}
                     onChange={(e) => actualizar("condicion", e.target.value as CondicionVehiculo)}
+                    onBlur={() => validarCampo("condicion")}
                     className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark ${claseControl("condicion")}`}
                     aria-invalid={Boolean(errores.condicion)}
+                    aria-describedby={errores.condicion ? "condicion-error" : undefined}
                   >
                     <option value="">Selecciona condición</option>
                     {CONDICIONES_VEHICULO.map((condicion) => (
@@ -1688,15 +1713,18 @@ export function NuevoTrasladoForm() {
                       </option>
                     ))}
                   </select>
-                  {errores.condicion && <p className="font-body text-xs text-danger">{errores.condicion}</p>}
+                  {errores.condicion && <p id="condicion-error" className="font-body text-xs text-danger">{errores.condicion}</p>}
                 </label>
                 <Field
                   etiqueta="Año"
+                  name="anio"
+                  id="anio"
                   type="number"
                   min={1980}
                   max={new Date().getFullYear() + 1}
                   value={datos.anio}
                   onChange={(e) => actualizar("anio", e.target.value)}
+                  onBlur={() => validarCampo("anio")}
                   error={errores.anio}
                 />
                 {/* Tarifa temprana Sprint1: visible desde paso 0 si hay ruta estimada */}
@@ -1724,19 +1752,25 @@ export function NuevoTrasladoForm() {
                 </button>
                 {detallesVehiculoExpandido && (
                   <div className="grid gap-4 animate-fade-in">
-                    <Field etiqueta="Color" value={datos.color} onChange={(e) => actualizar("color", e.target.value)} error={errores.color} />
+                    <Field etiqueta="Color" name="color" id="color" value={datos.color} onChange={(e) => actualizar("color", e.target.value)} onBlur={() => validarCampo("color")} error={errores.color} />
                     <Field
                       etiqueta="Placas"
+                      name="placas"
+                      id="placas"
                       value={datos.placas}
                       onChange={(e) => actualizar("placas", e.target.value)}
+                      onBlur={() => validarCampo("placas")}
                       error={errores.placas}
                       autoCapitalize="characters"
                       autoCorrect="off"
                     />
                     <Field
                       etiqueta="Número de serie / VIN"
+                      name="vin"
+                      id="vin"
                       value={datos.vin}
                       onChange={(e) => actualizar("vin", e.target.value)}
+                      onBlur={() => validarCampo("vin")}
                       error={errores.vin}
                       autoCapitalize="characters"
                       autoCorrect="off"
@@ -1745,10 +1779,14 @@ export function NuevoTrasladoForm() {
                     <label className="flex flex-col gap-1.5">
                       <span className="font-body text-sm font-medium">Estado general declarado</span>
                       <select
+                        id="estadoGeneral"
+                        name="estadoGeneral"
                         value={datos.estadoGeneral}
                         onChange={(e) => actualizar("estadoGeneral", e.target.value)}
+                        onBlur={() => validarCampo("estadoGeneral")}
                         className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark ${claseControl("estadoGeneral")}`}
                         aria-invalid={Boolean(errores.estadoGeneral)}
+                        aria-describedby={errores.estadoGeneral ? "estadoGeneral-error" : undefined}
                       >
                         <option value="">Selecciona estado</option>
                         {ESTADOS_GENERALES_VEHICULO.map((estado) => (
@@ -1757,7 +1795,7 @@ export function NuevoTrasladoForm() {
                           </option>
                         ))}
                       </select>
-                      {errores.estadoGeneral && <p className="font-body text-xs text-danger">{errores.estadoGeneral}</p>}
+                      {errores.estadoGeneral && <p id="estadoGeneral-error" className="font-body text-xs text-danger">{errores.estadoGeneral}</p>}
                     </label>
                     <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
                       <div>
@@ -1775,15 +1813,19 @@ export function NuevoTrasladoForm() {
                         <div key={campo} className="grid gap-1">
                           <label className="flex items-center gap-2.5 font-body text-sm">
                             <input
+                              id={campo}
+                              name={campo}
                               type="checkbox"
                               checked={datos[campo]}
                               onChange={(e) => actualizar(campo, e.target.checked)}
+                              onBlur={() => validarCampo(campo)}
                               className={`size-5 rounded text-signal focus-visible:outline-route-dark ${errores[campo] ? "border-danger" : "border-ink/50"}`}
                               aria-invalid={Boolean(errores[campo])}
+                              aria-describedby={errores[campo] ? `${campo}-error` : undefined}
                             />
                             {etiqueta}
                           </label>
-                          {errores[campo] && <p className="pl-7 font-body text-xs text-danger">{errores[campo]}</p>}
+                          {errores[campo] && <p id={`${campo}-error`} className="pl-7 font-body text-xs text-danger">{errores[campo]}</p>}
                         </div>
                       ))}
                     </div>
@@ -1815,30 +1857,93 @@ export function NuevoTrasladoForm() {
               <label className="flex flex-col gap-1.5">
                 <span className="font-body text-sm font-medium">Disponibilidad</span>
                 <select
+                  id="modalidadProgramacion"
+                  name="modalidadProgramacion"
                   value={datos.modalidadProgramacion}
                   onChange={(e) => {
                     const modalidad = e.target.value as ModalidadProgramacion;
                     actualizar("modalidadProgramacion", modalidad);
                     if (modalidad === "lo_antes_posible") actualizar("fechaHoraProgramada", "");
                   }}
-                  className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
+                  onBlur={() => validarCampo("modalidadProgramacion")}
+                  className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
                 >
                   <option value="lo_antes_posible">Lo antes posible</option>
                   <option value="programado">Programar fecha y hora</option>
                 </select>
               </label>
               {datos.modalidadProgramacion === "programado" && (
-                <Field
-                  etiqueta="Fecha y hora programada"
-                  type="datetime-local"
-                  value={datos.fechaHoraProgramada}
-                  onChange={(e) => actualizar("fechaHoraProgramada", e.target.value)}
-                  error={errores.fechaHoraProgramada}
-                />
+                <div className="grid gap-3 rounded-lg border border-ink/10 bg-mist p-4">
+                  <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Fecha y hora programada</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1.5">
+                      <span className="font-body text-sm font-medium">Fecha</span>
+                      <input
+                        id="fechaHoraProgramada"
+                        name="fechaHoraProgramada"
+                        type="date"
+                        value={datos.fechaHoraProgramada ? datos.fechaHoraProgramada.split("T")[0] : ""}
+                        min={new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().split("T")[0]}
+                        onChange={(e) => {
+                          const fecha = e.target.value;
+                          const horaActual = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0,5) ?? "09:00") : "09:00";
+                          if (!fecha) actualizar("fechaHoraProgramada", "");
+                          else actualizar("fechaHoraProgramada", `${fecha}T${horaActual}`);
+                        }}
+                        onBlur={() => validarCampo("fechaHoraProgramada")}
+                        className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm ${claseControl("fechaHoraProgramada")}`}
+                        aria-invalid={Boolean(errores.fechaHoraProgramada)}
+                        aria-describedby={errores.fechaHoraProgramada ? "fechaHoraProgramada-error" : undefined}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className="font-body text-sm font-medium">Horario</span>
+                      <select
+                        value={(() => {
+                          const t = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0,5) ?? "") : "";
+                          const m = SLOTS_HORARIOS.find((s) => s.hora === t)?.id ?? (t ? "personalizado" : "manana");
+                          return m;
+                        })()}
+                        onChange={(e) => {
+                          const sel = e.target.value as typeof SLOTS_HORARIOS[number]["id"];
+                          const slot = SLOTS_HORARIOS.find((s) => s.id === sel);
+                          const fecha = datos.fechaHoraProgramada ? datos.fechaHoraProgramada.split("T")[0] : new Date(Date.now() + 24*60*60*1000).toISOString().split("T")[0];
+                          if (slot?.hora) actualizar("fechaHoraProgramada", `${fecha}T${slot.hora}`);
+                          else if (sel === "personalizado") {
+                            const h = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0,5) ?? "10:00") : "10:00";
+                            actualizar("fechaHoraProgramada", `${fecha}T${h}`);
+                          }
+                        }}
+                        onBlur={() => validarCampo("fechaHoraProgramada")}
+                        className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
+                      >
+                        {SLOTS_HORARIOS.map((s) => <option key={s.id} value={s.id}>{s.etiqueta}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  {(() => {
+                    const t = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0,5) ?? "") : "";
+                    const esPersonalizado = t && !SLOTS_HORARIOS.some((s) => s.hora === t);
+                    if (!esPersonalizado) return null;
+                    return (
+                      <label className="flex flex-col gap-1.5">
+                        <span className="font-body text-sm font-medium">Hora exacta</span>
+                        <input type="time" value={t} onChange={(e) => {
+                          const fecha = datos.fechaHoraProgramada ? datos.fechaHoraProgramada.split("T")[0] : new Date().toISOString().split("T")[0];
+                          actualizar("fechaHoraProgramada", `${fecha}T${e.target.value}`);
+                        }} onBlur={() => validarCampo("fechaHoraProgramada")} className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm" />
+                      </label>
+                    );
+                  })()}
+                  <p className="font-body text-xs leading-5 text-ink/55">Zona horaria: <span className="font-semibold text-ink">America/Mexico_City</span> · Anticipación mínima 2 horas. Te confirmaremos la ventana exacta.</p>
+                  {errores.fechaHoraProgramada && <p id="fechaHoraProgramada-error" className="font-body text-xs text-danger">{errores.fechaHoraProgramada}</p>}
+                </div>
               )}
               <label className="flex flex-col gap-1.5">
                 <span className="font-body text-sm font-medium">Tipo de traslado</span>
                 <select
+                  id="tipoRuta"
+                  name="tipoRuta"
                   value={datos.tipoRuta}
                   onChange={(e) => actualizar("tipoRuta", e.target.value as TipoRutaTraslado)}
                   className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
@@ -1847,18 +1952,46 @@ export function NuevoTrasladoForm() {
                   <option value="foraneo">Foráneo</option>
                 </select>
               </label>
-              <Field
-                etiqueta="Ventana de recolección"
-                value={datos.ventanaRecoleccion}
-                onChange={(e) => actualizar("ventanaRecoleccion", e.target.value)}
-                placeholder="Ej. 09:00 a 12:00"
-              />
-              <Field
-                etiqueta="Ventana de entrega"
-                value={datos.ventanaEntrega}
-                onChange={(e) => actualizar("ventanaEntrega", e.target.value)}
-                placeholder="Ej. Mismo día por la tarde"
-              />
+              <label className="flex flex-col gap-1.5">
+                <span className="font-body text-sm font-medium">Ventana de recolección</span>
+                <select
+                  value={VENTANAS_PREDEFINIDAS.includes(datos.ventanaRecoleccion as never) ? datos.ventanaRecoleccion : datos.ventanaRecoleccion ? "Otra (especificar)" : "Flexible (sin preferencia)"}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "Otra (especificar)") actualizar("ventanaRecoleccion", "Otra: ");
+                    else actualizar("ventanaRecoleccion", v);
+                  }}
+                  className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
+                >
+                  {VENTANAS_PREDEFINIDAS.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+                {(() => {
+                  const sel = VENTANAS_PREDEFINIDAS.includes(datos.ventanaRecoleccion as never) ? datos.ventanaRecoleccion : datos.ventanaRecoleccion ? "Otra (especificar)" : "Flexible (sin preferencia)";
+                  if (sel !== "Otra (especificar)") return null;
+                  const valorCustom = VENTANAS_PREDEFINIDAS.includes(datos.ventanaRecoleccion as never) ? "" : datos.ventanaRecoleccion.replace(/^Otra:\s*/, "");
+                  return <input placeholder="Ej. 09:00 a 12:00 o indicación específica" value={valorCustom} onChange={(e) => actualizar("ventanaRecoleccion", `Otra: ${e.target.value}`)} className="mt-2 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm" />;
+                })()}
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="font-body text-sm font-medium">Ventana de entrega</span>
+                <select
+                  value={VENTANAS_PREDEFINIDAS.includes(datos.ventanaEntrega as never) ? datos.ventanaEntrega : datos.ventanaEntrega ? "Otra (especificar)" : "Flexible (sin preferencia)"}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "Otra (especificar)") actualizar("ventanaEntrega", "Otra: ");
+                    else actualizar("ventanaEntrega", v);
+                  }}
+                  className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
+                >
+                  {VENTANAS_PREDEFINIDAS.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+                {(() => {
+                  const sel = VENTANAS_PREDEFINIDAS.includes(datos.ventanaEntrega as never) ? datos.ventanaEntrega : datos.ventanaEntrega ? "Otra (especificar)" : "Flexible (sin preferencia)";
+                  if (sel !== "Otra (especificar)") return null;
+                  const valorCustom = VENTANAS_PREDEFINIDAS.includes(datos.ventanaEntrega as never) ? "" : datos.ventanaEntrega.replace(/^Otra:\s*/, "");
+                  return <input placeholder="Ej. Mismo día por la tarde" value={valorCustom} onChange={(e) => actualizar("ventanaEntrega", `Otra: ${e.target.value}`)} className="mt-2 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm" />;
+                })()}
+              </label>
               </div>
             </PassportCard>
             <PassportCard>

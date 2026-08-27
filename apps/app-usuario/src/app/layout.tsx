@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
 import { TextInputUppercaseBridge } from "@ruum/ui";
+import { TemaProvider } from "./TemaProvider";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -42,9 +43,14 @@ export const viewport: Viewport = {
   ]
 };
 
+const scriptTema = `(function(){try{var k='ruum-tema';var g=localStorage.getItem(k);var s=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';var t=g||s;document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" data-theme="dark">
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: scriptTema }} />
+      </head>
       <body
         className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}
       >
@@ -52,7 +58,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Saltar al contenido principal
         </a>
         <TextInputUppercaseBridge />
-        <main id="contenido-principal">{children}</main>
+        <TemaProvider>
+          <main id="contenido-principal">{children}</main>
+        </TemaProvider>
       </body>
     </html>
   );
