@@ -301,11 +301,6 @@ export function LayoutCuenta({ cuenta, children }: { cuenta: CuentaReal; childre
         <NavegacionCuenta usuario={cuenta.usuario} />
         {children}
       </div>
-      <div className="fixed bottom-6 right-6 z-50 sm:hidden">
-        <Link href="/traslados/nuevo">
-          <Button className="shadow-2">Solicitar traslado</Button>
-        </Link>
-      </div>
     </main>
   );
 }
@@ -353,9 +348,6 @@ export function SeccionPerfil({ usuario }: { usuario: Usuario }) {
     </Seccion>
   );
 }
-
-export function SeccionVehiculos({ vehiculos }: { vehiculos: Vehiculo[] }) {
-  return (
     <Seccion titulo="Mis vehículos" descripcion="Guarda vehículos frecuentes para acelerar solicitudes futuras.">
       <div className="grid gap-4 md:grid-cols-2">
         {vehiculos.length > 0 ? (

@@ -15,6 +15,7 @@ import { EstadoSincronizacionGlobal } from "./EstadoSincronizacionGlobal";
 import { EstadoTrackingGlobal } from "./EstadoTrackingGlobal";
 import { PushNotificationsBootstrap } from "./PushNotificationsBootstrap";
 import { OfflineShell } from "./OfflineShell";
+import { PWABootstrap } from "./PWABootstrap";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -75,6 +76,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <OperationalAccessibilityBridge />
               <TextInputUppercaseBridge />
               <OfflineShell />
+              <PWABootstrap />
               <main id="contenido-principal" className="conductor-page" role="main">
                 {children}
               </main>

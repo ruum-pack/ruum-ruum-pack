@@ -104,7 +104,7 @@ export function PanelActiveTripCard({ viaje }: PanelActiveTripCardProps) {
       {/* 3. Paso Actual */}
       <div className="border-t border-border/15 pt-3.5 flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-route-action/10 border border-route-action/20 flex items-center justify-center text-route-action shrink-0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
           </svg>
         </div>

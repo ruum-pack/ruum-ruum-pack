@@ -176,10 +176,16 @@ export function NavegacionUsuario() {
               const activo = estaActivo(pathname, href);
               if (href === "/cuenta") {
                 return (
-                  <div key={href} ref={menuCuentaRef} className="relative">
+                  <div
+                    key={href}
+                    ref={menuCuentaRef}
+                    className="relative"
+                    onMouseEnter={() => setMenuAbierto(true)}
+                    onMouseLeave={() => setMenuAbierto(false)}
+                  >
                     <button
                       ref={botonCuentaRef}
-                      onClick={() => setMenuAbierto(v => !v)}
+                      onClick={() => setMenuAbierto((v) => !v)}
                       onKeyDown={manejarTeclasBotonCuenta}
                       aria-expanded={menuAbierto}
                       aria-haspopup="menu"

@@ -22,6 +22,7 @@ import { ViajesDateNavigator } from "./ViajesDateNavigator";
 import { ViajesFilters, type OrdenViajes } from "./ViajesFilters";
 import { UndoRechazoToast } from "./UndoRechazoToast";
 import { ViajesMapa } from "./ViajesMapa";
+import { ViajesSearch, filterViajesBySearch } from "./ViajesSearch";
 import { PanelSupportSheet } from "../panel/PanelSupportSheet";
 import {
   claveDia,
@@ -393,12 +394,23 @@ export default function PaginaViajes() {
     return Array.from(set);
   }, [rawListToRender]);
 
+  // Obtener query de búsqueda de URL
+  const searchQuery = searchParams.get("q") ?? "";
+
   // Lista filtrada y ordenada
   const listToRender = useMemo(() => {
     let result = [...rawListToRender];
 
+    // Filtrar por ciudad
     if (ciudadFiltro !== "todas") {
       result = result.filter((item) => item.viaje.origen_ciudad === ciudadFiltro);
+    }
+
+    // Filtrar por búsqueda (AI-002)
+    if (searchQuery.trim()) {
+      result = result.filter((item) => 
+        filterViajesBySearch(item.viaje, searchQuery)
+      );
     }
 
     if (orden === "mayor_ganancia") {
@@ -408,7 +420,7 @@ export default function PaginaViajes() {
     }
 
     return result;
-  }, [rawListToRender, ciudadFiltro, orden]);
+  }, [rawListToRender, ciudadFiltro, orden, searchQuery]);
 
   const tieneOfertasOtrosDias = calendario.some(
     ({ dia, viajes }) => claveDia(dia) !== diaSeleccionado && viajes.some((v) => v.tipo === "Ofertado")
@@ -483,9 +495,16 @@ export default function PaginaViajes() {
           </div>
         </header>
 
+        {/* Barra de Búsqueda - AI-002 */}
+        <div className="mt-3 px-1">
+          <ViajesSearch 
+            placeholder={`Buscar ${vista === "disponibles" ? "ofertas" : "viajes"}...`}
+          />
+        </div>
+
         {/* Banner Modo Offline */}
         {!estaOnline && (
-          <div className="mt-4">
+          <div className="mt-3">
             <Aviso tono="atencion">
               <span className="font-bold">Modo sin conexión:</span> Mostrando traslados guardados localmente. Conéctate a internet para ver y aceptar nuevas ofertas.
             </Aviso>

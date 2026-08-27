@@ -139,14 +139,16 @@ summary:focus-visible {
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
 }
 
-.app-card-interactive:hover {
-  transform: translateY(-2px);
-  border-color: var(--color-route);
-  box-shadow: var(--ruum-shadow-2);
+@media (hover: hover) and (pointer: fine) {
+  .app-card-interactive:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-route);
+    box-shadow: var(--ruum-shadow-2);
+  }
 }
 
 .app-status-strip {
-  border: 1px solid rgba(255, 196, 0, 0.3);
+  border: 1px solid rgba(255, 196, 0, 0.32);
   border-radius: 12px;
   background: rgba(255, 196, 0, 0.08);
 }
@@ -171,7 +173,7 @@ summary:focus-visible {
 
 .ruum-auth-card {
   width: min(100% - 32px, 448px);
-  border: 1px solid rgba(122, 162, 214, 0.25);
+  border: 1px solid rgba(122, 162, 214, 0.32);
   border-radius: var(--ruum-radius-modal, 16px);
   background: rgba(13, 22, 38, 0.92);
   color: var(--ruum-text);

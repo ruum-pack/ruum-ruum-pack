@@ -17,10 +17,23 @@ export function TemaProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const guardado = typeof window !== "undefined" ? (localStorage.getItem(STORAGE_KEY) as Tema | null) : null;
-    const sistema: Tema = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-    const inicial = (guardado as Tema | null) ?? sistema;
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+    const sistema: Tema = mediaQuery.matches ? "light" : "dark";
+    const inicial = guardado ?? sistema;
     setTema(inicial);
     document.documentElement.setAttribute("data-theme", inicial);
+
+    function alCambiarSistema(e: MediaQueryListEvent) {
+      const tieneGuardado = localStorage.getItem(STORAGE_KEY);
+      if (!tieneGuardado) {
+        const nuevoTema: Tema = e.matches ? "light" : "dark";
+        setTema(nuevoTema);
+        document.documentElement.setAttribute("data-theme", nuevoTema);
+      }
+    }
+
+    mediaQuery.addEventListener("change", alCambiarSistema);
+    return () => mediaQuery.removeEventListener("change", alCambiarSistema);
   }, []);
 
   const fijar = useCallback((t: Tema) => {

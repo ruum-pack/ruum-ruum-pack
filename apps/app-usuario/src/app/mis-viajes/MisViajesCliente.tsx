@@ -90,10 +90,26 @@ function ViajeCard({ viaje }: { viaje: ViajeLista }) {
         <div className="flex size-12 shrink-0 items-center justify-center self-end rounded-xl border border-border bg-surface-elevated text-text-secondary transition-all group-hover:border-signal/40 group-hover:text-signal lg:self-start min-w-[48px] min-h-[48px]" aria-hidden="true"><IconoChevron className="size-5" /></div>
       </div>
       <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 border-t border-border/40 pt-3">
-        <div className="min-w-0"><dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Origen</dt><dd className="mt-0.5 font-body text-sm font-semibold text-text-primary break-words">{traslado ? `${traslado.origen_ciudad} · ${traslado.origen_direccion}` : "Pendiente"}</dd></div>
-        <div className="min-w-0"><dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Destino</dt><dd className="mt-0.5 font-body text-sm font-semibold text-text-primary break-words">{traslado ? `${traslado.destino_ciudad} · ${traslado.destino_direccion}` : "Pendiente"}</dd></div>
-        <div><dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Conductor asignado</dt><dd className="mt-0.5 font-body text-sm font-semibold text-text-primary">{pasaporte.conductor_nombre ?? "Por asignar"}</dd></div>
-        <div><dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Tarifa</dt><dd className="mt-0.5 font-mono-ruum text-sm font-bold text-signal">{moneda(pasaporte.precio_final ?? pasaporte.precio_cotizado)}</dd></div>
+        <div className="min-w-0">
+          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Origen</dt>
+          <dd className="mt-0.5 font-body text-sm font-semibold text-text-primary whitespace-normal break-words leading-snug">
+            {traslado ? `${traslado.origen_ciudad} · ${traslado.origen_direccion}` : "Pendiente"}
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Destino</dt>
+          <dd className="mt-0.5 font-body text-sm font-semibold text-text-primary whitespace-normal break-words leading-snug">
+            {traslado ? `${traslado.destino_ciudad} · ${traslado.destino_direccion}` : "Pendiente"}
+          </dd>
+        </div>
+        <div>
+          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Conductor asignado</dt>
+          <dd className="mt-0.5 font-body text-sm font-semibold text-text-primary">{pasaporte.conductor_nombre ?? "Por asignar"}</dd>
+        </div>
+        <div>
+          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary font-medium">Tarifa</dt>
+          <dd className="mt-0.5 font-mono-ruum text-sm font-bold text-signal">{moneda(pasaporte.precio_final ?? pasaporte.precio_cotizado)}</dd>
+        </div>
       </dl>
       <div className="mt-4 flex flex-wrap items-center gap-2 font-body text-xs text-text-secondary">
         {pasaporte.tipo_pago==="anticipado" && pasaporte.estado==="cotizacion_aceptada" && <span className="rounded-full bg-signal px-3 py-1 font-bold text-slate-950">Continuar con el pago</span>}
@@ -153,16 +169,29 @@ export function MisViajesCliente({ viajes, pestanaInicial }: { viajes: ViajeList
   return (
     <>
       <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-        <label className="flex flex-col gap-1.5">
+        <label htmlFor="busqueda-mis-viajes" className="flex flex-col gap-1.5">
           <span className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Buscar</span>
           <div className="relative">
-            <input value={busqueda} onChange={e=>setBusqueda(e.target.value)} placeholder="Folio, placa, vehículo, ciudad o conductor" className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 pr-9 font-body text-sm text-text-primary placeholder:text-text-tertiary focus:border-route-action focus:outline-none focus:ring-2 focus:ring-route-action/20" />
+            <input
+              id="busqueda-mis-viajes"
+              name="busqueda"
+              value={busqueda}
+              onChange={e=>setBusqueda(e.target.value)}
+              placeholder="Folio, placa, vehículo, ciudad o conductor"
+              className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 pr-9 font-body text-sm text-text-primary placeholder:text-text-tertiary focus:border-route-action focus:outline-none focus:ring-2 focus:ring-route-action/20"
+            />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary">⌕</span>
           </div>
         </label>
-        <label className="flex flex-col gap-1.5">
+        <label htmlFor="orden-mis-viajes" className="flex flex-col gap-1.5">
           <span className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Orden</span>
-          <select value={orden} onChange={e=>setOrden(e.target.value as never)} className="rounded-xl border border-border bg-surface px-3.5 py-2.5 font-body text-sm text-text-primary focus:border-route-action focus:outline-none focus:ring-2 focus:ring-route-action/20">
+          <select
+            id="orden-mis-viajes"
+            name="orden"
+            value={orden}
+            onChange={e=>setOrden(e.target.value as never)}
+            className="rounded-xl border border-border bg-surface px-3.5 py-2.5 font-body text-sm text-text-primary focus:border-route-action focus:outline-none focus:ring-2 focus:ring-route-action/20"
+          >
             <option value="reciente">Más reciente primero</option>
             <option value="antiguo">Más antiguo primero</option>
           </select>

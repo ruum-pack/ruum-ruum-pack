@@ -181,11 +181,29 @@ function FormularioPago({ onPagado, PaymentElement, useStripe, useElements }: { 
 
   return (
     <form onSubmit={confirmar} className="grid gap-4">
+      <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-3 text-left">
+        <div className="flex items-center gap-2 font-body text-xs font-bold text-emerald-800 dark:text-emerald-300">
+          <span>🔒</span>
+          <span>Pago protegido con Stripe · Cifrado SSL de 256 bits</span>
+        </div>
+        <p className="mt-1 font-body text-[11px] leading-4 text-emerald-900/75 dark:text-emerald-200/80">
+          Conductores certificados · 4.9★ · Tus datos bancarios están cifrados y nunca se almacenan en nuestros servidores.
+        </p>
+      </div>
+
       <PaymentElement />
       {error && <Aviso tono="danger">{error}</Aviso>}
       <Button type="submit" disabled={!stripe || enviando}>
         {enviando ? "Procesando…" : "Pagar y confirmar traslado"}
       </Button>
+
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-1 font-body text-[11px] text-ink/45">
+        <span className="font-semibold text-ink/60">Aceptamos:</span>
+        <span className="rounded bg-surface-elevated border border-border px-1.5 py-0.5">Visa</span>
+        <span className="rounded bg-surface-elevated border border-border px-1.5 py-0.5">Mastercard</span>
+        <span className="rounded bg-surface-elevated border border-border px-1.5 py-0.5">American Express</span>
+        <span className="rounded bg-surface-elevated border border-border px-1.5 py-0.5">SPEI</span>
+      </div>
     </form>
   );
 }

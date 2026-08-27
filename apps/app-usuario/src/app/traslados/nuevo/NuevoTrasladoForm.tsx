@@ -28,6 +28,7 @@ import type { CondicionVehiculo, DatosFormulario, ErroresFormulario, ModalidadPr
 import { useGeocodificacion } from "./hooks/useGeocodificacion";
 import { useNuevoTraslado } from "./hooks/useNuevoTraslado";
 import { EstadoCreacion } from "./components/EstadoCreacion";
+import { AYUDAS_CAMPOS, normalizarTerminoUsuario } from "../../../lib/glosario";
 
 const PASOS = ["¿Qué vehículo trasladamos?", "¿Dónde lo recogemos y llevamos?", "¿Cuándo lo trasladamos?", "Pago"] as const;
 
@@ -363,6 +364,8 @@ function calcularRangoTarifaEstimado(
 }
 
 interface CampoCodigoPostalProps {
+  id?: string;
+  nombre?: string;
   valor: string;
   ciudadActual: string;
   opciones: DatosCodigoPostal | null;
@@ -381,6 +384,8 @@ interface CampoCodigoPostalProps {
 // <input> en cada tecla — de ahí que solo se pudiera capturar un dígito del
 // CP a la vez y hubiera que hacer click de nuevo para seguir escribiendo.
 function CampoCodigoPostal({
+  id,
+  nombre,
   valor,
   ciudadActual,
   opciones,
@@ -403,6 +408,8 @@ function CampoCodigoPostal({
   return (
     <div className="grid gap-2">
       <Field
+        id={id}
+        name={nombre}
         etiqueta="Código Postal"
         value={valor}
         onChange={(e) => onCambiar(e.target.value)}
@@ -1124,6 +1131,8 @@ export function NuevoTrasladoForm() {
               <p className="font-body text-sm font-semibold">Domicilio de origen</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <CampoCodigoPostal
+                  id="origenCodigoPostal"
+                  nombre="origenCodigoPostal"
                   valor={datos.origenCodigoPostal}
                   ciudadActual={datos.origenCiudad}
                   opciones={cpOpciones.origen}
@@ -1132,16 +1141,67 @@ export function NuevoTrasladoForm() {
                   aviso={cpAviso.origen}
                   error={errores.origenCodigoPostal}
                   onCambiar={(valor) => actualizarCodigoPostal("origen", valor)}
-                  onSalir={(valor) => consultarCodigoPostal("origen", valor)}
+                  onSalir={(valor) => {
+                    consultarCodigoPostal("origen", valor);
+                    validarCampo("origenCodigoPostal");
+                  }}
                   onAplicarSugerencia={(ciudad, colonia) => aplicarSugerenciaCp("origen", ciudad, colonia)}
                 />
-                <Field etiqueta="Estado" value={datos.origenEstado} onChange={(e) => actualizar("origenEstado", e.target.value)} error={errores.origenEstado} />
-                <Field etiqueta="Ciudad" value={datos.origenCiudad} onChange={(e) => actualizar("origenCiudad", e.target.value)} error={errores.origenCiudad} />
-                <Field etiqueta="Colonia" value={datos.origenColonia} onChange={(e) => actualizar("origenColonia", e.target.value)} error={errores.origenColonia} />
-                <Field etiqueta="Calle" value={datos.origenCalle} onChange={(e) => actualizar("origenCalle", e.target.value)} error={errores.origenCalle} />
-                <Field etiqueta="Número" value={datos.origenNumero} onChange={(e) => actualizar("origenNumero", e.target.value)} error={errores.origenNumero} />
+                <Field
+                  id="origenEstado"
+                  name="origenEstado"
+                  etiqueta="Estado"
+                  value={datos.origenEstado}
+                  onChange={(e) => actualizar("origenEstado", e.target.value)}
+                  onBlur={() => validarCampo("origenEstado")}
+                  error={errores.origenEstado}
+                />
+                <Field
+                  id="origenCiudad"
+                  name="origenCiudad"
+                  etiqueta="Ciudad"
+                  value={datos.origenCiudad}
+                  onChange={(e) => actualizar("origenCiudad", e.target.value)}
+                  onBlur={() => validarCampo("origenCiudad")}
+                  error={errores.origenCiudad}
+                />
+                <Field
+                  id="origenColonia"
+                  name="origenColonia"
+                  etiqueta="Colonia"
+                  value={datos.origenColonia}
+                  onChange={(e) => actualizar("origenColonia", e.target.value)}
+                  onBlur={() => validarCampo("origenColonia")}
+                  error={errores.origenColonia}
+                />
+                <Field
+                  id="origenCalle"
+                  name="origenCalle"
+                  etiqueta="Calle"
+                  value={datos.origenCalle}
+                  onChange={(e) => actualizar("origenCalle", e.target.value)}
+                  onBlur={() => validarCampo("origenCalle")}
+                  error={errores.origenCalle}
+                />
+                <Field
+                  id="origenNumero"
+                  name="origenNumero"
+                  etiqueta="Número exterior / interior"
+                  value={datos.origenNumero}
+                  onChange={(e) => actualizar("origenNumero", e.target.value)}
+                  onBlur={() => validarCampo("origenNumero")}
+                  error={errores.origenNumero}
+                />
               </div>
-              <Field etiqueta="Referencias" value={datos.origenReferencias} onChange={(e) => actualizar("origenReferencias", e.target.value)} placeholder="Entre calles, color de fachada, acceso, piso, etc." />
+              <Field
+                id="origenReferencias"
+                name="origenReferencias"
+                etiqueta="Referencias"
+                value={datos.origenReferencias}
+                onChange={(e) => actualizar("origenReferencias", e.target.value)}
+                onBlur={() => validarCampo("origenReferencias")}
+                placeholder="Entre calles, color de fachada, acceso, piso, etc."
+              />
             </div>
             {esNativo() && (
               <div>
@@ -1172,9 +1232,10 @@ export function NuevoTrasladoForm() {
         {subpasoRuta === "destino_contactos" && (
           <div className="grid gap-4" aria-label="Destino y contactos del traslado">
             <div className="rounded-lg border border-signal/30 bg-signal/10 p-3">
-              <label className="font-body text-xs font-semibold text-ink">Busca la dirección de destino</label>
+              <label htmlFor="input-busqueda-destino" className="font-body text-xs font-semibold text-ink">Busca la dirección de destino</label>
               <div className="relative mt-2">
                 <input
+                  id="input-busqueda-destino"
                   value={destinoBusqueda}
                   onChange={(e) => setDestinoBusqueda(e.target.value)}
                   placeholder="Ej. Calle 5 123, Centro, Puebla"
@@ -1201,6 +1262,8 @@ export function NuevoTrasladoForm() {
               <p className="font-body text-sm font-semibold">Domicilio de destino</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <CampoCodigoPostal
+                  id="destinoCodigoPostal"
+                  nombre="destinoCodigoPostal"
                   valor={datos.destinoCodigoPostal}
                   ciudadActual={datos.destinoCiudad}
                   opciones={cpOpciones.destino}
@@ -1209,16 +1272,67 @@ export function NuevoTrasladoForm() {
                   aviso={cpAviso.destino}
                   error={errores.destinoCodigoPostal}
                   onCambiar={(valor) => actualizarCodigoPostal("destino", valor)}
-                  onSalir={(valor) => consultarCodigoPostal("destino", valor)}
+                  onSalir={(valor) => {
+                    consultarCodigoPostal("destino", valor);
+                    validarCampo("destinoCodigoPostal");
+                  }}
                   onAplicarSugerencia={(ciudad, colonia) => aplicarSugerenciaCp("destino", ciudad, colonia)}
                 />
-                <Field etiqueta="Estado" value={datos.destinoEstado} onChange={(e) => actualizar("destinoEstado", e.target.value)} error={errores.destinoEstado} />
-                <Field etiqueta="Ciudad" value={datos.destinoCiudad} onChange={(e) => actualizar("destinoCiudad", e.target.value)} error={errores.destinoCiudad} />
-                <Field etiqueta="Colonia" value={datos.destinoColonia} onChange={(e) => actualizar("destinoColonia", e.target.value)} error={errores.destinoColonia} />
-                <Field etiqueta="Calle" value={datos.destinoCalle} onChange={(e) => actualizar("destinoCalle", e.target.value)} error={errores.destinoCalle} />
-                <Field etiqueta="Número" value={datos.destinoNumero} onChange={(e) => actualizar("destinoNumero", e.target.value)} error={errores.destinoNumero} />
+                <Field
+                  id="destinoEstado"
+                  name="destinoEstado"
+                  etiqueta="Estado"
+                  value={datos.destinoEstado}
+                  onChange={(e) => actualizar("destinoEstado", e.target.value)}
+                  onBlur={() => validarCampo("destinoEstado")}
+                  error={errores.destinoEstado}
+                />
+                <Field
+                  id="destinoCiudad"
+                  name="destinoCiudad"
+                  etiqueta="Ciudad"
+                  value={datos.destinoCiudad}
+                  onChange={(e) => actualizar("destinoCiudad", e.target.value)}
+                  onBlur={() => validarCampo("destinoCiudad")}
+                  error={errores.destinoCiudad}
+                />
+                <Field
+                  id="destinoColonia"
+                  name="destinoColonia"
+                  etiqueta="Colonia"
+                  value={datos.destinoColonia}
+                  onChange={(e) => actualizar("destinoColonia", e.target.value)}
+                  onBlur={() => validarCampo("destinoColonia")}
+                  error={errores.destinoColonia}
+                />
+                <Field
+                  id="destinoCalle"
+                  name="destinoCalle"
+                  etiqueta="Calle"
+                  value={datos.destinoCalle}
+                  onChange={(e) => actualizar("destinoCalle", e.target.value)}
+                  onBlur={() => validarCampo("destinoCalle")}
+                  error={errores.destinoCalle}
+                />
+                <Field
+                  id="destinoNumero"
+                  name="destinoNumero"
+                  etiqueta="Número exterior / interior"
+                  value={datos.destinoNumero}
+                  onChange={(e) => actualizar("destinoNumero", e.target.value)}
+                  onBlur={() => validarCampo("destinoNumero")}
+                  error={errores.destinoNumero}
+                />
               </div>
-              <Field etiqueta="Referencias" value={datos.destinoReferencias} onChange={(e) => actualizar("destinoReferencias", e.target.value)} placeholder="Entre calles, color de fachada, acceso, piso, etc." />
+              <Field
+                id="destinoReferencias"
+                name="destinoReferencias"
+                etiqueta="Referencias"
+                value={datos.destinoReferencias}
+                onChange={(e) => actualizar("destinoReferencias", e.target.value)}
+                onBlur={() => validarCampo("destinoReferencias")}
+                placeholder="Entre calles, color de fachada, acceso, piso, etc."
+              />
             </div>
             <section className="rounded-lg border border-route/20 bg-route-soft px-4 py-4" aria-labelledby="titulo-estimacion-ruta">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1227,7 +1341,7 @@ export function NuevoTrasladoForm() {
                     Distancia y tiempo estimado
                   </p>
                   <p className="mt-1 font-body text-xs leading-5 text-ink/65">
-                    Se calcula con Mapbox usando origen y destino. Si no se puede resolver, operaciones lo revisará.
+                    Se calcula con Mapbox usando origen y destino. Si no se puede resolver, nuestro equipo de operaciones lo revisará.
                   </p>
                 </div>
                 {rutaCalculando ? (
@@ -1255,33 +1369,101 @@ export function NuevoTrasladoForm() {
             </section>
             <p className="font-body text-sm font-semibold">Quien entrega el vehículo</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field etiqueta="Nombre" value={datos.entregaNombre} onChange={(e) => actualizar("entregaNombre", e.target.value)} error={errores.entregaNombre} />
-              <Field etiqueta="Apellido" value={datos.entregaApellido} onChange={(e) => actualizar("entregaApellido", e.target.value)} error={errores.entregaApellido} />
+              <Field
+                id="entregaNombre"
+                name="entregaNombre"
+                etiqueta="Nombre"
+                value={datos.entregaNombre}
+                onChange={(e) => actualizar("entregaNombre", e.target.value)}
+                onBlur={() => validarCampo("entregaNombre")}
+                error={errores.entregaNombre}
+              />
+              <Field
+                id="entregaApellido"
+                name="entregaApellido"
+                etiqueta="Apellido"
+                value={datos.entregaApellido}
+                onChange={(e) => actualizar("entregaApellido", e.target.value)}
+                onBlur={() => validarCampo("entregaApellido")}
+                error={errores.entregaApellido}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="telefono-entrega" className="font-body text-sm font-medium">Teléfono</label>
+              <label htmlFor="entregaTelefono" className="font-body text-sm font-medium">Teléfono de contacto para recolección</label>
               <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("entregaTelefono")}`}>
                 <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">+52</span>
-                <input id="telefono-entrega" value={datos.entregaTelefono} onChange={(e) => actualizarTelefono("entregaTelefono", e.target.value)} inputMode="numeric" maxLength={10} className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark" placeholder="10 dígitos" aria-label="Teléfono de entrega (10 dígitos)" aria-invalid={Boolean(errores.entregaTelefono)} aria-describedby={errores.entregaTelefono ? "telefono-entrega-error" : undefined} />
+                <input
+                  id="entregaTelefono"
+                  name="entregaTelefono"
+                  value={datos.entregaTelefono}
+                  onChange={(e) => actualizarTelefono("entregaTelefono", e.target.value)}
+                  onBlur={() => validarCampo("entregaTelefono")}
+                  inputMode="numeric"
+                  maxLength={10}
+                  className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+                  placeholder="10 dígitos"
+                  aria-label="Teléfono de entrega (10 dígitos)"
+                  aria-invalid={Boolean(errores.entregaTelefono)}
+                  aria-describedby={errores.entregaTelefono ? "telefono-entrega-error" : undefined}
+                />
               </div>
               {errores.entregaTelefono && <p id="telefono-entrega-error" className="font-body text-xs text-danger">{errores.entregaTelefono}</p>}
             </div>
             <p className="mt-2 font-body text-sm font-semibold">Quien recibe el vehículo</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field etiqueta="Nombre" value={datos.recepcionNombre} onChange={(e) => actualizar("recepcionNombre", e.target.value)} error={errores.recepcionNombre} />
-              <Field etiqueta="Apellido" value={datos.recepcionApellido} onChange={(e) => actualizar("recepcionApellido", e.target.value)} error={errores.recepcionApellido} />
+              <Field
+                id="recepcionNombre"
+                name="recepcionNombre"
+                etiqueta="Nombre"
+                value={datos.recepcionNombre}
+                onChange={(e) => actualizar("recepcionNombre", e.target.value)}
+                onBlur={() => validarCampo("recepcionNombre")}
+                error={errores.recepcionNombre}
+              />
+              <Field
+                id="recepcionApellido"
+                name="recepcionApellido"
+                etiqueta="Apellido"
+                value={datos.recepcionApellido}
+                onChange={(e) => actualizar("recepcionApellido", e.target.value)}
+                onBlur={() => validarCampo("recepcionApellido")}
+                error={errores.recepcionApellido}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="telefono-recepcion" className="font-body text-sm font-medium">Teléfono</label>
+              <label htmlFor="recepcionTelefono" className="font-body text-sm font-medium">Teléfono de contacto para entrega</label>
               <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("recepcionTelefono")}`}>
                 <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">+52</span>
-                <input id="telefono-recepcion" value={datos.recepcionTelefono} onChange={(e) => actualizarTelefono("recepcionTelefono", e.target.value)} inputMode="numeric" maxLength={10} className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark" placeholder="10 dígitos" aria-label="Teléfono de recepción (10 dígitos)" aria-invalid={Boolean(errores.recepcionTelefono)} aria-describedby={errores.recepcionTelefono ? "telefono-recepcion-error" : undefined} />
+                <input
+                  id="recepcionTelefono"
+                  name="recepcionTelefono"
+                  value={datos.recepcionTelefono}
+                  onChange={(e) => actualizarTelefono("recepcionTelefono", e.target.value)}
+                  onBlur={() => validarCampo("recepcionTelefono")}
+                  inputMode="numeric"
+                  maxLength={10}
+                  className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+                  placeholder="10 dígitos"
+                  aria-label="Teléfono de recepción (10 dígitos)"
+                  aria-invalid={Boolean(errores.recepcionTelefono)}
+                  aria-describedby={errores.recepcionTelefono ? "telefono-recepcion-error" : undefined}
+                />
               </div>
               {errores.recepcionTelefono && <p id="telefono-recepcion-error" className="font-body text-xs text-danger">{errores.recepcionTelefono}</p>}
             </div>
-            <label className="flex flex-col gap-1.5">
+            <label htmlFor="instruccionesEspeciales" className="flex flex-col gap-1.5">
               <span className="font-body text-sm font-medium">Instrucciones especiales</span>
-              <textarea value={datos.instruccionesEspeciales} onChange={(e) => actualizar("instruccionesEspeciales", e.target.value)} maxLength={1000} aria-label="Instrucciones especiales para el traslado" className="min-h-24 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark" />
+              <textarea
+                id="instruccionesEspeciales"
+                name="instruccionesEspeciales"
+                value={datos.instruccionesEspeciales}
+                onChange={(e) => actualizar("instruccionesEspeciales", e.target.value)}
+                onBlur={() => validarCampo("instruccionesEspeciales")}
+                maxLength={1000}
+                placeholder="Detalles sobre caseta de acceso, horarios de entrega en privada o requisitos de seguridad."
+                aria-label="Instrucciones especiales para el traslado"
+                className="min-h-24 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
+              />
             </label>
           </div>
         )}
@@ -1296,16 +1478,18 @@ export function NuevoTrasladoForm() {
   function enfocarPrimerError(campos: string[]) {
     if (campos.length === 0) return;
     const primer = campos[0]!;
-    // Delay to allow DOM to update after setErrores
-    window.requestAnimationFrame(() => {
-      const el = document.getElementById(primer) ?? document.querySelector(`[name="${primer}"]`) as HTMLElement | null ?? document.querySelector(`[data-ruum-label]`) as HTMLElement | null;
-      // Try to find by id or name, fallback to first error input via aria-invalid
-      const candidato = document.getElementById(primer) ?? document.querySelector(`[name="${primer}"]`) as HTMLElement | null ?? document.querySelector('[aria-invalid="true"]') as HTMLElement | null;
+    // Delay to allow DOM update and step switch to finish rendering
+    setTimeout(() => {
+      const candidato =
+        document.getElementById(primer) ??
+        (document.querySelector(`[name="${primer}"]`) as HTMLElement | null) ??
+        (document.querySelector(`[data-ruum-label]`) as HTMLElement | null) ??
+        (document.querySelector('[aria-invalid="true"]') as HTMLElement | null);
       if (candidato) {
-        (candidato as HTMLElement).focus();
+        candidato.focus();
         candidato.scrollIntoView({ behavior: "smooth", block: "center" });
       }
-    });
+    }, 60);
   }
 
   function validarCampo(campo: keyof DatosFormulario) {
@@ -1348,18 +1532,18 @@ export function NuevoTrasladoForm() {
     const totalErrores = Object.keys(siguientesErrores).length;
     setErrores(siguientesErrores);
     if (totalErrores) {
-      setErrorPaso(`${totalErrores} ${totalErrores === 1 ? "campo requiere" : "campos requieren"} atención. Revisa el primer campo marcado.`);
+      setErrorPaso(`${totalErrores} ${totalErrores === 1 ? "campo por completar" : "campos por completar"}. Revisa los campos marcados.`);
+      if (paso === 1) {
+        const primerCampo = Object.keys(siguientesErrores)[0]!;
+        if (CAMPOS_RUTA_ORIGEN.has(primerCampo)) setSubpasoRuta("origen");
+        else if (CAMPOS_RUTA_DESTINO_CONTACTOS.has(primerCampo)) setSubpasoRuta("destino_contactos");
+      }
       enfocarPrimerError(Object.keys(siguientesErrores));
     } else if (detallesFaltantes > 0 && paso === 0) {
       setErrorPaso(null);
       setDetallesVehiculoExpandido(true);
     } else {
       setErrorPaso(null);
-    }
-    if (paso === 1 && totalErrores > 0) {
-      const primerCampo = Object.keys(siguientesErrores)[0];
-      setSubpasoRuta(CAMPOS_RUTA_ORIGEN.has(primerCampo) ? "origen" : "destino_contactos");
-    }
     return totalErrores === 0;
   }
 
@@ -1961,92 +2145,153 @@ export function NuevoTrasladoForm() {
           <div className="space-y-4">
             <PassportCard>
               <div className="grid gap-4">
-                <p className="font-body text-sm font-semibold">¿Cuándo lo necesitas?</p>
-              <label className="flex flex-col gap-1.5">
-                <span className="font-body text-sm font-medium">Disponibilidad</span>
-                <select
-                  id="modalidadProgramacion"
-                  name="modalidadProgramacion"
-                  value={datos.modalidadProgramacion}
-                  onChange={(e) => {
-                    const modalidad = e.target.value as ModalidadProgramacion;
-                    actualizar("modalidadProgramacion", modalidad);
-                    if (modalidad === "lo_antes_posible") actualizar("fechaHoraProgramada", "");
-                  }}
-                  onBlur={() => validarCampo("modalidadProgramacion")}
-                  className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
-                >
-                  <option value="lo_antes_posible">Lo antes posible</option>
-                  <option value="programado">Programar fecha y hora</option>
-                </select>
-              </label>
-              {datos.modalidadProgramacion === "programado" && (
-                <div className="grid gap-3 rounded-lg border border-ink/10 bg-mist p-4">
-                  <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Fecha y hora programada</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="flex flex-col gap-1.5">
-                      <span className="font-body text-sm font-medium">Fecha</span>
-                      <input
-                        id="fechaHoraProgramada"
-                        name="fechaHoraProgramada"
-                        type="date"
-                        value={datos.fechaHoraProgramada ? datos.fechaHoraProgramada.split("T")[0] : ""}
-                        min={new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().split("T")[0]}
-                        onChange={(e) => {
-                          const fecha = e.target.value;
-                          const horaActual = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0,5) ?? "09:00") : "09:00";
-                          if (!fecha) actualizar("fechaHoraProgramada", "");
-                          else actualizar("fechaHoraProgramada", `${fecha}T${horaActual}`);
-                        }}
-                        onBlur={() => validarCampo("fechaHoraProgramada")}
-                        className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm ${claseControl("fechaHoraProgramada")}`}
-                        aria-invalid={Boolean(errores.fechaHoraProgramada)}
-                        aria-describedby={errores.fechaHoraProgramada ? "fechaHoraProgramada-error" : undefined}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1.5">
-                      <span className="font-body text-sm font-medium">Horario</span>
-                      <select
-                        value={(() => {
-                          const t = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0,5) ?? "") : "";
-                          const m = SLOTS_HORARIOS.find((s) => s.hora === t)?.id ?? (t ? "personalizado" : "manana");
-                          return m;
-                        })()}
-                        onChange={(e) => {
-                          const sel = e.target.value as typeof SLOTS_HORARIOS[number]["id"];
-                          const slot = SLOTS_HORARIOS.find((s) => s.id === sel);
-                          const fecha = datos.fechaHoraProgramada ? datos.fechaHoraProgramada.split("T")[0] : new Date(Date.now() + 24*60*60*1000).toISOString().split("T")[0];
-                          if (slot?.hora) actualizar("fechaHoraProgramada", `${fecha}T${slot.hora}`);
-                          else if (sel === "personalizado") {
-                            const h = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0,5) ?? "10:00") : "10:00";
-                            actualizar("fechaHoraProgramada", `${fecha}T${h}`);
-                          }
-                        }}
-                        onBlur={() => validarCampo("fechaHoraProgramada")}
-                        className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
-                      >
-                        {SLOTS_HORARIOS.map((s) => <option key={s.id} value={s.id}>{s.etiqueta}</option>)}
-                      </select>
-                    </label>
+                <div className="flex flex-col gap-2">
+                  <label id="label-modalidad-programacion" className="font-body text-sm font-semibold text-ink">
+                    ¿Cuándo necesitas el traslado?
+                  </label>
+                  <div
+                    className="grid grid-cols-2 gap-2 rounded-xl border border-ink/20 bg-mist p-1.5"
+                    role="radiogroup"
+                    aria-labelledby="label-modalidad-programacion"
+                  >
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={datos.modalidadProgramacion === "lo_antes_posible"}
+                      onClick={() => {
+                        actualizar("modalidadProgramacion", "lo_antes_posible");
+                        actualizar("fechaHoraProgramada", "");
+                        validarCampo("modalidadProgramacion");
+                      }}
+                      className={[
+                        "flex items-center justify-center gap-2 rounded-lg py-3 px-3 font-body text-xs sm:text-sm font-bold transition-all focus-visible:outline-route-dark",
+                        datos.modalidadProgramacion === "lo_antes_posible"
+                          ? "bg-signal text-slate-950 shadow-sm ring-1 ring-signal"
+                          : "text-ink/70 hover:bg-surface-elevated hover:text-ink"
+                      ].join(" ")}
+                    >
+                      <span aria-hidden="true">⚡</span>
+                      <span>Lo antes posible</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={datos.modalidadProgramacion === "programado"}
+                      onClick={() => {
+                        actualizar("modalidadProgramacion", "programado");
+                        if (!datos.fechaHoraProgramada) {
+                          const manana = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+                          actualizar("fechaHoraProgramada", `${manana}T09:00`);
+                        }
+                        validarCampo("modalidadProgramacion");
+                      }}
+                      className={[
+                        "flex items-center justify-center gap-2 rounded-lg py-3 px-3 font-body text-xs sm:text-sm font-bold transition-all focus-visible:outline-route-dark",
+                        datos.modalidadProgramacion === "programado"
+                          ? "bg-signal text-slate-950 shadow-sm ring-1 ring-signal"
+                          : "text-ink/70 hover:bg-surface-elevated hover:text-ink"
+                      ].join(" ")}
+                    >
+                      <span aria-hidden="true">📅</span>
+                      <span>Programar fecha</span>
+                    </button>
                   </div>
-                  {(() => {
-                    const t = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0,5) ?? "") : "";
-                    const esPersonalizado = t && !SLOTS_HORARIOS.some((s) => s.hora === t);
-                    if (!esPersonalizado) return null;
-                    return (
-                      <label className="flex flex-col gap-1.5">
-                        <span className="font-body text-sm font-medium">Hora exacta</span>
-                        <input type="time" value={t} onChange={(e) => {
-                          const fecha = datos.fechaHoraProgramada ? datos.fechaHoraProgramada.split("T")[0] : new Date().toISOString().split("T")[0];
-                          actualizar("fechaHoraProgramada", `${fecha}T${e.target.value}`);
-                        }} onBlur={() => validarCampo("fechaHoraProgramada")} className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm" />
-                      </label>
-                    );
-                  })()}
-                  <p className="font-body text-xs leading-5 text-ink/55">Zona horaria: <span className="font-semibold text-ink">America/Mexico_City</span> · Anticipación mínima 2 horas. Te confirmaremos la ventana exacta.</p>
-                  {errores.fechaHoraProgramada && <p id="fechaHoraProgramada-error" className="font-body text-xs text-danger">{errores.fechaHoraProgramada}</p>}
                 </div>
-              )}
+
+                {datos.modalidadProgramacion === "programado" && (
+                  <div className="grid gap-3 rounded-lg border border-ink/10 bg-mist p-4">
+                    <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Fecha y horario del servicio</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label htmlFor="fechaHoraProgramada" className="flex flex-col gap-1.5">
+                        <span className="font-body text-sm font-medium">Fecha de recolección</span>
+                        <input
+                          id="fechaHoraProgramada"
+                          name="fechaHoraProgramada"
+                          type="date"
+                          value={datos.fechaHoraProgramada ? datos.fechaHoraProgramada.split("T")[0] : ""}
+                          min={new Date(Date.now() + 2 * 60 * 60 * 1000).toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" })}
+                          onChange={(e) => {
+                            const fecha = e.target.value;
+                            const horaActual = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0, 5) ?? "09:00") : "09:00";
+                            if (!fecha) actualizar("fechaHoraProgramada", "");
+                            else actualizar("fechaHoraProgramada", `${fecha}T${horaActual}`);
+                          }}
+                          onBlur={() => validarCampo("fechaHoraProgramada")}
+                          className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm ${claseControl("fechaHoraProgramada")}`}
+                          aria-invalid={Boolean(errores.fechaHoraProgramada)}
+                          aria-describedby={errores.fechaHoraProgramada ? "fechaHoraProgramada-error" : undefined}
+                        />
+                      </label>
+
+                      <div className="flex flex-col gap-1.5">
+                        <span id="label-slots-horario" className="font-body text-sm font-medium">Horario sugerido</span>
+                        <div className="grid grid-cols-2 gap-1.5" role="group" aria-labelledby="label-slots-horario">
+                          {SLOTS_HORARIOS.map((s) => {
+                            const t = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0, 5) ?? "") : "";
+                            const seleccionado = s.id === "personalizado"
+                              ? Boolean(t && !SLOTS_HORARIOS.some((slot) => slot.id !== "personalizado" && slot.hora === t))
+                              : s.hora === t;
+                            return (
+                              <button
+                                key={s.id}
+                                type="button"
+                                aria-pressed={seleccionado}
+                                onClick={() => {
+                                  const fecha = datos.fechaHoraProgramada ? datos.fechaHoraProgramada.split("T")[0] : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+                                  if (s.hora) actualizar("fechaHoraProgramada", `${fecha}T${s.hora}`);
+                                  else {
+                                    const h = t || "10:00";
+                                    actualizar("fechaHoraProgramada", `${fecha}T${h}`);
+                                  }
+                                  validarCampo("fechaHoraProgramada");
+                                }}
+                                className={[
+                                  "rounded-lg border px-2.5 py-2 text-left font-body text-xs font-semibold transition-all focus-visible:outline-route-dark",
+                                  seleccionado
+                                    ? "border-route bg-route-soft text-route-dark shadow-xs"
+                                    : "border-ink/20 bg-mist text-ink/75 hover:border-ink/40 hover:text-ink"
+                                ].join(" ")}
+                              >
+                                {s.etiqueta.split("·")[0]}
+                                <span className="block text-[10px] font-normal opacity-70">
+                                  {s.etiqueta.includes("·") ? s.etiqueta.split("·")[1] : "Hora exacta"}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const t = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0, 5) ?? "") : "";
+                      const esPersonalizado = t && !SLOTS_HORARIOS.some((s) => s.id !== "personalizado" && s.hora === t);
+                      if (!esPersonalizado) return null;
+                      return (
+                        <label htmlFor="horaExactaProgramada" className="flex flex-col gap-1.5 mt-2">
+                          <span className="font-body text-sm font-medium">Especificar hora exacta</span>
+                          <input
+                            id="horaExactaProgramada"
+                            type="time"
+                            value={t}
+                            onChange={(e) => {
+                              const fecha = datos.fechaHoraProgramada ? datos.fechaHoraProgramada.split("T")[0] : new Date().toISOString().split("T")[0];
+                              actualizar("fechaHoraProgramada", `${fecha}T${e.target.value}`);
+                            }}
+                            onBlur={() => validarCampo("fechaHoraProgramada")}
+                            className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm focus-visible:outline-route-dark"
+                          />
+                        </label>
+                      );
+                    })()}
+
+                    <div className="flex items-center gap-2 rounded-lg border border-route/15 bg-route-soft/50 p-2.5 font-body text-xs text-ink/70">
+                      <span aria-hidden="true">🌐</span>
+                      <span>Zona horaria: <strong className="text-ink">America/Mexico_City (Centro de México)</strong> · Anticipación mínima de 2 horas.</span>
+                    </div>
+                    {errores.fechaHoraProgramada && <p id="fechaHoraProgramada-error" className="font-body text-xs text-danger">{errores.fechaHoraProgramada}</p>}
+                  </div>
+                )}
               <label className="flex flex-col gap-1.5">
                 <span className="font-body text-sm font-medium">Tipo de traslado</span>
                 <select
@@ -2328,19 +2573,19 @@ export function NuevoTrasladoForm() {
             )}
 
             <div className="pt-2">
-              <a
+              <Link
                 href="/mis-viajes"
-                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-mist px-4 py-2 font-body text-sm font-medium text-ink"
+                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/20 bg-mist px-4 py-2 font-body text-sm font-medium text-ink transition hover:border-ink/40"
               >
                 Ver mis traslados
-              </a>
+              </Link>
             </div>
           </div>
         )}
       </div>
 
       {errorPaso && (
-        <div className="mt-6">
+        <div className="mt-6" role="status" aria-live="polite">
           <Aviso tono="danger">{errorPaso}</Aviso>
         </div>
       )}

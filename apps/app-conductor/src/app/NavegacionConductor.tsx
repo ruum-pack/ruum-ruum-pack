@@ -93,7 +93,7 @@ const DESTINOS_ESCRITORIO: { href: string; etiqueta: string; Icono: DestinoIcono
   { href: "/panel", etiqueta: "Inicio", Icono: IcoHome },
   { href: "/viajes", etiqueta: "Traslados", Icono: IcoViajes },
   { href: "/ganancias", etiqueta: "Ganancias", Icono: IcoGanancias },
-  { href: "/notificaciones", etiqueta: "Avisos", Icono: IcoNotificaciones },
+  { href: "/notificaciones", etiqueta: "Notificaciones", Icono: IcoNotificaciones },
   { href: "/cuenta", etiqueta: "Cuenta", Icono: IcoCuenta },
 ];
 
@@ -101,7 +101,7 @@ const DESTINOS_MOVIL = [
   { href: "/panel", etiqueta: "Inicio", Icono: IcoHome },
   { href: "/viajes", etiqueta: "Traslados", Icono: IcoViajes },
   { href: "/ganancias", etiqueta: "Ganancias", Icono: IcoGanancias },
-  { href: "/notificaciones", etiqueta: "Avisos", Icono: IcoNotificaciones },
+  { href: "/notificaciones", etiqueta: "Notificaciones", Icono: IcoNotificaciones },
   { href: "/cuenta", etiqueta: "Cuenta", Icono: IcoCuenta },
 ];
 
@@ -142,6 +142,7 @@ export function NavegacionConductor() {
                 <Link
                   key={destino.href}
                   href={destino.href}
+                  prefetch={!activo}
                   aria-current={activo ? "page" : undefined}
                   aria-label={activo ? `Página actual: ${destino.etiqueta}` : destino.etiqueta}
                   className={[
@@ -258,6 +259,7 @@ export function NavegacionConductor() {
                 <Link
                   key={destino.href}
                   href={destino.href}
+                  prefetch={!activo}
                   aria-current={activo ? "page" : undefined}
                   aria-label={notificar ? `${destino.etiqueta}: acción pendiente` : destino.etiqueta}
                   className={[

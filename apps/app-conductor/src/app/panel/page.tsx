@@ -21,14 +21,15 @@ import { getBatteryState, intervaloTrackingMs } from "../../lib/battery";
 function PanelLoadingSkeleton() {
   return (
     <output className="w-full flex flex-col gap-5 lg:grid lg:grid-cols-[1.2fr_0.8fr] lg:gap-6" aria-label="Cargando panel operativo" aria-busy="true">
+      {/* Header esquelético más realista - PERF-003 */}
       <div className="hidden lg:contents" aria-hidden>
-        <div className="h-7 w-full" />
-        <div className="h-7 w-full" />
+        <div className="h-7 w-1/3 animate-pulse rounded-lg bg-surface-elevated" />
+        <div className="h-7 w-1/4 animate-pulse rounded-lg bg-surface-elevated" />
       </div>
       <div className="flex justify-between items-center lg:col-span-2">
         <div className="flex items-center gap-2">
-          <div className="h-7 w-7 animate-pulse rounded bg-surface-elevated" />
-          <div className="h-4 w-28 animate-pulse rounded bg-surface-elevated" />
+          <div className="h-7 w-7 animate-pulse rounded-lg bg-surface-elevated" />
+          <div className="h-4 w-32 animate-pulse rounded-lg bg-surface-elevated" />
         </div>
         <div className="flex gap-1">
           <div className="h-11 w-11 animate-pulse rounded-full bg-surface-elevated" />
@@ -38,15 +39,43 @@ function PanelLoadingSkeleton() {
       </div>
       {/* Izq: estado + card principal */}
       <div className="flex flex-col gap-5">
-        <div className="h-[118px] w-full animate-pulse rounded-2xl bg-surface-elevated" />
+        {/* Card de estado del conductor */}
+        <div className="flex flex-col gap-4 p-5 rounded-2xl border border-border/40 bg-surface shadow-sm animate-pulse">
+          <div className="flex justify-between items-center gap-4">
+            <div className="flex flex-col gap-1 min-w-0">
+              <div className="h-4 w-32 animate-pulse rounded bg-surface-elevated" />
+              <div className="flex items-center gap-2 mt-1.5">
+                <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-signal" />
+                <div className="h-7 w-24 animate-pulse rounded bg-surface-elevated" />
+              </div>
+              <div className="h-3 w-40 mt-1 animate-pulse rounded bg-surface-elevated" />
+            </div>
+            <div className="h-8 w-14 animate-pulse rounded-full bg-surface-elevated" />
+          </div>
+        </div>
+        {/* Card de viaje activo o oportunidades */}
         <div className="h-[148px] w-full animate-pulse rounded-3xl bg-surface-elevated" />
       </div>
       {/* Der: salud colapsada + metrics con sparkline/ring */}
       <div className="flex flex-col gap-5">
-        <div className="h-[86px] w-full animate-pulse rounded-2xl bg-surface-elevated" />
-        <div className="grid grid-cols-2 gap-3">
-          <div className="h-[110px] animate-pulse rounded-2xl bg-surface-elevated" />
-          <div className="h-[110px] animate-pulse rounded-2xl bg-surface-elevated" />
+        {/* Card de salud mini */}
+        <div className="rounded-2xl border border-border/30 bg-surface-elevated px-4 py-3 flex items-center justify-between gap-3 shadow-xs animate-pulse">
+          <div className="flex flex-col min-w-0">
+            <div className="h-4 w-16 animate-pulse rounded bg-surface-elevated" />
+            <div className="h-5 w-28 mt-1 animate-pulse rounded bg-surface-elevated" />
+            <div className="h-3 w-20 mt-1 animate-pulse rounded bg-surface-elevated" />
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="h-6 w-6 animate-pulse rounded-full bg-surface-elevated" />
+            <div className="h-2 w-2 animate-pulse rounded-full bg-surface-elevated" />
+          </div>
+        </div>
+        <div className="flex flex-col gap-3">
+          <div className="h-7 w-full animate-pulse rounded-lg bg-surface-elevated" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-[110px] animate-pulse rounded-2xl bg-surface-elevated" />
+            <div className="h-[110px] animate-pulse rounded-2xl bg-surface-elevated" />
+          </div>
         </div>
       </div>
     </output>
@@ -414,14 +443,14 @@ export default function PaginaPanel() {
           {/* Aviso Modo Offline — sticky para no perderlo al hacer scroll */}
           {!estaOnline && (
             <div className="sticky top-2 z-20 mt-4">
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warn-soft px-4 py-3 shadow-sm">
-                <p className="font-body text-sm leading-5 text-warning">
-                  <span className="font-bold">Sin conexión:</span> Ves datos guardados. Los cambios se sincronizarán al volver la red.
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-danger/40 bg-danger-soft/20 px-4 py-3 shadow-sm" role="alert" aria-live="assertive">
+                <p className="font-body text-sm leading-5 text-danger">
+                  <span className="font-bold">⚠️ Sin conexión:</span> Ves datos guardados. Los cambios se sincronizarán al volver la red.
                 </p>
                 <button
                   type="button"
                   onClick={() => void recargar()}
-                  className="shrink-0 inline-flex min-h-11 items-center rounded-lg border border-warning/30 bg-surface px-3 py-2 font-body text-sm font-bold text-warning hover:bg-surface-elevated focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-warning"
+                  className="shrink-0 inline-flex min-h-11 items-center rounded-lg border border-danger/40 bg-surface px-3 py-2 font-body text-sm font-bold text-danger hover:bg-surface-elevated focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-danger"
                 >
                   Reintentar
                 </button>
@@ -584,12 +613,12 @@ export default function PaginaPanel() {
         </div>
       )}
 
-      {/* FAB Ver mapa — solo mobile, sin viaje activo y disponible */}
+      {/* FAB Ver mapa — solo mobile, sin viaje activo y disponible (MOB-001) */}
       {!viajeActivoPrincipal && esDisponible && !cargando && (
         <Link
           href="/viajes"
           aria-label={`Ver mapa de oportunidades${viajesDisponibles.length > 0 ? `, ${viajesDisponibles.length} traslados disponibles` : ""}`}
-          className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] right-4 z-30 inline-flex items-center gap-2 rounded-full bg-signal px-5 py-3.5 font-display text-sm font-black text-slate-950 shadow-lg shadow-signal/20 hover:bg-signal/90 active:scale-[0.98] transition-all focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal lg:hidden"
+          className="fixed right-4 z-30 inline-flex items-center gap-2 rounded-full bg-signal px-5 py-3.5 font-display text-sm font-black text-slate-950 shadow-lg shadow-signal/20 hover:bg-signal/90 active:scale-[0.98] transition-all focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal lg:hidden conductor-fab-keyboard-safe"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
