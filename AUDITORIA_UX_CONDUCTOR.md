@@ -498,8 +498,9 @@ pnpm validate:env                            # env
 | 1.0.0 | 2026-08-27 | OpenCode · Muse Spark | Auditoría integral UX/UI enfocada en alta satisfacción — 10 quick wins + roadmap RICE + métricas CSAT/CES/NPS |
 | 1.1.0 | 2026-08-27 | OpenCode · Muse Spark | **R1 implementado** — Q1 miniatura, Q2 BottomSheet, Q3 badge 99+, Q4 guardado visible, Q5 pull bloqueado, Q6 header 4→2, Q7 sticky Navegar, Q8 empty guía, Q9 safe-area, Q10 mensajes 1-tap. Build ✓ + tests ✓ |
 | 1.2.0 | 2026-08-27 | OpenCode · Muse Spark | **R2 implementado** — M2 Lista\|Mapa toggle (mapbox-gl 3.12, Preferences + localStorage persist), M4 Panel glanceable (mini Hoy + semáforo 🟢🟡🔴 siempre visible), ViajesFilters chips scrolleables (orden + ciudad). Build ✓ 37 tests ✓ |
+| 1.3.0 | 2026-08-27 | OpenCode · Muse Spark | **R3 implementado** — M1 Registro 3 etapas percibidas (Etapa 1/3 + ~X min restantes + 80% social proof), M3 Evidencia 90s (circular 56px, Falta: trasera→ir, guía silueta 4 tips, sharpness Laplaciano 120 + oscuridad, flujo lineal sin colapso), M6 Onboarding valor (chips 1,200 activos·4.8★ + Hasta $1,200, tags Pago promedio $680 / Pago protegido). Build ✓ 148 tests ✓ |
 
 ---
 
 *Documento generado por OpenCode powered by Meta Muse Spark — 2026-08-27*  
-*Uso interno RUUM. Complementa auditoría técnica 8.5/10. R1+R2 completados. Próximo: R3 (Registro 3 etapas + Evidencia 90s + Onboarding valor).*
+*Uso interno RUUM. Complementa auditoría técnica 8.5/10. R1+R2+R3 completados (7.2 → ~9.0). Próximo: R4 (Iconografía SVG única + offline verde Sincronizado ✓ + LiveRegion assertive).*

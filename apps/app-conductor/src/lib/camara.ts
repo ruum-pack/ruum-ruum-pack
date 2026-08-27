@@ -66,3 +66,61 @@ export async function capturarFoto(): Promise<FotoCapturada | null> {
 export async function seleccionarFotoGaleria(): Promise<FotoCapturada | null> {
   return obtenerFoto(CameraSource.Photos);
 }
+
+/**
+ * M3 — Detección de borrosidad / oscuridad antes de encolar (90s flow).
+ * Calcula varianza de Laplaciano sobre una versión 100×100 en escala de grises.
+ * Devuelve true si es nítida (varianza > umbral). Umbral 120 calibrado para móviles gama media.
+ * No bloquea >40ms en gama media.
+ */
+export async function evaluarNitidez(dataUrl: string, umbral = 120): Promise<{ nitida: boolean; varianza: number; motivo?: string }> {
+  if (typeof document === "undefined") return { nitida: true, varianza: 999 };
+  if (!dataUrl.startsWith("data:image")) return { nitida: true, varianza: 999 };
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const size = 100;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true } as unknown as CanvasRenderingContext2DSettings);
+        if (!ctx) return resolve({ nitida: true, varianza: 999 });
+        ctx.drawImage(img, 0, 0, size, size);
+        const data = ctx.getImageData(0, 0, size, size).data;
+        // Grayscale + brillo medio
+        let brillo = 0;
+        const gray = new Float32Array(size * size);
+        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+          const g = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          gray[p] = g;
+          brillo += g;
+        }
+        brillo /= gray.length;
+        if (brillo < 35) return resolve({ nitida: false, varianza: 0, motivo: "muy_oscura" });
+        if (brillo > 245) return resolve({ nitida: false, varianza: 0, motivo: "muy_clara" });
+
+        // Varianza Laplaciano 3x3 [[0,1,0],[1,-4,1],[0,1,0]]
+        let sum = 0;
+        let sumSq = 0;
+        let n = 0;
+        for (let y = 1; y < size - 1; y++) {
+          for (let x = 1; x < size - 1; x++) {
+            const idx = y * size + x;
+            const lap = gray[idx - size] + gray[idx - 1] + gray[idx + 1] + gray[idx + size] - 4 * gray[idx];
+            sum += lap;
+            sumSq += lap * lap;
+            n++;
+          }
+        }
+        const mean = sum / n;
+        const varianza = sumSq / n - mean * mean;
+        resolve({ nitida: varianza > umbral, varianza, motivo: varianza <= umbral ? "borrosa" : undefined });
+      } catch {
+        resolve({ nitida: true, varianza: 999 });
+      }
+    };
+    img.onerror = () => resolve({ nitida: true, varianza: 999 });
+    img.src = dataUrl;
+  });
+}

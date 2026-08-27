@@ -18,6 +18,18 @@ export function RegistrationProgress({
   const porcentaje = Math.round(((paso + 1) / PASOS_REGISTRO.length) * 100);
   const pasoActualInfo = PASOS_REGISTRO[paso] ?? PASOS_REGISTRO[0];
 
+  // M1 — 3 etapas percibidas (Cuenta | Identidad+Licencia | Documentos+Revisión) + tiempo restante dinámico
+  const etapaActual = paso === 0 ? 1 : paso <= 2 ? 2 : 3;
+  const etapas = [
+    { id: 1, titulo: "Cuenta", pasos: [0], tiempo: 2 },
+    { id: 2, titulo: "Perfil", subtitulo: "Identidad + Licencia", pasos: [1, 2], tiempo: 7 },
+    { id: 3, titulo: "Documentos", subtitulo: "Carga + Revisión", pasos: [3, 4], tiempo: 5 }
+  ] as const;
+  const etapaInfo = etapas[etapaActual - 1]!;
+  const minutosRestantes = PASOS_REGISTRO.slice(paso).reduce((acc, p) => acc + (parseInt(p.tiempo, 10) || 0), 0);
+  const minutosTotales = 14;
+  const minutosHechos = minutosTotales - minutosRestantes;
+
   return (
     <div className="mt-6 flex flex-col gap-4">
       {/* 1. Header con Barra de Progreso Porcentual */}
@@ -47,6 +59,42 @@ export function RegistrationProgress({
             className="h-full bg-signal transition-all duration-500 ease-out shadow-[0_0_12px_rgba(245,166,35,0.4)]"
             style={{ width: `${porcentaje}%` }}
           />
+        </div>
+      </div>
+
+      {/* M1 — 3 etapas percibidas + tiempo restante dinámico */}
+      <div className="rounded-2xl border border-signal/20 bg-signal/[0.07] p-3.5 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-full bg-signal text-[11px] font-black text-slate-950">{etapaActual}</span>
+            <div className="flex flex-col">
+              <span className="font-display text-xs font-black text-text-primary">Etapa {etapaActual} de 3 — {etapaInfo.titulo}</span>
+              {(etapaInfo as { subtitulo?: string }).subtitulo && <span className="font-body text-[11px] font-semibold text-text-secondary">{(etapaInfo as { subtitulo?: string }).subtitulo}</span>}
+            </div>
+          </div>
+          <span className="rounded-full bg-surface border border-border/40 px-2.5 py-1 font-display text-[11px] font-black text-text-primary whitespace-nowrap">⏱ ~{minutosRestantes} min restantes</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {etapas.map((et) => {
+            const completada = et.id < etapaActual;
+            const activa = et.id === etapaActual;
+            return (
+              <div key={et.id} className="flex flex-1 items-center gap-2">
+                <div className={`flex size-7 items-center justify-center rounded-full text-[11px] font-black shrink-0 ${completada ? "bg-emerald-500 text-white" : activa ? "bg-signal text-slate-950 ring-2 ring-signal/30" : "bg-surface-elevated border border-border text-text-tertiary"}`}>
+                  {completada ? "✓" : et.id}
+                </div>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className={`font-body text-[11px] font-bold leading-none ${activa ? "text-text-primary" : completada ? "text-emerald-600" : "text-text-tertiary"}`}>{et.titulo}</span>
+                  <span className="font-body text-[9px] text-text-tertiary leading-none">~{et.tiempo} min</span>
+                </div>
+                {et.id < 3 && <div className={`hidden sm:block h-px flex-1 ${et.id < etapaActual ? "bg-emerald-500/30" : "bg-border/30"}`} aria-hidden />}
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="font-body text-[11px] font-semibold text-text-tertiary">Progreso: {minutosHechos}/{minutosTotales} min · {porcentaje}%</span>
+          <span className="font-body text-[11px] font-bold text-emerald-600">80% termina en 5 min</span>
         </div>
       </div>
 

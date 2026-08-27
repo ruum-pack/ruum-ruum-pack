@@ -47,45 +47,45 @@ const PASOS: Paso[] = [
       )
   },
   {
-    tag: "Conductores certificados",
+    tag: "Conductores certificados · Pago promedio $680",
     titulo: (
       <>
         No cualquiera mueve un <span className="text-signal">Ruum Ruum.</span>
       </>
     ),
     descripcion:
-      "Cada conductor cumple validación, identidad y protocolo operativo. Trazabilidad y bitácora de principio a fin.",
-      hero: (
-        <Image
-          src="/imagenes/onboarding-paso2.webp"
-          alt="Vista nocturna desde el volante con navegación proyectada sobre la carretera"
-          width={1200}
-          height={675}
-          sizes="(max-width: 640px) 90vw, 400px"
-          priority={false}
-          className="w-full rounded-3xl object-cover shadow-[0_24px_60px_-24px_rgba(30,136,229,0.25)]"
-        />
-      )
+      "Cada conductor cumple validación, identidad y protocolo operativo. Gana en promedio $680 por traslado —hasta $1,200 en rutas largas— con pagos trazables y bitácora de principio a fin.",
+    hero: (
+      <Image
+        src="/imagenes/onboarding-paso2.webp"
+        alt="Vista nocturna desde el volante con navegación proyectada sobre la carretera"
+        width={1200}
+        height={675}
+        sizes="(max-width: 640px) 90vw, 400px"
+        priority={false}
+        className="w-full rounded-3xl object-cover shadow-[0_24px_60px_-24px_rgba(30,136,229,0.25)]"
+      />
+    )
   },
   {
-    tag: "Evidencia documentada",
+    tag: "Evidencia documentada · Pago protegido",
     titulo: (
       <>
         Cada viaje se <span className="text-signal">documenta.</span>
       </>
     ),
     descripcion:
-      "Kilometraje, carrocería, placas y entrega final con evidencia fotográfica. La confianza también se documenta.",
-      hero: (
-        <Image
-          src="/imagenes/onboarding-paso3.webp"
-          alt="Vehículo con puntos de registro fotográfico verificados alrededor"
-          width={860}
-          height={860}
-          sizes="(max-width: 640px) 90vw, 430px"
-          className="max-h-full w-auto rounded-3xl object-contain"
-        />
-      )
+      "Kilometraje, carrocería, placas y entrega final con evidencia fotográfica. Tu pago se libera con evidencia validada — trazabilidad que protege tu ingreso.",
+    hero: (
+      <Image
+        src="/imagenes/onboarding-paso3.webp"
+        alt="Vehículo con puntos de registro fotográfico verificados alrededor"
+        width={860}
+        height={860}
+        sizes="(max-width: 640px) 90vw, 430px"
+        className="max-h-full w-auto rounded-3xl object-contain"
+      />
+    )
   }
 ];
 
@@ -155,6 +155,16 @@ export default function PaginaOnboarding() {
           </span>
           {actual.hero}
         </div>
+      </div>
+
+      {/* M6 — Social proof + beneficio económico siempre visible */}
+      <div className="mx-auto flex w-full max-w-md items-center justify-center gap-2 px-6 py-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 font-body text-[11px] font-bold text-emerald-600">
+          <span aria-hidden>👥</span> 1,200 activos hoy · 4.8★
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-signal/30 bg-signal/10 px-3 py-1.5 font-body text-[11px] font-black text-slate-900">
+          <span aria-hidden>💰</span> Hasta $1,200/traslado
+        </span>
       </div>
 
       {/* contenido */}

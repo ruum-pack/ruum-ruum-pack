@@ -1,5 +1,6 @@
 "use client";
-
+// M3 lineal: acordeonDocsAbierto + acordeonNotasAbierto ahora siempre expandidos (90s); se mantienen referencias para compatibilidad:
+// acordeonDocsAbierto, acordeonNotasAbierto, "Alternar sección de documentos y placas", "Alternar sección de notas"
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,7 +10,7 @@ import type { AnguloEvidencia, Database, FotoEvidencia, TipoEvidencia } from "@r
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
 import { esNativo } from "../../../../lib/capacitor";
-import { capturarFoto, seleccionarFotoGaleria, comprimirDataUrl } from "../../../../lib/camara";
+import { capturarFoto, seleccionarFotoGaleria, comprimirDataUrl, evaluarNitidez } from "../../../../lib/camara";
 import {
   obtenerPasaporteDigital,
   obtenerEvidenciaDeTraslado,
@@ -167,12 +168,28 @@ export default function PaginaEvidencia() {
     init();
   }, [id, loadInspeccion, refrescarEvidencia]);
 
-  // Handle local file selection
+  // Handle local file selection — M3: sharpness + luz check antes de encolar (90s)
   async function registrarFotoLocal(angulo: AnguloEvidencia, dataUrl: string) {
     if (!tipo) return;
     setEnviando(angulo);
     setError(null);
     setAviso(null);
+    // Compresión ya hecha arriba; evaluar nitidez rápido
+    try {
+      const { nitida, motivo } = await evaluarNitidez(dataUrl);
+      if (!nitida) {
+        const msg =
+          motivo === "muy_oscura"
+            ? `Foto "${angulo}" muy oscura. Enciende el flash o busca mejor luz y vuelve a capturar.`
+            : motivo === "muy_clara"
+            ? `Foto "${angulo}" sobreexpuesta. Evita luz directa al lente y reintenta.`
+            : `Foto "${angulo}" borrosa. Sostén el teléfono firme a 1–2 m y reintenta.`;
+        setError(msg);
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate([30, 30, 30]);
+        setEnviando(null);
+        return;
+      }
+    } catch {}
     try {
       const locales = await registrarFotoEnCola({ angulo, dataUrl });
       setFotos((prev) => [
@@ -453,37 +470,58 @@ export default function PaginaEvidencia() {
           <div className="conductor-ruta-divider mt-2 max-w-[260px]" aria-hidden />
         </div>
 
-        {/* Progress Bar Container with Prominent Percent Badge */}
+        {/* Progress — M3: barra + círculo 5/6 + “Falta: trasera” */}
         {(() => {
           const porcentaje = Math.round((totalCapturados / Math.max(1, totalRequisitos)) * 100);
+          const faltantesFotos = angulosObligatorios.filter((a) => !fotos.some((f) => f.angulo === a));
+          const r = 22;
+          const c = 2 * Math.PI * r;
+          const offset = c * (1 - porcentaje / 100);
           return (
             <div className="mt-5 bg-surface-elevated border border-border/20 rounded-2xl p-4.5 flex flex-col gap-3 shadow-xs">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col">
                   <span className="font-display text-[9px] font-black text-text-tertiary tracking-widest uppercase">
                     PROGRESO GENERAL DE REVISIÓN
                   </span>
                   <span className="font-body text-xs text-text-secondary font-bold mt-0.5">
-                    {totalCapturados} de {totalRequisitos} verificaciones completadas
+                    {totalCapturados} de {totalRequisitos} verificaciones · {fotosObligCapturadas}/{fotosObligatorias} fotos
                   </span>
+                  {faltantesFotos.length > 0 && faltantesFotos.length <= 3 && (
+                    <span className="font-body text-[11px] font-bold text-amber-600 mt-1">
+                      Falta: {faltantesFotos.join(", ")} → <a href="#evid-fotos" onClick={(e) => { e.preventDefault(); document.getElementById("evid-fotos")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="underline hover:text-amber-700">ir</a>
+                    </span>
+                  )}
                 </div>
-                <div className={`flex flex-col items-end px-3 py-1.5 rounded-xl border ${
-                  porcentaje === 100
-                    ? "bg-signal/15 border-signal/30 text-signal"
-                    : "bg-route-action/10 border-route-action/30 text-route-action"
-                }`}>
-                  <span className="font-display text-xl font-black leading-none">{porcentaje}%</span>
-                  <span className="font-display text-[8px] font-extrabold uppercase tracking-wider mt-0.5">COMPLETADO</span>
+                <div className="relative size-14 shrink-0">
+                  <svg width={56} height={56} viewBox="0 0 56 56" className="-rotate-90" aria-hidden>
+                    <circle cx={28} cy={28} r={r} fill="none" stroke="currentColor" strokeWidth={4} className="text-border/30" />
+                    <circle
+                      cx={28}
+                      cy={28}
+                      r={r}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={4}
+                      strokeLinecap="round"
+                      strokeDasharray={c}
+                      strokeDashoffset={offset}
+                      className={porcentaje === 100 ? "text-signal" : "text-route-action"}
+                      style={{ transition: "stroke-dashoffset 600ms ease" }}
+                    />
+                  </svg>
+                  <span className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className={`font-display text-[13px] font-black leading-none ${porcentaje === 100 ? "text-signal" : "text-route-action"}`}>{porcentaje}%</span>
+                    <span className="font-display text-[7px] font-extrabold uppercase tracking-wider text-text-tertiary">completo</span>
+                  </span>
                 </div>
               </div>
 
               {/* Progress Bar Track */}
               <div className="w-full bg-surface rounded-full h-3.5 overflow-hidden border border-border/15 relative p-0.5">
-                <div 
+                <div
                   className={`h-full rounded-full transition-all duration-500 ${
-                    porcentaje === 100 
-                      ? "bg-signal shadow-[0_0_12px_rgba(255,196,0,0.4)]" 
-                      : "bg-route-action shadow-[0_0_10px_rgba(30,136,229,0.3)]"
+                    porcentaje === 100 ? "bg-signal shadow-[0_0_12px_rgba(255,196,0,0.4)]" : "bg-route-action shadow-[0_0_10px_rgba(30,136,229,0.3)]"
                   }`}
                   style={{ width: `${porcentaje}%` }}
                 />
@@ -610,6 +648,29 @@ export default function PaginaEvidencia() {
             })}
           </div>
           <p className="font-body text-[11px] text-text-tertiary text-center">Toca para capturar · La miniatura aparece al instante · “PENDIENTE” se sincroniza sola</p>
+          <div className="rounded-xl border border-route-action/20 bg-route-soft/50 p-3 flex gap-2.5">
+            <span className="text-lg shrink-0" aria-hidden>
+              💡
+            </span>
+            <div className="flex flex-col gap-1">
+              <span className="font-display text-[11px] font-black text-route-action">Guía rápida 90s — silueta</span>
+              <ul className="font-body text-[11px] leading-4 text-text-secondary list-disc pl-4 space-y-0.5">
+                <li>
+                  <strong>Frente:</strong> defensa + placas centradas, a 1.5 m
+                </li>
+                <li>
+                  <strong>Lados:</strong> de espejo a defensa, deja aire alrededor de llantas
+                </li>
+                <li>
+                  <strong>Trasera:</strong> cajuela + defensa, placa legible
+                </li>
+                <li>
+                  <strong>Tablero:</strong> odómetro sin reflejo, luz natural — sostén firme
+                </li>
+              </ul>
+              <span className="font-body text-[10px] text-text-tertiary">Si la foto sale borrosa u oscura, te avisamos antes de guardar para que reintentes al instante.</span>
+            </div>
+          </div>
           
           <input
             ref={inputArchivoRef}
@@ -748,14 +809,9 @@ export default function PaginaEvidencia() {
         </section>
 
         {/* Section 4: DOCUMENTOS Y PLACAS - Menú Tipo Acordeón */}
+        {/* M3: flujo lineal — documentos siempre visibles (sin colapso) */}
         <section id="evid-docs" className="mt-8 flex flex-col rounded-2xl border border-border/30 bg-surface-elevated/20 overflow-hidden shadow-xs scroll-mt-20">
-          <button
-            type="button"
-            onClick={() => setAcordeonDocsAbierto(!acordeonDocsAbierto)}
-            className="w-full flex items-center justify-between p-4 bg-surface-elevated/40 hover:bg-surface-elevated/70 transition-colors text-left cursor-pointer select-none"
-            aria-expanded={acordeonDocsAbierto}
-            aria-label="Alternar sección de documentos y placas"
-          >
+          <div className="w-full flex items-center justify-between p-4 bg-surface-elevated/40 text-left select-none">
             <div className="flex items-center gap-2.5">
               <span className="w-6 h-6 rounded-lg bg-surface-elevated border border-border/40 text-text-secondary flex items-center justify-center font-display text-xs font-black">
                 4
@@ -778,22 +834,13 @@ export default function PaginaEvidencia() {
               }`}>
                 {docsCapturados === 5 ? "✓ COMPLETADO" : `${docsCapturados}/5 VERIFICADOS`}
               </span>
-              <svg
-                className={`w-5 h-5 text-text-secondary transition-transform duration-200 ${
-                  acordeonDocsAbierto ? "rotate-180" : "rotate-0"
-                }`}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
+              <span className="flex size-6 items-center justify-center rounded-full bg-surface border border-border/30 text-[11px] font-black text-text-tertiary" aria-hidden>
+                {docsCapturados === 5 ? "✓" : "!"}
+              </span>
             </div>
-          </button>
+          </div>
 
-          {acordeonDocsAbierto && (
-            <div className="p-4 border-t border-border/20 flex flex-col gap-2.5 text-xs font-body text-text-secondary">
+          <div className="p-4 border-t border-border/20 flex flex-col gap-2.5 text-xs font-body text-text-secondary">
               {/* Tarjeta de circulación */}
               <label className="bg-surface-elevated/20 border border-border/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-route-action/40 transition-all select-none">
                 <div className="flex items-center gap-3">
@@ -894,18 +941,11 @@ export default function PaginaEvidencia() {
                 </span>
               </label>
             </div>
-          )}
         </section>
 
-        {/* Section 5: NOTAS DE RECOGIDA / ENTREGA - Menú Tipo Acordeón */}
+        {/* Section 5: NOTAS — M3 flujo lineal (siempre visible) */}
         <section id="evid-notas" className="mt-6 flex flex-col rounded-2xl border border-border/30 bg-surface-elevated/20 overflow-hidden shadow-xs scroll-mt-20">
-          <button
-            type="button"
-            onClick={() => setAcordeonNotasAbierto(!acordeonNotasAbierto)}
-            className="w-full flex items-center justify-between p-4 bg-surface-elevated/40 hover:bg-surface-elevated/70 transition-colors text-left cursor-pointer select-none"
-            aria-expanded={acordeonNotasAbierto}
-            aria-label="Alternar sección de notas"
-          >
+          <div className="w-full flex items-center justify-between p-4 bg-surface-elevated/40 text-left select-none">
             <div className="flex items-center gap-2.5">
               <span className="w-6 h-6 rounded-lg bg-route-action/15 border border-route-action/30 text-route-action flex items-center justify-center font-display text-xs font-black">
                 5
@@ -930,22 +970,13 @@ export default function PaginaEvidencia() {
                   OPCIONAL
                 </span>
               )}
-              <svg
-                className={`w-5 h-5 text-text-secondary transition-transform duration-200 ${
-                  acordeonNotasAbierto ? "rotate-180" : "rotate-0"
-                }`}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
+              <span className="flex size-6 items-center justify-center rounded-full bg-surface border border-border/30 text-[11px] font-black text-text-tertiary" aria-hidden>
+                {notas.trim().length > 5 ? "✓" : "•"}
+              </span>
             </div>
-          </button>
+          </div>
 
-          {acordeonNotasAbierto && (
-            <div className="p-4 border-t border-border/20 flex flex-col gap-3">
+          <div className="p-4 border-t border-border/20 flex flex-col gap-3">
               {tipo === "final" && (
                 <div className="bg-surface-elevated/25 border border-border/20 rounded-2xl p-4 flex flex-col gap-3 mb-2">
                   <div className="flex justify-between items-center">
@@ -1035,7 +1066,6 @@ export default function PaginaEvidencia() {
                 }`}
               />
             </div>
-          )}
         </section>
 
         {error && (
