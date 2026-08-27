@@ -48,17 +48,17 @@ async function ensureAuthUser(admin: AdminClient, email: string, password: strin
   const existingId = await findAuthUserId(admin, email);
   if (existingId) {
     const { error } = await admin.auth.admin.updateUserById(existingId, {
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        tipo_registro: tipoRegistro,
-        version_registro: tipoRegistro === "conductor" ? 2 : undefined,
-        nombre: tipoRegistro === "conductor" ? "Conductor E2E Ruum" : "Usuario E2E Ruum",
-        telefono: tipoRegistro === "conductor" ? "5510000201" : "5510000202",
-        tipo_cuenta: tipoRegistro === "usuario" ? "personal" : undefined
-      }
-    });
+  email,
+  password,
+  email_confirm: true,
+  user_metadata: {
+    tipo_registro: tipoRegistro,
+    version_registro: tipoRegistro === "conductor" ? 2 : undefined,
+    nombre: tipoRegistro === "conductor" ? "Conductor E2E Ruum" : "Usuario E2E Ruum",
+    telefono: tipoRegistro === "conductor" ? "5510000201" : "5510000202",
+    tipo_cuenta: tipoRegistro === "usuario" ? "personal" : undefined
+  }
+});
     if (error) throw error;
     return existingId;
   }
