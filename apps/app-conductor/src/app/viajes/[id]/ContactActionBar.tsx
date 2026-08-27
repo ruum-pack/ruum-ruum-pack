@@ -90,26 +90,43 @@ export function ContactActionBar({ trasladoId, role, name, phone }: ContactActio
 
       <div className="mt-4">
         <p className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">
-          {isSupport ? "Mensaje rápido a soporte" : "Mensaje rápido por Ruum"}
+          {isSupport ? "Mensaje rápido a soporte (1 toque)" : "Mensaje rápido por Ruum (1 toque)"}
         </p>
-        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {MENSAJES_RAPIDOS_CONTACTO.map((quickMessage) => (
+        {/* Q10: chips 1-tap siempre visibles, scrolleables, 44dp */}
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-none -mx-1 px-1">
+          {MENSAJES_RAPIDOS_CONTACTO.slice(0, 3).map((quickMessage) => (
             <button
               key={quickMessage}
               type="button"
               onClick={() => void sendQuickMessage(quickMessage)}
               disabled={busy !== null}
-              className="min-h-11 rounded-lg border border-route-action bg-route-soft px-3 py-2 text-left font-body text-sm font-semibold text-route-action transition hover:bg-surface disabled:cursor-wait disabled:border-border disabled:bg-surface disabled:text-disabled"
+              className="shrink-0 min-h-11 rounded-full border border-route-action bg-route-soft px-4 py-2 font-body text-sm font-bold text-route-action transition hover:bg-surface active:scale-[0.98] disabled:cursor-wait disabled:border-border disabled:bg-surface disabled:text-disabled whitespace-nowrap"
             >
-              {busy === quickMessage ? TEXTOS_CARGANDO.enviando : quickMessage}
+              {busy === quickMessage ? TEXTOS_CARGANDO.enviando : `💬 ${quickMessage}`}
             </button>
           ))}
         </div>
+        <details className="mt-1">
+          <summary className="cursor-pointer font-body text-xs font-semibold text-text-tertiary hover:text-text-primary select-none py-1">Ver más mensajes</summary>
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {MENSAJES_RAPIDOS_CONTACTO.slice(3).map((quickMessage) => (
+              <button
+                key={quickMessage}
+                type="button"
+                onClick={() => void sendQuickMessage(quickMessage)}
+                disabled={busy !== null}
+                className="min-h-11 rounded-lg border border-route-action bg-route-soft px-3 py-2 text-left font-body text-sm font-semibold text-route-action transition hover:bg-surface disabled:cursor-wait disabled:border-border disabled:bg-surface disabled:text-disabled"
+              >
+                {busy === quickMessage ? TEXTOS_CARGANDO.enviando : quickMessage}
+              </button>
+            ))}
+          </div>
+        </details>
       </div>
 
       <div className="mt-3">
-        <Button variant="secondary" className="w-full sm:w-auto" onClick={callContact} disabled={busy !== null || (!isSupport && !phone)}>
-          {busy === "call" ? TEXTOS_CARGANDO.conectando : "Llamar"}
+        <Button variant="secondary" className="w-full sm:w-auto min-h-11" onClick={callContact} disabled={busy !== null || (!isSupport && !phone)}>
+          {busy === "call" ? TEXTOS_CARGANDO.conectando : "📞 Llamar"}
         </Button>
       </div>
 

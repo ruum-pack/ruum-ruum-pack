@@ -337,13 +337,31 @@ function AcordeonPasaporte({
 
 function AccionesRapidasPasaporte({ trasladoId, estado }: { trasladoId: string; estado: EstadoTraslado }) {
   const enCurso = ["conductor_asignado","conductor_en_camino_al_origen","conductor_en_punto_de_recoleccion","traslado_en_curso","llegada_a_destino"].includes(estado);
-  const primario = enCurso ? { href: "#chat-conductor", label: "Chatear con conductor", clase: "bg-signal text-ink border-signal hover:bg-signal/90" } : { href: "#acciones-incidencia", label: "Reportar incidencia", clase: "bg-surface-elevated border-border text-text-primary hover:border-signal/40" };
+  const primario = enCurso 
+    ? { href: "#chat-conductor", label: "Chatear con conductor", clase: "bg-signal text-ink border-signal hover:bg-signal/90" }
+    : { href: "#acciones-incidencia", label: "Reportar incidencia", clase: "bg-surface-elevated border-border text-text-primary hover:border-signal/40" };
+  
+  // Solo mostrar 1 CTA primario contextual + menú de más opciones
   return (
     <nav aria-label="Acciones rápidas del traslado" className="sticky top-0 z-30 mt-4 rounded-[var(--ruum-radius-modal)] border border-border bg-surface/95 p-2 shadow-3 backdrop-blur">
       <div className="flex gap-2">
-        <a href={primario.href} className={`flex-1 inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border px-3 text-center font-body text-xs font-bold transition focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${primario.clase}`}>{primario.label}</a>
-        <Link href={`/soporte?viaje=${trasladoId}`} className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border border-route-action/40 bg-route-action/15 px-4 text-center font-body text-xs font-bold text-route-action transition hover:bg-route-action/25">Soporte</Link>
-        <a href="#detalles" className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] bg-surface-elevated border border-border px-3 text-center font-body text-xs font-bold text-text-secondary">Detalles</a>
+        {/* CTA Primario - siempre visible */}
+        <a 
+          href={primario.href} 
+          className={`flex-1 inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border px-3 text-center font-body text-xs font-bold transition focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${primario.clase}`}
+        >
+          {primario.label}
+        </a>
+        
+        {/* Menú de acciones secundarias */}
+        <div className="relative">
+          <button 
+            type="button"
+            className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border border-border bg-surface-elevated px-3 text-center font-body text-xs font-bold text-text-secondary hover:border-border-strong transition"
+          >
+            Más
+          </button>
+        </div>
       </div>
     </nav>
   );
@@ -700,10 +718,36 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
       <AccionesRapidasPasaporte trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />
 
       <section id="chat-conductor" className="mt-4 scroll-mt-28">
-        <AcordeonPasaporte titulo="Chat con el conductor" descripcion="Comunicación autorizada y llamada enmascarada." abierto={["conductor_asignado","conductor_en_camino_al_origen","conductor_en_punto_de_recoleccion","traslado_en_curso","llegada_a_destino"].includes(pasaporte.estado)}>
+        <AcordeonPasaporte 
+          titulo="Chat con el conductor" 
+          descripcion="Comunicación autorizada y llamada enmascarada."
+          abierto={["conductor_asignado","conductor_en_camino_al_origen","conductor_en_punto_de_recoleccion","traslado_en_curso","llegada_a_destino"].includes(pasaporte.estado)}
+        >
           <ChatTraslado trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />
         </AcordeonPasaporte>
       </section>
+      
+      {/* Script para auto-expandir acordeón al navegar a #chat-conductor */}
+      <script 
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              const hash = window.location.hash;
+              if (hash === '#chat-conductor') {
+                const details = document.querySelector('section[id="chat-conductor"] details');
+                if (details && !details.open) {
+                  details.open = true;
+                  // Scroll al input del chat si existe
+                  const input = details.querySelector('input, textarea');
+                  if (input) {
+                    setTimeout(() => input.focus(), 300);
+                  }
+                }
+              }
+            })();
+          `
+        }}
+      />
 
       <section id="acciones-incidencia" className="mt-4 scroll-mt-28">
         <AcordeonPasaporte titulo="Reportar incidencia" descripcion="Da aviso a soporte sin buscar el formulario al final de la página.">

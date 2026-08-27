@@ -10,6 +10,12 @@ interface ViajesFiltersProps {
   ciudadesDisponibles: string[];
 }
 
+const ORDENES: Array<{ valor: OrdenViajes; etiqueta: string; icono: string }> = [
+  { valor: "recientes", etiqueta: "Recientes", icono: "🕒" },
+  { valor: "mayor_ganancia", etiqueta: "Mayor ganancia", icono: "💰" },
+  { valor: "menor_distancia", etiqueta: "Menor distancia", icono: "📍" }
+];
+
 export function ViajesFilters({
   orden,
   onCambiarOrden,
@@ -17,48 +23,61 @@ export function ViajesFilters({
   onCambiarCiudad,
   ciudadesDisponibles
 }: ViajesFiltersProps) {
-  if (ciudadesDisponibles.length <= 1 && orden === "recientes") {
-    // Si no hay múltiples ciudades ni opciones complejas, mantenemos la barra simple
-  }
-
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 mt-3 select-none">
-      {/* Selector de Ciudad si hay varias */}
-      {ciudadesDisponibles.length > 1 ? (
-        <label className="flex flex-col gap-1 w-full sm:w-auto">
-          <span className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Ciudad</span>
-          <select
-            value={ciudadFiltro}
-            onChange={(e) => onCambiarCiudad(e.target.value)}
-            className="bg-surface-elevated border border-border/20 text-text-primary text-sm font-semibold rounded-xl px-3 py-2 min-h-11 outline-hidden cursor-pointer w-full sm:w-auto focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
-            aria-label="Filtrar por ciudad de origen"
-          >
-            <option value="todas">Todas las ciudades</option>
-            {ciudadesDisponibles.map((ciudad) => (
-              <option key={ciudad} value={ciudad}>
-                {ciudad}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : (
-        <div className="hidden sm:block" />
-      )}
+    <div className="mt-3 flex flex-col gap-2.5 select-none">
+      {/* Orden — chips horizontales scrolleables, 1-tap */}
+      <div className="flex items-center gap-2">
+        <span className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary shrink-0">Orden:</span>
+        <div className="flex gap-2 overflow-x-auto scrollbar-none flex-1 py-1" role="group" aria-label="Ordenar ofertas">
+          {ORDENES.map((o) => (
+            <button
+              key={o.valor}
+              type="button"
+              onClick={() => onCambiarOrden(o.valor)}
+              aria-pressed={orden === o.valor}
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-2 font-body text-xs font-bold transition-all min-h-9 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${
+                orden === o.valor ? "bg-signal border-signal text-slate-950 shadow-sm" : "bg-surface-elevated border-border/40 text-text-secondary hover:border-route-action/30 hover:text-text-primary"
+              }`}
+            >
+              <span aria-hidden>{o.icono}</span>
+              {o.etiqueta}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {/* Selector de Ordenamiento */}
-      <label className="flex items-center gap-2 ml-auto w-full sm:w-auto justify-end">
-        <span className="text-xs font-bold text-text-tertiary shrink-0">Orden:</span>
-        <select
-          value={orden}
-          onChange={(e) => onCambiarOrden(e.target.value as OrdenViajes)}
-          className="bg-surface-elevated border border-border/20 text-text-primary text-sm font-semibold rounded-xl px-3 py-2 min-h-11 outline-hidden cursor-pointer flex-1 sm:flex-none min-w-0 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
-          aria-label="Ordenar lista de viajes"
-        >
-          <option value="recientes">Recientes</option>
-          <option value="mayor_ganancia">Mayor ganancia</option>
-          <option value="menor_distancia">Menor distancia</option>
-        </select>
-      </label>
+      {/* Ciudad — chips (solo si hay >1) */}
+      {ciudadesDisponibles.length > 1 && (
+        <div className="flex items-center gap-2">
+          <span className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary shrink-0">Ciudad:</span>
+          <div className="flex gap-2 overflow-x-auto scrollbar-none flex-1 py-1" role="group" aria-label="Filtrar por ciudad">
+            <button
+              type="button"
+              onClick={() => onCambiarCiudad("todas")}
+              aria-pressed={ciudadFiltro === "todas"}
+              className={`shrink-0 rounded-full border px-3 py-2 font-body text-xs font-bold transition-all min-h-9 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${
+                ciudadFiltro === "todas" ? "bg-surface border-text-primary text-text-primary" : "bg-surface-elevated border-border/40 text-text-tertiary hover:text-text-primary"
+              }`}
+            >
+              Todas
+            </button>
+            {ciudadesDisponibles.map((ciudad) => (
+              <button
+                key={ciudad}
+                type="button"
+                onClick={() => onCambiarCiudad(ciudad)}
+                aria-pressed={ciudadFiltro === ciudad}
+                className={`shrink-0 rounded-full border px-3 py-2 font-body text-xs font-bold transition-all min-h-9 max-w-[160px] truncate focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${
+                  ciudadFiltro === ciudad ? "bg-signal border-signal text-slate-950 shadow-sm" : "bg-surface-elevated border-border/40 text-text-secondary hover:border-route-action/30 hover:text-text-primary"
+                }`}
+                title={ciudad}
+              >
+                {ciudad}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

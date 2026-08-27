@@ -17,6 +17,7 @@ import {
   firmarUrlsEvidencia
 } from "@ruum/api/services";
 import { useEvidenceQueue } from "./useEvidenceQueue";
+import { fotoSrc } from "./evidence-requirements";
 import { SecondaryTripNavBar } from "../SecondaryTripNavBar";
 
 type PasaporteDigitalRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -381,6 +382,7 @@ export default function PaginaEvidencia() {
   }
 
   const isPhotoCaptured = (angulo: AnguloEvidencia) => fotos.some((f) => f.angulo === angulo);
+  const obtenerFoto = (angulo: AnguloEvidencia) => fotos.find((f) => f.angulo === angulo);
 
   if (cargando) {
     return (
@@ -557,108 +559,57 @@ export default function PaginaEvidencia() {
           </div>
 
           <div className="grid grid-cols-3 gap-2.5">
-            {/* Frente */}
-            <button
-              type="button"
-              onClick={() => capturar("frente")}
-              className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
-                isPhotoCaptured("frente")
-                  ? "bg-surface-elevated border-signal/60"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
-              }`}
-            >
-              {isPhotoCaptured("frente") && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-signal text-slate-950 flex items-center justify-center text-[8px] font-black">✓</span>
-              )}
-              <span className="text-xl">📷</span>
-              <span className="font-body text-[10px] font-bold text-text-secondary">Frente</span>
-            </button>
-
-            {/* Lado piloto */}
-            <button
-              type="button"
-              onClick={() => capturar("lado_piloto")}
-              className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
-                isPhotoCaptured("lado_piloto")
-                  ? "bg-surface-elevated border-signal/60"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
-              }`}
-            >
-              {isPhotoCaptured("lado_piloto") && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-signal text-slate-950 flex items-center justify-center text-[8px] font-black">✓</span>
-              )}
-              <span className="text-xl">📷</span>
-              <span className="font-body text-[10px] font-bold text-text-secondary">Lado piloto</span>
-            </button>
-
-            {/* Lado copiloto */}
-            <button
-              type="button"
-              onClick={() => capturar("lado_copiloto")}
-              className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
-                isPhotoCaptured("lado_copiloto")
-                  ? "bg-surface-elevated border-signal/60"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
-              }`}
-            >
-              {isPhotoCaptured("lado_copiloto") && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-signal text-slate-950 flex items-center justify-center text-[8px] font-black">✓</span>
-              )}
-              <span className="text-xl">📷</span>
-              <span className="font-body text-[10px] font-bold text-text-secondary">Lado copiloto</span>
-            </button>
-
-            {/* Trasera */}
-            <button
-              type="button"
-              onClick={() => capturar("trasera")}
-              className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
-                isPhotoCaptured("trasera")
-                  ? "bg-surface-elevated border-signal/60"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
-              }`}
-            >
-              {isPhotoCaptured("trasera") && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-signal text-slate-950 flex items-center justify-center text-[8px] font-black">✓</span>
-              )}
-              <span className="text-xl">📷</span>
-              <span className="font-body text-[10px] font-bold text-text-secondary">Trasera</span>
-            </button>
-
-            {/* Tablero */}
-            <button
-              type="button"
-              onClick={() => capturar("tablero")}
-              className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
-                isPhotoCaptured("tablero")
-                  ? "bg-surface-elevated border-signal/60"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
-              }`}
-            >
-              {isPhotoCaptured("tablero") && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-signal text-slate-950 flex items-center justify-center text-[8px] font-black">✓</span>
-              )}
-              <span className="text-xl">📷</span>
-              <span className="font-body text-[10px] font-bold text-text-secondary">Tablero</span>
-            </button>
-
-            {/* Adicionales */}
-            <button
-              type="button"
-              onClick={() => capturar("adicional")}
-              className={`relative rounded-xl border p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-pointer transition-all select-none ${
-                isPhotoCaptured("adicional")
-                  ? "bg-surface-elevated border-signal/60"
-                  : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
-              }`}
-            >
-              {isPhotoCaptured("adicional") && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-signal text-slate-950 flex items-center justify-center text-[8px] font-black">✓</span>
-              )}
-              <span className="text-xl">+</span>
-              <span className="font-body text-[10px] font-bold text-text-secondary">Adicionales <span className="font-normal text-[8px] text-text-tertiary">(opc.)</span></span>
-            </button>
+            {(["frente", "lado_piloto", "lado_copiloto", "trasera", "tablero", "adicional"] as const).map((angulo) => {
+              const foto = obtenerFoto(angulo);
+              const capturada = Boolean(foto);
+              const src = foto ? fotoSrc(foto) : null;
+              const sincronizada = foto?.sincronizada ?? true;
+              const label = angulo === "lado_piloto" ? "Lado piloto" : angulo === "lado_copiloto" ? "Lado copiloto" : angulo === "adicional" ? "Adicional" : angulo.charAt(0).toUpperCase() + angulo.slice(1);
+              const esOpcional = angulo === "adicional";
+              return (
+                <button
+                  key={angulo}
+                  type="button"
+                  onClick={() => capturar(angulo)}
+                  aria-label={capturada ? `${label} — foto capturada, toca para reemplazar` : `${label} — toca para capturar fotografía`}
+                  className={`relative rounded-xl border overflow-hidden flex flex-col items-center justify-center gap-1 aspect-square cursor-pointer transition-all select-none focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${
+                    capturada
+                      ? sincronizada
+                        ? "bg-surface-elevated border-signal/60"
+                        : "bg-surface-elevated border-amber-500/50"
+                      : "bg-surface-elevated/20 border-border/40 border-dashed hover:border-route-action"
+                  }`}
+                >
+                  {src ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt={`Foto ${label.toLowerCase()}`} className="absolute inset-0 h-full w-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" aria-hidden />
+                      <span className={`absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shadow-md ${sincronizada ? "bg-signal text-slate-950" : "bg-amber-500 text-white"}`}>
+                        {sincronizada ? "✓" : "↻"}
+                      </span>
+                      <span className="relative mt-auto mb-1 rounded-full bg-black/55 px-2 py-0.5 font-body text-[9px] font-bold text-white backdrop-blur-sm">
+                        {label} {esOpcional && <span className="font-normal opacity-80">(opc.)</span>}
+                      </span>
+                      <span className={`relative mb-1 rounded-full px-1.5 py-0.5 font-body text-[7px] font-bold tracking-wide ${sincronizada ? "bg-signal text-slate-950" : "bg-amber-500 text-white"}`}>
+                        {sincronizada ? "SINCRONIZADA" : "PENDIENTE"}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xl" aria-hidden>
+                        {esOpcional ? "+" : "📷"}
+                      </span>
+                      <span className="font-body text-[10px] font-bold text-text-secondary">
+                        {label} {esOpcional && <span className="font-normal text-[8px] text-text-tertiary">(opc.)</span>}
+                      </span>
+                    </>
+                  )}
+                </button>
+              );
+            })}
           </div>
+          <p className="font-body text-[11px] text-text-tertiary text-center">Toca para capturar · La miniatura aparece al instante · “PENDIENTE” se sincroniza sola</p>
           
           <input
             ref={inputArchivoRef}

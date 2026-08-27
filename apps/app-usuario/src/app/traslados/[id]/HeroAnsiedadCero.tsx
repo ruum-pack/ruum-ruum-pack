@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { EstadoBadge, PassportCard } from "@ruum/ui";
+import { Button, EstadoBadge, PassportCard } from "@ruum/ui";
 import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
-type Conductor = Pick<Database["public"]["Tables"]["conductores"]["Row"], "id" | "nombre" | "estado" | "nivel_operativo_vigente" | "calificacion_promedio" | "traslados_completados">;
+type Conductor = Pick<Database["public"]["Tables"]["conductores"]["Row"], "id" | "nombre" | "estado" | "nivel_operativo_vigente" | "calificacion_promedio" | "traslados_completados" | "telefono">;
 
 const ORDEN_ESTADOS = [
   "solicitud_creada","servicio_confirmado","pendiente_de_conductor","conductor_asignado","conductor_en_camino_al_origen","conductor_en_punto_de_recoleccion","verificacion_vehiculo_en_proceso","evidencia_inicial_en_proceso","evidencia_inicial_completada","vehiculo_recibido","traslado_en_curso","llegada_a_destino","evidencia_final_en_proceso","evidencia_final_completada","entrega_confirmada","servicio_cerrado",
@@ -36,26 +36,93 @@ function proximaAccion(estado: string): string {
   return map[estado] ?? "Seguimos tu traslado en tiempo real.";
 }
 
+function calcularEta(estado: string, fechaHoraProgramada: string | null | undefined): string | null {
+  if (!fechaHoraProgramada) return null;
+  
+  const ahora = new Date();
+  const fechaProgramada = new Date(fechaHoraProgramada);
+  
+  if (fechaProgramada <= ahora) return null;
+  
+  const diferenciaMs = fechaProgramada.getTime() - ahora.getTime();
+  const horas = Math.floor(diferenciaMs / (1000 * 60 * 60));
+  const minutos = Math.floor((diferenciaMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (horas > 0) {
+    return `ETA: ~${horas}h ${minutos}m`;
+  } else if (minutos > 0) {
+    return `ETA: ~${minutos}m`;
+  }
+  return null;
+}
+
+function puedeLlamar(estado: string): boolean {
+  const estadosConLlamada = [
+    "conductor_asignado",
+    "conductor_en_camino_al_origen",
+    "conductor_en_punto_de_recoleccion",
+    "traslado_en_curso",
+    "llegada_a_destino",
+    "evidencia_final_en_proceso",
+  ];
+  return estadosConLlamada.includes(estado);
+}
+
+function puedeChatear(estado: string): boolean {
+  const estadosConChat = [
+    "conductor_asignado",
+    "conductor_en_camino_al_origen",
+    "conductor_en_punto_de_recoleccion",
+    "traslado_en_curso",
+    "llegada_a_destino",
+  ];
+  return estadosConChat.includes(estado);
+}
+
 function iniciales(nombre: string | null | undefined) {
   if (!nombre) return "RR";
   return nombre.split(" ").filter(Boolean).slice(0,2).map(p=>p[0]?.toUpperCase()).join("");
 }
 
-export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }: { pasaporte: Pasaporte; conductor: Conductor | null; traslado: { origen_direccion: string | null; origen_ciudad: string | null; destino_direccion: string | null; destino_ciudad: string | null } | null; trasladoId: string }) {
+export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }: { 
+  pasaporte: Pasaporte; 
+  conductor: Conductor | null; 
+  traslado: { 
+    origen_direccion: string | null; 
+    origen_ciudad: string | null; 
+    destino_direccion: string | null; 
+    destino_ciudad: string | null;
+    fecha_hora_programada: string | null;
+  } | null; 
+  trasladoId: string 
+}) {
   const estado = pasaporte.estado ?? "solicitud_creada";
   const pct = progreso(estado);
   const accion = proximaAccion(estado);
   const vehiculoNombre = [pasaporte.vehiculo_marca, pasaporte.vehiculo_modelo, pasaporte.vehiculo_anio].filter(Boolean).join(" ");
+  const eta = calcularEta(estado, traslado?.fecha_hora_programada ?? pasaporte.fecha_hora_programada);
+  const puedeLlamarConductor = puedeLlamar(estado);
+  const puedeChatearConductor = puedeChatear(estado);
+  
+  const telefonoConductor = conductor?.telefono ?? pasaporte.conductor_telefono;
 
   return (
     <PassportCard folio={`#RM-${trasladoId.slice(0,4).toUpperCase()}`} acento={pasaporte.tiene_incidencia_abierta ?? false} className="mt-4">
       <div className="flex flex-col gap-4">
-        {/* Estado grande + progreso */}
+        {/* Estado grande + progreso + ETA */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/55">Estado actual</p>
             <h2 className="mt-1 font-display text-xl font-black leading-tight text-ink sm:text-2xl">{ETIQUETA_ESTADO_TRASLADO[estado as keyof typeof ETIQUETA_ESTADO_TRASLADO] ?? estado}</h2>
             <p className="mt-2 font-body text-sm leading-5 text-ink/70">{accion}</p>
+            
+            {/* ETA - SIEMPRE VISIBLE */}
+            {eta && (
+              <p className="mt-2 font-display text-lg font-bold text-signal">
+                {eta}
+              </p>
+            )}
+            
             <div className="mt-3 h-2 w-full max-w-md overflow-hidden rounded-full bg-ink/10">
               <div className="h-full bg-signal transition-all" style={{ width: `${pct}%` }} aria-label={`Progreso ${pct}%`} />
             </div>
@@ -66,7 +133,7 @@ export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }:
           </div>
         </div>
 
-        {/* Conductor — abierto por defecto */}
+        {/* Conductor — SIEMPRE VISIBLE con acciones directas */}
         <div className="rounded-xl border border-ink/10 bg-mist p-4">
           <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Tu conductor</p>
           {conductor || pasaporte.conductor_nombre ? (
@@ -77,12 +144,34 @@ export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }:
               <div className="min-w-0 flex-1">
                 <p className="font-body text-sm font-bold text-ink truncate">{conductor?.nombre ?? pasaporte.conductor_nombre}</p>
                 <p className="font-body text-xs text-ink/55">
-                  {conductor?.nivel_operativo_vigente ?? pasaporte.conductor_nivel ?? "Certificado"} · {pasaporte.conductor_calificacion ? `${pasaporte.conductor_calificacion.toFixed(1)}★` : "—"} · {conductor?.traslados_completados ?? "—"} traslados
+                  {conductor?.nivel_operativo_vigente ?? pasaporte.conductor_nivel ?? "Certificado"} · 
+                  {pasaporte.conductor_calificacion ? `${pasaporte.conductor_calificacion.toFixed(1)}★` : "—"} · 
+                  {conductor?.traslados_completados ?? pasaporte.conductor_traslados_completados ?? "—"} traslados
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">
-                <a href="#chat-conductor" className="inline-flex min-h-10 items-center justify-center rounded-xl bg-signal px-4 py-2 font-display text-xs font-bold text-ink shadow-sm hover:bg-signal/90">Chat</a>
-                <Link href={`/soporte?viaje=${trasladoId}`} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-ink/15 bg-mist px-3 py-2 font-body text-xs font-semibold text-ink hover:border-ink/30">Ayuda</Link>
+                {puedeChatearConductor && (
+                  <a 
+                    href="#chat-conductor" 
+                    className="inline-flex min-h-10 items-center justify-center rounded-xl bg-signal px-4 py-2 font-display text-xs font-bold text-ink shadow-sm hover:bg-signal/90 transition"
+                  >
+                    Chat
+                  </a>
+                )}
+                {puedeLlamarConductor && telefonoConductor && (
+                  <a 
+                    href={`tel:${telefonoConductor}`}
+                    className="inline-flex min-h-10 items-center justify-center rounded-xl border border-ink/15 bg-mist px-3 py-2 font-body text-xs font-semibold text-ink hover:border-ink/30 hover:bg-ink/[0.04] transition"
+                  >
+                    ✆ Llamar
+                  </a>
+                )}
+                <Link 
+                  href={`/soporte?viaje=${trasladoId}`} 
+                  className="inline-flex min-h-10 items-center justify-center rounded-xl border border-ink/15 bg-mist px-3 py-2 font-body text-xs font-semibold text-ink hover:border-ink/30 transition"
+                >
+                  Ayuda
+                </Link>
               </div>
             </div>
           ) : (
@@ -91,7 +180,11 @@ export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }:
               <p className="font-body text-xs text-ink/55">Te avisamos en cuanto tengamos conductor. Tiempo promedio: &lt;15 min.</p>
             </div>
           )}
-          <p className="mt-2 font-body text-xs leading-5 text-ink/55">Vehículo: <span className="font-semibold text-ink">{vehiculoNombre || "—"}</span> {pasaporte.vehiculo_tipo ? `· ${ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo as never]}` : ""} · Placas {pasaporte.vehiculo_placas ?? "—"}</p>
+          <p className="mt-2 font-body text-xs leading-5 text-ink/55">
+            Vehículo: <span className="font-semibold text-ink">{vehiculoNombre || "—"}</span> 
+            {pasaporte.vehiculo_tipo ? `· ${ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo as never]}` : ""} · 
+            Placas <span className="font-mono-ruum font-semibold">{pasaporte.vehiculo_placas ?? "—"}</span>
+          </p>
         </div>
 
         {/* Ruta resumida abierta */}
@@ -114,7 +207,7 @@ export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }:
 
         {pasaporte.tiene_incidencia_abierta && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-            <p className="font-body text-sm font-bold text-amber-900">Incidencia abierta</p>
+            <p className="font-body text-sm font-bold text-amber-900">⚠️ Incidencia abierta</p>
             <p className="font-body text-xs leading-5 text-amber-800/80">Nuestro equipo ya está revisando. Te mantendremos informado desde este Pasaporte.</p>
           </div>
         )}

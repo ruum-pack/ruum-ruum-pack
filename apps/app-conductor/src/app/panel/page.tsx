@@ -56,9 +56,11 @@ function PanelLoadingSkeleton() {
 export default function PaginaPanel() {
   const { cerrarSesion, cerrandoSesion, errorCerrarSesion } = useCerrarSesion();
   const [soporteAbierto, setSoporteAbierto] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const [gpsActivo, setGpsActivo] = useState<boolean | null>(null);
   const [gpsUltimaSenal, setGpsUltimaSenal] = useState<Date | null>(null);
   const [pullOffset, setPullOffset] = useState(0);
+  const [avisoPullBloqueado, setAvisoPullBloqueado] = useState(false);
   const [estaOnline, setEstaOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -101,34 +103,46 @@ export default function PaginaPanel() {
   const alCambiarDisponibilidad = () => {
     if (disponibilidad === "en_viaje" || persistiendoDisponibilidad) return;
     const nuevoEstado = esDisponible ? "no_disponible" : "disponible";
-    if (navigator.vibrate) navigator.vibrate(12);
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(12);
     seleccionarDisponibilidad(nuevoEstado);
   };
 
-  // Pull-to-refresh nativo simple (solo en móvil, desde el top)
+  // Pull-to-refresh nativo simple (solo en móvil, desde el top) — Q5: explica bloqueo en viaje
   useEffect(() => {
     if (typeof window === "undefined") return;
     let startY = 0;
     let pulling = false;
+    let bloqueadoNotificado = false;
     const onTouchStart = (e: TouchEvent) => {
       if (window.scrollY === 0) {
         startY = e.touches[0].clientY;
         pulling = true;
+        bloqueadoNotificado = false;
       } else {
         pulling = false;
       }
     };
     const onTouchMove = (e: TouchEvent) => {
-      if (!pulling || document.body.classList.contains("conductor-tiene-viaje-activo")) return;
+      if (!pulling) return;
+      if (document.body.classList.contains("conductor-tiene-viaje-activo")) {
+        const diff = e.touches[0].clientY - startY;
+        if (diff > 32 && !bloqueadoNotificado) {
+          bloqueadoNotificado = true;
+          setAvisoPullBloqueado(true);
+          if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(12);
+          window.setTimeout(() => setAvisoPullBloqueado(false), 2500);
+        }
+        return;
+      }
       const diff = e.touches[0].clientY - startY;
       if (diff > 0 && diff < 96) {
         setPullOffset(diff * 0.5);
       }
     };
     const onTouchEnd = () => {
-      if (pullOffset > 48 && !refrescando) {
+      if (pullOffset > 48 && !refrescando && !document.body.classList.contains("conductor-tiene-viaje-activo")) {
         void recargar();
-        if (navigator.vibrate) navigator.vibrate(20);
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
       }
       setPullOffset(0);
       pulling = false;
@@ -219,6 +233,13 @@ export default function PaginaPanel() {
           <span className="font-body text-xs font-bold text-text-secondary">{pullOffset > 48 ? "Suelta para actualizar" : "Desliza para actualizar"}</span>
         </div>
       )}
+      {avisoPullBloqueado && (
+        <div className="pointer-events-none fixed left-1/2 top-3 z-50 -translate-x-1/2 rounded-full bg-surface-elevated border border-amber-500/30 shadow-md px-3 py-1.5 flex items-center gap-2 animate-fadeIn" role="status" aria-live="polite">
+          <span className="size-2 rounded-full bg-amber-500" aria-hidden />
+          <span className="font-body text-xs font-bold text-text-primary">Actualización pausada durante viaje</span>
+          <span className="font-body text-[11px] text-text-tertiary">🔒 termina el traslado</span>
+        </div>
+      )}
       {/* Barra fina de refresco — no gira el icono, evita confusión */}
       {refrescando && (
         <div className="pointer-events-none fixed left-0 right-0 top-0 z-50 h-1 bg-signal/20" aria-hidden>
@@ -232,28 +253,14 @@ export default function PaginaPanel() {
         </div>
       ) : (
         <div className="w-full flex flex-col flex-1 pb-20 md:pb-6 lg:col-span-2">
-          {/* Header — Brand Book: logo horizontal + descriptor */}
+          {/* Header — Q6 simplificado: Logo + Notificaciones + Menú (menos ruido, pulgar) */}
           <header className="flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <LogoMarca tamano={28} color="signal" descriptor="Conductor" mostrarDescriptor={true} mostrarRespaldo={false} />
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
-              {/* Botón de Ayuda / Soporte */}
-              <button
-                type="button"
-                onClick={() => setSoporteAbierto(true)}
-                aria-label="Ayuda y soporte operativo"
-                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-secondary hover:text-signal rounded-full hover:bg-surface-elevated transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action cursor-pointer"
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-              </button>
-
-              {/* Icono de Notificaciones con Badge — 99+ y área 44px */}
+              {/* Notificaciones — primario, siempre visible */}
               <Link
                 href="/notificaciones"
                 className="relative p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-primary hover:text-route-action transition-colors rounded-full hover:bg-surface-elevated focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
@@ -270,39 +277,47 @@ export default function PaginaPanel() {
                 )}
               </Link>
 
-              {/* Botón de Recarga sutil — secundario, no compite */}
-              <button
-                type="button"
-                onClick={() => void recargar()}
-                disabled={refrescando}
-                aria-label="Actualizar información operativa"
-                aria-busy={refrescando || undefined}
-                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-tertiary hover:text-text-primary rounded-full hover:bg-surface-elevated transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={refrescando ? "opacity-60" : ""}>
-                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-                </svg>
-              </button>
-
-              {/* Botón de Cerrar Sesión — discreto, evita tap accidental */}
-              <button
-                type="button"
-                onClick={() => void cerrarSesion()}
-                disabled={cerrandoSesion}
-                aria-label="Cerrar sesión"
-                title="Cerrar sesión"
-                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-tertiary hover:text-red-400 rounded-full hover:bg-red-500/10 transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action cursor-pointer disabled:opacity-50"
-              >
-                {cerrandoSesion ? (
-                  <span className="text-xs font-bold text-red-400 animate-pulse" aria-live="polite">...</span>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <polyline points="16 17 21 12 16 7" />
-                    <line x1="21" y1="12" x2="9" y2="12" />
+              {/* Menú ··· — contiene Ayuda / Actualizar / Cerrar sesión */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setMenuAbierto((v) => !v)}
+                  aria-label="Abrir menú"
+                  aria-expanded={menuAbierto}
+                  aria-haspopup="menu"
+                  className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary rounded-full hover:bg-surface-elevated transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action cursor-pointer"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <circle cx="12" cy="12" r="1.8" />
+                    <circle cx="12" cy="5" r="1.8" />
+                    <circle cx="12" cy="19" r="1.8" />
                   </svg>
+                </button>
+                {menuAbierto && (
+                  <>
+                    <button type="button" className="fixed inset-0 z-20 cursor-default" onClick={() => setMenuAbierto(false)} aria-label="Cerrar menú" tabIndex={-1} />
+                    <div role="menu" className="absolute right-0 top-full mt-2 z-30 w-56 rounded-2xl border border-border bg-surface-elevated shadow-xl overflow-hidden animate-fadeIn">
+                      <button type="button" role="menuitem" onClick={() => { setMenuAbierto(false); setSoporteAbierto(true); }} className="w-full text-left px-4 py-3.5 font-body text-sm font-semibold text-text-primary hover:bg-surface flex items-center gap-3 min-h-11">
+                        <span className="flex size-8 items-center justify-center rounded-full bg-surface border border-border text-text-secondary">?</span>
+                        Ayuda y soporte
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => { setMenuAbierto(false); void recargar(); }} disabled={refrescando} className="w-full text-left px-4 py-3.5 font-body text-sm font-semibold text-text-primary hover:bg-surface flex items-center gap-3 min-h-11 disabled:opacity-50">
+                        <span className="flex size-8 items-center justify-center rounded-full bg-surface border border-border text-text-secondary">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden className={refrescando ? "animate-spin" : ""}><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" /></svg>
+                        </span>
+                        {refrescando ? "Actualizando…" : "Actualizar"}
+                      </button>
+                      <div className="h-px bg-border/40" aria-hidden />
+                      <button type="button" role="menuitem" aria-label="Cerrar sesión" onClick={() => { setMenuAbierto(false); void cerrarSesion(); }} disabled={cerrandoSesion} className="w-full text-left px-4 py-3.5 font-body text-sm font-semibold text-red-500 hover:bg-red-500/10 flex items-center gap-3 min-h-11 disabled:opacity-50">
+                        <span className="flex size-8 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 text-red-500">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                        </span>
+                        {cerrandoSesion ? "Cerrando…" : "Cerrar sesión"}
+                      </button>
+                    </div>
+                  </>
                 )}
-              </button>
+              </div>
             </div>
           </header>
 
@@ -404,11 +419,30 @@ export default function PaginaPanel() {
               )}
             </div>
 
-            {/* COL DER — Analítica */}
+            {/* COL DER — Analítica — R2 glanceable */}
             <div className="flex flex-col gap-6 order-2">
               {viajeActivoPrincipal ? (
                 <>
-                  {/* Con viaje activo: métricas y salud detrás de Ver más — reduce scroll 35% */}
+                  {/* Glanceable mini — siempre visible aunque haya viaje activo */}
+                  <div className="rounded-2xl border border-border/30 bg-surface-elevated px-4 py-3 flex items-center justify-between gap-3 shadow-xs">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-display text-[11px] font-black tracking-widest uppercase text-text-tertiary">Hoy</span>
+                      <span className="font-body text-sm font-bold text-text-primary truncate">
+                        {trasladosHoy} traslado{trasladosHoy !== 1 ? "s" : ""} · {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(gananciasHoy)}
+                      </span>
+                      <span className="font-body text-[11px] text-text-secondary">{trasladosHoy >= 3 ? "¡Bono en camino!" : trasladosHoy === 0 ? "Sin cierres aún" : `Faltan ${3 - trasladosHoy} para bono`}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Semáforo salud mini */}
+                      <span className="flex items-center gap-1.5 rounded-full border border-border/30 bg-surface px-2.5 py-1.5" title={documentoBloqueante ? "Documentos bloqueantes" : documentoPorVencer ? "Documento por vencer" : gpsActivo === false ? "GPS inactivo" : "Todo listo"}>
+                        <span className={`size-2.5 rounded-full ${documentoBloqueante ? "bg-danger" : documentoPorVencer || gpsActivo === false ? "bg-warning" : "bg-emerald-500"}`} aria-hidden />
+                        <span className="font-body text-[10px] font-black tracking-wide text-text-primary">{documentoBloqueante ? "🔴" : documentoPorVencer || gpsActivo === false ? "🟡" : "🟢"}</span>
+                      </span>
+                      <span className={`size-2 rounded-full ${estaOnline ? "bg-emerald-500" : "bg-danger"}`} aria-hidden title={estaOnline ? "Conectado" : "Sin conexión"} />
+                    </div>
+                  </div>
+
+                  {/* Detalle expandible — antes “Métricas y salud” */}
                   <button
                     type="button"
                     onClick={() => setVerMasAbierto((v) => !v)}
@@ -417,9 +451,7 @@ export default function PaginaPanel() {
                   >
                     <span className="flex flex-col">
                       <span className="font-display text-sm font-bold text-text-primary">Métricas y salud</span>
-                      <span className="font-body text-xs text-text-secondary">
-                        {verMasAbierto ? "Ocultar detalles" : `${trasladosHoy} traslados hoy · ${new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(gananciasHoy)}`}
-                      </span>
+                      <span className="font-body text-xs text-text-secondary">{verMasAbierto ? "Ocultar detalles" : "Ver desglose completo"}</span>
                     </span>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className={`text-text-tertiary transition-transform ${verMasAbierto ? "rotate-180" : ""}`} aria-hidden>
                       <path d="M6 9l6 6 6-6" />

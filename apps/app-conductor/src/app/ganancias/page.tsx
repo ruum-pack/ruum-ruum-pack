@@ -195,6 +195,7 @@ export default function PaginaGanancias() {
   const [offsetPeriodo, setOffsetPeriodo] = useState(0);
   const [viajeExpandido, setViajeExpandido] = useState<string | null>(null);
   const [soporteAbierto, setSoporteAbierto] = useState(false);
+  const [infoSheet, setInfoSheet] = useState<{ titulo: string; texto: string } | null>(null);
   const [hoy] = useState(() => new Date());
 
   useEffect(() => {
@@ -485,50 +486,35 @@ export default function PaginaGanancias() {
                   <div className="flex items-center justify-between gap-3 px-4 py-3.5">
                     <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
                       Precio base
-                      <span className="group relative inline-flex">
-                        <button type="button" aria-label="Qué es el precio base" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
-                        <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Tarifa cotizada del traslado antes de comisiones y ajustes. Base para el cálculo de tu ganancia.</span>
-                      </span>
+                      <button type="button" onClick={() => setInfoSheet({ titulo: "Precio base", texto: "Tarifa cotizada del traslado antes de comisiones y ajustes. Es la base para el cálculo de tu ganancia. Ejemplo: si el traslado se cotizó en $1,000, este es tu punto de partida." })} aria-label="Qué es el precio base, toca para ver explicación" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action">?</button>
                     </span>
                     <span className="font-display text-sm font-bold text-text-primary tabular-nums">{formatearMoneda(resumen.precioBase)}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3 px-4 py-3.5">
                     <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
                       Bonos
-                      <span className="group relative inline-flex">
-                        <button type="button" aria-label="Qué son los bonos" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
-                        <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Incentivos por puntualidad, disponibilidad o campañas vigentes. Se suman a tu ganancia.</span>
-                      </span>
+                      <button type="button" onClick={() => setInfoSheet({ titulo: "Bonos", texto: "Incentivos por puntualidad, disponibilidad o campañas vigentes. Se suman a tu ganancia. Ejemplo: +$150 por racha de 5 traslados sin incidencias." })} aria-label="Qué son los bonos, toca para ver explicación" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action">?</button>
                     </span>
                     <span className="font-display text-sm font-bold text-emerald-500 dark:text-emerald-400 tabular-nums">+ {formatearMoneda(resumen.bonos)}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3 px-4 py-3.5">
                     <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
                       Ajustes
-                      <span className="group relative inline-flex">
-                        <button type="button" aria-label="Qué son los ajustes" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
-                        <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Correcciones operativas del periodo (diferencias de tarifa, compensaciones). Pueden ser positivos o negativos.</span>
-                      </span>
+                      <button type="button" onClick={() => setInfoSheet({ titulo: "Ajustes", texto: "Correcciones operativas del periodo (diferencias de tarifa, compensaciones). Pueden ser positivos o negativos. Si ves un ajuste negativo, es una corrección acordada con soporte." })} aria-label="Qué son los ajustes, toca para ver explicación" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action">?</button>
                     </span>
                     <span className={`font-display text-sm font-bold tabular-nums ${resumen.ajuste < 0 ? "text-red-500" : "text-text-primary"}`}>{resumen.ajuste >= 0 ? "+" : ""} {formatearMoneda(resumen.ajuste)}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3 px-4 py-3.5 bg-danger/5">
                     <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-red-500">
                       Tasa Ruum-Ruum (-)
-                      <span className="group relative inline-flex">
-                        <button type="button" aria-label="Qué es la tasa Ruum-Ruum" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-danger/30 bg-surface text-[11px] font-bold text-red-500">?</button>
-                        <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Comisión de plataforma por intermediación, soporte operativo y seguro. Se descuenta del precio base.</span>
-                      </span>
+                      <button type="button" onClick={() => setInfoSheet({ titulo: "Tasa Ruum-Ruum", texto: "Comisión de plataforma por intermediación, soporte operativo y seguro. Se descuenta del precio base. Ejemplo: de $1,000 con tasa 15%, recibes $850 antes de bonos." })} aria-label="Qué es la tasa Ruum-Ruum, toca para ver explicación" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-danger/30 bg-surface text-[11px] font-bold text-red-500 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action">?</button>
                     </span>
                     <span className="font-display text-sm font-bold text-red-500 tabular-nums">− {formatearMoneda(resumen.comisionRuum)}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3 px-4 py-3.5">
                     <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
                       Reembolso gastos (+)
-                      <span className="group relative inline-flex">
-                        <button type="button" aria-label="Qué es el reembolso de gastos" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40">?</button>
-                        <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Gastos autorizados y comprobados (combustible, peajes, etc.) que Ruum te reembolsa. Se suma al depósito final.</span>
-                      </span>
+                      <button type="button" onClick={() => setInfoSheet({ titulo: "Reembolso de gastos", texto: "Gastos autorizados y comprobados (combustible, peajes) que Ruum te reembolsa. Se suma al depósito final. Guarda tu ticket y repórtalo a soporte." })} aria-label="Qué es el reembolso de gastos, toca para ver explicación" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action">?</button>
                     </span>
                     <span className="font-display text-sm font-bold text-text-primary tabular-nums">+ {formatearMoneda(resumen.reembolsoGastos)}</span>
                   </div>
@@ -619,50 +605,35 @@ export default function PaginaGanancias() {
                                 <div className="flex items-center justify-between gap-3 px-3 py-2.5">
                                   <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
                                     Precio base
-                                    <span className="group relative inline-flex">
-                                      <button type="button" aria-label="Qué es el precio base" className="flex size-4 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-text-tertiary">?</button>
-                                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Tarifa cotizada del traslado antes de comisiones.</span>
-                                    </span>
+                                    <button type="button" onClick={() => setInfoSheet({ titulo: "Precio base", texto: "Tarifa cotizada antes de comisiones. Es tu base de ganancia." })} aria-label="Qué es el precio base, toca para ver explicación" className="flex size-6 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action">?</button>
                                   </span>
                                   <span className="font-display text-xs font-bold text-text-primary tabular-nums">{formatearMoneda(viaje.precioBase)}</span>
                                 </div>
                                 <div className="flex items-center justify-between gap-3 px-3 py-2.5">
                                   <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
                                     Bonos
-                                    <span className="group relative inline-flex">
-                                      <button type="button" aria-label="Qué son los bonos" className="flex size-4 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-text-tertiary">?</button>
-                                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Incentivos por puntualidad o campañas.</span>
-                                    </span>
+                                    <button type="button" onClick={() => setInfoSheet({ titulo: "Bonos", texto: "Incentivos por puntualidad o campañas. Se suman." })} aria-label="Qué son los bonos, toca para ver explicación" className="flex size-6 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action">?</button>
                                   </span>
                                   <span className="font-display text-xs font-bold text-emerald-500 dark:text-emerald-400 tabular-nums">+ {formatearMoneda(viaje.bonos)}</span>
                                 </div>
                                 <div className="flex items-center justify-between gap-3 px-3 py-2.5">
                                   <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
                                     Ajustes
-                                    <span className="group relative inline-flex">
-                                      <button type="button" aria-label="Qué son los ajustes" className="flex size-4 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-text-tertiary">?</button>
-                                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Correcciones operativas. Pueden ser positivas o negativas.</span>
-                                    </span>
+                                    <button type="button" onClick={() => setInfoSheet({ titulo: "Ajustes", texto: "Correcciones operativas. Pueden ser positivas o negativas." })} aria-label="Qué son los ajustes, toca para ver explicación" className="flex size-6 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action">?</button>
                                   </span>
                                   <span className="font-display text-xs font-bold text-text-primary tabular-nums">+ {formatearMoneda(viaje.ajuste)}</span>
                                 </div>
                                 <div className="flex items-center justify-between gap-3 px-3 py-2.5 bg-danger/5">
                                   <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-red-500">
                                     Tasa Ruum-Ruum (-)
-                                    <span className="group relative inline-flex">
-                                      <button type="button" aria-label="Qué es la tasa Ruum-Ruum" className="flex size-4 items-center justify-center rounded-full border border-danger/30 bg-surface text-[10px] font-bold text-red-500">?</button>
-                                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Comisión de plataforma por intermediación y soporte.</span>
-                                    </span>
+                                    <button type="button" onClick={() => setInfoSheet({ titulo: "Tasa Ruum-Ruum", texto: "Comisión de plataforma por intermediación y soporte." })} aria-label="Qué es la tasa Ruum-Ruum, toca para ver explicación" className="flex size-6 items-center justify-center rounded-full border border-danger/30 bg-surface text-[11px] font-bold text-red-500 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action">?</button>
                                   </span>
                                   <span className="font-display text-xs font-bold text-red-500 tabular-nums">− {formatearMoneda(viaje.comisionRuum)}</span>
                                 </div>
                                 <div className="flex items-center justify-between gap-3 px-3 py-2.5">
                                   <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
                                     Reembolso gastos (+)
-                                    <span className="group relative inline-flex">
-                                      <button type="button" aria-label="Qué es el reembolso" className="flex size-4 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-text-tertiary">?</button>
-                                      <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden w-56 -translate-x-1/2 mt-2 rounded-xl border border-border bg-surface-elevated p-3 font-body text-xs leading-5 text-text-secondary shadow-lg group-hover:block group-focus-within:block">Gastos autorizados comprobados (peajes, combustible).</span>
-                                    </span>
+                                    <button type="button" onClick={() => setInfoSheet({ titulo: "Reembolso de gastos", texto: "Gastos autorizados comprobados (peajes, combustible)." })} aria-label="Qué es el reembolso, toca para ver explicación" className="flex size-6 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action">?</button>
                                   </span>
                                   <span className="font-display text-xs font-bold text-text-primary tabular-nums">+ {formatearMoneda(viaje.gastosAutorizados)}</span>
                                 </div>
@@ -747,6 +718,26 @@ export default function PaginaGanancias() {
       )}
 
       <PanelSupportSheet abierto={soporteAbierto} onCerrar={() => setSoporteAbierto(false)} />
+
+      {infoSheet && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-label={infoSheet.titulo}>
+          <button type="button" className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={() => setInfoSheet(null)} aria-label="Cerrar explicación" />
+          <div className="relative w-full max-w-md bg-surface-elevated rounded-t-[2rem] border-t border-border/40 p-6 flex flex-col gap-4 animate-slideUp shadow-2xl">
+            <div className="mx-auto h-1.5 w-12 rounded-full bg-border/40" aria-hidden />
+            <div className="flex justify-between items-start gap-3">
+              <h2 className="font-display text-lg font-black text-text-primary">{infoSheet.titulo}</h2>
+              <button type="button" onClick={() => setInfoSheet(null)} className="min-h-11 min-w-11 flex items-center justify-center rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action" aria-label="Cerrar">
+                ✕
+              </button>
+            </div>
+            <p className="font-body text-sm leading-6 text-text-secondary">{infoSheet.texto}</p>
+            <div className="rounded-xl border border-border/30 bg-surface p-3">
+              <p className="font-body text-xs font-semibold text-text-tertiary">Fórmula: <span className="text-text-primary font-bold">Depósito = Precio base + Bonos + Ajustes − Tasa + Reembolso</span></p>
+            </div>
+            <button type="button" onClick={() => setInfoSheet(null)} className="w-full min-h-11 rounded-xl bg-signal text-slate-950 font-display text-sm font-black hover:bg-signal/90 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal">Entendido</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

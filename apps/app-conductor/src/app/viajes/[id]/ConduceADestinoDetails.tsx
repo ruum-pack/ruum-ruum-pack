@@ -14,6 +14,7 @@ import { formatearDuracion, nombreVehiculo } from "../trips-utils";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
 import { EmergencyPanel } from "./EmergencyPanel";
+import { StickyTripActions } from "./StickyTripActions";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
@@ -301,8 +302,17 @@ export function ConduceADestinoDetails({
 
       <EmergencyPanel trasladoId={trasladoId} />
 
+      {/* Q7 — Acciones rápidas sticky */}
+      <StickyTripActions
+        trasladoId={trasladoId}
+        navigationTarget={{ lat: navigationTargetLat, lng: navigationTargetLng, address: destinoDireccion }}
+        phone={telefonoLimpio ? `+${telefonoLimpio}` : null}
+      />
+
+      <div className="h-[88px]" aria-hidden />
+
       {/* Secondary Bottom Navigation Bar */}
-      <div className="mt-auto pt-5 -mx-4 -mb-6">
+      <div className="mt-auto pt-2 -mx-4 -mb-6">
         <SecondaryTripNavBar trasladoId={trasladoId} pasaporte={pasaporte} />
       </div>
     </div>

@@ -21,6 +21,7 @@ import { AcceptedTripCard } from "./AcceptedTripCard";
 import { ViajesDateNavigator } from "./ViajesDateNavigator";
 import { ViajesFilters, type OrdenViajes } from "./ViajesFilters";
 import { UndoRechazoToast } from "./UndoRechazoToast";
+import { ViajesMapa } from "./ViajesMapa";
 import { PanelSupportSheet } from "../panel/PanelSupportSheet";
 import {
   claveDia,
@@ -70,6 +71,7 @@ export default function PaginaViajes() {
     return v === "mayor_ganancia" || v === "menor_distancia" ? v : "recientes";
   });
   const [ciudadFiltro, setCiudadFiltro] = useState<string>(() => searchParams.get("ciudad") ?? "todas");
+  const [modoMapa, setModoMapa] = useState<"lista" | "mapa">("lista");
   const [estaOnline, setEstaOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -112,6 +114,42 @@ export default function PaginaViajes() {
       window.removeEventListener("offline", actualizar);
     };
   }, []);
+
+  // Preferencia Lista | Mapa — Persistida en Preferences (Capacitor) + localStorage fallback
+  useEffect(() => {
+    let cancelado = false;
+    async function cargarModo() {
+      try {
+        // Intentar Preferences (nativo)
+        const { Preferences } = await import("@capacitor/preferences");
+        const { value } = await Preferences.get({ key: "ruum_conductor_viajes_modo" });
+        if (!cancelado && (value === "mapa" || value === "lista")) setModoMapa(value);
+        return;
+      } catch {}
+      try {
+        const v = localStorage.getItem("ruum_conductor_viajes_modo");
+        if (!cancelado && (v === "mapa" || v === "lista")) setModoMapa(v as "lista" | "mapa");
+      } catch {}
+    }
+    void cargarModo();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  function cambiarModo(modo: "lista" | "mapa") {
+    setModoMapa(modo);
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(10);
+    void (async () => {
+      try {
+        const { Preferences } = await import("@capacitor/preferences");
+        await Preferences.set({ key: "ruum_conductor_viajes_modo", value: modo });
+      } catch {}
+      try {
+        localStorage.setItem("ruum_conductor_viajes_modo", modo);
+      } catch {}
+    })();
+  }
 
   // Notificaciones no leídas
   useEffect(() => {
@@ -438,7 +476,7 @@ export default function PaginaViajes() {
               </svg>
               {notificacionesCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-danger text-white text-[11px] font-black rounded-full min-w-5 h-5 px-1 flex items-center justify-center border-2 border-surface shadow-xs tabular-nums">
-                  {notificacionesCount > 99 ? "99+" : notificacionesCount > 9 ? "9+" : notificacionesCount}
+                  {notificacionesCount > 99 ? "99+" : notificacionesCount}
                 </span>
               )}
             </Link>
@@ -492,6 +530,48 @@ export default function PaginaViajes() {
           </button>
         </div>
 
+        {/* Toggle Lista | Mapa — R2 persistente */}
+        <div role="group" aria-label="Vista Lista o Mapa" className="mt-3 flex w-full rounded-xl border border-border/20 bg-surface-elevated p-1 select-none">
+          <button
+            type="button"
+            aria-pressed={modoMapa === "lista"}
+            aria-label="Vista lista"
+            onClick={() => cambiarModo("lista")}
+            className={`flex-1 rounded-lg px-3 py-2 text-center text-xs font-black tracking-wide transition-all cursor-pointer min-h-11 flex items-center justify-center gap-1.5 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${
+              modoMapa === "lista" ? "bg-surface text-text-primary shadow-sm border border-border" : "text-text-tertiary hover:text-text-primary"
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+              <line x1="3" y1="6" x2="3.01" y2="6" />
+              <line x1="3" y1="12" x2="3.01" y2="12" />
+              <line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
+            Lista
+          </button>
+          <button
+            type="button"
+            aria-pressed={modoMapa === "mapa"}
+            aria-label="Vista mapa"
+            onClick={() => cambiarModo("mapa")}
+            className={`flex-1 rounded-lg px-3 py-2 text-center text-xs font-black tracking-wide transition-all cursor-pointer min-h-11 flex items-center justify-center gap-1.5 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${
+              modoMapa === "mapa" ? "bg-signal text-slate-950 shadow-md" : "text-text-tertiary hover:text-text-primary"
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+              <line x1="8" y1="2" x2="8" y2="18" />
+              <line x1="16" y1="6" x2="16" y2="22" />
+            </svg>
+            Mapa
+            {listToRender.length > 0 && (
+              <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-black tabular-nums ${modoMapa === "mapa" ? "bg-slate-950 text-signal" : "bg-border text-text-tertiary"}`}>{listToRender.length}</span>
+            )}
+          </button>
+        </div>
+
         {/* Navegador de Fechas y Calendario Semanal */}
         <ViajesDateNavigator
           calendario={calendario}
@@ -526,31 +606,69 @@ export default function PaginaViajes() {
           </span>
         </div>
 
-        {/* Lista de Tarjetas */}
+        {/* Vista Mapa — R2 */}
+        {modoMapa === "mapa" && !cargando && listToRender.length > 0 && (
+          <div className="mt-3">
+            <ViajesMapa
+              viajes={listToRender.map((it) => it.viaje)}
+              onSelect={(viaje) => router.push(hrefDetalle(viaje))}
+              vistaId={`${vista}-${diaSeleccionado}-${orden}-${ciudadFiltro}`}
+            />
+            <p className="mt-2 font-body text-[11px] text-center text-text-tertiary">Vista geográfica · {listToRender.length} ofertas · Toca un pin o vuelve a Lista para detalle completo</p>
+          </div>
+        )}
+
+        {/* Lista de Tarjetas — oculta cuando mapa y hay datos */}
         <div
           id="panel-traslados"
           role="tabpanel"
           aria-labelledby={vista === "disponibles" ? "tab-ofertas" : "tab-aceptados"}
-          className="mt-3 flex flex-col gap-3.5"
+          className={`mt-3 flex flex-col gap-3.5 ${modoMapa === "mapa" && !cargando && listToRender.length > 0 ? "hidden" : ""}`}
         >
           {cargando ? (
             <TripsLoadingList />
           ) : listToRender.length === 0 ? (
             <div className="text-center py-10 flex flex-col items-center bg-surface-elevated border border-border/20 rounded-3xl p-6">
-              <div className="size-12 rounded-2xl bg-surface border border-border/20 flex items-center justify-center" aria-hidden>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="text-text-tertiary">
-                  <rect x="3" y="4" width="18" height="14" rx="2" />
-                  <path d="M8 14h8M8 10h8" />
-                </svg>
+              <div className="size-14 rounded-2xl bg-surface border border-border/20 flex items-center justify-center text-2xl" aria-hidden>
+                {rawListToRender.length > 0 && listToRender.length === 0 ? "🔍" : vista === "disponibles" ? "📭" : "📋"}
               </div>
-              <p className="mt-3 font-display text-sm font-bold text-text-primary">Sin traslados para este día</p>
-              <p className="mt-1 font-body text-xs text-text-secondary max-w-[280px]">
-                {vista === "disponibles"
-                  ? "No hay ofertas programadas en esta fecha."
-                  : "No tienes traslados aceptados para esta fecha."}
+              <p className="mt-3 font-display text-sm font-bold text-text-primary">
+                {rawListToRender.length > 0 && listToRender.length === 0 ? "Sin resultados con estos filtros" : "Sin traslados para este día"}
+              </p>
+              <p className="mt-1 font-body text-xs text-text-secondary max-w-[300px] leading-relaxed">
+                {rawListToRender.length > 0 && listToRender.length === 0
+                  ? `Hay ${rawListToRender.length} ofertas este día, pero ninguna coincide con “${ciudadFiltro !== "todas" ? ciudadFiltro : orden}”. Prueba limpiar filtros.`
+                  : vista === "disponibles"
+                  ? "No hay ofertas programadas en esta fecha. Revisa otro día o cambia el orden a Mayor ganancia."
+                  : "No tienes traslados aceptados para esta fecha. Acepta una oferta para verla aquí."}
               </p>
 
-              {vista === "mis-viajes" ? (
+              {rawListToRender.length > 0 && listToRender.length === 0 ? (
+                <div className="mt-4 flex flex-col gap-2 w-full max-w-[300px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCiudadFiltro("todas");
+                      setOrden("recientes");
+                      actualizarUrl({ ciudad: "todas", orden: "recientes" });
+                    }}
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl bg-signal text-slate-950 px-5 py-3 font-display text-sm font-black shadow-sm focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal"
+                  >
+                    Limpiar filtros
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCiudadFiltro("todas");
+                      setOrden("mayor_ganancia");
+                      actualizarUrl({ ciudad: "todas", orden: "mayor_ganancia" });
+                    }}
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-route-action/30 bg-route-soft px-5 py-3 font-body text-sm font-bold text-route-action"
+                  >
+                    Probar “Mayor ganancia” →
+                  </button>
+                </div>
+              ) : vista === "mis-viajes" ? (
                 <button
                   type="button"
                   onClick={() => actualizarUrl({ vista: "disponibles" })}
@@ -565,16 +683,45 @@ export default function PaginaViajes() {
                     ? new Intl.DateTimeFormat("es-MX", { weekday: "long", day: "numeric", timeZone: "America/Mexico_City" }).format(diaConOfertas.dia)
                     : "otro día";
                   return (
-                    <button
-                      type="button"
-                      onClick={() => diaConOfertas && setDiaSeleccionado(claveDia(diaConOfertas.dia))}
-                      className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-route-action/30 bg-route-soft px-5 py-3 font-body text-sm font-bold text-route-action hover:bg-route-soft/70 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
-                    >
-                      Ver ofertas del {label} →
-                    </button>
+                    <div className="mt-4 flex flex-col gap-2 w-full max-w-[300px]">
+                      <button
+                        type="button"
+                        onClick={() => diaConOfertas && setDiaSeleccionado(claveDia(diaConOfertas.dia))}
+                        className="inline-flex min-h-11 items-center justify-center rounded-xl border border-route-action/30 bg-route-soft px-5 py-3 font-body text-sm font-bold text-route-action hover:bg-route-soft/70 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+                      >
+                        Ver ofertas del {label} →
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCiudadFiltro("todas");
+                          setOrden("mayor_ganancia");
+                          actualizarUrl({ ciudad: "todas", orden: "mayor_ganancia" });
+                        }}
+                        className="inline-flex min-h-11 items-center justify-center rounded-xl bg-surface border border-border px-5 py-3 font-body text-sm font-bold text-text-secondary"
+                      >
+                        Ver con “Mayor ganancia”
+                      </button>
+                    </div>
                   );
                 })()
-              ) : null}
+              ) : (
+                <div className="mt-4 flex flex-col gap-2 w-full max-w-[300px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrden("mayor_ganancia");
+                      actualizarUrl({ orden: "mayor_ganancia" });
+                    }}
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-route-action/30 bg-route-soft px-5 py-3 font-body text-sm font-bold text-route-action"
+                  >
+                    Ordenar por mayor ganancia
+                  </button>
+                  <Link href="/panel" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-surface border border-border px-5 py-3 font-body text-sm font-bold text-text-secondary text-center">
+                    Volver al panel
+                  </Link>
+                </div>
+              )}
             </div>
           ) : (
             <>

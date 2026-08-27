@@ -290,6 +290,78 @@ function formatearTiempo(horas: number) {
   return `${horasEnteras} h ${minutos.toString().padStart(2, "0")} min`;
 }
 
+// Sprint 1: Rango de tarifa estimada por tipo de vehículo (sin necesidad de CP)
+// Tarifas base por km según tipo de vehículo (estimación conservadora)
+const TARIFAS_BASE_POR_TIPO: Record<TipoVehiculo, { min: number; max: number }> = {
+  sedan: { min: 6, max: 12 },
+  suv: { min: 8, max: 15 },
+  pick_up: { min: 10, max: 18 },
+  van: { min: 12, max: 20 },
+  motocicleta: { min: 3, max: 8 },
+};
+
+// Sprint 1: Distancia estimada por código postal (centroides de ciudades principales)
+const DISTANCIA_ESTIMADA_POR_CP: Record<string, { km: number; ciudad: string }> = {
+  "01000": { km: 0, ciudad: "CDMX" },
+  "01010": { km: 0, ciudad: "CDMX" },
+  "11800": { km: 0, ciudad: "CDMX" },
+  "03100": { km: 0, ciudad: "CDMX" },
+  "72000": { km: 112, ciudad: "Puebla" },
+  "72100": { km: 112, ciudad: "Puebla" },
+  "44100": { km: 500, ciudad: "Guadalajara" },
+  "44110": { km: 500, ciudad: "Guadalajara" },
+  "64000": { km: 850, ciudad: "Monterrey" },
+  "64010": { km: 850, ciudad: "Monterrey" },
+  "20000": { km: 330, ciudad: "Querétaro" },
+  "20010": { km: 330, ciudad: "Querétaro" },
+};
+
+// Sprint 1: Calcular rango de tarifa estimado
+function calcularRangoTarifaEstimado(
+  tipo: TipoVehiculo,
+  origenCP: string,
+  destinoCP: string
+): { min: number; max: number } | null {
+  const tarifasBase = TARIFAS_BASE_POR_TIPO[tipo];
+  if (!tarifasBase) return null;
+  
+  // Si tenemos CP de origen y destino, estimar distancia
+  const cpOrigen = origenCP.trim().slice(0, 5);
+  const cpDestino = destinoCP.trim().slice(0, 5);
+  
+  let distanciaEstimadaKm = 50; // Default para ciudad
+  
+  if (cpOrigen && cpDestino) {
+    const infoOrigen = DISTANCIA_ESTIMADA_POR_CP[cpOrigen];
+    const infoDestino = DISTANCIA_ESTIMADA_POR_CP[cpDestino];
+    
+    if (infoOrigen && infoDestino) {
+      // Si ambos son CDMX, distancia local
+      if (infoOrigen.ciudad === "CDMX" && infoDestino.ciudad === "CDMX") {
+        distanciaEstimadaKm = 25;
+      } else {
+        // Distancia entre ciudades
+        distanciaEstimadaKm = Math.abs(infoOrigen.km - infoDestino.km) || 100;
+      }
+    } else if (cpOrigen === cpDestino) {
+      // Misma zona
+      distanciaEstimadaKm = 15;
+    } else if (cpOrigen) {
+      // Solo origen, estimar distancia media
+      distanciaEstimadaKm = 100;
+    }
+  } else if (cpOrigen || cpDestino) {
+    // Solo un CP, estimar distancia local
+    distanciaEstimadaKm = 25;
+  }
+  
+  // Calcular rango
+  const min = Math.round(distanciaEstimadaKm * tarifasBase.min * 100) / 100;
+  const max = Math.round(distanciaEstimadaKm * tarifasBase.max * 100) / 100;
+  
+  return { min, max };
+}
+
 interface CampoCodigoPostalProps {
   valor: string;
   ciudadActual: string;
@@ -1727,18 +1799,54 @@ export function NuevoTrasladoForm() {
                   onBlur={() => validarCampo("anio")}
                   error={errores.anio}
                 />
-                {/* Tarifa temprana Sprint1: visible desde paso 0 si hay ruta estimada */}
+                {/* Tarifa temprana Sprint1: visible desde paso 0 con rango estimado */}
                 <div className="rounded-xl border border-signal/30 bg-signal/10 px-4 py-3" aria-live="polite">
                   <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/55">Tarifa estimada</p>
                   {previsualizando ? (
-                    <p className="mt-1 font-body text-sm font-medium text-ink/70">Calculando con tus datos…</p>
+                    <p className="mt-1 font-body text-sm font-medium text-ink/70">
+                      <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-signal" aria-hidden /> Calculando con tus datos…
+                    </p>
                   ) : previsualizacion?.disponible ? (
                     <>
                       <p className="mt-1 font-display text-2xl font-black text-ink">${Number(previsualizacion.tarifa ?? 0).toLocaleString("es-MX")} <span className="font-body text-xs font-semibold text-ink/55">MXN</span></p>
                       <p className="mt-1 font-body text-xs leading-4 text-ink/60">Precio final calculado. Se confirma al crear la solicitud.</p>
                     </>
                   ) : (
-                    <p className="mt-1 font-body text-xs leading-4 text-ink/60">Completa origen y destino (CP + dirección) para ver tu tarifa exacta. Por ahora: rango estimado según vehículo.</p>
+                    <>
+                      {/* Sprint 1: Mostrar rango estimado basado en tipo de vehículo y CP */}
+                      {datos.marca.trim() || datos.modelo.trim() ? (
+                        <>
+                          {(() => {
+                            const rango = calcularRangoTarifaEstimado(datos.tipo, datos.origenCodigoPostal, datos.destinoCodigoPostal);
+                            if (rango) {
+                              return (
+                                <>
+                                  <p className="mt-1 font-display text-xl font-bold text-ink">
+                                    ${rango.min.toLocaleString("es-MX")} – ${rango.max.toLocaleString("es-MX")} 
+                                    <span className="font-body text-xs font-semibold text-ink/55">MXN</span>
+                                  </p>
+                                  <p className="mt-1 font-body text-xs leading-4 text-ink/60">
+                                    {datos.origenCodigoPostal || datos.destinoCodigoPostal 
+                                      ? "Rango estimado basado en tu vehículo y ubicación. "
+                                      : "Rango estimado basado en tu tipo de vehículo. "}
+                                    Completa origen y destino para tarifa exacta.
+                                  </p>
+                                </>
+                              );
+                            }
+                            return (
+                              <p className="mt-1 font-body text-xs leading-4 text-ink/60">
+                                Completa origen y destino (CP + dirección) para ver tu tarifa exacta.
+                              </p>
+                            );
+                          })()}
+                        </>
+                      ) : (
+                        <p className="mt-1 font-body text-xs leading-4 text-ink/60">
+                          Ingresa marca, modelo y año para ver un rango estimado de tarifa.
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
                 <button

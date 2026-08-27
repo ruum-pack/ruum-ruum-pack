@@ -204,35 +204,43 @@ export function RegistrationProgress({
         </div>
       )}
 
-      {/* 5. Estado de Guardado Local / Remoto */}
+      {/* 5. Estado de Guardado Local / Remoto — Q4: visible y tranquilizador */}
       {!sesionAutenticada && borradorLocalGuardado && (
-        <output className="flex items-center gap-2 font-body text-xs font-semibold text-text-secondary" aria-live="polite">
-          <span>💾</span> Progreso guardado automáticamente en este dispositivo
+        <output className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 font-body text-xs font-bold text-emerald-600 dark:text-emerald-400" aria-live="polite">
+          <span className="flex size-5 items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-black">✓</span>
+          Borrador guardado en este dispositivo — volverás donde te quedaste
         </output>
       )}
 
       {sesionAutenticada && estadoGuardadoRemoto !== "inactivo" && (
-        <div className="flex items-center gap-2">
-          {estadoGuardadoRemoto === "guardado" && (
-            <span className="flex size-4 items-center justify-center rounded-full bg-control-soft text-xs font-bold text-control" aria-hidden="true">
-              ✓
+        <output
+          aria-live="polite"
+          aria-atomic="true"
+          title={detalleGuardadoRemoto ?? undefined}
+          className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 font-body text-xs font-bold shadow-sm transition-all ${
+            estadoGuardadoRemoto === "guardado"
+              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              : estadoGuardadoRemoto === "guardando"
+              ? "border-border bg-surface-elevated text-text-secondary"
+              : estadoGuardadoRemoto === "sin_conexion"
+              ? "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+              : "border-red-500/20 bg-red-500/10 text-red-500"
+          }`}
+        >
+          {estadoGuardadoRemoto === "guardando" && <span className="size-4 rounded-full border-2 border-border border-t-signal animate-spin" aria-hidden />}
+          {estadoGuardadoRemoto === "guardado" && <span className="flex size-5 items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-black" aria-hidden>✓</span>}
+          {estadoGuardadoRemoto === "sin_conexion" && <span aria-hidden>⚠️</span>}
+          {estadoGuardadoRemoto === "error" && <span aria-hidden>⚠️</span>}
+          <span className="flex flex-col leading-tight">
+            <span>
+              {estadoGuardadoRemoto === "guardando" && "Guardando automáticamente…"}
+              {estadoGuardadoRemoto === "guardado" && "✓ Guardado — volverás donde te quedaste"}
+              {estadoGuardadoRemoto === "sin_conexion" && "Sin conexión — guardado local, se sincronizará solo"}
+              {estadoGuardadoRemoto === "error" && `Error al guardar${detalleGuardadoRemoto ? `: ${detalleGuardadoRemoto}` : ""}`}
             </span>
-          )}
-          <output
-            className={`font-body text-xs font-semibold ${
-              estadoGuardadoRemoto === "error"
-                ? "text-red-400"
-                : estadoGuardadoRemoto === "sin_conexion"
-                ? "text-amber-400"
-                : "text-text-secondary"
-            }`}
-            aria-live="polite"
-            title={detalleGuardadoRemoto ?? undefined}
-          >
-            {TEXTO_GUARDADO_REMOTO[estadoGuardadoRemoto]}
-            {estadoGuardadoRemoto === "error" && detalleGuardadoRemoto ? `: ${detalleGuardadoRemoto}` : ""}
-          </output>
-        </div>
+            {estadoGuardadoRemoto === "guardado" && <span className="text-[10px] font-semibold opacity-80">Cada cambio se guarda en la nube</span>}
+          </span>
+        </output>
       )}
     </div>
   );
