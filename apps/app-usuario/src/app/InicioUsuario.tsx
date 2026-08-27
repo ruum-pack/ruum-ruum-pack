@@ -102,9 +102,7 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
     : "Sedan";
 
   const idTrasladoActivo = viajeActivo?.traslado_id ?? "demo";
-  const urlSeguimiento = viajeActivo?.traslado_id
-    ? `/traslados/${viajeActivo.traslado_id}`
-    : `/mis-viajes`;
+  const urlSeguimiento = `/traslados/${idTrasladoActivo}`;
 
   return (
     <div className="w-full max-w-md mx-auto space-y-5 pb-20 sm:pb-12 text-[#F8F8F5]">
@@ -221,7 +219,7 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
           {/* Card 1: Pasaporte Digital */}
           <Link
-            href={idTrasladoActivo !== "demo" ? `/traslados/${idTrasladoActivo}` : "/mis-viajes"}
+            href={`/traslados/${idTrasladoActivo}`}
             className="group flex min-h-[160px] flex-col items-center justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-3.5 text-center shadow-md transition hover:border-sky-500/40 hover:bg-[#0D182A] active:scale-98"
           >
             <div className="flex size-11 items-center justify-center rounded-full border border-sky-500/25 bg-sky-500/10 text-sky-400">
