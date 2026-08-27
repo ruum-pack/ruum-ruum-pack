@@ -57,6 +57,7 @@ export default function PaginaPanel() {
   const { cerrarSesion, cerrandoSesion, errorCerrarSesion } = useCerrarSesion();
   const [soporteAbierto, setSoporteAbierto] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [abHeader, setAbHeader] = useState<"A" | "B">("A");
   const [gpsActivo, setGpsActivo] = useState<boolean | null>(null);
   const [gpsUltimaSenal, setGpsUltimaSenal] = useState<Date | null>(null);
   const [pullOffset, setPullOffset] = useState(0);
@@ -65,6 +66,47 @@ export default function PaginaPanel() {
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
   const [verMasAbierto, setVerMasAbierto] = useState(false);
+
+  // R5 — A/B header simplificado (50/50) — persistido para medir CSAT impacto
+  useEffect(() => {
+    let cancelado = false;
+    async function cargarAb() {
+      try {
+        const { Preferences } = await import("@capacitor/preferences");
+        const { value } = await Preferences.get({ key: "ruum_ab_header_panel" });
+        if (!cancelado && (value === "A" || value === "B")) {
+          setAbHeader(value as "A" | "B");
+          return;
+        }
+      } catch {}
+      try {
+        const v = localStorage.getItem("ruum_ab_header_panel");
+        if (!cancelado && (v === "A" || v === "B")) {
+          setAbHeader(v as "A" | "B");
+          return;
+        }
+      } catch {}
+      const asignado = Math.random() < 0.5 ? "A" : "B";
+      if (!cancelado) setAbHeader(asignado);
+      void (async () => {
+        try {
+          const { Preferences } = await import("@capacitor/preferences");
+          await Preferences.set({ key: "ruum_ab_header_panel", value: asignado });
+        } catch {}
+        try {
+          localStorage.setItem("ruum_ab_header_panel", asignado);
+        } catch {}
+        try {
+          const { recordOperationalEvent } = await import("../../lib/observability");
+          void recordOperationalEvent("ab_header_variant" as unknown as Parameters<typeof recordOperationalEvent>[0], { variant: asignado } as unknown as Record<string, unknown>, "info");
+        } catch {}
+      })();
+    }
+    void cargarAb();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   useEffect(() => {
     const actualizar = () => setEstaOnline(navigator.onLine);
@@ -260,6 +302,20 @@ export default function PaginaPanel() {
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
+              {abHeader === "B" && (
+                <button
+                  type="button"
+                  onClick={() => setSoporteAbierto(true)}
+                  aria-label="Ayuda y soporte operativo"
+                  className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-secondary hover:text-signal rounded-full hover:bg-surface-elevated transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action cursor-pointer"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                </button>
+              )}
               {/* Notificaciones — primario, siempre visible */}
               <Link
                 href="/notificaciones"
@@ -277,47 +333,81 @@ export default function PaginaPanel() {
                 )}
               </Link>
 
-              {/* Menú ··· — contiene Ayuda / Actualizar / Cerrar sesión */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setMenuAbierto((v) => !v)}
-                  aria-label="Abrir menú"
-                  aria-expanded={menuAbierto}
-                  aria-haspopup="menu"
-                  className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary rounded-full hover:bg-surface-elevated transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action cursor-pointer"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <circle cx="12" cy="12" r="1.8" />
-                    <circle cx="12" cy="5" r="1.8" />
-                    <circle cx="12" cy="19" r="1.8" />
-                  </svg>
-                </button>
-                {menuAbierto && (
-                  <>
-                    <button type="button" className="fixed inset-0 z-20 cursor-default" onClick={() => setMenuAbierto(false)} aria-label="Cerrar menú" tabIndex={-1} />
-                    <div role="menu" className="absolute right-0 top-full mt-2 z-30 w-56 rounded-2xl border border-border bg-surface-elevated shadow-xl overflow-hidden animate-fadeIn">
-                      <button type="button" role="menuitem" onClick={() => { setMenuAbierto(false); setSoporteAbierto(true); }} className="w-full text-left px-4 py-3.5 font-body text-sm font-semibold text-text-primary hover:bg-surface flex items-center gap-3 min-h-11">
-                        <span className="flex size-8 items-center justify-center rounded-full bg-surface border border-border text-text-secondary">?</span>
-                        Ayuda y soporte
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => { setMenuAbierto(false); void recargar(); }} disabled={refrescando} className="w-full text-left px-4 py-3.5 font-body text-sm font-semibold text-text-primary hover:bg-surface flex items-center gap-3 min-h-11 disabled:opacity-50">
-                        <span className="flex size-8 items-center justify-center rounded-full bg-surface border border-border text-text-secondary">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden className={refrescando ? "animate-spin" : ""}><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" /></svg>
-                        </span>
-                        {refrescando ? "Actualizando…" : "Actualizar"}
-                      </button>
-                      <div className="h-px bg-border/40" aria-hidden />
-                      <button type="button" role="menuitem" aria-label="Cerrar sesión" onClick={() => { setMenuAbierto(false); void cerrarSesion(); }} disabled={cerrandoSesion} className="w-full text-left px-4 py-3.5 font-body text-sm font-semibold text-red-500 hover:bg-red-500/10 flex items-center gap-3 min-h-11 disabled:opacity-50">
-                        <span className="flex size-8 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 text-red-500">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-                        </span>
-                        {cerrandoSesion ? "Cerrando…" : "Cerrar sesión"}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+              {abHeader === "B" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void recargar()}
+                    disabled={refrescando}
+                    aria-label="Actualizar información operativa"
+                    aria-busy={refrescando || undefined}
+                    className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-tertiary hover:text-text-primary rounded-full hover:bg-surface-elevated transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={refrescando ? "opacity-60" : ""}>
+                      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void cerrarSesion()}
+                    disabled={cerrandoSesion}
+                    aria-label="Cerrar sesión"
+                    title="Cerrar sesión"
+                    className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-tertiary hover:text-red-400 rounded-full hover:bg-red-500/10 transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action cursor-pointer disabled:opacity-50"
+                  >
+                    {cerrandoSesion ? (
+                      <span className="text-xs font-bold text-red-400 animate-pulse" aria-live="polite">...</span>
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setMenuAbierto((v) => !v)}
+                    aria-label="Abrir menú"
+                    aria-expanded={menuAbierto}
+                    aria-haspopup="menu"
+                    className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary rounded-full hover:bg-surface-elevated transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action cursor-pointer"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                      <circle cx="12" cy="12" r="1.8" />
+                      <circle cx="12" cy="5" r="1.8" />
+                      <circle cx="12" cy="19" r="1.8" />
+                    </svg>
+                  </button>
+                  {menuAbierto && (
+                    <>
+                      <button type="button" className="fixed inset-0 z-20 cursor-default" onClick={() => setMenuAbierto(false)} aria-label="Cerrar menú" tabIndex={-1} />
+                      <div role="menu" className="absolute right-0 top-full mt-2 z-30 w-56 rounded-2xl border border-border bg-surface-elevated shadow-xl overflow-hidden animate-fadeIn">
+                        <button type="button" role="menuitem" onClick={() => { setMenuAbierto(false); setSoporteAbierto(true); }} className="w-full text-left px-4 py-3.5 font-body text-sm font-semibold text-text-primary hover:bg-surface flex items-center gap-3 min-h-11">
+                          <span className="flex size-8 items-center justify-center rounded-full bg-surface border border-border text-text-secondary">?</span>
+                          Ayuda y soporte
+                        </button>
+                        <button type="button" role="menuitem" onClick={() => { setMenuAbierto(false); void recargar(); }} disabled={refrescando} className="w-full text-left px-4 py-3.5 font-body text-sm font-semibold text-text-primary hover:bg-surface flex items-center gap-3 min-h-11 disabled:opacity-50">
+                          <span className="flex size-8 items-center justify-center rounded-full bg-surface border border-border text-text-secondary">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden className={refrescando ? "animate-spin" : ""}><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" /></svg>
+                          </span>
+                          {refrescando ? "Actualizando…" : "Actualizar"}
+                        </button>
+                        <div className="h-px bg-border/40" aria-hidden />
+                        <button type="button" role="menuitem" aria-label="Cerrar sesión" onClick={() => { setMenuAbierto(false); void cerrarSesion(); }} disabled={cerrandoSesion} className="w-full text-left px-4 py-3.5 font-body text-sm font-semibold text-red-500 hover:bg-red-500/10 flex items-center gap-3 min-h-11 disabled:opacity-50">
+                          <span className="flex size-8 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 text-red-500">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                          </span>
+                          {cerrandoSesion ? "Cerrando…" : "Cerrar sesión"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </header>
 
@@ -395,8 +485,12 @@ export default function PaginaPanel() {
                   </button>
                 </div>
                 {disponibilidad === "en_viaje" && (
-                  <p className="mt-3 rounded-lg border border-route-action/20 bg-route-soft px-3 py-2 font-body text-xs font-semibold text-route-action">
-                    🔒 En viaje activo — termina el traslado para cambiar disponibilidad.
+                  <p className="mt-3 rounded-lg border border-route-action/20 bg-route-soft px-3 py-2 font-body text-xs font-semibold text-route-action flex items-center gap-1.5">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    En viaje activo — termina el traslado para cambiar disponibilidad.
                   </p>
                 )}
                 {persistiendoDisponibilidad && (
@@ -433,10 +527,10 @@ export default function PaginaPanel() {
                       <span className="font-body text-[11px] text-text-secondary">{trasladosHoy >= 3 ? "¡Bono en camino!" : trasladosHoy === 0 ? "Sin cierres aún" : `Faltan ${3 - trasladosHoy} para bono`}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {/* Semáforo salud mini */}
+                      {/* Semáforo salud mini — R4 SVG semáforo sin emoji */}
                       <span className="flex items-center gap-1.5 rounded-full border border-border/30 bg-surface px-2.5 py-1.5" title={documentoBloqueante ? "Documentos bloqueantes" : documentoPorVencer ? "Documento por vencer" : gpsActivo === false ? "GPS inactivo" : "Todo listo"}>
                         <span className={`size-2.5 rounded-full ${documentoBloqueante ? "bg-danger" : documentoPorVencer || gpsActivo === false ? "bg-warning" : "bg-emerald-500"}`} aria-hidden />
-                        <span className="font-body text-[10px] font-black tracking-wide text-text-primary">{documentoBloqueante ? "🔴" : documentoPorVencer || gpsActivo === false ? "🟡" : "🟢"}</span>
+                        <span className="font-body text-[10px] font-bold tracking-wide text-text-primary">{documentoBloqueante ? "Revisión" : documentoPorVencer || gpsActivo === false ? "Atención" : "OK"}</span>
                       </span>
                       <span className={`size-2 rounded-full ${estaOnline ? "bg-emerald-500" : "bg-danger"}`} aria-hidden title={estaOnline ? "Conectado" : "Sin conexión"} />
                     </div>

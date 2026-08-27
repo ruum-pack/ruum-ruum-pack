@@ -80,7 +80,20 @@ export function EstadoSincronizacionGlobal() {
     };
   }, []);
 
-  if (snapshot.status === "todo_sincronizado") return null;
+  // R4: celebrar éxito — verde cuando online y sin pendientes (no solo null)
+  if (snapshot.status === "todo_sincronizado") {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return null;
+    // Mostrar banner verde sutil (auto-dismiss visual no necesario: SincronizacionBadge ya persiste)
+    return (
+      <div aria-live="polite" aria-atomic="true" className={`mx-auto mt-3 flex w-[min(100%-24px,1120px)] items-center gap-2 rounded-xl border px-4 py-2 font-body text-sm font-semibold ${CLASES.todo_sincronizado}`}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        <span>Sincronizado ✓ — todo al día</span>
+        <span className="ml-auto font-body text-xs opacity-70">Conectado</span>
+      </div>
+    );
+  }
 
   return (
     <div aria-live="polite" aria-atomic="true" className={`mx-auto mt-3 flex w-[min(100%-24px,1120px)] items-center justify-between gap-2 rounded-xl border px-4 py-2 font-body text-sm font-semibold ${CLASES[snapshot.status]}`}>

@@ -56,8 +56,27 @@ function ProgressRing({ value, max = 3 }: { value: number; max?: number }) {
 
 export function PanelMetrics({ gananciasHoy, trasladosHoy }: PanelMetricsProps) {
   const bonoFalta = Math.max(0, 3 - trasladosHoy);
+  const bono = trasladosHoy >= 5 ? 200 : trasladosHoy >= 3 ? 100 : 0;
+  const showRacha = trasladosHoy >= 2;
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="flex flex-col gap-3">
+      {showRacha && (
+        <div className="rounded-xl border border-signal/30 bg-signal/10 px-3 py-2.5 flex items-center gap-2.5" role="status" aria-live="polite">
+          <span className="flex size-8 items-center justify-center rounded-full bg-signal text-slate-950 shrink-0" aria-hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5a2.5 2.5 0 0 1 1 2c0 2.5-2 4.5-5 4.5s-5-2-3.5-4.5z" />
+            </svg>
+          </span>
+          <div className="flex flex-col min-w-0">
+            <span className="font-display text-xs font-black text-text-primary leading-none">Racha {trasladosHoy} traslados</span>
+            <span className="font-body text-[11px] font-bold text-text-secondary leading-none mt-1">
+              {bono > 0 ? `+$${bono} bono ${bonoFalta === 0 ? "¡desbloqueado!" : "en camino"}` : `Faltan ${bonoFalta} para bono $100`} · Sigue así
+            </span>
+          </div>
+          <span className="ml-auto font-display text-[11px] font-black text-signal">🔥</span>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3">
       <div className="bg-surface-elevated border border-border/20 rounded-2xl px-4 py-3.5 flex flex-col justify-between shadow-xs min-h-[110px]">
         <div>
           <span className="text-text-tertiary text-[10px] font-extrabold tracking-widest uppercase leading-none">
@@ -103,6 +122,7 @@ export function PanelMetrics({ gananciasHoy, trasladosHoy }: PanelMetricsProps) 
         >
           Ver detalle →
         </Link>
+      </div>
       </div>
     </div>
   );

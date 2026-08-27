@@ -10,11 +10,34 @@ interface ViajesFiltersProps {
   ciudadesDisponibles: string[];
 }
 
-const ORDENES: Array<{ valor: OrdenViajes; etiqueta: string; icono: string }> = [
-  { valor: "recientes", etiqueta: "Recientes", icono: "🕒" },
-  { valor: "mayor_ganancia", etiqueta: "Mayor ganancia", icono: "💰" },
-  { valor: "menor_distancia", etiqueta: "Menor distancia", icono: "📍" }
+const ORDENES: Array<{ valor: OrdenViajes; etiqueta: string }> = [
+  { valor: "recientes", etiqueta: "Recientes" },
+  { valor: "mayor_ganancia", etiqueta: "Mayor ganancia" },
+  { valor: "menor_distancia", etiqueta: "Menor distancia" }
 ];
+
+function IconOrden({ valor, className }: { valor: OrdenViajes; className?: string }) {
+  if (valor === "recientes")
+    return (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+    );
+  if (valor === "mayor_ganancia")
+    return (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+        <line x1="12" y1="1" x2="12" y2="23" />
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    );
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
 
 export function ViajesFilters({
   orden,
@@ -39,7 +62,7 @@ export function ViajesFilters({
                 orden === o.valor ? "bg-signal border-signal text-slate-950 shadow-sm" : "bg-surface-elevated border-border/40 text-text-secondary hover:border-route-action/30 hover:text-text-primary"
               }`}
             >
-              <span aria-hidden>{o.icono}</span>
+              <IconOrden valor={o.valor} />
               {o.etiqueta}
             </button>
           ))}

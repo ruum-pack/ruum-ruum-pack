@@ -15,11 +15,13 @@ import {
   obtenerPasaporteDigital,
   obtenerEvidenciaDeTraslado,
   confirmarEvidenciaCompleta,
-  firmarUrlsEvidencia
+  firmarUrlsEvidencia,
+  registrarEvento
 } from "@ruum/api/services";
 import { useEvidenceQueue } from "./useEvidenceQueue";
 import { fotoSrc } from "./evidence-requirements";
 import { SecondaryTripNavBar } from "../SecondaryTripNavBar";
+import { useLiveRegion } from "../../../../components/LiveRegionProvider";
 
 type PasaporteDigitalRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = "pendiente_de_conductor" | "conductor_asignado" | "conductor_en_camino_al_origen" | "conductor_en_punto_de_recoleccion" | "verificacion_vehiculo_en_proceso" | "evidencia_inicial_en_proceso" | "traslado_en_curso" | "llegada_a_destino" | "evidencia_final_en_proceso" | "servicio_cerrado";
@@ -41,6 +43,7 @@ export default function PaginaEvidencia() {
   const inputArchivoRef = useRef<HTMLInputElement | null>(null);
   const anguloArchivoRef = useRef<AnguloEvidencia | null>(null);
 
+  const { alert: anunciarUrgente, announce } = useLiveRegion();
   const [estadoActual, setEstadoActual] = useState<EstadoTraslado | null>(null);
   const [pasaporte, setPasaporte] = useState<PasaporteDigitalRow | null>(null);
   const [tipo, setTipo] = useState<TipoEvidencia | null>(null);
@@ -66,6 +69,12 @@ export default function PaginaEvidencia() {
   const [mostrarRecibo, setMostrarRecibo] = useState(false);
   const [tipoReporteEnviado, setTipoReporteEnviado] = useState<"sms" | "email" | null>(null);
   const [enviandoCopia, setEnviandoCopia] = useState(false);
+
+  // R5 — CES/CSAT (1/3 traslados, post-evidencia)
+  const [showCsatSheet, setShowCsatSheet] = useState(false);
+  const [csatValor, setCsatValor] = useState<number | null>(null);
+  const [cesValor, setCesValor] = useState<number | null>(null);
+  const [enviandoFeedback, setEnviandoFeedback] = useState(false);
 
   // Uploaded photos
   const [fotos, setFotos] = useState<FotoEvidencia[]>([]);
@@ -185,6 +194,7 @@ export default function PaginaEvidencia() {
             ? `Foto "${angulo}" sobreexpuesta. Evita luz directa al lente y reintenta.`
             : `Foto "${angulo}" borrosa. Sostén el teléfono firme a 1–2 m y reintenta.`;
         setError(msg);
+        anunciarUrgente(msg);
         if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate([30, 30, 30]);
         setEnviando(null);
         return;
@@ -200,12 +210,16 @@ export default function PaginaEvidencia() {
       const offline = typeof navigator !== "undefined" && !navigator.onLine;
       if (offline) {
         setAviso("⚠️ Sin conexión. Guardamos la fotografía en la caché local del dispositivo de forma segura.");
+        announce(`Foto ${angulo} guardada sin conexión, se sincronizará`);
       } else {
         setAvisoExito(`Fotografía "${angulo}" registrada localmente.`);
+        announce(`Foto ${angulo} capturada`);
       }
       void drenarCola();
     } catch (err) {
-      setError(traducirErrorOperativo(err, "No pudimos guardar la fotografía."));
+      const msg = traducirErrorOperativo(err, "No pudimos guardar la fotografía.");
+      setError(msg);
+      anunciarUrgente(msg);
     } finally {
       setEnviando(null);
     }
@@ -345,20 +359,24 @@ export default function PaginaEvidencia() {
     );
 
     if (missingPhotos.length > 0) {
-      setError(`Falta capturar fotografías obligatorias: ${missingPhotos.join(", ")}. Toca cada cuadro para tomar la foto.`);
+      const msg = `Falta capturar fotografías obligatorias: ${missingPhotos.join(", ")}. Toca cada cuadro para tomar la foto.`;
+      setError(msg);
+      anunciarUrgente(msg);
       setEnviando(null);
       return;
     }
     if (pendingSync.length > 0) {
-      setError(`Fotografías aún sincronizando: ${pendingSync.join(", ")}. Espera a que suban (revisa el indicador de conexión) y reintenta. No necesitas recapturar.`);
+      const msg = `Fotografías aún sincronizando: ${pendingSync.join(", ")}. Espera a que suban y reintenta.`;
+      setError(msg);
+      anunciarUrgente(msg);
       setEnviando(null);
-      // Intentar drenar cola en segundo plano
       void drenarCola();
       return;
     }
-    // Hallazgo 5.3 — si el conductor marcó "¿Presenta daños nuevos?" exigir foto dano_previo para que la detección automática tenga con qué comparar
     if (tipo === "final" && presentaDanosNuevos && !fotos.some((f) => f.angulo === "dano_previo")) {
-      setError("Marcaste que hay daños nuevos: captura la foto de \"Daño previo\" para documentarlos. Si no hay daños, desmarca la casilla.");
+      const msg = "Marcaste que hay daños nuevos: captura la foto de \"Daño previo\" para documentarlos.";
+      setError(msg);
+      anunciarUrgente(msg);
       setEnviando(null);
       return;
     }
@@ -390,12 +408,48 @@ export default function PaginaEvidencia() {
       const estadoEsperado = tipo === "inicial" ? "evidencia_inicial_en_proceso" : "evidencia_final_en_proceso";
       await confirmarEvidenciaCompleta(cliente, id, estadoActual || estadoEsperado, tipo);
       setAvisoExito("Evidencias completadas y enviadas con éxito.");
+      anunciarUrgente("Evidencia enviada con éxito");
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate([20, 30, 20]);
+      // R5 — 1/3 final → CSAT+CES (en dev siempre para medir, en prod 33%)
+      const debePedirFeedback = tipo === "final" && (process.env.NODE_ENV !== "production" ? true : Math.random() < 0.34);
+      if (debePedirFeedback) {
+        setShowCsatSheet(true);
+        setEnviando(null);
+        return;
+      }
       router.push(`/viajes/${id}`);
     } catch (err) {
-      setError(traducirErrorOperativo(err, "No pudimos finalizar el registro de evidencias."));
+      const msg = traducirErrorOperativo(err, "No pudimos finalizar el registro de evidencias.");
+      setError(msg);
+      anunciarUrgente(msg);
     } finally {
       setEnviando(null);
     }
+  }
+
+  async function enviarFeedback() {
+    if (csatValor == null || cesValor == null) return;
+    setEnviandoFeedback(true);
+    try {
+      const cliente = crearClienteNavegador();
+      await Promise.allSettled([
+        registrarEvento(cliente as unknown as Parameters<typeof registrarEvento>[0], "csat_traslado" as unknown as Parameters<typeof registrarEvento>[1], "conductor", id, { traslado_id: id, csat: csatValor, ces: cesValor, tipo } as unknown as Parameters<typeof registrarEvento>[4]),
+        registrarEvento(cliente as unknown as Parameters<typeof registrarEvento>[0], "ces_evidencia" as unknown as Parameters<typeof registrarEvento>[1], "conductor", id, { traslado_id: id, ces: cesValor, csat: csatValor, tipo } as unknown as Parameters<typeof registrarEvento>[4])
+      ]);
+      try {
+        localStorage.setItem(`ruum_csat_${id}`, JSON.stringify({ csat: csatValor, ces: cesValor, at: new Date().toISOString() }));
+      } catch {}
+      anunciarUrgente(`Gracias por tu feedback ${csatValor} estrellas`);
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+    } catch {}
+    setEnviandoFeedback(false);
+    setShowCsatSheet(false);
+    router.push(`/viajes/${id}`);
+  }
+
+  function omitirFeedback() {
+    setShowCsatSheet(false);
+    router.push(`/viajes/${id}`);
   }
 
   const isPhotoCaptured = (angulo: AnguloEvidencia) => fotos.some((f) => f.angulo === angulo);
@@ -649,9 +703,11 @@ export default function PaginaEvidencia() {
           </div>
           <p className="font-body text-[11px] text-text-tertiary text-center">Toca para capturar · La miniatura aparece al instante · “PENDIENTE” se sincroniza sola</p>
           <div className="rounded-xl border border-route-action/20 bg-route-soft/50 p-3 flex gap-2.5">
-            <span className="text-lg shrink-0" aria-hidden>
-              💡
-            </span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-route-action mt-0.5">
+              <path d="M9 18h6" />
+              <path d="M10 22h4" />
+              <path d="M12 2a7 7 0 0 0-4 12.7V16a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1.3A7 7 0 0 0 12 2z" />
+            </svg>
             <div className="flex flex-col gap-1">
               <span className="font-display text-[11px] font-black text-route-action">Guía rápida 90s — silueta</span>
               <ul className="font-body text-[11px] leading-4 text-text-secondary list-disc pl-4 space-y-0.5">
@@ -783,7 +839,11 @@ export default function PaginaEvidencia() {
 
           <div className="bg-surface-elevated/40 border border-border/30 rounded-2xl p-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-xs font-bold text-text-secondary">
-              <span className="text-lg">🔑</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="text-text-tertiary">
+                <circle cx="7.5" cy="15.5" r="5.5" />
+                <path d="M21 2l-9.6 9.6" />
+                <path d="M15.5 9.5l3 3L22 9l-3-3z" />
+              </svg>
               <span>Número de llaves recibidas</span>
             </div>
 
@@ -1123,6 +1183,80 @@ export default function PaginaEvidencia() {
       {/* Secondary Bottom Navigation Bar (Detalles, Gastos, Incidencia) */}
       {pasaporte && (
         <SecondaryTripNavBar trasladoId={id} pasaporte={pasaporte} />
+      )}
+
+      {/* R5 — CSAT 1-5 (post-traslado) + CES 1-7 (evidencia) — 1/3 final, instrumentado */}
+      {showCsatSheet && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-label="Cuéntanos cómo te fue">
+          <button type="button" className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={omitirFeedback} aria-label="Omitir feedback" />
+          <div className="relative w-full max-w-md bg-surface-elevated rounded-t-[2rem] border-t border-border/40 p-6 flex flex-col gap-5 animate-slideUp shadow-2xl max-h-[85vh] overflow-y-auto">
+            <div className="mx-auto h-1.5 w-12 rounded-full bg-border/40" aria-hidden />
+            <div className="flex flex-col gap-1">
+              <h2 className="font-display text-lg font-black text-text-primary">¡Evidencia enviada! Cuéntanos</h2>
+              <p className="font-body text-xs text-text-secondary">2 preguntas rápidas (10s) nos ayudan a mejorar tu pago y tu tiempo. 1 de cada 3 traslados.</p>
+            </div>
+
+            {/* CSAT 1-5 */}
+            <div className="flex flex-col gap-2">
+              <span className="font-display text-xs font-black tracking-wide text-text-primary">¿Qué tan fácil fue este traslado? <span className="font-normal text-text-tertiary">(CSAT)</span></span>
+              <div className="flex gap-1.5" role="group" aria-label="Calificación del traslado 1 a 5">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setCsatValor(n)}
+                    aria-pressed={csatValor === n}
+                    className={`flex-1 min-h-11 rounded-xl border flex flex-col items-center justify-center gap-0.5 transition-all focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${csatValor === n ? "bg-signal border-signal text-slate-950 shadow-md" : "bg-surface border-border/40 text-text-secondary hover:border-signal/30"}`}
+                  >
+                    <span className="text-base leading-none">{n === 1 ? "😞" : n === 2 ? "😐" : n === 3 ? "🙂" : n === 4 ? "😊" : "🤩"}</span>
+                    <span className="font-display text-[11px] font-black">{n}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between font-body text-[10px] text-text-tertiary px-1">
+                <span>Muy difícil</span>
+                <span>Muy fácil</span>
+              </div>
+            </div>
+
+            {/* CES 1-7 */}
+            <div className="flex flex-col gap-2">
+              <span className="font-display text-xs font-black tracking-wide text-text-primary">¿Cuánto esfuerzo te tomó la evidencia? <span className="font-normal text-text-tertiary">(CES)</span></span>
+              <div className="grid grid-cols-7 gap-1" role="group" aria-label="Esfuerzo de evidencia 1 a 7">
+                {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setCesValor(n)}
+                    aria-pressed={cesValor === n}
+                    className={`min-h-11 rounded-xl border flex items-center justify-center font-display text-xs font-black transition-all focus-visible:outline focus-visible:outline-[2px] focus-visible:outline-offset-1 focus-visible:outline-route-action ${cesValor === n ? "bg-route-action border-route-action text-white shadow-md" : "bg-surface border-border/30 text-text-secondary hover:border-route-action/30"}`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between font-body text-[10px] text-text-tertiary px-1">
+                <span>Muy poco</span>
+                <span>Mucho</span>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button type="button" onClick={omitirFeedback} className="flex-1 min-h-11 rounded-xl border border-border bg-surface font-display text-sm font-bold text-text-secondary hover:bg-surface-elevated">
+                Omitir
+              </button>
+              <button
+                type="button"
+                onClick={() => void enviarFeedback()}
+                disabled={csatValor == null || cesValor == null || enviandoFeedback}
+                className="flex-1 min-h-11 rounded-xl bg-signal text-slate-950 font-display text-sm font-black shadow-md hover:bg-signal/90 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {enviandoFeedback ? "Enviando…" : "Enviar · Gracias"}
+              </button>
+            </div>
+            <p className="font-body text-[10px] text-center text-text-tertiary">Se registra anónimo para NPS/CSAT. ¡Gracias por conducir con RUUM!</p>
+          </div>
+        </div>
       )}
 
       {/* Bottom Sheet de Soporte */}
