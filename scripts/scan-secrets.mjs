@@ -12,10 +12,10 @@ const EXTENSIONS = new Set([".ts", ".tsx", ".js", ".mjs", ".json", ".yml", ".yam
 const PATRONES = [
   { regex: /(?<!env\()['"](sk_live_|pk_live_)[A-Za-z0-9_\-]{10,}['"]/, nivel: "error", label: "API key de producción" },
   { regex: /(?<!env\()['"]sb_publishable_[A-Za-z0-9_\-]{10,}['"]/, nivel: "error", label: "Supabase publishable key" },
-  { regex: /(?<!requiredEnv|Deno\.env\.get)SUPABASE_SERVICE_ROLE_KEY/, nivel: "warn", label: "Service role key sin env var" },
-  { regex: /(?<!Deno\.env\.get|envRequerida|requiredEnv)STRIPE_WEBHOOK_SECRET/, nivel: "warn", label: "Webhook secret sin env var" },
-  { regex: /(?<!Deno\.env\.get|envRequerida|requiredEnv)RESEND_API_KEY/, nivel: "warn", label: "Resend API key sin env var" },
-  { regex: /(?<!Deno\.env\.get|envRequerida|requiredEnv)MAPBOX_ACCESS_TOKEN/, nivel: "warn", label: "Mapbox token sin env var" },
+  { regex: /(?<!requiredEnv|Deno\.env\.get|process\.env\.)SUPABASE_SERVICE_ROLE_KEY/, nivel: "warn", label: "Service role key sin env var" },
+  { regex: /(?<!Deno\.env\.get|envRequerida|requiredEnv|process\.env\.)STRIPE_WEBHOOK_SECRET/, nivel: "warn", label: "Webhook secret sin env var" },
+  { regex: /(?<!Deno\.env\.get|envRequerida|requiredEnv|process\.env\.)RESEND_API_KEY/, nivel: "warn", label: "Resend API key sin env var" },
+  { regex: /(?<!Deno\.env\.get|envRequerida|requiredEnv|process\.env\.|NEXT_PUBLIC_)MAPBOX_ACCESS_TOKEN/, nivel: "warn", label: "Mapbox token sin env var" },
   { regex: /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9/, nivel: "error", label: "JWT hardcodeado" },
 ];
 
