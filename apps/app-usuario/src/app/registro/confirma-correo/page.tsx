@@ -109,7 +109,7 @@ if (!correo) {
       <section className="flex min-h-screen flex-col px-5 py-10">
         <LogoRuum className="mx-auto mt-8 text-center" />
         <div className="mt-12 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7 text-center shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#f5a623]/15 text-[#f5a623]" aria-hidden>✉</div>
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#FFC400]/15 text-[#FFC400]" aria-hidden>✉</div>
           <h1 className="mt-5 font-display text-[22px] font-extrabold text-white">Revisa tu correo</h1>
           <p className="mt-3 font-body text-sm leading-6 text-[var(--ruum-dark-text-secondary)]">
             Enviamos un enlace de confirmación{correo ? <> a <strong className="text-white">{correo}</strong></> : " al correo registrado"}.
@@ -126,7 +126,7 @@ if (!correo) {
             {reenviando ? "Enviando…" : restante > 0 ? `Reenviar en ${restante}s` : "Reenviar correo"}
           </button>
           <Link href="/login" className={`${botonContorno} mt-3`}>Volver al inicio de sesión</Link>
-          <Link href="/registro" className="mt-5 inline-block font-body text-xs text-[#f1d797] underline-offset-4 hover:underline">
+          <Link href="/registro" className="mt-5 inline-block font-body text-xs text-[#FFC400] underline-offset-4 hover:underline">
             Corregir el correo o volver a registrarme
           </Link>
         </div>

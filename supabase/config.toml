@@ -25,7 +25,9 @@ additional_redirect_urls = [
   "http://localhost:3001",
   "http://localhost:3002",
   "https://www.concer.ruumruum-moviliax.online",
-  "https://concer.ruumruum-moviliax.online"
+  "https://concer.ruumruum-moviliax.online",
+  "https://www.usuario.ruumruum-moviliax.online",
+  "https://usuario.ruumruum-moviliax.online"
 ]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
@@ -34,8 +36,10 @@ enable_refresh_token_rotation = true
 # `additional_redirect_urls` en config.toml configura el entorno local Supabase CLI.
 # En el Dashboard de Supabase para proyectos hospedados en Staging y Producción,
 # SE DEBEN CONFIGURAR EXPLÍCITAMENTE en Authentication → URL Configuration:
-#   - Site URL: https://www.concer.ruumruum-moviliax.online
+#   - Site URL: https://www.usuario.ruumruum-moviliax.online (o el dominio principal)
 #   - Redirect URLs:
+#       * https://www.usuario.ruumruum-moviliax.online/auth/callback
+#       * https://usuario.ruumruum-moviliax.online/auth/callback
 #       * https://www.concer.ruumruum-moviliax.online/auth/callback
 #       * https://www.concer.ruumruum-moviliax.online/nueva-password
 #       * https://concer.ruumruum-moviliax.online/auth/callback
