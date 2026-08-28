@@ -7,6 +7,19 @@ import { crearClienteServidor } from "@ruum/api/supabase";
  * activo. Patrón estándar de @supabase/ssr para Next.js App Router.
  * Si Supabase no está configurado, no hay nada que refrescar.
  */
+const RUTAS_PROTEGIDAS_USUARIO = [
+  "/traslados/nuevo",
+  "/mis-viajes",
+  "/cuenta",
+  "/pasaporte"
+];
+
+function esRutaProtegidaUsuario(pathname: string): boolean {
+  return RUTAS_PROTEGIDAS_USUARIO.some(
+    (ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`)
+  );
+}
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -28,14 +41,19 @@ export async function middleware(request: NextRequest) {
   });
 
   const { data: { user } } = await supabase.auth.getUser();
+  const { pathname } = request.nextUrl;
 
-  if (request.nextUrl.pathname === "/traslados/nuevo" && !user) {
+  if (!user && esRutaProtegidaUsuario(pathname)) {
     const login = request.nextUrl.clone();
     login.pathname = "/login";
     login.search = "";
-    login.searchParams.set("next", "/traslados/nuevo");
+    login.searchParams.set("next", pathname);
     login.searchParams.set("reason", "authentication_required");
     return NextResponse.redirect(login);
+  }
+
+  if (user && (pathname === "/login" || pathname === "/registro")) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return response;

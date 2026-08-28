@@ -43,7 +43,7 @@ export default async function PaginaInicio({
   const { usuario, traslados } = await obtenerContextoSesion();
   const forzarLanding = params.landing === "true";
 
-  if (!forzarLanding) {
+  if (usuario && !forzarLanding) {
     return (
       <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
         <NavegacionUsuario />
@@ -62,6 +62,12 @@ export default async function PaginaInicio({
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
           <LogoMarca variante="horizontal" tema="oscuro" tamano={34} />
           <div className="flex items-center gap-3">
+            <Link
+              href="/onboarding"
+              className="hidden sm:inline-flex rounded-lg px-3 py-2 font-display text-xs font-semibold text-[#8B98AD] transition hover:text-white"
+            >
+              Cómo funciona
+            </Link>
             <Link
               href="/login"
               className="rounded-lg px-3.5 py-2 font-display text-xs font-semibold text-[#F8F8F5] transition hover:text-[#FFC400]"
@@ -109,10 +115,16 @@ export default async function PaginaInicio({
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link href="/registro" className={`sm:w-auto ${botonAzul} sm:px-8`}>
-              Cotizar traslado
+              Crear cuenta y cotizar
             </Link>
-            <Link href="/login" className={`sm:w-auto ${botonContorno} sm:px-8`}>
-              Ingresar a mi cuenta
+            <Link href="/onboarding" className={`sm:w-auto ${botonContorno} sm:px-8`}>
+              Conoce el servicio
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center rounded-lg px-5 py-3 font-display text-sm font-semibold text-[#8B98AD] transition hover:text-white"
+            >
+              Iniciar sesión →
             </Link>
           </div>
 
@@ -258,7 +270,10 @@ export default async function PaginaInicio({
             <Link href="/registro" className={`sm:w-auto ${botonAzul} sm:px-8`}>
               Comenzar ahora
             </Link>
-            <Link href="/login" className={`sm:w-auto ${botonContorno} sm:px-8`}>
+            <Link href="/onboarding" className={`sm:w-auto ${botonContorno} sm:px-8`}>
+              Ver recorrido de onboarding
+            </Link>
+            <Link href="/login" className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center rounded-lg px-5 py-3 font-display text-sm font-semibold text-[#8B98AD] transition hover:text-white">
               Iniciar sesión
             </Link>
           </div>
@@ -274,7 +289,16 @@ export default async function PaginaInicio({
               {IDENTIDAD_MARCA.lema}
             </p>
           </div>
-          <div className="flex gap-4 font-body text-xs text-[#8B98AD]">
+          <div className="flex flex-wrap items-center justify-center gap-4 font-body text-xs text-[#8B98AD]">
+            <Link href="/onboarding" className="transition hover:text-white">
+              Cómo funciona (Onboarding)
+            </Link>
+            <Link href="/login" className="transition hover:text-white">
+              Iniciar sesión
+            </Link>
+            <Link href="/registro" className="transition hover:text-white">
+              Crear cuenta
+            </Link>
             <Link href="/legal/terminos" className="transition hover:text-white">
               Términos y condiciones
             </Link>
