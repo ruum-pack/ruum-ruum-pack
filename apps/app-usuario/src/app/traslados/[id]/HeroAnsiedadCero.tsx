@@ -84,6 +84,21 @@ function iniciales(nombre: string | null | undefined) {
   return nombre.split(" ").filter(Boolean).slice(0,2).map(p=>p[0]?.toUpperCase()).join("");
 }
 
+function formatoFechaSegura(fecha: string | null | undefined): string {
+  if (!fecha) return "ahora";
+  try {
+    const d = new Date(fecha);
+    if (isNaN(d.getTime())) return "ahora";
+    return new Intl.DateTimeFormat("es-MX", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "America/Mexico_City"
+    }).format(d);
+  } catch {
+    return "ahora";
+  }
+}
+
 export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }: { 
   pasaporte: Pasaporte; 
   conductor: Conductor | null; 
@@ -124,7 +139,7 @@ export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }:
             <div className="mt-3 h-2 w-full max-w-md overflow-hidden rounded-full bg-ink/10">
               <div className="h-full bg-signal transition-all" style={{ width: `${pct}%` }} aria-label={`Progreso ${pct}%`} />
             </div>
-            <p className="mt-1 font-body text-xs text-ink/45">{pct}% completado · Actualizado {pasaporte.actualizado_en ? new Date(pasaporte.actualizado_en).toLocaleString("es-MX", { timeZone: "America/Mexico_City" }) : "ahora"}</p>
+            <p className="mt-1 font-body text-xs text-ink/45">{pct}% completado · Actualizado {formatoFechaSegura(pasaporte.actualizado_en)}</p>
           </div>
           <div className="shrink-0 self-start">
             <EstadoBadge estado={estado as never} />
@@ -143,7 +158,7 @@ export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }:
                 <p className="font-body text-sm font-bold text-ink truncate">{conductor?.nombre ?? pasaporte.conductor_nombre}</p>
                 <p className="font-body text-xs text-ink/55">
                   {conductor?.nivel_operativo_vigente ?? pasaporte.conductor_nivel ?? "Certificado"} · 
-                  {pasaporte.conductor_calificacion ? `${pasaporte.conductor_calificacion.toFixed(1)}★` : "—"} · 
+                  {pasaporte.conductor_calificacion != null ? `${Number(pasaporte.conductor_calificacion).toFixed(1)}★` : "—"} · 
                   {conductor?.traslados_completados ?? "—"} traslados
                 </p>
               </div>
@@ -172,7 +187,7 @@ export function HeroAnsiedadCero({ pasaporte, conductor, traslado, trasladoId }:
           )}
           <p className="mt-2 font-body text-xs leading-5 text-ink/55">
             Vehículo: <span className="font-semibold text-ink">{vehiculoNombre || "—"}</span> 
-            {pasaporte.vehiculo_tipo ? `· ${ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo as never]}` : ""} · 
+            {pasaporte.vehiculo_tipo ? ` · ${ETIQUETA_TIPO_VEHICULO[pasaporte.vehiculo_tipo as keyof typeof ETIQUETA_TIPO_VEHICULO] ?? pasaporte.vehiculo_tipo}` : ""} · 
             Placas <span className="font-mono-ruum font-semibold">{pasaporte.vehiculo_placas ?? "—"}</span>
           </p>
         </div>

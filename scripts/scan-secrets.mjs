@@ -9,15 +9,42 @@ const EXCLUIR = new Set([
 
 const EXTENSIONS = new Set([".ts", ".tsx", ".js", ".mjs", ".json", ".yml", ".yaml"]);
 
-const PATRONES = [
-  { regex: /(?<!env\()['"](sk_live_|pk_live_)[A-Za-z0-9_\-]{10,}['"]/, nivel: "error", label: "API key de producción" },
-  { regex: /(?<!env\()['"]sb_publishable_[A-Za-z0-9_\-]{10,}['"]/, nivel: "error", label: "Supabase publishable key" },
-  { regex: /(?<!requiredEnv|Deno\.env\.get|process\.env\.)SUPABASE_SERVICE_ROLE_KEY/, nivel: "warn", label: "Service role key sin env var" },
-  { regex: /(?<!Deno\.env\.get|envRequerida|requiredEnv|process\.env\.)STRIPE_WEBHOOK_SECRET/, nivel: "warn", label: "Webhook secret sin env var" },
-  { regex: /(?<!Deno\.env\.get|envRequerida|requiredEnv|process\.env\.)RESEND_API_KEY/, nivel: "warn", label: "Resend API key sin env var" },
-  { regex: /(?<!Deno\.env\.get|envRequerida|requiredEnv|process\.env\.|NEXT_PUBLIC_)MAPBOX_ACCESS_TOKEN/, nivel: "warn", label: "Mapbox token sin env var" },
-  { regex: /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9/, nivel: "error", label: "JWT hardcodeado" },
+// Patrones estrictos de detección de secretos reales hardcodeados
+const PATRONES_SECRETOS = [
+  { regex: /['"](sk_live_|pk_live_|rk_live_)[A-Za-z0-9_\-]{10,}['"]/, nivel: "error", label: "Stripe API key de producción hardcodeada" },
+  { regex: /['"]sb_publishable_[A-Za-z0-9_\-]{10,}['"]/, nivel: "error", label: "Supabase publishable key hardcodeada" },
+  { regex: /['"]whsec_[A-Za-z0-9_\-]{16,}['"]/, nivel: "error", label: "Stripe Webhook Secret hardcodeado" },
+  { regex: /['"]re_[A-Za-z0-9_\-]{20,}['"]/, nivel: "error", label: "Resend API key hardcodeada" },
+  { regex: /['"]sk\.[A-Za-z0-9_\-]{30,}['"]/, nivel: "error", label: "Mapbox secret token hardcodeado" },
+  { regex: /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9/, nivel: "error", label: "JWT de servicio hardcodeado" },
+  {
+    regex: /(SUPABASE_SERVICE_ROLE_KEY|STRIPE_WEBHOOK_SECRET|RESEND_API_KEY)\s*[:=]\s*['"`][A-Za-z0-9_\-\.]{20,}['"`]/,
+    nivel: "warn",
+    label: "Posible asignación de secreto hardcodeado"
+  }
 ];
+
+function esLineaComentario(line) {
+  const trimmed = line.trim();
+  return (
+    trimmed.startsWith("//") ||
+    trimmed.startsWith("*") ||
+    trimmed.startsWith("/*") ||
+    trimmed.startsWith("#")
+  );
+}
+
+function esArchivoPrueba(filePath) {
+  const norm = filePath.replace(/\\/g, "/");
+  return (
+    norm.includes(".test.") ||
+    norm.includes("/test/") ||
+    norm.includes("/tests/") ||
+    norm.includes("/integration-test/") ||
+    norm.includes("setup-e2e") ||
+    norm.includes(".example")
+  );
+}
 
 function scanDir(dir) {
   let hallazgos = [];
@@ -40,9 +67,17 @@ function scanFile(filePath) {
   try {
     const lines = readFileSync(filePath, "utf-8").split("\n");
     let lineNum = 0;
+    const esPrueba = esArchivoPrueba(filePath);
+
     for (const line of lines) {
       lineNum++;
-      for (const patron of PATRONES) {
+      if (esLineaComentario(line)) continue;
+
+      for (const patron of PATRONES_SECRETOS) {
+        // En archivos de prueba, permitir mock test secrets locales pero bloquear live API keys reales
+        if (esPrueba && patron.label !== "Stripe API key de producción hardcodeada" && patron.label !== "JWT de servicio hardcodeado") {
+          continue;
+        }
         if (patron.regex.test(line)) {
           hallazgos.push({
             archivo: filePath.replace(/\\/g, "/"),
@@ -67,5 +102,10 @@ for (const h of resultados) {
   if (h.nivel === "error") exitCode = 1;
 }
 
-console.log(`\nEscaneo completo. ${resultados.length} hallazgos (${resultados.filter(h => h.nivel === "error").length} errores).`);
+if (resultados.length === 0) {
+  console.log("🔒 [scan:secrets] Escaneo completo: 0 secretos o advertencias detectadas.");
+} else {
+  console.log(`\nEscaneo completo. ${resultados.length} hallazgos (${resultados.filter(h => h.nivel === "error").length} errores).`);
+}
+
 process.exit(exitCode);

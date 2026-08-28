@@ -120,11 +120,17 @@ const ETIQUETA_ANGULO: Record<FotoEvidencia["angulo"], string> = {
 
 function formatoFecha(fecha: string | null | undefined) {
   if (!fecha) return "Pendiente";
-  return new Intl.DateTimeFormat("es-MX", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "America/Mexico_City"
-  }).format(new Date(fecha));
+  try {
+    const d = new Date(fecha);
+    if (isNaN(d.getTime())) return "Pendiente";
+    return new Intl.DateTimeFormat("es-MX", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "America/Mexico_City"
+    }).format(d);
+  } catch {
+    return "Pendiente";
+  }
 }
 
 function formatoMoneda(monto: number | null | undefined) {
@@ -251,10 +257,8 @@ async function obtenerDatos(id: string) {
       }
 
       if (tRow) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const v = tRow.vehiculos as any;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const c = tRow.conductores as any;
+        const v = tRow.vehiculos as Record<string, unknown> | null;
+        const c = tRow.conductores as Record<string, unknown> | null;
         pasaporte = {
           traslado_id: tRow.id as string,
           usuario_id: tRow.usuario_id as string,
@@ -822,28 +826,6 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
           <ChatTraslado trasladoId={pasaporte.traslado_id} estado={pasaporte.estado} />
         </AcordeonPasaporte>
       </section>
-      
-      {/* Script para auto-expandir acordeón al navegar a #chat-conductor */}
-      <script 
-        dangerouslySetInnerHTML={{
-          __html: `
-            (function() {
-              const hash = window.location.hash;
-              if (hash === '#chat-conductor') {
-                const details = document.querySelector('section[id="chat-conductor"] details');
-                if (details && !details.open) {
-                  details.open = true;
-                  // Scroll al input del chat si existe
-                  const input = details.querySelector('input, textarea');
-                  if (input) {
-                    setTimeout(() => input.focus(), 300);
-                  }
-                }
-              }
-            })();
-          `
-        }}
-      />
 
       <section id="acciones-incidencia" className="mt-4 scroll-mt-28">
         <AcordeonPasaporte titulo="Reportar incidencia" descripcion="Da aviso a soporte sin buscar el formulario al final de la página.">
@@ -947,7 +929,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
                 <Dato
                   etiqueta="Calificación"
                   valor={
-                    pasaporte.conductor_calificacion ? `${pasaporte.conductor_calificacion.toFixed(1)} / 5` : "Sin calificación"
+                    pasaporte.conductor_calificacion != null ? `${Number(pasaporte.conductor_calificacion).toFixed(1)} / 5` : "Sin calificación"
                   }
                 />
                 <Dato etiqueta="Estatus" valor={conductor?.estado ?? pasaporte.conductor_estado} />
@@ -1006,7 +988,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
                         </div>
                         <p className="mt-2 font-body text-sm text-ink/65">{incidencia.descripcion}</p>
                         <p className="mt-2 font-body text-xs text-ink/45">
-                          {incidencia.momento.replaceAll("_", " ")} · {formatoFecha(incidencia.creada_en)}
+                          {incidencia.momento ? String(incidencia.momento).replaceAll("_", " ") : "Traslado"} · {formatoFecha(incidencia.creada_en)}
                         </p>
                       </div>
                     ))}
@@ -1030,7 +1012,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
             <AcordeonPasaporte titulo="Pago y soporte" descripcion="Tarifa, pagos registrados y contacto de ayuda.">
               <p className="font-body text-sm text-ink/55">{MENSAJES_CLAVE_UX.pago}</p>
               <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-                <Dato etiqueta="Tipo de pago" valor={(pasaporte.tipo_pago ?? "por_definir").replaceAll("_", " ")} />
+                <Dato etiqueta="Tipo de pago" valor={(pasaporte.tipo_pago ? String(pasaporte.tipo_pago) : "por_definir").replaceAll("_", " ")} />
                 <Dato etiqueta="Precio cotizado" valor={formatoMoneda(pasaporte.precio_cotizado)} />
                 <Dato etiqueta="Precio final" valor={formatoMoneda(pasaporte.precio_final ?? precioBase)} />
                 <Dato etiqueta="Monto pagado" valor={formatoMoneda(pasaporte.monto_pagado)} />
@@ -1039,7 +1021,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
                 <div className="mt-5 space-y-3">
                   {pagos.map((pago) => (
                     <div key={pago.id} className="flex items-center justify-between border-t border-ink/10 pt-3 font-body text-sm">
-                      <span>{pago.metodo} · {pago.momento.replaceAll("_", " ")}</span>
+                      <span>{pago.metodo} · {pago.momento ? String(pago.momento).replaceAll("_", " ") : ""}</span>
                       <span className="font-mono-ruum">{formatoMoneda(pago.monto)}</span>
                     </div>
                   ))}
@@ -1085,13 +1067,13 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
                   {disputas.map((disputa) => (
                     <div key={disputa.id} className="rounded-lg border border-ink/10 px-4 py-3">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="font-body text-sm font-semibold">{disputa.tipo.replaceAll("_", " ")}</p>
-                        <span className="font-body text-xs text-ink/50">{disputa.estado.replaceAll("_", " ")}</span>
+                        <p className="font-body text-sm font-semibold">{disputa.tipo ? String(disputa.tipo).replaceAll("_", " ") : "Disputa"}</p>
+                        <span className="font-body text-xs text-ink/50">{disputa.estado ? String(disputa.estado).replaceAll("_", " ") : ""}</span>
                       </div>
                       <p className="mt-2 font-body text-sm text-ink/65">{disputa.descripcion}</p>
                       {disputa.resolucion && (
                         <p className="mt-2 font-body text-sm text-control">
-                          Resolución: {disputa.resolucion.replaceAll("_", " ")}
+                          Resolución: {String(disputa.resolucion).replaceAll("_", " ")}
                           {disputa.resolucion_detalle ? ` · ${disputa.resolucion_detalle}` : ""}
                         </p>
                       )}
@@ -1101,7 +1083,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
                     <div key={reclamo.id} className="rounded-lg border border-ink/10 px-4 py-3">
                       <div className="flex items-start justify-between gap-3">
                         <p className="font-body text-sm font-semibold">Reclamo de seguro</p>
-                        <span className="font-body text-xs text-ink/50">{reclamo.estado.replaceAll("_", " ")}</span>
+                        <span className="font-body text-xs text-ink/50">{reclamo.estado ? String(reclamo.estado).replaceAll("_", " ") : ""}</span>
                       </div>
                       <p className="mt-2 font-body text-sm text-ink/65">
                         Abierto {formatoFecha(reclamo.abierto_en)}

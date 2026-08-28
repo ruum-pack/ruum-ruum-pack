@@ -52,11 +52,17 @@ function puntoValido(punto: PuntoMapa): punto is { lat: number; lng: number } {
 
 function formatoHora(fechaIso: string | null | undefined) {
   if (!fechaIso) return "Sin actualización";
-  return new Intl.DateTimeFormat("es-MX", {
-    timeStyle: "short",
-    dateStyle: "medium",
-    timeZone: "America/Mexico_City"
-  }).format(new Date(fechaIso));
+  try {
+    const d = new Date(fechaIso);
+    if (isNaN(d.getTime())) return "Sin actualización";
+    return new Intl.DateTimeFormat("es-MX", {
+      timeStyle: "short",
+      dateStyle: "medium",
+      timeZone: "America/Mexico_City"
+    }).format(d);
+  } catch {
+    return "Sin actualización";
+  }
 }
 
 function construirMapa(origen: PuntoMapa, destino: PuntoMapa, ubicacion: UbicacionTraslado | null) {

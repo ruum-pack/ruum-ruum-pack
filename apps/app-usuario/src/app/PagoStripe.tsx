@@ -113,8 +113,13 @@ async function crearPaymentIntent(trasladoId: string): Promise<string> {
 export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [stripeModule, setStripeModule] = useState<{ Elements: any; PaymentElement: any; useStripe: any; useElements: any; stripePromise: any } | null>(null);
+  const [stripeModule, setStripeModule] = useState<{
+    Elements: React.ComponentType<{ stripe: unknown; options?: unknown; children: React.ReactNode }>;
+    PaymentElement: React.ComponentType<{ options?: unknown }>;
+    useStripe: () => unknown;
+    useElements: () => unknown;
+    stripePromise: unknown;
+  } | null>(null);
   const [reintento, setReintento] = useState(0);
 
   useEffect(() => {
@@ -183,8 +188,7 @@ export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
   const { Elements, PaymentElement, useStripe, useElements, stripePromise } = stripeModule;
 
   return (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <Elements stripe={stripePromise as any} options={{ clientSecret, appearance: aparienciaStripe }}>
+    <Elements stripe={stripePromise} options={{ clientSecret, appearance: aparienciaStripe }}>
       <FormularioPagoReal
         trasladoId={trasladoId}
         onPagado={onPagado}
@@ -206,12 +210,9 @@ function FormularioPagoReal({
 }: {
   trasladoId: string;
   onPagado: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  PaymentElement: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  useStripe: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  useElements: any;
+  PaymentElement: React.ComponentType<{ options?: unknown }>;
+  useStripe: () => unknown;
+  useElements: () => unknown;
 }) {
   const stripe = useStripe();
   const elements = useElements();
