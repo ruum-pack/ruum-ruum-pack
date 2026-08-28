@@ -19,7 +19,7 @@ export function BotonResetPassword({ email }: { email: string }) {
       if (!tieneSupabaseConfigurado()) throw new Error("Supabase no está configurado.");
       const cliente = crearClienteNavegador();
       const { error: errorAuth } = await cliente.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/nueva-password`,
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery&next=/nueva-password`,
       });
       if (errorAuth) throw errorAuth;
       setEstado("enviado");

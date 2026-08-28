@@ -113,13 +113,8 @@ async function crearPaymentIntent(trasladoId: string): Promise<string> {
 export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [stripeModule, setStripeModule] = useState<{
-    Elements: React.ComponentType<{ stripe: unknown; options?: unknown; children: React.ReactNode }>;
-    PaymentElement: React.ComponentType<{ options?: unknown }>;
-    useStripe: () => unknown;
-    useElements: () => unknown;
-    stripePromise: unknown;
-  } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [stripeModule, setStripeModule] = useState<any>(null);
   const [reintento, setReintento] = useState(0);
 
   useEffect(() => {
@@ -214,8 +209,10 @@ function FormularioPagoReal({
   useStripe: () => unknown;
   useElements: () => unknown;
 }) {
-  const stripe = useStripe();
-  const elements = useElements();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const stripe = useStripe() as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const elements = useElements() as any;
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
