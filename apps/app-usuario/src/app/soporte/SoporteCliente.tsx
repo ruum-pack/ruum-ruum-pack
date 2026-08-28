@@ -151,11 +151,17 @@ export function SoporteCliente({
   const [faqAbierto, setFaqAbierto] = useState<string | null>(null);
   const [modalReporte, setModalReporte] = useState(false);
 
-  const viajeActivo = traslados.find((t) => t.traslado_id === viajePreseleccionado) ?? traslados[0];
+  // Solo tomar viaje activo si existe en la lista real
+  const viajeActivo = viajePreseleccionado
+    ? traslados.find((t) => t.traslado_id === viajePreseleccionado)
+    : traslados.find((t) => t.estado && !["servicio_cerrado", "servicio_cancelado", "traslado_fallido"].includes(t.estado));
+
   const nombreVehiculo = viajeActivo?.vehiculo_marca
     ? `${viajeActivo.vehiculo_marca} ${viajeActivo.vehiculo_modelo ?? ""} ${viajeActivo.vehiculo_anio ?? ""}`.trim()
-    : "Mitsubishi Mirage 2026";
-  const tipoVehiculo = viajeActivo?.vehiculo_tipo ? viajeActivo.vehiculo_tipo.charAt(0).toUpperCase() + viajeActivo.vehiculo_tipo.slice(1) : "Sedan";
+    : null;
+  const tipoVehiculo = viajeActivo?.vehiculo_tipo
+    ? viajeActivo.vehiculo_tipo.charAt(0).toUpperCase() + viajeActivo.vehiculo_tipo.slice(1)
+    : "Sedán";
 
   const faqsFiltradas = useMemo(() => {
     if (!busqueda.trim()) return PREGUNTAS_FRECUENTES_LISTA;
@@ -198,136 +204,130 @@ export function SoporteCliente({
         </div>
       </section>
 
-      {/* 3. Tarjeta: TRASLADO ACTIVO */}
-      <section>
-        <div className="rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 sm:p-5 shadow-2xl backdrop-blur-sm space-y-3.5">
-          <span className="block font-display text-[11px] font-bold uppercase tracking-wider text-[#FFC400]">
-            TRASLADO ACTIVO
-          </span>
+      {/* 3. Tarjeta: TRASLADO ACTIVO (Solo si existe en base de datos) */}
+      {viajeActivo && nombreVehiculo && (
+        <section>
+          <div className="rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 sm:p-5 shadow-2xl backdrop-blur-sm space-y-3.5">
+            <span className="block font-display text-[11px] font-bold uppercase tracking-wider text-[#FFC400]">
+              TRASLADO ACTIVO
+            </span>
 
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3.5">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#141F32] text-[#FFC400] shadow-sm">
-                <IconoCarroFrente className="size-6 text-[#FFC400]" />
-              </div>
-              <div>
-                <h3 className="font-display text-sm sm:text-base font-extrabold text-white leading-tight">
-                  {nombreVehiculo}
-                </h3>
-                <p className="font-body text-xs text-[#8E9CAE] mt-0.5">
-                  {tipoVehiculo}
-                </p>
-                <div className="mt-1 flex items-center gap-1.5 text-xs text-[#94A3B8]">
-                  <span className="size-2 rounded-full bg-[#FFC400] shrink-0" />
-                  <span className="font-bold text-white">Recolección en proceso</span>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3.5">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#141F32] text-[#FFC400] shadow-sm">
+                  <IconoCarroFrente className="size-6 text-[#FFC400]" />
                 </div>
-                <p className="text-[11px] text-[#8E9CAE]">
-                  El conductor se dirige al origen.
-                </p>
+                <div>
+                  <h3 className="font-display text-sm sm:text-base font-extrabold text-white leading-tight">
+                    {nombreVehiculo}
+                  </h3>
+                  <p className="font-body text-xs text-[#8E9CAE] mt-0.5">
+                    {tipoVehiculo}
+                  </p>
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-[#94A3B8]">
+                    <span className="size-2 rounded-full bg-[#FFC400] shrink-0" />
+                    <span className="font-bold text-white">Traslado en seguimiento</span>
+                  </div>
+                </div>
               </div>
+
+              <Link
+                href={viajeActivo.traslado_id ? `/traslados/${viajeActivo.traslado_id}` : "/mis-viajes"}
+                className="text-slate-400 hover:text-white transition"
+                aria-label="Ver traslado activo"
+              >
+                <IconoChevron className="size-4" />
+              </Link>
             </div>
 
-            <Link
-              href={viajeActivo?.traslado_id ? `/traslados/${viajeActivo.traslado_id}` : "/mis-viajes"}
-              className="text-slate-400 hover:text-white transition"
-              aria-label="Ver traslado activo"
+            <button
+              type="button"
+              onClick={() => setModalReporte(true)}
+              className="flex h-12 w-full items-center justify-between rounded-xl bg-[#FFC400] px-4 font-display text-xs sm:text-sm font-black uppercase tracking-wide text-[#0B111B] shadow-md transition hover:bg-[#e6b000] active:scale-[0.99]"
             >
-              <IconoChevron className="size-4" />
-            </Link>
+              <span>NECESITO AYUDA CON ESTE TRASLADO</span>
+              <IconoChevron className="size-4 text-[#0B111B]" />
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setModalReporte(true)}
-            className="flex h-12 w-full items-center justify-between rounded-xl bg-[#FFC400] px-4 font-display text-xs sm:text-sm font-black uppercase tracking-wide text-[#0B111B] shadow-md transition hover:bg-[#e6b000] active:scale-[0.99]"
-          >
-            <span>NECESITO AYUDA CON ESTE TRASLADO</span>
-            <IconoChevron className="size-4 text-[#0B111B]" />
-          </button>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 4. Sección: Temas de ayuda (Cuadrícula 3x2) */}
       <section className="space-y-3">
-        <h2 className="font-display text-sm sm:text-base font-bold text-white">
-          Temas de ayuda
+        <h2 className="font-display text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
+          TEMAS DE AYUDA
         </h2>
 
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
           {/* Card 1: Mi traslado */}
           <Link
             href="/mis-viajes"
-            className="group flex min-h-[150px] flex-col items-center justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-3 text-center shadow-md transition hover:border-sky-500/40 hover:bg-[#0D182A] active:scale-98"
+            className="group flex flex-col items-start justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 shadow-md transition hover:border-[#FFC400]/40 hover:bg-[#0D182A] min-h-[140px]"
           >
-            <IconoCarroFrente className="size-6 text-sky-400" />
-            <div className="my-auto py-1">
-              <p className="font-display text-xs font-bold leading-snug text-white">
-                Mi traslado
-              </p>
-              <p className="mt-1 font-body text-[10px] leading-tight text-[#8E9CAE]">
-                Seguimiento, conductor, recolección y entrega
-              </p>
+            <div className="flex size-11 items-center justify-center rounded-xl bg-[#141F32] border border-white/10 text-[#FFC400]">
+              <IconoCarroFrente className="size-6 text-[#FFC400]" />
             </div>
-            <div className="text-sky-400 transition group-hover:translate-x-0.5">
-              <IconoChevron className="size-3.5" />
+            <div className="mt-3">
+              <h3 className="font-display text-xs sm:text-sm font-bold text-white leading-snug">
+                Mi traslado
+              </h3>
+              <p className="font-body text-[11px] text-[#8E9CAE] mt-0.5 leading-tight">
+                Estatus, conductor y tiempo
+              </p>
             </div>
           </Link>
 
-          {/* Card 2: Pagos */}
-          <button
-            type="button"
-            onClick={() => setModalReporte(true)}
-            className="group flex min-h-[150px] flex-col items-center justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-3 text-center shadow-md transition hover:border-emerald-500/40 hover:bg-[#0D182A] active:scale-98"
-          >
-            <IconoTarjeta className="size-6 text-emerald-400" />
-            <div className="my-auto py-1">
-              <p className="font-display text-xs font-bold leading-snug text-white">
-                Pagos
-              </p>
-              <p className="mt-1 font-body text-[10px] leading-tight text-[#8E9CAE]">
-                Cobros, tarifas, comprobantes y pagos pendientes
-              </p>
-            </div>
-            <div className="text-emerald-400 transition group-hover:translate-x-0.5">
-              <IconoChevron className="size-3.5" />
-            </div>
-          </button>
-
-          {/* Card 3: Evidencias */}
+          {/* Card 2: Pagos y facturación */}
           <Link
-            href={viajeActivo?.traslado_id ? `/traslados/${viajeActivo.traslado_id}` : "/mis-viajes"}
-            className="group flex min-h-[150px] flex-col items-center justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-3 text-center shadow-md transition hover:border-purple-500/40 hover:bg-[#0D182A] active:scale-98"
+            href="/cuenta/metodos-pago"
+            className="group flex flex-col items-start justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 shadow-md transition hover:border-[#FFC400]/40 hover:bg-[#0D182A] min-h-[140px]"
           >
-            <IconoCamara className="size-6 text-purple-400" />
-            <div className="my-auto py-1">
-              <p className="font-display text-xs font-bold leading-snug text-white">
-                Evidencias
-              </p>
-              <p className="mt-1 font-body text-[10px] leading-tight text-[#8E9CAE]">
-                Fotos, documentos y evidencias del vehículo
+            <div className="flex size-11 items-center justify-center rounded-xl bg-[#141F32] border border-white/10 text-emerald-400">
+              <IconoTarjeta className="size-6 text-emerald-400" />
+            </div>
+            <div className="mt-3">
+              <h3 className="font-display text-xs sm:text-sm font-bold text-white leading-snug">
+                Pagos y facturación
+              </h3>
+              <p className="font-body text-[11px] text-[#8E9CAE] mt-0.5 leading-tight">
+                Tarifas, recibos y CFDI
               </p>
             </div>
-            <div className="text-purple-400 transition group-hover:translate-x-0.5">
-              <IconoChevron className="size-3.5" />
+          </Link>
+
+          {/* Card 3: Evidencias y fotos */}
+          <Link
+            href="/pasaporte"
+            className="group flex flex-col items-start justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 shadow-md transition hover:border-[#FFC400]/40 hover:bg-[#0D182A] min-h-[140px]"
+          >
+            <div className="flex size-11 items-center justify-center rounded-xl bg-[#141F32] border border-white/10 text-sky-400">
+              <IconoCamara className="size-6 text-sky-400" />
+            </div>
+            <div className="mt-3">
+              <h3 className="font-display text-xs sm:text-sm font-bold text-white leading-snug">
+                Evidencias y fotos
+              </h3>
+              <p className="font-body text-[11px] text-[#8E9CAE] mt-0.5 leading-tight">
+                Inspección 360° y daños
+              </p>
             </div>
           </Link>
 
           {/* Card 4: Mi cuenta */}
           <Link
             href="/cuenta"
-            className="group flex min-h-[150px] flex-col items-center justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-3 text-center shadow-md transition hover:border-[#FFC400]/40 hover:bg-[#0D182A] active:scale-98"
+            className="group flex flex-col items-start justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 shadow-md transition hover:border-[#FFC400]/40 hover:bg-[#0D182A] min-h-[140px]"
           >
-            <IconoPerfil className="size-6 text-[#FFC400]" />
-            <div className="my-auto py-1">
-              <p className="font-display text-xs font-bold leading-snug text-white">
-                Mi cuenta
-              </p>
-              <p className="mt-1 font-body text-[10px] leading-tight text-[#8E9CAE]">
-                Datos personales, acceso y configuración
-              </p>
+            <div className="flex size-11 items-center justify-center rounded-xl bg-[#141F32] border border-white/10 text-purple-400">
+              <IconoPerfil className="size-6 text-purple-400" />
             </div>
-            <div className="text-[#FFC400] transition group-hover:translate-x-0.5">
-              <IconoChevron className="size-3.5" />
+            <div className="mt-3">
+              <h3 className="font-display text-xs sm:text-sm font-bold text-white leading-snug">
+                Mi cuenta
+              </h3>
+              <p className="font-body text-[11px] text-[#8E9CAE] mt-0.5 leading-tight">
+                Perfil y seguridad
+              </p>
             </div>
           </Link>
 
@@ -335,56 +335,54 @@ export function SoporteCliente({
           <button
             type="button"
             onClick={() => setModalReporte(true)}
-            className="group flex min-h-[150px] flex-col items-center justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-3 text-center shadow-md transition hover:border-rose-500/40 hover:bg-[#0D182A] active:scale-98"
+            className="group flex flex-col items-start justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 shadow-md transition hover:border-[#FFC400]/40 hover:bg-[#0D182A] min-h-[140px] text-left"
           >
-            <IconoAlerta className="size-6 text-rose-400" />
-            <div className="my-auto py-1">
-              <p className="font-display text-xs font-bold leading-snug text-white">
-                Reportar problema
-              </p>
-              <p className="mt-1 font-body text-[10px] leading-tight text-[#8E9CAE]">
-                Incidencias y problemas durante el traslado
-              </p>
+            <div className="flex size-11 items-center justify-center rounded-xl bg-[#141F32] border border-white/10 text-rose-400">
+              <IconoAlerta className="size-6 text-rose-400" />
             </div>
-            <div className="text-rose-400 transition group-hover:translate-x-0.5">
-              <IconoChevron className="size-3.5" />
+            <div className="mt-3">
+              <h3 className="font-display text-xs sm:text-sm font-bold text-white leading-snug">
+                Reportar problema
+              </h3>
+              <p className="font-body text-[11px] text-[#8E9CAE] mt-0.5 leading-tight">
+                Incidencias y reclamos
+              </p>
             </div>
           </button>
 
           {/* Card 6: Preguntas frecuentes */}
           <a
-            href="#preguntas-frecuentes"
-            className="group flex min-h-[150px] flex-col items-center justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-3 text-center shadow-md transition hover:border-teal-500/40 hover:bg-[#0D182A] active:scale-98"
+            href="#faqs"
+            className="group flex flex-col items-start justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 shadow-md transition hover:border-[#FFC400]/40 hover:bg-[#0D182A] min-h-[140px]"
           >
-            <IconoPregunta className="size-6 text-teal-400" />
-            <div className="my-auto py-1">
-              <p className="font-display text-xs font-bold leading-snug text-white">
-                Preguntas frecuentes
-              </p>
-              <p className="mt-1 font-body text-[10px] leading-tight text-[#8E9CAE]">
-                Respuestas rápidas a las dudas más comunes
-              </p>
+            <div className="flex size-11 items-center justify-center rounded-xl bg-[#141F32] border border-white/10 text-[#FFC400]">
+              <IconoPregunta className="size-6 text-[#FFC400]" />
             </div>
-            <div className="text-teal-400 transition group-hover:translate-x-0.5">
-              <IconoChevron className="size-3.5" />
+            <div className="mt-3">
+              <h3 className="font-display text-xs sm:text-sm font-bold text-white leading-snug">
+                Preguntas frecuentes
+              </h3>
+              <p className="font-body text-[11px] text-[#8E9CAE] mt-0.5 leading-tight">
+                Respuestas rápidas
+              </p>
             </div>
           </a>
         </div>
       </section>
 
-      {/* 5. Banner: "¿Tienes un problema?" */}
+      {/* 5. Banner: ¿TIENES UN PROBLEMA CON TU TRASLADO? */}
       <section>
-        <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-3.5 sm:p-4 shadow-xl">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#FFC400]/10 text-[#FFC400]">
-              <IconoSalvavidas className="size-6 text-[#FFC400]" />
+        <div className="rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-5 shadow-2xl backdrop-blur-sm space-y-4">
+          <div className="flex items-start gap-4">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#141F32] border border-white/10 text-[#FFC400]">
+              <IconoSalvavidas className="size-7 text-[#FFC400]" />
             </div>
             <div>
-              <h3 className="font-display text-sm font-bold text-white">
-                ¿Tienes un problema?
+              <h3 className="font-display text-sm sm:text-base font-extrabold uppercase text-white leading-tight">
+                ¿TIENES UN PROBLEMA CON TU TRASLADO?
               </h3>
-              <p className="font-body text-xs text-[#8E9CAE]">
-                Repórtalo y nuestro equipo te ayudará.
+              <p className="font-body text-xs text-[#8E9CAE] mt-1 leading-relaxed">
+                Reporta demoras, daños, incidentes o problemas con el conductor. Nuestro equipo te responderá de inmediato.
               </p>
             </div>
           </div>
@@ -392,52 +390,41 @@ export function SoporteCliente({
           <button
             type="button"
             onClick={() => setModalReporte(true)}
-            className="flex items-center gap-1 rounded-lg bg-[#FFC400] px-3.5 py-2 font-display text-xs font-extrabold uppercase tracking-wide text-[#0B111B] shadow-sm transition hover:bg-[#e6b000] shrink-0"
+            className="flex h-12 w-full items-center justify-between rounded-xl bg-[#FFC400] px-4 font-display text-xs sm:text-sm font-black uppercase tracking-wide text-[#0B111B] shadow-md transition hover:bg-[#e6b000] active:scale-[0.99]"
           >
-            <span>REPORTAR PROBLEMA</span>
-            <IconoChevron className="size-3 text-[#0B111B]" />
+            <span>REPORTAR UN PROBLEMA</span>
+            <IconoChevron className="size-4 text-[#0B111B]" />
           </button>
         </div>
       </section>
 
-      {/* 6. Sección: Preguntas frecuentes (Acordeón) */}
-      <section id="preguntas-frecuentes" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-sm sm:text-base font-bold text-white">
-            Preguntas frecuentes
-          </h2>
-          <button
-            type="button"
-            onClick={() => setBusqueda("")}
-            className="font-body text-xs font-semibold text-sky-400 hover:underline"
-          >
-            Ver todas
-          </button>
-        </div>
+      {/* 6. Sección: PREGUNTAS FRECUENTES (Acordeón) */}
+      <section id="faqs" className="space-y-3">
+        <h2 className="font-display text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
+          PREGUNTAS FRECUENTES
+        </h2>
 
         <div className="space-y-2">
           {faqsFiltradas.map((faq) => {
-            const estaAbierto = faqAbierto === faq.id;
+            const abierto = faqAbierto === faq.id;
             return (
               <div
                 key={faq.id}
-                className="overflow-hidden rounded-xl border border-[#1C2A3E] bg-[#0A1220]/90 transition"
+                className="overflow-hidden rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 shadow-md transition"
               >
                 <button
                   type="button"
                   onClick={() => alternarFaq(faq.id)}
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left font-body text-xs sm:text-sm font-semibold text-white transition hover:bg-[#101C30]"
+                  className="flex w-full items-center justify-between gap-3 p-4 text-left font-display text-xs sm:text-sm font-bold text-white transition hover:text-[#FFC400]"
                 >
-                  <div className="flex items-center gap-3">
-                    <IconoPregunta className="size-4 text-[#8E9CAE] shrink-0" />
-                    <span>{faq.pregunta}</span>
-                  </div>
-                  <div className={`text-[#8E9CAE] transition-transform duration-200 ${estaAbierto ? "rotate-180" : ""}`}>
+                  <span>{faq.pregunta}</span>
+                  <div className={`shrink-0 text-[#8E9CAE] transition-transform duration-200 ${abierto ? "rotate-180 text-[#FFC400]" : ""}`}>
                     <IconoChevronAbajo className="size-4" />
                   </div>
                 </button>
-                {estaAbierto && (
-                  <div className="border-t border-[#1C2A3E]/60 bg-[#070D18]/80 px-4 py-3 font-body text-xs leading-relaxed text-[#94A3B8]">
+
+                {abierto && (
+                  <div className="border-t border-[#1C2A3E]/70 p-4 font-body text-xs leading-relaxed text-[#94A3B8]">
                     {faq.respuesta}
                   </div>
                 )}
@@ -447,29 +434,27 @@ export function SoporteCliente({
         </div>
       </section>
 
-      {/* Modal / Formulario de Reporte Interactivo */}
+      {/* Modal / Formulario de Reporte Directo */}
       {modalReporte && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-3">
-          <div className="w-full max-w-lg rounded-2xl border border-[#1C2A3E] bg-[#0A1220] p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[#1C2A3E] pb-3">
-              <div>
-                <h2 className="font-display text-lg font-bold text-white">Contactar soporte</h2>
-                <p className="font-body text-xs text-[#8E9CAE]">Respondemos en &lt;30 min.</p>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-[#1C2A3E] bg-[#0A1220] p-6 shadow-2xl text-left">
+            <div className="flex items-center justify-between border-b border-[#1C2A3E] pb-4 mb-4">
+              <h3 className="font-display text-base font-extrabold uppercase text-white">
+                Reportar problema a Soporte
+              </h3>
               <button
                 type="button"
                 onClick={() => setModalReporte(false)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-[#141F32] hover:text-white"
-                aria-label="Cerrar"
+                className="flex size-8 items-center justify-center rounded-full bg-[#141F32] text-slate-400 hover:text-white"
               >
                 ✕
               </button>
             </div>
 
             <FormularioSoporte
-              traslados={traslados.filter((t) => t.traslado_id).map((t) => ({ id: t.traslado_id as string, label: `${(t.traslado_id as string).slice(0, 8).toUpperCase()} · ${t.vehiculo_marca ?? "Vehículo"}` }))}
-              preseleccionado={viajePreseleccionado}
-              emailUsuario={usuario?.correo_facturacion ?? usuario?.telefono ?? null}
+              traslados={traslados.filter((t) => t.traslado_id).map((t) => ({ id: t.traslado_id!, label: `${t.vehiculo_marca ?? "Vehículo"} - ${t.traslado_id!.slice(0, 8)}` }))}
+              preseleccionado={viajeActivo?.traslado_id ?? undefined}
+              emailUsuario={usuario?.correo_facturacion}
             />
           </div>
         </div>

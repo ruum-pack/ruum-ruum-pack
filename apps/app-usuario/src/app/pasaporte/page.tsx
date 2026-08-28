@@ -12,15 +12,15 @@ export default async function PaginaPasaporteRedirect() {
       const usuario = await obtenerUsuarioActual(cliente);
       if (usuario) {
         const traslados = await listarTrasladosDeUsuario(cliente, usuario.id);
-        const activo = traslados.find((t) => t.traslado_id);
+        const activo = traslados.find((t) => t.traslado_id && t.estado && !["servicio_cerrado", "servicio_cancelado", "traslado_fallido"].includes(t.estado));
         if (activo?.traslado_id) {
           redirect(`/traslados/${activo.traslado_id}`);
         }
       }
     } catch {
-      // Fallback a demo
+      // Si falla o no hay sesión, va a mis viajes
     }
   }
 
-  redirect("/traslados/demo");
+  redirect("/mis-viajes");
 }

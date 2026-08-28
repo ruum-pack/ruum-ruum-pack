@@ -197,12 +197,12 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
   const router = useRouter();
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
 
-  // Valores de visualización
+  // Derivación de datos reales del usuario autenticado
   const nombreMostrar = usuario?.nombre
     ? usuario.nombre.toUpperCase()
-    : "ARGELIA LÓPEZ";
-  const correoMostrar = usuario?.correo_facturacion ?? "argelia@email.com";
-  const telefonoMostrar = usuario?.telefono ?? "55 1234 5678";
+    : "MI CUENTA";
+  const correoMostrar = usuario?.correo_facturacion ?? "Sin correo registrado";
+  const telefonoMostrar = usuario?.telefono ?? "Sin teléfono registrado";
 
   async function handleCerrarSesion() {
     setCerrandoSesion(true);
@@ -239,7 +239,7 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
                   {nombreMostrar}
                 </h2>
                 <p className="font-body text-xs text-[#8E9CAE]">
-                  Usuario
+                  {usuario?.tipo_cuenta === "empresa" ? "Cuenta Empresarial" : "Usuario Personal"}
                 </p>
                 <div className="mt-1 flex items-center gap-1.5 font-body text-xs text-[#8E9CAE] truncate">
                   <IconoEmail className="size-3.5 text-[#8E9CAE] shrink-0" />

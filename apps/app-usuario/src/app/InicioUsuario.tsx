@@ -17,10 +17,90 @@ function tarjetaVehiculo(t: PasaporteRow): string {
     t.vehiculo_modelo,
     t.vehiculo_anio ? String(t.vehiculo_anio) : null,
   ].filter(Boolean);
-  return partes.length > 0 ? partes.join(" ") : "MITSUBISHI MIRAGE 2026";
+  return partes.length > 0 ? partes.join(" ") : "Vehículo";
 }
 
-/* Íconos SVG dedicados con fidelidad exacta a la imagen de referencia */
+function obtenerDetalleEstado(estado: string | null | undefined): {
+  etapaTexto: string;
+  subetapaTexto: string;
+  pasoTexto: string;
+  porcentaje: number;
+} {
+  switch (estado) {
+    case "solicitud_creada":
+    case "documentacion_pendiente":
+    case "documentacion_en_revision":
+      return {
+        etapaTexto: "SOLICITUD REGISTRADA",
+        subetapaTexto: "Validando datos del vehículo.",
+        pasoTexto: "Paso 1 de 7",
+        porcentaje: 14,
+      };
+    case "cotizacion_generada":
+      return {
+        etapaTexto: "COTIZACIÓN LISTA",
+        subetapaTexto: "Tarifa lista para tu confirmación.",
+        pasoTexto: "Paso 2 de 7",
+        porcentaje: 28,
+      };
+    case "cotizacion_aceptada":
+    case "servicio_confirmado":
+    case "pendiente_de_conductor":
+      return {
+        etapaTexto: "ASIGNACIÓN DE CONDUCTOR",
+        subetapaTexto: "Asignando conductor certificado.",
+        pasoTexto: "Paso 3 de 7",
+        porcentaje: 42,
+      };
+    case "conductor_asignado":
+    case "conductor_en_camino_al_origen":
+    case "conductor_en_punto_de_recoleccion":
+    case "verificacion_vehiculo_en_proceso":
+    case "evidencia_inicial_en_proceso":
+      return {
+        etapaTexto: "RECOLECCIÓN",
+        subetapaTexto: "El conductor se dirige al origen.",
+        pasoTexto: "Paso 4 de 7",
+        porcentaje: 57,
+      };
+    case "evidencia_inicial_completada":
+    case "vehiculo_recibido":
+    case "traslado_en_curso":
+      return {
+        etapaTexto: "EN TRÁNSITO",
+        subetapaTexto: "Monitoreo satelital activo en ruta.",
+        pasoTexto: "Paso 5 de 7",
+        porcentaje: 71,
+      };
+    case "llegada_a_destino":
+    case "evidencia_final_en_proceso":
+    case "evidencia_final_completada":
+      return {
+        etapaTexto: "INSPECCIÓN DE ENTREGA",
+        subetapaTexto: "Verificando estado final en destino.",
+        pasoTexto: "Paso 6 de 7",
+        porcentaje: 85,
+      };
+    case "entrega_confirmada":
+    case "pago_pendiente":
+    case "servicio_cerrado":
+      return {
+        etapaTexto: "COMPLETADO",
+        subetapaTexto: "Vehículo entregado exitosamente.",
+        pasoTexto: "Paso 7 de 7",
+        porcentaje: 100,
+      };
+    default:
+      return {
+        etapaTexto: "EN PROCESO",
+        subetapaTexto: "Seguimiento en vivo activo.",
+        pasoTexto: "En curso",
+        porcentaje: 50,
+      };
+  }
+}
+
+/* Íconos SVG dedicados con fidelidad institucional */
 function IconoCarroFrente({ className = "size-6" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -87,22 +167,13 @@ function IconoPlus({ className = "size-5" }: { className?: string }) {
 export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
   const viajeActivo = obtenerViajeActivo(traslados);
 
-  // Derivación del nombre del usuario para el saludo
+  // Derivación del nombre real del usuario autenticado
   const nombreMostrar = usuario?.nombre
     ? usuario.nombre.trim().split(" ")[0].toUpperCase()
-    : "ARGELIA";
+    : "BIENVENIDO";
 
-  // Datos del vehículo activo (dinámicos o representativos de la imagen)
-  const vehiculoTexto = viajeActivo
-    ? tarjetaVehiculo(viajeActivo).toUpperCase()
-    : "MITSUBISHI MIRAGE 2026";
-
-  const vehiculoTipoTexto = viajeActivo?.vehiculo_tipo
-    ? ETIQUETA_TIPO_VEHICULO[viajeActivo.vehiculo_tipo]
-    : "Sedan";
-
-  const idTrasladoActivo = viajeActivo?.traslado_id ?? "demo";
-  const urlSeguimiento = `/traslados/${idTrasladoActivo}`;
+  const detalle = viajeActivo ? obtenerDetalleEstado(viajeActivo.estado) : null;
+  const urlSeguimiento = viajeActivo?.traslado_id ? `/traslados/${viajeActivo.traslado_id}` : "/mis-viajes";
 
   return (
     <div className="w-full max-w-md mx-auto space-y-5 pb-20 sm:pb-12 text-[#F8F8F5]">
@@ -112,91 +183,98 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
           Hola, {nombreMostrar} <span role="img" aria-label="saludo" className="inline-block">👋</span>
         </h1>
         <p className="mt-1 font-body text-sm text-[#8E9CAE]">
-          Tu traslado está en curso.
+          {viajeActivo ? "Tu traslado está en curso." : "Gestiona y solicita tus traslados en tiempo real."}
         </p>
       </section>
 
-      {/* 2. Tarjeta: TRASLADO ACTIVO */}
+      {/* 2. Tarjeta: TRASLADO ACTIVO o ESTADO DISPONIBLE */}
       <section>
-        <div className="rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-5 shadow-2xl backdrop-blur-sm">
-          {/* Header de la tarjeta */}
-          <span className="block font-display text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-            TRASLADO ACTIVO
-          </span>
+        {viajeActivo && detalle ? (
+          <div className="rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-5 shadow-2xl backdrop-blur-sm">
+            <span className="block font-display text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
+              TRASLADO ACTIVO
+            </span>
 
-          {/* Fila principal del vehículo */}
-          <div className="mt-3.5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3.5">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#141F32] text-[#FFC400] shadow-sm">
-                <IconoCarroFrente className="size-6 text-[#FFC400]" />
+            <div className="mt-3.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3.5">
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#141F32] text-[#FFC400] shadow-sm">
+                  <IconoCarroFrente className="size-6 text-[#FFC400]" />
+                </div>
+                <div>
+                  <h2 className="font-display text-sm sm:text-base font-extrabold uppercase tracking-wide text-white leading-tight">
+                    {tarjetaVehiculo(viajeActivo).toUpperCase()}
+                  </h2>
+                  <p className="font-body text-xs text-[#8E9CAE] mt-0.5">
+                    {viajeActivo.vehiculo_tipo ? ETIQUETA_TIPO_VEHICULO[viajeActivo.vehiculo_tipo] ?? "Sedán" : "Vehículo"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="font-display text-sm sm:text-base font-extrabold uppercase tracking-wide text-white leading-tight">
-                  {vehiculoTexto}
-                </h2>
-                <p className="font-body text-xs text-[#8E9CAE] mt-0.5">
-                  {vehiculoTipoTexto}
+
+              <span className="shrink-0 rounded-full border border-sky-500/20 bg-[#0E2442] px-3 py-1 font-body text-xs font-semibold text-[#38BDF8]">
+                En curso
+              </span>
+            </div>
+
+            <div className="mt-5 pl-1">
+              <div className="flex items-center gap-2">
+                <span className="flex size-3.5 items-center justify-center rounded-full bg-[#FFC400]/20">
+                  <span className="size-2 rounded-full bg-[#FFC400]" />
+                </span>
+                <span className="font-display text-xs font-black uppercase tracking-wider text-[#FFC400]">
+                  {detalle.etapaTexto}
+                </span>
+              </div>
+              <div className="ml-[7px] border-l-2 border-[#1E293B] pl-4 py-1 mt-0.5">
+                <p className="font-body text-xs text-[#94A3B8]">
+                  {detalle.subetapaTexto}
                 </p>
               </div>
             </div>
 
-            {/* Badge de estado "En curso" */}
-            <span className="shrink-0 rounded-full border border-sky-500/20 bg-[#0E2442] px-3 py-1 font-body text-xs font-semibold text-[#38BDF8]">
-              En curso
-            </span>
-          </div>
+            <div className="mt-4">
+              <div className="flex items-center justify-between text-xs">
+                <span className="rounded-lg bg-[#0E2442] px-2.5 py-1 font-body font-bold text-[#60A5FA]">
+                  {detalle.pasoTexto}
+                </span>
+                <span className="font-display text-sm font-black text-white">
+                  {detalle.porcentaje}%
+                </span>
+              </div>
+              <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-[#162235]">
+                <div
+                  className="h-full rounded-full bg-[#FFC400] transition-all duration-500"
+                  style={{ width: `${detalle.porcentaje}%` }}
+                />
+              </div>
+            </div>
 
-          {/* Subetapa: Recolección y línea vertical conectora */}
-          <div className="mt-5 pl-1">
-            <div className="flex items-center gap-2">
-              <span className="flex size-3.5 items-center justify-center rounded-full bg-[#FFC400]/20">
-                <span className="size-2 rounded-full bg-[#FFC400]" />
-              </span>
-              <span className="font-display text-xs font-black uppercase tracking-wider text-[#FFC400]">
-                RECOLECCIÓN
-              </span>
-            </div>
-            <div className="ml-[7px] border-l-2 border-[#1E293B] pl-4 py-1 mt-0.5">
-              <p className="font-body text-xs text-[#94A3B8]">
-                El conductor se dirige al origen.
-              </p>
+            <div className="mt-5 border-t border-[#1C2A3E] pt-4">
+              <Link
+                href={urlSeguimiento}
+                className="group flex items-center justify-between text-white transition hover:text-[#FFC400]"
+              >
+                <span className="font-display text-sm font-bold">
+                  Ver seguimiento del traslado
+                </span>
+                <span className="text-[#FFC400] transition group-hover:translate-x-0.5">
+                  <IconoChevron className="size-4" />
+                </span>
+              </Link>
             </div>
           </div>
-
-          {/* Progreso: Paso 4 de 7 y 57% */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between text-xs">
-              <span className="rounded-lg bg-[#0E2442] px-2.5 py-1 font-body font-bold text-[#60A5FA]">
-                Paso 4 de 7
-              </span>
-              <span className="font-display text-sm font-black text-white">
-                57%
-              </span>
+        ) : (
+          <div className="rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-5 shadow-2xl backdrop-blur-sm text-center">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-white/10 bg-[#141F32] text-[#8E9CAE] mb-3">
+              <IconoCarroFrente className="size-6" />
             </div>
-            {/* Barra de progreso */}
-            <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-[#162235]">
-              <div
-                className="h-full rounded-full bg-[#FFC400] transition-all duration-500"
-                style={{ width: "57%" }}
-              />
-            </div>
+            <h2 className="font-display text-sm sm:text-base font-bold text-white">
+              Sin traslados activos
+            </h2>
+            <p className="mt-1 font-body text-xs text-[#8E9CAE] max-w-xs mx-auto">
+              Cuando solicites un traslado, podrás seguir en tiempo real la ruta, conductor e inspección fotográfica 360°.
+            </p>
           </div>
-
-          {/* Pie de tarjeta: Ver seguimiento */}
-          <div className="mt-5 border-t border-[#1C2A3E] pt-4">
-            <Link
-              href={urlSeguimiento}
-              className="group flex items-center justify-between text-white transition hover:text-[#FFC400]"
-            >
-              <span className="font-display text-sm font-bold">
-                Ver seguimiento del traslado
-              </span>
-              <span className="text-[#FFC400] transition group-hover:translate-x-0.5">
-                <IconoChevron className="size-4" />
-              </span>
-            </Link>
-          </div>
-        </div>
+        )}
       </section>
 
       {/* 3. Botón de Acción Principal: + SOLICITAR TRASLADO */}
@@ -219,7 +297,7 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
           {/* Card 1: Pasaporte Digital */}
           <Link
-            href={`/traslados/${idTrasladoActivo}`}
+            href="/pasaporte"
             className="group flex min-h-[160px] flex-col items-center justify-between rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-3.5 text-center shadow-md transition hover:border-sky-500/40 hover:bg-[#0D182A] active:scale-98"
           >
             <div className="flex size-11 items-center justify-center rounded-full border border-sky-500/25 bg-sky-500/10 text-sky-400">
@@ -296,10 +374,10 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
               Notificaciones recientes
             </h3>
             <p className="mt-0.5 font-body text-xs text-[#94A3B8] leading-tight truncate">
-              El conductor asignado se dirige al origen.
+              {viajeActivo && detalle ? detalle.subetapaTexto : "Sin notificaciones pendientes."}
             </p>
             <p className="mt-1 font-body text-[11px] text-[#64748B]">
-              Hoy, 09:30 a. m.
+              {viajeActivo ? "Actualizado en tiempo real" : "Tus alertas aparecerán aquí"}
             </p>
           </div>
           <div className="shrink-0 text-sky-400 transition group-hover:translate-x-0.5">
