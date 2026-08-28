@@ -2,7 +2,7 @@
 /// <reference lib="dom" />
 
 // Recibe los webhooks de Didit (status.updated / decision.updated) y
-// resuelve automáticamente la solicitud del conductor.
+// resuelve automáticamente la solicitud del conductor o la cuenta del usuario.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -77,8 +77,7 @@ Deno.serve(async (req) => {
 
   const sessionId = evento.session_id ?? evento.sessionId ?? evento.id;
   const estadoDiditRaw = (evento.status ?? evento.event ?? "").toString().toLowerCase().trim();
-  const solicitudId = evento.vendor_data ?? evento.vendorData;
-  if (!sessionId || !solicitudId) return json({ error: "Payload incompleto." }, 400);
+  if (!sessionId) return json({ error: "Payload incompleto (falta sessionId)." }, 400);
 
   const servicio = createClient(url, serviceKey);
 
@@ -113,35 +112,57 @@ Deno.serve(async (req) => {
     .from("verificaciones_identidad_didit")
     .update({ estado: estadoInterno, decision: evento.decision ?? evento })
     .eq("session_id", sessionId)
-    .select("id,solicitud_id,estado")
+    .select("id,solicitud_id,usuario_id,estado")
     .maybeSingle();
+
   if (errorUpdate || !verificacion) {
     console.error("No se encontró la verificación para session_id", sessionId, errorUpdate?.message);
     return json({ error: "Verificación no encontrada." }, 404);
   }
 
   try {
-    if (esAprobado) {
-      const { error } = await servicio.rpc("aprobar_solicitud_conductor_sistema", {
-        p_solicitud_id: verificacion.solicitud_id,
-        p_verificacion_id: verificacion.id,
-      });
-      if (error) throw error;
-    } else if (esRechazado) {
-      const { error } = await servicio.rpc("rechazar_solicitud_por_verificacion_sistema", {
-        p_solicitud_id: verificacion.solicitud_id,
-        p_verificacion_id: verificacion.id,
-      });
-      if (error) throw error;
-    } else if (esTerminal) {
-      // Para estados terminales (Expired, Cancelled, Error), marcamos la verificación
-      // como procesada pero NO llamamos a RPCs de aprobación/rechazo.
-      // El usuario podrá reintentar la verificación desde el panel.
-      await servicio
-        .from("verificaciones_identidad_didit")
-        .update({ procesado_en: new Date().toISOString() })
-        .eq("id", verificacion.id);
-      console.log(`Verificación Didit ${estadoDiditRaw} registrada para sesión ${sessionId}, solicitud ${solicitudId}`);
+    if (verificacion.usuario_id) {
+      // Flujo de usuario / pasajero
+      if (esAprobado) {
+        const { error } = await servicio.rpc("aprobar_usuario_por_verificacion_sistema", {
+          p_usuario_id: verificacion.usuario_id,
+          p_verificacion_id: verificacion.id,
+        });
+        if (error) throw error;
+      } else if (esRechazado) {
+        const { error } = await servicio.rpc("rechazar_usuario_por_verificacion_sistema", {
+          p_usuario_id: verificacion.usuario_id,
+          p_verificacion_id: verificacion.id,
+        });
+        if (error) throw error;
+      } else if (esTerminal) {
+        await servicio
+          .from("verificaciones_identidad_didit")
+          .update({ procesado_en: new Date().toISOString() })
+          .eq("id", verificacion.id);
+        console.log(`Verificación usuario Didit ${estadoDiditRaw} registrada para sesión ${sessionId}, usuario ${verificacion.usuario_id}`);
+      }
+    } else if (verificacion.solicitud_id) {
+      // Flujo de conductor
+      if (esAprobado) {
+        const { error } = await servicio.rpc("aprobar_solicitud_conductor_sistema", {
+          p_solicitud_id: verificacion.solicitud_id,
+          p_verificacion_id: verificacion.id,
+        });
+        if (error) throw error;
+      } else if (esRechazado) {
+        const { error } = await servicio.rpc("rechazar_solicitud_por_verificacion_sistema", {
+          p_solicitud_id: verificacion.solicitud_id,
+          p_verificacion_id: verificacion.id,
+        });
+        if (error) throw error;
+      } else if (esTerminal) {
+        await servicio
+          .from("verificaciones_identidad_didit")
+          .update({ procesado_en: new Date().toISOString() })
+          .eq("id", verificacion.id);
+        console.log(`Verificación conductor Didit ${estadoDiditRaw} registrada para sesión ${sessionId}, solicitud ${verificacion.solicitud_id}`);
+      }
     }
   } catch (error) {
     console.error("Error aplicando decisión Didit", error instanceof Error ? error.message : error);

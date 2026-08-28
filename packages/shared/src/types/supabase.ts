@@ -3410,6 +3410,60 @@ export type Database = {
           },
         ]
       }
+      verificaciones_identidad_didit: {
+        Row: {
+          actualizado_en: string
+          creado_en: string
+          decision: Json | null
+          estado: string
+          id: string
+          procesado_en: string | null
+          session_id: string
+          solicitud_id: string | null
+          usuario_id: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          actualizado_en?: string
+          creado_en?: string
+          decision?: Json | null
+          estado?: string
+          id?: string
+          procesado_en?: string | null
+          session_id: string
+          solicitud_id?: string | null
+          usuario_id?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          actualizado_en?: string
+          creado_en?: string
+          decision?: Json | null
+          estado?: string
+          id?: string
+          procesado_en?: string | null
+          session_id?: string
+          solicitud_id?: string | null
+          usuario_id?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verificaciones_identidad_didit_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "solicitudes_conductor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verificaciones_identidad_didit_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       historial_asignacion_vehiculo: {
         Row: {
           activo: boolean

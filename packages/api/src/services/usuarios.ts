@@ -220,3 +220,63 @@ export async function subirDocumentoIdentidad(
   }
   return data;
 }
+
+/**
+ * Inicia una sesión de verificación de identidad con Didit (OCR + liveness + face match)
+ * para el usuario/pasajero actual. Devuelve la URL del flujo hospedado por Didit.
+ */
+export async function iniciarVerificacionDiditUsuario(cliente: Cliente): Promise<{ url: string; sessionId?: string }> {
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) throw new Error("Inicia sesión para continuar con la verificación.");
+
+  const { data, error } = await cliente.functions.invoke("iniciar-verificacion-didit", {
+    body: { tipo: "usuario" }
+  });
+
+  if (error) {
+    let mensaje = error.message;
+    const contexto = "context" in error ? error.context : null;
+    if (contexto instanceof Response) {
+      try {
+        const detalle = (await contexto.clone().json()) as { error?: string };
+        mensaje = detalle.error ?? mensaje;
+      } catch {
+        // Conserva el mensaje de transporte cuando el servidor no devolvió JSON.
+      }
+    }
+    throw new Error(mensaje);
+  }
+
+  const respuesta = data as { url?: string; session_url?: string; session_id?: string } | null;
+  const urlFinal = respuesta?.url ?? respuesta?.session_url;
+  if (!urlFinal || typeof urlFinal !== "string" || !urlFinal.startsWith("https://")) {
+    throw new Error("No se recibió una URL válida del servicio de verificación de identidad.");
+  }
+  return { url: urlFinal, sessionId: respuesta?.session_id };
+}
+
+/**
+ * Consulta la última verificación de identidad Didit registrada para el usuario actual.
+ */
+export async function obtenerEstadoVerificacionDiditUsuario(cliente: Cliente) {
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) return null;
+
+  const usuario = await buscarUsuarioPorAuthId(cliente, sesion.user.id);
+  if (!usuario) return null;
+
+  const { data, error } = await cliente
+    .from("verificaciones_identidad_didit")
+    .select("id, session_id, workflow_id, estado, decision, procesado_en, creado_en")
+    .eq("usuario_id", usuario.id)
+    .order("creado_en", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error consultando verificación Didit del usuario", error.message);
+    return null;
+  }
+  return data;
+}
+

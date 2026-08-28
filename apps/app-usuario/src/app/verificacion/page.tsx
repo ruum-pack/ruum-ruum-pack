@@ -1,11 +1,11 @@
 /**
- * /verificacion — Verificación just-in-time.
+ * /verificacion — Verificación just-in-time con Didit y respaldo manual.
  *
  * Estados posibles al llegar aquí:
- *  - pendiente     → nunca subió doc → mostrar formulario
+ *  - pendiente     → nunca subió doc / no verificado → mostrar opciones (Didit o manual)
  *  - en_revision   → ya subió doc, esperando admin → mostrar confirmación de espera
- *  - verificado    → no debería llegar aquí (el gate de traslados/nuevo lo deja pasar)
- *  - rechazado     → mostrar formulario con aviso para que vuelva a subir
+ *  - verificado    → cuenta aprobada → mostrar pantalla de éxito
+ *  - rechazado     → mostrar opciones con aviso para reintentar
  */
 import Link from "next/link";
 import { NavegacionUsuario } from "../NavegacionUsuario";
@@ -16,15 +16,70 @@ interface Props {
   searchParams: Promise<{ next?: string }>;
 }
 
-/* Pantalla de espera para usuarios que ya enviaron su documentación */
+/* Pantalla cuando el usuario ya está verificado */
+function CuentaYaVerificada() {
+  return (
+    <div className="grid gap-5 text-center">
+      <div className="flex justify-center">
+        <div className="flex size-16 items-center justify-center rounded-full bg-[#e6f9f0]">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#1d9e75"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="font-display text-xl font-bold text-ink">Cuenta Verificada</h2>
+        <p className="mt-2 font-body text-sm leading-6 text-ink/60">
+          Tu identidad ya se encuentra validada y tu cuenta está lista para solicitar y gestionar traslados vehiculares.
+        </p>
+      </div>
+
+      <div className="mt-2 grid gap-3">
+        <Link
+          href="/traslados/nuevo"
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-signal px-5 py-3 font-display text-sm font-bold text-ink shadow-sm transition hover:-translate-y-0.5 hover:bg-signal/90 focus-visible:outline-route-dark"
+        >
+          Solicitar traslado
+        </Link>
+        <Link
+          href="/"
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-ink/20 bg-mist px-5 py-3 font-display text-sm font-semibold text-ink transition hover:bg-ink/5"
+        >
+          Ir al inicio
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/* Pantalla de espera para usuarios que ya enviaron su documentación manual */
 function EsperandoRevision() {
   return (
     <div className="grid gap-5">
       <div className="flex justify-center">
         <div className="flex size-16 items-center justify-center rounded-full border border-[#f5a623]/40 bg-[#f5a623]/10">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-            stroke="#b8860b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            aria-hidden="true">
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#b8860b"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
             <circle cx="12" cy="12" r="10" />
             <path d="M12 6v6l4 2" />
           </svg>
@@ -34,7 +89,7 @@ function EsperandoRevision() {
       <div className="text-center">
         <h2 className="font-display text-xl font-semibold">En revisión</h2>
         <p className="mt-2 font-body text-sm leading-6 text-ink/60">
-          Ya recibimos tu documentación. El equipo de Ruum Ruum la está revisando.
+          Ya recibimos tu documentación. El equipo de Ruum la está revisando.
           El proceso toma entre <strong className="text-ink">24 y 48 horas hábiles</strong>.
         </p>
       </div>
@@ -47,18 +102,38 @@ function EsperandoRevision() {
           { label: "Aprobación de cuenta", sub: "Pendiente de revisión por el equipo", done: false },
         ].map(({ label, sub, done }) => (
           <div key={label} className="flex items-center gap-3">
-            <div className={[
-              "flex size-8 items-center justify-center rounded-full",
-              done ? "bg-[#e6f9f0]" : "border border-[#f5a623]/40 bg-[#f5a623]/10",
-            ].join(" ")}>
+            <div
+              className={[
+                "flex size-8 items-center justify-center rounded-full",
+                done ? "bg-[#e6f9f0]" : "border border-[#f5a623]/40 bg-[#f5a623]/10",
+              ].join(" ")}
+            >
               {done ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                  stroke="#1d9e75" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                  aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#1d9e75"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
               ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                  stroke="#b8860b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  aria-hidden="true">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#b8860b"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 6v6l4 2" />
                 </svg>
@@ -66,19 +141,32 @@ function EsperandoRevision() {
             </div>
             <div>
               <p className="font-body text-sm font-medium">{label}</p>
-              <p className={[
-                "font-body text-xs",
-                !done ? "text-[#b8860b]" : "text-ink/45",
-              ].join(" ")}>{sub}</p>
+              <p
+                className={[
+                  "font-body text-xs",
+                  !done ? "text-[#b8860b]" : "text-ink/45",
+                ].join(" ")}
+              >
+                {sub}
+              </p>
             </div>
           </div>
         ))}
       </div>
 
       <div className="flex items-start gap-2.5 rounded-lg border border-[#f5a623]/25 bg-[#f5a623]/8 px-4 py-3">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-          stroke="#b8860b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-          className="mt-0.5 shrink-0" aria-hidden="true">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#b8860b"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="mt-0.5 shrink-0"
+          aria-hidden="true"
+        >
           <circle cx="12" cy="12" r="10" />
           <path d="M12 8v4m0 4h.01" />
         </svg>
@@ -122,7 +210,21 @@ export default async function PaginaVerificacion({ searchParams }: Props) {
     /* si falla, mostrar el formulario normalmente */
   }
 
-  /* Si ya subió documentación y está en revisión → pantalla de espera directa */
+  /* Si ya está verificado → pantalla de éxito */
+  if (estadoVerificacion === "verificado") {
+    return (
+      <main className="app-page">
+        <NavegacionUsuario />
+        <div className="app-container py-10 sm:py-14">
+          <div className="mx-auto max-w-lg">
+            <CuentaYaVerificada />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  /* Si ya subió documentación y está en revisión → pantalla de espera */
   const yaEnRevision = estadoVerificacion === "en_revision" || (docYaSubido && estadoVerificacion !== "rechazado");
 
   return (
@@ -142,25 +244,32 @@ export default async function PaginaVerificacion({ searchParams }: Props) {
             <>
               <div className="mb-8">
                 <h1 className="font-display text-2xl font-semibold leading-tight">
-                  Verificación rápida
+                  Verificación de cuenta
                 </h1>
                 <p className="mt-2 font-body text-sm text-ink/60">
-                  Para tu seguridad y la del conductor, necesitamos confirmar tu
-                  identidad antes del primer traslado. Solo se pide una vez.
+                  Para tu seguridad y la del conductor certificado, validamos tu identidad oficial antes del primer traslado.
                 </p>
 
                 {estadoVerificacion === "rechazado" && (
                   <div className="mt-4">
                     <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        stroke="#dc2626" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-                        className="mt-0.5 shrink-0" aria-hidden="true">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#dc2626"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mt-0.5 shrink-0"
+                        aria-hidden="true"
+                      >
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 8v4m0 4h.01" />
                       </svg>
                       <p className="font-body text-xs leading-5 text-red-700">
-                        Tu identificación anterior fue rechazada. Sube una foto clara
-                        de tu INE, pasaporte o licencia vigente e inténtalo de nuevo.
+                        Tu verificación anterior no pudo confirmarse. Realiza la prueba biométrica con Didit o sube una foto clara de tu identificación oficial.
                       </p>
                     </div>
                   </div>
@@ -172,22 +281,42 @@ export default async function PaginaVerificacion({ searchParams }: Props) {
                 {[
                   { label: "Cuenta creada", sub: "Correo y contraseña", done: true },
                   { label: "Teléfono registrado", sub: "Para notificaciones del traslado", done: true },
-                  { label: "Domicilio", sub: "Pendiente", done: false },
-                  { label: "Identificación oficial", sub: "INE, pasaporte o licencia", done: false },
+                  { label: "Identificación oficial", sub: "Validación biométrica o documental", done: false },
                 ].map(({ label, sub, done }) => (
                   <div key={label} className="flex items-center gap-3">
-                    <div className={[
-                      "flex size-8 items-center justify-center rounded-full",
-                      done ? "bg-[#e6f9f0]" : "border border-ink/15 bg-mist",
-                    ].join(" ")}>
+                    <div
+                      className={[
+                        "flex size-8 items-center justify-center rounded-full",
+                        done ? "bg-[#e6f9f0]" : "border border-ink/15 bg-mist",
+                      ].join(" ")}
+                    >
                       {done ? (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                          stroke="#1d9e75" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                          aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#1d9e75"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
                       ) : (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-                          className="text-ink/40" aria-hidden="true">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="text-ink/40"
+                          aria-hidden="true"
+                        >
                           <circle cx="12" cy="12" r="10" />
                         </svg>
                       )}
@@ -202,14 +331,22 @@ export default async function PaginaVerificacion({ searchParams }: Props) {
 
               {/* Nota de seguridad */}
               <div className="app-status-strip mb-6 flex items-start gap-2.5 px-4 py-3">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                  stroke="#b8860b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-                  className="mt-0.5 shrink-0" aria-hidden="true">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#b8860b"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mt-0.5 shrink-0"
+                  aria-hidden="true"
+                >
                   <path d="M12 4 18 6v5c0 4-2.5 6.8-6 8-3.5-1.2-6-4-6-8V6l6-2Z" />
                 </svg>
                 <p className="font-body text-xs leading-5 text-amber-800">
-                  Tu documento se procesa de forma encriptada. No se comparte con terceros
-                  ni con el conductor. Solo se usa para verificar tu identidad.
+                  Tus datos biométricos y documentos se procesan de forma encriptada bajo estándares bancarios. No se comparten con terceros ni con los conductores.
                 </p>
               </div>
 

@@ -2,8 +2,8 @@
 /// <reference lib="dom" />
 
 // Crea una sesión de verificación de identidad en Didit (OCR + prueba de
-// vida + coincidencia facial) para una solicitud de conductor que ya está
-// en revisión, y devuelve la URL para que el conductor la complete.
+// vida + coincidencia facial) tanto para conductores (solicitud_id) como
+// para usuarios/pasajeros (usuario_id).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -35,15 +35,15 @@ Deno.serve(async (req) => {
     return json({ error: "El servicio de verificación no está configurado." }, 500);
   }
 
-  let body: Record<string, unknown>;
+  let body: Record<string, unknown> = {};
   try {
-    body = await req.json();
+    const texto = await req.text();
+    if (texto.trim()) {
+      body = JSON.parse(texto);
+    }
   } catch {
     return json({ error: "Cuerpo inválido." }, 400);
   }
-
-  const solicitudId = String(body.solicitud_id ?? "");
-  if (!UUID.test(solicitudId)) return json({ error: "solicitud_id inválido." }, 400);
 
   const usuario = createClient(url, anon, { global: { headers: { Authorization: authorization } } });
   const servicio = createClient(url, serviceKey);
@@ -51,24 +51,60 @@ Deno.serve(async (req) => {
   const { data: sesion, error: errorSesion } = await usuario.auth.getUser();
   if (errorSesion || !sesion.user) return json({ error: "La sesión no es válida." }, 401);
 
-  const { data: solicitud, error: errorSolicitud } = await usuario
-    .from("solicitudes_conductor")
-    .select("id,estado")
-    .eq("id", solicitudId)
-    .eq("auth_user_id", sesion.user.id)
-    .maybeSingle();
-  if (errorSolicitud) return json({ error: "No fue posible validar la solicitud." }, 500);
-  if (!solicitud) return json({ error: "Solicitud no encontrada." }, 404);
-  if (solicitud.estado !== "en_revision") {
-    return json({ error: "La solicitud debe estar en revisión para iniciar la verificación automática." }, 409);
-  }
+  const solicitudId = body.solicitud_id ? String(body.solicitud_id) : "";
+  const esFlujoUsuario = !solicitudId || body.tipo === "usuario";
 
-  // Si existen sesiones pendientes previas para la misma solicitud, las marcamos como expiradas
-  await servicio
-    .from("verificaciones_identidad_didit")
-    .update({ estado: "expirado" })
-    .eq("solicitud_id", solicitudId)
-    .in("estado", ["pendiente", "en_revision"]);
+  let vendorData = "";
+  let solicitudValidaId: string | null = null;
+  let usuarioValidoId: string | null = null;
+
+  if (esFlujoUsuario) {
+    // Verificación para cuenta de usuario/pasajero
+    const { data: perfilUsuario, error: errorPerfil } = await usuario
+      .from("usuarios")
+      .select("id, estado_verificacion")
+      .eq("auth_user_id", sesion.user.id)
+      .maybeSingle();
+
+    if (errorPerfil) return json({ error: "No fue posible consultar tu perfil." }, 500);
+    if (!perfilUsuario) return json({ error: "Perfil de usuario no encontrado." }, 404);
+
+    usuarioValidoId = perfilUsuario.id;
+    vendorData = `usuario:${perfilUsuario.id}`;
+
+    // Expirar verificaciones pendientes previas de este usuario
+    await servicio
+      .from("verificaciones_identidad_didit")
+      .update({ estado: "expirado" })
+      .eq("usuario_id", perfilUsuario.id)
+      .in("estado", ["pendiente", "en_revision"]);
+  } else {
+    // Verificación para conductor con solicitud
+    if (!UUID.test(solicitudId)) return json({ error: "solicitud_id inválido." }, 400);
+
+    const { data: solicitud, error: errorSolicitud } = await usuario
+      .from("solicitudes_conductor")
+      .select("id,estado")
+      .eq("id", solicitudId)
+      .eq("auth_user_id", sesion.user.id)
+      .maybeSingle();
+
+    if (errorSolicitud) return json({ error: "No fue posible validar la solicitud." }, 500);
+    if (!solicitud) return json({ error: "Solicitud no encontrada." }, 404);
+    if (solicitud.estado !== "en_revision") {
+      return json({ error: "La solicitud debe estar en revisión para iniciar la verificación automática." }, 409);
+    }
+
+    solicitudValidaId = solicitud.id;
+    vendorData = solicitud.id;
+
+    // Expirar sesiones pendientes previas para la misma solicitud
+    await servicio
+      .from("verificaciones_identidad_didit")
+      .update({ estado: "expirado" })
+      .eq("solicitud_id", solicitud.id)
+      .in("estado", ["pendiente", "en_revision"]);
+  }
 
   const respuestaDidit = await fetch("https://verification.didit.me/v2/session/", {
     method: "POST",
@@ -79,10 +115,11 @@ Deno.serve(async (req) => {
     },
     body: JSON.stringify({
       workflow_id: diditWorkflowId,
-      vendor_data: solicitudId,
+      vendor_data: vendorData,
       ...(callbackUrl ? { callback: callbackUrl } : {}),
     }),
   });
+
   if (!respuestaDidit.ok) {
     const detalle = await respuestaDidit.text().catch(() => "");
     console.error("Error creando sesión Didit", respuestaDidit.status, detalle);
@@ -109,11 +146,13 @@ Deno.serve(async (req) => {
   }
 
   const { error: errorInsert } = await servicio.from("verificaciones_identidad_didit").insert({
-    solicitud_id: solicitudId,
+    solicitud_id: solicitudValidaId,
+    usuario_id: usuarioValidoId,
     session_id: sessionId,
     workflow_id: diditWorkflowId,
     estado: "pendiente",
   });
+
   if (errorInsert) {
     console.error("Error registrando verificación Didit", errorInsert.message);
     return json({ error: "No fue posible registrar la verificación." }, 500);

@@ -16,18 +16,19 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.supabase.in" },
       { protocol: "https", hostname: "**.mapbox.com" },
       { protocol: "https", hostname: "**.didit.me" },
+      { protocol: "https", hostname: "**.stripe.com" },
     ],
   },
   async headers() {
     const isProd = process.env.NODE_ENV === "production";
     const cspProd = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://*.sentry.io",
+      "script-src 'self' 'unsafe-inline' https://*.sentry.io https://js.stripe.com https://*.stripe.com",
       "style-src 'self' 'unsafe-inline'",
-      "connect-src 'self' https://*.supabase.co https://*.mapbox.com https://*.sentry.io https://*.didit.me https://verify.didit.me",
-      "img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com https://*.didit.me https://verify.didit.me",
+      "connect-src 'self' https://*.supabase.co https://*.mapbox.com https://*.sentry.io https://*.didit.me https://verify.didit.me https://api.stripe.com https://*.stripe.com https://*.stripe.network",
+      "img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com https://*.didit.me https://verify.didit.me https://*.stripe.com https://*.stripe.network",
       "font-src 'self' data:",
-      "frame-src 'self' https://verify.didit.me https://*.didit.me",
+      "frame-src 'self' https://verify.didit.me https://*.didit.me https://js.stripe.com https://*.stripe.com https://*.stripe.network",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -36,12 +37,12 @@ const nextConfig: NextConfig = {
     ].join("; ");
     const cspDev = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://js.stripe.com https://*.stripe.com",
       "style-src 'self' 'unsafe-inline'",
-      "connect-src 'self' https://*.supabase.co https://*.mapbox.com https://*.sentry.io https://*.didit.me https://verify.didit.me ws: wss: http://localhost:* http://127.0.0.1:*",
-      "img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com https://*.didit.me https://verify.didit.me",
+      "connect-src 'self' https://*.supabase.co https://*.mapbox.com https://*.sentry.io https://*.didit.me https://verify.didit.me https://api.stripe.com https://*.stripe.com https://*.stripe.network ws: wss: http://localhost:* http://127.0.0.1:*",
+      "img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com https://*.didit.me https://verify.didit.me https://*.stripe.com https://*.stripe.network",
       "font-src 'self' data:",
-      "frame-src 'self' https://verify.didit.me https://*.didit.me",
+      "frame-src 'self' https://verify.didit.me https://*.didit.me https://js.stripe.com https://*.stripe.com https://*.stripe.network",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -55,7 +56,8 @@ const nextConfig: NextConfig = {
           { key: "Content-Security-Policy", value: isProd ? cspProd : cspDev },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(self \"https://verify.didit.me\" \"https://*.didit.me\"), geolocation=(self \"https://verify.didit.me\" \"https://*.didit.me\"), microphone=(self \"https://verify.didit.me\" \"https://*.didit.me\")" }
         ]
       }
     ];

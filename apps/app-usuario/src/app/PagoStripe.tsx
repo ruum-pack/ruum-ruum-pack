@@ -131,6 +131,9 @@ export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
         const mod = await import("@stripe/react-stripe-js");
         const { loadStripe } = await import("@stripe/stripe-js");
         const stripePromise = await loadStripe(clavePublica);
+        if (!stripePromise) {
+          throw new Error("No fue posible inicializar Stripe con la clave pública configurada.");
+        }
         setStripeModule({
           Elements: mod.Elements,
           PaymentElement: mod.PaymentElement,
@@ -142,7 +145,12 @@ export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
         const secret = await crearPaymentIntent(trasladoId);
         setClientSecret(secret);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "No pudimos iniciar el cobro con Stripe.");
+        const msg = err instanceof Error ? err.message : "No pudimos iniciar el cobro con Stripe.";
+        if (msg.includes("Failed to load Stripe.js")) {
+          setError("No se pudo cargar la pasarela de pagos de Stripe (Stripe.js). Verifica tu conexión a internet o si algún bloqueador de anuncios está interfiriendo.");
+        } else {
+          setError(msg);
+        }
       }
     }
 
