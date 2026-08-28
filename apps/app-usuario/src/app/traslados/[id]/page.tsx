@@ -183,6 +183,24 @@ function calcularHorasDesdeCierre(actualizadoEn: string | null) {
   return (Date.now() - new Date(actualizadoEn).getTime()) / (1000 * 60 * 60);
 }
 
+async function querySegura<T>(promesa: PromiseLike<{ data: T | null; error: unknown }>): Promise<{ data: T | null }> {
+  try {
+    const res = await promesa;
+    return { data: res.data ?? null };
+  } catch {
+    return { data: null };
+  }
+}
+
+async function queryArraySegura<T>(promesa: PromiseLike<{ data: T[] | null; error: unknown }>): Promise<{ data: T[] }> {
+  try {
+    const res = await promesa;
+    return { data: res.data ?? [] };
+  } catch {
+    return { data: [] };
+  }
+}
+
 async function obtenerDatos(id: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -205,7 +223,90 @@ async function obtenerDatos(id: string) {
   try {
     const { crearClienteServidor } = await import("../../../lib/supabase-server");
     const cliente = await crearClienteServidor();
-    const pasaporte = await obtenerPasaporteDigital(cliente, id);
+
+    // 1. Intentar obtener el pasaporte digital desde la vista oficial
+    let pasaporte: Pasaporte | null = null;
+    try {
+      pasaporte = await obtenerPasaporteDigital(cliente, id);
+    } catch (err) {
+      console.warn("[obtenerDatos] Error en obtenerPasaporteDigital, probando fallback directo:", err);
+    }
+
+    // 2. Fallback resiliente: consultar tabla traslados directamente si la vista no devuelve datos
+    if (!pasaporte) {
+      let tRow: Record<string, unknown> | null = null;
+      try {
+        const res = await cliente
+          .from("traslados")
+          .select(`
+            *,
+            vehiculos (*),
+            conductores (*)
+          `)
+          .eq("id", id)
+          .maybeSingle();
+        tRow = res.data as Record<string, unknown> | null;
+      } catch {
+        tRow = null;
+      }
+
+      if (tRow) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const v = tRow.vehiculos as any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const c = tRow.conductores as any;
+        pasaporte = {
+          traslado_id: tRow.id as string,
+          usuario_id: tRow.usuario_id as string,
+          vehiculo_id: (tRow.vehiculo_id as string) ?? null,
+          conductor_id: (tRow.conductor_id as string) ?? null,
+          estado: tRow.estado as EstadoTraslado,
+          tiene_incidencia_abierta: (tRow.tiene_incidencia_abierta as boolean) ?? false,
+          tipo_pago: (tRow.tipo_pago as Database["public"]["Enums"]["tipo_pago"]) ?? null,
+          causa_fallido: (tRow.causa_fallido as Database["public"]["Enums"]["causa_fallido"]) ?? null,
+          precio_cotizado: (tRow.precio_cotizado as number) ?? null,
+          precio_final: (tRow.precio_final as number) ?? null,
+          creado_en: tRow.creado_en as string,
+          actualizado_en: tRow.actualizado_en as string,
+          vehiculo_tipo: v?.tipo ?? null,
+          vehiculo_marca: v?.marca ?? null,
+          vehiculo_modelo: v?.modelo ?? null,
+          vehiculo_anio: v?.anio ?? null,
+          conductor_nombre: c?.nombre ?? null,
+          conductor_estado: c?.estado ?? null,
+          conductor_nivel: c?.nivel_operativo_vigente ?? null,
+          conductor_calificacion: c?.calificacion_promedio ?? null,
+          evidencia_inicial_fotos_sincronizadas: 0,
+          evidencia_final_fotos_sincronizadas: 0,
+          incidencias_abiertas: 0,
+          monto_pagado: 0,
+          origen_lat: (tRow.origen_lat as number) ?? null,
+          origen_lng: (tRow.origen_lng as number) ?? null,
+          destino_lat: (tRow.destino_lat as number) ?? null,
+          destino_lng: (tRow.destino_lng as number) ?? null,
+          distancia_km: (tRow.distancia_km as number) ?? null,
+          tiempo_estimado_horas: (tRow.tiempo_estimado_horas as number) ?? null,
+          vehiculo_categoria_tarifa: v?.categoria_tarifa ?? null,
+          vehiculo_gama: v?.gama ?? null,
+          vehiculo_condicion: v?.condicion ?? null,
+          origen_direccion: (tRow.origen_direccion as string) ?? null,
+          origen_ciudad: (tRow.origen_ciudad as string) ?? null,
+          origen_referencias: (tRow.origen_referencias as string) ?? null,
+          destino_direccion: (tRow.destino_direccion as string) ?? null,
+          destino_ciudad: (tRow.destino_ciudad as string) ?? null,
+          destino_referencias: (tRow.destino_referencias as string) ?? null,
+          contacto_entrega_nombre: (tRow.contacto_entrega_nombre as string) ?? null,
+          contacto_entrega_telefono: (tRow.contacto_entrega_telefono as string) ?? null,
+          contacto_recepcion_nombre: (tRow.contacto_recepcion_nombre as string) ?? null,
+          contacto_recepcion_telefono: (tRow.contacto_recepcion_telefono as string) ?? null,
+          vehiculo_color: v?.color ?? null,
+          vehiculo_placas: v?.placas ?? null,
+          vehiculo_vin: v?.vin ?? null,
+          ganancia_conductor: null
+        };
+      }
+    }
+
     if (!pasaporte) {
       return {
         pasaporte: null,
@@ -222,6 +323,9 @@ async function obtenerDatos(id: string) {
       };
     }
 
+    const vehiculoId = pasaporte.vehiculo_id;
+    const conductorId = pasaporte.conductor_id;
+
     const [
       trasladoRes,
       vehiculoRes,
@@ -234,54 +338,103 @@ async function obtenerDatos(id: string) {
       pagosRes,
       ultimaUbicacion
     ] = await Promise.all([
-      cliente
-        .from("traslados")
-        .select(
-          "origen_direccion, origen_ciudad, destino_direccion, destino_ciudad, contacto_entrega_nombre, contacto_entrega_telefono, contacto_recepcion_nombre, contacto_recepcion_telefono, fecha_hora_programada, cotizacion_expira_en"
-        )
-        .eq("id", id)
-        .maybeSingle(),
-      pasaporte.vehiculo_id
-        ? cliente
-            .from("vehiculos")
-            .select(
-              "tipo, marca, modelo, anio, tiene_tarjeta_circulacion, tiene_verificacion, tiene_placas, puede_circular_rodando"
-            )
-            .eq("id", pasaporte.vehiculo_id)
-            .maybeSingle()
-        : Promise.resolve({ data: null, error: null }),
-      pasaporte.conductor_id
-        ? cliente
-            .from("conductores")
-            .select("id, nombre, estado, nivel_operativo_vigente, calificacion_promedio, traslados_completados")
-            .eq("id", pasaporte.conductor_id)
-            .maybeSingle()
-        : Promise.resolve({ data: null, error: null }),
-      cliente.from("evidencia_fotos").select("*").eq("traslado_id", id).order("capturada_en", { ascending: true }),
-      cliente.from("incidencias").select("*").eq("traslado_id", id).order("creada_en", { ascending: false }),
-      cliente.from("disputas").select("*").eq("traslado_id", id).order("abierta_en", { ascending: false }),
-      cliente
-        .from("reclamos_seguro")
-        .select("id, traslado_id, estado, abierto_en, resuelto_en")
-        .eq("traslado_id", id)
-        .order("abierto_en", { ascending: false }),
-      cliente.from("calificaciones_traslado").select("*").eq("traslado_id", id).maybeSingle(),
-      cliente.from("pagos").select("*").eq("traslado_id", id).order("registrado_en", { ascending: false }),
-      obtenerUltimaUbicacionTraslado(cliente, id)
+      querySegura<Traslado>(
+        cliente
+          .from("traslados")
+          .select(
+            "origen_direccion, origen_ciudad, destino_direccion, destino_ciudad, contacto_entrega_nombre, contacto_entrega_telefono, contacto_recepcion_nombre, contacto_recepcion_telefono, fecha_hora_programada, cotizacion_expira_en"
+          )
+          .eq("id", id)
+          .maybeSingle()
+      ),
+      vehiculoId
+        ? querySegura<Vehiculo>(
+            cliente
+              .from("vehiculos")
+              .select(
+                "tipo, marca, modelo, anio, tiene_tarjeta_circulacion, tiene_verificacion, tiene_placas, puede_circular_rodando"
+              )
+              .eq("id", vehiculoId)
+              .maybeSingle()
+          )
+        : Promise.resolve<{ data: Vehiculo | null }>({ data: null }),
+      conductorId
+        ? querySegura<Conductor>(
+            cliente
+              .from("conductores")
+              .select("id, nombre, estado, nivel_operativo_vigente, calificacion_promedio, traslados_completados")
+              .eq("id", conductorId)
+              .maybeSingle()
+          )
+        : Promise.resolve<{ data: Conductor | null }>({ data: null }),
+      queryArraySegura<FotoEvidencia>(
+        cliente
+          .from("evidencia_fotos")
+          .select("*")
+          .eq("traslado_id", id)
+          .order("capturada_en", { ascending: true })
+      ),
+      queryArraySegura<Incidencia>(
+        cliente
+          .from("incidencias")
+          .select("*")
+          .eq("traslado_id", id)
+          .order("creada_en", { ascending: false })
+      ),
+      queryArraySegura<Disputa>(
+        cliente
+          .from("disputas")
+          .select("*")
+          .eq("traslado_id", id)
+          .order("abierta_en", { ascending: false })
+      ),
+      queryArraySegura<ReclamoSeguroUsuario>(
+        cliente
+          .from("reclamos_seguro")
+          .select("id, traslado_id, estado, abierto_en, resuelto_en")
+          .eq("traslado_id", id)
+          .order("abierto_en", { ascending: false })
+      ),
+      querySegura<Calificacion>(
+        cliente
+          .from("calificaciones_traslado")
+          .select("*")
+          .eq("traslado_id", id)
+          .maybeSingle()
+      ),
+      queryArraySegura<Pago>(
+        cliente
+          .from("pagos")
+          .select("*")
+          .eq("traslado_id", id)
+          .order("registrado_en", { ascending: false })
+      ),
+      obtenerUltimaUbicacionTraslado(cliente, id).catch(() => null)
     ]);
+
+    let evidenciaFirmada: FotoEvidenciaVisual[] = [];
+    try {
+      const fotos = (evidenciaRes?.data ?? []) as FotoEvidencia[];
+      evidenciaFirmada = await firmarUrlsEvidencia(cliente, fotos);
+    } catch {
+      evidenciaFirmada = (((evidenciaRes?.data ?? []) as FotoEvidencia[]) || []).map((f) => ({
+        ...f,
+        url_visual: null
+      }));
+    }
 
     return {
       pasaporte,
-      traslado: trasladoRes.data ?? null,
-      vehiculo: vehiculoRes.data ?? null,
-      conductor: conductorRes.data ?? null,
-      evidencia: await firmarUrlsEvidencia(cliente, evidenciaRes.data ?? []),
-      incidencias: incidenciasRes.data ?? [],
-      disputas: disputasRes.data ?? [],
-      reclamosSeguro: reclamosSeguroRes.data ?? [],
-      calificacion: calificacionRes.data ?? null,
-      pagos: pagosRes.data ?? [],
-      ultimaUbicacion
+      traslado: trasladoRes?.data ?? null,
+      vehiculo: vehiculoRes?.data ?? null,
+      conductor: conductorRes?.data ?? null,
+      evidencia: evidenciaFirmada,
+      incidencias: (incidenciasRes?.data ?? []) as Incidencia[],
+      disputas: (disputasRes?.data ?? []) as Disputa[],
+      reclamosSeguro: (reclamosSeguroRes?.data ?? []) as ReclamoSeguroUsuario[],
+      calificacion: calificacionRes?.data ?? null,
+      pagos: (pagosRes?.data ?? []) as Pago[],
+      ultimaUbicacion: ultimaUbicacion ?? null
     };
   } catch (error) {
     console.error("[obtenerDatos]", error);
@@ -817,7 +970,11 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
                 <Dato etiqueta="Año" valor={vehiculo?.anio ?? pasaporte.vehiculo_anio} />
                 <Dato
                   etiqueta="Tipo"
-                  valor={(vehiculo?.tipo ?? pasaporte.vehiculo_tipo) ? ETIQUETA_TIPO_VEHICULO[vehiculo?.tipo ?? pasaporte.vehiculo_tipo!] : null}
+                  valor={
+                    (vehiculo?.tipo ?? pasaporte.vehiculo_tipo)
+                      ? ETIQUETA_TIPO_VEHICULO[(vehiculo?.tipo ?? pasaporte.vehiculo_tipo) as keyof typeof ETIQUETA_TIPO_VEHICULO] ?? (vehiculo?.tipo ?? pasaporte.vehiculo_tipo)
+                      : null
+                  }
                 />
               </dl>
               <div className="mt-5 grid gap-2 font-body text-sm">

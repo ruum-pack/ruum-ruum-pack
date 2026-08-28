@@ -8,10 +8,11 @@ import { crearClienteServidor } from "@ruum/api/supabase";
  * Si Supabase no está configurado, no hay nada que refrescar.
  */
 const RUTAS_PROTEGIDAS_USUARIO = [
-  "/traslados/nuevo",
+  "/traslados",
   "/mis-viajes",
   "/cuenta",
-  "/pasaporte"
+  "/pasaporte",
+  "/verificacion"
 ];
 
 function esRutaProtegidaUsuario(pathname: string): boolean {
