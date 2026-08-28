@@ -113,7 +113,7 @@ export function useFieldUndo<T>(initialValue: T, delay = 2000): {
         setPreviousValue(null);
       }, delay);
     },
-    [value, previousValue]
+    [value, previousValue, delay]
   );
 
   const undo = useCallback(() => {

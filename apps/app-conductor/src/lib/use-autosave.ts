@@ -10,7 +10,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
  * @param delay Milisegundos de espera antes de guardar (default: 2000ms)
  * @returns { save: Function, saving: boolean, lastSaved: Date | null }
  */
-export function useAutosave<T = any>(
+export function useAutosave<T = unknown>(
   saveFunction: (data: T) => Promise<void> | void,
   delay = 2000
 ): {
@@ -78,16 +78,16 @@ export function useAutosave<T = any>(
  * Hook simplificado para autoguardado de formularios
  * Guardar automáticamente cuando los valores cambian
  */
-export function useFormAutosave<T extends Record<string, any>>(
+export function useFormAutosave<T extends Record<string, unknown>>(
   initialValues: T,
   onSave: (values: T) => Promise<void> | void,
   delay = 2000
-): [T, (name: string, value: any) => void, boolean, Date | null] {
+): [T, (name: string, value: unknown) => void, boolean, Date | null] {
   const [values, setValues] = useState<T>(initialValues);
   const { save, saving, lastSaved } = useAutosave<T>(onSave, delay);
 
   const handleChange = useCallback(
-    (name: string, value: any) => {
+    (name: string, value: unknown) => {
       const newValues = { ...values, [name]: value };
       setValues(newValues);
       save(newValues);

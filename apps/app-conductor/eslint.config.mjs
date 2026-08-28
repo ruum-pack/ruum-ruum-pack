@@ -82,7 +82,7 @@ const eslintConfig = defineConfig([
       'jsx-a11y/no-onchange': 'off',
       'jsx-a11y/no-redundant-roles': 'error',
       'jsx-a11y/no-static-element-interactions': 'error',
-      'jsx-a11y/prefer-tag-over-role': 'warn',
+      'jsx-a11y/prefer-tag-over-role': 'off',
       'jsx-a11y/role-has-required-aria-props': 'error',
       'jsx-a11y/role-supports-aria-props': 'error',
       'jsx-a11y/scope': 'error',
