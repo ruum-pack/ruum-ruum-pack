@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { fortalezaPassword } from "../utils/fortaleza-password";
+import { passwordCumpleRequisitos } from "../utils/requisitos-password";
 
 /**
  * Fase 4 — Fuente única de reglas y mensajes del registro de conductor.
@@ -70,8 +70,15 @@ export const esquemaRegistroConductor = z.object({
   password: z
     .string()
     .min(8, "La contraseña debe tener al menos 8 caracteres.")
-    // Mismo criterio que app-usuario/registro y ambas pantallas nueva-password.
-    .refine((valor) => fortalezaPassword(valor).nivel >= 2, "Refuérzala: agrega un número o una mayúscula."),
+    // BUGFIX: antes usaba fortalezaPassword(...).nivel >= 2, un puntaje que se
+    // cumple con cualquier 2 de {longitud>=10, mayúscula, dígito, símbolo} —
+    // por lo que "carretera2026" (sin mayúscula) pasaba aquí pero el servidor
+    // de Supabase Auth la rechaza (password_requirements = lower_upper_letters_digits
+    // en supabase/config.toml exige minúscula + mayúscula + dígito). Ahora se usa
+    // el mismo criterio exacto que app-usuario/registro y ambas pantallas
+    // nueva-password (passwordCumpleRequisitos), así el wizard nunca deja pasar
+    // una contraseña que el backend vaya a rechazar al final del registro.
+    .refine((valor) => passwordCumpleRequisitos(valor), "Debe incluir minúscula, mayúscula y número."),
   codigoPostal: textoRequerido("Escribe tu código postal", 5),
   estado: textoRequerido("Escribe tu estado"),
   ciudad: textoRequerido("Escribe tu ciudad o municipio"),

@@ -36,7 +36,14 @@ describe("validarCampoRegistroConductor", () => {
   it("rechaza contraseñas de solo minúsculas aunque sean largas", () => {
     expect(validarCampoRegistroConductor("password", "puroschidos")).not.toBe("");
     expect(validarCampoRegistroConductor("password", "corta1A")).not.toBe("");
-    expect(validarCampoRegistroConductor("password", "carretera2026")).toBe("");
+    // BUGFIX: "carretera2026" no tiene mayúscula, así que el servidor de
+    // Supabase Auth la rechaza (password_requirements = lower_upper_letters_digits).
+    // Antes este mismo test la daba por válida — contradecía su propio título.
+    expect(validarCampoRegistroConductor("password", "carretera2026")).not.toBe("");
+  });
+
+  it("acepta contraseñas con minúscula, mayúscula y número", () => {
+    expect(validarCampoRegistroConductor("password", "Carretera2026")).toBe("");
   });
 
   it("normaliza espacios en textos requeridos", () => {
@@ -90,7 +97,7 @@ describe("validarRegistroConductor", () => {
     curp: "GOMC900101HDFRRL09",
     telefono: "5512345678",
     email: "juan@example.com",
-    password: "carretera2026",
+    password: "Carretera2026",
     codigoPostal: "52104",
     estado: "México",
     ciudad: "San Mateo Atenco",

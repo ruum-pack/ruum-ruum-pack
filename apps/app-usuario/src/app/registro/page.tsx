@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Aviso, Field } from "@ruum/ui";
 import { VERSION_TERMINOS_VIGENTE } from "@ruum/shared/constants";
-import { fortalezaPassword, traducirErrorAuth } from "@ruum/shared/utils";
+import { fortalezaPassword, passwordCumpleRequisitos, requisitosPassword, traducirErrorAuth } from "@ruum/shared/utils";
 import { registrarEventoUx } from "../../lib/analytics";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import {
@@ -94,7 +94,14 @@ export default function PaginaRegistro() {
     if (!correo) return "Escribe tu correo electrónico.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo))
       return "El formato del correo no es válido.";
-    if (password.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
+    /* BUGFIX: antes solo se validaba longitud>=8 en el cliente, pero el
+       servidor de Supabase Auth exige además minúscula+mayúscula+número
+       (password_requirements = "lower_upper_letters_digits" en
+       supabase/config.toml). Con la validación débil, una contraseña como
+       "abcdefgh" pasaba aquí y luego el signUp() fallaba en el servidor con
+       un error genérico. Se alinea con el mismo criterio ya usado en
+       app-conductor (passwordCumpleRequisitos) para las tres pantallas. */
+    if (!passwordCumpleRequisitos(password)) return "La contraseña debe incluir minúscula, mayúscula y número.";
     if (password !== confirmarPassword) return "Las contraseñas no coinciden.";
     if (!aceptaTerminos) return "Acepta los términos para continuar.";
     return null;
@@ -338,6 +345,25 @@ export default function PaginaRegistro() {
                     )}
                   </>
                 )}
+                {/* Requisitos exigidos por el servidor (mismo patrón que app-conductor) */}
+                <ul className="mt-1 flex flex-col gap-1 font-body text-xs leading-5" aria-label="Requisitos de contraseña">
+                  {requisitosPassword(password).map((requisito) => {
+                    const etiquetas: Record<string, string> = {
+                      longitud: "Mínimo 8 caracteres",
+                      minuscula: "Al menos una letra minúscula",
+                      mayuscula: "Al menos una letra mayúscula",
+                      numero: "Al menos un número",
+                    };
+                    return (
+                      <li
+                        key={requisito.clave}
+                        className={requisito.cumplido ? "text-emerald-400" : "text-[var(--ruum-dark-text-tertiary)]"}
+                      >
+                        {requisito.cumplido ? "✓" : "○"} {etiquetas[requisito.clave]}
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
 
               <Field

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Aviso, Field } from "@ruum/ui";
-import { fortalezaPassword, observarSesionRecuperacion, traducirErrorAuth } from "@ruum/shared/utils";
+import { fortalezaPassword, observarSesionRecuperacion, passwordCumpleRequisitos, requisitosPassword, traducirErrorAuth } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import {
   botonAzul,
@@ -42,15 +42,31 @@ export default function PaginaNuevaPassword() {
     }
 
     const cliente = crearClienteNavegador();
-    return observarSesionRecuperacion(cliente.auth, ({ sesionLista: lista, verificando: enVerificacion }) => {
-      setSesionLista(lista);
-      setVerificando(enVerificacion);
-    });
+    /* BUGFIX: faltaba { soloRecovery: true }. Sin esta opción, cualquier
+       sesión SIGNED_IN/INITIAL_SESSION ya activa en el navegador (pestaña
+       vieja, dispositivo compartido) habilitaba este formulario aunque el
+       usuario nunca hubiera pasado por el enlace de recuperación por correo.
+       /nueva-password en esta app solo se enlaza desde el flujo de
+       recuperación (recuperar-password y BotonResetPassword en /cuenta),
+       nunca para cambiar contraseña estando ya logueado — ese caso usa el
+       mismo enlace por correo. app-conductor ya aplicaba esta restricción;
+       aquí faltaba, dejando la protección "solo por correo" incompleta. */
+    return observarSesionRecuperacion(
+      cliente.auth,
+      ({ sesionLista: lista, verificando: enVerificacion }) => {
+        setSesionLista(lista);
+        setVerificando(enVerificacion);
+      },
+      7000,
+      { soloRecovery: true }
+    );
   }, []);
 
   async function establecer(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) { setError("La contraseña debe tener al menos 8 caracteres."); return; }
+    /* BUGFIX: igual que en /registro, se alinea con el requisito real del
+       servidor (minúscula + mayúscula + número), no solo longitud. */
+    if (!passwordCumpleRequisitos(password)) { setError("La contraseña debe incluir minúscula, mayúscula y número."); return; }
     if (password !== confirmar) { setError("Las contraseñas no coinciden."); return; }
 
     setEnviando(true);
@@ -150,6 +166,24 @@ export default function PaginaNuevaPassword() {
                       )}
                     </>
                   )}
+                  <ul className="mt-1 flex flex-col gap-1 font-body text-xs leading-5" aria-label="Requisitos de contraseña">
+                    {requisitosPassword(password).map((requisito) => {
+                      const etiquetas: Record<string, string> = {
+                        longitud: "Mínimo 8 caracteres",
+                        minuscula: "Al menos una letra minúscula",
+                        mayuscula: "Al menos una letra mayúscula",
+                        numero: "Al menos un número",
+                      };
+                      return (
+                        <li
+                          key={requisito.clave}
+                          className={requisito.cumplido ? "text-emerald-400" : "text-[var(--ruum-dark-text-tertiary)]"}
+                        >
+                          {requisito.cumplido ? "✓" : "○"} {etiquetas[requisito.clave]}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
 
                 <Field
