@@ -103,7 +103,7 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const esPublica = esRutaPublicaConductor(pathname);
-  const esRutaAuth = pathname === "/login" || pathname === "/registro" || pathname === "/onboarding";
+  const esRutaAuth = pathname === "/login" || pathname === "/onboarding";
 
   if (!user && !esPublica) {
     const destino = new URL("/login", request.url);
@@ -112,7 +112,15 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && esRutaAuth) {
-    // Usuario ya autenticado no debe ver login/registro/onboarding
+    // Usuario ya autenticado no debe ver login/onboarding.
+    // /registro se excluye a propósito: un conductor autenticado puede seguir
+    // ahí a mitad de registro (borrador/correo_pendiente/datos_incompletos/
+    // documentos_pendientes) tras confirmar su correo — ver auth/callback/route.ts
+    // (destinoComoConductor) y registro/page.tsx (sesionAutenticada). Forzar la
+    // redirección a /panel aquí producía un loop infinito /registro ↔ /panel,
+    // porque usePanelData.ts redirige de vuelta a /registro para esos mismos
+    // estados. La propia página de registro ya redirige a /panel cuando detecta
+    // un conductor aprobado o una solicitud lista para enviar.
     return applyCspHeaders(NextResponse.redirect(new URL("/panel", request.url)), nonce);
   }
 
