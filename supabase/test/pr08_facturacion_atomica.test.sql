@@ -17,8 +17,8 @@ insert into public.empresas (id, nombre, rfc, razon_social, regimen_fiscal, codi
   ('90800000-0000-4000-8000-000000000e01', 'Empresa PR08 SA de CV', 'EMP010101AA1', 'Empresa PR08 SA de CV', '601', '06000', 'G03', 'facturas@empresa-pr08.test');
 
 insert into public.usuarios (id, auth_user_id, tipo_cuenta, rol, estado_verificacion, empresa_id, rfc, razon_social, regimen_fiscal, codigo_postal_fiscal, uso_cfdi, correo_facturacion) values
-  ('90800000-0000-4000-8000-000000000101', '90800000-0000-4000-8000-000000000001', 'empresa', 'titular_empresa', 'verificado', '90800000-0000-4000-8000-000000000e01', 'EMP010101AA1', 'Empresa PR08 SA de CV', '601', '06000', 'G03', 'facturas@empresa-pr08.test'),
-  ('90800000-0000-4000-8000-000000000102', '90800000-0000-4000-8000-000000000002', 'personal', 'personal', 'verificado', null, null, null, null, null, null, null);
+  ('90800000-0000-4000-8000-000000000u01', '90800000-0000-4000-8000-000000000001', 'empresa', 'titular_empresa', 'verificado', '90800000-0000-4000-8000-000000000e01', 'EMP010101AA1', 'Empresa PR08 SA de CV', '601', '06000', 'G03', 'facturas@empresa-pr08.test'),
+  ('90800000-0000-4000-8000-000000000u02', '90800000-0000-4000-8000-000000000002', 'personal', 'personal', 'verificado', null, null, null, null, null, null, null);
 
 -- 2. Prueba 1: Usuario personal actualiza sus datos fiscales correctamente
 set local role authenticated;
@@ -39,7 +39,7 @@ select lives_ok(
 );
 
 select is(
-  (select rfc from public.usuarios where id = '90800000-0000-4000-8000-000000000102'),
+  (select rfc from public.usuarios where id = '90800000-0000-4000-8000-000000000u02'),
   'XAXX010101000',
   'PR-08.2: la fila en usuarios refleja los datos fiscales actualizados'
 );
@@ -67,7 +67,7 @@ select ok(
   (select (u.rfc = 'NUEVO800101AB2' and e.rfc = 'NUEVO800101AB2' and u.razon_social = e.razon_social and u.correo_facturacion = e.correo_facturacion)
    from public.usuarios u
    join public.empresas e on e.id = u.empresa_id
-   where u.id = '90800000-0000-4000-8000-000000000101'),
+   where u.id = '90800000-0000-4000-8000-000000000u01'),
   'PR-08.4: tanto usuarios como empresas quedaron actualizadas de forma atómica'
 );
 reset role;
@@ -111,7 +111,7 @@ reset role;
 
 -- Comprobar que la tabla usuarios NO quedó con 'FAIL_EMPRESA' (rollback íntegro de la transacción)
 select is(
-  (select rfc from public.usuarios where id = '90800000-0000-4000-8000-000000000101'),
+  (select rfc from public.usuarios where id = '90800000-0000-4000-8000-000000000u01'),
   'NUEVO800101AB2',
   'PR-08.5: fallo en empresas revierte también los cambios en usuarios (rollback atómico)'
 );

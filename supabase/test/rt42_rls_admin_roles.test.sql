@@ -1,7 +1,11 @@
 -- RT-42 — RLS con los cinco roles administrativos operativos.
 -- Verifica aislamiento de permisos y acceso a tablas críticas.
 
+create extension if not exists pgtap with schema extensions;
+
 begin;
+
+select plan(6);
 
 insert into auth.users(id,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
   ('92500000-0000-4000-8000-0000000000a1','rt42-operador@local.test',now(),'{}','{}',now(),now()),
@@ -23,48 +27,57 @@ insert into public.solicitudes_conductor(id,auth_user_id,estado,enviado_en,datos
 insert into public.registro_auditoria(traslado_id,evento,actor,actor_id,datos) values
   (null,'creacion_cuenta','admin','92500000-0000-4000-8000-00000000a001','{"prueba":"rt42"}');
 
--- Operador: solo acceso operativo
+-- 1. Operador: solo ve su propio perfil admin
 set local role authenticated;
 select set_config('request.jwt.claim.sub','92500000-0000-4000-8000-0000000000a1',true);
-do $$
-begin
-  if (select count(*) from public.registro_auditoria) = 0 then null; end if;
-  if (select count(*) from public.admins) <> 1 then
-    raise exception 'RT-42 operador: debe ver solo su propio perfil admin.';
-  end if;
-  if (select count(*) from public.solicitudes_conductor) <> 1 then
-    raise exception 'RT-42 operador: debe ver solicitudes_conductores.';
-  end if;
-  if (select count(*) from public.pagos) > 0 then
-    raise exception 'RT-42 operador: no debe ver pagos.';
-  end if;
-end $$;
+
+select is(
+  (select count(*)::int from public.admins),
+  1,
+  'RT-42.1: operador debe ver solo su propio perfil admin'
+);
+
+select is(
+  (select count(*)::int from public.solicitudes_conductor),
+  1,
+  'RT-42.2: operador debe ver solicitudes_conductores'
+);
+
+select is(
+  (select count(*)::int from public.pagos),
+  0,
+  'RT-42.3: operador no debe ver pagos'
+);
 reset role;
 
--- Finanzas: ve pagos pero no documentos_conductor
+-- 2. Finanzas: ve solicitudes_conductor
 set local role authenticated;
 select set_config('request.jwt.claim.sub','92500000-0000-4000-8000-0000000000a3',true);
-do $$
-begin
-  if (select count(*) from public.solicitudes_conductor) <> 1 then
-    raise exception 'RT-42 finanzas: debe ver solicitudes_conductores.';
-  end if;
-end $$;
+
+select is(
+  (select count(*)::int from public.solicitudes_conductor),
+  1,
+  'RT-42.4: finanzas debe ver solicitudes_conductor'
+);
 reset role;
 
--- Dirección: acceso completo
+-- 3. Dirección: acceso completo
 set local role authenticated;
 select set_config('request.jwt.claim.sub','92500000-0000-4000-8000-0000000000a5',true);
-do $$
-begin
-  if (select count(*) from public.admins) <> 5 then
-    raise exception 'RT-42 direccion: debe ver todos los admins.';
-  end if;
-  if (select count(*) from public.solicitudes_conductor) <> 1 then
-    raise exception 'RT-42 direccion: debe ver solicitudes_conductores.';
-  end if;
-end $$;
+
+select is(
+  (select count(*)::int from public.admins),
+  5,
+  'RT-42.5: dirección debe ver todos los admins'
+);
+
+select is(
+  (select count(*)::int from public.solicitudes_conductor),
+  1,
+  'RT-42.6: dirección debe ver solicitudes_conductores'
+);
 reset role;
 
-raise notice 'RT-42 OK: RLS para roles administrativos verificado.';
+select * from finish();
+
 rollback;
