@@ -93,11 +93,26 @@ RUUM_APP_CONDUCTOR_URL       https://www.concer.ruumruum-moviliax.online (o tu d
 
 ## Desplegar
 
+No uses `supabase functions deploy .` ni un `Get-ChildItem` sobre todos los
+elementos del directorio: `_shared`, archivos auxiliares y carpetas sin
+`index.ts` no son funciones desplegables.
+
+Para desplegar sólo DIDIT:
+
 ```bash
-supabase functions deploy stripe-webhook
-supabase functions deploy crear-payment-intent
-supabase functions deploy crear-llamada-enmascarada
-supabase functions deploy validar-documento-conductor
+supabase functions deploy iniciar-verificacion-didit
+```
+
+Para desplegar todas las funciones locales válidas desde PowerShell:
+
+```powershell
+pwsh -NoProfile -File .\scripts\deploy-supabase-functions.ps1
+```
+
+Para desplegar un subconjunto:
+
+```powershell
+pwsh -NoProfile -File .\scripts\deploy-supabase-functions.ps1 iniciar-verificacion-didit webhook-didit
 ```
 
 `crear-payment-intent` está configurada con `verify_jwt = false` en `supabase/config.toml` para que el gateway de
