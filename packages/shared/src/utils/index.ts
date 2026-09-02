@@ -7,6 +7,7 @@ export * from "./generar-id-pasaporte";
 export * from "./mapbox-directions";
 export * from "./logger";
 export * from "./observar-sesion-recuperacion";
+export * from "./recovery";
 export * from "./polyline";
 export * from "./requisitos-password";
 export * from "./traducir-error-auth";

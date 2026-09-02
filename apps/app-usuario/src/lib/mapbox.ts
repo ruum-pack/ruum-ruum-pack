@@ -1,4 +1,5 @@
 import { MapboxDirectionsError, obtenerRutaDirectionsMapbox } from "@ruum/shared/utils";
+import { recordOperationalEvent } from "./observability";
 
 const tokenPublico = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 const URL_GEOCODIFICACION = "https://api.mapbox.com/search/geocode/v6/forward";
@@ -33,12 +34,19 @@ async function consultarMapbox(parametros: URLSearchParams): Promise<FeatureMapb
   try {
     const respuesta = await fetch(`${URL_GEOCODIFICACION}?${parametros.toString()}`);
     if (!respuesta.ok) {
+      void recordOperationalEvent("geocoding_failure", {
+        status: respuesta.status,
+        scope: "geocoding_api"
+      }, "warning");
       throw new MapboxUsuarioError(`Mapbox Geocoding respondió ${respuesta.status}.`, respuesta.status);
     }
     const datos = (await respuesta.json()) as { features?: FeatureMapbox[] };
     return datos.features ?? [];
   } catch (error) {
     if (error instanceof MapboxUsuarioError) throw error;
+    void recordOperationalEvent("geocoding_failure", {
+      error: error instanceof Error ? error.message : "error_red"
+    }, "warning");
     return [];
   }
 }

@@ -56,12 +56,14 @@ export function crearClienteFake({
   tablas = {},
   rpcs = {},
   userId = "auth-admin-1",
+  userEmail,
   storageResult = {},
   functionsResult = {}
 }: {
   tablas?: Record<string, Resultado>;
   rpcs?: Record<string, Resultado>;
   userId?: string | null;
+  userEmail?: string | null;
   storageResult?: Resultado & { publicUrl?: string };
   functionsResult?: Resultado;
 } = {}) {
@@ -69,7 +71,21 @@ export function crearClienteFake({
   const cliente = {
     llamadas,
     auth: {
-      getUser: vi.fn(async () => ({ data: { user: userId ? { id: userId } : null }, error: null }))
+      getUser: vi.fn(async () => ({
+        data: {
+          user: userId
+            ? {
+                id: userId,
+                email: userEmail !== undefined ? (userEmail ?? undefined) : `${userId}@example.com`
+              }
+            : null
+        },
+        error: null
+      })),
+      resetPasswordForEmail: vi.fn(async (email: string, options?: unknown) => {
+        llamadas.push({ table: "auth", action: "resetPasswordForEmail", args: [email, options] });
+        return { data: {}, error: null };
+      })
     },
     from: vi.fn((table: string) => new QueryFake(llamadas, table, tablas[table])),
     rpc: vi.fn(async (nombre: string, args: unknown) => {

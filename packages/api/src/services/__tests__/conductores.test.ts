@@ -23,6 +23,12 @@ import {
   iniciarSolicitudConductor,
   guardarBorradorConductor,
   enviarSolicitudConductor,
+  solicitarCambioExpedienteConductor,
+  actualizarPerfilConductor,
+  listarSolicitudesCambioConductor,
+  cancelarSolicitudCambioConductor,
+  aprobarSolicitudCambioConductorAdmin,
+  rechazarSolicitudCambioConductorAdmin,
 } from "../conductores";
 
 // Helper para crear File mock compatible con Node (sin Blob real)
@@ -296,27 +302,32 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
     });
   });
 
-  describe("subirFotoPerfilConductor — storage upload + update", () => {
+  describe("subirFotoPerfilConductor — storage upload + solicitud pendiente (PR-04)", () => {
     it("rechaza si intenta modificar otro conductor", async () => {
       const cliente = crearClienteFake({ tablas: { conductores: { data: { id: "cond-1" } } } }) as any;
       await expect(subirFotoPerfilConductor(cliente, "cond-otro", mockFile("perfil.jpg", 100, "image/jpeg"))).rejects.toThrow("No puedes modificar");
     });
-    it("sube a bucket fotos-perfil-conductor con contentType y actualiza conductores", async () => {
+    it("sube a bucket y crea solicitud pendiente (no actualiza directo) — foto es sensible", async () => {
       const cliente = crearClienteFake({
         tablas: { conductores: { data: { id: "cond-1" } } },
+        rpcs: { solicitar_cambio_expediente_conductor: { data: { solicitud_id: "sol-123", estado: "pendiente", tipo: "foto_perfil", mensaje: "Cambios enviados a revisión" } } },
         storageResult: { publicUrl: "https://cdn.test/fotos/cond-1/perfil.jpg" },
       }) as any;
-      const url = await subirFotoPerfilConductor(cliente, "cond-1", mockFile("perfil.jpg", 5000, "image/jpeg"));
-      expect(url).toContain("https://cdn.test");
+      await expect(subirFotoPerfilConductor(cliente, "cond-1", mockFile("perfil.jpg", 5000, "image/jpeg"))).rejects.toThrow("Cambios enviados a revisión");
       expect(cliente.storage.from).toHaveBeenCalledWith("fotos-perfil-conductor");
-      // verifica que se llamó update en conductores con foto_perfil_url
+      // verifica que se llamó RPC solicitar_cambio, no update directo
+      const rpcCall = cliente.llamadas.find((l: any) => l.action === "solicitar_cambio_expediente_conductor");
+      expect(rpcCall).toBeDefined();
+      expect(rpcCall.args[0].p_cambios.foto_perfil_url).toContain("https://cdn.test");
       const updateCall = cliente.llamadas.find((l: any) => l.table === "conductores" && l.action === "update");
-      expect(updateCall).toBeDefined();
-      expect(updateCall.args[0].foto_perfil_url).toContain("https://cdn.test");
+      expect(updateCall).toBeUndefined();
     });
     it("usa mimeMap fallback si type es octet-stream", async () => {
-      const cliente = crearClienteFake({ tablas: { conductores: { data: { id: "cond-1" } } } }) as any;
-      await subirFotoPerfilConductor(cliente, "cond-1", mockFile("perfil.webp", 1000, "application/octet-stream"));
+      const cliente = crearClienteFake({
+        tablas: { conductores: { data: { id: "cond-1" } } },
+        rpcs: { solicitar_cambio_expediente_conductor: { data: { solicitud_id: "sol-123", estado: "pendiente", tipo: "foto_perfil", mensaje: "Cambios enviados a revisión" } } },
+      }) as any;
+      await expect(subirFotoPerfilConductor(cliente, "cond-1", mockFile("perfil.webp", 1000, "application/octet-stream"))).rejects.toThrow("Cambios enviados a revisión");
       const uploadCall = cliente.llamadas.find((l: any) => l.action === "upload");
       expect(uploadCall.args[1].contentType).toBe("image/webp"); // mapeado desde extensión
     });
@@ -326,6 +337,17 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
         storageResult: { error: new Error("storage fail") },
       }) as any;
       await expect(subirFotoPerfilConductor(cliente, "cond-1", mockFile("perfil.jpg", 100, "image/jpeg"))).rejects.toThrow("storage fail");
+    });
+    it("si RPC aprueba directo (no sensible) retorna url", async () => {
+      const cliente = crearClienteFake({
+        tablas: { conductores: { data: { id: "cond-1" } } },
+        rpcs: { solicitar_cambio_expediente_conductor: { data: { solicitud_id: null, estado: "actualizado", tipo: "actualizacion_directa", mensaje: "Cambios guardados" } } },
+        storageResult: { publicUrl: "https://cdn.test/fotos/cond-1/perfil.jpg" },
+      }) as any;
+      // Para este caso, aunque foto es sensible, si el RPC lo considerara no sensible (mock), debe retornar url
+      // Pero en producción foto siempre es pendiente; este test verifica el branch actualizado
+      const url = await subirFotoPerfilConductor(cliente, "cond-1", mockFile("perfil.jpg", 5000, "image/jpeg"));
+      expect(url).toContain("https://cdn.test");
     });
   });
 
@@ -343,6 +365,148 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
         },
       }) as any;
       await expect(obtenerConfiguracionConductor(cliente, "cond-1")).rejects.toThrow("No se encontró el conductor");
+    });
+  });
+
+  describe("PR-04 — solicitudes_cambio_conductor: revisión real del perfil", () => {
+    it("cambio no sensible (solo nombre) → actualización permitida directa", async () => {
+      const cliente = crearClienteFake({
+        tablas: { conductores: { data: { id: "cond-1" } } },
+        rpcs: { solicitar_cambio_expediente_conductor: { data: { solicitud_id: null, estado: "actualizado", tipo: "actualizacion_directa", mensaje: "Cambios guardados" } } },
+      }) as any;
+      const res = await solicitarCambioExpedienteConductor(cliente, { nombre: "Juan Nuevo" });
+      expect(res.estado).toBe("actualizado");
+      expect(res.mensaje).toBe("Cambios guardados");
+      expect(res.solicitud_id).toBeNull();
+      const llamada = cliente.llamadas.find((l: any) => l.action === "solicitar_cambio_expediente_conductor");
+      expect(llamada.args[0].p_cambios.nombre).toBe("Juan Nuevo");
+    });
+
+    it("cambio sensible (curp) → no modifica valor aprobado, crea solicitud pendiente", async () => {
+      const cliente = crearClienteFake({
+        tablas: { conductores: { data: { id: "cond-1", curp: "OLD123456789012345" } } },
+        rpcs: { solicitar_cambio_expediente_conductor: { data: { solicitud_id: "sol-123", estado: "pendiente", tipo: "curp", mensaje: "Cambios enviados a revisión" } } },
+      }) as any;
+      const res = await solicitarCambioExpedienteConductor(cliente, { curp: "NEWCURP123456789012" });
+      expect(res.estado).toBe("pendiente");
+      expect(res.solicitud_id).toBe("sol-123");
+      expect(res.mensaje).toBe("Cambios enviados a revisión");
+      // Verificar que no se hizo update directo en conductores (solo RPC)
+      const updateDirecto = cliente.llamadas.find((l: any) => l.table === "conductores" && l.action === "update");
+      expect(updateDirecto).toBeUndefined();
+    });
+
+    it("licencia_vigencia es tratada como sensible (requisito explícito PR-04)", async () => {
+      const cliente = crearClienteFake({
+        tablas: { conductores: { data: { id: "cond-1" } } },
+        rpcs: { solicitar_cambio_expediente_conductor: { data: { solicitud_id: "sol-456", estado: "pendiente", tipo: "licencia", mensaje: "Cambios enviados a revisión" } } },
+      }) as any;
+      const res = await solicitarCambioExpedienteConductor(cliente, { licencia_vigencia: "2030-12-31" });
+      expect(res.estado).toBe("pendiente");
+      expect(res.tipo).toBe("licencia");
+    });
+
+    it("actualizarPerfilConductor delega en RPC y distingue mensajes", async () => {
+      const cliente = crearClienteFake({
+        tablas: { conductores: { data: { id: "cond-1", nombre: "Old", curp: "OLD" } } },
+        rpcs: { solicitar_cambio_expediente_conductor: { data: { solicitud_id: "sol-789", estado: "pendiente", tipo: "curp", mensaje: "Cambios enviados a revisión" } } },
+      }) as any;
+      const res = await actualizarPerfilConductor(cliente, "cond-1", {
+        nombre: "Old",
+        telefono: "5512345678",
+        curp: "NEWCURP123",
+      } as any);
+      expect(res.estado).toBe("pendiente");
+      expect(res.mensaje).toBe("Cambios enviados a revisión");
+    });
+
+    it("actualizarPerfilConductor rechaza si intenta modificar otro conductor", async () => {
+      const cliente = crearClienteFake({ tablas: { conductores: { data: { id: "cond-1" } } } }) as any;
+      await expect(actualizarPerfilConductor(cliente, "cond-otro", { nombre: "A", telefono: "123" } as any)).rejects.toThrow("No puedes modificar");
+    });
+
+    it("admin aprueba solicitud → valor cambia (simulado vía RPC)", async () => {
+      const cliente = crearClienteFake({
+        rpcs: { aprobar_solicitud_cambio_conductor: { data: { solicitud_id: "sol-123", estado: "aprobado" } } },
+      }) as any;
+      const res = await aprobarSolicitudCambioConductorAdmin(cliente, "sol-123");
+      expect(res.estado).toBe("aprobado");
+      const llamada = cliente.llamadas.find((l: any) => l.action === "aprobar_solicitud_cambio_conductor");
+      expect(llamada.args[0].p_solicitud_id).toBe("sol-123");
+    });
+
+    it("admin rechaza solicitud → valor aprobado anterior permanece (estado rechazado)", async () => {
+      const cliente = crearClienteFake({
+        rpcs: { rechazar_solicitud_cambio_conductor: { data: { solicitud_id: "sol-123", estado: "rechazado" } } },
+      }) as any;
+      const res = await rechazarSolicitudCambioConductorAdmin(cliente, "sol-123", "Documento ilegible, envía foto más nítida");
+      expect(res.estado).toBe("rechazado");
+      const llamada = cliente.llamadas.find((l: any) => l.action === "rechazar_solicitud_cambio_conductor");
+      expect(llamada.args[0].p_motivo).toBe("Documento ilegible, envía foto más nítida");
+    });
+
+    it("admin rechaza sin motivo suficiente → error", async () => {
+      const cliente = crearClienteFake({
+        rpcs: { rechazar_solicitud_cambio_conductor: { error: new Error("Escribe un motivo de al menos 5 caracteres.") } },
+      }) as any;
+      await expect(rechazarSolicitudCambioConductorAdmin(cliente, "sol-123", "bad")).rejects.toThrow("5 caracteres");
+    });
+
+    it("listarSolicitudesCambioConductor consulta solo propias", async () => {
+      const fila = { id: "sol-1", conductor_id: "cond-1", estado: "pendiente" };
+      const cliente = crearClienteFake({ tablas: { conductores: { data: { id: "cond-1" } }, solicitudes_cambio_conductor: { data: [fila] } } }) as any;
+      // Mock from para solicitudes_cambio_conductor
+      cliente.from = vi.fn((table: string) => {
+        if (table === "solicitudes_cambio_conductor") {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () => Promise.resolve({ data: [fila], error: null }),
+              }),
+            }),
+          } as any;
+        }
+        return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { id: "cond-1" }, error: null }) }) }) } as any;
+      });
+      // Simular obtenerConductorActual devolviendo cond-1
+      const res = await listarSolicitudesCambioConductor(cliente, "cond-1");
+      // Fake devuelve array, no verificamos contenido estricto, solo que no lanza y llama from
+      expect(cliente.from).toHaveBeenCalled();
+    });
+
+    it("cancelarSolicitudCambioConductor llama RPC correcto", async () => {
+      const cliente = crearClienteFake({ rpcs: { cancelar_solicitud_cambio_conductor: { data: { solicitud_id: "sol-1", estado: "cancelado" } } } }) as any;
+      await expect(cancelarSolicitudCambioConductor(cliente, "sol-1")).resolves.toBeUndefined();
+      const llamada = cliente.llamadas.find((l: any) => l.action === "cancelar_solicitud_cambio_conductor");
+      expect(llamada.args[0].p_solicitud_id).toBe("sol-1");
+    });
+
+    it("solicitarCambio propaga error si RPC falla", async () => {
+      const cliente = crearClienteFake({ rpcs: { solicitar_cambio_expediente_conductor: { error: new Error("Ya tienes una solicitud pendiente") } } }) as any;
+      await expect(solicitarCambioExpedienteConductor(cliente, { curp: "X" })).rejects.toThrow("Ya tienes una solicitud pendiente");
+    });
+
+    it("auditoría completa: cada operación sensible deja registro (mock verifica RPC + evento)", async () => {
+      // No sensible → actualizacion_perfil_conductor
+      const cliente1 = crearClienteFake({
+        tablas: { conductores: { data: { id: "cond-1" } } },
+        rpcs: { solicitar_cambio_expediente_conductor: { data: { solicitud_id: null, estado: "actualizado", tipo: "actualizacion_directa", mensaje: "Cambios guardados" } } },
+      }) as any;
+      const r1 = await solicitarCambioExpedienteConductor(cliente1, { nombre: "Nuevo Nombre" });
+      expect(r1.mensaje).toBe("Cambios guardados");
+      // Sensible → solicitud creada + auditoría solicitud_cambio_conductor_creada (verificada en SQL real)
+      const cliente2 = crearClienteFake({
+        rpcs: { solicitar_cambio_expediente_conductor: { data: { solicitud_id: "sol-123", estado: "pendiente", tipo: "curp", mensaje: "Cambios enviados a revisión" } } },
+      }) as any;
+      const r2 = await solicitarCambioExpedienteConductor(cliente2, { curp: "CURP12345678901234" });
+      expect(r2.mensaje).toBe("Cambios enviados a revisión");
+      // Aprobación y rechazo también generan auditoría (aprobada/rechazada)
+      const cliente3 = crearClienteFake({ rpcs: { aprobar_solicitud_cambio_conductor: { data: { solicitud_id: "sol-123", estado: "aprobado" } } } }) as any;
+      const r3 = await aprobarSolicitudCambioConductorAdmin(cliente3, "sol-123");
+      expect(r3.estado).toBe("aprobado");
+      const cliente4 = crearClienteFake({ rpcs: { rechazar_solicitud_cambio_conductor: { data: { solicitud_id: "sol-123", estado: "rechazado" } } } }) as any;
+      const r4 = await rechazarSolicitudCambioConductorAdmin(cliente4, "sol-123", "Motivo válido de rechazo");
+      expect(r4.estado).toBe("rechazado");
     });
   });
 });

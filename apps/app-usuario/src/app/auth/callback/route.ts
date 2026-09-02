@@ -9,8 +9,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { crearClienteServidor } from "@ruum/api/supabase";
+import { COOKIE_RECOVERY_USUARIO, MAX_AGE_RECOVERY_S, RUTA_COOKIE_RECOVERY } from "@ruum/shared/utils";
 
 type TipoOtpSanitizado = "signup" | "recovery" | "magiclink" | "email";
+
+const COOKIE_RECOVERY = COOKIE_RECOVERY_USUARIO;
+
+function opcionesCookieRecovery() {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true as const,
+    secure: isProd,
+    sameSite: "lax" as const,
+    maxAge: MAX_AGE_RECOVERY_S,
+    path: RUTA_COOKIE_RECOVERY,
+  };
+}
+
+async function setRecoveryCookie(cookieStore: Awaited<ReturnType<typeof cookies>>, supabase: ReturnType<typeof crearClienteServidor>) {
+  try {
+    const { data } = await supabase.auth.getUser();
+    const valor = data.user?.id ? data.user.id : "1";
+    cookieStore.set(COOKIE_RECOVERY, valor, opcionesCookieRecovery());
+    // compat legacy
+    cookieStore.set("ruum_recovery", valor, opcionesCookieRecovery());
+  } catch {
+    cookieStore.set(COOKIE_RECOVERY, "1", opcionesCookieRecovery());
+  }
+}
+
+function clearRecoveryCookie(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+  const opts = { path: RUTA_COOKIE_RECOVERY } as const;
+  try {
+    cookieStore.delete(COOKIE_RECOVERY);
+    cookieStore.delete("ruum_recovery");
+  } catch {
+    // best-effort
+  }
+  // Next 15 cookies().delete necesita path; fallback set expirado
+  try {
+    cookieStore.set(COOKIE_RECOVERY, "", { ...opcionesCookieRecovery(), maxAge: 0 });
+    cookieStore.set("ruum_recovery", "", { ...opcionesCookieRecovery(), maxAge: 0 });
+  } catch {}
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -70,8 +111,18 @@ export async function GET(request: NextRequest) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      if (type === "recovery") {
+        await setRecoveryCookie(cookieStore, supabase);
+      } else {
+        clearRecoveryCookie(cookieStore);
+      }
       const destino = type === "recovery" ? "/nueva-password" : next;
       return NextResponse.redirect(`${origin}${destino}`);
+    }
+    // Código inválido/expirado/reutilizado -> limpiar marcador y redirigir a error
+    if (type === "recovery") {
+      clearRecoveryCookie(cookieStore);
+      return NextResponse.redirect(`${origin}${destinoErrorServer}`);
     }
   }
 
@@ -82,8 +133,17 @@ export async function GET(request: NextRequest) {
       token_hash: tokenHash,
     });
     if (!error) {
+      if (type === "recovery") {
+        await setRecoveryCookie(cookieStore, supabase);
+      } else {
+        clearRecoveryCookie(cookieStore);
+      }
       const destino = type === "recovery" ? "/nueva-password" : next;
       return NextResponse.redirect(`${origin}${destino}`);
+    }
+    if (type === "recovery") {
+      clearRecoveryCookie(cookieStore);
+      return NextResponse.redirect(`${origin}${destinoErrorServer}`);
     }
   }
 

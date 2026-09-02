@@ -1,6 +1,6 @@
 import type { EstadoTraslado } from "@ruum/shared/types";
 
-// Categorías visuales para los 32 estados del traslado (PRD §6). El PRD no
+// Categorías visuales para los 34 estados del traslado (PRD §6) — FUENTE DE VERDAD PR-14. El PRD no
 // define colores; esta es una decisión de UI razonable, agrupando estados
 // por lo que el usuario necesita sentir/hacer en cada uno, no por su nombre técnico.
 export type CategoriaEstado = "inicial" | "activo" | "atencion" | "completado" | "fallido";

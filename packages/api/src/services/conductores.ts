@@ -531,34 +531,143 @@ export type PerfilConductorActualizable = {
   contacto_emergencia_telefono?: string;
 };
 
-export async function actualizarPerfilConductor(cliente: Cliente, conductorId: string, datos: PerfilConductorActualizable) {
+export type ResultadoSolicitudCambio = {
+  solicitud_id: string | null;
+  estado: string;
+  tipo: string;
+  mensaje: string;
+};
+
+export type SolicitudCambioConductorRow = {
+  id: string;
+  conductor_id: string;
+  tipo: string;
+  payload_anterior: Record<string, unknown>;
+  payload_propuesto: Record<string, unknown>;
+  estado: "pendiente" | "aprobado" | "rechazado" | "cancelado";
+  creado_en: string;
+  actualizado_en: string;
+  revisado_en: string | null;
+  revisado_por: string | null;
+  motivo_rechazo: string | null;
+};
+
+/**
+ * PR-03/PR-04 — La API no actualiza conductores directamente. La RPC del
+ * servidor aplica la allowlist: telefono, domicilio y contacto de emergencia
+ * son cambios normales; identidad, CURP, licencia, vigencia, foto y legal
+ * requieren revisión; empresa_id y campos operativos son rechazados.
+ */
+export async function solicitarCambioExpedienteConductor(
+  cliente: Cliente,
+  cambios: Record<string, unknown>
+): Promise<ResultadoSolicitudCambio> {
+  const { data, error } = await cliente.rpc("solicitar_cambio_expediente_conductor" as never, {
+    p_cambios: cambios,
+  } as never);
+  if (error) throw error;
+  const res = data as unknown as ResultadoSolicitudCambio;
+  if (!res || !res.mensaje) throw new Error("Respuesta inválida de solicitar_cambio_expediente_conductor");
+  return res;
+}
+
+/**
+ * Compatibilidad: actualizarPerfilConductor ahora delega en solicitarCambioExpedienteConductor
+ * para garantizar revisión real de campos sensibles (curp, licencia, vigencia, etc.).
+ * Retorna el resultado del RPC para que la UI distinga "Cambios guardados" vs "enviados a revisión".
+ */
+export async function actualizarPerfilConductor(
+  cliente: Cliente,
+  conductorId: string,
+  datos: PerfilConductorActualizable
+): Promise<ResultadoSolicitudCambio> {
   const conductorAutenticado = await obtenerConductorIdActual(cliente);
   if (conductorAutenticado !== conductorId) {
     throw new Error("No puedes modificar el perfil de otro conductor.");
   }
 
-  const { error } = await cliente
-    .from("conductores")
-    .update({
-      nombre: datos.nombre.trim(),
-      telefono: telefonoONull(datos.telefono),
-      curp: textoONull(datos.curp)?.toUpperCase() ?? null,
-      licencia_numero: textoONull(datos.licencia_numero),
-      licencia_tipo: textoONull(datos.licencia_tipo),
-      licencia_vigencia: textoONull(datos.licencia_vigencia),
-      codigo_postal: textoONull(datos.codigo_postal),
-      estado_residencia: textoONull(datos.estado_residencia),
-      ciudad_municipio: textoONull(datos.ciudad_municipio),
-      colonia: textoONull(datos.colonia),
-      calle: textoONull(datos.calle),
-      numero: textoONull(datos.numero),
-      referencias: textoONull(datos.referencias),
-      contacto_emergencia_nombre: textoONull(datos.contacto_emergencia_nombre),
-      contacto_emergencia_telefono: telefonoONull(datos.contacto_emergencia_telefono)
-    })
-    .eq("id", conductorId);
+  // Construir cambios solo con campos presentes (trim normalizado)
+  const cambios: Record<string, unknown> = {};
+  const asignar = (clave: string, valor: unknown) => {
+    if (valor === undefined) return;
+    if (typeof valor === "string") {
+      const limpio = valor.trim();
+      cambios[clave] = limpio === "" ? null : limpio;
+    } else {
+      cambios[clave] = valor;
+    }
+  };
+  asignar("nombre", datos.nombre);
+  asignar("telefono", telefonoONull(datos.telefono));
+  asignar("curp", datos.curp ? datos.curp.trim().toUpperCase() : datos.curp);
+  asignar("licencia_numero", datos.licencia_numero);
+  asignar("licencia_tipo", datos.licencia_tipo);
+  asignar("licencia_vigencia", datos.licencia_vigencia);
+  asignar("codigo_postal", datos.codigo_postal);
+  asignar("estado_residencia", datos.estado_residencia);
+  asignar("ciudad_municipio", datos.ciudad_municipio);
+  asignar("colonia", datos.colonia);
+  asignar("calle", datos.calle);
+  asignar("numero", datos.numero);
+  asignar("referencias", datos.referencias);
+  asignar("contacto_emergencia_nombre", datos.contacto_emergencia_nombre);
+  asignar("contacto_emergencia_telefono", datos.contacto_emergencia_telefono ? telefonoONull(datos.contacto_emergencia_telefono) : datos.contacto_emergencia_telefono);
 
+  return solicitarCambioExpedienteConductor(cliente, cambios);
+}
+
+export async function listarSolicitudesCambioConductor(cliente: Cliente, conductorId: string): Promise<SolicitudCambioConductorRow[]> {
+  const conductorAutenticado = await obtenerConductorIdActual(cliente);
+  if (conductorAutenticado !== conductorId) throw new Error("No puedes consultar solicitudes de otro conductor.");
+  const { data, error } = await cliente
+    .from("solicitudes_cambio_conductor" as never)
+    .select("*")
+    .eq("conductor_id", conductorId)
+    .order("creado_en", { ascending: false } as never);
   if (error) throw error;
+  return (data as unknown as SolicitudCambioConductorRow[]) ?? [];
+}
+
+export async function cancelarSolicitudCambioConductor(cliente: Cliente, solicitudId: string): Promise<void> {
+  const { error } = await cliente.rpc("cancelar_solicitud_cambio_conductor" as never, {
+    p_solicitud_id: solicitudId,
+  } as never);
+  if (error) throw error;
+}
+
+// --- Admin: bandeja de solicitudes de cambio ---
+
+export async function listarSolicitudesCambioConductorAdmin(cliente: Cliente): Promise<SolicitudCambioConductorRow[]> {
+  const { data, error } = await cliente
+    .from("solicitudes_cambio_conductor" as never)
+    .select("*")
+    .order("creado_en", { ascending: false } as never);
+  if (error) throw error;
+  return (data as unknown as SolicitudCambioConductorRow[]) ?? [];
+}
+
+export async function aprobarSolicitudCambioConductorAdmin(
+  cliente: Cliente,
+  solicitudId: string
+): Promise<ResultadoSolicitudCambio> {
+  const { data, error } = await cliente.rpc("aprobar_solicitud_cambio_conductor" as never, {
+    p_solicitud_id: solicitudId,
+  } as never);
+  if (error) throw error;
+  return data as unknown as ResultadoSolicitudCambio;
+}
+
+export async function rechazarSolicitudCambioConductorAdmin(
+  cliente: Cliente,
+  solicitudId: string,
+  motivo: string
+): Promise<ResultadoSolicitudCambio> {
+  const { data, error } = await cliente.rpc("rechazar_solicitud_cambio_conductor" as never, {
+    p_solicitud_id: solicitudId,
+    p_motivo: motivo,
+  } as never);
+  if (error) throw error;
+  return data as unknown as ResultadoSolicitudCambio;
 }
 
 export async function subirFotoPerfilConductor(cliente: Cliente, conductorId: string, archivo: File): Promise<string> {
@@ -590,7 +699,21 @@ export async function subirFotoPerfilConductor(cliente: Cliente, conductorId: st
 
   const { data } = cliente.storage.from("fotos-perfil-conductor").getPublicUrl(path);
   const fotoUrl = `${data.publicUrl}?v=${Date.now()}`;
-  const { error } = await cliente.from("conductores").update({ foto_perfil_url: fotoUrl }).eq("id", conductorId);
-  if (error) throw error;
+  // PR-04: foto es dato sensible (identidad) — requiere revisión operativa
+  // Se sube a storage pero la URL no se persiste en conductores hasta aprobación.
+  // Crear solicitud pendiente y devolver URL para preview; UI debe mostrar mensaje de revisión.
+  const resultado = await solicitarCambioExpedienteConductor(cliente, { foto_perfil_url: fotoUrl });
+  if (resultado.estado === "pendiente") {
+    // Lanzamos error controlado que la UI interpretará como "enviado a revisión" (mantiene foto aprobada intacta)
+    const err = new Error(resultado.mensaje + " La fotografía será visible tras aprobación operativa.");
+    (err as unknown as Record<string, unknown>).name = "SolicitudPendiente";
+    (err as unknown as Record<string, unknown>).solicitudId = resultado.solicitud_id;
+    throw err;
+  }
   return fotoUrl;
+}
+
+/** Helper para UI que necesita distinguir si la foto quedó pendiente */
+export function esErrorSolicitudPendiente(error: unknown): boolean {
+  return error instanceof Error && (error as unknown as Record<string, unknown>).name === "SolicitudPendiente";
 }

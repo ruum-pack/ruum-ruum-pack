@@ -70,6 +70,9 @@ jobs:
       - name: Scan secrets (P0 SEC-006 — bloqueante)
         run: pnpm scan:secrets
 
+      - name: Security scanner regression tests (P0 SEC-006)
+        run: pnpm test:security
+
       - name: Assert CSP (SEC-002 — bloqueante, sin unsafe-eval en prod)
         run: pnpm --filter @ruum/app-conductor assert:csp
 
@@ -503,3 +506,44 @@ jobs:
       - name: Validate Gradle project
         working-directory: apps/app-conductor/android
         run: ./gradlew tasks --no-daemon
+
+  sql-tests:
+    name: SQL pgTAP regression tests (PR-06 gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start local Supabase
+        run: pnpm db:start
+
+      - name: Reset local database
+        run: pnpm db:reset
+
+      - name: Run all SQL tests (P1 PR-06 gate)
+        run: pnpm test:sql
+
+      - name: Stop local Supabase
+        if: always()
+        run: pnpm db:stop
+

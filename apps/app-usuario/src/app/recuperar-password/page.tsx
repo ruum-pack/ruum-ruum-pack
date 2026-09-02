@@ -23,6 +23,11 @@ export default function PaginaRecuperarPassword() {
 
   useEffect(() => {
     registrarEventoUx("recuperacion_vista");
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") === "enlace_invalido") {
+      setError("El enlace para restablecer tu contraseña no es válido o ya ha expirado. Por favor, solicita uno nuevo.");
+      registrarEventoUx("recuperacion_error", { motivo: "enlace_invalido" });
+    }
   }, []);
 
   async function enviar(e: React.FormEvent) {

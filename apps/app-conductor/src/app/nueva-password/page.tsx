@@ -22,18 +22,47 @@ export default function PaginaNuevaPasswordConductor() {
       return () => clearTimeout(timer);
     }
 
-    const cliente = crearClienteNavegador();
-    // Solo PASSWORD_RECOVERY debe habilitar el formulario. Una sesión SIGNED_IN
-    // normal debe ir a /cuenta/seguridad -> /recuperar-password para flujo seguro.
-    return observarSesionRecuperacion(
-      cliente.auth,
-      ({ sesionLista: lista, verificando: enVerificacion }) => {
-        setSesionLista(lista);
-        setVerificando(enVerificacion);
-      },
-      7000,
-      { soloRecovery: true }
-    );
+    let activo = true;
+    let cleanupObserver: (() => void) | null = null;
+
+    async function verificarAutorizacion() {
+      // PR-02 P0: Camino principal — verificación server-side (cookie httpOnly + sesión)
+      // No depende de PASSWORD_RECOVERY; sobrevive al exchangeCodeForSession del callback.
+      try {
+        const res = await fetch("/api/recovery/verify", { cache: "no-store", credentials: "same-origin" });
+        const data = (await res.json().catch(() => ({}))) as { authorized?: boolean; autorizado?: boolean };
+        const autorizadoServidor = Boolean(data.authorized ?? data.autorizado);
+        if (autorizadoServidor && activo) {
+          setSesionLista(true);
+          setVerificando(false);
+          return;
+        }
+      } catch {
+        // fallback a observer
+      }
+
+      if (!activo) return;
+
+      // Fallback hash legacy: ventana corta para PASSWORD_RECOVERY (no 7s)
+      const cliente = crearClienteNavegador();
+      cleanupObserver = observarSesionRecuperacion(
+        cliente.auth,
+        ({ sesionLista: lista, verificando: enVerificacion }) => {
+          if (!activo) return;
+          setSesionLista(lista);
+          setVerificando(enVerificacion);
+        },
+        2500,
+        { soloRecovery: true }
+      );
+    }
+
+    void verificarAutorizacion();
+
+    return () => {
+      activo = false;
+      if (cleanupObserver) cleanupObserver();
+    };
   }, []);
 
   async function establecer(e: React.FormEvent) {
@@ -49,6 +78,10 @@ export default function PaginaNuevaPasswordConductor() {
       const cliente = crearClienteNavegador();
       const { error: errorAuth } = await cliente.auth.updateUser({ password });
       if (errorAuth) throw errorAuth;
+      // PR-02 P0: invalidar contexto temporal de recovery para que no sea reutilizable
+      try {
+        await fetch("/api/recovery/clear", { method: "POST", cache: "no-store", credentials: "same-origin" });
+      } catch {}
       setListo(true);
       setTimeout(() => router.push("/panel"), 2000);
     } catch (err) {

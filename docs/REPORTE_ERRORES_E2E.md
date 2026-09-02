@@ -40,9 +40,9 @@ El archivo `global-setup.ts` requiere credenciales de E2E para preparar los fixt
 ```bash
 # OBLIGATORIAS (al menos una de cada par)
 PLAYWRIGHT_E2E_CONDUCTOR_EMAIL=conductor-e2e@ruumruum.test
-PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD=SeguraE2E2026!
+PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD=your-e2e-password-here
 PLAYWRIGHT_SUPABASE_URL=https://tu-proyecto.supabase.co
-PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
+PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key-here
 
 # O alternativas (fallback automático):
 E2E_CONDUCTOR_EMAIL=...

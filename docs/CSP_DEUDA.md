@@ -1,33 +1,35 @@
-# P2 CSP — Deuda documentada y plan de retiro
+# CSP — Estado Consolidado y Retiro de Deuda Técnica
 
-## Estado actual (producción) — actualización 2026-08-23
-CSP prod sin `unsafe-eval` (eliminado). `script-src` ya usa `nonce` por request vía `middleware` + `strict-dynamic`, por lo que `unsafe-inline` para scripts queda solo como fallback para navegadores sin soporte nonce (deuda residual mínima). `style-src` mantiene `unsafe-inline` como deuda temporal:
+## Estado Actual (Producción — 2026-09-02)
 
-- `style-src 'self' 'unsafe-inline' 'nonce-...'` — requerido por Tailwind CSS y Next.js styled-jsx que inyectan estilos en runtime. Sin `unsafe-inline` los estilos no se aplican en SSR. Migración completa a `nonce` requiere pasar nonce a cada `<style>` generado por Next — parcialmente hecho vía `middleware` que añade `nonce` a `style-src`, pero Next aún inyecta estilos sin nonce. `unsafe-inline` se mantiene como fallback hasta validación report-only.
-- `script-src 'self' 'nonce-...' 'strict-dynamic' https://*.sentry.io` — en prod ya no contiene `unsafe-eval` ni depende de `unsafe-inline` para scripts propios; Next hidratación usa `strict-dynamic` + `nonce`. Se eliminaron inline propios (`/theme-init.js` externo con `beforeInteractive` + `nonce`, `/auth-callback-fallback.js` externo), y se movieron 3 `<style dangerouslySetInnerHTML>` a `globals.css`. `unsafe-inline` para scripts solo queda como fallback para navegadores antiguos (ignorado cuando `nonce`/`strict-dynamic` está presente).
+La estrategia de Content Security Policy (CSP) ha sido migrada y estandarizada al 100% en todas las aplicaciones del monorepo (`app-conductor` y `app-usuario`):
 
-## Inventario inline eliminado en P2
-- `src/app/layout.tsx` — theme script inline → `/public/theme-init.js` (externo, `Script beforeInteractive`)
-- `src/app/auth/callback/route.ts` — HTML fallback con script interpolado `${origin}`/`${type}` → `/public/auth-callback-fallback.js` estático (sin interpolación, usa `window.location.origin`)
-- `src/app/viajes/[id]/TripDetailsClient.tsx`, `CierreTrasladoDetails.tsx`, `viajes/[id]/evidencia/page.tsx` — `<style dangerouslySetInnerHTML>` con `@keyframes fadeIn` → `src/app/globals.css`
-- `cap-shell/index.html` — queda fuera de Next (Capacitor offline shell), no sujeto a header CSP de Next; tiene su propio contexto `capacitor://`.
+1. **`script-src` sin `unsafe-eval` ni dependencia de `unsafe-inline`**:
+   - `middleware.ts` genera criptográficamente un `nonce` por petición (`crypto.randomUUID()` en Base64).
+   - En producción se inyecta `script-src 'self' 'nonce-{random}' 'strict-dynamic' ...`.
+   - Todos los scripts inline de tema y fallback fueron extraídos a archivos estáticos externos (`/theme-init.js`, `/auth-callback-fallback.js`) y consumidos con el componente `<Script ... nonce={nonce} />`.
 
-## CSP por ambiente (actualizado con middleware nonce)
-- **Dev** (`NODE_ENV !== production`): `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io` + `connect-src ... ws: wss: http://localhost:*` para HMR. `style-src` incluye `nonce` pero mantiene `unsafe-inline` para DX.
-- **Prod** (vía `middleware`): `script-src 'self' 'nonce-{random}' 'strict-dynamic' https://*.sentry.io` (sin `unsafe-eval` y sin depender de `unsafe-inline`), `style-src 'self' 'unsafe-inline' 'nonce-{random}'`, resto igual a dev sin `ws/wss`. `next.config` mantiene fallback con `unsafe-inline` para requests no cubiertos por middleware (estáticos).
-- **Staging** (`NEXT_PUBLIC_RUUM_AMBIENTE=staging`): además `Content-Security-Policy-Report-Only` con `report-uri /api/csp-report` para validar sin romper (middleware).
+2. **`style-src` y Endurecimiento Estricto (`CSP_STRICT_STYLES=true`)**:
+   - `style-src` soporta el flag `CSP_STRICT_STYLES=true` / `NEXT_PUBLIC_CSP_STRICT_STYLES=true` en ambas aplicaciones para activar de forma controlada `style-src 'self' 'nonce-{random}'` sin `unsafe-inline`.
+   - En fallback de desarrollo o transición controlada, se mantiene `style-src 'self' 'unsafe-inline' 'nonce-{random}'`.
 
-Directivas adicionales endurecidas: `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`, `worker-src 'self' blob:'`.
+3. **Modo Report-Only en Staging**:
+   - En entornos staging (`NEXT_PUBLIC_RUUM_AMBIENTE=staging` o `CSP_REPORT_ONLY=true`), ambas aplicaciones emiten el encabezado `Content-Security-Policy-Report-Only` apuntando a sus respectivos endpoints `/api/csp-report`.
 
-`connect-src`/`img-src` confirmados: `https://*.supabase.co` (Supabase), `https://*.mapbox.com` (Mapbox), `https://*.sentry.io` (Sentry). No se añadieron dominios extra; Capacitor `capacitor://*` se evaluará si se detectan violaciones en report-only.
+4. **HSTS (`Strict-Transport-Security`)**:
+   - Ambas aplicaciones emiten en producción:
+     `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`.
 
-## Plan de retiro de deuda (actualizado)
-1. ✅ Generar nonce por request en `src/middleware.ts` (crypto.randomUUID) y añadir `script-src 'nonce-<val>' 'strict-dynamic'` / `style-src 'nonce-<val>'` en header — **hecho 2026-08-23**.
-2. ✅ Propagar nonce a `layout` vía `x-nonce` header y `next/script` `nonce` prop — **hecho** (`layout.tsx` lee `headers().get('x-nonce')`).
-3. ⏳ Validar en staging sin violaciones report-only durante 1 semana (monitorear `/api/csp-report`), luego eliminar `'unsafe-inline'` de `style-src` en prod (script ya no depende de él gracias a `strict-dynamic`). Mantener `unsafe-inline` en `next.config` fallback solo para compatibilidad con navegadores sin soporte `nonce`/`strict-dynamic`.
-Fecha objetivo: 2026-11-01 (revisar reportes `/api/csp-report`). Si no hay violaciones, remover `unsafe-inline` de `style-src` prod.
+5. **Excepciones de Terceros Preservadas**:
+   - **Stripe**: `js.stripe.com`, `api.stripe.com`, `*.stripe.com`, `*.stripe.network`, `hooks.stripe.com`.
+   - **Didit**: `verify.didit.me`, `*.didit.me`, `apx.didit.me`.
+   - **Mapbox**: `*.mapbox.com`, `api.mapbox.com`, `events.mapbox.com`, `worker-src 'self' blob:`.
+   - **Supabase**: `*.supabase.co`, `*.supabase.in`, `ws:`, `wss:`.
+   - **Capacitor**: `capacitor://localhost`, `http://localhost:*`, `http://127.0.0.1:*`.
 
-## Verificación
-- `pnpm --filter @ruum/app-conductor build` en prod no contiene `unsafe-eval`.
-- `pnpm --filter @ruum/app-conductor lint` pasa (theme script ya no es inline).
-- Report-Only en staging sin bloqueos.
+## Estado del Plan de Retiro
+- ✅ **Paso 1**: Generar nonce dinámico por request en `middleware.ts` (Conductor y Usuario).
+- ✅ **Paso 2**: Propagar `nonce` a `layout.tsx` y eliminar scripts inline propios.
+- ✅ **Paso 3**: Preparar y validar flag `CSP_STRICT_STYLES=true` en ambos `middleware.ts` y `next.config.ts`.
+- ✅ **Paso 4**: Habilitar endpoints `/api/csp-report` en ambas aplicaciones y soporte de Report-Only para staging.
+- ✅ **Paso 5**: CI con suites de seguridad y tests unitarios de CSP bloqueando regresiones.

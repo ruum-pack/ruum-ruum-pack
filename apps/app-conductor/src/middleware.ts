@@ -9,7 +9,8 @@ const RUTAS_PUBLICAS_CONDUCTOR = [
   "/nueva-password",
   "/legal",
   "/auth",
-  "/actualizacion-requerida"
+  "/actualizacion-requerida",
+  "/api"
 ];
 
 function esRutaPublicaConductor(pathname: string): boolean {

@@ -26,10 +26,11 @@
     "test:a11y:real": "playwright test apps/panel-admin/tests/a11y-real",
     "test:a11y:real:all": "playwright test apps/panel-admin/tests/a11y-real --reporter=html",
     "test:e2e:real": "playwright test apps/panel-admin/tests/e2e --reporter=html",
-    "test:sql": "supabase test db",
+    "test:sql": "supabase test db supabase/test",
     "test:sql:rls": "supabase test db supabase/test/rt42_rls_admin_roles.test.sql",
     "test:sql:concurrencia": "supabase test db supabase/test/rt43_concurrencia_operadores.test.sql",
     "scan:secrets": "node scripts/scan-secrets.mjs",
+    "test:security": "node --test tests/security/scan-secrets.test.mjs",
     "test:ui": "vitest --ui"
   },
   "devDependencies": {

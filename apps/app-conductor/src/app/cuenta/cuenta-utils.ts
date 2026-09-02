@@ -4,6 +4,7 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supab
 
 export type ConductorCuenta = Database["public"]["Tables"]["conductores"]["Row"] & {
   email?: string | null;
+  new_email?: string | null;
 };
 
 export async function cargarConductorCuenta(): Promise<ConductorCuenta | null> {
@@ -12,9 +13,11 @@ export async function cargarConductorCuenta(): Promise<ConductorCuenta | null> {
   const conductor = await obtenerConductorActual(cliente);
   if (!conductor) return null;
   const { data: sesion } = await cliente.auth.getUser();
+  const user = sesion.user;
   return {
     ...conductor,
-    email: sesion.user?.email ?? null
+    email: user?.email ?? null,
+    new_email: (user as { new_email?: string | null })?.new_email ?? null
   };
 }
 

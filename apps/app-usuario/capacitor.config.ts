@@ -1,9 +1,6 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-// Misma decisión que apps/app-conductor/capacitor.config.ts: WebView remota
-// al dominio real (preserva Server Components/middleware/RLS tal como están
-// validados), no export estático. Ver ese archivo para el detalle del
-// tradeoff (no abre sin conexión al inicio).
+// Decisión de diseño: WebView remota al dominio de producción (ADR 002)
 const URL_PRODUCCION = "https://usuario.ruumruum-moviliax.online";
 
 const config: CapacitorConfig = {
@@ -12,7 +9,34 @@ const config: CapacitorConfig = {
   webDir: "cap-shell",
   server: {
     androidScheme: "https",
-    url: process.env.RUUM_CAPACITOR_SERVER_URL || URL_PRODUCCION
+    cleartext: false,
+    url: process.env.RUUM_CAPACITOR_SERVER_URL || URL_PRODUCCION,
+    allowNavigation: [
+      "*.ruumruum-moviliax.online",
+      "usuario.ruumruum-moviliax.online",
+      "*.supabase.co",
+      "*.supabase.in",
+      "verify.didit.me",
+      "*.didit.me",
+      "apx.didit.me",
+      "js.stripe.com",
+      "*.stripe.com",
+      "*.stripe.network",
+      "hooks.stripe.com",
+      "*.mapbox.com",
+      "api.mapbox.com",
+      "events.mapbox.com"
+    ]
+  },
+  android: {
+    backgroundColor: "#070b14",
+    allowMixedContent: false
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 1500,
+      backgroundColor: "#070b14"
+    }
   }
 };
 

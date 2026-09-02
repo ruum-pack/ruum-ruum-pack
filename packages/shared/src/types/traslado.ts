@@ -1,4 +1,6 @@
-// PRD §6 — Estados del traslado (28 estados)
+// PRD §6 — Estados del traslado (34 estados) — FUENTE DE VERDAD
+// Inventario PR-14: código contiene 34, histórico 28 desactualizado, informe 32 desactualizado.
+// Este tipo es la fuente de verdad; migraciones, transiciones, etiquetas y UI derivan de él.
 export type EstadoTraslado =
   | "usuario_pendiente_verificacion"
   | "usuario_verificado"

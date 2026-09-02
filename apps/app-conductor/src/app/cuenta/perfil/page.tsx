@@ -5,7 +5,7 @@ import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { ChangeEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import { Aviso, Button, Card } from "@ruum/ui";
-import { actualizarPerfilConductor, subirFotoPerfilConductor } from "@ruum/api/services";
+import { actualizarPerfilConductor, esErrorSolicitudPendiente, subirFotoPerfilConductor } from "@ruum/api/services";
 import { consultarCodigoPostalMx, traducirErrorOperativo, validarDimensionesMinimasImagen, type DatosCodigoPostal } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { CuentaHeader } from "../CuentaHeader";
@@ -32,7 +32,7 @@ const PERFIL_DEFAULT = {
 };
 
 type CampoPerfil = keyof typeof PERFIL_DEFAULT;
-type CampoSensiblePerfil = "curp" | "licencia_numero" | "contacto_emergencia_nombre" | "contacto_emergencia_telefono";
+type CampoSensiblePerfil = "nombre" | "curp" | "licencia_numero";
 type IdPestana = "identidad" | "documentacion" | "ubicacion";
 
 type NotificacionPerfil = { tipo: "success" | "error" | "info"; mensaje: string } | null;
@@ -90,8 +90,15 @@ const CAMPO_CONFIG: Record<CampoPerfil, { etiqueta: string; tipo?: string; colSp
   contacto_emergencia_telefono: { etiqueta: "Teléfono de emergencia", placeholder: "10 dígitos" }
 };
 
-const CAMPOS_SENSIBLES = new Set<CampoPerfil>(["curp", "licencia_numero", "contacto_emergencia_nombre", "contacto_emergencia_telefono"]);
+const CAMPOS_SENSIBLES = new Set<CampoPerfil>([
+  "nombre",
+  "curp",
+  "licencia_numero",
+  "licencia_vigencia",
+]);
 const CAMPOS_SOLO_LECTURA = new Set<CampoPerfil>(["licencia_tipo"]);
+// PR-04: licencia_tipo y licencia_vigencia son sensibles (vigencia explícita por spec). Se mantienen solo lectura en UI
+// pero si cambia via admin/solicitud, requiere revisión. foto_perfil también es sensible (identidad).
 
 function tipoDatoSensibleCampo(campo: CampoPerfil): TipoDatoSensible | null {
   if (campo === "curp") return "curp";
@@ -190,8 +197,6 @@ export default function PaginaPerfilCuenta() {
       const siguiente = perfilDesdeConductor(actual);
       siguiente.curp = "";
       siguiente.licencia_numero = "";
-      siguiente.contacto_emergencia_nombre = "";
-      siguiente.contacto_emergencia_telefono = "";
       setPerfil(siguiente);
       setSensiblesEditados(new Set());
       setVistaPreviaFoto(null);
@@ -254,7 +259,12 @@ export default function PaginaPerfilCuenta() {
 
   async function guardarPerfil() {
     if (!conductor || guardando) return;
-    if (sensiblesEditados.size > 0 && !confirmacionAbierta) {
+    // PR-04: Determinar si hay cambios sensibles que requieren confirmación
+    // Incluye licencia_vigencia explícitamente como sensible
+    const tieneSensibleReal =
+      sensiblesEditados.size > 0 ||
+      (perfil.licencia_vigencia.trim() !== (conductor.licencia_vigencia ?? "") && perfil.licencia_vigencia.trim() !== "");
+    if (tieneSensibleReal && !confirmacionAbierta) {
       setConfirmacionAbierta(true);
       return;
     }
@@ -267,22 +277,58 @@ export default function PaginaPerfilCuenta() {
         ...perfil,
         curp: sensiblesEditados.has("curp") ? perfil.curp : conductor.curp ?? "",
         licencia_numero: sensiblesEditados.has("licencia_numero") ? perfil.licencia_numero : conductor.licencia_numero ?? "",
-        contacto_emergencia_nombre: sensiblesEditados.has("contacto_emergencia_nombre") ? perfil.contacto_emergencia_nombre : conductor.contacto_emergencia_nombre ?? "",
-        contacto_emergencia_telefono: sensiblesEditados.has("contacto_emergencia_telefono") ? perfil.contacto_emergencia_telefono : conductor.contacto_emergencia_telefono ?? ""
+        contacto_emergencia_nombre: perfil.contacto_emergencia_nombre,
+        contacto_emergencia_telefono: perfil.contacto_emergencia_telefono
       };
-      if (perfil.email.trim() && perfil.email.trim().toLowerCase() !== (conductor.email ?? "").toLowerCase()) {
-        const { error: errorAuthEmail } = await cliente.auth.updateUser({ email: perfil.email.trim() });
+      const cambioEmail = Boolean(perfil.email.trim() && perfil.email.trim().toLowerCase() !== (conductor.email ?? "").toLowerCase());
+      let confirmacionEmailEnviada = false;
+      const nuevoEmailSolicitado = perfil.email.trim();
+
+      if (cambioEmail) {
+        const { error: errorAuthEmail } = await cliente.auth.updateUser({ email: nuevoEmailSolicitado });
         if (errorAuthEmail) throw errorAuthEmail;
+        confirmacionEmailEnviada = true;
       }
-      await actualizarPerfilConductor(cliente, conductor.id, {
+      const resultado = await actualizarPerfilConductor(cliente, conductor.id, {
         ...perfilParaGuardar,
         telefono: telefonoE164(perfilParaGuardar.telefono),
         contacto_emergencia_telefono: telefonoE164(perfilParaGuardar.contacto_emergencia_telefono)
       });
       await cargar();
-      setNotificacion({ tipo: "success", mensaje: "Perfil actualizado correctamente." });
+
+      // PR-10: Distinguir mensajes según estado real del correo y revisión operativa
+      if (resultado.estado === "pendiente") {
+        if (confirmacionEmailEnviada) {
+          setNotificacion({
+            tipo: "info",
+            mensaje: `Confirmación enviada a ${nuevoEmailSolicitado}. Además, los cambios sensibles fueron enviados a revisión operativa.`
+          });
+        } else {
+          setNotificacion({
+            tipo: "info",
+            mensaje: "Cambios enviados a revisión. Un operador validará tu información antes de aplicarla. Recibirás notificación al aprobarse."
+          });
+        }
+      } else {
+        if (confirmacionEmailEnviada) {
+          setNotificacion({
+            tipo: "info",
+            mensaje: `Confirmación enviada: Hemos enviado un enlace a ${nuevoEmailSolicitado}. Revisa tu bandeja de entrada para confirmar el cambio. Tu correo actual (${conductor.email}) sigue activo.`
+          });
+        } else {
+          setNotificacion({
+            tipo: "success",
+            mensaje: "Cambios guardados. Tu perfil se actualizó correctamente."
+          });
+        }
+      }
     } catch (error) {
-      setNotificacion({ tipo: "error", mensaje: traducirErrorOperativo(error, "No se pudo actualizar el perfil.") });
+      // Si es error de solicitud pendiente (foto), mostrar como info
+      if (esErrorSolicitudPendiente(error)) {
+        setNotificacion({ tipo: "info", mensaje: (error as Error).message });
+      } else {
+        setNotificacion({ tipo: "error", mensaje: traducirErrorOperativo(error, "No se pudo actualizar el perfil.") });
+      }
     } finally {
       setGuardando(false);
     }
@@ -319,9 +365,16 @@ export default function PaginaPerfilCuenta() {
       setVistaPreviaFoto(null);
       URL.revokeObjectURL(urlTemp);
     } catch (error) {
-      setNotificacion({ tipo: "error", mensaje: traducirErrorOperativo(error, "No pudimos actualizar la fotografía de perfil.") });
-      setVistaPreviaFoto(null);
-      URL.revokeObjectURL(urlTemp);
+      if (esErrorSolicitudPendiente(error)) {
+        setNotificacion({ tipo: "info", mensaje: (error as Error).message });
+        // Mantener foto aprobada intacta, solo preview temporal
+        setVistaPreviaFoto(null);
+        URL.revokeObjectURL(urlTemp);
+      } else {
+        setNotificacion({ tipo: "error", mensaje: traducirErrorOperativo(error, "No pudimos actualizar la fotografía de perfil.") });
+        setVistaPreviaFoto(null);
+        URL.revokeObjectURL(urlTemp);
+      }
     } finally {
       setSubiendoFoto(false);
       evento.target.value = "";
@@ -405,8 +458,8 @@ export default function PaginaPerfilCuenta() {
           </div>
         )}
 
-        {/* 1. Alertas accionables destacadas */}
-        {sensiblesEditados.size > 0 && (
+        {/* 1. Alertas accionables destacadas — PR-04: solo si hay sensibles reales incluida vigencia */}
+        {(sensiblesEditados.size > 0 || (perfil.licencia_vigencia.trim() !== (conductor?.licencia_vigencia ?? "") && perfil.licencia_vigencia.trim() !== "")) && (
           <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 font-body text-sm text-amber-900 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between shadow-sm">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-500/20 font-bold text-amber-600 dark:text-amber-300">
@@ -417,7 +470,7 @@ export default function PaginaPerfilCuenta() {
                   Acción requerida para confirmar cambios
                 </p>
                 <p className="mt-0.5 text-xs font-medium text-amber-900/90 dark:text-amber-200/90">
-                  Has modificado {sensiblesEditados.size} {sensiblesEditados.size === 1 ? "campo sensible" : "campos sensibles"}. Al guardar, tu perfil será enviado a revisión operativa.
+                  Has modificado {sensiblesEditados.size + (perfil.licencia_vigencia.trim() !== (conductor?.licencia_vigencia ?? "") && perfil.licencia_vigencia.trim() !== "" ? 1 : 0)} {sensiblesEditados.size + (perfil.licencia_vigencia.trim() !== (conductor?.licencia_vigencia ?? "") && perfil.licencia_vigencia.trim() !== "" ? 1 : 0) === 1 ? "campo sensible" : "campos sensibles"} (incluye vigencia). Al guardar, tu perfil será enviado a revisión operativa.
                 </p>
               </div>
             </div>
@@ -426,7 +479,7 @@ export default function PaginaPerfilCuenta() {
               onClick={() => void guardarPerfil()}
               className="inline-flex shrink-0 items-center justify-center rounded-xl bg-amber-500 px-4 py-2.5 font-display text-xs font-bold text-slate-950 transition hover:bg-amber-400 active:scale-95 shadow-xs"
             >
-              Solucionar ahora
+              Enviar a revisión
             </button>
           </div>
         )}
@@ -564,6 +617,16 @@ export default function PaginaPerfilCuenta() {
                                 Solo lectura
                               </span>
                             )}
+                            {clave === "email" && conductor?.new_email && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-300">
+                                ⏳ Pendiente
+                              </span>
+                            )}
+                            {clave === "email" && !conductor?.new_email && conductor?.email && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                                ✓ Activo
+                              </span>
+                            )}
                           </div>
 
                           {/* 2. Validación Inline real-time feedback */}
@@ -661,6 +724,25 @@ export default function PaginaPerfilCuenta() {
                             {clave === "codigo_postal" && cpDetectado && !buscandoCp && (
                               <span className="mt-1 block font-body text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                 ✓ Ubicación y colonias autocompletadas (SEPOMEX)
+                              </span>
+                            )}
+                            {clave === "email" && conductor?.new_email && (
+                              <div className="mt-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 font-body text-xs text-amber-950 dark:text-amber-100">
+                                <div className="flex items-center gap-1.5 font-display font-bold">
+                                  <span>⏳</span>
+                                  <span>Nuevo correo pendiente de confirmación</span>
+                                </div>
+                                <p className="mt-1 leading-relaxed">
+                                  Confirmación enviada a <strong className="font-mono">{conductor.new_email}</strong>. Debes hacer clic en el enlace recibido en esa dirección para confirmar el cambio.
+                                </p>
+                                <p className="mt-1 text-[11px] text-amber-900/80 dark:text-amber-200/80">
+                                  Tu correo actual (<span className="font-mono">{conductor.email}</span>) sigue activo para iniciar sesión.
+                                </p>
+                              </div>
+                            )}
+                            {clave === "email" && !conductor?.new_email && perfil.email.trim() && perfil.email.trim().toLowerCase() !== (conductor?.email ?? "").toLowerCase() && (
+                              <span className="mt-1 block font-body text-xs text-text-tertiary">
+                                ℹ️ Al guardar, se enviará un enlace de confirmación al nuevo correo. El cambio se aplicará cuando confirmes el enlace.
                               </span>
                             )}
                             {evaluacion.esValido === false && evaluacion.mensaje && (

@@ -1,7 +1,8 @@
 import type { EstadoTraslado } from "../types/traslado";
 import { GLOSARIO_OPERATIVO } from "../constants/glosario-operativo";
 
-// PRD §6 — los 32 estados del traslado, en el orden en que aparecen en la tabla
+// PRD §6 — los 34 estados del traslado, en el orden en que aparecen en la tabla — FUENTE DE VERDAD PR-14
+// Inventario: 34 estados (reconcilia histórico 28, informe 32, catálogo 34). Código manda; docs se regeneran desde aquí.
 export const ESTADOS_TRASLADO: EstadoTraslado[] = [
   "usuario_pendiente_verificacion",
   "usuario_verificado",

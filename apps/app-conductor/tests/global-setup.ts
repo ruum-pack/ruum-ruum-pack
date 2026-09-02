@@ -279,7 +279,9 @@ async function prepareFixture(admin: AdminClient, conductorId: string, ownerAuth
 
 function ensureStrongPassword(password: string): string {
   let strong = (password || "").trim();
-  if (!strong) strong = "SeguraE2E2026!";
+  if (!strong) {
+    throw new Error("Falta configurar una contraseña para el usuario E2E.");
+  }
   if (!/[a-z]/.test(strong)) strong += "a";
   if (!/[A-Z]/.test(strong)) strong += "A";
   if (!/[0-9]/.test(strong)) strong += "1";
@@ -312,7 +314,7 @@ async function globalSetup(config: FullConfig) {
   const rawConductorPassword = requiredEnv("PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD", "E2E_CONDUCTOR_PASSWORD");
   const conductorPassword = ensureStrongPassword(rawConductorPassword);
   const ownerEmail = optionalEnv("usuario-e2e-conductor@ruumruum.test", "PLAYWRIGHT_E2E_OWNER_EMAIL", "E2E_OWNER_EMAIL");
-  const rawOwnerPassword = optionalEnv("RuumE2E-owner-2026!", "PLAYWRIGHT_E2E_OWNER_PASSWORD", "E2E_OWNER_PASSWORD");
+  const rawOwnerPassword = requiredEnv("PLAYWRIGHT_E2E_OWNER_PASSWORD", "E2E_OWNER_PASSWORD", "PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD");
   const ownerPassword = ensureStrongPassword(rawOwnerPassword);
   const baseURL = String(config.projects[0].use.baseURL ?? "http://localhost:3001");
 

@@ -1,8 +1,8 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-type Tema = "light" | "dark";
-const STORAGE_KEY = "ruum-tema";
+export type Tema = "light" | "dark";
+const STORAGE_KEYS = ["ruum-tema", "ruum-theme"];
 
 interface TemaContexto {
   tema: Tema;
@@ -10,36 +10,79 @@ interface TemaContexto {
   fijar: (t: Tema) => void;
 }
 
-const TemaCtx = createContext<TemaContexto>({ tema: "dark", alternar: () => {}, fijar: () => {} });
+const TemaCtx = createContext<TemaContexto>({
+  tema: "dark",
+  alternar: () => {},
+  fijar: () => {}
+});
+
+function obtenerTemaAlmacenado(): Tema | null {
+  if (typeof window === "undefined") return null;
+  for (const key of STORAGE_KEYS) {
+    try {
+      const val = localStorage.getItem(key);
+      if (val === "light" || val === "dark") return val;
+    } catch {
+      // Ignorar restricciones de almacenamiento (p. ej. iframe o modo privado extremo)
+    }
+  }
+  return null;
+}
+
+function guardarTema(t: Tema) {
+  if (typeof window === "undefined") return;
+  for (const key of STORAGE_KEYS) {
+    try {
+      localStorage.setItem(key, t);
+    } catch {
+      // ignore
+    }
+  }
+}
 
 export function TemaProvider({ children }: { children: React.ReactNode }) {
   const [tema, setTema] = useState<Tema>("dark");
 
   useEffect(() => {
-    const guardado = typeof window !== "undefined" ? (localStorage.getItem(STORAGE_KEY) as Tema | null) : null;
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
-    const sistema: Tema = mediaQuery.matches ? "light" : "dark";
+    const guardado = obtenerTemaAlmacenado();
+    const mediaQuery = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
+    const sistema: Tema = mediaQuery?.matches ? "light" : "dark";
     const inicial = guardado ?? sistema;
     setTema(inicial);
-    document.documentElement.setAttribute("data-theme", inicial);
+
+    try {
+      document.documentElement.setAttribute("data-theme", inicial);
+    } catch {
+      // ignore
+    }
 
     function alCambiarSistema(e: MediaQueryListEvent) {
-      const tieneGuardado = localStorage.getItem(STORAGE_KEY);
+      const tieneGuardado = obtenerTemaAlmacenado();
       if (!tieneGuardado) {
         const nuevoTema: Tema = e.matches ? "light" : "dark";
         setTema(nuevoTema);
-        document.documentElement.setAttribute("data-theme", nuevoTema);
+        try {
+          document.documentElement.setAttribute("data-theme", nuevoTema);
+        } catch {
+          // ignore
+        }
       }
     }
 
-    mediaQuery.addEventListener("change", alCambiarSistema);
-    return () => mediaQuery.removeEventListener("change", alCambiarSistema);
+    if (mediaQuery?.addEventListener) {
+      mediaQuery.addEventListener("change", alCambiarSistema);
+      return () => mediaQuery.removeEventListener("change", alCambiarSistema);
+    }
   }, []);
 
   const fijar = useCallback((t: Tema) => {
     setTema(t);
-    document.documentElement.setAttribute("data-theme", t);
-    localStorage.setItem(STORAGE_KEY, t);
+    try {
+      document.documentElement.setAttribute("data-theme", t);
+    } catch {
+      // ignore
+    }
+    guardarTema(t);
   }, []);
 
   const alternar = useCallback(() => {

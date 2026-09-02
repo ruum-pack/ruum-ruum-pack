@@ -66,4 +66,56 @@ describe("observarSesionRecuperacion", () => {
     vi.advanceTimersByTime(3000);
     expect(estados.at(-1)).toEqual({ sesionLista: false, verificando: false });
   });
+
+  describe("PR-02 — verificación server-side (cookie httpOnly + sesión)", () => {
+    it("autoriza inmediatamente si verificarServidor retorna true (sin esperar evento)", async () => {
+      const falsa = authFalsa(null);
+      const estados: EstadoSesionRecuperacion[] = [];
+      const verificarServidor = vi.fn().mockResolvedValue(true);
+      observarSesionRecuperacion(falsa.auth, (e) => estados.push(e), 7000, { soloRecovery: true, verificarServidor });
+      await Promise.resolve();
+      // microtask de verificarServidor
+      await new Promise((r) => setTimeout(r, 0));
+      expect(verificarServidor).toHaveBeenCalledOnce();
+      expect(estados.some((s) => s.sesionLista && !s.verificando)).toBe(true);
+    });
+
+    it("no autoriza si verificarServidor retorna false y no hay evento PASSWORD_RECOVERY", async () => {
+      vi.useFakeTimers();
+      const falsa = authFalsa(null);
+      const estados: EstadoSesionRecuperacion[] = [];
+      const verificarServidor = vi.fn().mockResolvedValue(false);
+      observarSesionRecuperacion(falsa.auth, (e) => estados.push(e), 3000, { soloRecovery: true, verificarServidor });
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(0);
+      vi.advanceTimersByTime(3000);
+      // solo debe emitir verificando=false sin sesionLista
+      expect(estados.at(-1)).toEqual({ sesionLista: false, verificando: false });
+      expect(verificarServidor).toHaveBeenCalledOnce();
+      vi.useRealTimers();
+    });
+
+    it("fallback a evento PASSWORD_RECOVERY si servidor no autoriza pero luego llega evento", async () => {
+      const falsa = authFalsa(null);
+      const estados: EstadoSesionRecuperacion[] = [];
+      const verificarServidor = vi.fn().mockResolvedValue(false);
+      observarSesionRecuperacion(falsa.auth, (e) => estados.push(e), 7000, { soloRecovery: true, verificarServidor });
+      await new Promise((r) => setTimeout(r, 0));
+      falsa.emitir("PASSWORD_RECOVERY", { id: "u" });
+      await Promise.resolve();
+      expect(estados.some((s) => s.sesionLista)).toBe(true);
+    });
+
+    it("no autoriza con SIGNED_IN cuando soloRecovery true aunque verificarServidor false", async () => {
+      const falsa = authFalsa(null);
+      const estados: EstadoSesionRecuperacion[] = [];
+      const verificarServidor = vi.fn().mockResolvedValue(false);
+      observarSesionRecuperacion(falsa.auth, (e) => estados.push(e), 3000, { soloRecovery: true, verificarServidor });
+      await new Promise((r) => setTimeout(r, 0));
+      falsa.emitir("SIGNED_IN", { id: "u" });
+      await Promise.resolve();
+      // no debe autorizar
+      expect(estados.some((s) => s.sesionLista)).toBe(false);
+    });
+  });
 });

@@ -115,6 +115,11 @@ export async function POST(request: Request) {
     if (errorCuenta) throw errorCuenta;
     if (!cuenta.user?.id) throw new Error("Auth no devolvio el usuario creado.");
 
+    // PR-07: No fabricar consentimiento sin acto explícito del conductor.
+    // La invitación crea el perfil pero el consentimiento debe registrarse
+    // vía acción explícita del conductor (versión concreta, timestamp real, canal).
+    // Se deja version_terminos_aceptada y terminos_aceptados_en en NULL hasta
+    // que el conductor acepte términos en su primer acceso.
     const { data: conductor, error: errorConductor } = await serviceRole
       .from("conductores")
       .insert({
@@ -137,9 +142,9 @@ export async function POST(request: Request) {
         contacto_emergencia_telefono: texto(body.contacto_emergencia_telefono),
         autoriza_verificacion_antecedentes: autorizaVerificacion,
         declara_sin_suspensiones: declaraSinSuspensiones,
-        version_terminos_aceptada: 1,
-        terminos_aceptados_en: new Date().toISOString(),
-        marca_terminos: "alta_admin_password_temporal"
+        version_terminos_aceptada: null,
+        terminos_aceptados_en: null,
+        marca_terminos: null
       })
       .select("*")
       .single();

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@ruum/shared", "@ruum/ui"],
+  transpilePackages: ["@ruum/shared", "@ruum/ui", "@ruum/api"],
   images: {
     remotePatterns: [
       {

@@ -1,6 +1,7 @@
 import type { EstadoTraslado } from "@ruum/shared/types";
 
-// El PRD define 32 estados técnicos (§6) para que el sistema sea preciso.
+// El PRD define 34 estados técnicos (§6) para que el sistema sea preciso — FUENTE DE VERDAD PR-14.
+// Inventario PR-14: 34 estados (reconcilia 28 histórico, 32 informe). Código manda.
 // Pero "App Usuario debe enfocarse en confianza y visibilidad" (PRD §14),
 // no en nomenclatura interna. Esta es la traducción a 7 etapas que alguien
 // reconoce de su propio viaje — una decisión de UX, no una regla del PRD.

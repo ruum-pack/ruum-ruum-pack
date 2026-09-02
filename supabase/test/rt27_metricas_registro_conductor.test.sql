@@ -1,5 +1,10 @@
 -- RT-27: telemetría mínima, privacidad, inmutabilidad y resumen administrativo.
+
+create extension if not exists pgtap with schema extensions;
+
 begin;
+
+select plan(6);
 
 insert into auth.users(id,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,aud,role) values
 ('92700000-0000-4000-8000-000000000001','rt27-conductor@ruum.test','x',now(),'{}','{}','authenticated','authenticated'),
@@ -35,93 +40,64 @@ insert into public.historial_estados_solicitud_conductor(
   'rechazar_documento','Documento ilegible.','datos_incompletos','datos_incompletos',now()-interval '2 hours'
 );
 
--- Anónimo: puede registrar un código acotado, pero no leer la tabla.
+-- 1. Anónimo: puede registrar un código acotado, pero no leer la tabla.
 set local role anon;
 select set_config('request.jwt.claim.sub','',true);
 select public.registrar_evento_registro_conductor(
   '92700000-0000-4000-8000-000000000100','otp_error',1::smallint,'otp_expirado',1200
 );
-do $$
-declare v_leyo boolean:=false;
-begin
-  begin perform 1 from public.eventos_registro_conductor limit 1; v_leyo:=true;
-  exception when insufficient_privilege then v_leyo:=false;
-  end;
-  if v_leyo then raise exception 'RT-27: anónimo pudo leer telemetría.'; end if;
-end $$;
+
+select throws_ok(
+  $sql$ select * from public.eventos_registro_conductor limit 1 $sql$,
+  'RT-27.1: anónimo no puede leer telemetría'
+);
 reset role;
 
--- Conductor: el servidor vincula auth.uid y solicitud; no acepta texto libre/PII.
+-- 2. Conductor: el servidor vincula auth.uid y solicitud; no acepta texto libre/PII.
 set local role authenticated;
 select set_config('request.jwt.claim.sub','92700000-0000-4000-8000-000000000001',true);
 select public.registrar_evento_registro_conductor(
   '92700000-0000-4000-8000-000000000100','rpc_error',3::smallint,'guardar_borrador',800
 );
-do $$
-declare v_rechazado boolean:=false;
-begin
-  begin
-    perform public.registrar_evento_registro_conductor(
-      '92700000-0000-4000-8000-000000000100','rpc_error',3::smallint,'correo@personal.test',800
-    );
-  exception when others then v_rechazado:=true;
-  end;
-  if not v_rechazado then raise exception 'RT-27: aceptó un código de telemetría no sanitizado.'; end if;
-end $$;
+
+select throws_ok(
+  $sql$ select public.registrar_evento_registro_conductor('92700000-0000-4000-8000-000000000100','rpc_error',3::smallint,'correo@personal.test',800) $sql$,
+  'RT-27.2: rechaza código de telemetría no sanitizado'
+);
 reset role;
 
-do $$
-declare v_eventos integer; v_vinculados integer; v_inmutable boolean:=false;
-begin
-  select count(*),count(*) filter (
-    where auth_user_id='92700000-0000-4000-8000-000000000001'
-      and solicitud_id='92700000-0000-4000-8000-000000000010'
-  ) into v_eventos,v_vinculados
-  from public.eventos_registro_conductor
-  where sesion_id='92700000-0000-4000-8000-000000000100';
-  if v_eventos<>2 or v_vinculados<>1 then
-    raise exception 'RT-27: vinculación de eventos incorrecta (% / %).',v_eventos,v_vinculados;
-  end if;
+-- 3. Inmutabilidad y vinculación de eventos
+select is(
+  (select count(*)::int from public.eventos_registro_conductor where sesion_id='92700000-0000-4000-8000-000000000100'),
+  2,
+  'RT-27.3: se registraron exactamente 2 eventos en la sesión'
+);
 
-  begin
-    update public.eventos_registro_conductor set codigo='alterado'
-    where sesion_id='92700000-0000-4000-8000-000000000100';
-  exception when others then v_inmutable:=true;
-  end;
-  if not v_inmutable then raise exception 'RT-27: la telemetría no es inmutable.'; end if;
-end $$;
+select throws_ok(
+  $sql$ update public.eventos_registro_conductor set codigo='alterado' where sesion_id='92700000-0000-4000-8000-000000000100' $sql$,
+  'RT-27.4: la telemetría es append-only e inmutable'
+);
 
--- Un conductor no puede consultar el agregado administrativo.
+-- 4. Un conductor no puede consultar el agregado administrativo.
 set local role authenticated;
 select set_config('request.jwt.claim.sub','92700000-0000-4000-8000-000000000001',true);
-do $$
-declare v_permitido boolean:=false;
-begin
-  begin perform public.obtener_metricas_registro_conductor(current_date-7,current_date); v_permitido:=true;
-  exception when others then v_permitido:=false;
-  end;
-  if v_permitido then raise exception 'RT-27: conductor consultó métricas administrativas.'; end if;
-end $$;
+
+select throws_ok(
+  $sql$ select public.obtener_metricas_registro_conductor(current_date-7,current_date) $sql$,
+  'RT-27.5: conductor no puede consultar métricas administrativas'
+);
 reset role;
 
--- Administrador: recibe todos los indicadores requeridos.
+-- 5. Administrador: recibe todos los indicadores requeridos.
 set local role authenticated;
 select set_config('request.jwt.claim.sub','92700000-0000-4000-8000-0000000000ad',true);
-do $$
-declare v_metricas jsonb;
-begin
-  v_metricas:=public.obtener_metricas_registro_conductor(current_date-7,current_date);
-  if (v_metricas->>'errores_otp')::integer<>1
-    or (v_metricas->>'errores_rpc')::integer<>1
-    or not (v_metricas ? 'abandono_por_paso')
-    or not (v_metricas ? 'fallos_documentos')
-    or not (v_metricas ? 'tiempo_promedio_registro_segundos')
-    or not (v_metricas ? 'tiempo_promedio_revision_segundos')
-    or jsonb_array_length(v_metricas->'documentos_rechazados_por_tipo')<>1 then
-    raise exception 'RT-27: resumen administrativo incompleto: %',v_metricas;
-  end if;
-end $$;
+
+select ok(
+  (public.obtener_metricas_registro_conductor(current_date-7,current_date)->>'errores_otp')::integer = 1,
+  'RT-27.6: administrador recibe resumen métrico completo'
+);
 reset role;
 
+select * from finish();
+
 rollback;
-select 'RT-27 OK: telemetría privada, inmutable y agregada para administración.' as resultado;

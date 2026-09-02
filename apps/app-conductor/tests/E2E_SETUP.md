@@ -50,11 +50,11 @@ Editar `.env.local` y agregar:
 ```bash
 # Credenciales del conductor E2E
 PLAYWRIGHT_E2E_CONDUCTOR_EMAIL=conductor-e2e@ruumruum.test
-PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD=TuContraseñaSegura123!
+PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD=your-e2e-password-here
 
 # Acceso a Supabase
 PLAYWRIGHT_SUPABASE_URL=https://tu-proyecto.supabase.co
-PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
+PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key-here
 ```
 
 ---

@@ -41,25 +41,49 @@ export default function PaginaNuevaPassword() {
       return () => clearTimeout(timer);
     }
 
-    const cliente = crearClienteNavegador();
-    /* BUGFIX: faltaba { soloRecovery: true }. Sin esta opción, cualquier
-       sesión SIGNED_IN/INITIAL_SESSION ya activa en el navegador (pestaña
-       vieja, dispositivo compartido) habilitaba este formulario aunque el
-       usuario nunca hubiera pasado por el enlace de recuperación por correo.
-       /nueva-password en esta app solo se enlaza desde el flujo de
-       recuperación (recuperar-password y BotonResetPassword en /cuenta),
-       nunca para cambiar contraseña estando ya logueado — ese caso usa el
-       mismo enlace por correo. app-conductor ya aplicaba esta restricción;
-       aquí faltaba, dejando la protección "solo por correo" incompleta. */
-    return observarSesionRecuperacion(
-      cliente.auth,
-      ({ sesionLista: lista, verificando: enVerificacion }) => {
-        setSesionLista(lista);
-        setVerificando(enVerificacion);
-      },
-      7000,
-      { soloRecovery: true }
-    );
+    let activo = true;
+    let cleanupObserver: (() => void) | null = null;
+
+    async function verificarAutorizacion() {
+      // PR-02 P0: Camino principal — verificación server-side (cookie httpOnly + sesión)
+      // Sobrevive al callback server-side y no depende del evento efímero PASSWORD_RECOVERY.
+      // Si el servidor confirma, autorizamos inmediatamente sin esperar 7s.
+      try {
+        const res = await fetch("/api/recovery/verify", { cache: "no-store", credentials: "same-origin" });
+        const data = (await res.json().catch(() => ({}))) as { authorized?: boolean; autorizado?: boolean };
+        const autorizadoServidor = Boolean(data.authorized ?? data.autorizado);
+        if (autorizadoServidor && activo && montadoRef.current) {
+          setSesionLista(true);
+          setVerificando(false);
+          return;
+        }
+      } catch {
+        // fallback a observer
+      }
+
+      if (!activo || !montadoRef.current) return;
+
+      // Fallback hash legacy: observar PASSWORD_RECOVERY por ventana corta (no 7s)
+      // para compatibilidad con enlaces antiguos que usan fragmento #access_token
+      const cliente = crearClienteNavegador();
+      cleanupObserver = observarSesionRecuperacion(
+        cliente.auth,
+        ({ sesionLista: lista, verificando: enVerificacion }) => {
+          if (!activo || !montadoRef.current) return;
+          setSesionLista(lista);
+          setVerificando(enVerificacion);
+        },
+        2500,
+        { soloRecovery: true }
+      );
+    }
+
+    void verificarAutorizacion();
+
+    return () => {
+      activo = false;
+      if (cleanupObserver) cleanupObserver();
+    };
   }, []);
 
   async function establecer(e: React.FormEvent) {
@@ -76,6 +100,10 @@ export default function PaginaNuevaPassword() {
       const cliente = crearClienteNavegador();
       const { error: errorAuth } = await cliente.auth.updateUser({ password });
       if (errorAuth) throw errorAuth;
+      // PR-02 P0: invalidar contexto temporal de recovery para que no sea reutilizable
+      try {
+        await fetch("/api/recovery/clear", { method: "POST", cache: "no-store", credentials: "same-origin" });
+      } catch {}
       if (!montadoRef.current) return;
       setListo(true);
       redireccionRef.current = setTimeout(() => {

@@ -1,7 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
+import Script from "next/script";
+import { headers } from "next/headers";
 import { TextInputUppercaseBridge } from "@ruum/ui";
 import { TemaProvider } from "./TemaProvider";
+import { LiveRegionProvider } from "../components/LiveRegionProvider";
+import { OperationalAccessibilityBridge } from "./OperationalAccessibilityBridge";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -43,13 +47,13 @@ export const viewport: Viewport = {
   ]
 };
 
-const scriptTema = `(function(){try{var k='ruum-tema';var g=localStorage.getItem(k);var s=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';var t=g||s;document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: scriptTema }} />
+        <Script src="/theme-init.js" strategy="beforeInteractive" nonce={nonce} />
       </head>
       <body
         className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}
@@ -57,12 +61,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">
           Saltar al contenido principal
         </a>
-        <TextInputUppercaseBridge />
-        <TemaProvider>
-          <main id="contenido-principal">{children}</main>
-        </TemaProvider>
+        <LiveRegionProvider>
+          <OperationalAccessibilityBridge />
+          <TextInputUppercaseBridge />
+          <TemaProvider>
+            <main id="contenido-principal">{children}</main>
+          </TemaProvider>
+        </LiveRegionProvider>
       </body>
     </html>
   );
 }
-
