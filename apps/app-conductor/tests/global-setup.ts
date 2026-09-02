@@ -81,6 +81,10 @@ async function ensureAuthUser(admin: AdminClient, email: string, password: strin
 }
 
 async function ensureConductor(admin: AdminClient, authUserId: string) {
+  // Limpiar solicitudes huérfanas que bloquean la creación directa de conductores (trigger validar_auth_conductor_sin_solicitud)
+  // El flujo E2E crea el conductor directamente para simplificar, pero si quedó una solicitud previa para este auth_user_id, el trigger bloquea.
+  await admin.from("solicitudes_conductor").delete().eq("auth_user_id", authUserId).then(() => {}).catch(() => {});
+
   const { data: existing, error: selectError } = await admin
     .from("conductores")
     .select("id, estado_expediente")
