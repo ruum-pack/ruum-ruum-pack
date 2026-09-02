@@ -2,9 +2,11 @@
 // SEC-002 — Aserción de CSP en build (bloqueante)
 // Verifica que next.config y middleware están alineados y sin regresiones P2
 import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = join(import.meta.dirname, "..");
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const root = join(__dirname, "..");
 let falhas = 0;
 
 function assert(cond, msg) {
@@ -30,7 +32,7 @@ if (cspProdMatch) {
   const cspProd = cspProdMatch[0];
   assert(cspProd.includes("'strict-dynamic'"), "next.config cspProd script-src usa 'strict-dynamic'");
   // Extraer solo la línea de script-src de cspProd
-  const scriptSrcMatch = cspProd.match(/script-src[^"]*"/) ?? cspProd.match(/script-src[^\]]*\]/);
+  const scriptSrcMatch = cspProd.match(/script-src[^\"]*\"/) ?? cspProd.match(/script-src[^\]]*\]/);
   const scriptSrcLine = scriptSrcMatch ? scriptSrcMatch[0] : "";
   assert(!scriptSrcLine.includes("'unsafe-inline'"), "next.config cspProd script-src sin 'unsafe-inline' (solo style-src lo mantiene como fallback)");
   assert(!scriptSrcLine.includes("'unsafe-eval'"), "next.config cspProd script-src sin 'unsafe-eval'");
