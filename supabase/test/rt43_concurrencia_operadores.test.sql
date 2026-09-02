@@ -27,7 +27,7 @@ begin
 
   -- Operador 2 actualiza primero
   update public.conductores
-    set estado = 'suspendido', version = version + 1
+    set estado = 'suspendido_7d', version = version + 1
     where id = '92500000-0000-4000-8000-0000000000d1'
       and version = v_version_2;
   get diagnostics v_actualizada = row_count;
@@ -39,8 +39,8 @@ end $$;
 -- 1. Verificar que la actualización del Operador 2 surtió efecto
 select is(
   (select estado from public.conductores where id = '92500000-0000-4000-8000-0000000000d1'),
-  'suspendido',
-  'RT-43.1: Operador 2 actualizó el estado a suspendido'
+  'suspendido_7d',
+  'RT-43.1: Operador 2 actualizó el estado a suspendido_7d'
 );
 
 -- 2. Operador 1 intenta actualizar con versión obsoleta (versión 1) y afecta 0 filas
@@ -64,10 +64,10 @@ select is(
   'RT-43.2: la versión se mantuvo en 2 y no fue sobrescrita por Operador 1'
 );
 
--- 3. El estado final sigue siendo suspendido
+-- 3. El estado final sigue siendo suspendido_7d
 select is(
   (select estado from public.conductores where id = '92500000-0000-4000-8000-0000000000d1'),
-  'suspendido',
+  'suspendido_7d',
   'RT-43.3: el estado final se mantiene protegido contra escrituras concurrentes'
 );
 

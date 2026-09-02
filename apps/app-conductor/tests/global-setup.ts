@@ -339,16 +339,54 @@ async function globalSetup(config: FullConfig) {
   });
   try {
     await page.goto("/onboarding", { waitUntil: "networkidle" });
+    
+    // Validar que el servidor está respondiendo
+    if (page.url().includes("error") || page.url().includes("offline")) {
+      throw new Error(`Servidor no disponible: ${page.url()}`);
+    }
+    
     await page.evaluate(() => {
       localStorage.setItem("CapacitorStorage.ruum_conductor_onboarding_visto", "1");
     });
     await page.goto("/login", { waitUntil: "networkidle" });
     await page.waitForTimeout(2000); // Wait for React hydration to complete
-    await page.locator('input[type="email"]').fill(conductorEmail);
-    await page.locator('input[type="password"]').fill(conductorPassword);
-    await page.getByRole("button", { name: "Entrar" }).click();
-    await page.waitForURL((url) => url.pathname === "/panel", { timeout: 30_000 });
+    
+    // Validar que los inputs existen antes de rellenarlos
+    const emailInput = page.locator('input[type="email"]');
+    const passInput = page.locator('input[type="password"]');
+    const loginBtn = page.getByRole("button", { name: "Entrar" });
+    
+    await emailInput.waitFor({ state: "visible", timeout: 5000 }).catch(err => {
+      throw new Error(`Email input no encontrado: ${err.message}`);
+    });
+    
+    await emailInput.fill(conductorEmail);
+    await passInput.fill(conductorPassword);
+    
+    // Verificar que el botón está habilitado
+    const disabled = await loginBtn.isDisabled();
+    if (disabled) {
+      throw new Error("Botón de login está deshabilitado. Verifica los datos ingresados.");
+    }
+    
+    await loginBtn.click();
+    
+    // Esperar con mejor diagnóstico
+    const navigationResult = await page.waitForURL(
+      (url) => url.pathname === "/panel", 
+      { timeout: 30_000 }
+    ).catch(async (err) => {
+      const currentUrl = page.url();
+      const pageText = await page.innerText("body").catch(() => "");
+      throw new Error(
+        `Login falló. URL: ${currentUrl}\n` +
+        `Mensaje: ${err.message}\n` +
+        `Página: ${pageText.substring(0, 200)}`
+      );
+    });
+    
     await page.context().storageState({ path: AUTH_STATE_PATH });
+    console.log(`✓ Estado de sesión guardado en: ${AUTH_STATE_PATH}`);
   } catch (err) {
     console.error("GLOBAL SETUP ERROR:");
     console.error("Current URL:", page.url());

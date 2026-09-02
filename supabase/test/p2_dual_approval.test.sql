@@ -20,7 +20,7 @@ insert into public.admins (id, auth_user_id, nombre, rol_operativo) values
   ('a1b00001-0000-4000-8000-000000000003', 'a1a00001-0000-4000-8000-000000000003', 'Ejecutor S1',    'finanzas');
 
 insert into public.usuarios (id, auth_user_id, tipo_cuenta, rol, estado_verificacion)
-values ('a1c00001-0000-4000-8000-000000000001', 'a1a00001-0000-4000-8000-000000000001', 'persona', 'titular', 'verificado');
+values ('a1c00001-0000-4000-8000-000000000001', 'a1a00001-0000-4000-8000-000000000001', 'persona', 'personal', 'verificado');
 
 insert into public.vehiculos (id, usuario_id, tipo, marca, modelo, anio, categoria_tarifa, gama, condicion)
 values ('a1d00001-0000-4000-8000-000000000001', 'a1c00001-0000-4000-8000-000000000001', 'sedan', 'S1', 'Test', 2026, 'ligero_a', 'entrada', 'seminueva');

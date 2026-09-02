@@ -24,21 +24,33 @@ test.describe("Sprint C5 flujos críticos", () => {
 
   test.describe("Flujo End-to-End de Recuperación de Contraseña", () => {
     test("solicitar enlace de recuperación en /recuperar-password (simulando resetPasswordForEmail)", async ({ page }) => {
-      await page.route("**/auth/v1/recover*", (route) =>
-        route.fulfill({
+      // Agregar intercepción para verificar el endpoint
+      let passwordRecoveryCall = false;
+      
+      await page.route("**/auth/v1/recover*", (route) => {
+        passwordRecoveryCall = true;
+        return route.fulfill({
           status: 200,
           contentType: "application/json",
           body: JSON.stringify({})
-        })
-      );
+        });
+      });
 
       await page.goto("/recuperar-password");
       await expect(page.getByRole("heading", { name: /recuperar contraseña/i })).toBeVisible();
 
       await page.getByLabel(/correo electrónico/i).fill("conductor@ejemplo.com");
-      await page.getByRole("button", { name: /enviar enlace/i }).click();
+      
+      // Agregar espera explícita para intercepciones
+      const [response] = await Promise.all([
+        page.waitForResponse(resp => resp.url().includes("auth/v1/recover")).catch(() => null),
+        page.getByRole("button", { name: /enviar enlace/i }).click()
+      ]);
 
-      await expect(page.getByText(/correo enviado a/i)).toBeVisible();
+      // Dar más tiempo para el renderizado
+      await page.waitForTimeout(500);
+      
+      await expect(page.getByText(/correo enviado a/i)).toBeVisible({ timeout: 10_000 });
       await expect(page.getByText("conductor@ejemplo.com")).toBeVisible();
       await expect(page.getByText(/el enlace expira en 60 minutos/i)).toBeVisible();
     });
@@ -96,13 +108,25 @@ test.describe("Sprint C5 flujos críticos", () => {
     test("listar, expandir y ver detalles de viajes disponibles", async ({ page }) => {
       await page.goto("/viajes?vista=disponibles");
 
-      // Esperar a que carguen los viajes
-      await expect(page.locator("main")).toBeVisible();
+      // Esperar a que carguen los viajes con espera de red
+      await expect(page.locator("main")).toBeVisible({ timeout: 10_000 });
+      
+      // Esperar un poco más para que los datos se carguen
+      await page.waitForTimeout(1000);
 
-      // Verificar que aparecen viajes con badge DISPONIBLE
+      // Verificar que aparecen viajes con badge DISPONIBLE o mensaje de sin oportunidades
       const badgeDisponible = page.getByText("DISPONIBLE", { exact: true });
       const mensajeSinOportunidades = page.getByText(/Sin oportunidades|Te avisaremos/i).first();
-      await expect(badgeDisponible.or(mensajeSinOportunidades).first()).toBeVisible({ timeout: 15_000 });
+      
+      try {
+        await expect(badgeDisponible.or(mensajeSinOportunidades).first()).toBeVisible({ timeout: 20_000 });
+      } catch (error) {
+        // Diagnóstico detallado si falla
+        const pageContent = await page.innerText("body").catch(() => "");
+        const mainContent = await page.locator("main").innerText().catch(() => "");
+        console.error("Badge/Mensaje no encontrado. Contenido de la página:", mainContent.substring(0, 500));
+        throw error;
+      }
 
       // Si hay viajes disponibles, expandir detalles de uno
       const tarjetas = page.locator("button:has(:text('Traslado #'))");

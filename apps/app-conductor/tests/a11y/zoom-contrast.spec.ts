@@ -31,33 +31,44 @@ async function openProtectedRoute(page: Page, route: string) {
   expect(finalUrl.pathname).toBe(route);
 }
 
-async function addCspStyle(page: Page, content: string) {
-  const nonce = await page.evaluate(() => (
-    document.querySelector('meta[property="csp-nonce"]')?.getAttribute("content") ??
-    document.querySelector("script[nonce]")?.getAttribute("nonce") ??
-    document.querySelector("style[nonce]")?.getAttribute("nonce") ??
-    ""
-  ));
+async function getNonce(page: Page): Promise<string> {
+  return await page.evaluate(() => {
+    const metaTag = document.querySelector('meta[property="csp-nonce"]');
+    if (metaTag?.getAttribute('content')) {
+      return metaTag.getAttribute('content') || '';
+    }
+    
+    const htmlNonce = document.documentElement.getAttribute('nonce');
+    if (htmlNonce) return htmlNonce;
+    
+    const scriptNonce = document.querySelector('script')?.getAttribute('nonce');
+    return scriptNonce || '';
+  });
+}
 
-  await page.evaluate(({ content: styleContent, nonce: nonceValue }) => {
-    const style = document.createElement("style");
-    if (nonceValue) style.setAttribute("nonce", nonceValue);
+async function addStyleWithNonce(page: Page, content: string) {
+  const nonce = await getNonce(page);
+  
+  await page.evaluate(({ nonceValue, styleContent }: { nonceValue: string; styleContent: string }) => {
+    const style = document.createElement('style');
+    if (nonceValue) {
+      style.setAttribute('nonce', nonceValue);
+    }
     style.textContent = styleContent;
     document.head.appendChild(style);
-  }, { content, nonce });
+  }, { nonceValue: nonce, styleContent: content });
 }
 
 async function disableMotion(page: Page) {
-  await addCspStyle(page, [
-    "*, *::before, *::after {",
-    "  animation-duration: 0.01ms !important;",
-    "  animation-iteration-count: 1 !important;",
-    "  scroll-behavior: auto !important;",
-    "  transition-duration: 0.01ms !important;",
-    "}",
-  ].join("\n"));
+  await addStyleWithNonce(page, `
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+  `);
 }
-
 
 async function assertInputsAtLeast16px(page: Page) {
   const smallInputs = await page.evaluate(() => {
@@ -181,15 +192,21 @@ test.describe("A11Y visual zoom and contrast", () => {
       await assertEssentialTextNotClipped(page);
       await assertCtaVisible(page);
       await assertFocusVisible(page);
-      await addCspStyle(page, "html { font-size: 150% !important; }");
+      await assertContrast(page);
+
+      // Zoom 150%
+      await addStyleWithNonce(page, "html { font-size: 150% !important; }");
       await assertNoHorizontalOverflow(page);
       await assertEssentialTextNotClipped(page);
+
+      // Zoom 200%
+      await addStyleWithNonce(page, "html { font-size: 200% !important; }");
+      await assertNoHorizontalOverflow(page);
+      await assertEssentialTextNotClipped(page);
+
       await page.screenshot({ path: resolve(ZOOM_DIR, `${routeSlug(route)}.png`), fullPage: true });
 
-      await addCspStyle(page, "html { font-size: 200% !important; }");
-      await assertNoHorizontalOverflow(page);
-      await assertEssentialTextNotClipped(page);
-
+      // Dark theme
       await page.evaluate(() => document.documentElement.setAttribute("data-theme", "dark"));
       await assertContrast(page);
       await page.screenshot({ path: resolve(DARK_DIR, `${routeSlug(route)}.png`), fullPage: true });
