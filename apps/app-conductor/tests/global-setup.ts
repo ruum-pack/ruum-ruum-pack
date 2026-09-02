@@ -84,6 +84,11 @@ async function ensureConductor(admin: AdminClient, authUserId: string) {
   // Limpiar estado previo que bloquea la creación directa de conductores
   const { count: cntSolBefore } = await admin.from("solicitudes_conductor").select("id", { count: "exact", head: true }).eq("auth_user_id", authUserId).then(r => r as { count: number | null }).catch(() => ({ count: 0 } as never));
   console.log(`[E2E] solicitudes_conductor para ${authUserId} antes: ${cntSolBefore}`);
+  // Primero borrar historial que referencia la solicitud (FK restrict)
+  const { data: sols } = await admin.from("solicitudes_conductor").select("id").eq("auth_user_id", authUserId).then(r => r as { data: { id: string }[] | null }).catch(() => ({ data: [] } as never));
+  for (const s of sols ?? []) {
+    await admin.from("historial_estados_solicitud_conductor").delete().eq("solicitud_id", s.id).then(() => {}).catch(() => {});
+  }
   const delSol = await admin.from("solicitudes_conductor").delete().eq("auth_user_id", authUserId);
   console.log(`[E2E] delete solicitudes_conductor error:`, (delSol as { error?: { message: string } })?.error?.message ?? "ok");
   const { count: cntSolAfter } = await admin.from("solicitudes_conductor").select("id", { count: "exact", head: true }).eq("auth_user_id", authUserId).then(r => r as { count: number | null }).catch(() => ({ count: 0 } as never));
