@@ -58,7 +58,7 @@ if (prod && demo) invalid.push("NEXT_PUBLIC_PANEL_ADMIN_DEMO no puede ser true e
 if (prod && missing.length) invalid.push(`faltan variables: ${missing.join(", ")}`);
 for (const name of required.filter((n) => n.includes("SUPABASE_URL"))) {
   const value = process.env[name];
-  if (value && !/^https:\/\//.test(value) && !value.startsWith("__VERCEL")) 
+  if (value && !/^https:\/\//.test(value) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(value) && !value.startsWith("__VERCEL")) 
     invalid.push(`${name} debe usar https://`);
 }
 if (prod) {
