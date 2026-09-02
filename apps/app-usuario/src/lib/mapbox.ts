@@ -1,7 +1,9 @@
 import { MapboxDirectionsError, obtenerRutaDirectionsMapbox } from "@ruum/shared/utils";
 import { recordOperationalEvent } from "./observability";
 
-const tokenPublico = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+function obtenerTokenPublico(): string | undefined {
+  return process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+}
 const URL_GEOCODIFICACION = "https://api.mapbox.com/search/geocode/v6/forward";
 
 export interface CoordenadasGeocodificadas { lat: number; lng: number; }
@@ -23,12 +25,13 @@ interface FeatureMapbox {
 }
 
 export function tieneMapboxConfigurado(): boolean {
-  return Boolean(tokenPublico?.startsWith("pk."));
+  return Boolean(obtenerTokenPublico()?.startsWith("pk."));
 }
 
 async function consultarMapbox(parametros: URLSearchParams): Promise<FeatureMapbox[]> {
-  if (!tieneMapboxConfigurado() || !tokenPublico) return [];
-  parametros.set("access_token", tokenPublico);
+  const token = obtenerTokenPublico();
+  if (!tieneMapboxConfigurado() || !token) return [];
+  parametros.set("access_token", token);
   parametros.set("country", "mx");
   parametros.set("language", "es");
   try {
@@ -130,8 +133,9 @@ export async function sugerirDireccionesAutocomplete(consulta: string): Promise<
   if (q.length < 3 || !tieneMapboxConfigurado()) return [];
   const params = new URLSearchParams({ q, limit: "5", autocomplete: "true", types: "address,street,place,locality,neighborhood" });
   // consultarMapbox ya limita a MX y ES
-  if (!tokenPublico) return [];
-  params.set("access_token", tokenPublico);
+  const token = obtenerTokenPublico();
+  if (!token) return [];
+  params.set("access_token", token);
   params.set("country", "mx");
   params.set("language", "es");
   try {
@@ -161,8 +165,9 @@ export async function calcularRutaMapbox(
   origen: CoordenadasGeocodificadas,
   destino: CoordenadasGeocodificadas
 ): Promise<RutaMapboxCalculada | null> {
-  if (!tieneMapboxConfigurado() || !tokenPublico) return null;
-  const ruta = await obtenerRutaDirectionsMapbox([origen.lng, origen.lat], [destino.lng, destino.lat], tokenPublico, { lanzarErrores: true });
+  const token = obtenerTokenPublico();
+  if (!tieneMapboxConfigurado() || !token) return null;
+  const ruta = await obtenerRutaDirectionsMapbox([origen.lng, origen.lat], [destino.lng, destino.lat], token, { lanzarErrores: true });
   if (ruta?.distanciaKm == null || ruta?.tiempoHoras == null) return null;
   return { distanciaKm: ruta.distanciaKm, tiempoEstimadoHoras: ruta.tiempoHoras };
 }

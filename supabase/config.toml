@@ -79,11 +79,11 @@ enable_confirmations = true
 
 [auth.email.template.confirmation]
 subject = "Confirma tu correo"
-content_path = "./templates/confirmation.html"
+content_path = "./supabase/templates/confirmation.html"
 
 [auth.email.template.recovery]
 subject = "🔐 Restablece tu contraseña — Ruum Ruum"
-content_path = "./templates/recovery.html"
+content_path = "./supabase/templates/recovery.html"
 
 [storage]
 enabled = true
