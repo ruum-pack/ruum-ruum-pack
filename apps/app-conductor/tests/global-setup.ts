@@ -292,8 +292,10 @@ function ensureStrongPassword(password: string): string {
 
 async function globalSetup(config: FullConfig) {
   // Cargar variables de entorno desde .env.test, .env.local y .env
-  // Usar el directorio base de la configuración de Playwright
-  const projectRoot = config.rootDir ?? process.cwd();
+  // FIX P1: usar siempre process.cwd() (raíz de app-conductor) en lugar de config.rootDir
+  // que puede ser ./tests cuando se invoca via `pnpm --filter ... exec playwright test tests/e2e/...`
+  // lo que hacía que .env.test no se encontrara y fallara requiredEnv.
+  const projectRoot = process.cwd();
   
   // Cargar en orden de prioridad: .env.test > .env.local > .env
   loadDotenv({ path: path.resolve(projectRoot, '.env.test') });

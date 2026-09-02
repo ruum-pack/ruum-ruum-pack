@@ -38,10 +38,14 @@ function buildCsp(nonce: string, isProd: boolean, isStaging: boolean) {
   // SEC-003: flag para eliminar unsafe-inline de style-src en prod (objetivo 2026-11-01)
   // Cuando CSP_STRICT_STYLES=true, style-src queda solo con nonce (sin unsafe-inline)
   // Validar 1 semana en staging report-only antes de activar en prod.
+  // FIX P1: en dev, 'unsafe-inline' se ignora si hay nonce, bloqueando estilos inyectados por Next/styled-jsx.
+  // En dev no usar nonce para style-src, solo 'unsafe-inline'.
   const strictStyles = process.env.CSP_STRICT_STYLES === "true" || process.env.NEXT_PUBLIC_CSP_STRICT_STYLES === "true";
-  const styleSrc = strictStyles && isProd
-    ? `style-src 'self' 'nonce-${nonce}'`
-    : `style-src 'self' 'unsafe-inline' 'nonce-${nonce}'`;
+  const styleSrc = isProd
+    ? strictStyles
+      ? `style-src 'self' 'nonce-${nonce}'`
+      : `style-src 'self' 'nonce-${nonce}'`
+    : `style-src 'self' 'unsafe-inline'`;
   const base = [
     "default-src 'self'",
     scriptSrc,

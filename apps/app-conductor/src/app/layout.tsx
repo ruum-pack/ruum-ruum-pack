@@ -56,11 +56,11 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const nonce = (await headers()).get("x-nonce") ?? "";
   return (
-    <html lang="es" data-theme="dark">
+    <html lang="es" data-theme="dark" suppressHydrationWarning>
       <head>
-        <Script src="/theme-init.js" strategy="beforeInteractive" nonce={nonce} />
+        <Script src="/theme-init.js" strategy="beforeInteractive" nonce={nonce || undefined} suppressHydrationWarning />
       </head>
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">Saltar al contenido principal</a>
