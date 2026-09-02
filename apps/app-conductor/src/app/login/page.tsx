@@ -114,15 +114,7 @@ function FormularioLogin() {
   const supabaseNoConfigurado = !tieneSupabaseConfigurado();
 
   return (
-    <div
-      className="flex min-h-dvh items-center justify-center px-4 py-10 sm:px-6"
-      style={{
-        background:
-          "radial-gradient(circle at 12% 8%, rgba(30,136,229,0.06), transparent 42%)," +
-          "radial-gradient(circle at 92% 88%, rgba(255,196,0,0.05), transparent 38%)," +
-          "var(--ruum-canvas)"
-      }}
-    >
+    <div className="conductor-auth-shell flex min-h-dvh items-center justify-center px-4 py-10 sm:px-6">
       <section className="conductor-auth-card p-6 sm:p-8" aria-labelledby="titulo-inicio-conductor">
         <div className="flex items-center gap-3">
           <LogoMarca tamano={34} color="signal" descriptor="Conductor" mostrarRespaldo={false} />

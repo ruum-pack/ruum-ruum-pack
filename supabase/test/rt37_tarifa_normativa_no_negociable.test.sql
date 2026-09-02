@@ -34,8 +34,7 @@ insert into public.traslados (
   contacto_recepcion_nombre, contacto_recepcion_telefono,
   origen_lat, origen_lng, origen_direccion, origen_ciudad,
   destino_lat, destino_lng, destino_direccion, destino_ciudad,
-  distancia_km, tiempo_estimado_horas, modalidad_programacion, fecha_hora_programada, tipo_pago,
-  clave_idempotencia
+  distancia_km, tiempo_estimado_horas, modalidad_programacion, fecha_hora_programada, tipo_pago
 ) values (
   '93700000-0000-4000-8000-000000000301',
   '93700000-0000-4000-8000-000000000101',
@@ -44,8 +43,7 @@ insert into public.traslados (
   'Recepcion RT37', '+525500000038',
   19.4326000, -99.1332000, 'Origen RT37', 'CDMX',
   19.5000000, -99.2000000, 'Destino RT37', 'CDMX',
-  10.00, 1.00, 'programado', '2026-07-20 12:00:00-06'::timestamptz, 'anticipado',
-  gen_random_uuid()
+  10.00, 1.00, 'programado', '2026-07-20 12:00:00-06'::timestamptz, 'anticipado'
 );
 
 select set_config('request.jwt.claim.sub', '93700000-0000-4000-8000-0000000000ad', true);

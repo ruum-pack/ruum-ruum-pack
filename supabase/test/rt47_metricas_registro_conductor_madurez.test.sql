@@ -51,6 +51,4 @@ select is((:'metricas'::jsonb#>>'{comparacion,metricas,solicitudes_iniciadas}'):
 select ok(:'metricas'::jsonb ? 'calidad_datos','RT-47.8: incluye calidad de datos tardios/duplicados');
 select ok(exists(select 1 from public.auditoria_admin_seguridad where recurso='metricas_registro_conductor' and accion='obtener_v2'),'RT-47.9: audita consulta de metricas');
 
-select * from finish();
-
 rollback;

@@ -10,7 +10,14 @@ const RUTAS_PUBLICAS_CONDUCTOR = [
   "/legal",
   "/auth",
   "/actualizacion-requerida",
-  "/api"
+  "/api",
+  "/theme-init.js",
+  "/sw.js",
+  "/manifest.json",
+  "/manifest.webmanifest",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/auth-callback-fallback.js"
 ];
 
 function esRutaPublicaConductor(pathname: string): boolean {
@@ -129,5 +136,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"]
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|theme-init\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|js|css|json|txt|webmanifest)$).*)"]
 };

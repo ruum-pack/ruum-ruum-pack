@@ -174,11 +174,10 @@ begin
       contacto_recepcion_nombre, contacto_recepcion_telefono,
       origen_lat, origen_lng, origen_direccion, origen_ciudad,
       destino_lat, destino_lng, destino_direccion, destino_ciudad,
-      precio_cotizado, tipo_pago, clave_idempotencia
+      precio_cotizado, tipo_pago
     ) values (
       v_usuario_a, v_vehiculo_a, 'A', '+520000000000', 'B', '+520000000001',
-      19.0, -99.0, 'origen', 'CDMX', 19.5, -99.5, 'destino', 'CDMX', 1000, 'anticipado',
-      gen_random_uuid()
+      19.0, -99.0, 'origen', 'CDMX', 19.5, -99.5, 'destino', 'CDMX', 1000, 'anticipado'
     );
     v_ok := true;
   exception when others then

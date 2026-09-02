@@ -50,9 +50,11 @@ function AccionRequeridaCTA({ snapshot }: { snapshot: GlobalSyncSnapshot }) {
 }
 
 export function EstadoSincronizacionGlobal() {
+  const [mounted, setMounted] = useState(false);
   const [snapshot, setSnapshot] = useState<GlobalSyncSnapshot>(obtenerUltimoSyncSnapshot());
 
   useEffect(() => {
+    setMounted(true);
     let cancelado = false;
     void calcularSyncSnapshot().then((next) => {
       if (!cancelado) setSnapshot(next);
@@ -79,6 +81,8 @@ export function EstadoSincronizacionGlobal() {
       window.removeEventListener("ruum:telemetria-pendiente", recalcular);
     };
   }, []);
+
+  if (!mounted) return null;
 
   // R4: celebrar éxito — verde cuando online y sin pendientes (no solo null)
   if (snapshot.status === "todo_sincronizado") {

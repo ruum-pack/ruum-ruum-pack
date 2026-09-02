@@ -16,7 +16,7 @@ values
   ('94000000-0000-4000-8000-000000000003', 'rt40-premium@local.test', now(), '{}', '{}', now(), now());
 
 insert into public.admins (id, auth_user_id, nombre)
-values ('94000000-0000-4000-8000-000000000aaa', '94000000-0000-4000-8000-0000000000ad', 'Admin RT-40');
+values ('94000000-0000-4000-8000-0000000aaa', '94000000-0000-4000-8000-0000000000ad', 'Admin RT-40');
 
 insert into public.usuarios (id, auth_user_id, tipo_cuenta, rol, estado_verificacion, metodo_pago_registrado)
 values ('94000000-0000-4000-8000-000000000101', '94000000-0000-4000-8000-000000000001', 'personal', 'personal', 'verificado', true);

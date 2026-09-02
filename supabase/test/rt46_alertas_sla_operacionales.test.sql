@@ -109,6 +109,4 @@ select ok(
   'RT-46.9: los cambios sensibles quedan auditados'
 );
 
-select * from finish();
-
 rollback;

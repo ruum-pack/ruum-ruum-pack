@@ -69,6 +69,9 @@ export function esValorPlaceholder(valor) {
   const v = valor.trim().replace(/^['"`]|['"`]$/g, "");
   if (!v || v === "undefined" || v === "null") return true;
 
+  // Un JWT con rol service_role nunca es un placeholder permitido
+  if (esJwtServiceRole(v)) return false;
+
   // Si es una variable de entorno de JS o Shell (ej: process.env.X, $VAR, ${VAR})
   if (
     v.startsWith("process.env.") ||
