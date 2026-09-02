@@ -59,7 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const nonce = (await headers()).get("x-nonce") ?? "";
   return (
     <html lang="es" data-theme="dark" suppressHydrationWarning>
-      <head>
+      <head suppressHydrationWarning>
         <Script src="/theme-init.js" strategy="beforeInteractive" nonce={nonce || undefined} suppressHydrationWarning />
       </head>
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>

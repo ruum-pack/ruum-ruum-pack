@@ -82,9 +82,7 @@ export function EstadoSincronizacionGlobal() {
     };
   }, []);
 
-  if (!mounted) {
-    return <div aria-live="polite" aria-atomic="true" className="sr-only" suppressHydrationWarning />;
-  }
+  if (!mounted) return null;
 
   // R4: celebrar éxito — verde cuando online y sin pendientes (no solo null)
   if (snapshot.status === "todo_sincronizado") {
