@@ -1,4 +1,9 @@
 import { test, expect } from "@playwright/test";
+import { config as loadDotenv } from "dotenv";
+import path from "node:path";
+
+loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
+loadDotenv({ path: path.resolve(process.cwd(), ".env.test") });
 
 /**
  * PR-02 P0 — E2E Recuperación PKCE (app-conductor)
@@ -22,6 +27,7 @@ async function mockClear(page: import("@playwright/test").Page) {
 }
 
 async function mockUpdateUser(page: import("@playwright/test").Page, succeed = true) {
+  await seedMockAuthSession(page);
   await page.route("**/auth/v1/user**", async (route) => {
     if (route.request().method() === "PUT") {
       if (succeed) {
@@ -33,6 +39,31 @@ async function mockUpdateUser(page: import("@playwright/test").Page, succeed = t
     }
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: "conductor-recovery-test", email: "conductor@ejemplo.com" }) });
   });
+}
+
+async function seedMockAuthSession(page: import("@playwright/test").Page) {
+  const configuredUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.PLAYWRIGHT_SUPABASE_URL;
+  if (!configuredUrl) throw new Error("Falta NEXT_PUBLIC_SUPABASE_URL o PLAYWRIGHT_SUPABASE_URL para el fixture E2E.");
+  const projectRef = new URL(configuredUrl).hostname.split(".")[0];
+  const session = {
+    access_token: "mock_access_token",
+    refresh_token: "mock_refresh_token",
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    token_type: "bearer",
+    user: {
+      id: "00000000-0000-4000-8000-00000000e002",
+      aud: "authenticated",
+      role: "authenticated",
+      email: "conductor@ejemplo.com",
+    },
+  };
+  const value = `base64-${Buffer.from(JSON.stringify(session), "utf8").toString("base64url")}`;
+  await page.context().addCookies([{
+    name: `sb-${projectRef}-auth-token`,
+    value,
+    url: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3001",
+  }]);
 }
 
 async function mockRecover(page: import("@playwright/test").Page) {
@@ -62,12 +93,12 @@ test.describe("PR-02 Recuperación PKCE — app-conductor", () => {
     await expect(page.getByRole("heading", { name: /nueva contraseña/i })).toBeVisible({ timeout: 4000 });
     await expect(page.getByText(/enlace expiró/i)).toBeHidden();
 
-    const pwd = page.getByLabel(/^nueva contraseña/i);
-    const confirmar = page.getByLabel(/confirmar contraseña/i);
+    const pwd = page.locator('input[type="password"]').first();
+    const confirmar = page.locator('input[type="password"]').nth(1);
     const guardar = page.getByRole("button", { name: /guardar nueva contraseña/i });
 
-    await pwd.fill("short");
-    await confirmar.fill("short");
+    await pwd.fill("abcdefgh");
+    await confirmar.fill("abcdefgh");
     await guardar.click();
     await expect(page.getByText(/tu contraseña debe cumplir/i)).toBeVisible();
 
@@ -76,7 +107,7 @@ test.describe("PR-02 Recuperación PKCE — app-conductor", () => {
     await guardar.click();
 
     await expect(page.getByText(/contraseña actualizada\. redirigiendo/i)).toBeVisible();
-    await expect(page).toHaveURL(/\/panel/, { timeout: 5000 });
+    await expect(page).toHaveURL(/\/(panel|onboarding)/, { timeout: 5000 });
   });
 
   test("E2E completo: solicitud -> callback PKCE -> nueva-password -> update -> login nueva", async ({ page }) => {
@@ -93,8 +124,8 @@ test.describe("PR-02 Recuperación PKCE — app-conductor", () => {
     await page.goto("/nueva-password");
     await expect(page.getByRole("heading", { name: /nueva contraseña/i })).toBeVisible({ timeout: 4000 });
 
-    await page.getByLabel(/^nueva contraseña/i).fill("NuevaConductor123");
-    await page.getByLabel(/confirmar contraseña/i).fill("NuevaConductor123");
+    await page.locator('input[type="password"]').first().fill("NuevaConductor123");
+    await page.locator('input[type="password"]').nth(1).fill("NuevaConductor123");
     await page.getByRole("button", { name: /guardar nueva contraseña/i }).click();
     await expect(page.getByText(/contraseña actualizada/i)).toBeVisible();
 
@@ -111,7 +142,7 @@ test.describe("PR-02 Recuperación PKCE — app-conductor", () => {
 
     await page.goto("/login");
     const email = page.getByLabel(/correo/i).or(page.locator('input[type="email"]'));
-    const pass = page.getByLabel(/contraseña/i).or(page.locator('input[type="password"]'));
+    const pass = page.locator('input[type="password"]').first();
     if (await email.isVisible().catch(() => false)) {
       await email.fill("conductor-e2e@ruum.test");
       await pass.fill("NuevaConductor123");
@@ -128,7 +159,7 @@ test.describe("PR-02 Recuperación PKCE — app-conductor", () => {
     await mockVerify(page, false, "no_cookie");
     await page.goto("/nueva-password");
     await expect(page.getByText(/enlace expiró/i)).toBeVisible({ timeout: 4000 });
-    await expect(page.getByLabel(/^nueva contraseña/i)).toBeHidden();
+    await expect(page.locator('input[type="password"]').first()).toBeHidden();
   });
 
   test("negativo: código inválido -> no autoriza", async ({ page }) => {

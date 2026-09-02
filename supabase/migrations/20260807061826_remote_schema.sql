@@ -28,7 +28,7 @@ alter table "public"."registro_auditoria" add constraint "registro_auditoria_tra
 
 alter table "public"."registro_auditoria" validate constraint "registro_auditoria_traslado_id_fkey";
 
-alter table "public"."vehiculos" add constraint "vehiculos_transmision_check" CHECK (((transmision IS NULL) OR (transmision = ANY (ARRAY['manual'::text, 'automatica'::text])))) not valid;
+alter table "public"."vehiculos" add constraint "vehiculos_transmision_check" CHECK (((transmision IS NULL) OR (transmision = ANY (ARRAY['manual'::text, 'automatica'::text, 'electrica'::text])))) not valid;
 
 alter table "public"."vehiculos" validate constraint "vehiculos_transmision_check";
 

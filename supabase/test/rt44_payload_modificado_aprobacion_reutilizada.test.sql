@@ -27,8 +27,13 @@ select ok(
 set local role authenticated;
 select set_config('request.jwt.claim.sub','92500000-0000-4000-8000-0000000000e2',true);
 
-select throws_ok(
-  $sql$ select public.admin_ejecutar_pago('92500000-0000-4000-8000-000000000000'::uuid, 100.00, 1) $sql$,
+select throws_like(
+  $sql$ select public.admin_ejecutar_pago(
+    '92500000-0000-4000-8000-000000000000'::uuid,
+    '92500000-0000-4000-8000-000000000001'::uuid,
+    100.00::numeric
+  ) $sql$,
+  '%APROBACION_NO_ENCONTRADA%',
   'RT-44.2: supervisor no puede ejecutar pago sin aprobación previa'
 );
 reset role;

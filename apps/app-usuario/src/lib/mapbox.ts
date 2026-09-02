@@ -5,6 +5,7 @@ function obtenerTokenPublico(): string | undefined {
   return process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 }
 const URL_GEOCODIFICACION = "https://api.mapbox.com/search/geocode/v6/forward";
+const MAPBOX_GEOCODING_TIMEOUT_MS = 10_000;
 
 export interface CoordenadasGeocodificadas { lat: number; lng: number; }
 export interface RutaMapboxCalculada { distanciaKm: number; tiempoEstimadoHoras: number; }
@@ -34,8 +35,10 @@ async function consultarMapbox(parametros: URLSearchParams): Promise<FeatureMapb
   parametros.set("access_token", token);
   parametros.set("country", "mx");
   parametros.set("language", "es");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), MAPBOX_GEOCODING_TIMEOUT_MS);
   try {
-    const respuesta = await fetch(`${URL_GEOCODIFICACION}?${parametros.toString()}`);
+    const respuesta = await fetch(`${URL_GEOCODIFICACION}?${parametros.toString()}`, { signal: controller.signal });
     if (!respuesta.ok) {
       void recordOperationalEvent("geocoding_failure", {
         status: respuesta.status,
@@ -48,9 +51,11 @@ async function consultarMapbox(parametros: URLSearchParams): Promise<FeatureMapb
   } catch (error) {
     if (error instanceof MapboxUsuarioError) throw error;
     void recordOperationalEvent("geocoding_failure", {
-      error: error instanceof Error ? error.message : "error_red"
+      error: controller.signal.aborted ? "timeout" : error instanceof Error ? error.message : "error_red"
     }, "warning");
     return [];
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -58,7 +63,7 @@ export function esErrorConfiguracionMapbox(error: unknown): boolean {
   return (
     error instanceof MapboxUsuarioError ||
     error instanceof MapboxDirectionsError
-  ) && [401, 403, 429].includes(error.status);
+  ) && [401, 403, 429, 504].includes(error.status);
 }
 
 export function mensajeErrorMapbox(error: unknown): string {
@@ -68,6 +73,9 @@ export function mensajeErrorMapbox(error: unknown): string {
     }
     if (error.status === 429) {
       return "Mapbox alcanzó el límite de cuota o frecuencia. Intenta de nuevo en unos minutos.";
+    }
+    if (error.status === 504) {
+      return "Mapbox tardó demasiado en responder. La ruta se podrá calcular de nuevo más tarde.";
     }
   }
   return "No pudimos calcular distancia y tiempo en este momento.";
@@ -138,8 +146,10 @@ export async function sugerirDireccionesAutocomplete(consulta: string): Promise<
   params.set("access_token", token);
   params.set("country", "mx");
   params.set("language", "es");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), MAPBOX_GEOCODING_TIMEOUT_MS);
   try {
-    const res = await fetch(`${URL_GEOCODIFICACION}?${params.toString()}`);
+    const res = await fetch(`${URL_GEOCODIFICACION}?${params.toString()}`, { signal: controller.signal });
     if (!res.ok) return [];
     const datos = (await res.json()) as { features?: FeatureDireccionDetallada[] };
     return (datos.features ?? []).slice(0, 5).map((f) => {
@@ -158,6 +168,8 @@ export async function sugerirDireccionesAutocomplete(consulta: string): Promise<
     }).filter(s => s.textoCompleto);
   } catch {
     return [];
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

@@ -33,6 +33,22 @@ type AxeRouteResult = {
 const AXE_EXCEPTIONS: AxeException[] = [];
 const axeRouteResults: AxeRouteResult[] = [];
 
+async function addCspStyle(page: Page, content: string) {
+  const nonce = await page.evaluate(() => (
+    document.querySelector('meta[property="csp-nonce"]')?.getAttribute("content") ??
+    document.querySelector("script[nonce]")?.getAttribute("nonce") ??
+    document.querySelector("style[nonce]")?.getAttribute("nonce") ??
+    ""
+  ));
+
+  await page.evaluate(({ content: styleContent, nonce: nonceValue }) => {
+    const style = document.createElement("style");
+    if (nonceValue) style.setAttribute("nonce", nonceValue);
+    style.textContent = styleContent;
+    document.head.appendChild(style);
+  }, { content, nonce });
+}
+
 async function abrirRuta(page: Page, route: string, options: { requireAuth?: boolean } = {}) {
   await page.goto(route, { waitUntil: 'commit', timeout: 30_000 });
   await page.locator('#contenido-principal, body').first().waitFor({ state: 'visible', timeout: 20_000 });
@@ -43,16 +59,14 @@ async function abrirRuta(page: Page, route: string, options: { requireAuth?: boo
     expect(finalUrl.pathname, `La ruta protegida ${route} terminó en una URL inesperada`).toBe(new URL(route, 'http://localhost').pathname);
   }
 
-  await page.addStyleTag({
-    content: `
+  await addCspStyle(page, `
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         scroll-behavior: auto !important;
         transition-duration: 0.01ms !important;
       }
-    `
-  });
+    `);
 }
 
 const SMOKE_ROUTE = '/onboarding';

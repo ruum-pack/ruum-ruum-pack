@@ -1,4 +1,9 @@
 import { test, expect } from "@playwright/test";
+import { config as loadDotenv } from "dotenv";
+import path from "node:path";
+
+loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
+loadDotenv({ path: path.resolve(process.cwd(), ".env.test") });
 
 /**
  * PR-02 P0 — E2E Recuperación de contraseña PKCE (app-usuario)
@@ -50,6 +55,7 @@ async function mockClear(page: import("@playwright/test").Page) {
 }
 
 async function mockUpdateUser(page: import("@playwright/test").Page, succeed = true) {
+  await seedMockAuthSession(page);
   await page.route("**/auth/v1/user**", async (route) => {
     if (route.request().method() === "PUT") {
       if (succeed) {
@@ -66,6 +72,31 @@ async function mockUpdateUser(page: import("@playwright/test").Page, succeed = t
       body: JSON.stringify({ id: "user-recovery-test", email: "usuario@ejemplo.com", aud: "authenticated", role: "authenticated" }),
     });
   });
+}
+
+async function seedMockAuthSession(page: import("@playwright/test").Page) {
+  const configuredUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.PLAYWRIGHT_SUPABASE_URL;
+  if (!configuredUrl) throw new Error("Falta NEXT_PUBLIC_SUPABASE_URL o PLAYWRIGHT_SUPABASE_URL para el fixture E2E.");
+  const projectRef = new URL(configuredUrl).hostname.split(".")[0];
+  const session = {
+    access_token: "mock_access_token",
+    refresh_token: "mock_refresh_token",
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    token_type: "bearer",
+    user: {
+      id: "00000000-0000-4000-8000-00000000e001",
+      aud: "authenticated",
+      role: "authenticated",
+      email: "usuario@ejemplo.com",
+    },
+  };
+  const value = `base64-${Buffer.from(JSON.stringify(session), "utf8").toString("base64url")}`;
+  await page.context().addCookies([{
+    name: `sb-${projectRef}-auth-token`,
+    value,
+    url: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
+  }]);
 }
 
 async function mockAuthTokenPkce(page: import("@playwright/test").Page, succeed = true) {
@@ -134,8 +165,8 @@ test.describe("PR-02 Recuperación PKCE — app-usuario", () => {
     const guardar = page.getByRole("button", { name: /guardar nueva contraseña/i });
 
     // Intentar con password débil debe fallar validación local
-    await pwd.fill("short");
-    await confirmar.fill("short");
+    await pwd.fill("abcdefgh");
+    await confirmar.fill("abcdefgh");
     await guardar.click();
     await expect(page.getByText(/minúscula, mayúscula y número/i)).toBeVisible();
 
@@ -203,7 +234,7 @@ test.describe("PR-02 Recuperación PKCE — app-usuario", () => {
     await expect(page.getByRole("heading", { name: /iniciar sesión/i }).or(page.getByText(/bienvenido/i))).toBeVisible({ timeout: 5000 }).catch(() => {});
     // Si no hay heading específico, al menos verificar que hay inputs
     const emailInput = page.getByLabel(/correo/i).or(page.locator('input[type="email"]'));
-    const passInput = page.getByLabel(/contraseña/i).or(page.locator('input[type="password"]'));
+    const passInput = page.locator('input[type="password"]').first();
     if (await emailInput.isVisible().catch(() => false)) {
       await emailInput.fill("usuario-e2e@ruum.test");
       await passInput.fill("NuevaSegura123");

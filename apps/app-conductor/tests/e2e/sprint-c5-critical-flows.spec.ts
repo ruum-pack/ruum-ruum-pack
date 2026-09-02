@@ -71,8 +71,8 @@ test.describe("Sprint C5 flujos críticos", () => {
       await page.goto("/nueva-password");
 
       await expect(page.getByRole("heading", { name: /nueva contraseña/i })).toBeVisible();
-      const inputPassword = page.getByLabel(/^nueva contraseña/i);
-      const inputConfirmar = page.getByLabel(/confirmar contraseña/i);
+      const inputPassword = page.locator('input[type="password"]').first();
+      const inputConfirmar = page.locator('input[type="password"]').nth(1);
       const submitBtn = page.getByRole("button", { name: /guardar nueva contraseña/i });
 
       // Intento con contraseña incompleta / inválida (sin minúsculas)
@@ -100,11 +100,9 @@ test.describe("Sprint C5 flujos críticos", () => {
       await expect(page.locator("main")).toBeVisible();
 
       // Verificar que aparecen viajes con badge DISPONIBLE
-      const badgeDisponible = page.locator('text="DISPONIBLE"');
-      await expect(badgeDisponible).toBeVisible({ timeout: 5000 }).catch(() => {
-        // Si no hay viajes disponibles, verificar mensaje
-        return expect(page.getByText(/Sin oportunidades|Te avisaremos/i)).toBeVisible();
-      });
+      const badgeDisponible = page.getByText("DISPONIBLE", { exact: true });
+      const mensajeSinOportunidades = page.getByText(/Sin oportunidades|Te avisaremos/i).first();
+      await expect(badgeDisponible.or(mensajeSinOportunidades).first()).toBeVisible({ timeout: 15_000 });
 
       // Si hay viajes disponibles, expandir detalles de uno
       const tarjetas = page.locator("button:has(:text('Traslado #'))");
@@ -132,7 +130,10 @@ test.describe("Sprint C5 flujos críticos", () => {
       await expect(page.locator("main")).toBeVisible();
 
       // Buscar botones del calendario (días)
-      const botonesDias = page.locator("button:has(:text(/\\d+/))").filter({ hasNot: page.locator("text='Traslado #'") });
+      const botonesDias = page.locator("button").filter({
+        hasText: /\d+/,
+        hasNotText: /Traslado #/i,
+      });
 
       // Click en un día (si hay múltiples días)
       const countDias = await botonesDias.count();

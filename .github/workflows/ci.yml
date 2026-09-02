@@ -152,8 +152,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright Chromium
-        run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium firefox webkit
 
       - name: Run critical conductor flows
         run: pnpm --filter @ruum/app-conductor exec playwright test tests/e2e/sprint-c5-critical-flows.spec.ts
@@ -548,4 +548,3 @@ jobs:
       - name: Stop local Supabase
         if: always()
         run: pnpm db:stop
-

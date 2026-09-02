@@ -61,12 +61,12 @@ if (strictEnv) {
   assert(middleware.includes("CSP_STRICT_STYLES") && middleware.includes("style-src 'self' 'nonce-"), "CSP_STRICT_STYLES=true: middleware soporta style-src estricto");
 }
 
-// 6) Verificar que next.config no reintrodujo 'unsafe-inline' en script-src (solo permitido en style-src)
-const scriptSrcInline = nextConfig.match(/script-src[^;]*?'unsafe-inline'[^;]*?;/g);
-if (scriptSrcInline) {
-  const prodHasUnsafeInline = scriptSrcInline.some(s => s.includes("cspProd") || s.includes("script-src 'self' 'unsafe-inline'") );
-  // En next.config actual, cspProd script-src no debe tener unsafe-inline
-  assert(!nextConfig.includes("script-src 'self' 'unsafe-inline' https://*.sentry.io\"") || nextConfig.includes("style-src 'self' 'unsafe-inline'"), "no regresión unsafe-inline en script-src prod");
+// 6) Verificar que next.config cspProd no tenga 'unsafe-inline' en script-src
+const cspProdFull = nextConfig.match(/const cspProd[\s\S]*?\.join\("; "\)/)?.[0] ?? "";
+if (cspProdFull.includes("script-src")) {
+  // Extraer solo la línea de script-src dentro de cspProd
+  const scriptSrcLine = cspProdFull.match(/script-src[^,]*,/)?.[0] ?? "";
+  assert(!scriptSrcLine.includes("'unsafe-inline'"), "cspProd sin unsafe-inline en script-src (solo permitido en style-src como fallback)");
 }
 
 if (falhas > 0) {

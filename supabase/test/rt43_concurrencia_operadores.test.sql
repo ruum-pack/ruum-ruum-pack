@@ -11,8 +11,8 @@ insert into auth.users(id,email,email_confirmed_at,raw_app_meta_data,raw_user_me
   ('92500000-0000-4000-8000-0000000000b1','rt43-op1@local.test',now(),'{}','{}',now(),now()),
   ('92500000-0000-4000-8000-0000000000b2','rt43-op2@local.test',now(),'{}','{}',now(),now());
 
-insert into public.conductores(id,auth_user_id,estado) values
-  ('92500000-0000-4000-8000-0000000000d1','92500000-0000-4000-8000-0000000000b1','activo');
+insert into public.conductores(id,auth_user_id,nombre,estado) values
+  ('92500000-0000-4000-8000-0000000000d1','92500000-0000-4000-8000-0000000000b1','Conductor Test','activo');
 
 -- Operador 1 lee, Operador 2 lee y escribe primero, luego Operador 1 intenta escribir
 do $$

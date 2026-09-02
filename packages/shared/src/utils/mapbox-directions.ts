@@ -19,6 +19,8 @@ export class MapboxDirectionsError extends Error {
   }
 }
 
+export const MAPBOX_DIRECTIONS_TIMEOUT_MS = 10_000;
+
 /**
  * Llama a Mapbox Directions (perfil "driving") entre dos coordenadas [lng, lat]
  * y normaliza la respuesta a km/horas. Usada tanto por panel-admin (ruta +
@@ -28,12 +30,18 @@ export async function obtenerRutaDirectionsMapbox(
   origen: [number, number],
   destino: [number, number],
   tokenAcceso: string,
-  opciones: { lanzarErrores?: boolean } = {}
+  opciones: { lanzarErrores?: boolean; timeoutMs?: number } = {}
 ): Promise<RutaDirectionsMapbox | null> {
   const coordenadas = `${origen[0]},${origen[1]};${destino[0]},${destino[1]}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    opciones.timeoutMs ?? MAPBOX_DIRECTIONS_TIMEOUT_MS
+  );
   try {
     const respuesta = await fetch(
-      `https://api.mapbox.com/directions/v5/mapbox/driving/${coordenadas}?geometries=geojson&overview=simplified&access_token=${encodeURIComponent(tokenAcceso)}`
+      `https://api.mapbox.com/directions/v5/mapbox/driving/${coordenadas}?geometries=geojson&overview=simplified&access_token=${encodeURIComponent(tokenAcceso)}`,
+      { signal: controller.signal }
     );
     if (!respuesta.ok) {
       if (opciones.lanzarErrores) {
@@ -54,6 +62,11 @@ export async function obtenerRutaDirectionsMapbox(
     };
   } catch (error) {
     if (opciones.lanzarErrores && error instanceof MapboxDirectionsError) throw error;
+    if (opciones.lanzarErrores && controller.signal.aborted) {
+      throw new MapboxDirectionsError("Mapbox Directions agotó el tiempo de espera.", 504);
+    }
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }

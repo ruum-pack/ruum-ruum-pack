@@ -4,6 +4,7 @@ describe("cliente Mapbox usuario", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
+    vi.useRealTimers();
     vi.resetModules();
   });
 
@@ -35,5 +36,28 @@ describe("cliente Mapbox usuario", () => {
     } catch (error) {
       expect(esErrorConfiguracionMapbox(error)).toBe(true);
     }
+  });
+
+  it("aísla un timeout de Directions como error recuperable", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN", "pk.token-valido-formato");
+    vi.stubGlobal("fetch", vi.fn((_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+      })
+    ));
+
+    const { calcularRutaMapbox, esErrorConfiguracionMapbox, mensajeErrorMapbox } = await import("./mapbox");
+
+    const resultado = calcularRutaMapbox(
+      { lat: 19.4326, lng: -99.1332 },
+      { lat: 19.427, lng: -99.1677 }
+    ).catch((value: unknown) => value);
+    await vi.advanceTimersByTimeAsync(10_000);
+    const error = await resultado;
+
+    expect(error).toMatchObject({ status: 504 });
+    expect(esErrorConfiguracionMapbox(error)).toBe(true);
+    expect(mensajeErrorMapbox(error)).toContain("tardó demasiado");
   });
 });

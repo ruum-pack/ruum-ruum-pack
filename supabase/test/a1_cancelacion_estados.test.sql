@@ -80,13 +80,15 @@ begin
       contacto_recepcion_nombre, contacto_recepcion_telefono,
       origen_lat, origen_lng, origen_direccion, origen_ciudad,
       destino_lat, destino_lng, destino_direccion, destino_ciudad,
-      precio_cotizado, tipo_pago
+      precio_cotizado, tipo_pago,
+      clave_idempotencia
     ) values (
       'solicitud_creada', v_usuario_id, v_vehiculo_id,
       'A', '+520000000000', 'B', '+520000000001',
       19.0, -99.0, 'origen', 'CDMX',
       19.5, -99.5, 'destino', 'CDMX',
-      1000, 'anticipado'
+      1000, 'anticipado',
+      gen_random_uuid()
     ) returning id into v_traslado_id;
 
     alter table public.traslados disable trigger traslados_validar_transicion;

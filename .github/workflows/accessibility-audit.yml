@@ -115,7 +115,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: pnpm --filter @ruum/app-conductor exec playwright install chromium firefox webkit
+        run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium firefox webkit
 
       - name: Build application
         run: pnpm --filter @ruum/app-conductor run build
