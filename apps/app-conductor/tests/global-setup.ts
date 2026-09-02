@@ -308,9 +308,9 @@ async function globalSetup(config: FullConfig) {
   const projectRoot = process.cwd();
   
   // Cargar en orden de prioridad: .env.test > .env.local > .env
-  loadDotenv({ path: path.resolve(projectRoot, '.env.test') });
-  loadDotenv({ path: path.resolve(projectRoot, '.env.local') });
-  loadDotenv({ path: path.resolve(projectRoot, '.env') });
+  loadDotenv({ path: path.resolve(projectRoot, '.env.test'), override: true });
+  loadDotenv({ path: path.resolve(projectRoot, '.env.local'), override: true });
+  loadDotenv({ path: path.resolve(projectRoot, '.env'), override: true });
 
   // Debug: Verificar que las variables se cargaron
   if (!process.env.PLAYWRIGHT_E2E_CONDUCTOR_EMAIL) {
