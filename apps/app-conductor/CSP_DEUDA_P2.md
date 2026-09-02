@@ -7,14 +7,15 @@ La estrategia de Content Security Policy (CSP) ha sido migrada y estandarizada a
 1. **`script-src` sin `unsafe-eval` ni dependencia de `unsafe-inline`**:
    - `middleware.ts` genera criptográficamente un `nonce` por petición (`crypto.randomUUID()` en Base64).
    - En producción se inyecta `script-src 'self' 'nonce-{random}' 'strict-dynamic' ...`.
-   - Todos los scripts inline de tema y fallback fueron extraídos a archivos estáticos externos (`/theme-init.js`, `/auth-callback-fallback.js`) y consumidos con el componente `<Script ... nonce={nonce} />`.
+   - Todos los scripts inline de tema y fallback fueron extraídos a archivos estáticos externos (`/theme-init.js`, `/auth-callback-fallback.js`) y consumidos con el componente `<Script ... nonce[...]
 
 2. **`style-src` y Endurecimiento Estricto (`CSP_STRICT_STYLES=true`)**:
    - `style-src` soporta el flag `CSP_STRICT_STYLES=true` / `NEXT_PUBLIC_CSP_STRICT_STYLES=true` en ambas aplicaciones para activar de forma controlada `style-src 'self' 'nonce-{random}'` sin `unsafe-inline`.
+   - Deuda técnica con fecha objetivo: **2026-11-01**
    - En fallback de desarrollo o transición controlada, se mantiene `style-src 'self' 'unsafe-inline' 'nonce-{random}'`.
 
 3. **Modo Report-Only en Staging**:
-   - En entornos staging (`NEXT_PUBLIC_RUUM_AMBIENTE=staging` o `CSP_REPORT_ONLY=true`), ambas aplicaciones emiten el encabezado `Content-Security-Policy-Report-Only` apuntando a sus respectivos endpoints `/api/csp-report`.
+   - En entornos staging (`NEXT_PUBLIC_RUUM_AMBIENTE=staging` o `CSP_REPORT_ONLY=true`), ambas aplicaciones emiten el encabezado `Content-Security-Policy-Report-Only` apuntando a sus respectivos endpoints.
 
 4. **HSTS (`Strict-Transport-Security`)**:
    - Ambas aplicaciones emiten en producción:
@@ -26,6 +27,20 @@ La estrategia de Content Security Policy (CSP) ha sido migrada y estandarizada a
    - **Mapbox**: `*.mapbox.com`, `api.mapbox.com`, `events.mapbox.com`, `worker-src 'self' blob:`.
    - **Supabase**: `*.supabase.co`, `*.supabase.in`, `ws:`, `wss:`.
    - **Capacitor**: `capacitor://localhost`, `http://localhost:*`, `http://127.0.0.1:*`.
+
+## Deuda Técnica P2 — style-src sin unsafe-inline
+
+### Descripción
+Actualmente `style-src` incluye `'unsafe-inline'` como fallback por compatibilidad durante la transición. Esta deuda debe eliminarse para fortalecer la CSP.
+
+### Fecha Objetivo de Cierre
+**2026-11-01**
+
+### Plan de Resolución
+1. Auditar todos los estilos inline en `app-conductor`
+2. Migrar a CSS-in-JS o componentes con nonce
+3. Validar con `CSP_STRICT_STYLES=true` en pre-producción
+4. Remover `'unsafe-inline'` de `style-src`
 
 ## Estado del Plan de Retiro
 - ✅ **Paso 1**: Generar nonce dinámico por request en `middleware.ts` (Conductor y Usuario).
