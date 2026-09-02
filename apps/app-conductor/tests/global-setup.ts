@@ -83,8 +83,9 @@ async function ensureAuthUser(admin: AdminClient, email: string, password: strin
 async function ensureConductor(admin: AdminClient, authUserId: string) {
   // Limpiar estado previo que bloquea la creación directa de conductores
   // - solicitudes_conductor huérfanas (trigger validar_auth_conductor_sin_solicitud)
-  // - conductores duplicados por auth_user_id (unique constraint) de ejecuciones previas con ID distinto
+  // - conductores duplicados por auth_user_id (unique constraint) y por id fijo E2E
   await admin.from("solicitudes_conductor").delete().eq("auth_user_id", authUserId).then(() => {}).catch(() => {});
+  await admin.from("conductores").delete().eq("id", E2E_CONDUCTOR_ID).then(() => {}).catch(() => {});
   // Si existe un conductor con este auth_user_id pero con ID distinto al E2E_CONDUCTOR_ID, eliminarlo para evitar duplicado auth
   const { data: porAuth } = await admin.from("conductores").select("id").eq("auth_user_id", authUserId).maybeSingle().then(r => r as { data: { id: string } | null }).catch(() => ({ data: null } as never));
   if (porAuth && porAuth.id !== E2E_CONDUCTOR_ID) {
