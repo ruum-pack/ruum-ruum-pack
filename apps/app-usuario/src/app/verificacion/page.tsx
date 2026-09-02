@@ -200,12 +200,14 @@ export default async function PaginaVerificacion({ searchParams }: Props) {
   /* Leer estado actual del usuario para decidir qué mostrar */
   let estadoVerificacion: string | null = null;
   let docYaSubido = false;
+  let fotoPerfilUrl: string | null = null;
   try {
     const { crearClienteServidor } = await import("../../lib/supabase-server");
     const cliente = await crearClienteServidor();
     const usuario = await obtenerUsuarioActual(cliente);
     estadoVerificacion = usuario?.estado_verificacion ?? null;
     docYaSubido = !!usuario?.doc_identidad_url;
+    fotoPerfilUrl = usuario?.foto_url ?? null;
   } catch {
     /* si falla, mostrar el formulario normalmente */
   }
@@ -350,7 +352,7 @@ export default async function PaginaVerificacion({ searchParams }: Props) {
                 </p>
               </div>
 
-              <VerificacionForm />
+              <VerificacionForm fotoPerfilInicial={fotoPerfilUrl} />
             </>
           )}
         </div>

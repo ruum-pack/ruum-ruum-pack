@@ -7,6 +7,7 @@ import { Aviso } from "@ruum/ui";
 import { crearClienteNavegador } from "../../lib/supabase-browser";
 import {
   subirDocumentoIdentidad,
+  subirFotoPerfil,
   actualizarPerfilUsuario,
   iniciarVerificacionDiditUsuario,
   obtenerEstadoVerificacionDiditUsuario,
@@ -19,6 +20,7 @@ import { DiditVerificationModal } from "./DiditVerificationModal";
 const TIPOS_ACEPTADOS = ["image/jpeg", "image/png", "application/pdf"];
 const EXTENSIONES_ACEPTADAS = [".jpg", ".jpeg", ".png", ".pdf"];
 const TAMANO_MAXIMO_MB = 10;
+const TAMANO_MAXIMO_RETRATO_DIDIT_MB = 2;
 
 function soloDigitos(valor: string, maximo?: number) {
   const limpio = valor.replace(/\D/g, "");
@@ -183,7 +185,7 @@ function ConfirmacionEnRevision() {
   );
 }
 
-export function VerificacionForm() {
+export function VerificacionForm({ fotoPerfilInicial }: { fotoPerfilInicial?: string | null } = {}) {
   const router = useRouter();
 
   /* Didit Verification State */
@@ -192,6 +194,8 @@ export function VerificacionForm() {
   const [sessionIdDidit, setSessionIdDidit] = useState<string | null>(null);
   const [cargandoDidit, setCargandoDidit] = useState(false);
   const [errorDidit, setErrorDidit] = useState<string | null>(null);
+  const [fotoPerfilUrl, setFotoPerfilUrl] = useState(fotoPerfilInicial ?? "");
+  const [subiendoFotoPerfil, setSubiendoFotoPerfil] = useState(false);
   const [verificacionCompletada, setVerificacionCompletada] = useState(false);
 
   /* Manual Verification Form State */
@@ -240,6 +244,29 @@ export function VerificacionForm() {
     setUrlDidit(null);
     setSessionIdDidit(null);
     setErrorDidit(null);
+  }
+
+  async function cargarFotoPerfilDidit(archivo: File | undefined) {
+    if (!archivo) return;
+    setErrorDidit(null);
+    if (!archivo.type.startsWith("image/")) {
+      setErrorDidit("Selecciona una fotografía en formato JPG, PNG o WEBP.");
+      return;
+    }
+    if (archivo.size > TAMANO_MAXIMO_RETRATO_DIDIT_MB * 1024 * 1024) {
+      setErrorDidit(`La fotografía de referencia debe pesar máximo ${TAMANO_MAXIMO_RETRATO_DIDIT_MB} MB.`);
+      return;
+    }
+
+    setSubiendoFotoPerfil(true);
+    try {
+      const url = await subirFotoPerfil(crearClienteNavegador(), archivo);
+      setFotoPerfilUrl(url);
+    } catch (err) {
+      setErrorDidit(err instanceof Error ? err.message : "No pudimos guardar tu fotografía de perfil.");
+    } finally {
+      setSubiendoFotoPerfil(false);
+    }
   }
 
   async function finalizarDidit() {
@@ -460,13 +487,36 @@ export function VerificacionForm() {
           Valida tu INE, pasaporte o licencia con reconocimiento biométrico oficial y prueba de vida en tiempo real a través de Didit. Tu cuenta quedará aprobada inmediatamente sin tiempos de espera.
         </p>
 
+        {!mostrarDiditModal && errorDidit && <Aviso tono="danger">{errorDidit}</Aviso>}
+
+        {!fotoPerfilUrl && (
+          <div className="rounded-xl border border-[#f5a623]/30 bg-[#f5a623]/10 p-3.5">
+            <p className="font-body text-xs leading-5 text-amber-900">
+              Este flujo usa coincidencia facial. Sube primero una fotografía clara de tu rostro para que Didit pueda compararla con la prueba de vida.
+            </p>
+            <label className="mt-3 flex flex-col gap-1.5">
+              <span className="font-display text-xs font-semibold text-amber-950">Fotografía de referencia</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => void cargarFotoPerfilDidit(e.target.files?.[0])}
+                disabled={subiendoFotoPerfil || cargandoDidit}
+                className="w-full rounded-lg border border-amber-900/20 bg-white/70 px-3 py-2 font-body text-xs text-ink file:mr-3 file:rounded-md file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-mist"
+              />
+              <span className="font-body text-[11px] text-amber-900/75">
+                {subiendoFotoPerfil ? "Guardando fotografía…" : "Máximo 2 MB. Se usa únicamente como referencia de identidad."}
+              </span>
+            </label>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={iniciarDidit}
-          disabled={cargandoDidit}
+          disabled={cargandoDidit || subiendoFotoPerfil || !fotoPerfilUrl}
           className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#FFC400] px-5 py-3 font-display text-sm font-extrabold text-[#151515] shadow-[0_10px_28px_rgba(255,196,0,0.24)] transition hover:bg-[#e0ac00] active:scale-[0.99] cursor-pointer"
         >
-          <span>🪪</span> Iniciar verificación con Didit
+          <span>🪪</span> {fotoPerfilUrl ? "Iniciar verificación con Didit" : "Sube tu fotografía para continuar"}
         </button>
       </div>
 

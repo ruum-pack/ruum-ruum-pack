@@ -6,6 +6,13 @@
 // para usuarios/pasajeros (usuario_id).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  construirPayloadSesionDidit,
+  detalleRespuestaDidit,
+  esUrlHospedadaDiditValida,
+  obtenerRetratoDidit,
+  urlSesionDidit,
+} from "../_shared/didit-session.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +28,16 @@ function json(body: Record<string, unknown>, status = 200) {
     status,
     headers: { ...CORS, "Content-Type": "application/json" },
   });
+}
+
+function esCallbackValido(valor: string): boolean {
+  try {
+    const url = new URL(valor);
+    return (url.protocol === "https:" || url.protocol === "http:") &&
+      Boolean(url.hostname);
+  } catch {
+    return false;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -46,13 +63,24 @@ Deno.serve(async (req) => {
       500,
     );
   }
+  if (!UUID.test(diditWorkflowId)) {
+    return json({ error: "DIDIT_WORKFLOW_ID no tiene un UUID válido." }, 500);
+  }
+  if (callbackUrl && !esCallbackValido(callbackUrl)) {
+    return json({ error: "DIDIT_CALLBACK_URL no es una URL válida." }, 500);
+  }
 
-  let body: Record<string, unknown> = {};
+  let body: Record<string, unknown>;
   try {
     const texto = await req.text();
-    if (texto.trim()) {
-      body = JSON.parse(texto);
+    const parseado = texto.trim() ? JSON.parse(texto) : {};
+    if (
+      typeof parseado !== "object" || parseado === null ||
+      Array.isArray(parseado)
+    ) {
+      return json({ error: "El cuerpo debe ser un objeto JSON." }, 400);
     }
+    body = parseado as Record<string, unknown>;
   } catch {
     return json({ error: "Cuerpo inválido." }, 400);
   }
@@ -73,12 +101,13 @@ Deno.serve(async (req) => {
   let vendorData = "";
   let solicitudValidaId: string | null = null;
   let usuarioValidoId: string | null = null;
+  let fotoPerfilUrl: string | null = null;
 
   if (esFlujoUsuario) {
     // Verificación para cuenta de usuario/pasajero
     const { data: perfilUsuario, error: errorPerfil } = await usuario
       .from("usuarios")
-      .select("id, estado_verificacion")
+      .select("id, estado_verificacion, foto_url")
       .eq("auth_user_id", sesion.user.id)
       .maybeSingle();
 
@@ -90,6 +119,7 @@ Deno.serve(async (req) => {
     }
 
     usuarioValidoId = perfilUsuario.id;
+    fotoPerfilUrl = perfilUsuario.foto_url;
     vendorData = `usuario:${perfilUsuario.id}`;
 
     // Expirar verificaciones pendientes previas de este usuario
@@ -133,37 +163,72 @@ Deno.serve(async (req) => {
       .in("estado", ["pendiente", "en_revision"]);
   }
 
-  const respuestaDidit = await fetch(
-    "https://verification.didit.me/v3/session/",
-    {
+  let portraitImage: string | null = null;
+  if (esFlujoUsuario) {
+    portraitImage = await obtenerRetratoDidit(
+      fotoPerfilUrl,
+      url,
+      sesion.user.id,
+    );
+  }
+
+  const payloadDidit = construirPayloadSesionDidit({
+    workflowId: diditWorkflowId,
+    vendorData,
+    callbackUrl,
+    portraitImage,
+  });
+
+  let respuestaDidit: Response;
+  try {
+    respuestaDidit = await fetch(urlSesionDidit(), {
       method: "POST",
       headers: {
+        Accept: "application/json",
         "Content-Type": "application/json",
         "x-api-key": diditApiKey,
       },
-      body: JSON.stringify({
-        workflow_id: diditWorkflowId,
-        vendor_data: vendorData,
-        ...(callbackUrl
-          ? { callback: callbackUrl, callback_method: "both" }
-          : {}),
-        language: "es",
-      }),
-    },
-  );
+      body: JSON.stringify(payloadDidit),
+    });
+  } catch (error) {
+    console.error(
+      "Error de red creando sesión Didit",
+      error instanceof Error ? error.message : error,
+    );
+    return json({
+      error:
+        "No fue posible conectar con el servicio de Didit. Intenta nuevamente.",
+    }, 502);
+  }
 
   if (!respuestaDidit.ok) {
     const detalle = await respuestaDidit.text().catch(() => "");
-    console.error("Error creando sesión Didit", respuestaDidit.status, detalle);
+    const detalleLegible = detalleRespuestaDidit(detalle);
+    console.error(
+      "Error creando sesión Didit",
+      respuestaDidit.status,
+      detalleLegible,
+    );
+    if (
+      respuestaDidit.status === 400 &&
+      /portrait[_ -]?image|portrait image|face match|reference image/i.test(
+        detalleLegible,
+      )
+    ) {
+      return json({
+        error:
+          "Este flujo de Didit requiere una fotografía de perfil para comparar tu rostro. Sube una foto clara y vuelve a intentarlo.",
+      }, 422);
+    }
     return json({
       error: `Error al conectar con Didit (HTTP ${respuestaDidit.status}): ${
-        detalle ||
+        detalleLegible ||
         "Verifica que DIDIT_API_KEY y DIDIT_WORKFLOW_ID sean válidos."
       }`,
     }, 502);
   }
 
-  const datosDidit = (await respuestaDidit.json()) as {
+  let datosDidit: {
     session_id?: string;
     sessionId?: string;
     id?: string;
@@ -171,13 +236,31 @@ Deno.serve(async (req) => {
     verification_url?: string;
     session_url?: string;
   };
+  try {
+    const parseado = await respuestaDidit.json() as unknown;
+    if (
+      typeof parseado !== "object" || parseado === null ||
+      Array.isArray(parseado)
+    ) {
+      return json(
+        { error: "Respuesta inválida del proveedor de identidad." },
+        502,
+      );
+    }
+    datosDidit = parseado as typeof datosDidit;
+  } catch {
+    return json(
+      { error: "Respuesta inválida del proveedor de identidad." },
+      502,
+    );
+  }
 
   const sessionId = datosDidit.session_id ?? datosDidit.sessionId ??
     datosDidit.id ?? "";
   const verificationUrl = datosDidit.url ?? datosDidit.verification_url ??
     datosDidit.session_url ?? "";
 
-  if (!sessionId || !verificationUrl) {
+  if (!sessionId || !esUrlHospedadaDiditValida(verificationUrl)) {
     console.error("Respuesta incompleta de Didit", datosDidit);
     return json(
       { error: "Respuesta incompleta del proveedor de identidad." },
@@ -187,13 +270,15 @@ Deno.serve(async (req) => {
 
   const { error: errorInsert } = await servicio.from(
     "verificaciones_identidad_didit",
-  ).insert({
+  ).upsert({
     solicitud_id: solicitudValidaId,
     usuario_id: usuarioValidoId,
     session_id: sessionId,
     workflow_id: diditWorkflowId,
     estado: "pendiente",
-  });
+    decision: null,
+    procesado_en: null,
+  }, { onConflict: "session_id" });
 
   if (errorInsert) {
     console.error("Error registrando verificación Didit", errorInsert.message);
