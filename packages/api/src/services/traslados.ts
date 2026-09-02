@@ -1,14 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Conductor, Database } from "@ruum/shared/types";
+import type { Database, SolicitudAsignacionResultado } from "@ruum/shared/types";
 import { TRANSICIONES } from "@ruum/shared/states";
-import { esElegibleParaViaje, type TipoRuta } from "@ruum/shared/rules";
 import { calcularCargoCancelacion } from "@ruum/shared/rules";
 import { registrarEvento } from "./auditoria";
 
 type Cliente = SupabaseClient<Database>;
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
-type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
-type TrasladoRow = Database["public"]["Tables"]["traslados"]["Row"];
 type TipoPago = Database["public"]["Enums"]["tipo_pago"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 type EventoConductorTraslado =
@@ -185,8 +182,8 @@ export async function listarTrasladosDeEmpresa(cliente: Cliente, empresaId: stri
 /**
  * PRD §16.3 — Pestaña 1 "Viajes solicitados": viajes ofertados/disponibles
  * para aceptación. Visibilidad mínima por RLS (migración 0018). Esta lista
- * puede traer candidatos visibles; la aceptación se revalida en aceptarViaje()
- * con esElegibleParaViaje() antes de tocar el traslado.
+ * puede traer candidatos visibles; la solicitud se revalida contra la función
+ * central de elegibilidad dentro de PostgreSQL.
  */
 export async function listarViajesDisponibles(cliente: Cliente): Promise<PasaporteRow[]> {
   const { data, error } = await cliente
@@ -212,75 +209,49 @@ export async function listarViajesAceptados(cliente: Cliente, conductorId: strin
   return data ?? [];
 }
 
-function aConductorRegla(fila: ConductorRow): Conductor {
-  return {
-    id: fila.id,
-    nombre: fila.nombre,
-    estado: fila.estado,
-    calificacion_promedio: fila.calificacion_promedio,
-    traslados_completados: fila.traslados_completados,
-    suspensiones_activas: fila.suspensiones_activas,
-    no_presentaciones_6m: fila.no_presentaciones_6m,
-    cancelaciones_sin_justificacion_count: fila.cancelaciones_sin_justificacion_count,
-    documentos_vigentes: fila.documentos_vigentes,
-    certificaciones: [],
-    incidencias_graves_6m: fila.incidencias_graves_6m,
-    incidencias_graves_12m: fila.incidencias_graves_12m,
-    creado_en: fila.creado_en
-  };
-}
-
-function tipoRutaParaElegibilidad(tipoRuta: TrasladoRow["tipo_ruta"]): TipoRuta {
-  if (tipoRuta === "foraneo") return "interurbana_mas_100km";
-  return "intraurbana";
-}
-
-async function validarElegibilidadAceptacion(cliente: Cliente, trasladoId: string, conductorId: string) {
+async function validarIdentidadSolicitud(cliente: Cliente, conductorId: string) {
   const { data: sesion } = await cliente.auth.getUser();
-  if (!sesion.user) throw new Error("Inicia sesión como conductor para aceptar viajes.");
-
-  const [{ data: conductor, error: errorConductor }, { data: traslado, error: errorTraslado }, pasaporte] = await Promise.all([
-    cliente.from("conductores").select("*").eq("id", conductorId).eq("auth_user_id", sesion.user.id).maybeSingle(),
-    cliente.from("traslados").select("*").eq("id", trasladoId).maybeSingle(),
-    obtenerPasaporteDigital(cliente, trasladoId)
-  ]);
-
-  if (errorConductor) throw errorConductor;
-  if (errorTraslado) throw errorTraslado;
-  if (!conductor) throw new Error("No se encontró el conductor para validar elegibilidad.");
-  if (!traslado) throw new Error("No se encontró el traslado para validar elegibilidad.");
-  if (conductor.estado_expediente !== "aprobado") {
-    throw new Error("Tu expediente todavía no está aprobado para aceptar viajes.");
-  }
-  if (traslado.estado !== "pendiente_de_conductor" || traslado.conductor_id !== null) {
-    throw new Error("El viaje ya no está disponible para aceptación.");
-  }
-
-  const tipoVehiculo = pasaporte?.vehiculo_tipo ?? "sedan";
-  const resultado = esElegibleParaViaje(
-    aConductorRegla(conductor),
-    tipoVehiculo,
-    tipoRutaParaElegibilidad(traslado.tipo_ruta)
-  );
-  if (!resultado.elegible) {
-    throw new Error(`Conductor no elegible para este viaje: ${resultado.motivo ?? "no cumple los requisitos"}`);
-  }
+  if (!sesion.user) throw new Error("Inicia sesión como conductor para solicitar traslados.");
+  const { data, error } = await cliente
+    .from("conductores")
+    .select("id")
+    .eq("id", conductorId)
+    .eq("auth_user_id", sesion.user.id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("No se encontró el conductor autenticado.");
 }
 
 /**
- * PRD §16.3 — botón "aceptar" sobre un viaje disponible. Transición
- * pendiente_de_conductor -> conductor_asignado (ver TRANSICIONES, único
- * salto válido desde ese estado además de servicio_cancelado, que no
- * corresponde a una acción del conductor).
+ * ADR-003 — registra al conductor en la competencia. La asignación sucede al
+ * cerrar la ventana y siempre dentro de la transacción del servidor.
  */
-export async function aceptarViaje(cliente: Cliente, trasladoId: string, conductorId: string) {
-  await validarElegibilidadAceptacion(cliente, trasladoId, conductorId);
-
-  const { error } = await cliente.rpc("conductor_acepta_viaje", { p_traslado_id: trasladoId });
+export async function solicitarAsignacionViaje(
+  cliente: Cliente,
+  trasladoId: string,
+  conductorId: string,
+  ubicacion?: { lat: number; lng: number } | null
+): Promise<SolicitudAsignacionResultado> {
+  await validarIdentidadSolicitud(cliente, conductorId);
+  const { data, error } = await cliente.rpc("conductor_solicita_asignacion" as never, {
+    p_traslado_id: trasladoId,
+    p_lat: ubicacion?.lat ?? null,
+    p_lng: ubicacion?.lng ?? null
+  } as never);
 
   if (error) {
-    throw new Error(error.message || "El viaje ya no está disponible para aceptación.");
+    throw new Error(error.message || "No se pudo registrar la solicitud de asignación.");
   }
+  const resultado = data as unknown as SolicitudAsignacionResultado;
+  if (!resultado?.competencia_id || !resultado?.cierra_en) {
+    throw new Error("La respuesta de la competencia de asignación es inválida.");
+  }
+  return resultado;
+}
+
+/** @deprecated Usa solicitarAsignacionViaje; se conserva para clientes internos antiguos. */
+export async function aceptarViaje(cliente: Cliente, trasladoId: string, conductorId: string) {
+  return solicitarAsignacionViaje(cliente, trasladoId, conductorId, null);
 }
 
 function horasRestantes(fechaIso: string | null) {

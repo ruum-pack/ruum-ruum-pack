@@ -12,11 +12,11 @@
  * siguen existiendo, pero nuevo código debe usar el repositorio.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@ruum/shared/types";
+import type { Database, SolicitudAsignacionResultado } from "@ruum/shared/types";
 import {
   rpcValidado,
   esquemaConductorAvanzaTraslado,
-  esquemaConductorAceptaViaje,
+  esquemaConductorSolicitaAsignacion,
   esquemaGuardarDatosBancarios,
 } from "./_rpc-validado";
 
@@ -31,8 +31,8 @@ export interface ConductorRepository {
   obtenerPorId(conductorId: string): Promise<ConductorRow | null>;
   /** Guarda datos bancarios vía RPC tipada y validada */
   guardarDatosBancarios(args: { titularCuenta: string; banco: string; clabe: string; numeroTarjeta?: string | null }): Promise<unknown>;
-  /** Acepta viaje disponible (valida elegibilidad igual que traslados.ts) */
-  aceptarViaje(trasladoId: string): Promise<void>;
+  /** Solicita participar en la competencia de asignación ADR-003. */
+  aceptarViaje(trasladoId: string): Promise<SolicitudAsignacionResultado>;
   /** Avanza traslado al siguiente evento validado por Zod */
   avanzarTraslado(trasladoId: string, evento: typeof esquemaConductorAvanzaTraslado._type["p_evento"]): Promise<unknown>;
   /** Lista pasaportes del conductor */
@@ -73,8 +73,15 @@ export function createConductorRepository(cliente: Cliente): ConductorRepository
     },
 
     async aceptarViaje(trasladoId: string) {
-      const { error } = await rpcValidado(cliente, "conductor_acepta_viaje", esquemaConductorAceptaViaje, { p_traslado_id: trasladoId });
-      if (error) throw new Error((error as { message?: string }).message || "El viaje ya no está disponible para aceptación.");
+      const { data, error } = await rpcValidado<typeof esquemaConductorSolicitaAsignacion, SolicitudAsignacionResultado>(
+        cliente,
+        "conductor_solicita_asignacion",
+        esquemaConductorSolicitaAsignacion,
+        { p_traslado_id: trasladoId, p_lat: null, p_lng: null }
+      );
+      if (error) throw new Error((error as { message?: string }).message || "No se pudo solicitar el traslado.");
+      if (!data) throw new Error("La competencia no devolvió una solicitud válida.");
+      return data;
     },
 
     async avanzarTraslado(trasladoId: string, evento) {

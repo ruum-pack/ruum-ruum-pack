@@ -14,4 +14,5 @@ export * from "./pasaporte";
 export * from "./calificacion";
 export * from "./cancelacion";
 export * from "./empresa";
+export * from "./asignacion";
 export * from "./supabase";

@@ -45,6 +45,34 @@ export type CausaFallido =
   | "documentacion"
   | "vehiculo_no_circulable";
 
+// Origen -> Escalas/Tareas (hasta 8) -> Destino — Opción A
+export type TipoParada = "escala" | "tarea";
+export type TipoTareaParada = "entrega_parcial" | "recoleccion" | "tramite" | "inspeccion" | "carga_descarga" | "otro";
+
+export interface TrasladoParada {
+  id: string;
+  traslado_id: string;
+  orden: number;
+  tipo: TipoParada;
+  calle: string;
+  numero: string;
+  colonia: string;
+  codigo_postal: string;
+  estado: string;
+  ciudad: string;
+  direccion: string;
+  referencias?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  tipo_tarea?: TipoTareaParada | null;
+  contacto_nombre?: string | null;
+  contacto_telefono?: string | null;
+  instrucciones?: string | null;
+  requiere_evidencia: boolean;
+  tiempo_espera_min?: number | null;
+  creado_en: string;
+}
+
 // PRD §4.6 — momento de cobro
 export type TipoPago = "anticipado" | "al_cierre";
 

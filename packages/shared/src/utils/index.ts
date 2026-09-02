@@ -15,3 +15,5 @@ export * from "./traducir-error-operativo";
 export * from "./validar-destino-seguro";
 export * from "./validar-documentos";
 export * from "./validar-imagen";
+export * from "./csv-masivos";
+export * from "./p-limit";

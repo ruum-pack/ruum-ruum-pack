@@ -55,6 +55,14 @@ export const esquemaConductorAceptaViaje = z.object({
   p_traslado_id: esquemaUuid,
 });
 
+export const esquemaConductorSolicitaAsignacion = z.object({
+  p_traslado_id: esquemaUuid,
+  p_lat: z.number().min(-90).max(90).nullable(),
+  p_lng: z.number().min(-180).max(180).nullable(),
+}).refine((valor) => (valor.p_lat === null) === (valor.p_lng === null), {
+  message: "La ubicación debe incluir latitud y longitud",
+});
+
 export const esquemaGuardarDatosBancarios = z.object({
   p_titular_cuenta: z.string().trim().min(3, "Titular requerido"),
   p_banco: z.string().trim().min(2, "Banco requerido"),

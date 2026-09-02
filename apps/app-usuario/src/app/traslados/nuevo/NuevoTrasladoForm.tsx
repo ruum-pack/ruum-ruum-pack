@@ -1762,6 +1762,22 @@ export function NuevoTrasladoForm() {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-surface border border-border px-3 py-1 text-text-secondary">💾 Guardado automático</span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-route-soft border border-route/20 px-3 py-1 text-route-dark">🔒 Pago seguro con Stripe</span>
         </div>
+
+        <div className="mt-4 p-3.5 rounded-xl border border-[#FFC400]/30 bg-[#FFC400]/5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-xs">
+            <span className="text-lg" aria-hidden="true">📁</span>
+            <div>
+              <p className="font-bold text-text-primary">¿Tienes varios vehículos?</p>
+              <p className="text-[#8E9CAE] text-[11px]">Crea hasta 100 traslados a la vez con un archivo CSV</p>
+            </div>
+          </div>
+          <Link
+            href="/traslados/masivo"
+            className="text-xs font-bold text-[#FFC400] hover:text-[#e6b000] whitespace-nowrap underline transition"
+          >
+            Carga masiva CSV →
+          </Link>
+        </div>
         {/* Slim sticky progress visible en móvil al hacer scroll */}
         <div className="sticky top-0 z-10 -mx-4 mt-4 h-1 bg-surface-elevated sm:hidden" aria-hidden>
           <div className="h-full bg-signal transition-all duration-300" style={{ width: `${((paso + 1) / PASOS.length) * 100}%` }} />

@@ -278,13 +278,20 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
       </section>
 
       {/* 3. Botón de Acción Principal: + SOLICITAR TRASLADO */}
-      <section>
+      <section className="space-y-2">
         <Link
           href="/traslados/nuevo"
           className="flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#FFC400] px-4 font-display text-sm sm:text-base font-extrabold uppercase tracking-wide text-[#0B111B] shadow-lg shadow-[#FFC400]/15 transition hover:bg-[#e6b000] active:scale-[0.98]"
         >
           <IconoPlus className="size-5 text-[#0B111B]" />
           <span>SOLICITAR TRASLADO</span>
+        </Link>
+        <Link
+          href="/traslados/masivo"
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#1C2A3E] bg-[#0A1220]/95 px-4 font-display text-xs font-bold uppercase tracking-wider text-[#8E9CAE] transition hover:border-[#FFC400]/40 hover:text-[#FFC400]"
+        >
+          <span className="text-sm">📁</span>
+          <span>CARGA MASIVA POR ARCHIVO CSV</span>
         </Link>
       </section>
 

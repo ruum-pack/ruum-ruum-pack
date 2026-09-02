@@ -12,3 +12,4 @@ export * from "./sla-verificacion";
 export * from "./limite-empresa";
 export * from "./cancelacion-conductor";
 export * from "./chat-disponible";
+export * from "./asignacion-traslado";
