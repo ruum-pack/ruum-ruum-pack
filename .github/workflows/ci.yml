@@ -130,6 +130,7 @@ jobs:
       PLAYWRIGHT_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://ci.supabase.test' }}
       PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || 'ci-service-role' }}
       PLAYWRIGHT_BASE_URL: http://localhost:3001
+      PLAYWRIGHT_SKIP_WEBSERVER: "1"
       NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
       NEXT_PUBLIC_APP_VERSION: 1.0.0
