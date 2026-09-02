@@ -8,7 +8,7 @@ import { ETIQUETA_TIPO_VEHICULO, TEXTOS_CARGANDO, type MotivoRechazo } from "@ru
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
-import { aceptarViaje, registrarEvento } from "@ruum/api/services";
+import { solicitarAsignacionViaje, registrarEvento } from "@ruum/api/services";
 import { obtenerUbicacionActualConEstado, distanciaMetrosEntre, type Coordenadas } from "../../../lib/ubicacion";
 import { nombreVehiculo } from "../trips-utils";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
@@ -36,6 +36,8 @@ export function TripOpportunityDetails({
   const [error, setError] = useState<string | null>(null);
   const [avisoExito, setAvisoExito] = useState<string | null>(null);
   const [ofertaTomada, setOfertaTomada] = useState(false);
+  const [conductorId, setConductorId] = useState<string | null>(null);
+  const [solicitudEnviada, setSolicitudEnviada] = useState(false);
   const [posicionConductor, setPosicionConductor] = useState<Coordenadas | null>(null);
   const [calculandoAproximacion, setCalculandoAproximacion] = useState(true);
   const [mostrarModalRechazo, setMostrarModalRechazo] = useState(false);
@@ -66,7 +68,12 @@ export function TripOpportunityDetails({
         (payload: { new: { conductor_id?: string | null; estado?: string | null } }) => {
           const nuevo = payload.new;
           if (nuevo && nuevo.conductor_id && nuevo.estado !== "pendiente_de_conductor") {
-            setOfertaTomada(true);
+            if (conductorId && nuevo.conductor_id === conductorId) {
+              setAvisoExito("El traslado fue asignado a tu cuenta. Abriendo el flujo operativo...");
+              router.push(`/viajes?vista=mis-viajes`);
+            } else {
+              setOfertaTomada(true);
+            }
           }
         }
       )
@@ -75,7 +82,7 @@ export function TripOpportunityDetails({
     return () => {
       cliente.removeChannel(canal);
     };
-  }, [trasladoId]);
+  }, [trasladoId, conductorId, router]);
 
   // Si el viaje ya está asignado o no está pendiente, redirigir al flujo activo
   useEffect(() => {
@@ -91,6 +98,7 @@ export function TripOpportunityDetails({
           .eq("auth_user_id", session.user.id)
           .maybeSingle();
 
+        if (cond) setConductorId(cond.id);
         if (cond && pasaporte.conductor_id === cond.id) {
           router.replace(`/viajes/${trasladoId}`);
         }
@@ -99,9 +107,7 @@ export function TripOpportunityDetails({
       }
     }
 
-    if (pasaporte.conductor_id || pasaporte.estado !== "pendiente_de_conductor") {
-      void verificarAsignacion();
-    }
+    void verificarAsignacion();
   }, [pasaporte.conductor_id, pasaporte.estado, trasladoId, router]);
 
   // 3. Cálculo real de aproximación GPS
@@ -188,11 +194,16 @@ export function TripOpportunityDetails({
         throw new Error("No se encontró tu perfil de conductor en el sistema.");
       }
 
-      await aceptarViaje(cliente, trasladoId, conductorData.id);
-      setAvisoExito("¡Traslado aceptado con éxito! Redirigiendo a tus traslados aceptados...");
-      setTimeout(() => {
-        router.push(`/viajes?vista=mis-viajes`);
-      }, 900);
+      setConductorId(conductorData.id);
+      const resultado = await solicitarAsignacionViaje(cliente, trasladoId, conductorData.id, posicionConductor);
+      const cierre = new Date(resultado.cierra_en).toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+      setSolicitudEnviada(true);
+      setAvisoExito(`Solicitud registrada. La competencia cierra a las ${cierre}; te avisaremos si eres seleccionado.`);
+      setProcesando(false);
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos aceptar el traslado."));
       setProcesando(false);
@@ -277,7 +288,7 @@ export function TripOpportunityDetails({
         {/* GANANCIA DESTACADA */}
         <div className="flex flex-col items-center bg-surface-elevated rounded-3xl p-5 border border-border/20 shadow-xs">
           <span className="font-mono text-xs font-extrabold tracking-widest mb-2 px-3 py-1 rounded-full border text-text-primary border-border/60 bg-surface uppercase">
-            ACEPTA O RECHAZA
+            SOLICITA O RECHAZA
           </span>
 
           <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-widest mt-1">
@@ -464,16 +475,16 @@ export function TripOpportunityDetails({
         <button
           type="button"
           onClick={handleAceptar}
-          disabled={procesando || ofertaTomada}
+          disabled={procesando || ofertaTomada || solicitudEnviada}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-signal hover:bg-signal/85 px-4 min-h-[52px] font-display text-sm font-black tracking-widest text-slate-950 uppercase shadow-md active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
-          {procesando ? TEXTOS_CARGANDO.actualizando : "ACEPTAR TRASLADO →"}
+          {procesando ? TEXTOS_CARGANDO.actualizando : solicitudEnviada ? "SOLICITUD REGISTRADA" : "SOLICITAR ASIGNACIÓN →"}
         </button>
 
         <button
           type="button"
           onClick={() => setMostrarModalRechazo(true)}
-          disabled={procesando || ofertaTomada}
+          disabled={procesando || ofertaTomada || solicitudEnviada}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-surface-elevated hover:bg-surface border border-danger/40 hover:border-danger text-danger px-4 min-h-[48px] font-display text-xs font-black tracking-widest uppercase transition-all cursor-pointer select-none"
         >
           RECHAZAR TRASLADO

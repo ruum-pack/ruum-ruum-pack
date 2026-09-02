@@ -183,3 +183,22 @@ export async function calcularRutaMapbox(
   if (ruta?.distanciaKm == null || ruta?.tiempoHoras == null) return null;
   return { distanciaKm: ruta.distanciaKm, tiempoEstimadoHoras: ruta.tiempoHoras };
 }
+
+export async function calcularRutaMapboxConParadas(
+  origen: CoordenadasGeocodificadas,
+  destino: CoordenadasGeocodificadas,
+  paradas: CoordenadasGeocodificadas[]
+): Promise<RutaMapboxCalculada | null> {
+  const token = obtenerTokenPublico();
+  if (!tieneMapboxConfigurado() || !token) return null;
+  const { obtenerRutaDirectionsMapboxConParadas } = await import("@ruum/shared/utils");
+  const ruta = await obtenerRutaDirectionsMapboxConParadas(
+    [origen.lng, origen.lat],
+    [destino.lng, destino.lat],
+    paradas.map((p) => [p.lng, p.lat] as [number, number]),
+    token,
+    { lanzarErrores: true }
+  );
+  if (ruta?.distanciaKm == null || ruta?.tiempoHoras == null) return null;
+  return { distanciaKm: ruta.distanciaKm, tiempoEstimadoHoras: ruta.tiempoHoras };
+}

@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { calcularRutaMapbox, geocodificarDireccion } from "../../../../lib/mapbox";
+import { calcularRutaMapbox, calcularRutaMapboxConParadas, geocodificarDireccion } from "../../../../lib/mapbox";
 
 export function useGeocodificacion() {
   // useCallback con deps vacías: geocodificarRuta debe mantener la misma
@@ -27,5 +27,32 @@ export function useGeocodificacion() {
     },
     []
   );
-  return { geocodificarRuta };
+  const geocodificarRutaConParadas = useCallback(
+    async (origen: string, destino: string, paradas: string[], origenActual?: { lat: number; lng: number }) => {
+      const [origenResuelto, destinoResuelto, ...paradasResueltas] = await Promise.all([
+        origenActual ? Promise.resolve(origenActual) : geocodificarDireccion(origen),
+        geocodificarDireccion(destino),
+        ...paradas.map((p) => geocodificarDireccion(p))
+      ]);
+      const todasResueltas = origenResuelto && destinoResuelto && paradasResueltas.every(Boolean);
+      let ruta = null;
+      if (origenResuelto && destinoResuelto) {
+        if (paradasResueltas.length > 0 && paradasResueltas.every(Boolean)) {
+          ruta = await calcularRutaMapboxConParadas(origenResuelto, destinoResuelto, paradasResueltas as { lat: number; lng: number }[]);
+        } else if (paradasResueltas.length === 0) {
+          ruta = await calcularRutaMapbox(origenResuelto, destinoResuelto);
+        }
+      }
+      return {
+        origenLat: origenResuelto?.lat, origenLng: origenResuelto?.lng,
+        destinoLat: destinoResuelto?.lat, destinoLng: destinoResuelto?.lng,
+        paradasCoords: paradasResueltas.map((p) => (p ? { lat: p.lat, lng: p.lng } : {})),
+        distanciaKm: ruta?.distanciaKm,
+        tiempoEstimadoHoras: ruta?.tiempoEstimadoHoras,
+        incompletas: !todasResueltas
+      };
+    },
+    []
+  );
+  return { geocodificarRuta, geocodificarRutaConParadas };
 }

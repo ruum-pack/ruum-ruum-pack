@@ -24,10 +24,11 @@ import {
 } from "../../../lib/borrador-traslado";
 import { NavegacionUsuario } from "../../NavegacionUsuario";
 import { esquemaSolicitudTraslado, erroresFormulario } from "./schema";
-import type { CondicionVehiculo, DatosFormulario, ErroresFormulario, ModalidadProgramacion, MotivoServicioTraslado, TipoRutaTraslado, TipoServicioTraslado, TransmisionVehiculo, VehiculoGuardado } from "./types";
+import type { CondicionVehiculo, DatosFormulario, ErroresFormulario, ModalidadProgramacion, MotivoServicioTraslado, ParadaForm, TipoRutaTraslado, TipoServicioTraslado, TransmisionVehiculo, VehiculoGuardado } from "./types";
 import { useGeocodificacion } from "./hooks/useGeocodificacion";
 import { useNuevoTraslado } from "./hooks/useNuevoTraslado";
 import { EstadoCreacion } from "./components/EstadoCreacion";
+import { EscalasAcordeon } from "./components/EscalasAcordeon";
 import { AYUDAS_CAMPOS, normalizarTerminoUsuario } from "../../../lib/glosario";
 
 const PASOS = ["¿Qué vehículo trasladamos?", "¿Dónde lo recogemos y llevamos?", "¿Cuándo lo trasladamos?", "Pago"] as const;
@@ -38,7 +39,8 @@ const CAMPOS_PASO_VEHICULO = new Set([...CAMPOS_PASO_VEHICULO_ESENCIAL, ...CAMPO
 const CAMPOS_PASO_RUTA = new Set([
   "origenCodigoPostal", "origenEstado", "origenCiudad", "origenColonia", "origenCalle", "origenNumero",
   "destinoCodigoPostal", "destinoEstado", "destinoCiudad", "destinoColonia", "destinoCalle", "destinoNumero",
-  "entregaNombre", "entregaApellido", "entregaTelefono", "recepcionNombre", "recepcionApellido", "recepcionTelefono"
+  "entregaNombre", "entregaApellido", "entregaTelefono", "recepcionNombre", "recepcionApellido", "recepcionTelefono",
+  "paradas"
 ]);
 const CAMPOS_RUTA_ORIGEN = new Set([
   "origenCodigoPostal", "origenEstado", "origenCiudad", "origenColonia", "origenCalle", "origenNumero"
@@ -184,7 +186,8 @@ const VALORES_INICIALES: DatosFormulario = {
   ventanaRecoleccion: "",
   ventanaEntrega: "",
   tipoServicio: "personal",
-  motivoServicio: "entrega_cliente"
+  motivoServicio: "entrega_cliente",
+  paradas: []
 };
 
 // Usuario sin historial (PRD §4.6): valor temporal mientras se confirma
@@ -462,7 +465,7 @@ function CampoCodigoPostal({
 }
 
 export function NuevoTrasladoForm() {
-  const { geocodificarRuta } = useGeocodificacion();
+  const { geocodificarRuta, geocodificarRutaConParadas } = useGeocodificacion();
   const { crear: crearNuevoTraslado } = useNuevoTraslado();
   const router = useRouter();
   const [paso, setPaso] = useState(0);
@@ -529,6 +532,7 @@ export function NuevoTrasladoForm() {
     origenLng?: number;
     destinoLat?: number;
     destinoLng?: number;
+    paradasCoords?: Array<{ lat?: number; lng?: number }>;
     distanciaKm?: number;
     tiempoEstimadoHoras?: number;
     incompletas: boolean;
@@ -665,6 +669,7 @@ export function NuevoTrasladoForm() {
   // de que el debounce de 650ms terminara, el cálculo se cancelaba (cleanup
   // del efecto al cambiar de paso) y nunca se reintentaba -- la tarifa se
   // quedaba sin calcular para siempre porque dependía de esta ruta.
+  // Ahora incluye paradas intermedias (hasta 8) para cálculo Origen -> paradas -> Destino con waypoints.
   useEffect(() => {
     const origenDireccion = domicilioCompleto({
       calle: datos.origenCalle,
@@ -682,6 +687,9 @@ export function NuevoTrasladoForm() {
       ciudad: datos.destinoCiudad,
       estado: datos.destinoEstado
     });
+    const paradasDirecciones = (datos.paradas ?? []).map((p) => domicilioCompleto({
+      calle: p.calle, numero: p.numero, colonia: p.colonia, codigoPostal: p.codigoPostal, ciudad: p.ciudad, estado: p.estado
+    }));
 
     if (!origenDireccion.trim() || !destinoDireccion.trim()) {
       const timer = setTimeout(() => {
@@ -697,17 +705,25 @@ export function NuevoTrasladoForm() {
       setRutaCalculando(true);
       setRutaAviso(null);
       try {
-        const coordenadas = await geocodificarRuta(
-          origenDireccion,
-          destinoDireccion,
-          datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined
-        );
+        const usarParadas = paradasDirecciones.some((d) => d.trim());
+        const coordenadas = usarParadas
+          ? await geocodificarRutaConParadas(
+              origenDireccion,
+              destinoDireccion,
+              paradasDirecciones,
+              datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined
+            )
+          : await geocodificarRuta(
+              origenDireccion,
+              destinoDireccion,
+              datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined
+            );
         if (cancelado) return;
-        setRutaEstimacion(coordenadas);
+        setRutaEstimacion(coordenadas as typeof rutaEstimacion);
         if (coordenadas.incompletas) {
           setRutaAviso(
             tieneMapboxConfigurado()
-              ? "No pudimos resolver una de las direcciones. Revisa calle, número, colonia y CP."
+              ? "No pudimos resolver una de las direcciones (origen, destino o alguna parada). Revisa calle, número, colonia y CP."
               : "Mapbox no está configurado; se guardará la solicitud sin distancia ni tiempo estimado."
           );
         } else if (coordenadas.distanciaKm === undefined || coordenadas.tiempoEstimadoHoras === undefined) {
@@ -730,7 +746,10 @@ export function NuevoTrasladoForm() {
   }, [
     datos.origenCalle, datos.origenNumero, datos.origenColonia, datos.origenCodigoPostal, datos.origenCiudad, datos.origenEstado,
     datos.destinoCalle, datos.destinoNumero, datos.destinoColonia, datos.destinoCodigoPostal, datos.destinoCiudad, datos.destinoEstado,
-    datos.origenLat, datos.origenLng, geocodificarRuta
+    // dependencias de paradas aplanadas para que cualquier cambio de domicilio de parada dispare recalculo
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    JSON.stringify(datos.paradas.map((p) => [p.calle, p.numero, p.colonia, p.codigoPostal, p.ciudad, p.estado].join("|"))),
+    datos.origenLat, datos.origenLng, geocodificarRuta, geocodificarRutaConParadas
   ]);
 
   // Sprint 1 — tarifa temprana: calcula en vivo apenas hay vehículo + ruta, sin esperar al paso 2.
@@ -1066,42 +1085,26 @@ export function NuevoTrasladoForm() {
   }
 
   function BloqueRuta() {
-    const hayErroresOrigen = Object.keys(errores).some((campo) => CAMPOS_RUTA_ORIGEN.has(campo));
-    const hayErroresDestinoContactos = Object.keys(errores).some((campo) => CAMPOS_RUTA_DESTINO_CONTACTOS.has(campo));
+    // Errores de paradas para el acordeón
+    const erroresParadas = (() => {
+      const res = esquemaSolicitudTraslado.safeParse(datosParaValidacion());
+      if (res.success) return undefined;
+      const byIdx: Array<Partial<Record<keyof ParadaForm, string>>> = [];
+      for (const issue of res.error.issues) {
+        if (issue.path[0] === "paradas" && typeof issue.path[1] === "number") {
+          const idx = issue.path[1] as number;
+          const field = String(issue.path[2] ?? "calle") as keyof ParadaForm;
+          byIdx[idx] = { ...byIdx[idx], [field]: issue.message };
+        }
+      }
+      return byIdx.length ? byIdx : undefined;
+    })();
 
     return (
-      <div className="grid gap-4">
+      <div className="grid gap-6">
         <p className="font-body text-sm font-semibold">¿De dónde sale y a dónde llega?</p>
-
-        <div className="grid grid-cols-2 gap-2 rounded-xl border border-ink/10 bg-mist p-1" aria-label="Secciones de origen y destino">
-          <button
-            type="button"
-            aria-pressed={subpasoRuta === "origen"}
-            onClick={() => setSubpasoRuta("origen")}
-            className={[
-              "rounded-lg px-3 py-2.5 text-left font-body text-sm font-semibold transition focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-dark",
-              subpasoRuta === "origen" ? "bg-signal text-ink shadow-sm" : "text-ink/65 hover:bg-ink/[0.04] hover:text-ink"
-            ].join(" ")}
-          >
-            Origen
-            {hayErroresOrigen && <span className="ml-2 text-danger" aria-label="con errores">•</span>}
-          </button>
-          <button
-            type="button"
-            aria-pressed={subpasoRuta === "destino_contactos"}
-            onClick={() => setSubpasoRuta("destino_contactos")}
-            className={[
-              "rounded-lg px-3 py-2.5 text-left font-body text-sm font-semibold transition focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-dark",
-              subpasoRuta === "destino_contactos" ? "bg-signal text-ink shadow-sm" : "text-ink/65 hover:bg-ink/[0.04] hover:text-ink"
-            ].join(" ")}
-          >
-            Destino y contactos
-            {hayErroresDestinoContactos && <span className="ml-2 text-danger" aria-label="con errores">•</span>}
-          </button>
-        </div>
-
-        {subpasoRuta === "origen" && (
-          <div className="grid gap-4" aria-label="Origen del traslado">
+        {/* Origen — siempre visible, ancla superior */}
+        <div className="grid gap-4" aria-label="Origen del traslado">
             <div className="rounded-lg border border-signal/30 bg-signal/10 p-3">
               <label className="font-body text-xs font-semibold text-ink">Busca tu dirección (autocompleta calle, colonia y CP)</label>
               <div className="relative mt-2">

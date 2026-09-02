@@ -89,6 +89,15 @@ export interface DatosVehiculoNuevo {
 
 export type DatosVehiculoParaTraslado = { vehiculoId: string } | { vehiculo: DatosVehiculoNuevo };
 
+export interface DatosParadaParaTraslado {
+  tipo: "escala" | "tarea";
+  calle: string; numero: string; colonia: string; codigo_postal: string; estado: string; ciudad: string;
+  direccion: string; referencias?: string | null;
+  lat: number | null; lng: number | null;
+  tipo_tarea?: string | null; contacto_nombre?: string | null; contacto_telefono?: string | null;
+  instrucciones?: string | null; requiere_evidencia: boolean; tiempo_espera_min?: number | null;
+}
+
 /**
  * PRD §4.1 — crea la solicitud de traslado (estado inicial: solicitud_creada).
  *
@@ -99,12 +108,13 @@ export type DatosVehiculoParaTraslado = { vehiculoId: string } | { vehiculo: Dat
  * usuario autenticado (antes solo se filtraba por RLS de SELECT al listarlo,
  * pero nada impedía mandar un UUID ajeno directo al insert de traslados).
  */
-export async function crearTraslado(cliente: Cliente, vehiculo: DatosVehiculoParaTraslado, traslado: DatosNuevoTraslado, claveIdempotencia: string) {
+export async function crearTraslado(cliente: Cliente, vehiculo: DatosVehiculoParaTraslado, traslado: DatosNuevoTraslado, claveIdempotencia: string, paradas: DatosParadaParaTraslado[] = []) {
   const { data, error } = await cliente.rpc("usuario_crea_traslado", {
     p_vehiculo_id: ("vehiculoId" in vehiculo ? vehiculo.vehiculoId : null) as never,
     p_vehiculo: ("vehiculo" in vehiculo ? vehiculo.vehiculo : null) as never,
     p_traslado: traslado as never,
-    p_clave_idempotencia: claveIdempotencia
+    p_clave_idempotencia: claveIdempotencia,
+    p_paradas: paradas as never
   });
 
   if (error) throw error;

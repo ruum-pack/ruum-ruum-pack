@@ -1,9 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, EstadoDocumentoConductor } from "@ruum/shared/types";
 import { transicionValida } from "@ruum/shared/states";
-import { evidenciaCompleta, esElegibleParaViaje } from "@ruum/shared/rules";
+import { evidenciaCompleta } from "@ruum/shared/rules";
 import { consecuenciaCancelacionConductor, consecuenciaNoPresentacion, clasificarTrasladoFallido } from "@ruum/shared/rules";
-import type { FotoEvidencia, Conductor } from "@ruum/shared/types";
+import type { FotoEvidencia } from "@ruum/shared/types";
 import { registrarEvento, generarTraceId } from "./auditoria";
 import { assertAdminAnyPermission, assertAdminPermission } from "./permisos-admin";
 
@@ -3043,98 +3043,20 @@ export async function actualizarReclamoSeguroAdmin(
   if (error) throw error;
 }
 
-// PRD §6 — único camino real hacia "conductor_asignado" (sin atajos, ver
-// TRANSICIONES). Antes de la decisión de producto del 2026-06-29, asignar
-// un conductor en cualquier estado anterior a pendiente_de_conductor dejaba
-// el viaje en un limbo: conductor_id quedaba asignado, pero el estado nunca
-// avanzaba, así que el conductor no veía ninguna acción disponible en su
-// pantalla (encontrado probando con un conductor y usuario reales).
-const CADENA_HASTA_CONDUCTOR_ASIGNADO: EstadoTraslado[] = [
-  "solicitud_creada",
-  "documentacion_pendiente",
-  "documentacion_en_revision",
-  "documentacion_validada",
-  "cotizacion_generada",
-  "servicio_confirmado",
-  "pendiente_de_conductor",
-  "conductor_asignado"
-];
-
 /**
- * Decisión de producto (2026-06-29): al asignar un conductor desde
- * panel-admin, el viaje SIEMPRE avanza hasta "conductor_asignado" — sin
- * importar en qué paso intermedio estuviera (documentación, cotización,
- * etc.). Recorre la cadena real un salto a la vez (cada uno válido contra
- * el mismo trigger de Postgres que ya protege la tabla), en vez de saltar
- * directo — así nunca se viola la máquina de estados real.
- *
- * Si el viaje ya pasó "conductor_asignado" (ya está en tránsito o más
- * adelante), o está en una rama terminal (cancelado/fallido), se rechaza
- * explícitamente: reasignar conductor a media ruta es un caso distinto,
- * fuera de alcance de este fix.
+ * ADR-003: contingencia manual. No permite saltar documentación, cotización
+ * ni pago; PostgreSQL revalida la misma elegibilidad que el motor automático.
  */
-function aConductorRegla(fila: ConductorRow): Conductor {
-  return {
-    id: fila.id,
-    nombre: fila.nombre,
-    estado: fila.estado,
-    calificacion_promedio: fila.calificacion_promedio,
-    traslados_completados: fila.traslados_completados,
-    suspensiones_activas: fila.suspensiones_activas,
-    no_presentaciones_6m: fila.no_presentaciones_6m,
-    cancelaciones_sin_justificacion_count: fila.cancelaciones_sin_justificacion_count,
-    documentos_vigentes: fila.documentos_vigentes,
-    certificaciones: [],
-    incidencias_graves_6m: fila.incidencias_graves_6m,
-    incidencias_graves_12m: fila.incidencias_graves_12m,
-    creado_en: fila.creado_en
-  };
-}
-
-function tipoRutaParaElegibilidad(tipoRuta: string | null): "intraurbana" | "interurbana_mas_100km" {
-  if (tipoRuta === "foraneo") return "interurbana_mas_100km";
-  return "intraurbana";
-}
-
 export async function asignarConductorAdmin(
   cliente: Cliente,
   trasladoId: string,
   conductorId: string,
   estadoActual: EstadoTraslado
 ) {
-  if (estadoActual !== "conductor_asignado" && !CADENA_HASTA_CONDUCTOR_ASIGNADO.includes(estadoActual)) {
-    throw new Error(
-      `No se puede asignar conductor desde el estado "${estadoActual}" — ese estado no forma parte del camino hacia conductor_asignado (¿el viaje ya está en tránsito, cancelado, o fallido?).`
-    );
+  if (estadoActual !== "pendiente_de_conductor" && estadoActual !== "conductor_asignado") {
+    throw new Error("La asignación manual solo está disponible cuando el traslado espera conductor o requiere reasignación antes de iniciar.");
   }
-
-  const [conductor, traslado] = await Promise.all([
-    cliente.from("conductores").select("*").eq("id", conductorId).maybeSingle(),
-    cliente.from("traslados").select("id, tipo_ruta, vehiculo_id").eq("id", trasladoId).maybeSingle()
-  ]);
-
-  if (conductor.error) throw conductor.error;
-  if (traslado.error) throw traslado.error;
-  if (!conductor.data) throw new Error("Conductor no encontrado.");
-  if (!traslado.data) throw new Error("Traslado no encontrado.");
-
-  if (conductor.data.estado_expediente !== "aprobado") {
-    throw new Error("El conductor no tiene el expediente aprobado para asignarle viajes.");
-  }
-
-  const { data: vehiculo } = await cliente.from("vehiculos").select("tipo").eq("id", traslado.data.vehiculo_id).maybeSingle();
-  if (!vehiculo) throw new Error("El traslado no tiene un vehículo asociado.");
-
-  const resultado = esElegibleParaViaje(
-    aConductorRegla(conductor.data),
-    vehiculo.tipo,
-    tipoRutaParaElegibilidad(traslado.data.tipo_ruta)
-  );
-
-  if (!resultado.elegible) {
-    throw new Error(`Restricción de elegibilidad: ${resultado.motivo ?? "El conductor no cumple los requisitos para este viaje."}`);
-  }
-
+  await assertAdminPermission(cliente, "viajes:gestionar");
   const { error } = await cliente.rpc("admin_asigna_conductor", {
     p_traslado_id: trasladoId,
     p_conductor_id: conductorId

@@ -32,7 +32,18 @@ export async function obtenerRutaDirectionsMapbox(
   tokenAcceso: string,
   opciones: { lanzarErrores?: boolean; timeoutMs?: number } = {}
 ): Promise<RutaDirectionsMapbox | null> {
-  const coordenadas = `${origen[0]},${origen[1]};${destino[0]},${destino[1]}`;
+  return obtenerRutaDirectionsMapboxConParadas(origen, destino, [], tokenAcceso, opciones);
+}
+
+export async function obtenerRutaDirectionsMapboxConParadas(
+  origen: [number, number],
+  destino: [number, number],
+  paradas: Array<[number, number]>,
+  tokenAcceso: string,
+  opciones: { lanzarErrores?: boolean; timeoutMs?: number } = {}
+): Promise<RutaDirectionsMapbox | null> {
+  const todos: Array<[number, number]> = [origen, ...paradas.slice(0, 8), destino];
+  const coordenadas = todos.map((c) => `${c[0]},${c[1]}`).join(";");
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
