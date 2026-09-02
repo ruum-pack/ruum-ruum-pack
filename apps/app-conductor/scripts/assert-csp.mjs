@@ -29,10 +29,11 @@ const cspProdMatch = nextConfig.match(/const cspProd[\s\S]*?\.join/);
 if (cspProdMatch) {
   const cspProd = cspProdMatch[0];
   assert(cspProd.includes("'strict-dynamic'"), "next.config cspProd script-src usa 'strict-dynamic'");
-  // Permitir unsafe-inline solo en style-src (deuda), no en script-src
-  const scriptSrc = cspProd.match(/script-src[^"]*"/)?.[0] ?? cspProd;
-  assert(!scriptSrc.includes("'unsafe-inline'") || scriptSrc.includes("style-src"), "next.config cspProd script-src sin 'unsafe-inline' (solo style-src lo mantiene como fallback)");
-  assert(!scriptSrc.includes("'unsafe-eval'"), "next.config cspProd script-src sin 'unsafe-eval'");
+  // Extraer solo la línea de script-src de cspProd
+  const scriptSrcMatch = cspProd.match(/script-src[^"]*"/) ?? cspProd.match(/script-src[^\]]*\]/);
+  const scriptSrcLine = scriptSrcMatch ? scriptSrcMatch[0] : "";
+  assert(!scriptSrcLine.includes("'unsafe-inline'"), "next.config cspProd script-src sin 'unsafe-inline' (solo style-src lo mantiene como fallback)");
+  assert(!scriptSrcLine.includes("'unsafe-eval'"), "next.config cspProd script-src sin 'unsafe-eval'");
 } else {
   console.error("❌ [assert-csp] No se encontró cspProd en next.config.ts");
   falhas++;
@@ -57,7 +58,7 @@ assert(deuda.includes("CSP_STRICT_STYLES"), "CSP_DEUDA_P2.md documenta flag CSP_
 // 5b) Si CSP_STRICT_STYLES=true, verificar que next.config y middleware soportan modo estricto (sin unsafe-inline en runtime)
 const strictEnv = process.env.CSP_STRICT_STYLES === "true" || process.env.NEXT_PUBLIC_CSP_STRICT_STYLES === "true";
 if (strictEnv) {
-  assert(nextConfig.includes("CSP_STRICT_STYLES") && nextConfig.includes('style-src \'self\''), "CSP_STRICT_STYLES=true: next.config soporta style-src estricto");
+  assert(nextConfig.includes("CSP_STRICT_STYLES") && nextConfig.includes("style-src 'self'"), "CSP_STRICT_STYLES=true: next.config soporta style-src estricto");
   assert(middleware.includes("CSP_STRICT_STYLES") && middleware.includes("style-src 'self' 'nonce-"), "CSP_STRICT_STYLES=true: middleware soporta style-src estricto");
 }
 
@@ -65,7 +66,7 @@ if (strictEnv) {
 const cspProdFull = nextConfig.match(/const cspProd[\s\S]*?\.join\("; "\)/)?.[0] ?? "";
 if (cspProdFull.includes("script-src")) {
   // Extraer solo la línea de script-src dentro de cspProd
-  const scriptSrcLine = cspProdFull.match(/script-src[^,]*,/)?.[0] ?? "";
+  const scriptSrcLine = cspProdFull.match(/script-src[^,\]]*,/)?.[0] ?? cspProdFull.match(/script-src[^,\]]*\]/)?.[0] ?? "";
   assert(!scriptSrcLine.includes("'unsafe-inline'"), "cspProd sin unsafe-inline en script-src (solo permitido en style-src como fallback)");
 }
 
