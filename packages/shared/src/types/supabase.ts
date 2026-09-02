@@ -3716,6 +3716,63 @@ export type Database = {
         }
         Relationships: []
       }
+      solicitudes_cambio_conductor: {
+        Row: {
+          actualizado_en: string
+          conductor_id: string
+          creado_en: string
+          estado: Database["public"]["Enums"]["estado_solicitud_cambio_conductor"]
+          id: string
+          motivo_rechazo: string | null
+          payload_anterior: Json
+          payload_propuesto: Json
+          revisado_en: string | null
+          revisado_por: string | null
+          tipo: Database["public"]["Enums"]["tipo_solicitud_cambio_conductor"]
+        }
+        Insert: {
+          actualizado_en?: string
+          conductor_id: string
+          creado_en?: string
+          estado?: Database["public"]["Enums"]["estado_solicitud_cambio_conductor"]
+          id?: string
+          motivo_rechazo?: string | null
+          payload_anterior: Json
+          payload_propuesto: Json
+          revisado_en?: string | null
+          revisado_por?: string | null
+          tipo: Database["public"]["Enums"]["tipo_solicitud_cambio_conductor"]
+        }
+        Update: {
+          actualizado_en?: string
+          conductor_id?: string
+          creado_en?: string
+          estado?: Database["public"]["Enums"]["estado_solicitud_cambio_conductor"]
+          id?: string
+          motivo_rechazo?: string | null
+          payload_anterior?: Json
+          payload_propuesto?: Json
+          revisado_en?: string | null
+          revisado_por?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_solicitud_cambio_conductor"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_cambio_conductor_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_cambio_conductor_revisado_por_fkey"
+            columns: ["revisado_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       pasaporte_digital: {
@@ -3800,6 +3857,42 @@ export type Database = {
       }
     }
     Functions: {
+      actualizar_datos_facturacion: {
+        Args: {
+          p_cfdi_uso: string
+          p_codigo_postal: string
+          p_correo_facturacion: string
+          p_razon_social: string
+          p_regimen_fiscal: string
+          p_rfc: string
+        }
+        Returns: Json
+      }
+      aprobar_solicitud_cambio_conductor: {
+        Args: {
+          p_solicitud_id: string
+        }
+        Returns: Json
+      }
+      cancelar_solicitud_cambio_conductor: {
+        Args: {
+          p_solicitud_id: string
+        }
+        Returns: Json
+      }
+      rechazar_solicitud_cambio_conductor: {
+        Args: {
+          p_motivo: string
+          p_solicitud_id: string
+        }
+        Returns: Json
+      }
+      solicitar_cambio_expediente_conductor: {
+        Args: {
+          p_cambios: Json
+        }
+        Returns: Json
+      }
       abrir_disputa_traslado: {
         Args: {
           p_abierta_por: Database["public"]["Enums"]["abierta_por_actor"]
@@ -4519,6 +4612,11 @@ export type Database = {
       estado_payout: "pendiente" | "procesado" | "fallido"
       estado_politica_tarifaria: "borrador" | "vigente" | "archivada"
       estado_reclamo_seguro: "abierto" | "en_revision" | "resuelto"
+      estado_solicitud_cambio_conductor:
+        | "pendiente"
+        | "aprobado"
+        | "rechazado"
+        | "cancelado"
       estado_traslado:
         | "usuario_pendiente_verificacion"
         | "usuario_verificado"
@@ -4639,6 +4737,19 @@ export type Database = {
         | "perdida_conectividad"
         | "dano_no_reportado"
       tipo_pago: "anticipado" | "al_cierre"
+      tipo_solicitud_cambio_conductor:
+        | "perfil"
+        | "curp"
+        | "licencia"
+        | "licencia_vigencia"
+        | "domicilio"
+        | "contacto_emergencia"
+        | "identidad"
+        | "documento"
+        | "datos_bancarios"
+        | "empresa"
+        | "legal"
+        | "foto_perfil"
       tipo_vehiculo:
         | "sedan"
         | "suv"

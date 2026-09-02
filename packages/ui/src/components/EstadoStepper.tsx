@@ -1,5 +1,5 @@
 import type { EstadoTraslado } from "@ruum/shared/types";
-import { ETAPAS_TRASLADO, ESTADOS_RAMIFICADOS, indiceEtapaActual } from "../lib/etapas";
+import { ETAPAS_TRASLADO, ESTADOS_RAMIFICADOS, indiceEtapaActual } from "./etapas";
 
 export interface EstadoStepperProps {
   estado: EstadoTraslado;

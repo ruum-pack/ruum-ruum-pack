@@ -1,6 +1,6 @@
 import type { EstadoTraslado } from "@ruum/shared/types";
 import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
-import { CATEGORIA_POR_ESTADO, type CategoriaEstado } from "../lib/estado-visual";
+import { CATEGORIA_POR_ESTADO, type CategoriaEstado } from "./estado-visual";
 
 const ESTILO_POR_CATEGORIA: Record<CategoriaEstado, string> = {
   inicial: "bg-surface-elevated text-text-secondary border-border/80",

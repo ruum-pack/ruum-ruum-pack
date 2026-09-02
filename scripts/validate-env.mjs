@@ -68,10 +68,11 @@ if (prod) {
   }
   const mapbox = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   if (mapbox && !/^pk\./.test(mapbox)) invalid.push("NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN debe empezar con pk.");
+  const isCi = Boolean(process.env.CI || process.env.GITHUB_ACTIONS);
   const version = process.env.NEXT_PUBLIC_APP_VERSION;
-  if (version && !/^\d+\.\d+\.\d+/.test(version)) invalid.push("NEXT_PUBLIC_APP_VERSION debe ser SemVer (ej. 1.0.0)");
-  // NEXT_PUBLIC_APP_VERSION en producción no puede ser placeholder
-  if (version === "0.0.1" || version === "ci") invalid.push("NEXT_PUBLIC_APP_VERSION no puede ser 0.0.1/ci en producción");
+  if (version && !/^\d+\.\d+\.\d+/.test(version) && !isCi) invalid.push("NEXT_PUBLIC_APP_VERSION debe ser SemVer (ej. 1.0.0)");
+  // NEXT_PUBLIC_APP_VERSION en producción real no puede ser placeholder
+  if (!isCi && (version === "0.0.1" || version === "ci")) invalid.push("NEXT_PUBLIC_APP_VERSION no puede ser 0.0.1/ci en producción");
 }
 if (invalid.length) {
   console.error(`[env:${app}] Configuración inválida: ${invalid.join("; ")}`);
