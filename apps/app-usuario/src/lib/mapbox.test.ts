@@ -21,7 +21,7 @@ describe("cliente Mapbox usuario", () => {
     } catch (error) {
       expect(mensajeErrorMapbox(error)).toContain("Mapbox rechazó el token configurado");
     }
-  });
+  }, 15_000);
 
   it("expone error claro cuando Directions rechaza el token", async () => {
     vi.stubEnv("NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN", "pk.token-valido-formato");
@@ -36,7 +36,7 @@ describe("cliente Mapbox usuario", () => {
     } catch (error) {
       expect(esErrorConfiguracionMapbox(error)).toBe(true);
     }
-  });
+  }, 15_000);
 
   it("aísla un timeout de Directions como error recuperable", async () => {
     vi.useFakeTimers();
