@@ -16,7 +16,7 @@ values
   ('94000000-0000-4000-8000-000000000003', 'rt40-premium@local.test', now(), '{}', '{}', now(), now());
 
 insert into public.admins (id, auth_user_id, nombre)
-values ('94000000-0000-4000-8000-0000000aaa', '94000000-0000-4000-8000-0000000000ad', 'Admin RT-40');
+values ('94000000-0000-4000-8000-000000000aaa', '94000000-0000-4000-8000-0000000000ad', 'Admin RT-40');
 
 insert into public.usuarios (id, auth_user_id, tipo_cuenta, rol, estado_verificacion, metodo_pago_registrado)
 values ('94000000-0000-4000-8000-000000000101', '94000000-0000-4000-8000-000000000001', 'personal', 'personal', 'verificado', true);
@@ -96,15 +96,28 @@ select is(
 
 reset role;
 
--- El conductor estándar acepta el viaje -- se congela su ganancia.
+-- El conductor estándar participa; la ganancia se congela cuando vence la competencia.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '94000000-0000-4000-8000-000000000002', true);
 
 select is(
   public.conductor_acepta_viaje('94000000-0000-4000-8000-000000000301'),
-  'conductor_asignado'::public.estado_traslado,
-  'RT-40.4: conductor estándar acepta el viaje'
+  'pendiente_de_conductor'::public.estado_traslado,
+  'RT-40.4: conductor estándar registra su solicitud sin adjudicación inmediata'
 );
+
+reset role;
+
+update public.competencias_asignacion
+set abierta_en = now() - interval '2 seconds',
+    cierra_en = now() - interval '1 second'
+where traslado_id = '94000000-0000-4000-8000-000000000301'
+  and estado = 'abierta';
+
+select public.procesar_competencias_asignacion();
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '94000000-0000-4000-8000-000000000002', true);
 
 select is(
   (select ganancia_conductor from public.pasaporte_digital where traslado_id = '94000000-0000-4000-8000-000000000301'),
@@ -120,7 +133,7 @@ select is(
 
 select throws_like(
   $$ update public.conductores set certificacion_pago = 'premium' where id = '94000000-0000-4000-8000-000000000401' $$,
-  '%No puedes modificar campos operativos%',
+  '%permission denied%',
   'RT-40.7: el conductor no puede auto-asignarse una certificación de pago mayor'
 );
 

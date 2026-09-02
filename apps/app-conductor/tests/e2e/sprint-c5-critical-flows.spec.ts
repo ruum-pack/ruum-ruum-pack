@@ -1,5 +1,21 @@
 import { test, expect } from "@playwright/test";
 
+const DATA_READY_TIMEOUT = 20_000;
+
+async function abrirViajes(
+  page: import("@playwright/test").Page,
+  url: string,
+) {
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await page
+    .waitForLoadState("networkidle", { timeout: DATA_READY_TIMEOUT })
+    .catch(() => undefined);
+  await expect(page.locator("main")).toBeVisible({ timeout: 10_000 });
+  await expect(
+    page.locator('[aria-label="Cargando viajes"][aria-busy="true"]'),
+  ).toBeHidden({ timeout: DATA_READY_TIMEOUT });
+}
+
 const routes = [
   ["panel", "/panel"], ["oportunidades", "/viajes"], ["ganancias", "/ganancias"],
   ["perfil", "/cuenta/perfil"], ["datos bancarios", "/cuenta/datos-bancarios"]
@@ -41,16 +57,18 @@ test.describe("Sprint C5 flujos críticos", () => {
 
       await page.getByLabel(/correo electrónico/i).fill("conductor@ejemplo.com");
       
-      // Agregar espera explícita para intercepciones
-      const [response] = await Promise.all([
-        page.waitForResponse(resp => resp.url().includes("auth/v1/recover")).catch(() => null),
+      await expect(page.getByRole("button", { name: /enviar enlace/i })).toBeEnabled();
+
+      await Promise.all([
+        page.waitForResponse(
+          resp => resp.url().includes("auth/v1/recover") && resp.status() === 200,
+          { timeout: DATA_READY_TIMEOUT },
+        ),
         page.getByRole("button", { name: /enviar enlace/i }).click()
       ]);
 
-      // Dar más tiempo para el renderizado
-      await page.waitForTimeout(500);
-      
-      await expect(page.getByText(/correo enviado a/i)).toBeVisible({ timeout: 10_000 });
+      expect(passwordRecoveryCall).toBe(true);
+      await expect(page.getByText(/correo enviado a/i)).toBeVisible({ timeout: 15_000 });
       await expect(page.getByText("conductor@ejemplo.com")).toBeVisible();
       await expect(page.getByText(/el enlace expira en 60 minutos/i)).toBeVisible();
     });
@@ -106,25 +124,25 @@ test.describe("Sprint C5 flujos críticos", () => {
 
   test.describe("Flujo de Oportunidades — Viajes Disponibles", () => {
     test("listar, expandir y ver detalles de viajes disponibles", async ({ page }) => {
-      await page.goto("/viajes?vista=disponibles");
-
-      // Esperar a que carguen los viajes con espera de red
-      await expect(page.locator("main")).toBeVisible({ timeout: 10_000 });
-      
-      // Esperar un poco más para que los datos se carguen
-      await page.waitForTimeout(1000);
+      await abrirViajes(page, "/viajes?vista=disponibles");
 
       // Verificar que aparecen viajes con badge DISPONIBLE o mensaje de sin oportunidades
       const badgeDisponible = page.getByText("DISPONIBLE", { exact: true });
-      const mensajeSinOportunidades = page.getByText(/Sin oportunidades|Te avisaremos/i).first();
+      const mensajeSinOportunidades = page
+        .getByText(
+          /Sin oportunidades|Sin traslados para este día|Sin resultados con estos filtros|No hay ofertas programadas|Te avisaremos/i,
+        )
+        .first();
       
       try {
         await expect(badgeDisponible.or(mensajeSinOportunidades).first()).toBeVisible({ timeout: 20_000 });
       } catch (error) {
-        // Diagnóstico detallado si falla
-        const pageContent = await page.innerText("body").catch(() => "");
         const mainContent = await page.locator("main").innerText().catch(() => "");
-        console.error("Badge/Mensaje no encontrado. Contenido de la página:", mainContent.substring(0, 500));
+        const allText = await page.innerText("body").catch(() => "");
+
+        console.error("Element not found. Main content:", mainContent.substring(0, 300));
+        console.error("Page text:", allText.substring(0, 500));
+        console.error("Expected to find: DISPONIBLE or Sin oportunidades/Te avisaremos");
         throw error;
       }
 
@@ -148,24 +166,18 @@ test.describe("Sprint C5 flujos críticos", () => {
     });
 
     test("filtrar viajes disponibles por día del calendario", async ({ page }) => {
-      await page.goto("/viajes?vista=disponibles");
-
-      // Esperar a que cargue el calendario
-      await expect(page.locator("main")).toBeVisible();
+      await abrirViajes(page, "/viajes?vista=disponibles");
 
       // Buscar botones del calendario (días)
-      const botonesDias = page.locator("button").filter({
-        hasText: /\d+/,
-        hasNotText: /Traslado #/i,
-      });
+      const botonesDias = page.locator('[aria-label="Días de la semana"] button');
 
       // Click en un día (si hay múltiples días)
       const countDias = await botonesDias.count();
       if (countDias > 1) {
-        await botonesDias.nth(1).click();
+        const dia = botonesDias.nth(1);
+        await dia.click();
+        await expect(dia).toHaveAttribute("aria-current", "date");
 
-        // Verificar que la lista se actualiza
-        await page.waitForTimeout(300);
         const tarjetas = page.locator("button:has(:text('Traslado #'))");
         const countTarjetas = await tarjetas.count();
 
@@ -177,10 +189,7 @@ test.describe("Sprint C5 flujos críticos", () => {
 
   test.describe("Flujo de Aceptar Viaje — Oportunidad a Traslado Asignado", () => {
     test("navegar a detalles de viaje disponible y aceptar", async ({ page }) => {
-      await page.goto("/viajes?vista=disponibles");
-
-      // Esperar a que cargue
-      await expect(page.locator("main")).toBeVisible();
+      await abrirViajes(page, "/viajes?vista=disponibles");
 
       // Buscar el botón "Ver detalles" o "Ver completo"
       const btnVerDetalles = page.getByRole("link", { name: /Ver detalles|Ver completo/i }).first();
@@ -229,8 +238,7 @@ test.describe("Sprint C5 flujos críticos", () => {
 
     test("aceptar traslado debe moverlo de disponibles a mis viajes", async ({ page }) => {
       // Este test valida que el estado del traslado cambia
-      await page.goto("/viajes?vista=disponibles");
-      await expect(page.locator("main")).toBeVisible();
+      await abrirViajes(page, "/viajes?vista=disponibles");
 
       const conteoAntes = await page.locator("button:has(:text('Traslado #'))").count();
 
@@ -239,12 +247,8 @@ test.describe("Sprint C5 flujos críticos", () => {
       const hayAceptar = await btnAceptar.isVisible().catch(() => false);
 
       if (hayAceptar) {
-        // Mock o esperar a que se procese
-        await page.waitForTimeout(500);
-
         // Volver a disponibles
-        await page.goto("/viajes?vista=disponibles");
-        await expect(page.locator("main")).toBeVisible();
+        await abrirViajes(page, "/viajes?vista=disponibles");
 
         const conteoDepues = await page.locator("button:has(:text('Traslado #'))").count();
 
@@ -256,10 +260,7 @@ test.describe("Sprint C5 flujos críticos", () => {
 
   test.describe("Flujo de Lista de Traslados — Mis Viajes Asignados", () => {
     test("navegar a mis viajes y ver lista de traslados asignados", async ({ page }) => {
-      await page.goto("/viajes");
-
-      // Esperar a que cargue
-      await expect(page.locator("main")).toBeVisible();
+      await abrirViajes(page, "/viajes");
 
       // Verificar que aparecen traslados (pueden estar en estado EN CURSO o PRÓXIMOS)
       const tarjetas = page.locator("button:has(:text('Traslado #'))");
@@ -285,8 +286,7 @@ test.describe("Sprint C5 flujos críticos", () => {
     });
 
     test("abrir detalles de un traslado asignado", async ({ page }) => {
-      await page.goto("/viajes");
-      await expect(page.locator("main")).toBeVisible();
+      await abrirViajes(page, "/viajes");
 
       // Buscar enlace "Abrir traslado" o "Iniciar traslado"
       const btnAbrir = page.getByRole("link", { name: /Abrir|Iniciar traslado/i }).first();
@@ -314,8 +314,7 @@ test.describe("Sprint C5 flujos críticos", () => {
     });
 
     test("mostrar información completa del traslado asignado", async ({ page }) => {
-      await page.goto("/viajes");
-      await expect(page.locator("main")).toBeVisible();
+      await abrirViajes(page, "/viajes");
 
       const tarjeta = page.locator("button:has(:text('Traslado #'))").first();
       const esVisible = await tarjeta.isVisible().catch(() => false);
@@ -340,8 +339,7 @@ test.describe("Sprint C5 flujos críticos", () => {
       // Este test valida que el flujo de un traslado progresa correctamente
       // Usa el traslado fixture en estado "evidencia_inicial_en_proceso"
 
-      await page.goto("/viajes");
-      await expect(page.locator("main")).toBeVisible();
+      await abrirViajes(page, "/viajes");
 
       // Buscar traslado en estado EN CURSO o EVIDENCIA
       const traslados = page.locator("button:has(:text('Traslado #'))");
@@ -397,8 +395,7 @@ test.describe("Sprint C5 flujos críticos", () => {
     });
 
     test("validar que traslado completado aparece en historial", async ({ page }) => {
-      await page.goto("/viajes?vista=historial");
-      await expect(page.locator("main")).toBeVisible();
+      await abrirViajes(page, "/viajes?vista=historial");
 
       // Buscar traslados en historial
       const historialItems = page.locator("button:has(:text('Traslado #'))");

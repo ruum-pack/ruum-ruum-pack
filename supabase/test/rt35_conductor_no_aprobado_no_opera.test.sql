@@ -101,8 +101,8 @@ select is(
 
 select is(
   public.conductor_acepta_viaje('93500000-0000-4000-8000-000000000301'),
-  'conductor_asignado'::public.estado_traslado,
-  'RT-35.6: conductor aprobado sí acepta por RPC'
+  'pendiente_de_conductor'::public.estado_traslado,
+  'RT-35.6: conductor aprobado sí registra su solicitud sin adjudicación inmediata'
 );
 
 reset role;

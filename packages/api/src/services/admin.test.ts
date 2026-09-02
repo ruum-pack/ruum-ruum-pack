@@ -168,91 +168,38 @@ const ADMIN_BASE = { tablas: { admins: { data: { id: "admin-1", rol_operativo: "
 describe("asignarConductorAdmin — restricciones de elegibilidad (PRD §4.3)", () => {
   it("lanza error si el estado del traslado no está en la cadena de asignación", async () => {
     const cliente = crearClienteFake(ADMIN_BASE);
-    await expect(asignarConductorAdmin(cliente as never, "t1", "c1", "servicio_cerrado")).rejects.toThrow("No se puede asignar conductor");
+    await expect(asignarConductorAdmin(cliente as never, "t1", "c1", "servicio_cerrado")).rejects.toThrow("asignación manual");
+    expect(cliente.rpc).not.toHaveBeenCalledWith("admin_asigna_conductor", expect.anything());
   });
 
-  it("lanza error si el conductor no existe", async () => {
+  it("delega al RPC la elegibilidad transaccional y propaga su rechazo", async () => {
     const cliente = crearClienteFake({
       ...ADMIN_BASE,
-      tablas: {
-        admins: { data: { id: "admin-1", rol_operativo: "direccion" } },
-        conductores: { data: null },
-        traslados: { data: { id: "t1", tipo_ruta: "local", vehiculo_id: "v1" } },
-        vehiculos: { data: { tipo: "sedan" } }
+      rpcs: {
+        admin_tiene_permiso: { data: true },
+        admin_asigna_conductor: { error: new Error("Conductor no elegible: expediente no aprobado") }
       }
     });
-    await expect(asignarConductorAdmin(cliente as never, "t1", "c1-inexistente", "pendiente_de_conductor")).rejects.toThrow("Conductor no encontrado");
-  });
-
-  it("lanza error si el traslado no existe", async () => {
-    const conductor = { id: "c1", estado: "activo", estado_expediente: "aprobado", calificacion_promedio: 4.5, traslados_completados: 10, documentos_vigentes: true, certificaciones: [], incidencias_graves_6m: 0, incidencias_graves_12m: 0, suspensiones_activas: 0, no_presentaciones_6m: 0, cancelaciones_sin_justificacion_count: 0, nombre: "Juan", creado_en: new Date().toISOString() };
-    const cliente = crearClienteFake({
-      ...ADMIN_BASE,
-      tablas: {
-        admins: { data: { id: "admin-1", rol_operativo: "direccion" } },
-        conductores: { data: conductor },
-        traslados: { data: null }
-      }
+    await expect(asignarConductorAdmin(cliente as never, "t1", "c1", "pendiente_de_conductor")).rejects.toThrow("expediente no aprobado");
+    expect(cliente.rpc).toHaveBeenCalledWith("admin_asigna_conductor", {
+      p_traslado_id: "t1",
+      p_conductor_id: "c1"
     });
-    await expect(asignarConductorAdmin(cliente as never, "t1", "c1", "pendiente_de_conductor")).rejects.toThrow("Traslado no encontrado");
   });
 
-  it("lanza error si el conductor no tiene expediente aprobado", async () => {
+  it("asigna mediante el RPC cuando autorización y elegibilidad pasan", async () => {
     const cliente = crearClienteFake({
       ...ADMIN_BASE,
-      tablas: {
-        admins: { data: { id: "admin-1", rol_operativo: "direccion" } },
-        conductores: { data: { id: "c1", estado_expediente: "pendiente" } },
-        traslados: { data: { id: "t1", tipo_ruta: "local", vehiculo_id: "v1" } }
-      }
-    });
-    await expect(asignarConductorAdmin(cliente as never, "t1", "c1", "pendiente_de_conductor")).rejects.toThrow("expediente aprobado");
-  });
-
-  it("lanza error si el conductor no tiene documentos vigentes", async () => {
-    const conductor = { id: "c1", estado: "activo", estado_expediente: "aprobado", calificacion_promedio: 4.5, traslados_completados: 10, documentos_vigentes: false, certificaciones: [], incidencias_graves_6m: 0, incidencias_graves_12m: 0, suspensiones_activas: 0, no_presentaciones_6m: 0, cancelaciones_sin_justificacion_count: 0, nombre: "Juan", creado_en: new Date().toISOString() };
-    const cliente = crearClienteFake({
-      ...ADMIN_BASE,
-      tablas: {
-        admins: { data: { id: "admin-1", rol_operativo: "direccion" } },
-        conductores: { data: conductor },
-        traslados: { data: { id: "t1", tipo_ruta: "local", vehiculo_id: "v1" } },
-        vehiculos: { data: { tipo: "sedan" } }
-      }
-    });
-    await expect(asignarConductorAdmin(cliente as never, "t1", "c1", "pendiente_de_conductor")).rejects.toThrow("Documentos vencidos o incompletos");
-  });
-
-  it("lanza error si el conductor no está en estado activo", async () => {
-    const conductor = { id: "c1", estado: "suspendido", estado_expediente: "aprobado", calificacion_promedio: 4.5, traslados_completados: 10, documentos_vigentes: true, certificaciones: [], incidencias_graves_6m: 0, incidencias_graves_12m: 0, suspensiones_activas: 0, no_presentaciones_6m: 0, cancelaciones_sin_justificacion_count: 0, nombre: "Juan", creado_en: new Date().toISOString() };
-    const cliente = crearClienteFake({
-      ...ADMIN_BASE,
-      tablas: {
-        admins: { data: { id: "admin-1", rol_operativo: "direccion" } },
-        conductores: { data: conductor },
-        traslados: { data: { id: "t1", tipo_ruta: "local", vehiculo_id: "v1" } },
-        vehiculos: { data: { tipo: "sedan" } }
-      }
-    });
-    await expect(asignarConductorAdmin(cliente as never, "t1", "c1", "pendiente_de_conductor")).rejects.toThrow("Conductor en estado");
-  });
-
-  it("asigna conductor exitosamente cuando todas las validaciones pasan", async () => {
-    const conductor = { id: "c1", estado: "activo", estado_expediente: "aprobado", calificacion_promedio: 4.5, traslados_completados: 10, documentos_vigentes: true, certificaciones: [], incidencias_graves_6m: 0, incidencias_graves_12m: 0, suspensiones_activas: 0, no_presentaciones_6m: 0, cancelaciones_sin_justificacion_count: 0, nombre: "Juan", creado_en: new Date().toISOString() };
-    const cliente = crearClienteFake({
-      ...ADMIN_BASE,
-      tablas: {
-        admins: { data: { id: "admin-1", rol_operativo: "direccion" } },
-        conductores: { data: conductor },
-        traslados: { data: { id: "t1", tipo_ruta: "local", vehiculo_id: "v1" } },
-        vehiculos: { data: { tipo: "sedan" } }
-      },
       rpcs: {
         admin_tiene_permiso: { data: true },
         admin_asigna_conductor: { data: { ejecutado: true } }
       }
     });
     await expect(asignarConductorAdmin(cliente as never, "t1", "c1", "pendiente_de_conductor")).resolves.toBeUndefined();
+    expect(cliente.rpc).toHaveBeenCalledWith("admin_asigna_conductor", {
+      p_traslado_id: "t1",
+      p_conductor_id: "c1"
+    });
   });
 });
 

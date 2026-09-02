@@ -256,11 +256,11 @@ async function obtenerConductorIdActual(cliente: Cliente): Promise<string> {
 type TrasladoRow = Database["public"]["Tables"]["traslados"]["Row"];
 type VehiculoRow = Database["public"]["Tables"]["vehiculos"]["Row"];
 
-export interface TrasladoConductorGanancia extends TrasladoRow {
+export type TrasladoConductorGanancia = TrasladoRow & {
   cerrado_en?: string | null;
   payout_id?: string | null;
   vehiculos?: Pick<VehiculoRow, "marca" | "modelo" | "anio"> | null;
-}
+};
 
 export interface DatosGananciasConductor {
   datosBancarios: DatosBancariosRow | null;
@@ -297,12 +297,12 @@ export async function guardarDatosBancariosConductor(
   cliente: Cliente,
   datos: DatosBancariosConductorInput
 ): Promise<DatosBancariosRow> {
-  const { data, error } = await cliente.rpc("conductor_guarda_datos_bancarios", {
+  const { data, error } = await (cliente as unknown as { rpc: (n: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> }).rpc("conductor_guarda_datos_bancarios", {
     p_titular_cuenta: datos.titularCuenta.trim(),
     p_banco: datos.banco.trim(),
     p_clabe: datos.clabe.replace(/\D/g, ""),
     p_numero_tarjeta: datos.numeroTarjeta && datos.numeroTarjeta.trim().length > 0 ? datos.numeroTarjeta.trim() : null
-  });
+  }) as unknown as { data: DatosBancariosRow | null; error: unknown };
 
   if (error) throw error;
   if (!data) throw new Error("No se pudieron guardar los datos bancarios.");

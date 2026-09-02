@@ -1,6 +1,19 @@
 @import "tailwindcss";
 @import "@ruum/ui/styles/tokens.css";
 
+/* Prevenir overflow horizontal en zooms altos (200%+) - Accesibilidad A11Y */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.conductor-page {
+  max-width: 100vw;
+  overflow-x: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
 /* App conductor — BRAND BOOK RUUM RUUM V1
    Proporción 60% blanco evidencia / 25% negro asfalto / 10% amarillo ruta / 5% azul trazabilidad + gris acero.
    Amarillo solo como acento (ruta, check, CTA). Fondo limpio, mucho blanco, línea de ruta como recurso. */
@@ -401,8 +414,8 @@ html[data-theme="dark"] .rounded-card > span.font-mono-ruum.absolute { color: va
 
 /* --- Superficies locales del conductor en clave neón --- */
 html[data-theme="dark"] .conductor-status-panel {
-  border-color: rgba(58, 165, 255, 0.3);
-  background: rgba(58, 165, 255, 0.08);
+  border-color: var(--ruum-border-strong);
+  background: rgba(58, 165, 255, 0.12);
 }
 
 html[data-theme="dark"] .conductor-auth-shell {
@@ -416,7 +429,7 @@ html[data-theme="dark"] .conductor-auth-shell {
 
 html[data-theme="dark"] .conductor-auth-card {
   background: rgba(13, 22, 38, 0.92);
-  border-color: rgba(122, 162, 214, 0.25);
+  border-color: var(--ruum-border);
   color: var(--ruum-text);
   backdrop-filter: blur(6px);
 }
@@ -442,14 +455,14 @@ html[data-theme="dark"] textarea::placeholder {
 html[data-theme="dark"] .conductor-auth-card input,
 html[data-theme="dark"] .conductor-auth-card select,
 html[data-theme="dark"] .conductor-auth-card textarea {
-  border-color: rgba(122, 162, 214, 0.4);
+  border-color: var(--ruum-border);
   background-color: rgba(13, 22, 38, 0.8);
 }
 
 html[data-theme="dark"] .conductor-auth-card input:hover,
 html[data-theme="dark"] .conductor-auth-card select:hover,
 html[data-theme="dark"] .conductor-auth-card textarea:hover {
-  border-color: rgba(122, 162, 214, 0.6);
+  border-color: var(--ruum-border-strong);
 }
 
 html[data-theme="dark"] .conductor-auth-card input:focus,

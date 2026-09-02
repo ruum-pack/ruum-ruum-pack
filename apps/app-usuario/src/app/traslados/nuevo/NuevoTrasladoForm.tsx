@@ -52,7 +52,7 @@ const CAMPOS_RUTA_DESTINO_CONTACTOS = new Set([
 
 function pasoDeCampo(campo: string): number {
   if (CAMPOS_PASO_VEHICULO.has(campo)) return 0;
-  if (CAMPOS_PASO_RUTA.has(campo)) return 1;
+  if (CAMPOS_PASO_RUTA.has(campo) || campo === "paradas") return 1;
   return 2;
 }
 
@@ -1225,16 +1225,23 @@ export function NuevoTrasladoForm() {
                 {datos.origenLat !== undefined && <p className="mt-1 font-body text-xs text-ink/45">Ubicación capturada ✓</p>}
               </div>
             )}
-            <div className="flex justify-end">
-              <Button type="button" onClick={() => setSubpasoRuta("destino_contactos")}>
-                Continuar con destino
-              </Button>
             </div>
-          </div>
-        )}
+        {/* Escalas / Tareas — acordeón entre origen y destino (hasta 8) */}
+        <div className="rounded-xl border border-ink/10 bg-white p-4">
+          <EscalasAcordeon
+            paradas={datos.paradas}
+            onChange={(next) => {
+              setErrorPaso(null);
+              setDatos((prev) => ({ ...prev, paradas: next }));
+            }}
+            erroresParadas={erroresParadas}
+          />
+          {errores.paradas && typeof errores.paradas === "string" && (
+            <p className="mt-2 font-body text-xs text-danger">{errores.paradas as unknown as string}</p>
+          )}
+        </div>
 
-        {subpasoRuta === "destino_contactos" && (
-          <div className="grid gap-4" aria-label="Destino y contactos del traslado">
+        <div className="grid gap-4" aria-label="Destino y contactos del traslado">
             <div className="rounded-lg border border-signal/30 bg-signal/10 p-3">
               <label htmlFor="input-busqueda-destino" className="font-body text-xs font-semibold text-ink">Busca la dirección de destino</label>
               <div className="relative mt-2">
@@ -1470,7 +1477,6 @@ export function NuevoTrasladoForm() {
               />
             </label>
           </div>
-        )}
       </div>
     );
   }
@@ -1660,14 +1666,14 @@ export function NuevoTrasladoForm() {
       // para ambos. Si ya hay coordenadas de GPS real para origen (más
       // precisas que geocodificar el texto de la dirección), esas ganan y
       // no se pisan.
-      let coordenadas = rutaEstimacion;
+      let coordenadas: typeof rutaEstimacion = rutaEstimacion as typeof rutaEstimacion;
       if (!coordenadas) {
         try {
-          coordenadas = await geocodificarRuta(
-            origenDireccion,
-            destinoDireccion,
-            datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined
-          );
+          const paradasDirs = (datos.paradas ?? []).map((p) => domicilioCompleto({ calle: p.calle, numero: p.numero, colonia: p.colonia, codigoPostal: p.codigoPostal, ciudad: p.ciudad, estado: p.estado }));
+          const origenActual = datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined;
+          coordenadas = paradasDirs.length
+            ? await geocodificarRutaConParadas(origenDireccion, destinoDireccion, paradasDirs, origenActual)
+            : await geocodificarRuta(origenDireccion, destinoDireccion, origenActual);
         } catch (error) {
           if (!esErrorConfiguracionMapbox(error)) throw error;
           setRutaAviso(mensajeErrorMapbox(error));
