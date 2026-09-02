@@ -9,21 +9,30 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Headers":
+    "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function json(body: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS, "Content-Type": "application/json" },
+  });
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS });
+  }
   if (req.method !== "POST") return json({ error: "Método no permitido" }, 405);
 
   const authorization = req.headers.get("Authorization");
-  if (!authorization) return json({ error: "Inicia sesión para continuar." }, 401);
+  if (!authorization) {
+    return json({ error: "Inicia sesión para continuar." }, 401);
+  }
 
   const url = Deno.env.get("SUPABASE_URL") ?? "";
   const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -32,7 +41,10 @@ Deno.serve(async (req) => {
   const diditWorkflowId = Deno.env.get("DIDIT_WORKFLOW_ID") ?? "";
   const callbackUrl = Deno.env.get("DIDIT_CALLBACK_URL") ?? "";
   if (!url || !anon || !serviceKey || !diditApiKey || !diditWorkflowId) {
-    return json({ error: "El servicio de verificación no está configurado." }, 500);
+    return json(
+      { error: "El servicio de verificación no está configurado." },
+      500,
+    );
   }
 
   let body: Record<string, unknown> = {};
@@ -45,11 +57,15 @@ Deno.serve(async (req) => {
     return json({ error: "Cuerpo inválido." }, 400);
   }
 
-  const usuario = createClient(url, anon, { global: { headers: { Authorization: authorization } } });
+  const usuario = createClient(url, anon, {
+    global: { headers: { Authorization: authorization } },
+  });
   const servicio = createClient(url, serviceKey);
 
   const { data: sesion, error: errorSesion } = await usuario.auth.getUser();
-  if (errorSesion || !sesion.user) return json({ error: "La sesión no es válida." }, 401);
+  if (errorSesion || !sesion.user) {
+    return json({ error: "La sesión no es válida." }, 401);
+  }
 
   const solicitudId = body.solicitud_id ? String(body.solicitud_id) : "";
   const esFlujoUsuario = !solicitudId || body.tipo === "usuario";
@@ -66,8 +82,12 @@ Deno.serve(async (req) => {
       .eq("auth_user_id", sesion.user.id)
       .maybeSingle();
 
-    if (errorPerfil) return json({ error: "No fue posible consultar tu perfil." }, 500);
-    if (!perfilUsuario) return json({ error: "Perfil de usuario no encontrado." }, 404);
+    if (errorPerfil) {
+      return json({ error: "No fue posible consultar tu perfil." }, 500);
+    }
+    if (!perfilUsuario) {
+      return json({ error: "Perfil de usuario no encontrado." }, 404);
+    }
 
     usuarioValidoId = perfilUsuario.id;
     vendorData = `usuario:${perfilUsuario.id}`;
@@ -80,7 +100,9 @@ Deno.serve(async (req) => {
       .in("estado", ["pendiente", "en_revision"]);
   } else {
     // Verificación para conductor con solicitud
-    if (!UUID.test(solicitudId)) return json({ error: "solicitud_id inválido." }, 400);
+    if (!UUID.test(solicitudId)) {
+      return json({ error: "solicitud_id inválido." }, 400);
+    }
 
     const { data: solicitud, error: errorSolicitud } = await usuario
       .from("solicitudes_conductor")
@@ -89,10 +111,15 @@ Deno.serve(async (req) => {
       .eq("auth_user_id", sesion.user.id)
       .maybeSingle();
 
-    if (errorSolicitud) return json({ error: "No fue posible validar la solicitud." }, 500);
+    if (errorSolicitud) {
+      return json({ error: "No fue posible validar la solicitud." }, 500);
+    }
     if (!solicitud) return json({ error: "Solicitud no encontrada." }, 404);
     if (solicitud.estado !== "en_revision") {
-      return json({ error: "La solicitud debe estar en revisión para iniciar la verificación automática." }, 409);
+      return json({
+        error:
+          "La solicitud debe estar en revisión para iniciar la verificación automática.",
+      }, 409);
     }
 
     solicitudValidaId = solicitud.id;
@@ -106,25 +133,33 @@ Deno.serve(async (req) => {
       .in("estado", ["pendiente", "en_revision"]);
   }
 
-  const respuestaDidit = await fetch("https://verification.didit.me/v2/session/", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": diditApiKey,
-      "Authorization": `Bearer ${diditApiKey}`
+  const respuestaDidit = await fetch(
+    "https://verification.didit.me/v3/session/",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": diditApiKey,
+      },
+      body: JSON.stringify({
+        workflow_id: diditWorkflowId,
+        vendor_data: vendorData,
+        ...(callbackUrl
+          ? { callback: callbackUrl, callback_method: "both" }
+          : {}),
+        language: "es",
+      }),
     },
-    body: JSON.stringify({
-      workflow_id: diditWorkflowId,
-      vendor_data: vendorData,
-      ...(callbackUrl ? { callback: callbackUrl } : {}),
-    }),
-  });
+  );
 
   if (!respuestaDidit.ok) {
     const detalle = await respuestaDidit.text().catch(() => "");
     console.error("Error creando sesión Didit", respuestaDidit.status, detalle);
     return json({
-      error: `Error al conectar con Didit (HTTP ${respuestaDidit.status}): ${detalle || "Verifica que DIDIT_API_KEY y DIDIT_WORKFLOW_ID sean válidos."}`
+      error: `Error al conectar con Didit (HTTP ${respuestaDidit.status}): ${
+        detalle ||
+        "Verifica que DIDIT_API_KEY y DIDIT_WORKFLOW_ID sean válidos."
+      }`,
     }, 502);
   }
 
@@ -133,19 +168,26 @@ Deno.serve(async (req) => {
     sessionId?: string;
     id?: string;
     url?: string;
+    verification_url?: string;
     session_url?: string;
-    session_token?: string;
   };
 
-  const sessionId = datosDidit.session_id ?? datosDidit.sessionId ?? datosDidit.id ?? datosDidit.session_token ?? "";
-  const verificationUrl = datosDidit.url ?? datosDidit.session_url ?? "";
+  const sessionId = datosDidit.session_id ?? datosDidit.sessionId ??
+    datosDidit.id ?? "";
+  const verificationUrl = datosDidit.url ?? datosDidit.verification_url ??
+    datosDidit.session_url ?? "";
 
   if (!sessionId || !verificationUrl) {
     console.error("Respuesta incompleta de Didit", datosDidit);
-    return json({ error: "Respuesta incompleta del proveedor de identidad." }, 502);
+    return json(
+      { error: "Respuesta incompleta del proveedor de identidad." },
+      502,
+    );
   }
 
-  const { error: errorInsert } = await servicio.from("verificaciones_identidad_didit").insert({
+  const { error: errorInsert } = await servicio.from(
+    "verificaciones_identidad_didit",
+  ).insert({
     solicitud_id: solicitudValidaId,
     usuario_id: usuarioValidoId,
     session_id: sessionId,

@@ -885,7 +885,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
                   fotos={evidenciaFinal}
                 />
                 <div className="flex justify-end">
-                  <button type="button" onClick={() => window.print()} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-ink/15 bg-mist px-4 py-2 font-body text-xs font-semibold text-ink hover:border-ink/30">📄 Descargar evidencia (imprimir / PDF)</button>
+                  <ExportarPasaportePdf />
                 </div>
               </div>
             </PassportCard>

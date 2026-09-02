@@ -9,6 +9,7 @@ import {
   subirDocumentoIdentidad,
   actualizarPerfilUsuario,
   iniciarVerificacionDiditUsuario,
+  obtenerEstadoVerificacionDiditUsuario,
   obtenerUsuarioActual,
   type PerfilUsuarioActualizable
 } from "@ruum/api/services";
@@ -188,6 +189,7 @@ export function VerificacionForm() {
   /* Didit Verification State */
   const [mostrarDiditModal, setMostrarDiditModal] = useState(false);
   const [urlDidit, setUrlDidit] = useState<string | null>(null);
+  const [sessionIdDidit, setSessionIdDidit] = useState<string | null>(null);
   const [cargandoDidit, setCargandoDidit] = useState(false);
   const [errorDidit, setErrorDidit] = useState<string | null>(null);
   const [verificacionCompletada, setVerificacionCompletada] = useState(false);
@@ -213,13 +215,17 @@ export function VerificacionForm() {
 
   /* Funciones Didit */
   async function iniciarDidit() {
+    if (cargandoDidit) return;
     setCargandoDidit(true);
     setErrorDidit(null);
+    setUrlDidit(null);
+    setSessionIdDidit(null);
     setMostrarDiditModal(true);
     try {
       const cliente = crearClienteNavegador();
-      const { url } = await iniciarVerificacionDiditUsuario(cliente);
+      const { url, sessionId } = await iniciarVerificacionDiditUsuario(cliente);
       setUrlDidit(url);
+      setSessionIdDidit(sessionId ?? null);
     } catch (err) {
       setErrorDidit(
         err instanceof Error ? err.message : "No fue posible conectar con el servicio de verificación de Didit."
@@ -232,22 +238,54 @@ export function VerificacionForm() {
   function cerrarDidit() {
     setMostrarDiditModal(false);
     setUrlDidit(null);
+    setSessionIdDidit(null);
     setErrorDidit(null);
   }
 
   async function finalizarDidit() {
-    setMostrarDiditModal(false);
-    setUrlDidit(null);
+    if (cargandoDidit) return;
+    setCargandoDidit(true);
     setErrorDidit(null);
     try {
       const cliente = crearClienteNavegador();
-      const usuario = await obtenerUsuarioActual(cliente);
-      if (usuario?.estado_verificacion === "verificado") {
+      let resultado: "verificado" | "rechazado" | "pendiente" = "pendiente";
+
+      // El mensaje del iframe sólo indica que Didit terminó. El webhook puede
+      // tardar unos segundos; esperar la actualización canónica evita mostrar
+      // éxito mientras la cuenta todavía sigue pendiente.
+      for (let intento = 0; intento < 12; intento += 1) {
+        const [usuario, verificacion] = await Promise.all([
+          obtenerUsuarioActual(cliente),
+          obtenerEstadoVerificacionDiditUsuario(cliente, sessionIdDidit ?? undefined),
+        ]);
+
+        if (usuario?.estado_verificacion === "verificado") {
+          resultado = "verificado";
+          break;
+        }
+        if (["rechazado", "error", "expirado", "cancelado"].includes(verificacion?.estado ?? "")) {
+          resultado = "rechazado";
+          break;
+        }
+        if (intento < 11) await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      }
+
+      if (resultado === "verificado") {
+        setMostrarDiditModal(false);
+        setUrlDidit(null);
+        setSessionIdDidit(null);
         setVerificacionCompletada(true);
+      } else if (resultado === "rechazado") {
+        setErrorDidit("La verificación no pudo confirmarse. Puedes reintentar o usar la opción manual.");
+      } else {
+        setErrorDidit("Recibimos tu verificación, pero todavía estamos procesando el resultado. Actualiza en unos segundos.");
       }
       router.refresh();
-    } catch {
+    } catch (err) {
+      setErrorDidit(err instanceof Error ? err.message : "No pudimos consultar el resultado de Didit.");
       router.refresh();
+    } finally {
+      setCargandoDidit(false);
     }
   }
 
@@ -425,6 +463,7 @@ export function VerificacionForm() {
         <button
           type="button"
           onClick={iniciarDidit}
+          disabled={cargandoDidit}
           className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#FFC400] px-5 py-3 font-display text-sm font-extrabold text-[#151515] shadow-[0_10px_28px_rgba(255,196,0,0.24)] transition hover:bg-[#e0ac00] active:scale-[0.99] cursor-pointer"
         >
           <span>🪪</span> Iniciar verificación con Didit

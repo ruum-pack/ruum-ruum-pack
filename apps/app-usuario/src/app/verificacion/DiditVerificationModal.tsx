@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Aviso } from "@ruum/ui";
+import { esOrigenDiditValido, interpretarMensajeDidit } from "../../lib/didit";
 
 interface Props {
   isOpen: boolean;
@@ -43,36 +44,17 @@ export function DiditVerificationModal({
   useEffect(() => {
     if (!isOpen) return;
     const handleMessage = (event: MessageEvent) => {
-      let data = event.data;
-      if (!data) return;
-      if (typeof data === "string") {
-        try {
-          data = JSON.parse(data);
-        } catch {
-          // Mantener como string si no es JSON
-        }
-      }
-      if (
-        data === "didit:complete" ||
-        data === "didit:cancel" ||
-        data?.type === "didit:complete" ||
-        data?.type === "didit:cancel" ||
-        data?.type === "didit:verification:complete" ||
-        data?.type === "didit:verification:completed" ||
-        data?.status === "complete" ||
-        data?.status === "completed" ||
-        data?.status === "approved" ||
-        data?.status === "declined" ||
-        data?.event === "verification.completed" ||
-        data?.event === "didit:completed" ||
-        data?.message === "didit:complete"
-      ) {
-        onFinalizar();
-      }
+      if (!esOrigenDiditValido(event.origin)) return;
+      if (event.source && event.source !== iframeRef.current?.contentWindow) return;
+
+      const mensaje = interpretarMensajeDidit(event.data);
+      if (!mensaje) return;
+      if (mensaje.tipo === "cancelado") onCerrar();
+      else onFinalizar();
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [isOpen, onFinalizar]);
+  }, [isOpen, onCerrar, onFinalizar]);
 
   if (!isOpen) return null;
 
@@ -121,7 +103,7 @@ export function DiditVerificationModal({
               ⟳
             </div>
             <p className="mt-4 font-display text-base font-semibold text-white">
-              Iniciando verificación de identidad…
+              Procesando verificación de identidad…
             </p>
             <p className="mt-1 font-body text-xs text-[#94A3B8]">
               Conectando con el servicio seguro y encriptado de Didit.
@@ -168,8 +150,7 @@ export function DiditVerificationModal({
                 src={url}
                 className="w-full h-full border-0"
                 title="Verificación de identidad Didit"
-                allow="camera; microphone; geolocation; fullscreen; accelerometer; gyroscope; display-capture; autoplay"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-top-navigation allow-top-navigation-by-user-activation"
+                allow="camera; microphone; geolocation; fullscreen; accelerometer; gyroscope; display-capture; autoplay; encrypted-media"
               />
             </div>
             <div className="p-4 bg-[#0F172A] border-t border-[#334155] flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -179,6 +160,7 @@ export function DiditVerificationModal({
               <button
                 type="button"
                 onClick={onFinalizar}
+                disabled={cargando}
                 className="w-full sm:w-auto rounded-xl bg-[#FFC400] px-5 py-2.5 font-display text-xs font-bold text-[#151515] hover:bg-[#e0ac00] transition cursor-pointer"
               >
                 Ya completé la verificación

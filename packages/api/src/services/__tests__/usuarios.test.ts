@@ -76,7 +76,8 @@ describe("usuarios — Verificación de identidad con Didit", () => {
     });
 
     const estado = await obtenerEstadoVerificacionDiditUsuario(
-      cliente as unknown as SupabaseClient<Database>
+      cliente as unknown as SupabaseClient<Database>,
+      "sess-1"
     );
 
     expect(estado).toEqual({
@@ -84,6 +85,11 @@ describe("usuarios — Verificación de identidad con Didit", () => {
       session_id: "sess-1",
       estado: "aprobado",
       workflow_id: "wf-1"
+    });
+    expect(cliente.llamadas).toContainEqual({
+      table: "verificaciones_identidad_didit",
+      action: "eq",
+      args: ["session_id", "sess-1"]
     });
   });
 });
@@ -279,5 +285,3 @@ describe("usuarios — PR-08 Facturación atómica", () => {
     ).rejects.toThrow("Error en base de datos al actualizar facturación");
   });
 });
-
-

@@ -302,31 +302,38 @@ export async function iniciarVerificacionDiditUsuario(cliente: Cliente): Promise
     throw new Error(mensaje);
   }
 
-  const respuesta = data as { url?: string; session_url?: string; session_id?: string } | null;
-  const urlFinal = respuesta?.url ?? respuesta?.session_url;
+  const respuesta = data as {
+    url?: string;
+    verification_url?: string;
+    session_url?: string;
+    session_id?: string;
+    sessionId?: string;
+  } | null;
+  const urlFinal = respuesta?.url ?? respuesta?.verification_url ?? respuesta?.session_url;
   if (!urlFinal || typeof urlFinal !== "string" || !urlFinal.startsWith("https://")) {
     throw new Error("No se recibió una URL válida del servicio de verificación de identidad.");
   }
-  return { url: urlFinal, sessionId: respuesta?.session_id };
+  return { url: urlFinal, sessionId: respuesta?.session_id ?? respuesta?.sessionId };
 }
 
 /**
  * Consulta la última verificación de identidad Didit registrada para el usuario actual.
  */
-export async function obtenerEstadoVerificacionDiditUsuario(cliente: Cliente) {
+export async function obtenerEstadoVerificacionDiditUsuario(cliente: Cliente, sessionId?: string) {
   const { data: sesion } = await cliente.auth.getUser();
   if (!sesion.user) return null;
 
   const usuario = await buscarUsuarioPorAuthId(cliente, sesion.user.id);
   if (!usuario) return null;
 
-  const { data, error } = await cliente
+  let consulta = cliente
     .from("verificaciones_identidad_didit")
     .select("id, session_id, workflow_id, estado, decision, procesado_en, creado_en")
-    .eq("usuario_id", usuario.id)
-    .order("creado_en", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .eq("usuario_id", usuario.id);
+
+  if (sessionId) consulta = consulta.eq("session_id", sessionId);
+
+  const { data, error } = await consulta.order("creado_en", { ascending: false }).limit(1).maybeSingle();
 
   if (error) {
     console.error("Error consultando verificación Didit del usuario", error.message);
@@ -498,5 +505,4 @@ export async function registrarConsentimientoUsuario(
 
   return { version, aceptado_en: aceptado };
 }
-
 

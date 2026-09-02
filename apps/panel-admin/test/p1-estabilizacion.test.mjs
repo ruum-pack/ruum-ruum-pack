@@ -91,11 +91,11 @@ test('didit separa inicio con CORS y webhook firmado',()=>{
   assert.match(conductores,/functions\.invoke\("iniciar-verificacion-didit"/);
   assert.match(iniciar,/Access-Control-Allow-Origin/);
   assert.match(iniciar,/req\.method === "OPTIONS"/);
-  assert.match(iniciar,/verification\.didit\.me\/v2\/session/);
+  assert.match(iniciar,/verification\.didit\.me\/v3\/session/);
   assert.match(iniciar,/DIDIT_CALLBACK_URL/);
   assert.doesNotMatch(iniciar,/DIDIT_WEBHOOK_SECRET|firmaValida|aprobar_solicitud_conductor_sistema/);
   assert.match(webhook,/DIDIT_WEBHOOK_SECRET/);
-  assert.match(webhook,/firmaValida/);
+  assert.match(webhook,/validarFirmaWebhookDidit/);
   assert.match(webhook,/aprobar_solicitud_conductor_sistema/);
   assert.doesNotMatch(webhook,/verification\.didit\.me\/v2\/session/);
 

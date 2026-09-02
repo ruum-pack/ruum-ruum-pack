@@ -107,3 +107,13 @@ verify_jwt = false
 
 [functions.validar-documento-identidad]
 verify_jwt = false
+
+# El handler valida manualmente el JWT de Supabase; mantener el gateway sin
+# esta barrera permite que el preflight del navegador llegue a la función.
+[functions.iniciar-verificacion-didit]
+verify_jwt = false
+
+# Didit autentica este endpoint con X-Signature-V2/X-Signature-Simple, no con
+# un JWT de Supabase.
+[functions.webhook-didit]
+verify_jwt = false
