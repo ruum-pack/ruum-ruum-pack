@@ -54,6 +54,6 @@ export default defineConfig({
         command: 'pnpm dev',
         port: 3001,
         timeout: 120_000,
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: true,
       },
 });

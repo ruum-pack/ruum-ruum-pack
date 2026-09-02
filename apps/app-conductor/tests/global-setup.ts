@@ -371,9 +371,9 @@ async function globalSetup(config: FullConfig) {
     
     await loginBtn.click();
     
-    // Esperar con mejor diagnóstico
+    // Esperar con mejor diagnóstico - aceptar panel o viajes como rutas válidas
     const navigationResult = await page.waitForURL(
-      (url) => url.pathname === "/panel", 
+      (url) => url.pathname === "/panel" || url.pathname === "/viajes", 
       { timeout: 30_000 }
     ).catch(async (err) => {
       const currentUrl = page.url();
