@@ -257,9 +257,7 @@ async function obtenerDatos(id: string) {
       }
 
       if (tRow) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const v = tRow.vehiculos as any;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const c = tRow.conductores as any;
         pasaporte = {
           traslado_id: tRow.id as string,
