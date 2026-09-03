@@ -2,12 +2,13 @@
 @import "@ruum/ui/styles/tokens.css";
 
 /*
- * App Usuario — BRAND BOOK RUUM RUUM V1
+ * App Usuario — base legacy V1 + scope migrado UI/UX V2
  *
  * Proporción institucional:
  *   60% Blanco evidencia #F8F8F5 / 25% Negro asfalto #151515 / 10% Amarillo ruta #FFC400 (acento/CTA)
  *   5% Azul trazabilidad #1E88E5 (#4da3ff en oscuro) + Gris acero #5F6368.
  * Tipografía: Montserrat Bold/SemiBold (títulos), Inter (cuerpo/formularios), IBM Plex Mono (datos/folios).
+ * Las pantallas migradas a V2 consumen el scope .user-v2-scope definido al final.
  */
 
 :root {
