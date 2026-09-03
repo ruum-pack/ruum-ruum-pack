@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Aviso, Field } from "@ruum/ui";
 import { traducirErrorAuth } from "@ruum/shared/utils";
+import { normalizarCorreoRegistro } from "../../lib/registro-usuario";
 import { registrarEventoUx } from "../../lib/analytics";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { botonAzul, botonContorno, CampoOscuro, LogoRuum, PantallaPublica } from "../experiencia-publica";
@@ -36,7 +37,8 @@ export function LoginCliente({ motivo, siguiente }: LoginClienteProps) {
 
     try {
       const cliente = crearClienteNavegador();
-      const { error: errorAuth } = await cliente.auth.signInWithPassword({ email, password });
+      const emailNormalizado = normalizarCorreoRegistro(email);
+      const { error: errorAuth } = await cliente.auth.signInWithPassword({ email: emailNormalizado, password });
       if (errorAuth) throw errorAuth;
       registrarEventoUx("login_exitoso", {
         reason: motivo,

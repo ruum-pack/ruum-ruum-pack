@@ -195,8 +195,12 @@ function calcularHorasDesdeCierre(actualizadoEn: string | null) {
 async function querySegura<T>(promesa: PromiseLike<{ data: T | null; error: unknown }>): Promise<{ data: T | null }> {
   try {
     const res = await promesa;
+    if ((res as unknown as { error: unknown }).error) {
+      console.warn("[app-usuario:querySegura] supabase_error", (res as unknown as { error: unknown }).error);
+    }
     return { data: res.data ?? null };
-  } catch {
+  } catch (err) {
+    console.error("[app-usuario:querySegura] supabase_error", { message: err instanceof Error ? err.message : String(err) });
     return { data: null };
   }
 }
@@ -204,8 +208,12 @@ async function querySegura<T>(promesa: PromiseLike<{ data: T | null; error: unkn
 async function queryArraySegura<T>(promesa: PromiseLike<{ data: T[] | null; error: unknown }>): Promise<{ data: T[] }> {
   try {
     const res = await promesa;
+    if ((res as unknown as { error: unknown }).error) {
+      console.warn("[app-usuario:queryArraySegura] supabase_error", (res as unknown as { error: unknown }).error);
+    }
     return { data: res.data ?? [] };
-  } catch {
+  } catch (err) {
+    console.error("[app-usuario:queryArraySegura] supabase_error", { message: err instanceof Error ? err.message : String(err) });
     return { data: [] };
   }
 }
@@ -684,6 +692,52 @@ function EvidenciaDurante({
 export default async function PaginaTraslado({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { pasaporte, traslado, vehiculo, conductor, evidencia, incidencias, disputas, reclamosSeguro, calificacion, pagos, ultimaUbicacion } = await obtenerDatos(id);
+
+  // R2 defense-in-depth: verificar que el traslado pertenece al usuario autenticado (RLS puede fallar)
+  if (pasaporte?.usuario_id) {
+    try {
+      const { crearClienteServidor: crearClienteAuth } = await import("../../../lib/supabase-server");
+      const clienteAuth = await crearClienteAuth();
+      const {
+        data: { user },
+      } = await clienteAuth.auth.getUser();
+      if (!user || user.id !== pasaporte.usuario_id) {
+        // Tratar como no encontrado para no filtrar existencia (IDOR)
+        return (
+          <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
+            <NavegacionUsuario />
+            <div className="w-full max-w-md mx-auto py-20 px-4 text-center">
+              <p className="font-display text-xs font-bold uppercase tracking-widest text-[#FFC400]">Traslado no encontrado</p>
+              <h1 className="mt-3 font-display text-2xl font-black text-white">No encontramos ese traslado</h1>
+              <p className="mt-3 max-w-sm mx-auto font-body text-xs leading-relaxed text-[#8E9CAE]">
+                Revisa el enlace o el folio. Si recién lo creaste, puede tardar unos segundos en sincronizarse con la plataforma.
+              </p>
+              <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <Link
+                  href="/mis-viajes"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#FFC400] px-5 py-2.5 font-display text-xs font-black uppercase tracking-wider text-[#0B111B] shadow-md transition hover:bg-[#e6b000]"
+                >
+                  Ver mis traslados
+                </Link>
+              </div>
+            </div>
+          </main>
+        );
+      }
+    } catch {
+      // Si falla la verificación de sesión, no exponer datos
+      return (
+        <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
+          <NavegacionUsuario />
+          <div className="w-full max-w-md mx-auto py-20 px-4 text-center">
+            <p className="font-display text-xs font-bold uppercase tracking-widest text-[#FFC400]">Traslado no encontrado</p>
+            <h1 className="mt-3 font-display text-2xl font-black text-white">No encontramos ese traslado</h1>
+            <p className="mt-3 max-w-sm mx-auto font-body text-xs leading-relaxed text-[#8E9CAE]">No pudimos verificar tu sesión. Intenta iniciar sesión de nuevo.</p>
+          </div>
+        </main>
+      );
+    }
+  }
 
   if (!pasaporte) {
     return (

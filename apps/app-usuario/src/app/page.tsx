@@ -29,7 +29,10 @@ async function obtenerContextoSesion(): Promise<ContextoSesion> {
 
     const traslados = await listarTrasladosDeUsuario(cliente, usuario.id);
     return { usuario, traslados };
-  } catch {
+  } catch (err) {
+    console.error("[app-usuario:obtenerContextoSesion] supabase_error", {
+      message: err instanceof Error ? err.message : String(err),
+    });
     return { usuario: null, traslados: [] };
   }
 }

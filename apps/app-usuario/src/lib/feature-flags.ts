@@ -12,21 +12,25 @@ interface CacheEntry {
 }
 
 const flagCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 60_000; // 60 segundos de caché en memoria
+const CACHE_TTL_MS = 60_000; // 60 segundos base
+const CACHE_JITTER_MS = 10_000; // ±5s jitter para evitar thundering herd
+const MAX_RETRIES = 2;
+const inFlight = new Map<string, Promise<FeatureFlagData | null>>();
+
+function jitter(): number {
+  return (Math.random() - 0.5) * CACHE_JITTER_MS;
+}
+
+function dormir(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export function clearFeatureFlagCache() {
   flagCache.clear();
+  inFlight.clear();
 }
 
-export async function getFeatureFlagData(key: string, forceRefresh = false): Promise<FeatureFlagData | null> {
-  const now = Date.now();
-  if (!forceRefresh) {
-    const cached = flagCache.get(key);
-    if (cached && cached.expiresAt > now) {
-      return cached.data;
-    }
-  }
-
+async function fetchFlagConRetry(key: string, attempt = 0): Promise<{ data: FeatureFlagData | null; error: unknown | null }> {
   try {
     const client = crearClienteNavegador();
     const { data, error } = await client
@@ -36,7 +40,19 @@ export async function getFeatureFlagData(key: string, forceRefresh = false): Pro
       .maybeSingle();
 
     if (error) {
-      return null;
+      const esRetriable = (error as { code?: string }).code === "PGRST301" || (error as { status?: number }).status === 429;
+      if (esRetriable && attempt < MAX_RETRIES) {
+        const backoff = 150 * Math.pow(2, attempt) + Math.random() * 100;
+        await dormir(backoff);
+        return fetchFlagConRetry(key, attempt + 1);
+      }
+      console.warn("[feature-flags] error consultando feature_flags_app", { key, error, attempt });
+      // Observabilidad no bloqueante (best-effort)
+      try {
+        const { recordOperationalEvent } = await import("./observability");
+        void recordOperationalEvent("supabase_error", { scope: "feature_flags", key, attempt }, "warning");
+      } catch {}
+      return { data: null, error };
     }
 
     const flagData: FeatureFlagData | null = data
@@ -47,10 +63,51 @@ export async function getFeatureFlagData(key: string, forceRefresh = false): Pro
         }
       : null;
 
-    flagCache.set(key, { data: flagData, expiresAt: now + CACHE_TTL_MS });
-    return flagData;
-  } catch {
-    return null;
+    if (flagData === null) {
+      console.warn("[feature-flags] flag no encontrada, retorna null (RLS o clave inexistente)", { key });
+      try {
+        const { recordOperationalEvent } = await import("./observability");
+        void recordOperationalEvent("supabase_error", { scope: "feature_flags_missing", key }, "warning");
+      } catch {}
+    }
+
+    return { data: flagData, error: null };
+  } catch (err) {
+    if (attempt < MAX_RETRIES) {
+      const backoff = 150 * Math.pow(2, attempt) + Math.random() * 100;
+      await dormir(backoff);
+      return fetchFlagConRetry(key, attempt + 1);
+    }
+    console.warn("[feature-flags] excepción", { key, err, attempt });
+    return { data: null, error: err };
+  }
+}
+
+export async function getFeatureFlagData(key: string, forceRefresh = false): Promise<FeatureFlagData | null> {
+  const now = Date.now();
+  if (!forceRefresh) {
+    const cached = flagCache.get(key);
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+    // Deduplicar thundering herd: si ya hay fetch en vuelo para esta key, reutilizar
+    const vuelo = inFlight.get(key);
+    if (vuelo) return vuelo;
+  }
+
+  const promesa = (async () => {
+    const { data } = await fetchFlagConRetry(key);
+    const expiresAt = Date.now() + CACHE_TTL_MS + jitter();
+    flagCache.set(key, { data, expiresAt });
+    return data;
+  })();
+
+  inFlight.set(key, promesa);
+  try {
+    const result = await promesa;
+    return result;
+  } finally {
+    inFlight.delete(key);
   }
 }
 

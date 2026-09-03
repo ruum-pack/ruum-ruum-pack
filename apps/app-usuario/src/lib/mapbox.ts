@@ -29,16 +29,21 @@ export function tieneMapboxConfigurado(): boolean {
   return Boolean(obtenerTokenPublico()?.startsWith("pk."));
 }
 
-async function consultarMapbox(parametros: URLSearchParams): Promise<FeatureMapbox[]> {
+async function consultarMapbox(parametros: URLSearchParams, externalSignal?: AbortSignal): Promise<FeatureMapbox[]> {
   const token = obtenerTokenPublico();
   if (!tieneMapboxConfigurado() || !token) return [];
+  if (externalSignal?.aborted) return [];
   parametros.set("access_token", token);
   parametros.set("country", "mx");
   parametros.set("language", "es");
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), MAPBOX_GEOCODING_TIMEOUT_MS);
+  const onExternalAbort = () => controller.abort();
+  if (externalSignal) externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+  // Combinar señales: aborta si cualquiera de las dos lo hace
+  const signal = controller.signal;
   try {
-    const respuesta = await fetch(`${URL_GEOCODIFICACION}?${parametros.toString()}`, { signal: controller.signal });
+    const respuesta = await fetch(`${URL_GEOCODIFICACION}?${parametros.toString()}`, { signal });
     if (!respuesta.ok) {
       void recordOperationalEvent("geocoding_failure", {
         status: respuesta.status,
@@ -50,12 +55,21 @@ async function consultarMapbox(parametros: URLSearchParams): Promise<FeatureMapb
     return datos.features ?? [];
   } catch (error) {
     if (error instanceof MapboxUsuarioError) throw error;
+    // R3: abort por cancelación de usuario (sequence superseded) no es fallo operativo
+    const esAbortExterno = externalSignal?.aborted;
+    const esTimeout = controller.signal.aborted && !esAbortExterno;
+    if (error instanceof DOMException && error.name === "AbortError" && esAbortExterno) {
+      // Cancelación intencional: silenciar sin telemetría
+      return [];
+    }
     void recordOperationalEvent("geocoding_failure", {
-      error: controller.signal.aborted ? "timeout" : error instanceof Error ? error.message : "error_red"
+      error: esTimeout ? "timeout" : error instanceof Error ? error.message : "error_red",
+      aborted: esAbortExterno ? "cancelado" : undefined
     }, "warning");
     return [];
   } finally {
     clearTimeout(timeout);
+    if (externalSignal) externalSignal.removeEventListener("abort", onExternalAbort);
   }
 }
 
@@ -82,10 +96,11 @@ export function mensajeErrorMapbox(error: unknown): string {
 }
 
 /** Nunca inventa 0,0: una dirección no resuelta conserva coordenadas NULL. */
-export async function geocodificarDireccion(direccion: string): Promise<CoordenadasGeocodificadas | null> {
+export async function geocodificarDireccion(direccion: string, signal?: AbortSignal): Promise<CoordenadasGeocodificadas | null> {
   const consulta = direccion.trim();
   if (!consulta) return null;
-  const features = await consultarMapbox(new URLSearchParams({ q: consulta, limit: "1", autocomplete: "false" }));
+  if (signal?.aborted) return null;
+  const features = await consultarMapbox(new URLSearchParams({ q: consulta, limit: "1", autocomplete: "false" }), signal);
   const coordenadas = features[0]?.geometry?.coordinates;
   if (!coordenadas) return null;
   const [lng, lat] = coordenadas;
@@ -94,10 +109,12 @@ export async function geocodificarDireccion(direccion: string): Promise<Coordena
 
 /** El catálogo postal local sigue siendo la fuente principal de estado,
  * ciudad y colonia; Mapbox aporta sugerencias complementarias. */
-export async function sugerirDireccionesPorCodigoPostal(codigoPostal: string): Promise<string[]> {
+export async function sugerirDireccionesPorCodigoPostal(codigoPostal: string, signal?: AbortSignal): Promise<string[]> {
   if (!/^\d{5}$/.test(codigoPostal)) return [];
+  if (signal?.aborted) return [];
   const features = await consultarMapbox(
-    new URLSearchParams({ q: codigoPostal, limit: "3", types: "postcode", autocomplete: "false" })
+    new URLSearchParams({ q: codigoPostal, limit: "3", types: "postcode", autocomplete: "false" }),
+    signal
   );
   return features
     .map((feature) => feature.properties?.full_address ??
@@ -136,23 +153,17 @@ interface FeatureDireccionDetallada {
   };
 }
 
-export async function sugerirDireccionesAutocomplete(consulta: string): Promise<SugerenciaDireccion[]> {
+export async function sugerirDireccionesAutocomplete(consulta: string, signal?: AbortSignal): Promise<SugerenciaDireccion[]> {
   const q = consulta.trim();
   if (q.length < 3 || !tieneMapboxConfigurado()) return [];
-  const params = new URLSearchParams({ q, limit: "5", autocomplete: "true", types: "address,street,place,locality,neighborhood" });
-  // consultarMapbox ya limita a MX y ES
-  const token = obtenerTokenPublico();
-  if (!token) return [];
-  params.set("access_token", token);
-  params.set("country", "mx");
-  params.set("language", "es");
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), MAPBOX_GEOCODING_TIMEOUT_MS);
+  if (signal?.aborted) return [];
+  // R3: reutiliza consultarMapbox para centralizar token/país/idioma/timeout/telemetría y soporte de cancelación
   try {
-    const res = await fetch(`${URL_GEOCODIFICACION}?${params.toString()}`, { signal: controller.signal });
-    if (!res.ok) return [];
-    const datos = (await res.json()) as { features?: FeatureDireccionDetallada[] };
-    return (datos.features ?? []).slice(0, 5).map((f) => {
+    const rawFeatures = await consultarMapbox(
+      new URLSearchParams({ q, limit: "5", autocomplete: "true", types: "address,street,place,locality,neighborhood" }),
+      signal
+    ) as unknown as FeatureDireccionDetallada[];
+    return (rawFeatures ?? []).slice(0, 5).map((f) => {
       const coords = f.geometry?.coordinates;
       const ctx = f.properties?.context;
       return {
@@ -167,19 +178,22 @@ export async function sugerirDireccionesAutocomplete(consulta: string): Promise<
       };
     }).filter(s => s.textoCompleto);
   } catch {
+    // Autocomplete es sugerencia no bloqueante: 401/403 u otro error devuelve vacío sin propagar
+    // consultarMapbox ya emitió recordOperationalEvent para el caso geocoding
     return [];
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
 export async function calcularRutaMapbox(
   origen: CoordenadasGeocodificadas,
-  destino: CoordenadasGeocodificadas
+  destino: CoordenadasGeocodificadas,
+  signal?: AbortSignal
 ): Promise<RutaMapboxCalculada | null> {
+  if (signal?.aborted) return null;
   const token = obtenerTokenPublico();
   if (!tieneMapboxConfigurado() || !token) return null;
   const ruta = await obtenerRutaDirectionsMapbox([origen.lng, origen.lat], [destino.lng, destino.lat], token, { lanzarErrores: true });
+  if (signal?.aborted) return null;
   if (ruta?.distanciaKm == null || ruta?.tiempoHoras == null) return null;
   return { distanciaKm: ruta.distanciaKm, tiempoEstimadoHoras: ruta.tiempoHoras };
 }
@@ -187,8 +201,10 @@ export async function calcularRutaMapbox(
 export async function calcularRutaMapboxConParadas(
   origen: CoordenadasGeocodificadas,
   destino: CoordenadasGeocodificadas,
-  paradas: CoordenadasGeocodificadas[]
+  paradas: CoordenadasGeocodificadas[],
+  signal?: AbortSignal
 ): Promise<RutaMapboxCalculada | null> {
+  if (signal?.aborted) return null;
   const token = obtenerTokenPublico();
   if (!tieneMapboxConfigurado() || !token) return null;
   const { obtenerRutaDirectionsMapboxConParadas } = await import("@ruum/shared/utils");
@@ -199,6 +215,7 @@ export async function calcularRutaMapboxConParadas(
     token,
     { lanzarErrores: true }
   );
+  if (signal?.aborted) return null;
   if (ruta?.distanciaKm == null || ruta?.tiempoHoras == null) return null;
   return { distanciaKm: ruta.distanciaKm, tiempoEstimadoHoras: ruta.tiempoHoras };
 }

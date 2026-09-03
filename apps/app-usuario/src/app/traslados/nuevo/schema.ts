@@ -45,7 +45,8 @@ export const esquemaSolicitudTraslado = z.object({
   tieneTarjeta: z.literal(true, { errorMap: () => ({ message: "Se requiere tarjeta de circulación vigente." }) }),
   tieneVerificacion: z.literal(true, { errorMap: () => ({ message: "Se requiere verificación vigente." }) }),
   tienePlacas: z.literal(true, { errorMap: () => ({ message: "Se requieren ambas placas instaladas." }) }),
-  puedeCircular: z.literal(true, { errorMap: () => ({ message: "El vehículo debe encender y circular rodando." }) }),
+  // R10: rescate_mecanico permite traslado sin rodar (grúa/plataforma). Validación condicional en superRefine.
+  puedeCircular: z.boolean(),
   origenCodigoPostal: z.string().regex(/^\d{5}$/, "El Código Postal debe tener 5 dígitos."),
   origenEstado: requerido(), origenCiudad: requerido(), origenColonia: requerido(), origenCalle: requerido(), origenNumero: requerido(),
   destinoCodigoPostal: z.string().regex(/^\d{5}$/, "El Código Postal debe tener 5 dígitos."),
@@ -62,6 +63,10 @@ export const esquemaSolicitudTraslado = z.object({
   aceptaPoliticas: z.literal(true, { errorMap: () => ({ message: "Debes aceptar las políticas de pago y cancelación." }) }),
   paradas: z.array(esquemaParada).max(8, "Máximo 8 escalas/tareas.").default([])
 }).superRefine((d, ctx) => {
+  // R10: puedeCircular false solo es válido para rescate_mecanico (vehículo no rodante)
+  if (!d.puedeCircular && d.condicion !== "rescate_mecanico") {
+    ctx.addIssue({ code: "custom", path: ["puedeCircular"], message: "El vehículo debe encender y circular rodando. Para rescate mecánico desactiva este requisito y se asignará grúa/plataforma." });
+  }
   if (d.vehiculoSeleccionadoId && !d.vehiculosUsuarioIds.includes(d.vehiculoSeleccionadoId)) {
     ctx.addIssue({ code: "custom", path: ["vehiculoSeleccionadoId"], message: "El vehículo guardado no pertenece al usuario." });
   }

@@ -60,7 +60,10 @@ async function obtenerViajes(): Promise<ViajeLista[]> {
       pasaporte,
       traslado: pasaporte.traslado_id ? trasladosPorId.get(pasaporte.traslado_id) ?? null : null
     }));
-  } catch {
+  } catch (err) {
+    console.error("[app-usuario:obtenerViajes] supabase_error", {
+      message: err instanceof Error ? err.message : String(err),
+    });
     return [];
   }
 }

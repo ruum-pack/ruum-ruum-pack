@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { buildCspEstatico, HSTS_HEADER, PERMISSIONS_POLICY } from "./src/lib/csp";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@ruum/shared", "@ruum/ui", "@ruum/api"],
@@ -21,49 +22,21 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     const isProd = process.env.NODE_ENV === "production";
-    const cspProd = [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://*.sentry.io https://js.stripe.com https://*.stripe.com",
-      "style-src 'self' 'unsafe-inline'",
-      "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.mapbox.com https://api.mapbox.com https://events.mapbox.com https://*.sentry.io https://*.didit.me https://verify.didit.me https://apx.didit.me https://api.stripe.com https://*.stripe.com https://*.stripe.network https://r.stripe.com https://m.stripe.com https://q.stripe.com",
-      "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://*.mapbox.com https://*.didit.me https://verify.didit.me https://*.stripe.com https://*.stripe.network",
-      "font-src 'self' data:",
-      "frame-src 'self' https://verify.didit.me https://*.didit.me https://js.stripe.com https://*.stripe.com https://*.stripe.network https://hooks.stripe.com",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-      "worker-src 'self' blob:",
-      "child-src 'self' blob:"
-    ].join("; ");
-    const cspDev = [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://js.stripe.com https://*.stripe.com",
-      "style-src 'self' 'unsafe-inline'",
-      "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.mapbox.com https://api.mapbox.com https://events.mapbox.com https://*.sentry.io https://*.didit.me https://verify.didit.me https://apx.didit.me https://api.stripe.com https://*.stripe.com https://*.stripe.network https://r.stripe.com https://m.stripe.com https://q.stripe.com ws: wss: http://localhost:* http://127.0.0.1:* capacitor://localhost",
-      "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://*.mapbox.com https://*.didit.me https://verify.didit.me https://*.stripe.com https://*.stripe.network",
-      "font-src 'self' data:",
-      "frame-src 'self' https://verify.didit.me https://*.didit.me https://js.stripe.com https://*.stripe.com https://*.stripe.network https://hooks.stripe.com",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-      "worker-src 'self' blob:",
-      "child-src 'self' blob:"
-    ].join("; ");
+    // R1: fuente única src/lib/csp.ts — next.config solo usa fallback estático sin nonce (middleware es autoridad con nonce)
+    const csp = buildCspEstatico(isProd);
 
     const headersList: { key: string; value: string }[] = [
-      { key: "Content-Security-Policy", value: isProd ? cspProd : cspDev },
+      { key: "Content-Security-Policy", value: csp },
       { key: "X-Frame-Options", value: "DENY" },
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Permissions-Policy", value: "camera=(self \"https://verify.didit.me\" \"https://*.didit.me\"), geolocation=(self \"https://verify.didit.me\" \"https://*.didit.me\"), microphone=(self \"https://verify.didit.me\" \"https://*.didit.me\")" }
+      { key: "Permissions-Policy", value: PERMISSIONS_POLICY }
     ];
 
     if (isProd) {
       headersList.push({
         key: "Strict-Transport-Security",
-        value: "max-age=63072000; includeSubDomains; preload"
+        value: HSTS_HEADER
       });
     }
 

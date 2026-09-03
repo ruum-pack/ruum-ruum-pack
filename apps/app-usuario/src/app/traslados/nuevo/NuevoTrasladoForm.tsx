@@ -568,6 +568,9 @@ export function NuevoTrasladoForm() {
   // congelado para siempre en "Confirmando tarifa…". El ref sobrevive esas
   // dos pasadas sin duplicar la llamada RPC.
   const trasladoAceptacionIntentado = useRef<string | null>(null);
+  // R3: sequence + AbortController para evitar overwrite stale en cálculo de ruta (debounce 650ms)
+  const seqGeocodificaRef = useRef(0);
+  const abortGeocodificaRef = useRef<AbortController | null>(null);
 
   // El pago anticipado (Stripe) solo puede iniciarse cuando el traslado está
   // en 'cotizacion_aceptada' (ver crear-payment-intent). Como en el wizard
@@ -692,6 +695,8 @@ export function NuevoTrasladoForm() {
     }));
 
     if (!origenDireccion.trim() || !destinoDireccion.trim()) {
+      // R3: abortar cualquier geocodificación en vuelo cuando la entrada queda incompleta
+      abortGeocodificaRef.current?.abort();
       const timer = setTimeout(() => {
         setRutaEstimacion(null);
         setRutaAviso(null);
@@ -700,25 +705,24 @@ export function NuevoTrasladoForm() {
       return () => clearTimeout(timer);
     }
 
-    let cancelado = false;
+    // R3: sequence + AbortController por-request para evitar overwrite stale
     const timer = setTimeout(async () => {
+      // Abortar request anterior y crear nuevo controlador/seq para este intento
+      abortGeocodificaRef.current?.abort();
+      const controller = new AbortController();
+      abortGeocodificaRef.current = controller;
+      const seqActual = ++seqGeocodificaRef.current;
+      const esStale = () => seqGeocodificaRef.current !== seqActual || controller.signal.aborted;
+
       setRutaCalculando(true);
       setRutaAviso(null);
       try {
         const usarParadas = paradasDirecciones.some((d) => d.trim());
+        const coordsOrigen = datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined;
         const coordenadas = usarParadas
-          ? await geocodificarRutaConParadas(
-              origenDireccion,
-              destinoDireccion,
-              paradasDirecciones,
-              datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined
-            )
-          : await geocodificarRuta(
-              origenDireccion,
-              destinoDireccion,
-              datos.origenLat !== undefined && datos.origenLng !== undefined ? { lat: datos.origenLat, lng: datos.origenLng } : undefined
-            );
-        if (cancelado) return;
+          ? await geocodificarRutaConParadas(origenDireccion, destinoDireccion, paradasDirecciones, coordsOrigen, controller.signal)
+          : await geocodificarRuta(origenDireccion, destinoDireccion, coordsOrigen, controller.signal);
+        if (esStale()) return;
         setRutaEstimacion(coordenadas as typeof rutaEstimacion);
         if (coordenadas.incompletas) {
           setRutaAviso(
@@ -730,18 +734,20 @@ export function NuevoTrasladoForm() {
           setRutaAviso("Mapbox resolvió las direcciones, pero no devolvió una ruta con distancia y tiempo.");
         }
       } catch (error) {
-        if (!cancelado) {
-          setRutaEstimacion(null);
-          setRutaAviso(mensajeErrorMapbox(error));
-        }
+        if (esStale()) return;
+        // Abort por superseded no es error de usuario
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setRutaEstimacion(null);
+        setRutaAviso(mensajeErrorMapbox(error));
       } finally {
-        if (!cancelado) setRutaCalculando(false);
+        if (!esStale()) setRutaCalculando(false);
       }
     }, 650);
 
     return () => {
-      cancelado = true;
       clearTimeout(timer);
+      // Abort de cortesía: si hay fetch en vuelo queda stale por seq, pero abort libera red y evita timeout 10s
+      abortGeocodificaRef.current?.abort();
     };
   }, [
     datos.origenCalle, datos.origenNumero, datos.origenColonia, datos.origenCodigoPostal, datos.origenCiudad, datos.origenEstado,
@@ -2119,7 +2125,11 @@ export function NuevoTrasladoForm() {
                     <div className="grid gap-3 rounded-lg border border-ink/10 p-4">
                       <div>
                         <p className="font-body text-sm font-semibold">Documentación mínima requerida</p>
-                        <p className="mt-1 font-body text-xs text-ink/65">Por el momento, el servicio está disponible únicamente para vehículos que encienden, cuentan con documentación vigente y pueden circular rodando.</p>
+                        <p className="mt-1 font-body text-xs text-ink/65">
+                          {datos.condicion === "rescate_mecanico"
+                            ? "Para rescate mecánico el vehículo puede no circular rodando — se asignará grúa o plataforma. Sigue requiriendo tarjeta, verificación y placas vigentes."
+                            : "Por el momento, el servicio está disponible únicamente para vehículos que encienden, cuentan con documentación vigente y pueden circular rodando."}
+                        </p>
                       </div>
                       {(
                         [

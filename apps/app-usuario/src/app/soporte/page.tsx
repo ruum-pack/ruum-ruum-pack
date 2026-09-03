@@ -27,7 +27,10 @@ async function obtenerContexto() {
     if (!usuario) return { usuario: null as Usuario | null, traslados: [] as Pasaporte[] };
     const traslados = await listarTrasladosDeUsuario(cliente, usuario.id);
     return { usuario, traslados };
-  } catch {
+  } catch (err) {
+    console.error("[app-usuario:obtenerContextoSoporte] supabase_error", {
+      message: err instanceof Error ? err.message : String(err),
+    });
     return { usuario: null as Usuario | null, traslados: [] as Pasaporte[] };
   }
 }

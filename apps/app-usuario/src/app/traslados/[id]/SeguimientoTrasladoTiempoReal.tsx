@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   obtenerEstadoTrasladoRealtime,
   obtenerUltimaUbicacionTraslado,
@@ -91,6 +91,8 @@ export function SeguimientoTrasladoTiempoReal({
   const [estadoActualizadoEn, setEstadoActualizadoEn] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
   const [mapaCargadoUrl, setMapaCargadoUrl] = useState<string | null>(null);
+  // R12: debounce refrescar + última vez para evitar spam
+  const ultimoRefreshRef = useRef<number>(0);
 
   const estadoEnVivo = estadoRealtime ?? estado;
   const mapaUrl = useMemo(() => construirMapa(origen, destino, ubicacion), [destino, origen, ubicacion]);
@@ -101,26 +103,58 @@ export function SeguimientoTrasladoTiempoReal({
     if (!tieneSupabaseConfigurado()) return;
 
     const cliente = crearClienteNavegador();
-    const canalEstado = suscribirEstadoTraslado(cliente, trasladoId, (traslado) => {
-      setEstadoRealtime(traslado.estado);
-      setEstadoActualizadoEn(traslado.actualizado_en);
-    });
-    const canalUbicacion = suscribirUbicacionTraslado(cliente, trasladoId, setUbicacion);
+    let canalEstado: ReturnType<typeof suscribirEstadoTraslado> | null = null;
+    let canalUbicacion: ReturnType<typeof suscribirUbicacionTraslado> | null = null;
+    let cancelado = false;
 
-    void obtenerEstadoTrasladoRealtime(cliente, trasladoId).then((traslado) => {
-      if (!traslado) return;
-      setEstadoRealtime(traslado.estado);
-      setEstadoActualizadoEn(traslado.actualizado_en);
-    });
+    try {
+      canalEstado = suscribirEstadoTraslado(cliente, trasladoId, (traslado) => {
+        if (cancelado) return;
+        setEstadoRealtime(traslado.estado);
+        setEstadoActualizadoEn(traslado.actualizado_en);
+      });
+      canalUbicacion = suscribirUbicacionTraslado(cliente, trasladoId, (u) => {
+        if (cancelado) return;
+        setUbicacion(u);
+      });
+    } catch (err) {
+      console.warn("[SeguimientoTiempoReal] suscripción fallida", err);
+    }
+
+    void obtenerEstadoTrasladoRealtime(cliente, trasladoId)
+      .then((traslado) => {
+        if (cancelado || !traslado) return;
+        setEstadoRealtime(traslado.estado);
+        setEstadoActualizadoEn(traslado.actualizado_en);
+      })
+      .catch((err) => console.warn("[SeguimientoTiempoReal] fetch estado fallido", err));
 
     return () => {
-      void cliente.removeChannel(canalEstado);
-      void cliente.removeChannel(canalUbicacion);
+      cancelado = true;
+      // R12: cleanup resiliente con allSettled + log, evita fuga si trasladoId cambia rápido
+      const canales = [canalEstado, canalUbicacion].filter(Boolean) as unknown[];
+      if (canales.length === 0) return;
+      void Promise.allSettled(
+        canales.map((ch) =>
+          // supabase-js removeChannel puede rechazar si canal ya cerrado
+          (cliente.removeChannel as unknown as (c: unknown) => Promise<string>)(ch).catch((e) => {
+            console.warn("[SeguimientoTiempoReal] removeChannel fallido", { trasladoId, error: e instanceof Error ? e.message : String(e) });
+            throw e;
+          })
+        )
+      ).then((results) => {
+        const fallidos = results.filter((r) => r.status === "rejected");
+        if (fallidos.length > 0) console.warn("[SeguimientoTiempoReal] algunos canales no se cerraron", fallidos);
+      });
     };
   }, [trasladoId]);
 
   async function refrescar() {
     if (!tieneSupabaseConfigurado()) return;
+    // R12: debounce 800ms + loading disable para evitar spam de clicks
+    const ahora = Date.now();
+    if (ahora - ultimoRefreshRef.current < 800 || cargando) return;
+    ultimoRefreshRef.current = ahora;
 
     setCargando(true);
     try {
@@ -134,6 +168,8 @@ export function SeguimientoTrasladoTiempoReal({
         setEstadoRealtime(estadoActual.estado);
         setEstadoActualizadoEn(estadoActual.actualizado_en);
       }
+    } catch (err) {
+      console.warn("[SeguimientoTiempoReal] refrescar fallido", err);
     } finally {
       setCargando(false);
     }

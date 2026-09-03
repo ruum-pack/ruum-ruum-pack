@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Aviso, Button } from "@ruum/ui";
@@ -27,7 +27,9 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/su
 import { consultarCodigoPostalMx } from "../../../lib/codigos-postales";
 import {
   calcularRutaMapbox,
+  esErrorConfiguracionMapbox,
   geocodificarDireccion,
+  mensajeErrorMapbox,
   tieneMapboxConfigurado
 } from "../../../lib/mapbox";
 
@@ -59,8 +61,58 @@ async function calcularSha256(archivo: File): Promise<string> {
     .join("");
 }
 
+// ── R6 helpers: backoff y rate-limit Mapbox ─────────────────────────────────
+function dormir(ms: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => { clearTimeout(t); reject(new DOMException("Aborted", "AbortError")); }, { once: true });
+  });
+}
+
+async function geocodificarConRetry(direccion: string, signal?: AbortSignal, intentos = 3): Promise<Awaited<ReturnType<typeof geocodificarDireccion>>> {
+  let ultimoError: unknown = null;
+  for (let i = 0; i < intentos; i++) {
+    if (signal?.aborted) return null;
+    try {
+      const res = await geocodificarDireccion(direccion, signal);
+      return res;
+    } catch (e) {
+      ultimoError = e;
+      const es429 = esErrorConfiguracionMapbox(e) && (e as { status: number }).status === 429;
+      if (!es429 || i === intentos - 1) throw e;
+      await dormir(400 * Math.pow(2, i), signal);
+    }
+  }
+  throw ultimoError;
+}
+
+async function calcularRutaConRetry(
+  origen: { lat: number; lng: number },
+  destino: { lat: number; lng: number },
+  signal?: AbortSignal,
+  intentos = 3
+): Promise<Awaited<ReturnType<typeof calcularRutaMapbox>>> {
+  let ultimoError: unknown = null;
+  for (let i = 0; i < intentos; i++) {
+    if (signal?.aborted) return null;
+    try {
+      const r = await calcularRutaMapbox(origen, destino, signal);
+      return r;
+    } catch (e) {
+      ultimoError = e;
+      const es429 = esErrorConfiguracionMapbox(e) && (e as { status: number }).status === 429;
+      if (!es429 || i === intentos - 1) throw e;
+      await dormir(500 * Math.pow(2, i), signal);
+    }
+  }
+  throw ultimoError;
+}
+
 export function CargaMasivaForm() {
   const router = useRouter();
+  const abortEnriquecimientoRef = useRef<AbortController | null>(null);
+  const abortCargaRef = useRef<AbortController | null>(null);
   const [paso, setPaso] = useState<1 | 2 | 3 | 4>(1);
   const [archivo, setArchivo] = useState<File | null>(null);
   const [analizando, setAnalizando] = useState(false);
@@ -134,14 +186,20 @@ export function CargaMasivaForm() {
         return;
       }
 
-      // Enriquecimiento y geocodificación con concurrencia controlada (pLimit 3)
-      const limit = pLimit(3);
+      // R6: rate-limit 2 + backoff 429 + abort por nuevo archivo/unmount
+      abortEnriquecimientoRef.current?.abort();
+      const controller = new AbortController();
+      abortEnriquecimientoRef.current = controller;
+      const limit = pLimit(2);
       let completadas = 0;
       setProgresoGeocodificacion({ actual: 0, total: revision.filas.length });
 
       const tareas = revision.filas.map((fila, index) =>
         limit(async () => {
-          const prevalidada = await enriquecerFilaUsuario(fila, index + 1);
+          if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
+          // Pequeño jitter para no ráfaga exacta contra cuota Mapbox 600/min
+          if (index % 4 === 0 && index !== 0) await dormir(220, controller.signal);
+          const prevalidada = await enriquecerFilaUsuario(fila, index + 1, controller.signal);
           completadas += 1;
           setProgresoGeocodificacion({ actual: completadas, total: revision.filas.length });
           return prevalidada;
@@ -149,9 +207,11 @@ export function CargaMasivaForm() {
       );
 
       const filasEnriquecidas = await Promise.all(tareas);
+      if (controller.signal.aborted) return;
       setFilas(filasEnriquecidas);
       setPaso(2);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setErrorGeneral(err instanceof Error ? err.message : "Error al procesar el archivo CSV.");
     } finally {
       setAnalizando(false);
@@ -160,7 +220,7 @@ export function CargaMasivaForm() {
   };
 
   // ── 4. Enriquecer fila individual ────────────────────────────────────────
-  const enriquecerFilaUsuario = async (fila: FilaCsv, numero: number): Promise<FilaPrevalidada> => {
+  const enriquecerFilaUsuario = async (fila: FilaCsv, numero: number, signal?: AbortSignal): Promise<FilaPrevalidada> => {
     const errores: string[] = [];
     const advertencias: string[] = [];
 
@@ -219,13 +279,14 @@ export function CargaMasivaForm() {
     let distanciaKm = numeroTexto(fila.distancia_km);
     let tiempoEstimadoHoras = numeroTexto(fila.tiempo_estimado_horas);
 
-    // Geocodificación Mapbox si faltan coordenadas
-    if (tieneMapboxConfigurado()) {
+    // Geocodificación Mapbox si faltan coordenadas — R6 con retry 429 y abort
+    if (tieneMapboxConfigurado() && !signal?.aborted) {
       try {
         const [geoOrigen, geoDestino] = await Promise.all([
-          origenLat && origenLng ? null : geocodificarDireccion(origenDireccion),
-          destinoLat && destinoLng ? null : geocodificarDireccion(destinoDireccion)
+          origenLat && origenLng ? null : geocodificarConRetry(origenDireccion, signal),
+          destinoLat && destinoLng ? null : geocodificarConRetry(destinoDireccion, signal)
         ]);
+        if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
         if (geoOrigen) {
           origenLat = String(geoOrigen.lat);
           origenLng = String(geoOrigen.lng);
@@ -237,17 +298,19 @@ export function CargaMasivaForm() {
 
         // Calcular distancia y tiempo si faltan
         if ((!distanciaKm || !tiempoEstimadoHoras) && origenLat && origenLng && destinoLat && destinoLng) {
-          const ruta = await calcularRutaMapbox(
+          const ruta = await calcularRutaConRetry(
             { lat: Number(origenLat), lng: Number(origenLng) },
-            { lat: Number(destinoLat), lng: Number(destinoLng) }
+            { lat: Number(destinoLat), lng: Number(destinoLng) },
+            signal
           );
           if (ruta) {
             distanciaKm = String(ruta.distanciaKm);
             tiempoEstimadoHoras = String(ruta.tiempoEstimadoHoras);
           }
         }
-      } catch {
-        advertencias.push("No se pudo calcular la ruta Mapbox automáticamente");
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") throw e;
+        advertencias.push(mensajeErrorMapbox(e));
       }
     }
 
@@ -301,11 +364,16 @@ export function CargaMasivaForm() {
     if (!archivo || filas.length === 0) return;
     setEnviando(true);
     setErrorGeneral(null);
+    // R6: abort control para evitar loop infinito si usuario navega/cancela
+    abortCargaRef.current?.abort();
+    const controller = new AbortController();
+    abortCargaRef.current = controller;
 
     try {
       if (!tieneSupabaseConfigurado()) {
         throw new Error("Supabase no está configurado.");
       }
+      if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
       const cliente = crearClienteNavegador();
       const hash = await calcularSha256(archivo);
 
@@ -318,17 +386,25 @@ export function CargaMasivaForm() {
         mimeType: archivo.type || "text/csv"
       });
 
-      // 2. Procesar lote en chunks
+      // 2. Procesar lote en chunks — R6: delay + maxRetries para evitar loop infinito
       let resProcesamiento = await procesarCargaTrasladosMasivosUsuario(cliente, resCreacion.carga_id, 50);
+      const MAX_INTENTOS = 20;
+      let intentos = 0;
 
-      // Si quedan pendientes, continuar procesando
       while (resProcesamiento.estado === "procesando") {
+        if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
+        if (intentos++ >= MAX_INTENTOS) {
+          throw new Error("El backend sigue procesando el lote. Revisa Mis Viajes en unos minutos para ver el resultado parcial.");
+        }
+        await dormir(1000 + Math.min(intentos * 250, 3000), controller.signal);
         resProcesamiento = await procesarCargaTrasladosMasivosUsuario(cliente, resCreacion.carga_id, 50);
       }
 
+      if (controller.signal.aborted) return;
       setResultado(resProcesamiento);
       setPaso(4);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setErrorGeneral(err instanceof Error ? err.message : "Error al procesar la carga masiva.");
     } finally {
       setEnviando(false);

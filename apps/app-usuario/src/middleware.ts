@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { crearClienteServidor } from "@ruum/api/supabase";
+import { buildCspUsuario as buildCspUsuarioCanonica, HSTS_HEADER, PERMISSIONS_POLICY } from "./lib/csp";
 
 /**
  * P1 Hardening: CSP + HSTS + Control de Sesión para app-usuario
@@ -8,6 +9,7 @@ import { crearClienteServidor } from "@ruum/api/supabase";
  * 3. Report-Only en staging (/api/csp-report) para migración progresiva sin bloqueo intempestivo.
  * 4. Preservación explícita de excepciones para Stripe Elements, Didit, Mapbox, Supabase y Capacitor móvil.
  * 5. Refresco de sesión y protección de rutas autenticadas.
+ * Fuente canónica: src/lib/csp.ts
  */
 
 const RUTAS_PROTEGIDAS_USUARIO = [
@@ -25,33 +27,7 @@ function esRutaProtegidaUsuario(pathname: string): boolean {
 }
 
 export function buildCspUsuario(nonce: string, isProd: boolean, isStaging: boolean): string {
-  const scriptSrc = isProd
-    ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.sentry.io https://js.stripe.com https://*.stripe.com`
-    : `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://js.stripe.com https://*.stripe.com`;
-
-  const strictStyles = process.env.CSP_STRICT_STYLES === "true" || process.env.NEXT_PUBLIC_CSP_STRICT_STYLES === "true";
-  const styleSrc = strictStyles && isProd
-    ? `style-src 'self' 'nonce-${nonce}'`
-    : `style-src 'self' 'unsafe-inline' 'nonce-${nonce}'`;
-
-  const base = [
-    "default-src 'self'",
-    scriptSrc,
-    styleSrc,
-    "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.mapbox.com https://api.mapbox.com https://events.mapbox.com https://*.sentry.io https://*.didit.me https://verify.didit.me https://apx.didit.me https://api.stripe.com https://*.stripe.com https://*.stripe.network https://r.stripe.com https://m.stripe.com https://q.stripe.com" +
-      (isProd ? "" : " ws: wss: http://localhost:* http://127.0.0.1:* capacitor://localhost"),
-    "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://*.mapbox.com https://*.didit.me https://verify.didit.me https://*.stripe.com https://*.stripe.network",
-    "font-src 'self' data:",
-    "frame-src 'self' https://verify.didit.me https://*.didit.me https://js.stripe.com https://*.stripe.com https://*.stripe.network https://hooks.stripe.com",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-    "worker-src 'self' blob:",
-    "child-src 'self' blob:"
-  ].join("; ");
-
-  return base;
+  return buildCspUsuarioCanonica(nonce, isProd, isStaging);
 }
 
 export function applySecurityHeadersUsuario(res: NextResponse, nonce: string): NextResponse {
@@ -71,13 +47,10 @@ export function applySecurityHeadersUsuario(res: NextResponse, nonce: string): N
   res.headers.set("X-Frame-Options", "DENY");
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.headers.set(
-    "Permissions-Policy",
-    'camera=(self "https://verify.didit.me" "https://*.didit.me"), geolocation=(self "https://verify.didit.me" "https://*.didit.me"), microphone=(self "https://verify.didit.me" "https://*.didit.me")'
-  );
+  res.headers.set("Permissions-Policy", PERMISSIONS_POLICY);
 
   if (isProd) {
-    res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+    res.headers.set("Strict-Transport-Security", HSTS_HEADER);
   }
 
   return res;
