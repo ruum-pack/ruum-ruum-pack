@@ -4,12 +4,19 @@ import {
   esFotoPerfilDiditValida,
   esUrlHospedadaDiditValida,
   obtenerRetratoDidit,
+  urlSesionDidit,
 } from "./didit-session.ts";
 
 const supabaseUrl = "https://rgvzrzjfyzdedowgokjl.supabase.co";
 const authUserId = "11111111-1111-4111-8111-111111111111";
 const fotoUrl =
   `${supabaseUrl}/storage/v1/object/public/fotos-perfil/${authUserId}/perfil.jpg?v=1`;
+
+Deno.test("usa el endpoint v3 oficial para crear sesiones Didit", () => {
+  if (urlSesionDidit() !== "https://verification.didit.me/v3/session/") {
+    throw new Error("El endpoint de creación de sesiones Didit es incorrecto.");
+  }
+});
 
 Deno.test("construye el payload JSON v3 con headers compatibles con Didit", () => {
   const payload = construirPayloadSesionDidit({

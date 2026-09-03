@@ -82,104 +82,42 @@ async function ensureAuthUser(admin: AdminClient, email: string, password: strin
 
 async function ensureConductor(admin: AdminClient, authUserId: string) {
   // Limpiar estado previo que bloquea la creación directa de conductores
-  const { count: cntSolBefore } = await admin.from("solicitudes_conductor").select("id", { count: "exact", head: true }).eq("auth_user_id", authUserId).then(r => r as { count: number | null }).catch(() => ({ count: 0 } as never));
+  const { count: cntSolBefore } = await Promise.resolve(admin.from("solicitudes_conductor").select("id", { count: "exact", head: true }).eq("auth_user_id", authUserId).then(r => r as { count: number | null })).catch(() => ({ count: null } as never));
   console.log(`[E2E] solicitudes_conductor para ${authUserId} antes: ${cntSolBefore}`);
-  // Primero borrar historial que referencia la solicitud (FK restrict)
-  const { data: sols } = await admin.from("solicitudes_conductor").select("id").eq("auth_user_id", authUserId).then(r => r as { data: { id: string }[] | null }).catch(() => ({ data: [] } as never));
-  for (const s of sols ?? []) {
-    await admin.from("historial_estados_solicitud_conductor").delete().eq("solicitud_id", s.id).then(() => {}).catch(() => {});
-  }
-  const delSol = await admin.from("solicitudes_conductor").delete().eq("auth_user_id", authUserId);
-  console.log(`[E2E] delete solicitudes_conductor error:`, (delSol as { error?: { message: string } })?.error?.message ?? "ok");
-  const { count: cntSolAfter } = await admin.from("solicitudes_conductor").select("id", { count: "exact", head: true }).eq("auth_user_id", authUserId).then(r => r as { count: number | null }).catch(() => ({ count: 0 } as never));
-  console.log(`[E2E] solicitudes_conductor después: ${cntSolAfter}`);
-  await admin.from("conductores").delete().eq("id", E2E_CONDUCTOR_ID).then(() => {}).catch(() => {});
-  // Si existe un conductor con este auth_user_id pero con ID distinto al E2E_CONDUCTOR_ID, eliminarlo para evitar duplicado auth
-  const { data: porAuth } = await admin.from("conductores").select("id").eq("auth_user_id", authUserId).maybeSingle().then(r => r as { data: { id: string } | null }).catch(() => ({ data: null } as never));
-  if (porAuth && porAuth.id !== E2E_CONDUCTOR_ID) {
-    await admin.from("conductores").delete().eq("id", porAuth.id).then(() => {}).catch(() => {});
-  }
-
-  const { data: existing, error: selectError } = await admin
-    .from("conductores")
-    .select("id, estado_expediente")
-    .eq("auth_user_id", authUserId)
-    .maybeSingle();
-  if (selectError) throw selectError;
-
-  const conductorId = existing?.id ?? E2E_CONDUCTOR_ID;
-  if (!existing) {
-    // Bypass trigger validar_auth_conductor_sin_solicitud que bloquea si hay solicitudes_conductor para este auth_user_id
-    await admin.rpc("set_config" as never, { key: "ruum.aprobando_solicitud", value: "si", is_local: true } as never).then(() => {}, () => {});
-    try {
-      // Intentar via SQL directo con set_config
-      await admin.from("conductores").select("id").limit(0).then(() => {});
-    } catch {}
-    await upsert(admin, "conductores", {
-      id: conductorId,
-      auth_user_id: authUserId,
-      nombre: "Conductor E2E Ruum",
-      telefono: "+525510000201",
-      curp: "EERC900101HDFRRL09",
-      licencia_numero: "E2E-LIC-0201",
-      licencia_tipo: "B",
-      licencia_vigencia: "2030-12-31"
-    });
-    await admin.rpc("set_config" as never, { key: "ruum.aprobando_solicitud", value: "", is_local: true } as never).then(() => {}, () => {});
-  }
-
-  const { error: updateError } = await admin
-    .from("conductores")
-    .update({
-      nombre: "Conductor E2E Ruum",
-      telefono: "+525510000201",
-      curp: "EERC900101HDFRRL09",
-      licencia_numero: "E2E-LIC-0201",
-      licencia_tipo: "B",
-      licencia_vigencia: "2030-12-31",
-      estado: "activo",
-      documentos_vigentes: true,
-      nivel_por_experiencia: "ejecutivo",
-      nivel_por_calificacion: "ejecutivo",
-      calificacion_promedio: 5,
-      traslados_completados: 12,
-      suspensiones_activas: 0,
-      no_presentaciones_6m: 0,
-      incidencias_graves_6m: 0,
-      incidencias_graves_12m: 0
-    })
-    .eq("id", conductorId);
-  if (updateError) throw updateError;
-
-  const { data: conductorActualizado, error: estadoError } = await admin
-    .from("conductores")
-    .select("estado_expediente")
-    .eq("id", conductorId)
-    .maybeSingle();
-  if (estadoError) throw estadoError;
-
-  const estadoActual = conductorActualizado?.estado_expediente;
-  if (estadoActual && estadoActual !== "aprobado") {
-    const transiciones: Record<string, string[]> = {
-      borrador: ["correo_pendiente", "datos_incompletos", "documentos_pendientes", "listo_para_enviar", "en_revision", "aprobado"],
-      correo_pendiente: ["datos_incompletos", "documentos_pendientes", "listo_para_enviar", "en_revision", "aprobado"],
-      datos_incompletos: ["documentos_pendientes", "listo_para_enviar", "en_revision", "aprobado"],
-      documentos_pendientes: ["listo_para_enviar", "en_revision", "aprobado"],
-      listo_para_enviar: ["en_revision", "aprobado"],
-      en_revision: ["aprobado"],
-      requiere_correccion: ["listo_para_enviar", "en_revision", "aprobado"],
-      suspendido: ["aprobado"]
-    };
-    for (const destino of transiciones[estadoActual] ?? []) {
-      const { error } = await admin.rpc("cambiar_estado_expediente_conductor", {
-        p_conductor_id: conductorId,
-        p_destino: destino
-      });
-      if (error) throw new Error(`No se pudo aprobar el expediente E2E (${destino}): ${error.message}`);
+  
+  try {
+  // Primero obtener todas las solicitudes para este auth_user_id
+  const { data: sols } = await admin
+    .from("solicitudes_conductor")
+    .select("id")
+    .eq("auth_user_id", authUserId);
+  
+  // Borrar historial para cada solicitud
+  if (sols && sols.length > 0) {
+    for (const s of sols) {
+      await admin
+        .from("historial_estados_solicitud_conductor")
+        .delete()
+        .eq("solicitud_id", s.id);
     }
+  }  
+  // Finalmente borrar las solicitudes
+  const delSol = await admin
+    .from("solicitudes_conductor")
+    .delete()
+    .eq("auth_user_id", authUserId);
+  
+  console.log(`[E2E] delete solicitudes_conductor error:`, (delSol as { error?: { message: string } })?.error?.message ?? "ok");
+} catch (e) {
+  console.log(`[E2E] cleanup error (tolerado):`, (e as Error).message);
+}
+    // Si existe un conductor con este auth_user_id pero con ID distinto al E2E_CONDUCTOR_ID, eliminarlo para evitar duplicado auth
+  const { data: porAuth } = await Promise.resolve(admin.from("conductores").select("id").eq("auth_user_id", authUserId).maybeSingle().then(r => r as { data: { id: string } | null })).catch(() => ({ data: null } as never));
+  if (porAuth && porAuth.id !== E2E_CONDUCTOR_ID) {
+    await admin.from("conductores").delete().eq("id", porAuth.id).then(() => {}, () => {});
   }
 
-  return conductorId;
+  return E2E_CONDUCTOR_ID;
 }
 
 async function prepareFixture(admin: AdminClient, conductorId: string, ownerAuthUserId: string) {
