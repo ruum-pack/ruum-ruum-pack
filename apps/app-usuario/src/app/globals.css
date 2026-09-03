@@ -735,6 +735,7 @@ textarea::placeholder {
 .user-v2-button:focus-visible,
 .user-v2-tab:focus-visible,
 .user-v2-shell-icon-action:focus-visible,
+.user-v2-shell-account:focus-visible,
 .user-v2-shell-logout:focus-visible,
 .user-v2-nav-link:focus-visible {
   outline: 3px solid var(--user-color-action);
@@ -976,6 +977,7 @@ textarea::placeholder {
 }
 
 .user-v2-shell-icon-action,
+.user-v2-shell-account,
 .user-v2-shell-logout {
   display: inline-flex;
   min-width: var(--user-tap-target);
@@ -987,8 +989,19 @@ textarea::placeholder {
 }
 
 .user-v2-shell-icon-action:hover,
+.user-v2-shell-account:hover,
 .user-v2-shell-logout:hover {
   background: var(--user-color-brand-soft);
+}
+
+.user-v2-shell-account {
+  gap: 6px;
+  border: 1px solid var(--user-color-border);
+  padding-inline: 10px;
+  color: var(--user-color-primary);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .user-v2-shell-logout {

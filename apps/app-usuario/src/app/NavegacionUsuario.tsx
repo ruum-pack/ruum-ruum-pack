@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BotonCerrarSesion } from "./BotonCerrarSesion";
 
 type VarianteNavegacion = "claro" | "oscuro";
 
@@ -129,7 +128,10 @@ export function NavegacionUsuario({ variante = "oscuro" }: { variante?: Variante
               <span className={esClaro ? "user-v2-shell-notification-dot" : "absolute right-[7px] top-[6px] size-2 rounded-full border-2 border-white bg-[#FFC400]"} />
             </Link>
             {esClaro ? (
-              <BotonCerrarSesion compact className="user-v2-shell-logout" />
+              <Link href="/cuenta" className="user-v2-shell-account" aria-label="Cuenta">
+                <IconoCuenta className="size-[18px]" />
+                <span>Cuenta</span>
+              </Link>
             ) : (
               <Link href="/cuenta" className="flex size-9 items-center justify-center rounded-full border border-slate-600/80 text-slate-300 hover:border-[#FFC400] hover:text-white" aria-label="Mi cuenta">
                 <IconoCuenta className="size-5" />
