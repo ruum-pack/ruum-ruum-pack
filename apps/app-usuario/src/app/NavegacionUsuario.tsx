@@ -2,13 +2,47 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BotonCerrarSesion } from "./BotonCerrarSesion";
 
-/* Íconos SVG exactos a la imagen de referencia */
+type VarianteNavegacion = "claro" | "oscuro";
+
+function IconoLogoUsuario() {
+  return (
+    <svg className="h-10 w-[56px] shrink-0" viewBox="0 0 76 52" fill="none" role="img" aria-label="Logotipo Ruum Ruum">
+      <text x="3" y="38" fill="#0D2B5E" fontFamily="Montserrat, Arial, sans-serif" fontSize="39" fontWeight="800" letterSpacing="-6">RR</text>
+      <path d="M5 44C16 24 26 45 37 26c5-8 11-8 18-4" stroke="#00AEB8" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="5" cy="44" r="2.5" fill="#00AEB8" />
+    </svg>
+  );
+}
+
+function IconoLogoOscuro() {
+  return (
+    <span className="flex size-10 items-center justify-center rounded-full border-2 border-[#FFC400] bg-[#151515] shadow-sm" aria-hidden="true">
+      <svg className="size-6 text-[#FFC400]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H8c-.7 0-1.3.3-1.8.7C5.3 8.6 4 10 4 10s-2.7.6-4.5 1.1C.7 11.3 0 12.1 0 13v3c0 .6.4 1 1 1h2" />
+        <circle cx="7" cy="17" r="2" />
+        <path d="M9 17h6" />
+        <circle cx="17" cy="17" r="2" />
+      </svg>
+    </span>
+  );
+}
+
+function IconoCampana({ className = "size-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+  );
+}
+
 function IconoHome({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z" />
-      <path d="M9 21V12h6v9" />
+      <path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z" />
+      <path d="M9 21v-9h6v9" />
     </svg>
   );
 }
@@ -37,9 +71,8 @@ function IconoAyuda({ className }: { className?: string }) {
 function IconoCuenta({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="10" r="3" />
-      <path d="M7 20.66V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.66" />
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
     </svg>
   );
 }
@@ -56,103 +89,79 @@ function estaActivo(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function NavegacionUsuario() {
+export function NavegacionUsuario({ variante = "oscuro" }: { variante?: VarianteNavegacion }) {
   const pathname = usePathname();
   const esAcceso = pathname === "/login" || pathname === "/registro" || pathname === "/onboarding";
+  const esClaro = variante === "claro";
 
   if (esAcceso) return null;
 
   return (
     <>
-      {/* 1. Cabecera Superior (Top App Bar) */}
-      <header role="banner" className="sticky top-0 z-30 w-full bg-[#070D18]/90 backdrop-blur-md pt-[env(safe-area-inset-top)] border-b border-[#1C2A3E]/40">
-        <div className="w-full max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Logo Ruum Ruum Usuario */}
-          <Link href="/" className="flex items-center gap-2.5 group select-none">
-            <div className="flex size-10 items-center justify-center rounded-full bg-[#151515] border-2 border-[#FFC400] shadow-sm">
-              <svg className="size-6 text-[#FFC400]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H8c-.7 0-1.3.3-1.8.7C5.3 8.6 4 10 4 10s-2.7.6-4.5 1.1C.7 11.3 0 12.1 0 13v3c0 .6.4 1 1 1h2" />
-                <circle cx="7" cy="17" r="2" />
-                <path d="M9 17h6" />
-                <circle cx="17" cy="17" r="2" />
-              </svg>
-            </div>
-            <div className="flex flex-col leading-tight">
-              <div className="flex items-baseline gap-1">
-                <span className="font-display text-base font-extrabold tracking-tight text-white">Ruum</span>
-                <span className="font-display text-base font-extrabold tracking-tight text-[#FFC400]">Ruum</span>
-              </div>
-              <span className="font-body text-xs text-[#8E9CAE] font-normal">Usuario</span>
-            </div>
+      <header
+        id="homeHeader"
+        role="banner"
+        className={esClaro
+          ? "sticky top-0 z-30 w-full border-b border-[#E6F0FF] bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur-md"
+          : "sticky top-0 z-30 w-full border-b border-[#1C2A3E]/40 bg-[#070D18]/90 pt-[env(safe-area-inset-top)] backdrop-blur-md"}
+      >
+        <div className="mx-auto flex w-full max-w-[430px] items-center justify-between px-4 py-3">
+          <Link href="/" className="group flex select-none items-center gap-2.5" aria-label="Ir al inicio de Ruum Ruum">
+            {esClaro ? <IconoLogoUsuario /> : <IconoLogoOscuro />}
+            <span className="flex flex-col leading-tight">
+              <span className="flex items-baseline gap-1">
+                <span className={`font-display text-[17px] font-extrabold tracking-tight ${esClaro ? "text-[#0D2B5E]" : "text-white"}`}>Ruum</span>
+                <span className={`font-display text-[17px] font-extrabold tracking-tight ${esClaro ? "text-[#00AEB8]" : "text-[#FFC400]"}`}>Ruum</span>
+              </span>
+              <span className={`font-body text-[10px] font-medium ${esClaro ? "text-[#506887]" : "text-[#8E9CAE]"}`}>
+                {esClaro ? "Tu camino, en orden." : "Usuario"}
+              </span>
+            </span>
           </Link>
 
-          {/* Iconos de la derecha: Campana (con badge 2) y Avatar */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link
               href="/soporte"
-              className="relative flex size-9 items-center justify-center text-slate-200 transition hover:text-white"
-              aria-label="Notificaciones (2 pendientes)"
+              className={`relative flex size-10 items-center justify-center rounded-full ${esClaro ? "text-[#0D2B5E] hover:bg-[#EFF4FA]" : "text-slate-200 hover:text-white"}`}
+              aria-label="Notificaciones"
             >
-              <svg className="size-6 text-[#CBD5E1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-              </svg>
-              <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-[#FFC400] text-[10px] font-black text-slate-950 shadow-sm">
-                2
-              </span>
+              <IconoCampana />
+              <span className={`absolute right-[7px] top-[6px] size-2 rounded-full border-2 border-white ${esClaro ? "bg-[#00AEB8]" : "bg-[#FFC400]"}`} />
             </Link>
-
-            <Link
-              href="/cuenta"
-              className="flex size-9 items-center justify-center rounded-full border border-slate-600/80 text-slate-300 transition hover:border-[#FFC400] hover:text-white"
-              aria-label="Mi Cuenta"
-            >
-              <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-              </svg>
-            </Link>
+            {esClaro ? (
+              <BotonCerrarSesion compact className="flex min-h-10 items-center gap-1.5 rounded-full border border-[#BDECEF] px-2.5 font-body text-[11px] font-semibold text-[#0D2B5E] hover:bg-[#E8FAFA]" />
+            ) : (
+              <Link href="/cuenta" className="flex size-9 items-center justify-center rounded-full border border-slate-600/80 text-slate-300 hover:border-[#FFC400] hover:text-white" aria-label="Mi cuenta">
+                <IconoCuenta className="size-5" />
+              </Link>
+            )}
           </div>
         </div>
       </header>
 
-      {/* 2. Barra de Navegación Inferior (4 Tabs con Indicador Amarillo Activo) */}
       <nav
+        id="bottomNavigation"
         aria-label="Navegación principal"
-        className="fixed bottom-0 inset-x-0 z-40 bg-[#070D18]/95 border-t border-[#1C2A3E]/60 backdrop-blur-md pb-[max(10px,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_30px_rgba(0,0,0,0.6)]"
+        className={esClaro
+          ? "fixed inset-x-0 bottom-0 z-40 border-t border-[#E6F0FF] bg-white/96 pb-[max(8px,env(safe-area-inset-bottom))] pt-1 shadow-[0_-5px_18px_rgba(13,43,94,0.08)] backdrop-blur-md"
+          : "fixed inset-x-0 bottom-0 z-40 border-t border-[#1C2A3E]/60 bg-[#070D18]/95 pb-[max(10px,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_30px_rgba(0,0,0,0.6)] backdrop-blur-md"}
       >
-        <div className="w-full max-w-md mx-auto px-2">
+        <div className="mx-auto w-full max-w-[430px] px-2">
           <div className="grid grid-cols-4 items-center">
             {DESTINOS.map((destino) => {
               const activo = estaActivo(pathname, destino.href);
-
               return (
                 <Link
                   key={destino.href}
                   href={destino.href}
                   aria-current={activo ? "page" : undefined}
-                  className="relative flex flex-col items-center justify-center gap-1 py-1.5 select-none transition-colors group"
+                  className="group relative flex min-h-[53px] flex-col items-center justify-center gap-1 py-1.5 select-none"
                 >
-                  {/* Línea horizontal amarilla sobre el tab activo */}
                   {activo && (
-                    <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-12 h-[3px] rounded-full bg-[#FFC400]" />
+                    <span className={`absolute bottom-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full ${esClaro ? "bg-[#00AEB8]" : "bg-[#FFC400]"}`} />
                   )}
-
-                  <div className="relative flex items-center justify-center size-6">
-                    <destino.Icono
-                      className={`size-6 transition-colors ${
-                        activo ? "text-[#FFC400]" : "text-[#8E9CAE] group-hover:text-white"
-                      }`}
-                    />
-                  </div>
-
-                  <span
-                    className={`font-body text-[11px] leading-none tracking-tight transition-colors ${
-                      activo
-                        ? "font-bold text-[#FFC400]"
-                        : "font-medium text-[#8E9CAE] group-hover:text-white"
-                    }`}
-                  >
+                  <destino.Icono className={`size-[22px] transition-colors ${activo ? (esClaro ? "text-[#00AEB8]" : "text-[#FFC400]") : (esClaro ? "text-[#0D2B5E]" : "text-[#8E9CAE]")}`} />
+                  <span className={`font-body text-[10px] leading-none tracking-tight transition-colors ${activo ? (esClaro ? "font-bold text-[#00AEB8]" : "font-bold text-[#FFC400]") : (esClaro ? "font-medium text-[#0D2B5E]" : "font-medium text-[#8E9CAE]")}`}>
                     {destino.etiqueta}
                   </span>
                 </Link>
@@ -164,4 +173,3 @@ export function NavegacionUsuario() {
     </>
   );
 }
-
