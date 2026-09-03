@@ -1,6 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const disableAuthArtifacts = process.env.PLAYWRIGHT_DISABLE_AUTH_ARTIFACTS === '1';
+const isDummySupabase =
+  !process.env.PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY === 'ci-service-role' ||
+  (process.env.PLAYWRIGHT_SUPABASE_URL || '').includes('ci.supabase.test');
+const skipGlobalSetup = process.env.PLAYWRIGHT_SKIP_GLOBAL_SETUP === '1' || isDummySupabase;
 
 export default defineConfig({
   testDir: './tests',
@@ -9,7 +14,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: [['html', { open: 'never' }], ['list']],
   expect: {
     timeout: 10_000,
   },
@@ -47,7 +52,7 @@ export default defineConfig({
       dependencies: ['setup'],
     },
   ],
-  globalSetup: './tests/global-setup.ts',
+  globalSetup: skipGlobalSetup ? undefined : './tests/global-setup.ts',
   webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER
     ? undefined
     : {

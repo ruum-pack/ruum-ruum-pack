@@ -7,6 +7,11 @@ import { dirname, resolve } from 'node:path';
 const AUTH_STATE_PATH = 'tests/.auth/conductor.json';
 const ACTIVE_TRIP_EVIDENCE_ROUTE = '/viajes/00000000-0000-4000-8000-00000000e205/evidencia';
 const AXE_RESULTS_PATH = resolve(process.cwd(), 'results/axe-results.json');
+const isDummySupabase =
+  !process.env.PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY === 'ci-service-role' ||
+  (process.env.PLAYWRIGHT_SUPABASE_URL || '').includes('ci.supabase.test');
+const skipAuthInDummy = isDummySupabase || process.env.PLAYWRIGHT_SKIP_GLOBAL_SETUP === '1';
 
 type AxeException = {
   route: string;
@@ -207,6 +212,7 @@ test.describe('Accessibility Audit - Axe Core Authenticated', () => {
 
   for (const route of PROTECTED_AXE_SMOKE_ROUTES) {
     test(`Authenticated Axe accessibility audit for ${route}`, async ({ page }) => {
+      test.skip(skipAuthInDummy, 'Skipped in CI without real Supabase - requires authenticated session');
       test.skip(
         test.info().project.name !== 'chromium',
         'Axe completo se ejecuta en Chromium; las comprobaciones específicas cubren el smoke cross-browser.'
@@ -325,6 +331,9 @@ test.describe('Accessibility - Specific Checks', () => {
 
 test.describe('Accessibility - Authenticated Specific Checks', () => {
   test.use({ storageState: AUTH_STATE_PATH });
+  test.beforeEach(async () => {
+    test.skip(skipAuthInDummy, 'Skipped in CI without real Supabase - requires authenticated session');
+  });
 
   test('All form inputs have associated labels', async ({ page }) => {
     await abrirRuta(page, '/cuenta/perfil', { requireAuth: true });

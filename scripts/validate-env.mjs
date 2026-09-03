@@ -61,14 +61,16 @@ for (const name of required.filter((n) => n.includes("SUPABASE_URL"))) {
   if (value && !/^https:\/\//.test(value) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(value) && !value.startsWith("__VERCEL")) 
     invalid.push(`${name} debe usar https://`);
 }
+const isCi = Boolean(process.env.CI || process.env.GITHUB_ACTIONS);
 if (prod) {
   for (const name of ["NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_SUPABASE_URL"]) {
     const v = process.env[name];
-    if (v && !/^https:\/\//.test(v)) invalid.push(`${name} debe usar https:// en producción`);
+    const isLocalhostHttp = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(v || "");
+    // CI permite http localhost para builds de staging / preview; prod real exige https
+    if (v && !/^https:\/\//.test(v) && !(isCi && isLocalhostHttp)) invalid.push(`${name} debe usar https:// en producción`);
   }
   const mapbox = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   if (mapbox && !/^pk\./.test(mapbox)) invalid.push("NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN debe empezar con pk.");
-  const isCi = Boolean(process.env.CI || process.env.GITHUB_ACTIONS);
   const version = process.env.NEXT_PUBLIC_APP_VERSION;
   if (version && !/^\d+\.\d+\.\d+/.test(version) && !isCi) invalid.push("NEXT_PUBLIC_APP_VERSION debe ser SemVer (ej. 1.0.0)");
   // NEXT_PUBLIC_APP_VERSION en producción real no puede ser placeholder

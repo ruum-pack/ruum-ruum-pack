@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 const DATA_READY_TIMEOUT = 20_000;
+const isDummySupabase =
+  !process.env.PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY === 'ci-service-role' ||
+  (process.env.PLAYWRIGHT_SUPABASE_URL || '').includes('ci.supabase.test');
+const skipAuthInDummy = isDummySupabase || process.env.PLAYWRIGHT_SKIP_GLOBAL_SETUP === '1';
 
 async function abrirViajes(
   page: import("@playwright/test").Page,
@@ -123,6 +128,7 @@ test.describe("Sprint C5 flujos críticos", () => {
   });
 
   test.describe("Flujo de Oportunidades — Viajes Disponibles", () => {
+    test.skip(skipAuthInDummy, 'Skipped in CI without real Supabase - requires authenticated session');
     test("listar, expandir y ver detalles de viajes disponibles", async ({ page }) => {
       await abrirViajes(page, "/viajes?vista=disponibles");
 
@@ -188,6 +194,7 @@ test.describe("Sprint C5 flujos críticos", () => {
   });
 
   test.describe("Flujo de Aceptar Viaje — Oportunidad a Traslado Asignado", () => {
+    test.skip(skipAuthInDummy, 'Skipped in CI without real Supabase - requires authenticated session');
     test("navegar a detalles de viaje disponible y aceptar", async ({ page }) => {
       await abrirViajes(page, "/viajes?vista=disponibles");
 
@@ -259,6 +266,7 @@ test.describe("Sprint C5 flujos críticos", () => {
   });
 
   test.describe("Flujo de Lista de Traslados — Mis Viajes Asignados", () => {
+    test.skip(skipAuthInDummy, 'Skipped in CI without real Supabase - requires authenticated session');
     test("navegar a mis viajes y ver lista de traslados asignados", async ({ page }) => {
       await abrirViajes(page, "/viajes");
 
@@ -335,6 +343,7 @@ test.describe("Sprint C5 flujos críticos", () => {
   });
 
   test.describe("Ciclo de Vida Completo del Traslado", () => {
+    test.skip(skipAuthInDummy, 'Skipped in CI without real Supabase - requires authenticated session');
     test("validar progresión de estados desde evidencia inicial hasta cierre", async ({ page }) => {
       // Este test valida que el flujo de un traslado progresa correctamente
       // Usa el traslado fixture en estado "evidencia_inicial_en_proceso"

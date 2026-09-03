@@ -5,6 +5,11 @@ import { resolve } from "node:path";
 
 const AUTH_STATE_PATH = "tests/.auth/conductor.json";
 const ACTIVE_TRIP_ID = "00000000-0000-4000-8000-00000000e205";
+const isDummySupabase =
+  !process.env.PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY === 'ci-service-role' ||
+  (process.env.PLAYWRIGHT_SUPABASE_URL || '').includes('ci.supabase.test');
+const skipAuthInDummy = isDummySupabase || process.env.PLAYWRIGHT_SKIP_GLOBAL_SETUP === '1';
 
 const ROUTES = [
   "/panel",
@@ -180,6 +185,7 @@ test.describe("A11Y visual zoom and contrast", () => {
 
   for (const route of ROUTES) {
     test(`zoom 200 and dark contrast for ${route}`, async ({ page }) => {
+      test.skip(skipAuthInDummy, 'Skipped in CI without real Supabase - requires authenticated session');
       test.skip(test.info().project.name !== "chromium", "La auditoría visual usa CDP de Chromium para zoom.");
 
       await page.setViewportSize({ width: 1280, height: 900 });

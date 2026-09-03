@@ -7,6 +7,10 @@ on:
     branches: [main, staging]
   workflow_dispatch:
 
+concurrency:
+  group: a11y-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -14,6 +18,7 @@ jobs:
   eslint-a11y:
     name: ESLint Accessibility
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,22 +35,34 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Get pnpm store directory
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Run ESLint with accessibility rules
-        run: pnpm --filter @ruum/app-conductor run lint:a11y
+        run: pnpm --filter @ruum/app-conductor lint
 
   axe-core:
     name: Axe Core Audit
     runs-on: ubuntu-latest
     needs: eslint-a11y
+    timeout-minutes: 15
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://ci.supabase.test' }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'ci-anon-key' }}
       NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
-      NEXT_PUBLIC_APP_VERSION: ci
+      NEXT_PUBLIC_APP_VERSION: 1.0.0
       NEXT_PUBLIC_APP_URL: http://localhost:3001
       NEXT_PUBLIC_RUUM_AMBIENTE: staging
       CSP_STRICT_STYLES: "true"
@@ -69,33 +86,76 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Get pnpm store directory
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-1.51.1
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
       - name: Install Playwright Chromium
         run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium
 
       - name: Build application
-        run: pnpm --filter @ruum/app-conductor run build
+        run: pnpm --filter @ruum/app-conductor build
 
-      - name: Start server
+      - name: Start production server
         run: |
-          pnpm --filter @ruum/app-conductor run dev &
-          for i in {1..20}; do
-            curl -fsSL http://localhost:3001 && break
+          pnpm --filter @ruum/app-conductor exec next start -p 3001 > /tmp/axe-server.log 2>&1 &
+          echo $! > /tmp/axe-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsSL http://localhost:3001/onboarding > /dev/null 2>&1; then
+              echo "Server ready after $i attempts"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "ERROR: Server not responding"
+              cat /tmp/axe-server.log || true
+              exit 1
+            fi
             sleep 2
           done
 
       - name: Run Axe CLI audit
         run: |
-          pnpm --filter @ruum/app-conductor run test:axe
+          mkdir -p apps/app-conductor/results
+          pnpm --filter @ruum/app-conductor exec axe http://localhost:3001 --save results/axe-report.json || {
+            echo "Axe CLI failed, but checking if report exists with violations"
+            if [ -f apps/app-conductor/results/axe-report.json ]; then
+              cat apps/app-conductor/results/axe-report.json | head -c 500; echo
+            fi
+            # Do not fail immediately — let policy check decide
+            exit 1
+          }
           if [ -f apps/app-conductor/results/axe-report.json ]; then
-            echo "Axe report generated"
-            cat apps/app-conductor/results/axe-report.json
+            echo "Axe report generated:"
+            cat apps/app-conductor/results/axe-report.json | head -c 2000; echo
+            # Fail only if critical violations exist; report parsing is done by audit script policy
+            node -e "const r=require('./apps/app-conductor/results/axe-report.json'); const v=(r.violations||[]).filter(x=>x.impact==='critical'||x.impact==='serious'); if(v.length>0){console.error('Critical violations:',v.length); process.exit(1);} else {console.log('No critical axe violations');}"
           else
             echo "No axe report found at apps/app-conductor/results/axe-report.json"
             exit 1
           fi
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f /tmp/axe-server.pid ]; then kill $(cat /tmp/axe-server.pid) || true; fi
 
       - name: Upload Axe report
         if: always()
@@ -110,15 +170,18 @@ jobs:
     name: Playwright Accessibility Tests
     runs-on: ubuntu-latest
     needs: eslint-a11y
+    timeout-minutes: 15
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://ci.supabase.test' }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'ci-anon-key' }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || 'ci-service-role' }}
+      PLAYWRIGHT_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://ci.supabase.test' }}
+      PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || 'ci-service-role' }}
       PLAYWRIGHT_E2E_CONDUCTOR_EMAIL: ${{ secrets.E2E_CONDUCTOR_EMAIL || 'test@example.test' }}
       PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD: ${{ secrets.E2E_CONDUCTOR_PASSWORD || 'TestPass123!' }}
       NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
-      NEXT_PUBLIC_APP_VERSION: ci
+      NEXT_PUBLIC_APP_VERSION: 1.0.0
       NEXT_PUBLIC_APP_URL: http://localhost:3001
       NEXT_PUBLIC_RUUM_AMBIENTE: staging
       CSP_STRICT_STYLES: "true"
@@ -128,6 +191,7 @@ jobs:
       NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO: "911"
       PLAYWRIGHT_DISABLE_AUTH_ARTIFACTS: "1"
       PLAYWRIGHT_A11Y_PROJECT: chromium
+      PLAYWRIGHT_SKIP_WEBSERVER: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -144,14 +208,38 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Get pnpm store directory
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-1.51.1
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
       - name: Install Playwright browsers
         run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium
 
+      - name: Ensure dummy auth state for CI without real Supabase
+        run: |
+          mkdir -p apps/app-conductor/tests/.auth
+          echo '{"cookies":[],"origins":[]}' > apps/app-conductor/tests/.auth/conductor.json
+
       - name: Run Playwright accessibility tests
-        run: pnpm --filter @ruum/app-conductor run test:a11y
+        run: pnpm --filter @ruum/app-conductor test:a11y -- --project=chromium --workers=1
 
       - name: Upload Playwright report
         if: always()
@@ -168,6 +256,7 @@ jobs:
     name: Lighthouse Accessibility Audit
     runs-on: ubuntu-latest
     needs: eslint-a11y
+    timeout-minutes: 15
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://ci.supabase.test' }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'ci-anon-key' }}
@@ -197,17 +286,36 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Get pnpm store directory
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-1.51.1
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
       - name: Install Lighthouse Chromium
         run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium
 
       - name: Build application
-        run: pnpm --filter @ruum/app-conductor run build
+        run: pnpm --filter @ruum/app-conductor build
 
       - name: Run Lighthouse CI
-        run: pnpm --filter @ruum/app-conductor run test:lighthouse
+        run: pnpm --filter @ruum/app-conductor test:lighthouse
 
       - name: Upload Lighthouse report
         if: always()
@@ -224,6 +332,7 @@ jobs:
     name: Storybook Accessibility Addon
     runs-on: ubuntu-latest
     needs: eslint-a11y
+    timeout-minutes: 15
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://ci.supabase.test' }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'ci-anon-key' }}
@@ -247,16 +356,28 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Get pnpm store directory
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build Storybook
-        run: pnpm --filter @ruum/app-conductor run storybook:build
+        run: pnpm --filter @ruum/app-conductor storybook:build
 
       - name: Check Storybook accessibility
         run: |
           if [ -d "apps/app-conductor/storybook-static" ]; then
             echo "Storybook built successfully with a11y addon"
+            ls -lh apps/app-conductor/storybook-static | head -n 20
           else
             echo "Storybook build failed: apps/app-conductor/storybook-static not found"
             exit 1
@@ -279,6 +400,16 @@ jobs:
     steps:
       - name: Generate summary
         run: |
+          echo "## Accessibility Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Results:" >> $GITHUB_STEP_SUMMARY
+          echo "- ESLint: ${{ needs.eslint-a11y.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Axe Core: ${{ needs.axe-core.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Playwright: ${{ needs.playwright-a11y.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Lighthouse: ${{ needs.lighthouse.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Storybook: ${{ needs.storybook-a11y.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
           echo "## Accessibility Audit Summary"
           echo ""
           echo "### Results:"
@@ -288,15 +419,17 @@ jobs:
           echo "- Lighthouse: ${{ needs.lighthouse.result }}"
           echo "- Storybook: ${{ needs.storybook-a11y.result }}"
           echo ""
-          
+
           if [ "${{ needs.eslint-a11y.result }}" = "success" ] && \
              ([ "${{ needs.axe-core.result }}" = "success" ] || [ "${{ needs.axe-core.result }}" = "skipped" ]) && \
              ([ "${{ needs.playwright-a11y.result }}" = "success" ] || [ "${{ needs.playwright-a11y.result }}" = "skipped" ]) && \
              ([ "${{ needs.lighthouse.result }}" = "success" ] || [ "${{ needs.lighthouse.result }}" = "skipped" ]) && \
              ([ "${{ needs.storybook-a11y.result }}" = "success" ] || [ "${{ needs.storybook-a11y.result }}" = "skipped" ]); then
             echo "✅ All accessibility checks passed!"
+            echo "✅ All accessibility checks passed!" >> $GITHUB_STEP_SUMMARY
             exit 0
           else
             echo "❌ Some accessibility checks failed"
+            echo "❌ Some accessibility checks failed" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi

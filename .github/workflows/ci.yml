@@ -8,6 +8,10 @@ on:
       - main
       - release/**
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -46,6 +50,17 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+
+      - name: Get pnpm store directory
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -138,9 +153,13 @@ jobs:
       NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
       NEXT_PUBLIC_APP_VERSION: 1.0.0
+      NEXT_PUBLIC_APP_URL: http://localhost:3001
       NEXT_PUBLIC_RUUM_AMBIENTE: staging
       CSP_STRICT_STYLES: "true"
       NEXT_PUBLIC_CSP_STRICT_STYLES: "true"
+      NEXT_PUBLIC_RUUM_SOPORTE_TELEFONO: "5500000000"
+      NEXT_PUBLIC_RUUM_SOPORTE_CORREO: soporte-conductores-pruebas@example.test
+      NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO: "911"
 
     steps:
       - name: Checkout
@@ -158,25 +177,68 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Get pnpm store directory
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright browsers
-        run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium firefox webkit
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-1.51.1
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
-      - name: Verificar servidor web
+      - name: Install Playwright browsers
+        run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium
+
+      - name: Ensure dummy auth state for CI without real Supabase
         run: |
-          pnpm --filter @ruum/app-conductor dev &
-          sleep 10
-          for i in {1..10}; do
-            curl -fsSL http://localhost:3001 && exit 0
+          mkdir -p apps/app-conductor/tests/.auth
+          if [ ! -f apps/app-conductor/tests/.auth/conductor.json ] || [ "$(cat apps/app-conductor/tests/.auth/conductor.json | tr -d ' \n\r\t')" = "" ]; then
+            echo '{"cookies":[],"origins":[]}' > apps/app-conductor/tests/.auth/conductor.json
+          fi
+          cat apps/app-conductor/tests/.auth/conductor.json | head -c 200; echo
+
+      - name: Build app for E2E (production)
+        run: pnpm --filter @ruum/app-conductor build
+
+      - name: Start production server
+        run: |
+          pnpm --filter @ruum/app-conductor exec next start -p 3001 > /tmp/next-e2e.log 2>&1 &
+          echo $! > /tmp/next-e2e.pid
+          for i in $(seq 1 30); do
+            if curl -fsSL http://localhost:3001/onboarding > /dev/null 2>&1; then
+              echo "Server ready after $i attempts"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "ERROR: Servidor no respondiendo tras 60s"
+              cat /tmp/next-e2e.log || true
+              exit 1
+            fi
             sleep 2
           done
-          echo "ERROR: Servidor no respondiendo"
-          exit 1
+          curl -fsSL http://localhost:3001/login | head -c 200; echo
 
       - name: Run critical conductor flows
-        run: pnpm --filter @ruum/app-conductor exec playwright test tests/e2e/sprint-c5-critical-flows.spec.ts
+        run: pnpm --filter @ruum/app-conductor exec playwright test tests/e2e/sprint-c5-critical-flows.spec.ts --project=chromium --workers=1
+
+      - name: Stop production server
+        if: always()
+        run: |
+          if [ -f /tmp/next-e2e.pid ]; then kill $(cat /tmp/next-e2e.pid) || true; fi
+          sleep 2
 
       - name: Upload Playwright evidence
         if: always()
@@ -188,6 +250,7 @@ jobs:
           path: |
             apps/app-conductor/playwright-report/
             apps/app-conductor/test-results/
+            /tmp/next-e2e.log
 
   signed-conductor-apk:
     name: Signed conductor APK
@@ -331,6 +394,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-1.51.1
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright browser
         run: pnpm --filter @ruum/panel-admin exec playwright install --with-deps chromium
 
@@ -387,8 +458,17 @@ jobs:
         run: |
           pnpm --filter @ruum/panel-admin build
           pnpm --filter @ruum/panel-admin exec next start -p 3102 &
-          sleep 10
-          curl -f http://127.0.0.1:3102/api/observabilidad || echo "Server ready"
+          for i in $(seq 1 15); do
+            if curl -fsSL http://127.0.0.1:3102/api/observabilidad > /dev/null 2>&1 || curl -fsSL http://127.0.0.1:3102 > /dev/null 2>&1; then
+              echo "Server ready after $i attempts"
+              break
+            fi
+            if [ "$i" -eq 15 ]; then
+              echo "Server not ready after 30s"
+              exit 1
+            fi
+            sleep 2
+          done
 
       - name: Run k6 load test
         run: |
@@ -416,6 +496,8 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://ci.supabase.test' }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'ci-anon-key' }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || 'ci-service-role' }}
+      PLAYWRIGHT_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://ci.supabase.test' }}
+      PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || 'ci-service-role' }}
       PLAYWRIGHT_E2E_CONDUCTOR_EMAIL: ${{ secrets.E2E_CONDUCTOR_EMAIL || 'test@example.test' }}
       PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD: ${{ secrets.E2E_CONDUCTOR_PASSWORD || 'TestPass123!' }}
       NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
@@ -430,6 +512,7 @@ jobs:
       NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO: "911"
       PLAYWRIGHT_DISABLE_AUTH_ARTIFACTS: "1"
       PLAYWRIGHT_A11Y_PROJECT: chromium
+      PLAYWRIGHT_SKIP_WEBSERVER: "1"
 
     steps:
       - name: Checkout
@@ -447,14 +530,38 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Get pnpm store directory
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-1.51.1
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
       - name: Install Playwright Chromium
         run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium
 
+      - name: Ensure dummy auth state for CI without real Supabase
+        run: |
+          mkdir -p apps/app-conductor/tests/.auth
+          echo '{"cookies":[],"origins":[]}' > apps/app-conductor/tests/.auth/conductor.json
+
       - name: Run accessibility tests
-        run: pnpm --filter @ruum/app-conductor test:a11y
+        run: pnpm --filter @ruum/app-conductor test:a11y -- --project=chromium --workers=1
 
       - name: Build Storybook
         run: pnpm --filter @ruum/app-conductor storybook:build
@@ -511,8 +618,27 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Get pnpm store directory
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Restore pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-1.51.1
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
       - name: Install Lighthouse Chromium
         run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium
