@@ -5,6 +5,26 @@ import { resolve } from "node:path";
 const AUTH_STATE_PATH = "tests/.auth/conductor.json";
 
 setup("autenticar conductor", async ({ page, context }) => {
+  // 0. En CI sin Supabase real (dummy), no intentar login real — usar estado vacío
+  const isDummy =
+    !process.env.PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY === 'ci-service-role' ||
+    (process.env.PLAYWRIGHT_SUPABASE_URL || '').includes('ci.supabase.test') ||
+    process.env.PLAYWRIGHT_SKIP_GLOBAL_SETUP === '1';
+  if (isDummy) {
+    console.log(`[auth.setup] Dummy Supabase detectado — omitiendo login real, usando estado vacío`);
+    // Asegurar que el archivo exista para que los proyectos que usan storageState no fallen por ENOENT
+    try {
+      const { mkdirSync, writeFileSync } = await import('node:fs');
+      const { dirname } = await import('node:path');
+      mkdirSync(dirname(resolve(process.cwd(), AUTH_STATE_PATH)), { recursive: true });
+      if (!existsSync(resolve(process.cwd(), AUTH_STATE_PATH))) {
+        writeFileSync(resolve(process.cwd(), AUTH_STATE_PATH), JSON.stringify({ cookies: [], origins: [] }));
+      }
+    } catch {}
+    return;
+  }
+
   // 1. Si global-setup ya autenticó y guardó la sesión con cookies válidas, reutilizarla
   const resolvedPath = resolve(process.cwd(), AUTH_STATE_PATH);
   if (existsSync(resolvedPath)) {
