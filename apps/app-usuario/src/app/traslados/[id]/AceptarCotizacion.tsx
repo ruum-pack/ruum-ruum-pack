@@ -6,7 +6,13 @@ import { aceptarCotizacionUsuario } from "@ruum/api/services";
 import { Aviso, Button } from "@ruum/ui";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 
-export function AceptarCotizacion({ trasladoId, tipoPago }: { trasladoId: string; tipoPago: "anticipado" | "al_cierre" }) {
+export function AceptarCotizacion({
+  trasladoId,
+  tipoPago = "anticipado"
+}: {
+  trasladoId: string;
+  tipoPago?: "anticipado" | "al_cierre" | null;
+}) {
   const router = useRouter();
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);

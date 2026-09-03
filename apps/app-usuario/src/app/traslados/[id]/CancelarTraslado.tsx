@@ -6,7 +6,7 @@ import { Aviso, Button, Field } from "@ruum/ui";
 import { MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { calcularCargoCancelacion } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
-import { cancelarTraslado } from "@ruum/api/services";
+import { cancelarTraslado, usuarioPuedeCancelar } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -36,11 +36,29 @@ export function CancelarTraslado({
   const [confirmando, setConfirmando] = useState(false);
 
   const terminal = ["servicio_cerrado", "servicio_cancelado", "traslado_fallido"].includes(estado);
+  if (terminal) return null;
+
+  if (!usuarioPuedeCancelar(estado)) {
+    return (
+      <div className="mt-5 rounded-lg border border-ink/15 bg-mist p-4">
+        <p className="font-body text-xs font-semibold uppercase tracking-wider text-ink/60">Cancelación no disponible</p>
+        <p className="mt-1 font-body text-sm text-ink/80">
+          El vehículo ya se encuentra en proceso operativo (inspección, recolección o tránsito). Por protocolos de seguridad operativa, no es posible cancelar en esta etapa.
+        </p>
+        <p className="mt-2 font-body text-xs text-ink/60">
+          Si requieres asistencia urgente o surge alguna eventualidad, por favor{" "}
+          <a href="#chat-conductor" className="font-semibold text-route-action underline">comunícate con el conductor</a> o{" "}
+          <a href="#soporte-pasaporte" className="font-semibold text-route-action underline">contacta a Soporte</a>.
+        </p>
+      </div>
+    );
+  }
+
   const cargo = calcularCargoCancelacion(
     precio,
     horasRestantes(fechaProgramada),
     conductorAsignado,
-    ["conductor_en_punto_de_recoleccion", "verificacion_vehiculo_en_proceso", "evidencia_inicial_en_proceso"].includes(estado)
+    estado === "conductor_en_punto_de_recoleccion"
   );
 
   async function cancelar() {
@@ -65,8 +83,6 @@ export function CancelarTraslado({
       setProcesando(false);
     }
   }
-
-  if (terminal) return null;
 
   return (
     <div className="mt-5 rounded-lg border border-danger/25 bg-danger-soft px-4 py-4">

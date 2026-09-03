@@ -22,6 +22,9 @@ import { PasaporteTabs } from "./PasaporteTabs";
 import { HeroAnsiedadCero } from "./HeroAnsiedadCero";
 import { EvidenciaComparativa } from "./EvidenciaComparativa";
 import { ExportarPasaportePdf } from "./ExportarPasaportePdf";
+import { AceptarCotizacion } from "./AceptarCotizacion";
+import { PagoRecuperable } from "./PagoRecuperable";
+import { PagoTraslado } from "./PagoTraslado";
 
 import { NavegacionUsuario } from "../../NavegacionUsuario";
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -496,7 +499,13 @@ function AcordeonPasaporte({
 
 function AccionesRapidasPasaporte({ trasladoId, estado }: { trasladoId: string; estado: EstadoTraslado }) {
   const enCurso = ["conductor_asignado","conductor_en_camino_al_origen","conductor_en_punto_de_recoleccion","traslado_en_curso","llegada_a_destino"].includes(estado);
-  const primario = enCurso 
+  const primario = estado === "cotizacion_generada"
+    ? { href: "#pago-soporte", label: "Aceptar cotización", clase: "bg-signal text-ink border-signal hover:bg-signal/90" }
+    : estado === "cotizacion_aceptada"
+    ? { href: "#pago-soporte", label: "Pagar traslado", clase: "bg-signal text-ink border-signal hover:bg-signal/90" }
+    : estado === "pago_pendiente"
+    ? { href: "#pago-soporte", label: "Completar pago", clase: "bg-signal text-ink border-signal hover:bg-signal/90" }
+    : enCurso 
     ? { href: "#chat-conductor", label: "Chatear con conductor", clase: "bg-signal text-ink border-signal hover:bg-signal/90" }
     : { href: "#acciones-incidencia", label: "Reportar incidencia", clase: "bg-surface-elevated border-border text-text-primary hover:border-signal/40" };
   
@@ -1009,57 +1018,97 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
               </div>
             </AcordeonPasaporte>
 
-            <AcordeonPasaporte titulo="Pago y soporte" descripcion="Tarifa, pagos registrados y contacto de ayuda.">
-              <p className="font-body text-sm text-ink/55">{MENSAJES_CLAVE_UX.pago}</p>
-              <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-                <Dato etiqueta="Tipo de pago" valor={(pasaporte.tipo_pago ? String(pasaporte.tipo_pago) : "por_definir").replaceAll("_", " ")} />
-                <Dato etiqueta="Precio cotizado" valor={formatoMoneda(pasaporte.precio_cotizado)} />
-                <Dato etiqueta="Precio final" valor={formatoMoneda(pasaporte.precio_final ?? precioBase)} />
-                <Dato etiqueta="Monto pagado" valor={formatoMoneda(pasaporte.monto_pagado)} />
-              </dl>
-              {pagos.length > 0 && (
-                <div className="mt-5 space-y-3">
-                  {pagos.map((pago) => (
-                    <div key={pago.id} className="flex items-center justify-between border-t border-ink/10 pt-3 font-body text-sm">
-                      <span>{pago.metodo} · {pago.momento ? String(pago.momento).replaceAll("_", " ") : ""}</span>
-                      <span className="font-mono-ruum">{formatoMoneda(pago.monto)}</span>
+            <section id="pago-soporte" className="scroll-mt-28">
+              <AcordeonPasaporte
+                titulo="Pago y soporte"
+                descripcion="Tarifa, pagos registrados y contacto de ayuda."
+                abierto={["cotizacion_generada", "cotizacion_aceptada", "pago_pendiente"].includes(pasaporte.estado)}
+              >
+                <p className="font-body text-sm text-ink/55">{MENSAJES_CLAVE_UX.pago}</p>
+                <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <Dato etiqueta="Tipo de pago" valor={(pasaporte.tipo_pago ? String(pasaporte.tipo_pago) : "por_definir").replaceAll("_", " ")} />
+                  <Dato etiqueta="Precio cotizado" valor={formatoMoneda(pasaporte.precio_cotizado)} />
+                  <Dato etiqueta="Precio final" valor={formatoMoneda(pasaporte.precio_final ?? precioBase)} />
+                  <Dato etiqueta="Monto pagado" valor={formatoMoneda(pasaporte.monto_pagado)} />
+                </dl>
+                {pagos.length > 0 && (
+                  <div className="mt-5 space-y-3">
+                    {pagos.map((pago) => (
+                      <div key={pago.id} className="flex items-center justify-between border-t border-ink/10 pt-3 font-body text-sm">
+                        <span>{pago.metodo} · {pago.momento ? String(pago.momento).replaceAll("_", " ") : ""}</span>
+                        <span className="font-mono-ruum">{formatoMoneda(pago.monto)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {pasaporte.estado === "cotizacion_generada" && pasaporte.precio_cotizado != null && (
+                  <div className="mt-6 rounded-xl border border-[#FFC400]/40 bg-[#FFC400]/10 p-4">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-6 items-center justify-center rounded-full bg-[#FFC400] text-xs font-black text-slate-950">
+                        $
+                      </span>
+                      <p className="font-display text-sm font-bold text-white">Cotización lista para confirmación</p>
                     </div>
-                  ))}
+                    <p className="mt-2 font-body text-xs text-[#d7dce5]">
+                      El equipo operativo calculó la tarifa de tu traslado:{" "}
+                      <strong className="text-[#FFC400] font-bold text-sm">
+                        {formatoMoneda(pasaporte.precio_cotizado)} MXN
+                      </strong>
+                      . Revisa los detalles y acéptala para continuar con la asignación del conductor.
+                    </p>
+                    <AceptarCotizacion
+                      trasladoId={pasaporte.traslado_id}
+                      tipoPago={pasaporte.tipo_pago ?? "anticipado"}
+                    />
+                  </div>
+                )}
+                {pasaporte.estado === "cotizacion_aceptada" && pasaporte.tipo_pago === "anticipado" && precioBase > 0 && (
+                  <div className="mt-6 rounded-xl border border-sky-500/30 bg-sky-500/10 p-4">
+                    <p className="font-display text-sm font-bold text-white">Cotización aceptada · Pago anticipado</p>
+                    <p className="mt-1 font-body text-xs text-[#d7dce5]">
+                      Para que nuestro equipo confirme y asigne un conductor certificado a tu traslado, completa el pago con tarjeta.
+                    </p>
+                    {traslado?.cotizacion_expira_en ? (
+                      <PagoRecuperable
+                        trasladoId={pasaporte.traslado_id}
+                        monto={precioBase}
+                        cotizacionExpiraEn={traslado.cotizacion_expira_en}
+                      />
+                    ) : (
+                      <PagoTraslado trasladoId={pasaporte.traslado_id} monto={precioBase} />
+                    )}
+                  </div>
+                )}
+                {pasaporte.estado === "pago_pendiente" && (
+                  <div className="mt-6">
+                    {precioBase > 0 ? (
+                      <div className="rounded-xl border border-[#FFC400]/40 bg-[#FFC400]/10 p-4">
+                        <p className="font-display text-sm font-bold text-white">Pago pendiente del traslado</p>
+                        <p className="mt-1 font-body text-xs text-[#d7dce5]">
+                          El servicio ha llegado a su destino. Completa el pago pendiente para finalizar el servicio.
+                        </p>
+                        <PagoTraslado trasladoId={pasaporte.traslado_id} monto={precioBase} />
+                      </div>
+                    ) : (
+                      <Aviso tono="atencion">
+                        Pago pendiente. El cobro al cierre se activará en cuanto operación confirme el precio final.
+                      </Aviso>
+                    )}
+                  </div>
+                )}
+                <div id="soporte-pasaporte" className="mt-6 rounded-lg border border-ink/10 px-4 py-4">
+                  <p className="font-body text-sm font-semibold">Contacto con soporte</p>
+                  <p className="mt-1 font-body text-sm text-ink/60">
+                    {MENSAJES_CLAVE_UX.comunicacion} Si hay una incidencia abierta, soporte dará seguimiento desde este mismo expediente.
+                  </p>
+                  <div className="mt-4">
+                    <Link href={`/soporte?viaje=${pasaporte.traslado_id}`} className="font-body text-sm font-medium text-route-dark">
+                      Abrir soporte del traslado
+                    </Link>
+                  </div>
                 </div>
-              )}
-              {pasaporte.estado === "pago_pendiente" && (
-                <div className="mt-6">
-                  <Aviso tono="atencion">
-                    Pago pendiente. El cobro al cierre se realiza desde la app, fuera de esta pantalla de consulta.
-                  </Aviso>
-                </div>
-              )}
-              {pasaporte.estado === "cotizacion_generada" && pasaporte.precio_cotizado != null && (
-                <div className="mt-6">
-                  <Aviso tono="info">
-                    Tarifa enviada, pendiente de aceptación. La aceptación de la tarifa y el pago se realizan desde el flujo de creación del traslado.
-                  </Aviso>
-                </div>
-              )}
-              {pasaporte.estado === "cotizacion_aceptada" && pasaporte.tipo_pago === "anticipado" && precioBase > 0 && traslado?.cotizacion_expira_en && (
-                <div className="mt-6">
-                  <Aviso tono="info">
-                    Tarifa asignada, pago anticipado pendiente. Esta pantalla es solo de consulta; el cobro se completa desde el flujo de creación del traslado.
-                  </Aviso>
-                </div>
-              )}
-              <div id="soporte-pasaporte" className="mt-6 rounded-lg border border-ink/10 px-4 py-4">
-                <p className="font-body text-sm font-semibold">Contacto con soporte</p>
-                <p className="mt-1 font-body text-sm text-ink/60">
-                  {MENSAJES_CLAVE_UX.comunicacion} Si hay una incidencia abierta, soporte dará seguimiento desde este mismo expediente.
-                </p>
-                <div className="mt-4">
-                  <Link href={`/soporte?viaje=${pasaporte.traslado_id}`} className="font-body text-sm font-medium text-route-dark">
-                    Abrir soporte del traslado
-                  </Link>
-                </div>
-              </div>
-            </AcordeonPasaporte>
+              </AcordeonPasaporte>
+            </section>
 
             {(disputas.length > 0 || reclamosSeguro.length > 0) && (
               <AcordeonPasaporte titulo="Disputas, reclamos y resoluciones" descripcion="Historial de resolución posterior al servicio.">

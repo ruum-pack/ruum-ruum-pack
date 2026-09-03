@@ -2,6 +2,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Aviso, Button } from "@ruum/ui";
+import { reportarIncidencia } from "@ruum/api/services";
+import type { TipoIncidencia } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { registrarEventoUx } from "../../lib/analytics";
 
@@ -14,11 +16,20 @@ type Props = {
 const MOTIVOS = [
   "Reportar problema con un viaje",
   "Reportar daño o incidente",
-  "Ayuda con pagos",
-  "Ayuda con evidencia",
-  "Cancelaciones",
-  "Otro",
+  "Ayuda con pagos o facturación",
+  "Dudas con evidencia fotográfica",
+  "Cancelaciones o reprogramación",
+  "Consulta general u otro",
 ] as const;
+
+const MOTIVO_A_TIPO_INCIDENCIA: Record<string, TipoIncidencia> = {
+  "Reportar daño o incidente": "dano_previo_relevante",
+  "Reportar problema con un viaje": "contacto_no_localizado",
+  "Ayuda con pagos o facturación": "documentacion_incompleta",
+  "Dudas con evidencia fotográfica": "dano_no_reportado",
+  "Cancelaciones o reprogramación": "contacto_no_localizado",
+  "Consulta general u otro": "perdida_conectividad",
+};
 
 const HORARIO_SOPORTE = {
   dias: "Lunes a Viernes",
@@ -54,47 +65,36 @@ export function FormularioSoporte({ traslados, preseleccionado, emailUsuario }: 
     });
 
     try {
-      // Intento 1: Supabase directo (tabla incidencias si hay viaje)
+      // Intento 1: Registro formal de incidencia en Supabase si hay viaje seleccionado
       if (tieneSupabaseConfigurado() && viajeId) {
         const cliente = crearClienteNavegador();
-        const tipoMap: Record<string, string> = {
-          "Reportar daño o incidente": "dano_visible",
-          "Reportar problema con un viaje": "otro",
-          "Ayuda con pagos": "pagos",
-          "Ayuda con evidencia": "evidencia",
-          Cancelaciones: "cancelacion",
-        };
-        const tipo = tipoMap[motivo] ?? "otro";
+        const tipo: TipoIncidencia = MOTIVO_A_TIPO_INCIDENCIA[motivo] ?? "dano_previo_relevante";
         
-        const { error } = await cliente.from("incidencias").insert({
-          traslado_id: viajeId,
+        const data = await reportarIncidencia(
+          cliente,
+          viajeId,
           tipo,
-          momento: "durante_traslado",
-          descripcion: `[Soporte app-usuario] Motivo: ${motivo}\n${descripcion.trim()}`,
-          eliminado: false,
-          creado_por: "usuario",
-        } as never);
-        
-        if (!error) {
-          const folio = `${viajeId.slice(0, 8).toUpperCase()}-${Date.now().toString().slice(-4)}`;
-          setResultado({ 
-            ok: true, 
-            msg: `¡Recibido! Folio: ${folio}. Te respondemos en ${HORARIO_SOPORTE.sla} (${HORARIO_SOPORTE.dias} ${HORARIO_SOPORTE.horas}) o ${HORARIO_SOPORTE.slaFueraHorario} fuera de horario.`,
-            folio
-          });
-          setDescripcion("");
-          setMotivo(MOTIVOS[0]);
-          setViajeId(preseleccionado ?? "");
-          return;
-        }
-        console.warn("[soporte] incidencias insert falló, fallback mailto", error);
+          "durante_traslado",
+          `[Soporte app-usuario] Motivo: ${motivo}\n\n${descripcion.trim()}`
+        );
+
+        const folio = `INC-${data.id.slice(0, 8).toUpperCase()}`;
+        setResultado({ 
+          ok: true, 
+          msg: `¡Ticket e incidencia registrados en Torre de Control! Folio: ${folio}. Nuestro equipo dará seguimiento directo desde tu expediente en ${HORARIO_SOPORTE.sla} (${HORARIO_SOPORTE.dias} ${HORARIO_SOPORTE.horas}) o ${HORARIO_SOPORTE.slaFueraHorario} fuera de horario.`,
+          folio
+        });
+        setDescripcion("");
+        setMotivo(MOTIVOS[0]);
+        setViajeId(preseleccionado ?? "");
+        return;
       }
 
-      // Fallback: mailto prellenado + aviso éxito
-      const subject = encodeURIComponent(`[Ruum Ruum] ${motivo}${viajeId ? ` · Folio: ${viajeId.slice(0, 8).toUpperCase()}` : ""}`);
+      // Fallback: mailto prellenado si es consulta general sin viaje asociado
+      const subject = encodeURIComponent(`[Ruum Ruum Soporte] ${motivo}${viajeId ? ` · Viaje: ${viajeId.slice(0, 8).toUpperCase()}` : ""}`);
       const body = encodeURIComponent(
         `Motivo: ${motivo}\n` +
-        `Viaje: ${viajeId || "—"}\n` +
+        `Viaje: ${viajeId || "Sin viaje vinculado (consulta general)"}\n` +
         `Correo usuario: ${emailUsuario || "No proporcionado"}\n\n` +
         `Descripción:\n${descripcion.trim()}\n\n` +
         `---\n` +
@@ -103,21 +103,33 @@ export function FormularioSoporte({ traslados, preseleccionado, emailUsuario }: 
         `SLA: ${HORARIO_SOPORTE.sla} en horario, ${HORARIO_SOPORTE.slaFueraHorario} fuera de horario`
       );
       
-      // Intentar abrir mailto
       const mailtoUrl = `mailto:${CORREO_SOPORTE}?subject=${subject}&body=${body}`;
       
-      // Verificar si hay cliente de correo configurado
-      if (typeof window !== 'undefined' && window.location) {
+      if (typeof window !== "undefined" && window.location) {
         window.location.href = mailtoUrl;
       }
       
       setResultado({ 
         ok: true, 
-        msg: `Abrimos tu cliente de correo con el mensaje prellenado. Si no se abrió, copia este folio y escribe manualmente a ${CORREO_SOPORTE}. Respondemos en ${HORARIO_SOPORTE.sla} (${HORARIO_SOPORTE.dias} ${HORARIO_SOPORTE.horas}).`
+        msg: `Abrimos tu cliente de correo con el mensaje prellenado. Si no se abrió automáticamente, escribe a ${CORREO_SOPORTE}. Respondemos en ${HORARIO_SOPORTE.sla} (${HORARIO_SOPORTE.dias} ${HORARIO_SOPORTE.horas}).`
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "No pudimos enviar tu mensaje. Por favor, inténtalo de nuevo o escribe directamente a soporte@ruumruum.mx";
-      setResultado({ ok: false, msg });
+      console.warn("[soporte] Error al reportar incidencia, recurriendo a mailto:", err);
+      // Fallback a mailto si la inserción en base de datos fallara (por ejemplo, falta de conectividad o permisos)
+      const subject = encodeURIComponent(`[Ruum Ruum Soporte] ${motivo}${viajeId ? ` · Viaje: ${viajeId.slice(0, 8).toUpperCase()}` : ""}`);
+      const body = encodeURIComponent(
+        `Motivo: ${motivo}\n` +
+        `Viaje: ${viajeId || "—"}\n` +
+        `Correo usuario: ${emailUsuario || "No proporcionado"}\n\n` +
+        `Descripción:\n${descripcion.trim()}`
+      );
+      if (typeof window !== "undefined" && window.location) {
+        window.location.href = `mailto:${CORREO_SOPORTE}?subject=${subject}&body=${body}`;
+      }
+      setResultado({
+        ok: true,
+        msg: `Abrimos tu cliente de correo para enviar tu reporte a ${CORREO_SOPORTE}. Nos pondremos en contacto contigo a la brevedad.`
+      });
     } finally {
       setEnviando(false);
     }

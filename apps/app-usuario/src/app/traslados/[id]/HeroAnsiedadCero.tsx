@@ -8,7 +8,25 @@ type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type Conductor = Pick<Database["public"]["Tables"]["conductores"]["Row"], "id" | "nombre" | "estado" | "nivel_operativo_vigente" | "calificacion_promedio" | "traslados_completados">;
 
 const ORDEN_ESTADOS = [
-  "solicitud_creada","servicio_confirmado","pendiente_de_conductor","conductor_asignado","conductor_en_camino_al_origen","conductor_en_punto_de_recoleccion","verificacion_vehiculo_en_proceso","evidencia_inicial_en_proceso","evidencia_inicial_completada","vehiculo_recibido","traslado_en_curso","llegada_a_destino","evidencia_final_en_proceso","evidencia_final_completada","entrega_confirmada","servicio_cerrado",
+  "solicitud_creada",
+  "cotizacion_generada",
+  "cotizacion_aceptada",
+  "servicio_confirmado",
+  "pendiente_de_conductor",
+  "conductor_asignado",
+  "conductor_en_camino_al_origen",
+  "conductor_en_punto_de_recoleccion",
+  "verificacion_vehiculo_en_proceso",
+  "evidencia_inicial_en_proceso",
+  "evidencia_inicial_completada",
+  "vehiculo_recibido",
+  "traslado_en_curso",
+  "llegada_a_destino",
+  "evidencia_final_en_proceso",
+  "evidencia_final_completada",
+  "entrega_confirmada",
+  "pago_pendiente",
+  "servicio_cerrado",
 ] as const;
 
 function progreso(estado: string): number {
@@ -20,6 +38,8 @@ function progreso(estado: string): number {
 function proximaAccion(estado: string): string {
   const map: Record<string, string> = {
     solicitud_creada: "Estamos revisando tu solicitud. Te avisamos en minutos.",
+    cotizacion_generada: "Tarifa lista para tu confirmación. Revisa la cotización y acéptala para continuar.",
+    cotizacion_aceptada: "Cotización aceptada. Procede con el pago para confirmar la asignación del conductor.",
     servicio_confirmado: "¡Solicitud aceptada! Buscando conductor cercano.",
     pendiente_de_conductor: "Buscando conductor — no necesitas hacer nada.",
     conductor_asignado: "Conductor asignado. Puedes chatear con él.",
@@ -31,6 +51,7 @@ function proximaAccion(estado: string): string {
     llegada_a_destino: "¡Llegando a destino! Prepara la entrega.",
     evidencia_final_en_proceso: "Capturando evidencia final.",
     entrega_confirmada: "¡Entregado! Revisa la evidencia final.",
+    pago_pendiente: "Servicio entregado. Completa el pago pendiente para finalizar.",
     servicio_cerrado: "Viaje finalizado. ¡Gracias por confiar en Ruum Ruum!",
   };
   return map[estado] ?? "Seguimos tu traslado en tiempo real.";
