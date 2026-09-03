@@ -430,7 +430,7 @@ export function CargaMasivaForm() {
             ← Volver a traslado individual
           </Link>
           <span className="text-[11px] font-mono tracking-wide uppercase px-2.5 py-1 rounded bg-[#141F32] text-[#FFC400] border border-[#FFC400]/20">
-            Carga Masiva CSV
+            Carga masiva CSV
           </span>
         </div>
         <h1 className="text-xl sm:text-2xl font-bold font-display text-white">

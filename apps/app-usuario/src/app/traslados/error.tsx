@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { NavegacionUsuario } from "../NavegacionUsuario";
 
 export default function ErrorTraslados({ reset }: { reset: () => void }) {
   return (
-    <main className="app-page">
-      <div className="app-container flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
+    <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
+      <div className="user-v2-content flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
         <div className="mb-6 flex size-16 items-center justify-center rounded-full bg-danger-soft">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"

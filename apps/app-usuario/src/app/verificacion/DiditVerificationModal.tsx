@@ -152,12 +152,12 @@ export function DiditVerificationModal({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed inset-0 z-50 m-0 flex h-[100dvh] w-[100vw] max-h-none max-w-none items-center justify-center border-0 bg-black/75 px-4 py-6 backdrop-blur-xs sm:py-10 open:flex"
+      className="user-v2-scope user-v2-secondary-screen fixed inset-0 z-50 m-0 flex h-[100dvh] w-[100vw] max-h-none max-w-none items-center justify-center border-0 bg-black/75 px-4 py-6 backdrop-blur-xs sm:py-10 open:flex"
       aria-modal="true"
       aria-labelledby="titulo-didit-usuario"
       aria-describedby="didit-desc didit-permisos-nota"
     >
-      <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-[#334155] bg-[#1E293B] shadow-2xl flex flex-col max-h-[92vh] text-white">
+      <div className="user-v2-modal w-full max-w-xl overflow-hidden rounded-2xl border border-[#334155] bg-[#1E293B] shadow-2xl flex flex-col max-h-[92vh] text-white">
         {/* Cabecera del modal */}
         <div className="flex items-center justify-between border-b border-[#334155] p-4 shrink-0 bg-[#0F172A]">
           <div className="flex items-center gap-2.5">
@@ -208,7 +208,7 @@ export function DiditVerificationModal({
               <button
                 type="button"
                 onClick={onCerrar}
-                className="w-full rounded-xl border border-[#475569] bg-transparent py-3 font-display text-sm font-semibold text-white hover:bg-[#334155] transition cursor-pointer"
+                className="user-v2-modal-secondary w-full rounded-xl border border-[#475569] bg-transparent py-3 font-display text-sm font-semibold text-white hover:bg-[#334155] transition cursor-pointer"
               >
                 Cerrar
               </button>
@@ -216,7 +216,7 @@ export function DiditVerificationModal({
                 type="button"
                 onClick={onReintentar}
                 disabled={cargando}
-                className="w-full rounded-xl bg-[#FFC400] py-3 font-display text-sm font-bold text-[#151515] hover:bg-[#e0ac00] transition cursor-pointer"
+                className="user-v2-modal-primary w-full rounded-xl bg-[#FFC400] py-3 font-display text-sm font-bold text-[#151515] hover:bg-[#e0ac00] transition cursor-pointer"
               >
                 Reintentar verificación
               </button>
@@ -257,7 +257,7 @@ export function DiditVerificationModal({
                 type="button"
                 onClick={onFinalizar}
                 disabled={cargando}
-                className="w-full sm:w-auto rounded-xl bg-[#FFC400] px-5 py-2.5 font-display text-xs font-bold text-[#151515] hover:bg-[#e0ac00] transition cursor-pointer"
+                className="user-v2-modal-primary w-full sm:w-auto rounded-xl bg-[#FFC400] px-5 py-2.5 font-display text-xs font-bold text-[#151515] hover:bg-[#e0ac00] transition cursor-pointer"
               >
                 Ya completé la verificación
               </button>
@@ -270,14 +270,14 @@ export function DiditVerificationModal({
               <button
                 type="button"
                 onClick={onCerrar}
-                className="rounded-xl border border-[#475569] px-5 py-2.5 font-display text-sm font-semibold text-white hover:bg-[#334155] transition cursor-pointer"
+                className="user-v2-modal-secondary rounded-xl border border-[#475569] px-5 py-2.5 font-display text-sm font-semibold text-white hover:bg-[#334155] transition cursor-pointer"
               >
                 Cerrar
               </button>
               <button
                 type="button"
                 onClick={onReintentar}
-                className="rounded-xl bg-[#FFC400] px-5 py-2.5 font-display text-sm font-bold text-[#151515] hover:bg-[#e0ac00] transition cursor-pointer"
+                className="user-v2-modal-primary rounded-xl bg-[#FFC400] px-5 py-2.5 font-display text-sm font-bold text-[#151515] hover:bg-[#e0ac00] transition cursor-pointer"
               >
                 Reintentar
               </button>

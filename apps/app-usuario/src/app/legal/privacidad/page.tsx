@@ -7,9 +7,9 @@ export const metadata = {
 
 export default function PaginaPrivacidad() {
   return (
-    <main className="app-page">
-      <NavegacionUsuario />
-      <div className="app-container py-10 sm:py-14">
+    <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
+      <div className="user-v2-content user-v2-content--wide py-10 sm:py-14">
         <div className="mb-6">
           <Link
             href="/cuenta/legal"

@@ -3,9 +3,9 @@ import { NavegacionUsuario } from "./NavegacionUsuario";
 
 export default function PaginaNoEncontrada() {
   return (
-    <main className="app-page">
-      <NavegacionUsuario />
-      <div className="app-container flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
+    <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
+      <div className="user-v2-content user-v2-content--wide flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
         <p className="font-mono-ruum text-xs font-medium uppercase tracking-widest text-ink/35">
           404
         </p>

@@ -467,6 +467,143 @@ textarea::placeholder {
   padding-block: 16px 112px;
 }
 
+.user-v2-content--wide {
+  width: min(calc(100% - 32px), 960px);
+}
+
+.user-v2-secondary-screen {
+  color: var(--user-color-primary);
+}
+
+.user-v2-secondary-screen .app-card,
+.user-v2-secondary-screen [class~="bg-surface"],
+.user-v2-secondary-screen [class~="bg-surface-elevated"],
+.user-v2-secondary-screen [class~="bg-mist"] {
+  border-color: var(--user-color-border);
+  background-color: var(--user-color-surface);
+  color: var(--user-color-primary);
+}
+
+.user-v2-secondary-screen [class~="text-ink"],
+.user-v2-secondary-screen [class*="text-text-primary"] {
+  color: var(--user-color-primary);
+}
+
+.user-v2-secondary-screen [class*="text-ink/"],
+.user-v2-secondary-screen [class*="text-text-secondary"],
+.user-v2-secondary-screen [class*="text-text-tertiary"] {
+  color: var(--user-color-muted);
+}
+
+.user-v2-secondary-screen :where(input, select, textarea) {
+  border-color: var(--user-color-border);
+  border-radius: var(--user-radius-field);
+  background: var(--user-color-surface);
+  color: var(--user-color-primary);
+}
+
+.user-v2-secondary-screen :where(button, a) {
+  font-family: var(--font-body);
+}
+
+/* Transitional mapping for P2 components that still use the legacy utility
+   vocabulary. It is deliberately scoped to Usuario and can be removed once
+   each component is fully expressed with the V2 classes above. */
+.user-v2-secondary-screen [class*="bg-[#070D18]"],
+.user-v2-secondary-screen [class*="bg-[#0B111B]"] {
+  background-color: var(--user-color-background);
+}
+
+.user-v2-secondary-screen [class*="bg-[#0A1220]"],
+.user-v2-secondary-screen [class*="bg-[#0D182A]"] {
+  background-color: var(--user-color-surface);
+}
+
+.user-v2-secondary-screen [class*="bg-[#141F32]"] {
+  background-color: var(--user-color-surface-soft);
+}
+
+.user-v2-secondary-screen [class*="bg-[#1E293B]"],
+.user-v2-secondary-screen [class*="bg-[#0F172A]"],
+.user-v2-secondary-screen [class*="bg-[#064e3b]"] {
+  background-color: var(--user-color-surface);
+}
+
+.user-v2-secondary-screen [class*="border-[#334155]"],
+.user-v2-secondary-screen [class*="border-[#475569]"] {
+  border-color: var(--user-color-border);
+}
+
+.user-v2-secondary-screen [class*="bg-[#FFC400]"] {
+  background-color: var(--user-color-brand);
+}
+
+.user-v2-secondary-screen [class*="bg-[#FFC400]/"] {
+  background-color: var(--user-color-brand-soft);
+}
+
+.user-v2-secondary-screen [class*="border-[#1C2A3E]"] {
+  border-color: var(--user-color-border);
+}
+
+.user-v2-secondary-screen [class*="border-[#FFC400]"] {
+  border-color: var(--user-color-brand);
+}
+
+.user-v2-secondary-screen [class~="text-white"],
+.user-v2-secondary-screen [class*="text-[#F8F8F5]"] {
+  color: var(--user-color-primary);
+}
+
+.user-v2-secondary-screen [class*="text-[#8E9CAE]"],
+.user-v2-secondary-screen [class*="text-[#94A3B8]"],
+.user-v2-secondary-screen [class*="text-[#94a3b8]"],
+.user-v2-secondary-screen [class*="text-[#64748B]"] {
+  color: var(--user-color-muted);
+}
+
+.user-v2-secondary-screen [class*="text-[#FFC400]"] {
+  color: var(--user-color-brand-dark);
+}
+
+.user-v2-secondary-screen [class*="text-[#0B111B]"],
+.user-v2-secondary-screen [class*="text-[#151515]"] {
+  color: var(--user-color-primary);
+}
+
+.user-v2-modal {
+  color: var(--user-color-primary);
+}
+
+.user-v2-modal button {
+  min-height: var(--user-tap-target);
+  border-radius: var(--user-radius-field);
+  font-family: var(--font-body);
+}
+
+.user-v2-modal .user-v2-modal-primary {
+  background: linear-gradient(100deg, var(--user-color-brand) 0%, var(--user-color-action) 100%);
+  color: var(--user-color-on-action);
+  box-shadow: var(--user-shadow-primary);
+}
+
+.user-v2-modal .user-v2-modal-secondary {
+  border: 1px solid var(--user-color-border);
+  background: var(--user-color-surface);
+  color: var(--user-color-primary);
+}
+
+.user-v2-secondary-screen [class*="file:bg-ink"]::file-selector-button {
+  background: var(--user-color-primary);
+  color: var(--user-color-surface);
+}
+
+.user-v2-secondary-screen .user-v2-secondary-button,
+.user-v2-secondary-screen .user-v2-primary-button,
+.user-v2-secondary-screen .user-v2-ghost-button {
+  color: revert-layer;
+}
+
 .user-v2-screen {
   display: flex;
   flex-direction: column;

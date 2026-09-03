@@ -1,7 +1,10 @@
+import { NavegacionUsuario } from "../NavegacionUsuario";
+
 export default function CargandoCuenta() {
   return (
-    <main className="app-page">
-      <div className="app-container py-10 sm:py-14" aria-label="Cargando cuenta">
+    <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
+      <div className="user-v2-content user-v2-content--wide py-10 sm:py-14" aria-label="Cargando cuenta">
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
           {/* Skeleton del menú lateral */}
           <div className="app-card rounded-card p-5 space-y-4">

@@ -13,12 +13,11 @@ export default async function PaginaCuenta() {
   const usuario = cuenta?.usuario ?? null;
 
   return (
-    <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
-      <NavegacionUsuario />
-      <div className="w-full max-w-md mx-auto px-4 py-2">
+    <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
+      <div className="user-v2-content">
         <CuentaCliente usuario={usuario} />
       </div>
     </main>
   );
 }
-

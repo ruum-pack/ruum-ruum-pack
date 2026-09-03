@@ -198,9 +198,7 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
 
   // Derivación de datos reales del usuario autenticado
-  const nombreMostrar = usuario?.nombre
-    ? usuario.nombre.toUpperCase()
-    : "MI CUENTA";
+  const nombreMostrar = usuario?.nombre ?? "Mi cuenta";
   const correoMostrar = usuario?.correo_facturacion ?? "Sin correo registrado";
   const telefonoMostrar = usuario?.telefono ?? "Sin teléfono registrado";
 
@@ -217,25 +215,25 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-5 pb-24 text-[#F8F8F5]">
+    <div className="user-v2-screen w-full max-w-md mx-auto pb-24">
       {/* 1. Título de la Pantalla */}
       <section className="pt-2">
-        <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+        <h1 className="user-v2-heading-1">
           Mi cuenta
         </h1>
-        <p className="mt-1 font-body text-sm text-[#8E9CAE]">
+        <p className="user-v2-caption user-v2-muted mt-1">
           Administra tu perfil y preferencias.
         </p>
       </section>
 
       {/* 2. Tarjeta Hero de Perfil de Usuario */}
       <section>
-        <div className="rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 sm:p-5 shadow-2xl backdrop-blur-sm space-y-4">
+        <div className="user-v2-card p-4 sm:p-5 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3.5 min-w-0">
               <IconoAvatarGrande />
               <div className="min-w-0">
-                <h2 className="font-display text-base sm:text-lg font-extrabold uppercase tracking-wide text-white leading-tight truncate">
+                <h2 className="user-v2-card-title truncate">
                   {nombreMostrar}
                 </h2>
                 <p className="font-body text-xs text-[#8E9CAE]">
@@ -263,7 +261,7 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
 
           <Link
             href="/cuenta/perfil"
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#FFC400] font-display text-xs sm:text-sm font-extrabold uppercase tracking-wide text-[#FFC400] transition hover:bg-[#FFC400]/10 active:scale-[0.99]"
+            className="user-v2-secondary-button flex w-full items-center justify-center gap-2 px-4"
           >
             <IconoLapiz className="size-4 text-[#FFC400]" />
             <span>EDITAR PERFIL</span>
@@ -274,7 +272,7 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
       {/* 3. Grupo: CUENTA */}
       <section className="space-y-1.5">
         <h3 className="font-display text-[11px] font-bold uppercase tracking-wider text-[#64748B] px-1">
-          CUENTA
+          Cuenta
         </h3>
         <div className="overflow-hidden rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 shadow-xl divide-y divide-[#1C2A3E]/70">
           <FilaOpcion
@@ -313,7 +311,7 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
       {/* 4. Grupo: SEGURIDAD */}
       <section className="space-y-1.5">
         <h3 className="font-display text-[11px] font-bold uppercase tracking-wider text-[#64748B] px-1">
-          SEGURIDAD
+          Seguridad
         </h3>
         <div className="overflow-hidden rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 shadow-xl divide-y divide-[#1C2A3E]/70">
           <FilaOpcion
@@ -342,7 +340,7 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
       {/* 5. Grupo: PREFERENCIAS */}
       <section className="space-y-1.5">
         <h3 className="font-display text-[11px] font-bold uppercase tracking-wider text-[#64748B] px-1">
-          PREFERENCIAS
+          Preferencias
         </h3>
         <div className="overflow-hidden rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 shadow-xl divide-y divide-[#1C2A3E]/70">
           <FilaOpcion
@@ -371,7 +369,7 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
       {/* 6. Grupo: DOCUMENTOS Y PAGOS */}
       <section className="space-y-1.5">
         <h3 className="font-display text-[11px] font-bold uppercase tracking-wider text-[#64748B] px-1">
-          DOCUMENTOS Y PAGOS
+          Documentos y pagos
         </h3>
         <div className="overflow-hidden rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 shadow-xl divide-y divide-[#1C2A3E]/70">
           <FilaOpcion

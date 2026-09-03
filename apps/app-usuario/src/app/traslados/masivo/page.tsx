@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NavegacionUsuario } from "../../NavegacionUsuario";
 import { CargaMasivaForm } from "./CargaMasivaForm";
 
 export const metadata: Metadata = {
@@ -8,8 +9,11 @@ export const metadata: Metadata = {
 
 export default function PaginaCargaMasiva() {
   return (
-    <main id="contenido-principal" className="min-h-screen py-8 px-4 sm:px-6">
-      <CargaMasivaForm />
+    <main id="contenido-principal" className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
+      <div className="user-v2-content user-v2-content--wide">
+        <CargaMasivaForm />
+      </div>
     </main>
   );
 }

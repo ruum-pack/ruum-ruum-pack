@@ -44,9 +44,9 @@ export default async function PaginaSoporte({
   const { usuario, traslados } = await obtenerContexto();
 
   return (
-    <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
-      <NavegacionUsuario />
-      <div className="w-full max-w-md mx-auto px-4 py-2">
+    <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
+      <div className="user-v2-content">
         <SoporteCliente
           usuario={usuario}
           traslados={traslados}
@@ -56,5 +56,4 @@ export default async function PaginaSoporte({
     </main>
   );
 }
-
 

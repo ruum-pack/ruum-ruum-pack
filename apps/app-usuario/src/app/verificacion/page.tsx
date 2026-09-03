@@ -215,9 +215,9 @@ export default async function PaginaVerificacion({ searchParams }: Props) {
   /* Si ya está verificado → pantalla de éxito */
   if (estadoVerificacion === "verificado") {
     return (
-      <main className="app-page">
-        <NavegacionUsuario />
-        <div className="app-container py-10 sm:py-14">
+      <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+        <NavegacionUsuario variante="claro" />
+        <div className="user-v2-content user-v2-content--wide py-10 sm:py-14">
           <div className="mx-auto max-w-lg">
             <CuentaYaVerificada />
           </div>
@@ -230,9 +230,9 @@ export default async function PaginaVerificacion({ searchParams }: Props) {
   const yaEnRevision = estadoVerificacion === "en_revision" || (docYaSubido && estadoVerificacion !== "rechazado");
 
   return (
-    <main className="app-page">
-      <NavegacionUsuario />
-      <div className="app-container py-10 sm:py-14">
+    <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
+      <div className="user-v2-content user-v2-content--wide py-10 sm:py-14">
         <div className="mb-6">
           <Link href="/" className="font-body text-sm text-ink/55 underline-offset-4 hover:underline">
             ← Inicio

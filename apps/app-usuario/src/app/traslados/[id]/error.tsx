@@ -16,8 +16,8 @@ export default function ErrorTraslado({
   }, [error]);
 
   return (
-    <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
-      <NavegacionUsuario />
+    <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
       <div className="w-full max-w-md mx-auto py-20 px-4 text-center">
         <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10 text-red-400 mb-4">
           <svg className="size-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

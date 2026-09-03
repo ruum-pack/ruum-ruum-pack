@@ -179,15 +179,18 @@ function GrupoConfiguracion({ titulo, children }: { titulo: string; children: Re
 
 export function AvisoSinSesion() {
   return (
-    <main className="mx-auto max-w-xl px-4 sm:px-6 py-12 sm:py-20 text-center">
-      <Aviso tono="info">Inicia sesión para consultar y actualizar los datos de tu cuenta.</Aviso>
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row justify-center">
+    <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
+      <div className="user-v2-content user-v2-content--wide py-12 sm:py-20 text-center">
+        <Aviso tono="info">Inicia sesión para consultar y actualizar los datos de tu cuenta.</Aviso>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row justify-center">
         <Link href="/login?next=/cuenta">
           <Button className="w-full sm:w-auto">Iniciar sesión</Button>
         </Link>
         <Link href="/registro">
           <Button variant="secondary" className="w-full sm:w-auto">Crear cuenta</Button>
         </Link>
+        </div>
       </div>
     </main>
   );
@@ -294,9 +297,9 @@ export function NavegacionCuenta({ usuario }: { usuario: Usuario }) {
 
 export function LayoutCuenta({ cuenta, children }: { cuenta: CuentaReal; children: React.ReactNode }) {
   return (
-    <main className="app-page">
-      <NavegacionUsuario />
-      <div className="app-container py-10 sm:py-14">
+    <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
+      <div className="user-v2-content user-v2-content--wide py-10 sm:py-14">
         <HeaderCuenta usuario={cuenta.usuario} />
         <NavegacionCuenta usuario={cuenta.usuario} />
         {children}

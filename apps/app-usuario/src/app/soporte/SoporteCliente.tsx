@@ -209,7 +209,7 @@ export function SoporteCliente({
         <section>
           <div className="rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 p-4 sm:p-5 shadow-2xl backdrop-blur-sm space-y-3.5">
             <span className="block font-display text-[11px] font-bold uppercase tracking-wider text-[#FFC400]">
-              TRASLADO ACTIVO
+              Traslado activo
             </span>
 
             <div className="flex items-center justify-between gap-3">
@@ -245,7 +245,7 @@ export function SoporteCliente({
               onClick={() => setModalReporte(true)}
               className="flex h-12 w-full items-center justify-between rounded-xl bg-[#FFC400] px-4 font-display text-xs sm:text-sm font-black uppercase tracking-wide text-[#0B111B] shadow-md transition hover:bg-[#e6b000] active:scale-[0.99]"
             >
-              <span>NECESITO AYUDA CON ESTE TRASLADO</span>
+              <span>Necesito ayuda con este traslado</span>
               <IconoChevron className="size-4 text-[#0B111B]" />
             </button>
           </div>
@@ -255,7 +255,7 @@ export function SoporteCliente({
       {/* 4. Sección: Temas de ayuda (Cuadrícula 3x2) */}
       <section className="space-y-3">
         <h2 className="font-display text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-          TEMAS DE AYUDA
+          Temas de ayuda
         </h2>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
@@ -401,7 +401,7 @@ export function SoporteCliente({
       {/* 6. Sección: PREGUNTAS FRECUENTES (Acordeón) */}
       <section id="faqs" className="space-y-3">
         <h2 className="font-display text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-          PREGUNTAS FRECUENTES
+          Preguntas frecuentes
         </h2>
 
         <div className="space-y-2">
@@ -439,8 +439,8 @@ export function SoporteCliente({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-[#1C2A3E] bg-[#0A1220] p-6 shadow-2xl text-left">
             <div className="flex items-center justify-between border-b border-[#1C2A3E] pb-4 mb-4">
-              <h3 className="font-display text-base font-extrabold uppercase text-white">
-                Reportar problema a Soporte
+              <h3 className="font-display text-base font-extrabold text-white">
+                Reportar problema a soporte
               </h3>
               <button
                 type="button"

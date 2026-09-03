@@ -1740,8 +1740,8 @@ export function NuevoTrasladoForm() {
 
   if (bloqueoVerificacion) {
     return (
-      <main className="app-page">
-        <NavegacionUsuario />
+      <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+        <NavegacionUsuario variante="claro" />
         <div className="mx-auto max-w-xl px-6 py-12">
           <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">Verificación requerida</p>
           <h1 className="mt-2 font-display text-2xl font-semibold">Antes de solicitar un traslado</h1>
@@ -1768,8 +1768,8 @@ export function NuevoTrasladoForm() {
   }
 
   return (
-    <main className="app-page">
-      <NavegacionUsuario />
+    <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
       <div className="mx-auto max-w-xl px-4 sm:px-6 py-6 sm:py-12">
         <h1 className="font-display text-2xl sm:text-3xl font-black text-text-primary">Nuevo traslado</h1>
         <div className="mt-3 flex flex-wrap items-center gap-2 font-body text-xs">

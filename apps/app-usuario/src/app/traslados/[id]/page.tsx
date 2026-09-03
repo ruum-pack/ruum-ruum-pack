@@ -704,8 +704,8 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
       if (!user || user.id !== pasaporte.usuario_id) {
         // Tratar como no encontrado para no filtrar existencia (IDOR)
         return (
-          <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
-            <NavegacionUsuario />
+          <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+            <NavegacionUsuario variante="claro" />
             <div className="w-full max-w-md mx-auto py-20 px-4 text-center">
               <p className="font-display text-xs font-bold uppercase tracking-widest text-[#FFC400]">Traslado no encontrado</p>
               <h1 className="mt-3 font-display text-2xl font-black text-white">No encontramos ese traslado</h1>
@@ -727,8 +727,8 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
     } catch {
       // Si falla la verificación de sesión, no exponer datos
       return (
-        <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
-          <NavegacionUsuario />
+        <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+          <NavegacionUsuario variante="claro" />
           <div className="w-full max-w-md mx-auto py-20 px-4 text-center">
             <p className="font-display text-xs font-bold uppercase tracking-widest text-[#FFC400]">Traslado no encontrado</p>
             <h1 className="mt-3 font-display text-2xl font-black text-white">No encontramos ese traslado</h1>
@@ -741,8 +741,8 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
 
   if (!pasaporte) {
     return (
-      <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
-        <NavegacionUsuario />
+      <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+        <NavegacionUsuario variante="claro" />
         <div className="w-full max-w-md mx-auto py-20 px-4 text-center">
           <p className="font-display text-xs font-bold uppercase tracking-widest text-[#FFC400]">
             Traslado no encontrado
@@ -772,8 +772,8 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
 
   if (!pasaporte.traslado_id || !pasaporte.estado) {
     return (
-      <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
-        <NavegacionUsuario />
+      <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+        <NavegacionUsuario variante="claro" />
         <div className="w-full max-w-md mx-auto py-20 px-4 text-center">
           <p className="font-display text-xs font-bold uppercase tracking-widest text-[#FFC400]">
             Traslado incompleto
@@ -810,8 +810,8 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
     dentroDeVentanaPostCierre;
 
   return (
-    <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
-      <NavegacionUsuario />
+    <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+      <NavegacionUsuario variante="claro" />
       <div className="w-full max-w-2xl mx-auto px-4 py-4 sm:py-8 pb-28">
       <PassportCard folio={`#RM-${pasaporte.traslado_id.slice(0, 4).toUpperCase()}`}>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">

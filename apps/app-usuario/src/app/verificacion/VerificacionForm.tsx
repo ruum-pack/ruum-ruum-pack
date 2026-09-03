@@ -475,7 +475,7 @@ export function VerificacionForm({ fotoPerfilInicial }: { fotoPerfilInicial?: st
           <div className="flex items-center gap-2">
             <span className="text-xl">⚡</span>
             <span className="font-display text-sm font-bold text-[#FFC400]">
-              Verificación Instantánea (Recomendada)
+              Verificación instantánea (recomendada)
             </span>
           </div>
           <span className="rounded-full bg-[#FFC400]/20 px-2.5 py-0.5 font-mono text-[10px] font-bold text-[#FFC400] border border-[#FFC400]/40">
