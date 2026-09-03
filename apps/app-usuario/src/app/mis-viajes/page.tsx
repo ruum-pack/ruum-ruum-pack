@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type Traslado = Pick<
   Database["public"]["Tables"]["traslados"]["Row"],
-  "id" | "origen_direccion" | "origen_ciudad" | "destino_direccion" | "destino_ciudad"
+  "id" | "origen_direccion" | "origen_ciudad" | "destino_direccion" | "destino_ciudad" | "fecha_hora_programada"
 >;
 
 type PestañaViajes = "activos" | "programados" | "finalizados" | "cancelados";
@@ -49,7 +49,7 @@ async function obtenerViajes(): Promise<ViajeLista[]> {
       ids.length > 0
         ? await cliente
             .from("traslados")
-            .select("id, origen_direccion, origen_ciudad, destino_direccion, destino_ciudad")
+            .select("id, origen_direccion, origen_ciudad, destino_direccion, destino_ciudad, fecha_hora_programada")
             .in("id", ids)
         : { data: [], error: null };
 
@@ -78,9 +78,9 @@ export default async function PaginaMisViajes({
   const viajes = await obtenerViajes();
 
   return (
-    <main className="min-h-screen bg-[#070D18] text-[#F8F8F5]">
-      <NavegacionUsuario />
-      <div className="w-full max-w-md mx-auto px-4 py-2">
+    <main className="user-v2-scope user-v2-page">
+      <NavegacionUsuario variante="claro" />
+      <div className="user-v2-content">
         <MisViajesCliente viajes={viajes} pestanaInicial={pestañaActiva} />
       </div>
     </main>

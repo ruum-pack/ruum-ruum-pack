@@ -48,9 +48,9 @@ export default async function PaginaInicio({
 
   if (usuario && !forzarLanding) {
     return (
-      <main className="min-h-screen bg-[#F6F8FB] text-[#0D2B5E]">
+      <main className="user-v2-scope user-v2-page">
         <NavegacionUsuario variante="claro" />
-        <div className="mx-auto w-full max-w-[430px] px-4 py-2">
+        <div className="user-v2-content">
           <InicioUsuario usuario={usuario} traslados={traslados} />
         </div>
       </main>

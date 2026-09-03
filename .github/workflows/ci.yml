@@ -8,6 +8,9 @@ on:
       - main
       - release/**
 
+permissions:
+  contents: read
+
 jobs:
   workspace:
     name: Workspace checks
@@ -20,6 +23,7 @@ jobs:
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
       NEXT_PUBLIC_PANEL_ADMIN_DEMO: "false"
       NEXT_PUBLIC_APP_VERSION: 0.0.0-ci
+      NEXT_PUBLIC_APP_URL: http://localhost:3001
       NEXT_PUBLIC_RUUM_AMBIENTE: staging
       CSP_STRICT_STYLES: "true"
       NEXT_PUBLIC_CSP_STRICT_STYLES: "true"
@@ -165,7 +169,7 @@ jobs:
           pnpm --filter @ruum/app-conductor dev &
           sleep 10
           for i in {1..10}; do
-            curl -f http://localhost:3001 && exit 0
+            curl -fsSL http://localhost:3001 && exit 0
             sleep 2
           done
           echo "ERROR: Servidor no respondiendo"
@@ -191,11 +195,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      RUUM_REMOTE_URL: ${{ vars.RUUM_CONDUCTOR_REMOTE_URL_STAGING }}
+      RUUM_REMOTE_URL: ${{ vars.RUUM_CONDUCTOR_REMOTE_URL_STAGING || 'https://www.concer.ruumruum-moviliax.online' }}
       RUUM_ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/apps/app-conductor/android/app/release.keystore
       RUUM_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RUUM_ANDROID_KEYSTORE_PASSWORD }}
       RUUM_ANDROID_KEY_ALIAS: ${{ secrets.RUUM_ANDROID_KEY_ALIAS }}
       RUUM_ANDROID_KEY_PASSWORD: ${{ secrets.RUUM_ANDROID_KEY_PASSWORD }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://ci.supabase.test' }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'ci-anon-key' }}
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+      NEXT_PUBLIC_APP_VERSION: 1.0.0
+      NEXT_PUBLIC_APP_URL: http://localhost:3001
+      NEXT_PUBLIC_RUUM_AMBIENTE: staging
+      CSP_STRICT_STYLES: "true"
+      NEXT_PUBLIC_CSP_STRICT_STYLES: "true"
 
     steps:
       - name: Checkout
@@ -252,7 +265,9 @@ jobs:
 
       - name: Build signed release APK
         working-directory: apps/app-conductor/android
-        run: ./gradlew --no-daemon clean assembleRelease
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon clean assembleRelease
 
       - name: Verify APK signature and hashes
         run: |
@@ -289,6 +304,9 @@ jobs:
       - name: Check Edge Functions
         run: deno task check:functions
 
+      - name: Test Edge Functions
+        run: deno task test:functions
+
   panel-admin-smoke:
     name: Panel admin smoke
     runs-on: ubuntu-latest
@@ -319,10 +337,25 @@ jobs:
       - name: Run panel admin smoke
         run: pnpm --filter @ruum/panel-admin test:smoke
 
+      - name: Upload Playwright evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: panel-admin-smoke-evidence
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            apps/panel-admin/playwright-report/
+            apps/panel-admin/test-results/
+
   panel-admin-load-test:
     name: Panel admin load test (k6)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://ci.supabase.test' }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'ci-anon-key' }}
+      NEXT_PUBLIC_PANEL_ADMIN_DEMO: "true"
 
     steps:
       - name: Checkout

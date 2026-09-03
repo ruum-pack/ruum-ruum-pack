@@ -83,8 +83,8 @@ function IconoPortapapeles({ className = "size-7" }: { className?: string }) {
       <rect x="7" y="5" width="18" height="23" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
       <path d="M12 5.5V4h8v1.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       <path d="M11 11h10M11 15h10M11 19h5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <circle cx="23.5" cy="22.5" r="6" fill="#00AEB8" stroke="white" strokeWidth="1.5" />
-      <path d="m20.8 22.5 1.8 1.8 3.4-3.8" stroke="white" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="23.5" cy="22.5" r="6" fill="var(--user-color-brand)" stroke="var(--user-color-surface)" strokeWidth="1.5" />
+      <path d="m20.8 22.5 1.8 1.8 3.4-3.8" stroke="var(--user-color-surface)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -160,9 +160,9 @@ function ListaFiltrada({ traslados, filtro }: { traslados: PasaporteRow[]; filtr
 
   if (traslados.length === 0) {
     return (
-      <div className="rounded-2xl border border-[#E6F0FF] bg-white px-4 py-5 text-center shadow-[0_4px_18px_rgba(13,43,94,0.06)]">
-        <p className="font-display text-sm font-bold text-[#0D2B5E]">{titulo}</p>
-        <p className="mt-1 font-body text-xs text-[#506887]">{descripcion}</p>
+      <div className="user-v2-card px-4 py-5 text-center">
+        <p className="user-v2-heading-3">{titulo}</p>
+        <p className="user-v2-caption user-v2-muted mt-1">{descripcion}</p>
       </div>
     );
   }
@@ -173,13 +173,13 @@ function ListaFiltrada({ traslados, filtro }: { traslados: PasaporteRow[]; filtr
         <li key={traslado.traslado_id ?? `${traslado.creado_en}-${traslado.estado}`}>
           <Link
             href={traslado.traslado_id ? `/traslados/${traslado.traslado_id}` : "/mis-viajes"}
-            className="flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-[#E6F0FF] bg-white px-4 py-3 shadow-[0_4px_18px_rgba(13,43,94,0.06)] hover:border-[#00AEB8]"
+            className="user-v2-card user-v2-card-interactive flex min-h-14 items-center justify-between gap-3 px-4 py-3"
           >
             <span className="min-w-0">
-              <span className="block truncate font-display text-sm font-bold text-[#0D2B5E]">{tarjetaVehiculo(traslado)}</span>
-              <span className="mt-0.5 block font-body text-[11px] text-[#506887]">{fechaCorta(traslado.creado_en)}</span>
+              <span className="user-v2-card-title block truncate">{tarjetaVehiculo(traslado)}</span>
+              <span className="user-v2-caption user-v2-muted mt-0.5 block">{fechaCorta(traslado.creado_en)}</span>
             </span>
-            <IconoChevron className="size-4 shrink-0 text-[#00AEB8]" />
+            <IconoChevron className="size-4 shrink-0 text-[var(--user-color-brand-dark)]" />
           </Link>
         </li>
       ))}
@@ -194,39 +194,33 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
   const nombre = primerNombre(usuario?.nombre);
 
   return (
-    <div className="mx-auto w-full max-w-[430px] space-y-5 pb-28 text-[#0D2B5E]">
-      <section id="greetingBlock" aria-labelledby="saludo-usuario" className="pt-2">
-        <h1 id="saludo-usuario" className="font-display text-[27px] font-extrabold leading-tight tracking-[-0.03em] text-[#0D2B5E]">
-          Hola, {nombre}
-        </h1>
-        <p className="mt-1 font-body text-[13px] leading-5 text-[#29466F]">Gestiona tus traslados fácilmente.</p>
+    <div className="user-v2-screen">
+      <section id="greetingBlock" aria-labelledby="saludo-usuario">
+        <h1 id="saludo-usuario" className="user-v2-heading-1">Hola, {nombre}</h1>
+        <p className="user-v2-body user-v2-muted mt-1">Gestiona tus traslados fácilmente.</p>
       </section>
 
-      <Link
-        id="requestTransferButton"
-        href="/traslados/nuevo"
-        className="group flex min-h-[57px] items-center justify-between rounded-[12px] bg-[linear-gradient(100deg,#00C2B8_0%,#1677FF_100%)] px-4 text-white shadow-[0_8px_18px_rgba(22,119,255,0.2)] hover:brightness-[1.03] active:scale-[0.99]"
-      >
+      <Link id="requestTransferButton" href="/traslados/nuevo" className="user-v2-primary-button group flex items-center justify-between px-4">
         <span className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-full bg-white text-[#0D6EAA] shadow-sm">
+          <span className="flex size-10 items-center justify-center rounded-full bg-white text-[var(--user-color-primary)]">
             <IconoCarro className="size-6" />
           </span>
-          <span className="font-display text-[15px] font-bold">Solicitar traslado</span>
+          <span>Solicitar traslado</span>
         </span>
         <IconoChevron className="size-6 transition-transform group-hover:translate-x-0.5" />
       </Link>
 
-      <section id="activeTransferCard" aria-labelledby="traslado-activo" className="rounded-[17px] border border-[#E6F0FF] bg-white p-5 shadow-[0_5px_20px_rgba(13,43,94,0.08)]">
+      <section id="activeTransferCard" aria-labelledby="traslado-activo" className="user-v2-card p-5">
         <div className="flex items-center gap-4">
-          <span className="flex size-[58px] shrink-0 items-center justify-center rounded-full bg-[#E8FAFA] text-[#0D2B5E]">
+          <span className="user-v2-icon-well">
             <IconoPortapapeles className="size-8" />
           </span>
           <div className="min-w-0">
-            <h2 id="traslado-activo" className="font-display text-[15px] font-extrabold text-[#0D2B5E]">Su traslado activo</h2>
+            <h2 id="traslado-activo" className="user-v2-card-title">Su traslado activo</h2>
             {viajeActivo ? (
-              <p className="mt-1 truncate font-body text-[13px] text-[#29466F]">{tarjetaVehiculo(viajeActivo)}</p>
+              <p className="user-v2-caption user-v2-muted mt-1 truncate">{tarjetaVehiculo(viajeActivo)}</p>
             ) : (
-              <p className="mt-1 font-body text-[13px] text-[#29466F]">No tiene traslados activos.</p>
+              <p className="user-v2-caption user-v2-muted mt-1">No tiene traslados activos.</p>
             )}
           </div>
         </div>
@@ -234,17 +228,13 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
         {viajeActivo ? (
           <Link
             href={viajeActivo.traslado_id ? `/traslados/${viajeActivo.traslado_id}` : "/mis-viajes"}
-            className="group mt-5 flex min-h-10 items-center justify-between rounded-[9px] border border-[#00AEB8] px-3.5 font-display text-xs font-bold text-[#0099A5] hover:bg-[#E8FAFA]"
+            className="user-v2-secondary-button group mt-5 flex items-center justify-between px-3.5"
           >
             <span>{viajeActivo.vehiculo_tipo ? ETIQUETA_TIPO_VEHICULO[viajeActivo.vehiculo_tipo] ?? "Ver seguimiento" : "Ver seguimiento"}</span>
             <IconoChevron className="size-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
         ) : (
-          <Link
-            id="upcomingTransfersButton"
-            href="/mis-viajes?tab=programados"
-            className="group mt-5 flex min-h-10 items-center justify-between rounded-[9px] border border-[#00AEB8] px-3.5 font-display text-xs font-bold text-[#0099A5] hover:bg-[#E8FAFA]"
-          >
+          <Link id="upcomingTransfersButton" href="/mis-viajes?tab=programados" className="user-v2-secondary-button group mt-5 flex items-center justify-between px-3.5">
             <span>Explorar próximos traslados</span>
             <IconoChevron className="size-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
@@ -252,8 +242,8 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
       </section>
 
       <section id="transferTabs" aria-labelledby="mis-traslados">
-        <h2 id="mis-traslados" className="font-display text-[17px] font-extrabold text-[#0D2B5E]">Mis traslados</h2>
-        <div className="mt-2.5 grid grid-cols-3 gap-2" role="tablist" aria-label="Filtrar mis traslados">
+        <h2 id="mis-traslados" className="user-v2-heading-2">Mis traslados</h2>
+        <div className="mt-3 grid grid-cols-3 gap-2" role="tablist" aria-label="Filtrar mis traslados">
           {FILTROS.map(({ id, etiqueta, Icono }) => {
             const activo = filtro === id;
             return (
@@ -264,11 +254,7 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
                 aria-selected={activo}
                 aria-controls="transfer-filter-panel"
                 onClick={() => setFiltro(id)}
-                className={`flex min-h-10 items-center justify-center gap-1.5 rounded-[10px] px-2 font-body text-[11px] font-semibold transition ${
-                  activo
-                    ? "bg-[#00AEB8] text-white shadow-[0_4px_10px_rgba(0,174,184,0.18)]"
-                    : "bg-[#EFF4FA] text-[#29466F] hover:bg-[#E5EDF7]"
-                }`}
+                className="user-v2-tab flex items-center justify-center gap-1.5"
               >
                 <Icono className="size-4" />
                 {etiqueta}
@@ -282,36 +268,28 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
       </section>
 
       <section id="quickActions" aria-labelledby="acciones-rapidas">
-        <h2 id="acciones-rapidas" className="font-display text-[17px] font-extrabold text-[#0D2B5E]">Acciones rápidas</h2>
-        <div className="mt-2.5 grid grid-cols-2 gap-3">
-          <Link
-            id="quickActionPreguntaDigital"
-            href="/soporte"
-            className="group flex min-h-[137px] flex-col rounded-[16px] border border-[#E6F0FF] bg-white p-3.5 shadow-[0_5px_18px_rgba(13,43,94,0.07)] hover:-translate-y-0.5 hover:border-[#00AEB8]"
-          >
-            <span className="flex size-11 items-center justify-center rounded-full bg-[#E8FAFA] text-[#00AEB8]">
+        <h2 id="acciones-rapidas" className="user-v2-heading-2">Acciones rápidas</h2>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <Link id="quickActionPreguntaDigital" href="/soporte" className="user-v2-card user-v2-card-interactive group flex min-h-[144px] flex-col p-4">
+            <span className="user-v2-icon-well size-11 text-[var(--user-color-brand-dark)]">
               <IconoPregunta className="size-7" />
             </span>
             <span className="mt-auto block">
-              <span className="block font-display text-[12px] font-extrabold text-[#0D2B5E]">Pregunta Digital</span>
-              <span className="mt-1 block max-w-[145px] font-body text-[11px] leading-[1.35] text-[#29466F]">Resuelve tus dudas sobre el traslado.</span>
+              <span className="user-v2-card-title block">Pregunta Digital</span>
+              <span className="user-v2-caption user-v2-muted mt-1 block">Resuelve tus dudas sobre el traslado.</span>
             </span>
-            <span className="mt-2 flex justify-end text-[#00AEB8] transition-transform group-hover:translate-x-0.5"><IconoChevron className="size-4" /></span>
+            <span className="mt-2 flex justify-end text-[var(--user-color-brand-dark)] transition-transform group-hover:translate-x-0.5"><IconoChevron className="size-4" /></span>
           </Link>
 
-          <Link
-            id="quickActionHelpCenter"
-            href="/soporte"
-            className="group flex min-h-[137px] flex-col rounded-[16px] border border-[#E6F0FF] bg-white p-3.5 shadow-[0_5px_18px_rgba(13,43,94,0.07)] hover:-translate-y-0.5 hover:border-[#00AEB8]"
-          >
-            <span className="flex size-11 items-center justify-center rounded-full bg-[#E8FAFA] text-[#0D2B5E]">
+          <Link id="quickActionHelpCenter" href="/soporte" className="user-v2-card user-v2-card-interactive group flex min-h-[144px] flex-col p-4">
+            <span className="user-v2-icon-well size-11">
               <IconoAyuda className="size-7" />
             </span>
             <span className="mt-auto block">
-              <span className="block font-display text-[12px] font-extrabold text-[#0D2B5E]">Centro de ayuda</span>
-              <span className="mt-1 block max-w-[145px] font-body text-[11px] leading-[1.35] text-[#29466F]">Encuentra respuestas y asistencia rápida.</span>
+              <span className="user-v2-card-title block">Centro de ayuda</span>
+              <span className="user-v2-caption user-v2-muted mt-1 block">Encuentra respuestas y asistencia rápida.</span>
             </span>
-            <span className="mt-2 flex justify-end text-[#00AEB8] transition-transform group-hover:translate-x-0.5"><IconoChevron className="size-4" /></span>
+            <span className="mt-2 flex justify-end text-[var(--user-color-brand-dark)] transition-transform group-hover:translate-x-0.5"><IconoChevron className="size-4" /></span>
           </Link>
         </div>
       </section>

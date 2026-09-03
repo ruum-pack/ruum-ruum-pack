@@ -1,6 +1,7 @@
 name: Conductor SQL regression
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - "apps/app-conductor/**"
@@ -26,6 +27,9 @@ on:
       - "pnpm-lock.yaml"
       - ".github/workflows/conductor-sql-regression.yml"
 
+permissions:
+  contents: read
+
 jobs:
   conductor-sql-regression:
     name: SQL conductor operation guards
@@ -47,6 +51,9 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1

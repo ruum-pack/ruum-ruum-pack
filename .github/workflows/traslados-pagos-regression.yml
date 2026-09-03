@@ -1,6 +1,7 @@
 name: Traslados y pagos regression
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - "supabase/migrations/**"
@@ -40,6 +41,9 @@ on:
       - "deno.lock"
       - ".github/workflows/traslados-pagos-regression.yml"
 
+permissions:
+  contents: read
+
 jobs:
   sql-money-flow:
     name: SQL traslado money flow
@@ -61,6 +65,9 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1

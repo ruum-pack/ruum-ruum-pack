@@ -1,6 +1,7 @@
 name: Supabase types
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - "supabase/**"
@@ -17,6 +18,9 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/supabase-types.yml"
+
+permissions:
+  contents: read
 
 jobs:
   check-generated-types:
@@ -44,6 +48,9 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Start local Supabase
         run: pnpm db:start

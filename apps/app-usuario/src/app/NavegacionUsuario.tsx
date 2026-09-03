@@ -8,10 +8,10 @@ type VarianteNavegacion = "claro" | "oscuro";
 
 function IconoLogoUsuario() {
   return (
-    <svg className="h-10 w-[56px] shrink-0" viewBox="0 0 76 52" fill="none" role="img" aria-label="Logotipo Ruum Ruum">
-      <text x="3" y="38" fill="#0D2B5E" fontFamily="Montserrat, Arial, sans-serif" fontSize="39" fontWeight="800" letterSpacing="-6">RR</text>
-      <path d="M5 44C16 24 26 45 37 26c5-8 11-8 18-4" stroke="#00AEB8" strokeWidth="4" strokeLinecap="round" />
-      <circle cx="5" cy="44" r="2.5" fill="#00AEB8" />
+    <svg className="user-v2-logo-mark" viewBox="0 0 76 52" fill="none" role="img" aria-label="Logotipo Ruum Ruum">
+      <text x="3" y="38" fill="var(--user-color-primary)" fontFamily="Inter, Arial, sans-serif" fontSize="39" fontWeight="800" letterSpacing="-6">RR</text>
+      <path d="M5 44C16 24 26 45 37 26c5-8 11-8 18-4" stroke="var(--user-color-brand)" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="5" cy="44" r="2.5" fill="var(--user-color-brand)" />
     </svg>
   );
 }
@@ -102,18 +102,18 @@ export function NavegacionUsuario({ variante = "oscuro" }: { variante?: Variante
         id="homeHeader"
         role="banner"
         className={esClaro
-          ? "sticky top-0 z-30 w-full border-b border-[#E6F0FF] bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur-md"
+          ? "user-v2-shell-header"
           : "sticky top-0 z-30 w-full border-b border-[#1C2A3E]/40 bg-[#070D18]/90 pt-[env(safe-area-inset-top)] backdrop-blur-md"}
       >
-        <div className="mx-auto flex w-full max-w-[430px] items-center justify-between px-4 py-3">
+        <div className={esClaro ? "user-v2-shell-inner" : "mx-auto flex w-full max-w-[430px] items-center justify-between px-4 py-3"}>
           <Link href="/" className="group flex select-none items-center gap-2.5" aria-label="Ir al inicio de Ruum Ruum">
             {esClaro ? <IconoLogoUsuario /> : <IconoLogoOscuro />}
             <span className="flex flex-col leading-tight">
               <span className="flex items-baseline gap-1">
-                <span className={`font-display text-[17px] font-extrabold tracking-tight ${esClaro ? "text-[#0D2B5E]" : "text-white"}`}>Ruum</span>
-                <span className={`font-display text-[17px] font-extrabold tracking-tight ${esClaro ? "text-[#00AEB8]" : "text-[#FFC400]"}`}>Ruum</span>
+                <span className={esClaro ? "user-v2-logo-name user-v2-logo-name--primary" : "font-display text-[17px] font-extrabold tracking-tight text-white"}>Ruum</span>
+                <span className={esClaro ? "user-v2-logo-name user-v2-logo-name--accent" : "font-display text-[17px] font-extrabold tracking-tight text-[#FFC400]"}>Ruum</span>
               </span>
-              <span className={`font-body text-[10px] font-medium ${esClaro ? "text-[#506887]" : "text-[#8E9CAE]"}`}>
+              <span className={esClaro ? "user-v2-logo-tagline" : "font-body text-[10px] font-medium text-[#8E9CAE]"}>
                 {esClaro ? "Tu camino, en orden." : "Usuario"}
               </span>
             </span>
@@ -122,14 +122,14 @@ export function NavegacionUsuario({ variante = "oscuro" }: { variante?: Variante
           <div className="flex items-center gap-2">
             <Link
               href="/soporte"
-              className={`relative flex size-10 items-center justify-center rounded-full ${esClaro ? "text-[#0D2B5E] hover:bg-[#EFF4FA]" : "text-slate-200 hover:text-white"}`}
+              className={esClaro ? "user-v2-shell-icon-action relative" : "relative flex size-10 items-center justify-center rounded-full text-slate-200 hover:text-white"}
               aria-label="Notificaciones"
             >
               <IconoCampana />
-              <span className={`absolute right-[7px] top-[6px] size-2 rounded-full border-2 border-white ${esClaro ? "bg-[#00AEB8]" : "bg-[#FFC400]"}`} />
+              <span className={esClaro ? "user-v2-shell-notification-dot" : "absolute right-[7px] top-[6px] size-2 rounded-full border-2 border-white bg-[#FFC400]"} />
             </Link>
             {esClaro ? (
-              <BotonCerrarSesion compact className="flex min-h-10 items-center gap-1.5 rounded-full border border-[#BDECEF] px-2.5 font-body text-[11px] font-semibold text-[#0D2B5E] hover:bg-[#E8FAFA]" />
+              <BotonCerrarSesion compact className="user-v2-shell-logout" />
             ) : (
               <Link href="/cuenta" className="flex size-9 items-center justify-center rounded-full border border-slate-600/80 text-slate-300 hover:border-[#FFC400] hover:text-white" aria-label="Mi cuenta">
                 <IconoCuenta className="size-5" />
@@ -143,10 +143,10 @@ export function NavegacionUsuario({ variante = "oscuro" }: { variante?: Variante
         id="bottomNavigation"
         aria-label="Navegación principal"
         className={esClaro
-          ? "fixed inset-x-0 bottom-0 z-40 border-t border-[#E6F0FF] bg-white/96 pb-[max(8px,env(safe-area-inset-bottom))] pt-1 shadow-[0_-5px_18px_rgba(13,43,94,0.08)] backdrop-blur-md"
+          ? "user-v2-shell-nav"
           : "fixed inset-x-0 bottom-0 z-40 border-t border-[#1C2A3E]/60 bg-[#070D18]/95 pb-[max(10px,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_30px_rgba(0,0,0,0.6)] backdrop-blur-md"}
       >
-        <div className="mx-auto w-full max-w-[430px] px-2">
+        <div className={esClaro ? "user-v2-shell-nav-inner" : "mx-auto w-full max-w-[430px] px-2"}>
           <div className="grid grid-cols-4 items-center">
             {DESTINOS.map((destino) => {
               const activo = estaActivo(pathname, destino.href);
@@ -155,13 +155,12 @@ export function NavegacionUsuario({ variante = "oscuro" }: { variante?: Variante
                   key={destino.href}
                   href={destino.href}
                   aria-current={activo ? "page" : undefined}
-                  className="group relative flex min-h-[53px] flex-col items-center justify-center gap-1 py-1.5 select-none"
+                  className={esClaro ? "user-v2-nav-link group select-none" : "group relative flex min-h-[53px] flex-col items-center justify-center gap-1 py-1.5 select-none"}
                 >
-                  {activo && (
-                    <span className={`absolute bottom-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full ${esClaro ? "bg-[#00AEB8]" : "bg-[#FFC400]"}`} />
-                  )}
-                  <destino.Icono className={`size-[22px] transition-colors ${activo ? (esClaro ? "text-[#00AEB8]" : "text-[#FFC400]") : (esClaro ? "text-[#0D2B5E]" : "text-[#8E9CAE]")}`} />
-                  <span className={`font-body text-[10px] leading-none tracking-tight transition-colors ${activo ? (esClaro ? "font-bold text-[#00AEB8]" : "font-bold text-[#FFC400]") : (esClaro ? "font-medium text-[#0D2B5E]" : "font-medium text-[#8E9CAE]")}`}>
+                  {esClaro && <span className={`user-v2-nav-indicator ${activo ? "is-active" : ""}`} aria-hidden="true" />}
+                  {!esClaro && activo && <span className="absolute bottom-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-[#FFC400]" />}
+                  <destino.Icono className={esClaro ? "size-[22px] transition-colors" : `size-[22px] transition-colors ${activo ? "text-[#FFC400]" : "text-[#8E9CAE]"}`} />
+                  <span className={esClaro ? "transition-colors" : `font-body text-[10px] leading-none tracking-tight transition-colors ${activo ? "font-bold text-[#FFC400]" : "font-medium text-[#8E9CAE]"}`}>
                     {destino.etiqueta}
                   </span>
                 </Link>
