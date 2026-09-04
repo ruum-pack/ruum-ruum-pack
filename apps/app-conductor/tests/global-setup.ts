@@ -81,61 +81,34 @@ async function ensureAuthUser(admin: AdminClient, email: string, password: strin
 }
 
 async function ensureConductor(admin: AdminClient, authUserId: string) {
-  // Limpiar estado previo que bloquea la creación directa de conductores
-  const { count: cntSolBefore } = await admin.from("solicitudes_conductor").select("id", { count: "exact", head: true }).eq("auth_user_id", authUserId).then(r => r as { count: number | null }).catch(() => ({ count: 0 } as never));
-  console.log(`[E2E] solicitudes_conductor para ${authUserId} antes: ${cntSolBefore}`);
-  // Primero borrar historial que referencia la solicitud (FK restrict)
-  const { data: sols } = await admin.from("solicitudes_conductor").select("id").eq("auth_user_id", authUserId).then(r => r as { data: { id: string }[] | null }).catch(() => ({ data: [] } as never));
-  for (const s of sols ?? []) {
-    const { error: histErr } = await admin.from("historial_estados_solicitud_conductor").delete().eq("solicitud_id", s.id);
-    if (histErr) console.log(`[E2E] delete historial for ${s.id} error:`, histErr.message);
-  }
-  const delSol = await admin.from("solicitudes_conductor").delete().eq("auth_user_id", authUserId);
-  console.log(`[E2E] delete solicitudes_conductor error:`, (delSol as { error?: { message: string } })?.error?.message ?? "ok");
-  const { count: cntSolAfter } = await admin.from("solicitudes_conductor").select("id", { count: "exact", head: true }).eq("auth_user_id", authUserId).then(r => r as { count: number | null }).catch(() => ({ count: 0 } as never));
-  console.log(`[E2E] solicitudes_conductor después: ${cntSolAfter}`);
-  // Si aún quedan solicitudes, intentar bypass via RPC set_config no funciona entre requests — usar borrado directo con service_role
-  // y si falla, forzar via RPC personalizado si existe
-  if (cntSolAfter && cntSolAfter > 0) {
-    console.log(`[E2E] solicitues aún presentes, intentando limpieza forzada`);
-    // Intentar borrar con limit y verificar
-    await admin.from("historial_estados_solicitud_conductor").delete().in("solicitud_id", (sols ?? []).map(s => s.id)).then(() => {}, () => {});
-    await admin.from("solicitudes_conductor").delete().eq("auth_user_id", authUserId).then(() => {}, () => {});
-  }
-  await admin.from("conductores").delete().eq("id", E2E_CONDUCTOR_ID).then(() => {}).catch(() => {});
-  // Si existe un conductor con este auth_user_id pero con ID distinto al E2E_CONDUCTOR_ID, eliminarlo para evitar duplicado auth
-  const { data: porAuth } = await admin.from("conductores").select("id").eq("auth_user_id", authUserId).maybeSingle().then(r => r as { data: { id: string } | null }).catch(() => ({ data: null } as never));
-  if (porAuth && porAuth.id !== E2E_CONDUCTOR_ID) {
-    await admin.from("conductores").delete().eq("id", porAuth.id).then(() => {}).catch(() => {});
-  }
-
-  const { data: existing, error: selectError } = await admin
-    .from("conductores")
-    .select("id, estado_expediente")
-    .eq("auth_user_id", authUserId)
-    .maybeSingle();
-  if (selectError) throw selectError;
-
-  const conductorId = existing?.id ?? E2E_CONDUCTOR_ID;
-  if (!existing) {
-    // Bypass trigger validar_auth_conductor_sin_solicitud que bloquea si hay solicitudes_conductor para este auth_user_id
-    await admin.rpc("set_config" as never, { key: "ruum.aprobando_solicitud", value: "si", is_local: true } as never).then(() => {}, () => {});
-    try {
-      // Intentar via SQL directo con set_config
-      await admin.from("conductores").select("id").limit(0).then(() => {});
-    } catch {}
-    await upsert(admin, "conductores", {
-      id: conductorId,
-      auth_user_id: authUserId,
+  // NOTA: no se debe intentar borrar `solicitudes_conductor` ni su
+  // `historial_estados_solicitud_conductor` asociado: el historial es
+  // intencionalmente inmutable (trigger `bloquear_mutacion_historial_solicitud`)
+  // y `solicitudes_conductor` está protegida por esa FK. Si una corrida
+  // anterior dejó una solicitud huérfana para este auth_user_id, el trigger
+  // `validar_auth_conductor_sin_solicitud` seguirá viéndola sin importar qué
+  // se intente borrar aquí.
+  //
+  // En su lugar, `preparar_conductor_e2e` crea (o reutiliza) el conductor
+  // fixture dentro de una sola transacción de base de datos, levantando la
+  // bandera `ruum.aprobando_solicitud` justo antes del insert y bajándola
+  // después — igual que hace `aprobar_solicitud_conductor_admin` — para que
+  // el bypass del trigger realmente aplique. Antes, esa bandera se intentaba
+  // fijar con una llamada RPC separada, en su propia transacción de
+  // PostgREST, así que nunca sobrevivía hasta el upsert siguiente.
+  const { data: conductorId, error: prepararError } = await admin.rpc("preparar_conductor_e2e", {
+    p_auth_user_id: authUserId,
+    p_conductor_id: E2E_CONDUCTOR_ID,
+    p_datos: {
       nombre: "Conductor E2E Ruum",
       telefono: "+525510000201",
       curp: "EERC900101HDFRRL09",
       licencia_numero: "E2E-LIC-0201",
       licencia_tipo: "B",
       licencia_vigencia: "2030-12-31"
-    });
-    await admin.rpc("set_config" as never, { key: "ruum.aprobando_solicitud", value: "", is_local: true } as never).then(() => {}, () => {});
-  }
+    }
+  });
+  if (prepararError) throw new Error(`No se pudo preparar conductores: ${prepararError.message}`);
 
   const { error: updateError } = await admin
     .from("conductores")
