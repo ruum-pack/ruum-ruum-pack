@@ -615,9 +615,7 @@ textarea::placeholder {
 .user-v2-heading-3,
 .user-v2-card-title,
 .user-v2-button,
-.user-v2-tab,
-.user-v2-logo-name,
-.user-v2-logo-tagline {
+.user-v2-tab {
   font-family: var(--font-body);
 }
 
@@ -950,30 +948,12 @@ textarea::placeholder {
   padding: 10px 16px;
 }
 
-.user-v2-logo-mark {
-  width: 56px;
-  height: 40px;
-  flex-shrink: 0;
-}
-
-.user-v2-logo-name {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.user-v2-logo-name--primary {
-  color: var(--user-color-primary);
-}
-
-.user-v2-logo-name--accent {
-  color: var(--user-color-brand-dark);
-}
-
-.user-v2-logo-tagline {
-  color: var(--user-color-muted);
-  font-size: 12px;
-  font-weight: 500;
+.user-v2-header-logo {
+  display: block;
+  width: min(52vw, 220px);
+  height: 52px;
+  flex-shrink: 1;
+  object-fit: contain;
 }
 
 .user-v2-shell-icon-action,

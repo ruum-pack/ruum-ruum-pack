@@ -1,19 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 type VarianteNavegacion = "claro" | "oscuro";
-
-function IconoLogoUsuario() {
-  return (
-    <svg className="user-v2-logo-mark" viewBox="0 0 76 52" fill="none" role="img" aria-label="Logotipo Ruum Ruum">
-      <text x="3" y="38" fill="var(--user-color-primary)" fontFamily="Inter, Arial, sans-serif" fontSize="39" fontWeight="800" letterSpacing="-6">RR</text>
-      <path d="M5 44C16 24 26 45 37 26c5-8 11-8 18-4" stroke="var(--user-color-brand)" strokeWidth="4" strokeLinecap="round" />
-      <circle cx="5" cy="44" r="2.5" fill="var(--user-color-brand)" />
-    </svg>
-  );
-}
 
 function IconoLogoOscuro() {
   return (
@@ -106,16 +97,27 @@ export function NavegacionUsuario({ variante = "oscuro" }: { variante?: Variante
       >
         <div className={esClaro ? "user-v2-shell-inner" : "mx-auto flex w-full max-w-[430px] items-center justify-between px-4 py-3"}>
           <Link href="/" className="group flex select-none items-center gap-2.5" aria-label="Ir al inicio de Ruum Ruum">
-            {esClaro ? <IconoLogoUsuario /> : <IconoLogoOscuro />}
-            <span className="flex flex-col leading-tight">
-              <span className="flex items-baseline gap-1">
-                <span className={esClaro ? "user-v2-logo-name user-v2-logo-name--primary" : "font-display text-[17px] font-extrabold tracking-tight text-white"}>Ruum</span>
-                <span className={esClaro ? "user-v2-logo-name user-v2-logo-name--accent" : "font-display text-[17px] font-extrabold tracking-tight text-[#FFC400]"}>Ruum</span>
-              </span>
-              <span className={esClaro ? "user-v2-logo-tagline" : "font-body text-[10px] font-medium text-[#8E9CAE]"}>
-                {esClaro ? "Tu camino, en orden." : "Usuario"}
-              </span>
-            </span>
+            {esClaro ? (
+              <Image
+                src="/imagenes/logo-ruum-ruum-encabezado.png"
+                alt="Ruum Ruum"
+                width={1820}
+                height={500}
+                priority
+                className="user-v2-header-logo"
+              />
+            ) : (
+              <>
+                <IconoLogoOscuro />
+                <span className="flex flex-col leading-tight">
+                  <span className="flex items-baseline gap-1">
+                    <span className="font-display text-[17px] font-extrabold tracking-tight text-white">Ruum</span>
+                    <span className="font-display text-[17px] font-extrabold tracking-tight text-[#FFC400]">Ruum</span>
+                  </span>
+                  <span className="font-body text-[10px] font-medium text-[#8E9CAE]">Usuario</span>
+                </span>
+              </>
+            )}
           </Link>
 
           <div className="flex items-center gap-2">
