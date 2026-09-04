@@ -4,7 +4,10 @@
  * borrador NO sensible del wizard de traslados/nuevo, con vigencia de 24h,
  * para retomarlo si la app se cierra a medio llenar. Ninguna otra pantalla
  * de app-usuario tenía este patrón todavía — el wizard de traslado es el
- * único formulario largo (2 pasos, ~25 campos) sin persistencia.
+ * único formulario largo (4 pasos, ~30 campos) sin persistencia.
+ *
+ * Fuente de verdad del número de pasos: src/app/traslados/nuevo/NuevoTrasladoForm.tsx → PASOS.length.
+ * No importar PASOS aquí para evitar dependencia circular; duplicar PASO_MAXIMO = 3 (= PASOS.length - 1).
  *
  * Excluido a propósito, por lo mismo que excluye borrador-registro.ts:
  *  - Domicilio preciso (calle, número, lat/lng): son domicilio real de
@@ -22,6 +25,8 @@ const CLAVE_ACTUAL = "ruumruum.traslados-nuevo.borrador.v2";
 const VERSION_ESQUEMA = 2;
 const VIGENCIA_MS = 24 * 60 * 60 * 1000;
 const LONGITUD_MAXIMA_CAMPO = 180;
+// Duplicado intencional de NuevoTrasladoForm.tsx → const PASOS = [...] as const (4 pasos). Ver comentario de cabecera.
+export const PASO_MAXIMO = 3; // = PASOS.length - 1
 
 export interface BorradorTrasladoLocal {
   versionEsquema: 2;
@@ -106,7 +111,7 @@ export function leerBorradorTrasladoLocal(): BorradorTrasladoLocal | null {
         : crypto.randomUUID(),
       guardadoEn: dato.guardadoEn,
       expiraEn: dato.expiraEn,
-      paso: typeof dato.paso === "number" && Number.isInteger(dato.paso) && dato.paso >= 0 && dato.paso <= 1 ? dato.paso : 0,
+      paso: typeof dato.paso === "number" && Number.isInteger(dato.paso) && dato.paso >= 0 && dato.paso <= PASO_MAXIMO ? dato.paso : 0,
       tipo: "", transmision: "", marca: "", modelo: "", anio: "", color: "", condicion: "", estadoGeneral: "",
       tieneTarjeta: false, tieneVerificacion: false, tienePlacas: false, puedeCircular: false,
       origenCodigoPostal: "", origenEstado: "", origenCiudad: "", origenColonia: "",

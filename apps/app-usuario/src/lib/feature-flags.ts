@@ -28,6 +28,29 @@ function dormir(ms: number): Promise<void> {
 export function clearFeatureFlagCache() {
   flagCache.clear();
   inFlight.clear();
+  try {
+    bc?.postMessage({ type: "clear" });
+  } catch {}
+}
+
+// R5 cross-tab sync: BroadcastChannel + visibilitychange fallback (menor esfuerzo, cubre flicker entre pestañas)
+let bc: BroadcastChannel | null = null;
+try {
+  if (typeof BroadcastChannel !== "undefined") {
+    bc = new BroadcastChannel("ruum:feature-flags");
+    bc.onmessage = (ev: MessageEvent) => {
+      if ((ev.data as { type?: string })?.type === "clear") {
+        flagCache.clear();
+        inFlight.clear();
+      }
+    };
+  }
+} catch {}
+
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") clearFeatureFlagCache();
+  });
 }
 
 async function fetchFlagConRetry(key: string, attempt = 0): Promise<{ data: FeatureFlagData | null; error: unknown | null }> {

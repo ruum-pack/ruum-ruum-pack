@@ -24,6 +24,7 @@
     "@stripe/react-stripe-js": "^6.6.0",
     "@stripe/stripe-js": "^9.8.0",
     "@supabase/supabase-js": "^2.47.0",
+    "@upstash/redis": "^1.38.3",
     "next": "15.5.23",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

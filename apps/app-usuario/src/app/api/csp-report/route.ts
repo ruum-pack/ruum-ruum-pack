@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-// R14: hardening CSP report endpoint — límite 5k, rate-limit por IP, forward a observabilidad/Sentry
-const MAX_BODY = 5 * 1024;
-const RATE_WINDOW_MS = 60_000;
-const MAX_PER_WINDOW = 10;
-const hits = new Map<string, { count: number; resetAt: number }>();
+import { MAX_BODY, rateLimit } from "../../../lib/csp-rate-limit";
 
 function ipDeRequest(req: NextRequest): string {
   const xf = req.headers.get("x-forwarded-for");
@@ -12,31 +7,14 @@ function ipDeRequest(req: NextRequest): string {
   return req.headers.get("x-real-ip")?.trim() || (req as unknown as { ip?: string }).ip || "unknown";
 }
 
-function rateLimit(ip: string): { allowed: boolean; retryAfterSec?: number } {
-  const now = Date.now();
-  const entry = hits.get(ip);
-  if (!entry || now > entry.resetAt) {
-    hits.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return { allowed: true };
-  }
-  if (entry.count >= MAX_PER_WINDOW) {
-    const retryAfterSec = Math.ceil((entry.resetAt - now) / 1000);
-    return { allowed: false, retryAfterSec };
-  }
-  entry.count += 1;
-  return { allowed: true };
-}
-
 function sanitizarCspBody(raw: string): string {
-  // Truncar y ocultar posibles secretos/PII básicos sin romper JSON
   const truncado = raw.slice(0, MAX_BODY);
-  // Evitar log de tokens largos si aparecen en report
   return truncado.replace(/eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}[a-zA-Z0-9._-]*/g, "[REDACTED_JWT]");
 }
 
 export async function POST(request: NextRequest) {
   const ip = ipDeRequest(request);
-  const rl = rateLimit(ip);
+  const rl = await rateLimit(ip);
   if (!rl.allowed) {
     return new NextResponse(null, {
       status: 429,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Aviso, Button } from "@ruum/ui";
@@ -109,10 +109,20 @@ async function calcularRutaConRetry(
   throw ultimoError;
 }
 
+export const MAX_INTENTOS_MASIVO = 20;
+
 export function CargaMasivaForm() {
   const router = useRouter();
   const abortEnriquecimientoRef = useRef<AbortController | null>(null);
   const abortCargaRef = useRef<AbortController | null>(null);
+
+  // R6 cleanup on-unmount: si el usuario navega fuera mientras hay polling/enriquecimiento, abortar
+  useEffect(() => {
+    return () => {
+      abortEnriquecimientoRef.current?.abort();
+      abortCargaRef.current?.abort();
+    };
+  }, []);
   const [paso, setPaso] = useState<1 | 2 | 3 | 4>(1);
   const [archivo, setArchivo] = useState<File | null>(null);
   const [analizando, setAnalizando] = useState(false);
@@ -515,7 +525,7 @@ export function CargaMasivaForm() {
           </div>
 
           {analizando && (
-            <div className="p-4 rounded-xl border border-[#FFC400]/30 bg-[#FFC400]/5 space-y-2">
+            <div className="p-4 rounded-xl border border-[#FFC400]/30 bg-[#FFC400]/5 space-y-3">
               <div className="flex items-center justify-between text-xs text-[#FFC400] font-bold">
                 <span>Analizando archivo y calculando rutas...</span>
                 {progresoGeocodificacion && (
@@ -533,6 +543,18 @@ export function CargaMasivaForm() {
                       : "25%"
                   }}
                 />
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={() => {
+                    abortEnriquecimientoRef.current?.abort();
+                    setErrorGeneral("Carga cancelada por el usuario.");
+                  }}
+                >
+                  Cancelar carga
+                </Button>
               </div>
             </div>
           )}
@@ -709,9 +731,23 @@ export function CargaMasivaForm() {
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t border-[#1C2A3E]">
-            <Button variant="secondary" onClick={() => setPaso(2)} type="button" disabled={enviando}>
-              Volver a la tabla
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setPaso(2)} type="button" disabled={enviando}>
+                Volver a la tabla
+              </Button>
+              {enviando && (
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={() => {
+                    abortCargaRef.current?.abort();
+                    setErrorGeneral("Carga cancelada por el usuario.");
+                  }}
+                >
+                  Cancelar carga
+                </Button>
+              )}
+            </div>
             <Button
               variant="primary"
               loading={enviando}
