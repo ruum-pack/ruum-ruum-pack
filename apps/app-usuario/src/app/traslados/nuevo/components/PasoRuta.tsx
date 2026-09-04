@@ -1,4 +1,5 @@
 "use client";
+import { memo, useCallback } from "react";
 import { Button, Field, PassportCard } from "@ruum/ui";
 import { esNativo } from "../../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../../lib/ubicacion";
@@ -44,11 +45,12 @@ export interface PasoRutaProps {
   } | null;
   rutaCalculando: boolean;
   rutaAviso: string | null;
+  onReintentarRuta: () => void;
   onParadasChange: (next: ParadaForm[]) => void;
   erroresParadas?: Array<Partial<Record<keyof ParadaForm, string>>>;
 }
 
-export function PasoRuta({
+export const PasoRuta = memo(function PasoRuta({
   datos,
   errores,
   claseControl,
@@ -74,9 +76,23 @@ export function PasoRuta({
   rutaEstimacion,
   rutaCalculando,
   rutaAviso,
+  onReintentarRuta,
   onParadasChange,
   erroresParadas
 }: PasoRutaProps) {
+  const cambiarOrigenCodigoPostal = useCallback((valor: string) => actualizarCodigoPostal("origen", valor), [actualizarCodigoPostal]);
+  const consultarOrigenCodigoPostal = useCallback((valor: string) => {
+    void consultarCodigoPostal("origen", valor);
+    validarCampo("origenCodigoPostal");
+  }, [consultarCodigoPostal, validarCampo]);
+  const aplicarSugerenciaOrigen = useCallback((ciudad: string, colonia: string) => aplicarSugerenciaCp("origen", ciudad, colonia), [aplicarSugerenciaCp]);
+  const cambiarDestinoCodigoPostal = useCallback((valor: string) => actualizarCodigoPostal("destino", valor), [actualizarCodigoPostal]);
+  const consultarDestinoCodigoPostal = useCallback((valor: string) => {
+    void consultarCodigoPostal("destino", valor);
+    validarCampo("destinoCodigoPostal");
+  }, [consultarCodigoPostal, validarCampo]);
+  const aplicarSugerenciaDestino = useCallback((ciudad: string, colonia: string) => aplicarSugerenciaCp("destino", ciudad, colonia), [aplicarSugerenciaCp]);
+
   return (
     <div className="space-y-4">
       <PassportCard>
@@ -86,23 +102,28 @@ export function PasoRuta({
           {/* Origen — siempre visible, ancla superior */}
           <div className="grid gap-4" aria-label="Origen del traslado">
             <div className="rounded-lg border border-signal/30 bg-signal/10 p-3">
-              <label className="font-body text-xs font-semibold text-ink">Busca tu dirección (autocompleta calle, colonia y CP)</label>
+              <label htmlFor="origenBusqueda" className="font-body text-xs font-semibold text-ink">Busca tu dirección (autocompleta calle, colonia y CP)</label>
               <div className="relative mt-2">
                 <input
+                  id="origenBusqueda"
                   value={origenBusqueda}
                   onChange={(e) => setOrigenBusqueda(e.target.value)}
                   placeholder="Ej. Av Patriotismo 12, Escandón, CDMX"
                   className="w-full rounded-xl border border-ink/20 bg-mist px-3.5 py-2.5 pr-10 font-body text-sm text-ink placeholder:text-ink/45 focus:border-signal focus:outline-none focus:ring-2 focus:ring-signal/20"
                   aria-label="Buscar dirección de origen"
+                  aria-autocomplete="list"
+                  aria-controls="origen-sugerencias"
+                  aria-expanded={origenSugerencias.length > 0}
+                  role="combobox"
                   autoComplete="off"
                 />
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink/40">
                   {buscandoOrigen ? "…" : "🔍"}
                 </span>
                 {origenSugerencias.length > 0 && (
-                  <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-ink/10 bg-mist shadow-2">
+                  <ul id="origen-sugerencias" role="listbox" aria-label="Sugerencias de origen" className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-ink/10 bg-mist shadow-2">
                     {origenSugerencias.map((s, i) => (
-                      <li key={`${s.textoCompleto}-${i}`}>
+                      <li key={`${s.textoCompleto}-${i}`} role="option" aria-selected={false}>
                         <button
                           type="button"
                           onClick={() => aplicarSugerenciaDireccion("origen", s)}
@@ -133,12 +154,9 @@ export function PasoRuta({
                   consultando={cpConsultando === "origen"}
                   aviso={cpAviso.origen}
                   error={errores.origenCodigoPostal}
-                  onCambiar={(valor) => actualizarCodigoPostal("origen", valor)}
-                  onSalir={(valor) => {
-                    consultarCodigoPostal("origen", valor);
-                    validarCampo("origenCodigoPostal");
-                  }}
-                  onAplicarSugerencia={(ciudad, colonia) => aplicarSugerenciaCp("origen", ciudad, colonia)}
+                  onCambiar={cambiarOrigenCodigoPostal}
+                  onSalir={consultarOrigenCodigoPostal}
+                  onAplicarSugerencia={aplicarSugerenciaOrigen}
                 />
                 <Field
                   id="origenEstado"
@@ -242,15 +260,19 @@ export function PasoRuta({
                   placeholder="Ej. Calle 5 123, Centro, Puebla"
                   className="w-full rounded-xl border border-ink/20 bg-mist px-3.5 py-2.5 pr-10 font-body text-sm text-ink placeholder:text-ink/45 focus:border-signal focus:outline-none focus:ring-2 focus:ring-signal/20"
                   aria-label="Buscar dirección de destino"
+                  aria-autocomplete="list"
+                  aria-controls="destino-sugerencias"
+                  aria-expanded={destinoSugerencias.length > 0}
+                  role="combobox"
                   autoComplete="off"
                 />
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink/40">
                   {buscandoDestino ? "…" : "🔍"}
                 </span>
                 {destinoSugerencias.length > 0 && (
-                  <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-ink/10 bg-mist shadow-2">
+                  <ul id="destino-sugerencias" role="listbox" aria-label="Sugerencias de destino" className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-ink/10 bg-mist shadow-2">
                     {destinoSugerencias.map((s, i) => (
-                      <li key={`${s.textoCompleto}-${i}`}>
+                      <li key={`${s.textoCompleto}-${i}`} role="option" aria-selected={false}>
                         <button
                           type="button"
                           onClick={() => aplicarSugerenciaDireccion("destino", s)}
@@ -281,12 +303,9 @@ export function PasoRuta({
                   consultando={cpConsultando === "destino"}
                   aviso={cpAviso.destino}
                   error={errores.destinoCodigoPostal}
-                  onCambiar={(valor) => actualizarCodigoPostal("destino", valor)}
-                  onSalir={(valor) => {
-                    consultarCodigoPostal("destino", valor);
-                    validarCampo("destinoCodigoPostal");
-                  }}
-                  onAplicarSugerencia={(ciudad, colonia) => aplicarSugerenciaCp("destino", ciudad, colonia)}
+                  onCambiar={cambiarDestinoCodigoPostal}
+                  onSalir={consultarDestinoCodigoPostal}
+                  onAplicarSugerencia={aplicarSugerenciaDestino}
                 />
                 <Field
                   id="destinoEstado"
@@ -376,7 +395,14 @@ export function PasoRuta({
                   </p>
                 )}
               </div>
-              {rutaAviso && <p className="mt-3 font-body text-xs leading-5 text-danger">{rutaAviso}</p>}
+              {rutaAviso && (
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="font-body text-xs leading-5 text-danger">{rutaAviso}</p>
+                  <Button type="button" variant="secondary" onClick={onReintentarRuta} disabled={rutaCalculando}>
+                    Reintentar cálculo
+                  </Button>
+                </div>
+              )}
             </section>
 
             <p className="font-body text-sm font-semibold">Quien entrega el vehículo</p>
@@ -484,4 +510,4 @@ export function PasoRuta({
       </PassportCard>
     </div>
   );
-}
+});

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Field } from "@ruum/ui";
 import type { ParadaForm, TipoParadaForm, TipoTareaForm } from "../types";
 
@@ -17,7 +17,7 @@ function soloDigitos(v: string, max?: number) {
   return max ? d.slice(0, max) : d;
 }
 
-export function EscalasAcordeon({
+export const EscalasAcordeon = memo(function EscalasAcordeon({
   paradas,
   onChange,
   erroresParadas
@@ -149,12 +149,12 @@ export function EscalasAcordeon({
                       <div className="grid gap-3 sm:grid-cols-2">
                         <Field etiqueta="Contacto (nombre)" value={p.contactoNombre ?? ""} onChange={(e) => actualizar(p.id, { contactoNombre: e.target.value })} error={err?.contactoNombre} />
                         <div className="flex flex-col gap-1.5">
-                          <label className="font-body text-sm font-medium">Teléfono contacto</label>
+                          <label htmlFor={`parada-${p.id}-telefono`} className="font-body text-sm font-medium">Teléfono contacto</label>
                           <div className="flex overflow-hidden rounded-lg border border-ink/30 bg-mist">
                             <span className="flex items-center border-r border-ink/10 px-3 font-body text-sm font-semibold text-ink/60">+52</span>
-                            <input value={p.contactoTelefono ?? ""} onChange={(e) => actualizar(p.id, { contactoTelefono: soloDigitos(e.target.value, 10) })} inputMode="numeric" maxLength={10} placeholder="10 dígitos" className="min-w-0 flex-1 bg-transparent px-3 py-2.5 font-body text-sm focus:outline-none" />
+                            <input id={`parada-${p.id}-telefono`} value={p.contactoTelefono ?? ""} onChange={(e) => actualizar(p.id, { contactoTelefono: soloDigitos(e.target.value, 10) })} inputMode="numeric" maxLength={10} placeholder="10 dígitos" aria-label={`Teléfono de contacto para ${p.tipo} ${idx + 1}`} aria-invalid={Boolean(err?.contactoTelefono)} aria-describedby={err?.contactoTelefono ? `parada-${p.id}-telefono-error` : undefined} className="min-w-0 flex-1 bg-transparent px-3 py-2.5 font-body text-sm focus:outline-none" />
                           </div>
-                          {err?.contactoTelefono && <span className="font-body text-xs text-danger">{err.contactoTelefono}</span>}
+                          {err?.contactoTelefono && <span id={`parada-${p.id}-telefono-error`} className="font-body text-xs text-danger">{err.contactoTelefono}</span>}
                         </div>
                       </div>
                       <label className="flex flex-col gap-1.5">
@@ -217,4 +217,4 @@ export function EscalasAcordeon({
       </div>
     </div>
   );
-}
+});

@@ -1,4 +1,5 @@
 "use client";
+import { memo } from "react";
 import { Button, PassportCard, Aviso } from "@ruum/ui";
 import { MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { PrevisualizacionTarifa } from "@ruum/api/services";
@@ -20,13 +21,15 @@ export interface PasoDetallesProps {
   } | null;
   politicaCancelacion: { mensaje: string };
   aceptaPoliticasPagoCancelacion: boolean;
-  setAceptaPoliticasPagoCancelacion: (valor: React.SetStateAction<boolean>) => void;
+  setAceptaPoliticasPagoCancelacion: (valor: boolean) => void;
   enviarSolicitud: () => Promise<void>;
   enviando: boolean;
   cargandoSesion: boolean;
+  tarifaPreviaAceptada: boolean;
+  onRevisarTarifa: () => void;
 }
 
-export function PasoDetalles({
+export const PasoDetalles = memo(function PasoDetalles({
   datos,
   actualizar,
   onEditarAgenda,
@@ -41,8 +44,11 @@ export function PasoDetalles({
   setAceptaPoliticasPagoCancelacion,
   enviarSolicitud,
   enviando,
-  cargandoSesion
+  cargandoSesion,
+  tarifaPreviaAceptada,
+  onRevisarTarifa
 }: PasoDetallesProps) {
+
   return (
     <div className="space-y-4">
       <PassportCard>
@@ -100,12 +106,16 @@ export function PasoDetalles({
               if (sel !== "Otra (especificar)") return null;
               const valorCustom = VENTANAS_PREDEFINIDAS.includes(datos.ventanaRecoleccion as never) ? "" : datos.ventanaRecoleccion.replace(/^Otra:\s*/, "");
               return (
-                <input
-                  placeholder="Ej. 09:00 a 12:00 o indicación específica"
-                  value={valorCustom}
-                  onChange={(e) => actualizar("ventanaRecoleccion", `Otra: ${e.target.value}`)}
-                  className="mt-2 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
-                />
+                <label htmlFor="ventanaRecoleccionCustom" className="flex flex-col gap-1 mt-2">
+                  <span className="font-body text-xs font-medium text-ink">Especifica ventana de recolección</span>
+                  <input
+                    id="ventanaRecoleccionCustom"
+                    placeholder="Ej. 09:00 a 12:00 o indicación específica"
+                    value={valorCustom}
+                    onChange={(e) => actualizar("ventanaRecoleccion", `Otra: ${e.target.value}`)}
+                    className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
+                  />
+                </label>
               );
             })()}
           </label>
@@ -128,12 +138,16 @@ export function PasoDetalles({
               if (sel !== "Otra (especificar)") return null;
               const valorCustom = VENTANAS_PREDEFINIDAS.includes(datos.ventanaEntrega as never) ? "" : datos.ventanaEntrega.replace(/^Otra:\s*/, "");
               return (
-                <input
-                  placeholder="Ej. Mismo día por la tarde"
-                  value={valorCustom}
-                  onChange={(e) => actualizar("ventanaEntrega", `Otra: ${e.target.value}`)}
-                  className="mt-2 rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
-                />
+                <label htmlFor="ventanaEntregaCustom" className="flex flex-col gap-1 mt-2">
+                  <span className="font-body text-xs font-medium text-ink">Especifica ventana de entrega</span>
+                  <input
+                    id="ventanaEntregaCustom"
+                    placeholder="Ej. Mismo día por la tarde"
+                    value={valorCustom}
+                    onChange={(e) => actualizar("ventanaEntrega", `Otra: ${e.target.value}`)}
+                    className="rounded-lg border border-ink/50 bg-mist px-3.5 py-2.5 font-body text-sm"
+                  />
+                </label>
               );
             })()}
           </label>
@@ -258,6 +272,24 @@ export function PasoDetalles({
         <span>Acepto la política de cancelación y que el pago es solo por medios electrónicos.</span>
       </label>
 
+      {!tarifaPreviaAceptada && (
+        <div role="alert" aria-live="assertive">
+          <Aviso tono="danger">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-bold">⚠️ Tarifa pendiente de re-confirmación</p>
+                <p className="text-xs text-ink/80 mt-0.5">
+                  Los datos del traslado cambiaron desde que aceptaste la tarifa previa. Debes revisar y aceptar la nueva cotización antes de confirmar el pago o la solicitud.
+                </p>
+              </div>
+              <Button type="button" variant="secondary" onClick={onRevisarTarifa} className="shrink-0">
+                Revisar nueva tarifa
+              </Button>
+            </div>
+          </Aviso>
+        </div>
+      )}
+
       <section
         className="sticky bottom-4 z-20 rounded-[var(--ruum-radius-modal)] border border-ink/15 bg-mist px-5 py-5 shadow-3"
         aria-labelledby="titulo-tarifa-flotante"
@@ -289,9 +321,9 @@ export function PasoDetalles({
           <div className="flex flex-col items-stretch gap-2 sm:w-48">
             <Button
               onClick={enviarSolicitud}
-              disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}
-              aria-disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}
-              aria-describedby={!aceptaPoliticasPagoCancelacion ? "confirmar-solicitud-ayuda" : undefined}
+              disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion || !tarifaPreviaAceptada}
+              aria-disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion || !tarifaPreviaAceptada}
+              aria-describedby={!aceptaPoliticasPagoCancelacion ? "confirmar-solicitud-ayuda" : !tarifaPreviaAceptada ? "tarifa-invalida-ayuda" : undefined}
             >
               {enviando
                 ? TEXTOS_CARGANDO.enviando
@@ -301,15 +333,19 @@ export function PasoDetalles({
                     ? "Confirmar y pagar"
                     : "Confirmar solicitud"}
             </Button>
-            {!aceptaPoliticasPagoCancelacion && (
+            {!tarifaPreviaAceptada ? (
+              <p id="tarifa-invalida-ayuda" className="font-body text-xs leading-5 text-danger font-medium">
+                Confirma la tarifa en el paso inicial para proceder.
+              </p>
+            ) : !aceptaPoliticasPagoCancelacion ? (
               <p id="confirmar-solicitud-ayuda" className="font-body text-xs leading-5 text-ink/65">
                 Acepta la política arriba para continuar.
               </p>
-            )}
+            ) : null}
             <p className="text-center font-body text-xs leading-4 text-ink/40">Visa · Mastercard · Amex · SPEI · 3-D Secure</p>
           </div>
         </div>
       </section>
     </div>
   );
-}
+});

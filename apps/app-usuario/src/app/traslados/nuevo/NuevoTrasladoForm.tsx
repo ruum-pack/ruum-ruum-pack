@@ -1,10 +1,12 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button, Aviso } from "@ruum/ui";
 import { NavegacionUsuario } from "../../NavegacionUsuario";
 import { PASOS } from "./constants";
+import { formatearTiempoRelativoBorrador } from "../../../lib/borrador-traslado";
 import { useNuevoTraslado } from "./hooks/useNuevoTraslado";
+
 import { EstadoCreacion } from "./components/EstadoCreacion";
 import { PasoTarifa } from "./components/PasoTarifa";
 import { PasoVehiculo } from "./components/PasoVehiculo";
@@ -15,13 +17,16 @@ import { PasoPago } from "./components/PasoPago";
 export function NuevoTrasladoForm() {
   const t = useNuevoTraslado();
   const encabezadoPasoRef = useRef<HTMLHeadingElement>(null);
+  const { setPaso, setResultado } = t;
+  const volverPasoInicial = useCallback(() => setPaso(0), [setPaso]);
+  const cerrarResultado = useCallback(() => setResultado(null), [setResultado]);
 
   useEffect(() => {
     encabezadoPasoRef.current?.focus();
   }, [t.paso]);
 
   if (t.resultado) {
-    return <EstadoCreacion resultado={t.resultado} volver={() => t.setResultado(null)} />;
+    return <EstadoCreacion resultado={t.resultado} volver={cerrarResultado} />;
   }
 
   if (t.bloqueoVerificacion) {
@@ -60,9 +65,31 @@ export function NuevoTrasladoForm() {
         <h1 className="font-display text-2xl sm:text-3xl font-black text-text-primary">Nuevo traslado</h1>
         <div className="mt-3 flex flex-wrap items-center gap-2 font-body text-xs">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-signal/15 px-3 py-1 font-semibold text-ink border border-signal/30">⏱ Te tomará ~3 min</span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface border border-border px-3 py-1 text-text-secondary">💾 Guardado automático</span>
+          {t.estadoGuardado === "guardando" ? (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-amber-900 font-medium animate-pulse"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="inline-block size-1.5 rounded-full bg-amber-500 animate-ping" />
+              💾 Guardando cambios…
+            </span>
+          ) : t.estadoGuardado === "guardado" ? (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-emerald-800 font-medium transition-all"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="font-bold text-emerald-600">✓</span> Guardado {t.tiempoUltimoGuardado ? formatearTiempoRelativoBorrador(t.tiempoUltimoGuardado) : "automático"}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-surface border border-border px-3 py-1 text-text-secondary">
+              💾 Guardado automático
+            </span>
+          )}
           <span className="inline-flex items-center gap-1.5 rounded-full bg-route-soft border border-route/20 px-3 py-1 text-route-dark">🔒 Pago seguro con Stripe</span>
         </div>
+
 
         <div className="mt-4 p-3.5 rounded-xl border border-[#FFC400]/30 bg-[#FFC400]/5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 text-xs">
@@ -86,10 +113,13 @@ export function NuevoTrasladoForm() {
         </div>
 
         {t.borradorDisponible && (
-          <div className="mt-4 rounded-xl border border-route-action/30 bg-route-action/10 p-4">
+          <div className="mt-4 rounded-xl border border-route-action/30 bg-route-action/10 p-4" role="region" aria-label="Borrador pendiente">
             <p className="font-body text-sm font-semibold text-text-primary">Encontramos una solicitud sin terminar</p>
             <p className="mt-1 font-body text-xs leading-5 text-text-secondary">
-              Guardada el {new Date(t.borradorDisponible.guardadoEn).toLocaleString("es-MX")} y disponible por 24 horas.
+              Guardada <strong>{formatearTiempoRelativoBorrador(t.borradorDisponible.guardadoEn)}</strong> ({new Date(t.borradorDisponible.guardadoEn).toLocaleString("es-MX")}).
+              Vigencia de 24 horas. Ten en cuenta que los precios y la disponibilidad de conductores pueden haber cambiado.
+            </p>
+            <p className="mt-1 font-body text-[11px] text-text-secondary/70">
               Por seguridad no guardamos domicilio exacto, teléfonos de contacto, VIN, placas ni instrucciones especiales.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -98,6 +128,7 @@ export function NuevoTrasladoForm() {
             </div>
           </div>
         )}
+
 
         {/* Stepper móvil y de escritorio */}
         <div className="mt-6" aria-label={`Paso ${t.paso + 1} de ${PASOS.length} — ${PASOS[t.paso]}`}>
@@ -149,7 +180,7 @@ export function NuevoTrasladoForm() {
             <Aviso tono="atencion">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <span>Tu tarifa puede haber cambiado. Confírmala antes de continuar.</span>
-                <Button type="button" variant="secondary" onClick={() => t.setPaso(0)}>
+                <Button type="button" variant="secondary" onClick={volverPasoInicial}>
                   Confirmar tarifa
                 </Button>
               </div>
@@ -205,11 +236,13 @@ export function NuevoTrasladoForm() {
               modelosDisponibles={t.modelosDisponibles}
               clasificacionCatalogo={t.clasificacionCatalogo}
               previsualizacion={t.previsualizacion}
-              onEditarTarifa={() => t.setPaso(0)}
+              onEditarTarifa={volverPasoInicial}
               detallesVehiculoExpandido={t.detallesVehiculoExpandido}
               setDetallesVehiculoExpandido={t.setDetallesVehiculoExpandido}
+              tarifaPreviaAceptada={t.tarifaPreviaAceptada}
             />
           )}
+
 
           {t.paso === 2 && (
             <PasoRuta
@@ -238,6 +271,7 @@ export function NuevoTrasladoForm() {
               rutaEstimacion={t.rutaEstimacion}
               rutaCalculando={t.rutaCalculando}
               rutaAviso={t.rutaAviso}
+              onReintentarRuta={t.reintentarRuta}
               onParadasChange={t.actualizarParadas}
               erroresParadas={t.erroresParadas}
             />
@@ -247,7 +281,7 @@ export function NuevoTrasladoForm() {
             <PasoDetalles
               datos={t.datos}
               actualizar={t.actualizar}
-              onEditarAgenda={() => t.setPaso(0)}
+              onEditarAgenda={volverPasoInicial}
               previsualizacion={t.previsualizacion}
               previsualizando={t.previsualizando}
               momentoPago={t.momentoPago}
@@ -260,8 +294,11 @@ export function NuevoTrasladoForm() {
               enviarSolicitud={t.enviarSolicitud}
               enviando={t.enviando}
               cargandoSesion={t.cargandoSesion}
+              tarifaPreviaAceptada={t.tarifaPreviaAceptada}
+              onRevisarTarifa={volverPasoInicial}
             />
           )}
+
 
           {t.paso === 4 && t.trasladoCreado && (
             <PasoPago

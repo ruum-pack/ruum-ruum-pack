@@ -45,13 +45,29 @@ export function ChatTraslado({ trasladoId, estado }: { trasladoId: string; estad
         }
       });
 
-    const canal = suscribirseAMensajes(cliente, trasladoId, (nuevo) => {
-      if (!cancelado) agregarMensaje(nuevo);
-    });
+    const canal = suscribirseAMensajes(
+      cliente,
+      trasladoId,
+      (nuevo) => {
+        if (!cancelado) agregarMensaje(nuevo);
+      },
+      {
+        onError: (err) => {
+          if (!cancelado) {
+            actualizar({ errorChat: "Se interrumpió la conexión en tiempo real del chat." });
+            console.warn("[ChatTraslado] error en suscripción realtime", err);
+          }
+        }
+      }
+    );
 
     return () => {
       cancelado = true;
-      cliente.removeChannel(canal);
+      try {
+        void cliente.removeChannel(canal);
+      } catch {
+        // Ignorar fallos de cleanup si ya estaba cerrado
+      }
     };
   }, [actualizar, agregarMensaje, cargarMensajes, disponible, inicializar, trasladoId]);
 

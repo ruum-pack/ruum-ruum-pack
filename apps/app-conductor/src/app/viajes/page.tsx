@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Aviso, LogoMarca } from "@ruum/ui";
 import type { Conductor } from "@ruum/shared/types";
 import type { MotivoRechazo } from "@ruum/shared/constants";
-import { traducirErrorOperativo } from "@ruum/shared/utils";
+import { traducirErrorOperativo, suscribirCanalSeguro } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import {
   listarViajesDisponibles,
@@ -308,12 +308,15 @@ export default function PaginaViajes() {
         "postgres_changes",
         { event: "*", schema: "public", table: "traslados" },
         () => triggerRecarga()
-      )
-      .subscribe();
+      );
+
+    const desuscribir = suscribirCanalSeguro(cliente, canalTraslados, {
+      onError: (err) => console.warn("[viajes] error en canalTraslados", err)
+    });
 
     return () => {
       if (recargaDebounceRef.current) clearTimeout(recargaDebounceRef.current);
-      cliente.removeChannel(canalTraslados);
+      void desuscribir();
     };
   }, []);
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Conductor } from "@ruum/shared/types";
-import { traducirErrorOperativo } from "@ruum/shared/utils";
+import { traducirErrorOperativo, suscribirCanalSeguro, limpiarCanalesSeguros } from "@ruum/shared/utils";
 import {
   guardarDisponibilidadConductor,
   listarViajesAceptados,
@@ -218,8 +218,7 @@ export function usePanelData() {
         "postgres_changes",
         { event: "*", schema: "public", table: "traslados" },
         () => triggerRecarga()
-      )
-      .subscribe();
+      );
 
     const canalNotificaciones = cliente
       .channel(`panel_notificaciones_${conductor.id}`)
@@ -232,13 +231,19 @@ export function usePanelData() {
           filter: `conductor_id=eq.${conductor.id}`
         },
         () => triggerRecarga()
-      )
-      .subscribe();
+      );
+
+    const desuscribirTraslados = suscribirCanalSeguro(cliente, canalTraslados, {
+      onError: (err) => console.warn("[usePanelData] error en canalTraslados", err)
+    });
+    const desuscribirNotificaciones = suscribirCanalSeguro(cliente, canalNotificaciones, {
+      onError: (err) => console.warn("[usePanelData] error en canalNotificaciones", err)
+    });
 
     return () => {
       if (recargaDebounceRef.current) clearTimeout(recargaDebounceRef.current);
-      cliente.removeChannel(canalTraslados);
-      cliente.removeChannel(canalNotificaciones);
+      void Promise.allSettled([desuscribirTraslados(), desuscribirNotificaciones()]);
+      void limpiarCanalesSeguros(cliente, [canalTraslados, canalNotificaciones]);
     };
   }, [conductor?.id, cargar]);
 

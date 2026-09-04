@@ -1,4 +1,5 @@
 "use client";
+import { memo } from "react";
 import { Field, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { PrevisualizacionTarifa } from "@ruum/api/services";
@@ -26,9 +27,11 @@ export interface PasoVehiculoProps {
   onEditarTarifa: () => void;
   detallesVehiculoExpandido: boolean;
   setDetallesVehiculoExpandido: (valor: React.SetStateAction<boolean>) => void;
+  tarifaPreviaAceptada?: boolean;
 }
 
-export function PasoVehiculo({
+
+export const PasoVehiculo = memo(function PasoVehiculo({
   datos,
   errores,
   claseControl,
@@ -47,8 +50,10 @@ export function PasoVehiculo({
   previsualizacion,
   onEditarTarifa,
   detallesVehiculoExpandido,
-  setDetallesVehiculoExpandido
+  setDetallesVehiculoExpandido,
+  tarifaPreviaAceptada
 }: PasoVehiculoProps) {
+
   return (
     <div className="grid gap-4">
       <div className="grid grid-cols-1 gap-6">
@@ -205,11 +210,24 @@ export function PasoVehiculo({
               />
 
               {/* Tarifa aceptada: visible desde paso 1 */}
-              <div className="rounded-xl border border-signal/30 bg-signal/10 px-4 py-3" aria-live="polite">
+              <div
+                className={`rounded-xl border px-4 py-3 ${
+                  tarifaPreviaAceptada === false
+                    ? "border-amber-500/40 bg-amber-500/10"
+                    : "border-signal/30 bg-signal/10"
+                }`}
+                aria-live="polite"
+              >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/55">Tarifa aceptada</p>
-                    {previsualizacion?.disponible ? (
+                    <p className={`font-body text-xs font-semibold uppercase tracking-wide ${tarifaPreviaAceptada === false ? "text-amber-800" : "text-ink/55"}`}>
+                      {tarifaPreviaAceptada === false ? "⚠️ Tarifa invalidada por cambios" : "Tarifa aceptada"}
+                    </p>
+                    {tarifaPreviaAceptada === false ? (
+                      <p className="mt-1 font-body text-xs font-medium text-amber-900 leading-snug">
+                        Modificaste campos que afectan la tarifa. Confírmala de nuevo.
+                      </p>
+                    ) : previsualizacion?.disponible ? (
                       <p className="mt-1 font-display text-xl font-bold text-ink">
                         ${Number(previsualizacion.tarifa ?? 0).toLocaleString("es-MX")}{" "}
                         <span className="font-body text-xs font-semibold text-ink/55">MXN</span>
@@ -221,12 +239,17 @@ export function PasoVehiculo({
                   <button
                     type="button"
                     onClick={onEditarTarifa}
-                    className="rounded-lg border border-signal/40 bg-paper px-3 py-1.5 font-body text-xs font-semibold text-ink shadow-xs transition hover:bg-mist"
+                    className={`rounded-lg border px-3 py-1.5 font-body text-xs font-semibold shadow-xs transition ${
+                      tarifaPreviaAceptada === false
+                        ? "border-amber-500 bg-paper text-amber-950 hover:bg-amber-100"
+                        : "border-signal/40 bg-paper text-ink hover:bg-mist"
+                    }`}
                   >
-                    Editar
+                    {tarifaPreviaAceptada === false ? "Re-confirmar tarifa" : "Editar"}
                   </button>
                 </div>
               </div>
+
 
               <button
                 type="button"
@@ -336,4 +359,4 @@ export function PasoVehiculo({
       </div>
     </div>
   );
-}
+});

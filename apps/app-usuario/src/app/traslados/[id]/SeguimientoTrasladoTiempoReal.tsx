@@ -9,6 +9,7 @@ import {
   type UbicacionTraslado
 } from "@ruum/api/services";
 import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
+import { limpiarCanalesSeguros } from "@ruum/shared/utils";
 import { Aviso, EstadoBadge, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
@@ -106,14 +107,32 @@ export function SeguimientoTrasladoTiempoReal({
     let cancelado = false;
 
     try {
-      canalEstado = suscribirEstadoTraslado(cliente, trasladoId, (traslado) => {
-        if (cancelado) return;
-        actualizar({ estadoRealtime: traslado.estado, estadoActualizadoEn: traslado.actualizado_en });
-      });
-      canalUbicacion = suscribirUbicacionTraslado(cliente, trasladoId, (u) => {
-        if (cancelado) return;
-        actualizar({ ubicacion: u });
-      });
+      canalEstado = suscribirEstadoTraslado(
+        cliente,
+        trasladoId,
+        (traslado) => {
+          if (cancelado) return;
+          actualizar({ estadoRealtime: traslado.estado, estadoActualizadoEn: traslado.actualizado_en });
+        },
+        {
+          onError: (err) => {
+            if (!cancelado) console.warn("[SeguimientoTiempoReal] error canalEstado", err);
+          }
+        }
+      );
+      canalUbicacion = suscribirUbicacionTraslado(
+        cliente,
+        trasladoId,
+        (u) => {
+          if (cancelado) return;
+          actualizar({ ubicacion: u });
+        },
+        {
+          onError: (err) => {
+            if (!cancelado) console.warn("[SeguimientoTiempoReal] error canalUbicacion", err);
+          }
+        }
+      );
     } catch (err) {
       console.warn("[SeguimientoTiempoReal] suscripción fallida", err);
     }
@@ -127,21 +146,8 @@ export function SeguimientoTrasladoTiempoReal({
 
     return () => {
       cancelado = true;
-      // R12: cleanup resiliente con allSettled + log, evita fuga si trasladoId cambia rápido
-      const canales = [canalEstado, canalUbicacion].filter(Boolean) as unknown[];
-      if (canales.length === 0) return;
-      void Promise.allSettled(
-        canales.map((ch) =>
-          // supabase-js removeChannel puede rechazar si canal ya cerrado
-          (cliente.removeChannel as unknown as (c: unknown) => Promise<string>)(ch).catch((e) => {
-            console.warn("[SeguimientoTiempoReal] removeChannel fallido", { trasladoId, error: e instanceof Error ? e.message : String(e) });
-            throw e;
-          })
-        )
-      ).then((results) => {
-        const fallidos = results.filter((r) => r.status === "rejected");
-        if (fallidos.length > 0) console.warn("[SeguimientoTiempoReal] algunos canales no se cerraron", fallidos);
-      });
+      // Cleanup resiliente garantizado con limpiarCanalesSeguros
+      void limpiarCanalesSeguros(cliente, [canalEstado, canalUbicacion]);
     };
   }, [actualizar, inicializar, trasladoId, ubicacionInicial]);
 

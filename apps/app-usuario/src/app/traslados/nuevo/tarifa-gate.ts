@@ -32,6 +32,11 @@ export function extraerCamposTarifa(datos: Partial<DatosFormulario>): TarifaGate
   };
 }
 
+/** Un CP solo participa en el cálculo cuando el usuario terminó sus 5 dígitos. */
+export function codigoPostalCompleto(valor: string | null | undefined): boolean {
+  return /^\d{5}$/.test((valor ?? "").trim());
+}
+
 export function generarTarifaSnapshot(datos: Partial<DatosFormulario>): string {
   return JSON.stringify(extraerCamposTarifa(datos));
 }

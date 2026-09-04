@@ -61,11 +61,15 @@ export interface NuevoTrasladoState {
   rutaEstimacion: RutaEstimacion | null;
   rutaCalculando: boolean;
   rutaAviso: string | null;
+  rutaReintento: number;
   borradorDisponible: BorradorTrasladoLocal | null;
   claveIdempotencia: string;
   trasladoCreado: TrasladoCreado | null;
   reintentoAceptacion: number;
+  estadoGuardado: "inactivo" | "guardando" | "guardado";
+  tiempoUltimoGuardado: string | null;
 }
+
 
 export function crearEstadoNuevoTrasladoInicial(): NuevoTrasladoState {
   return {
@@ -101,12 +105,16 @@ export function crearEstadoNuevoTrasladoInicial(): NuevoTrasladoState {
     rutaEstimacion: null,
     rutaCalculando: false,
     rutaAviso: null,
+    rutaReintento: 0,
     borradorDisponible: null,
     claveIdempotencia: "",
     trasladoCreado: null,
-    reintentoAceptacion: 0
+    reintentoAceptacion: 0,
+    estadoGuardado: "inactivo",
+    tiempoUltimoGuardado: null
   };
 }
+
 
 export type NuevoTrasladoAction =
   | { type: "set"; key: keyof NuevoTrasladoState; value: unknown }

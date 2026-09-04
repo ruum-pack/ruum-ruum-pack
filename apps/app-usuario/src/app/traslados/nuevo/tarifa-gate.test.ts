@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CAMPOS_PASO_TARIFA, generarTarifaSnapshot, haCambiadoTarifa } from "./tarifa-gate";
+import { CAMPOS_PASO_TARIFA, codigoPostalCompleto, generarTarifaSnapshot, haCambiadoTarifa } from "./tarifa-gate";
 import type { DatosFormulario } from "./types";
 
 describe("tarifa-gate — invalidación y snapshot de tarifa previa", () => {
@@ -63,5 +63,32 @@ describe("tarifa-gate — invalidación y snapshot de tarifa previa", () => {
 
   it("retorna false si no hay snapshot previo", () => {
     expect(haCambiadoTarifa(null, base)).toBe(false);
+  });
+
+  it("solo considera finalizado un código postal mexicano de 5 dígitos", () => {
+    expect(codigoPostalCompleto("03100")).toBe(true);
+    expect(codigoPostalCompleto(" 06600 ")).toBe(true);
+    expect(codigoPostalCompleto("0660")).toBe(false);
+    expect(codigoPostalCompleto("0660a")).toBe(false);
+    expect(codigoPostalCompleto("")).toBe(false);
+  });
+
+  it("permite verificar que la tarifa previa deja de ser válida tras editar campos de precio (UX 1)", () => {
+    let tarifaPreviaAceptada = true;
+    const snapshotInicial = generarTarifaSnapshot(base);
+
+    // Si el usuario edita el color, no se invalida la tarifa aceptada
+    const edicionColor = { ...base, color: "negro" };
+    if (haCambiadoTarifa(snapshotInicial, edicionColor)) {
+      tarifaPreviaAceptada = false;
+    }
+    expect(tarifaPreviaAceptada).toBe(true);
+
+    // Si el usuario edita la marca o modelo en paso 1, la tarifa previa queda invalidada
+    const edicionMarca = { ...base, marca: "Honda", modelo: "Civic" };
+    if (haCambiadoTarifa(snapshotInicial, edicionMarca)) {
+      tarifaPreviaAceptada = false;
+    }
+    expect(tarifaPreviaAceptada).toBe(false);
   });
 });

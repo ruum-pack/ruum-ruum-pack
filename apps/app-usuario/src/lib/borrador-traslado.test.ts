@@ -178,4 +178,25 @@ describe("borrador-traslado (R7)", () => {
     localStorage.setItem(clave, JSON.stringify({ ...raw, paso: 99 }));
     expect(leerBorradorTrasladoLocal()?.paso).toBe(0);
   });
+
+  describe("formatearTiempoRelativoBorrador (UX 2)", () => {
+    it("formatea segundos, minutos, horas y días correctamente", async () => {
+      const { formatearTiempoRelativoBorrador } = await import("./borrador-traslado");
+      const baseMs = 1700000000000;
+
+      // Segundos (<60s)
+      expect(formatearTiempoRelativoBorrador(new Date(baseMs - 20000).toISOString(), baseMs)).toBe("hace unos segundos");
+      // Minutos
+      expect(formatearTiempoRelativoBorrador(new Date(baseMs - 60000).toISOString(), baseMs)).toBe("hace 1 minuto");
+      expect(formatearTiempoRelativoBorrador(new Date(baseMs - 120000).toISOString(), baseMs)).toBe("hace 2 minutos");
+      expect(formatearTiempoRelativoBorrador(new Date(baseMs - 35 * 60000).toISOString(), baseMs)).toBe("hace 35 minutos");
+      // Horas
+      expect(formatearTiempoRelativoBorrador(new Date(baseMs - 3600000).toISOString(), baseMs)).toBe("hace 1 hora");
+      expect(formatearTiempoRelativoBorrador(new Date(baseMs - 5 * 3600000).toISOString(), baseMs)).toBe("hace 5 horas");
+      // Días
+      expect(formatearTiempoRelativoBorrador(new Date(baseMs - 24 * 3600000).toISOString(), baseMs)).toBe("hace 1 día");
+      expect(formatearTiempoRelativoBorrador(new Date(baseMs - 48 * 3600000).toISOString(), baseMs)).toBe("hace 2 días");
+    });
+  });
 });
+

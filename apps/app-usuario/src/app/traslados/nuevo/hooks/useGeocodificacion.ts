@@ -24,7 +24,7 @@ export function useGeocodificacion() {
         destinoLat: destinoResuelto?.lat, destinoLng: destinoResuelto?.lng,
         distanciaKm: ruta?.distanciaKm,
         tiempoEstimadoHoras: ruta?.tiempoEstimadoHoras,
-        incompletas: !origenResuelto || !destinoResuelto
+        incompletas: !origenResuelto || !destinoResuelto || !ruta
       };
     },
     []
@@ -53,7 +53,7 @@ export function useGeocodificacion() {
         paradasCoords: paradasResueltas.map((p) => (p ? { lat: p.lat, lng: p.lng } : {})),
         distanciaKm: ruta?.distanciaKm,
         tiempoEstimadoHoras: ruta?.tiempoEstimadoHoras,
-        incompletas: !todasResueltas
+        incompletas: !todasResueltas || !ruta
       };
     },
     []

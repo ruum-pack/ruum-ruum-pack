@@ -128,6 +128,7 @@ export type PrefijoDomicilio = "origen" | "destino";
 export type SubpasoRuta = "origen" | "destino_contactos";
 
 export const RETRASO_GUARDADO_BORRADOR_MS = 600;
+export const RETRASO_CONSULTA_CODIGO_POSTAL_MS = 350;
 
 export function soloDigitos(valor: string, maximo?: number) {
   const limpio = valor.replace(/\D/g, "");

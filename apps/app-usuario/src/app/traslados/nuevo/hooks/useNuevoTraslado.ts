@@ -35,7 +35,7 @@ import {
   type BorradorTrasladoLocal
 } from "../../../../lib/borrador-traslado";
 import { esquemaSolicitudTraslado, erroresFormulario } from "../schema";
-import { CAMPOS_PASO_TARIFA, generarTarifaSnapshot, haCambiadoTarifa } from "../tarifa-gate";
+import { CAMPOS_PASO_TARIFA, codigoPostalCompleto, generarTarifaSnapshot, haCambiadoTarifa } from "../tarifa-gate";
 import { construirPayloadCreacion, type CoordenadasTraslado, type CoordenadasParada } from "../adapters";
 import { useGeocodificacion } from "./useGeocodificacion";
 import { useNuevoTrasladoState, useTrasladoRealtime } from "../../../../state/AppStateProvider";
@@ -47,6 +47,7 @@ import {
   CAMPOS_PASO_VEHICULO_ESENCIAL,
   CAMPOS_RUTA_DESTINO_CONTACTOS,
   CAMPOS_RUTA_ORIGEN,
+  RETRASO_CONSULTA_CODIGO_POSTAL_MS,
   RETRASO_GUARDADO_BORRADOR_MS,
   domicilioCompleto,
   esCampoEsencialVehiculo,
@@ -108,10 +109,13 @@ export function useNuevoTraslado() {
     rutaEstimacion,
     rutaCalculando,
     rutaAviso,
+    rutaReintento,
     borradorDisponible,
     claveIdempotencia,
     trasladoCreado,
-    reintentoAceptacion
+    reintentoAceptacion,
+    estadoGuardado,
+    tiempoUltimoGuardado
   } = formulario;
 
   const estadoTrasladoId = trasladoCreado?.id ?? "nuevo";
@@ -124,6 +128,9 @@ export function useNuevoTraslado() {
   } = useTrasladoRealtime(estadoTrasladoId);
 
   const setFormulario = useCallback(<K extends keyof NuevoTrasladoState>(campo: K, valor: SetStateAction<NuevoTrasladoState[K]>) => setField(campo, valor), [setField]);
+  const setEstadoGuardado = useCallback((valor: SetStateAction<NuevoTrasladoState["estadoGuardado"]>) => setFormulario("estadoGuardado", valor), [setFormulario]);
+  const setTiempoUltimoGuardado = useCallback((valor: SetStateAction<string | null>) => setFormulario("tiempoUltimoGuardado", valor), [setFormulario]);
+
   const setPaso = useCallback((valor: SetStateAction<number>) => setFormulario("paso", valor), [setFormulario]);
   const setDatos = useCallback((valor: SetStateAction<DatosFormulario>) => setFormulario("datos", valor), [setFormulario]);
   const setEnviando = useCallback((valor: SetStateAction<boolean>) => setFormulario("enviando", valor), [setFormulario]);
@@ -156,6 +163,7 @@ export function useNuevoTraslado() {
   const setRutaEstimacion = useCallback((valor: SetStateAction<RutaEstimacion | null>) => setFormulario("rutaEstimacion", valor), [setFormulario]);
   const setRutaCalculando = useCallback((valor: SetStateAction<boolean>) => setFormulario("rutaCalculando", valor), [setFormulario]);
   const setRutaAviso = useCallback((valor: SetStateAction<string | null>) => setFormulario("rutaAviso", valor), [setFormulario]);
+  const setRutaReintento = useCallback((valor: SetStateAction<number>) => setFormulario("rutaReintento", valor), [setFormulario]);
   const setBorradorDisponible = useCallback((valor: SetStateAction<BorradorTrasladoLocal | null>) => setFormulario("borradorDisponible", valor), [setFormulario]);
   const setClaveIdempotencia = useCallback((valor: SetStateAction<string>) => setFormulario("claveIdempotencia", valor), [setFormulario]);
   const setTrasladoCreado = useCallback((valor: SetStateAction<TrasladoCreado | null>) => setFormulario("trasladoCreado", valor), [setFormulario]);
@@ -164,6 +172,7 @@ export function useNuevoTraslado() {
   const setErrorAceptacion = useCallback((valor: string | null) => actualizarEstadoTraslado({ errorAceptacion: valor }), [actualizarEstadoTraslado]);
   const setPagoConfirmado = useCallback((valor: boolean) => actualizarEstadoTraslado({ pagoConfirmado: valor }), [actualizarEstadoTraslado]);
   const setReintentoAceptacion = useCallback((valor: SetStateAction<number>) => setFormulario("reintentoAceptacion", valor), [setFormulario]);
+  const reintentarAceptacion = useCallback(() => setReintentoAceptacion((n) => n + 1), [setReintentoAceptacion]);
 
   // Analítica del gate de tarifa (Paso 0)
   const tarifaGateVistaRegistrada = useRef(false);
@@ -182,6 +191,23 @@ export function useNuevoTraslado() {
   const seqGeocodificaRef = useRef(0);
   const abortGeocodificaRef = useRef<AbortController | null>(null);
   const seqCodigoPostalRef = useRef<Record<PrefijoDomicilio, number>>({ origen: 0, destino: 0 });
+  const codigoPostalTimersRef = useRef<Record<PrefijoDomicilio, ReturnType<typeof setTimeout> | null>>({ origen: null, destino: null });
+  const codigoPostalAbortRef = useRef<Record<PrefijoDomicilio, AbortController | null>>({ origen: null, destino: null });
+  const codigoPostalSolicitadoRef = useRef<Record<PrefijoDomicilio, string>>({ origen: "", destino: "" });
+  const datosRef = useRef(datos);
+  datosRef.current = datos;
+  const erroresRef = useRef(errores);
+  erroresRef.current = errores;
+  const tarifaPreviaSnapshotRef = useRef(tarifaPreviaSnapshot);
+  tarifaPreviaSnapshotRef.current = tarifaPreviaSnapshot;
+
+  useEffect(() => () => {
+    (Object.keys(codigoPostalTimersRef.current) as PrefijoDomicilio[]).forEach((prefijo) => {
+      const timer = codigoPostalTimersRef.current[prefijo];
+      if (timer) clearTimeout(timer);
+      codigoPostalAbortRef.current[prefijo]?.abort();
+    });
+  }, []);
 
   // El provider vive en el layout para que el estado sea único. El wizard se
   // reinicia al entrar para no reutilizar un envío anterior de la misma sesión.
@@ -210,6 +236,10 @@ export function useNuevoTraslado() {
 
   const momentoPago = useMemo(() => determinarMomentoPago(usuario), [usuario]);
   const politicaCancelacion = useMemo(() => calcularCargoCancelacion(0, 0, false, false), []);
+  const cpTarifaListo = useMemo(
+    () => codigoPostalCompleto(datos.origenCodigoPostal) && codigoPostalCompleto(datos.destinoCodigoPostal),
+    [datos.destinoCodigoPostal, datos.origenCodigoPostal]
+  );
 
   // Evento inicial
   useEffect(() => {
@@ -282,6 +312,8 @@ export function useNuevoTraslado() {
     );
     if (!hayContenido) return;
 
+    setEstadoGuardado("guardando");
+
     const timer = setTimeout(() => {
       guardarBorradorTrasladoLocal({
         claveIdempotencia,
@@ -318,6 +350,8 @@ export function useNuevoTraslado() {
         tipoServicio: datos.tipoServicio,
         motivoServicio: datos.motivoServicio
       });
+      setEstadoGuardado("guardado");
+      setTiempoUltimoGuardado(new Date().toISOString());
     }, RETRASO_GUARDADO_BORRADOR_MS);
 
     return () => clearTimeout(timer);
@@ -329,15 +363,17 @@ export function useNuevoTraslado() {
     datos.destinoCodigoPostal, datos.destinoEstado, datos.destinoCiudad, datos.destinoColonia,
     datos.entregaNombre, datos.entregaApellido, datos.recepcionNombre, datos.recepcionApellido,
     datos.modalidadProgramacion, datos.fechaHoraProgramada, datos.tipoRuta,
-    datos.ventanaRecoleccion, datos.ventanaEntrega, datos.tipoServicio, datos.motivoServicio
+    datos.ventanaRecoleccion, datos.ventanaEntrega, datos.tipoServicio, datos.motivoServicio,
+    setEstadoGuardado, setTiempoUltimoGuardado
   ]);
+
 
   // Geocodificación y cálculo de ruta Mapbox con debounce y AbortController
   useEffect(() => {
     const origenTieneCalle = Boolean(datos.origenCalle.trim());
     const destinoTieneCalle = Boolean(datos.destinoCalle.trim());
-    const origenCPValido = /^\d{5}$/.test(datos.origenCodigoPostal.trim());
-    const destinoCPValido = /^\d{5}$/.test(datos.destinoCodigoPostal.trim());
+    const origenCPValido = codigoPostalCompleto(datos.origenCodigoPostal);
+    const destinoCPValido = codigoPostalCompleto(datos.destinoCodigoPostal);
 
     const origenDireccion = origenTieneCalle
       ? domicilioCompleto({
@@ -375,9 +411,17 @@ export function useNuevoTraslado() {
         setRutaEstimacion(null);
         setRutaAviso(null);
         setRutaCalculando(false);
+        setPrevisualizacion(null);
       }, 0);
       return () => clearTimeout(timer);
     }
+
+    // Invalida el cálculo anterior antes del debounce para no mostrar una
+    // tarifa construida con direcciones viejas mientras llega la respuesta.
+    setRutaEstimacion(null);
+    setRutaAviso(null);
+    setRutaCalculando(true);
+    setPrevisualizacion(null);
 
     const timer = setTimeout(async () => {
       abortGeocodificaRef.current?.abort();
@@ -408,7 +452,7 @@ export function useNuevoTraslado() {
       } catch (error) {
         if (esStale()) return;
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setRutaEstimacion(null);
+        setRutaEstimacion({ incompletas: true });
         setRutaAviso(mensajeErrorMapbox(error));
       } finally {
         if (!esStale()) setRutaCalculando(false);
@@ -424,7 +468,7 @@ export function useNuevoTraslado() {
     datos.destinoCalle, datos.destinoNumero, datos.destinoColonia, datos.destinoCodigoPostal, datos.destinoCiudad, datos.destinoEstado,
     datos.paradas,
     datos.origenLat, datos.origenLng, geocodificarRuta, geocodificarRutaConParadas,
-    setRutaAviso, setRutaCalculando, setRutaEstimacion
+    rutaReintento, setPrevisualizacion, setRutaAviso, setRutaCalculando, setRutaEstimacion
   ]);
 
   // Cálculo de tarifa real desde Paso 0
@@ -432,8 +476,19 @@ export function useNuevoTraslado() {
     if (!sesionReal) {
       return;
     }
+    if (!cpTarifaListo) {
+      const timer = setTimeout(() => setPrevisualizacion(null), 0);
+      return () => clearTimeout(timer);
+    }
     if (!datos.marca.trim() || !datos.modelo.trim() || !datos.condicion) {
       const timer = setTimeout(() => setPrevisualizacion(null), 0);
+      return () => clearTimeout(timer);
+    }
+    if (rutaEstimacion?.incompletas && rutaAviso && !rutaCalculando) {
+      const timer = setTimeout(() => setPrevisualizacion({
+        disponible: false,
+        motivo: "No pudimos calcular la ruta automáticamente. Puedes enviar la solicitud y nuestro equipo confirmará la distancia y la cotización."
+      }), 0);
       return () => clearTimeout(timer);
     }
     if (rutaEstimacion?.distanciaKm === undefined || rutaEstimacion.tiempoEstimadoHoras === undefined) {
@@ -489,7 +544,7 @@ export function useNuevoTraslado() {
   }, [
     sesionReal, datos.marca, datos.modelo, datos.condicion,
     datos.modalidadProgramacion, datos.fechaHoraProgramada, rutaEstimacion,
-    setPrevisualizacion, setPrevisualizando
+    cpTarifaListo, rutaAviso, rutaCalculando, setPrevisualizacion, setPrevisualizando
   ]);
 
   // Buscador autocomplete Mapbox
@@ -579,7 +634,7 @@ export function useNuevoTraslado() {
   }, [router, setBloqueoVerificacion, setCargandoSesion, setResultado, setSesionReal, setUsuario, setVehiculosGuardados]);
 
   // Métodos de formulario
-  function actualizar<K extends keyof DatosFormulario>(campo: K, valor: DatosFormulario[K]) {
+  const actualizar = useCallback(<K extends keyof DatosFormulario>(campo: K, valor: DatosFormulario[K]) => {
     setErrorPaso(null);
     setErrores((prev) => {
       if (!prev[campo]) return prev;
@@ -588,62 +643,75 @@ export function useNuevoTraslado() {
       return siguiente;
     });
 
-    if (paso > 0 && tarifaPreviaSnapshot && CAMPOS_PASO_TARIFA.has(campo)) {
-      const datosNuevos = { ...datos, [campo]: valor };
-      if (haCambiadoTarifa(tarifaPreviaSnapshot, datosNuevos)) {
+    if (pasoRef.current > 0 && tarifaPreviaSnapshotRef.current && CAMPOS_PASO_TARIFA.has(campo)) {
+      const datosNuevos = { ...datosRef.current, [campo]: valor };
+      if (haCambiadoTarifa(tarifaPreviaSnapshotRef.current, datosNuevos)) {
         setTarifaPreviaAceptada(false);
         setErrorPaso("Tu tarifa puede haber cambiado. Confírmala antes de continuar.");
       }
     }
 
     setDatos((prev) => ({ ...prev, [campo]: valor }));
-  }
+  }, [setDatos, setErrorPaso, setErrores, setTarifaPreviaAceptada]);
 
-  function actualizarTelefono(campo: "entregaTelefono" | "recepcionTelefono", valor: string) {
+  const actualizarTelefono = useCallback((campo: "entregaTelefono" | "recepcionTelefono", valor: string) => {
     actualizar(campo, telefonoLocalMx(valor));
-  }
+  }, [actualizar]);
 
-  function actualizarMarcaCatalogo(marca: string) {
-    const cambioMarca = marca !== datos.marca;
+  const actualizarMarcaCatalogo = useCallback((marca: string) => {
+    const cambioMarca = marca !== datosRef.current.marca;
     actualizar("marca", marca);
-    if (cambioMarca && datos.modelo) actualizar("modelo", "");
-  }
+    if (cambioMarca && datosRef.current.modelo) actualizar("modelo", "");
+  }, [actualizar]);
 
-  function actualizarModeloCatalogo(modelo: string) {
+  const actualizarModeloCatalogo = useCallback((modelo: string) => {
     actualizar("modelo", modelo);
-    const tipoSugerido = tipoSugeridoParaVehiculo(datos.marca, modelo);
+    const tipoSugerido = tipoSugeridoParaVehiculo(datosRef.current.marca, modelo);
     if (tipoSugerido) actualizar("tipo", tipoSugerido);
-  }
+  }, [actualizar]);
 
-  function actualizarCodigoPostal(prefijo: PrefijoDomicilio, valor: string) {
-    const cp = soloDigitos(valor, 5);
-    actualizar(`${prefijo}CodigoPostal` as keyof DatosFormulario, cp as never);
-    if (cp.length === 5) void consultarCodigoPostal(prefijo, cp);
-  }
+  const limpiarConsultaCodigoPostal = useCallback((prefijo: PrefijoDomicilio) => {
+    const timer = codigoPostalTimersRef.current[prefijo];
+    if (timer) clearTimeout(timer);
+    codigoPostalTimersRef.current[prefijo] = null;
+    codigoPostalAbortRef.current[prefijo]?.abort();
+    codigoPostalAbortRef.current[prefijo] = null;
+    codigoPostalSolicitadoRef.current[prefijo] = "";
+    ++seqCodigoPostalRef.current[prefijo];
+    setCpConsultando((actual) => actual === prefijo ? null : actual);
+    setCpAviso((prev) => prev[prefijo] === null ? prev : { ...prev, [prefijo]: null });
+    setCpOpciones((prev) => prev[prefijo] === null ? prev : { ...prev, [prefijo]: null });
+    setPlacesOpciones((prev) => prev[prefijo].length === 0 ? prev : { ...prev, [prefijo]: [] });
+  }, [setCpAviso, setCpConsultando, setCpOpciones, setPlacesOpciones]);
 
-  async function consultarCodigoPostal(prefijo: PrefijoDomicilio, codigoPostal: string) {
-    const cp = soloDigitos(codigoPostal, 5);
-    actualizar(`${prefijo}CodigoPostal` as keyof DatosFormulario, cp as never);
-    const secuencia = ++seqCodigoPostalRef.current[prefijo];
+  const ejecutarConsultaCodigoPostal = useCallback(async (prefijo: PrefijoDomicilio, cp: string, secuencia: number) => {
     const vigente = () => seqCodigoPostalRef.current[prefijo] === secuencia;
+    if (!vigente()) return;
 
-    if (cp.length !== 5) {
-      setCpAviso((prev) => ({ ...prev, [prefijo]: null }));
-      setCpOpciones((prev) => ({ ...prev, [prefijo]: null }));
-      setPlacesOpciones((prev) => ({ ...prev, [prefijo]: [] }));
-      return;
-    }
-
-    setCpConsultando(prefijo);
-    setCpAviso((prev) => ({ ...prev, [prefijo]: null }));
-
+    const controller = new AbortController();
+    codigoPostalAbortRef.current[prefijo] = controller;
+    let avisoMapbox: string | null = null;
     try {
-      const sugerenciasMapbox = await sugerirDireccionesPorCodigoPostal(cp);
+      const sugerenciasMapboxPromise = sugerirDireccionesPorCodigoPostal(cp, controller.signal).catch(() => {
+        // Mapbox es complementario: un fallo externo no invalida el catálogo
+        // postal local ni debe presentarse como CP inexistente.
+        avisoMapbox = "No pudimos cargar referencias de Mapbox. Puedes continuar con el catálogo postal local.";
+        return [] as string[];
+      });
+      const [sugerenciasMapbox, datosCp] = await Promise.all([
+        sugerenciasMapboxPromise,
+        consultarCodigoPostalMx(cp)
+      ]);
       if (!vigente()) return;
       setPlacesOpciones((prev) => ({ ...prev, [prefijo]: sugerenciasMapbox }));
-      const datosCp = await consultarCodigoPostalMx(cp);
-      if (!vigente()) return;
-      if (!datosCp) throw new Error("CP no encontrado");
+      if (!datosCp) {
+        setCpAviso((prev) => ({
+          ...prev,
+          [prefijo]: "No pudimos encontrar ese CP. Captura estado, ciudad y colonia manualmente."
+        }));
+        setCpOpciones((prev) => ({ ...prev, [prefijo]: null }));
+        return;
+      }
       const ciudad = datosCp.ciudades[0] ?? datosCp.colonias[0] ?? "";
       const colonia = datosCp.colonias[0] ?? ciudad;
 
@@ -654,6 +722,7 @@ export function useNuevoTraslado() {
         [`${prefijo}Colonia`]: colonia || prev[`${prefijo}Colonia` as keyof DatosFormulario]
       }));
       setCpOpciones((prev) => ({ ...prev, [prefijo]: datosCp }));
+      if (avisoMapbox) setCpAviso((prev) => ({ ...prev, [prefijo]: avisoMapbox }));
     } catch {
       if (vigente()) {
         setCpAviso((prev) => ({
@@ -662,30 +731,71 @@ export function useNuevoTraslado() {
         }));
       }
     } finally {
+      if (codigoPostalAbortRef.current[prefijo] === controller) codigoPostalAbortRef.current[prefijo] = null;
       if (vigente()) setCpConsultando(null);
     }
-  }
+  }, [setCpAviso, setCpConsultando, setCpOpciones, setDatos, setPlacesOpciones]);
 
-  function aplicarSugerenciaCp(prefijo: PrefijoDomicilio, ciudad: string, colonia: string) {
+  const programarConsultaCodigoPostal = useCallback((prefijo: PrefijoDomicilio, cp: string) => {
+    if (codigoPostalSolicitadoRef.current[prefijo] === cp) return;
+    const timerAnterior = codigoPostalTimersRef.current[prefijo];
+    if (timerAnterior) clearTimeout(timerAnterior);
+    codigoPostalAbortRef.current[prefijo]?.abort();
+    codigoPostalAbortRef.current[prefijo] = null;
+
+    const secuencia = ++seqCodigoPostalRef.current[prefijo];
+    codigoPostalSolicitadoRef.current[prefijo] = cp;
+    setCpConsultando(prefijo);
+    setCpAviso((prev) => prev[prefijo] === null ? prev : { ...prev, [prefijo]: null });
+    setCpOpciones((prev) => prev[prefijo] === null ? prev : { ...prev, [prefijo]: null });
+    setPlacesOpciones((prev) => prev[prefijo].length === 0 ? prev : { ...prev, [prefijo]: [] });
+    const timer = setTimeout(() => {
+      codigoPostalTimersRef.current[prefijo] = null;
+      void ejecutarConsultaCodigoPostal(prefijo, cp, secuencia);
+    }, RETRASO_CONSULTA_CODIGO_POSTAL_MS);
+    codigoPostalTimersRef.current[prefijo] = timer;
+  }, [ejecutarConsultaCodigoPostal, setCpAviso, setCpConsultando, setCpOpciones, setPlacesOpciones]);
+
+  const consultarCodigoPostal = useCallback((prefijo: PrefijoDomicilio, codigoPostal: string): Promise<void> => {
+    const cp = soloDigitos(codigoPostal, 5);
+    const campo = `${prefijo}CodigoPostal` as keyof DatosFormulario;
+    if (datosRef.current[campo] !== cp) actualizar(campo, cp as never);
+    if (cp.length !== 5) limpiarConsultaCodigoPostal(prefijo);
+    else programarConsultaCodigoPostal(prefijo, cp);
+    return Promise.resolve();
+  }, [actualizar, limpiarConsultaCodigoPostal, programarConsultaCodigoPostal]);
+
+  const actualizarCodigoPostal = useCallback((prefijo: PrefijoDomicilio, valor: string) => {
+    const cp = soloDigitos(valor, 5);
+    actualizar(`${prefijo}CodigoPostal` as keyof DatosFormulario, cp as never);
+    if (cp.length === 5) programarConsultaCodigoPostal(prefijo, cp);
+    else limpiarConsultaCodigoPostal(prefijo);
+  }, [actualizar, limpiarConsultaCodigoPostal, programarConsultaCodigoPostal]);
+
+  const aplicarSugerenciaCp = useCallback((prefijo: PrefijoDomicilio, ciudad: string, colonia: string) => {
     setDatos((prev) => ({
       ...prev,
       [`${prefijo}Ciudad`]: ciudad,
       [`${prefijo}Colonia`]: colonia
     }));
-  }
+  }, [setDatos]);
 
-  function actualizarParadas(paradas: ParadaForm[]) {
+  const actualizarParadas = useCallback((paradas: ParadaForm[]) => {
     setErrorPaso(null);
     setDatos((prev) => ({ ...prev, paradas }));
-  }
+  }, [setDatos, setErrorPaso]);
 
-  function aplicarSugerenciaDireccion(prefijo: PrefijoDomicilio, s: Awaited<ReturnType<typeof sugerirDireccionesAutocomplete>>[number]) {
+  const reintentarRuta = useCallback(() => {
+    setRutaReintento((valor) => valor + 1);
+  }, [setRutaReintento]);
+
+  const aplicarSugerenciaDireccion = useCallback((prefijo: PrefijoDomicilio, s: Awaited<ReturnType<typeof sugerirDireccionesAutocomplete>>[number]) => {
     const calleExtraida = s.direccion || s.textoCompleto.split(",")[0] || "";
 
-    if (paso > 0 && tarifaPreviaSnapshot && s.codigoPostal) {
+    if (pasoRef.current > 0 && tarifaPreviaSnapshotRef.current && s.codigoPostal) {
       const campoCp = `${prefijo}CodigoPostal` as keyof DatosFormulario;
-      const datosNuevos = { ...datos, [campoCp]: s.codigoPostal };
-      if (haCambiadoTarifa(tarifaPreviaSnapshot, datosNuevos)) {
+      const datosNuevos = { ...datosRef.current, [campoCp]: s.codigoPostal };
+      if (haCambiadoTarifa(tarifaPreviaSnapshotRef.current, datosNuevos)) {
         setTarifaPreviaAceptada(false);
         setErrorPaso("Tu tarifa puede haber cambiado. Confírmala antes de continuar.");
       }
@@ -703,22 +813,22 @@ export function useNuevoTraslado() {
     if (prefijo === "origen") { setOrigenBusqueda(s.textoCompleto); setOrigenSugerencias([]); }
     else { setDestinoBusqueda(s.textoCompleto); setDestinoSugerencias([]); }
     if (s.codigoPostal && s.codigoPostal.length === 5) void consultarCodigoPostal(prefijo, s.codigoPostal);
-  }
+  }, [consultarCodigoPostal, setDestinoBusqueda, setDestinoSugerencias, setErrorPaso, setOrigenBusqueda, setOrigenSugerencias, setDatos, setTarifaPreviaAceptada]);
 
-  function aplicarVehiculoGuardado(vehiculo: VehiculoGuardado) {
+  const aplicarVehiculoGuardado = useCallback((vehiculo: VehiculoGuardado) => {
     const transmisionGuardada =
       vehiculo.transmision === "manual" || vehiculo.transmision === "automatica" || vehiculo.transmision === "electrica"
         ? vehiculo.transmision
-        : datos.transmision;
+        : datosRef.current.transmision;
 
-    if (paso > 0 && tarifaPreviaSnapshot) {
+    if (pasoRef.current > 0 && tarifaPreviaSnapshotRef.current) {
       const datosNuevos = {
-        ...datos,
+        ...datosRef.current,
         marca: vehiculo.marca ?? "",
         modelo: vehiculo.modelo ?? "",
-        condicion: (vehiculo.condicion as CondicionVehiculo) ?? datos.condicion
+        condicion: (vehiculo.condicion as CondicionVehiculo) ?? datosRef.current.condicion
       };
-      if (haCambiadoTarifa(tarifaPreviaSnapshot, datosNuevos)) {
+      if (haCambiadoTarifa(tarifaPreviaSnapshotRef.current, datosNuevos)) {
         setTarifaPreviaAceptada(false);
         setErrorPaso("Tu tarifa puede haber cambiado. Confírmala antes de continuar.");
       }
@@ -742,17 +852,17 @@ export function useNuevoTraslado() {
       tienePlacas: Boolean(vehiculo.tiene_placas),
       puedeCircular: Boolean(vehiculo.puede_circular_rodando)
     }));
-  }
+  }, [setDatos, setErrorPaso, setTarifaPreviaAceptada, setVehiculoSeleccionadoId]);
 
-  function limpiarVehiculoGuardado() {
+  const limpiarVehiculoGuardado = useCallback(() => {
     setVehiculoSeleccionadoId("");
-  }
+  }, [setVehiculoSeleccionadoId]);
 
-  function claseControl(campo: keyof DatosFormulario) {
-    return errores[campo] ? "border-danger" : "border-ink/50";
-  }
+  const claseControl = useCallback((campo: keyof DatosFormulario) => (
+    erroresRef.current[campo] ? "border-danger" : "border-ink/50"
+  ), []);
 
-  function enfocarPrimerError(campos: string[]) {
+  const enfocarPrimerError = useCallback((campos: string[]) => {
     if (campos.length === 0) return;
     const primer = campos[0]!;
     setTimeout(() => {
@@ -766,7 +876,7 @@ export function useNuevoTraslado() {
         candidato.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, 60);
-  }
+  }, []);
 
   const datosParaValidacion = useCallback(() => {
     return {
@@ -792,7 +902,7 @@ export function useNuevoTraslado() {
     return byIdx.length ? byIdx : undefined;
   }, [datosParaValidacion]);
 
-  function validarCampo(campo: keyof DatosFormulario) {
+  const validarCampo = useCallback((campo: keyof DatosFormulario) => {
     const res = esquemaSolicitudTraslado.safeParse(datosParaValidacion());
     if (!res.success) {
       const map = erroresFormulario(res) as ErroresFormulario;
@@ -814,9 +924,9 @@ export function useNuevoTraslado() {
         return n;
       });
     }
-  }
+  }, [datosParaValidacion, setErrores]);
 
-  function validarPasoActual() {
+  const validarPasoActual = useCallback(() => {
     if (paso > 0 && paso < 3 && !tarifaPreviaAceptada) {
       setErrorPaso("Tu tarifa cambió o requiere confirmación. Por favor revísala en el paso inicial.");
       setPaso(0);
@@ -852,7 +962,7 @@ export function useNuevoTraslado() {
       setErrorPaso(null);
     }
     return totalErrores === 0;
-  }
+  }, [datosParaValidacion, enfocarPrimerError, paso, setDetallesVehiculoExpandido, setErrorPaso, setErrores, setPaso, setSubpasoRuta, tarifaPreviaAceptada]);
 
   function restaurarBorrador() {
     const borrador = borradorDisponible;
@@ -918,7 +1028,7 @@ export function useNuevoTraslado() {
     setBorradorDisponible(null);
   }
 
-  function aceptarTarifaYContinuar() {
+  const aceptarTarifaYContinuar = useCallback(() => {
     if (!validarPasoActual()) return;
     setTarifaPreviaAceptada(true);
     setTarifaPreviaSnapshot(generarTarifaSnapshot(datos));
@@ -929,32 +1039,32 @@ export function useNuevoTraslado() {
       modelo: datos.modelo
     });
     setPaso(1);
-  }
+  }, [datos, previsualizacion, setErrorPaso, setPaso, setTarifaPreviaAceptada, setTarifaPreviaSnapshot, validarPasoActual]);
 
-  function avanzarPaso() {
+  const avanzarPaso = useCallback(() => {
     if (!validarPasoActual()) return;
     setPaso((p) => p + 1);
-  }
+  }, [setPaso, validarPasoActual]);
 
-  function retrocederPaso() {
+  const retrocederPaso = useCallback(() => {
     setPaso((p) => p - 1);
-  }
+  }, [setPaso]);
 
-  async function crear(
+  const crear = useCallback(async (
     cliente: SupabaseClient<Database>,
     datosForm: DatosFormulario,
     vehiculoId: string,
     coordenadas: CoordenadasTraslado & { paradasCoords?: CoordenadasParada[] },
     idempotenciaKey: string
-  ) {
+  ) => {
     if (!idempotenciaKey) throw new Error("No se pudo generar la clave de seguridad de la solicitud.");
     const payload = construirPayloadCreacion(datosForm, vehiculoId, coordenadas);
     const traslado = await crearTraslado(cliente, payload.vehiculo, payload.traslado, idempotenciaKey, payload.paradas);
     limpiarBorradorTrasladoLocal();
     return traslado;
-  }
+  }, []);
 
-  async function enviarSolicitud() {
+  const enviarSolicitud = useCallback(async () => {
     if (!tarifaPreviaAceptada) {
       setErrorPaso("Tu tarifa puede haber cambiado. Confírmala antes de continuar.");
       setPaso(0);
@@ -1012,12 +1122,45 @@ export function useNuevoTraslado() {
       return;
     }
 
+    // Sec3: defensa en cliente + validación servidor del paso del wizard (rechazar si <4)
+    if (paso < 3) {
+      setEnviando(false);
+      setResultado({ ok: false, mensaje: "Debes completar todos los pasos del wizard antes de enviar." });
+      return;
+    }
+
     try {
       registrarEventoUx("traslado_nuevo_enviado", {
         modalidad: datos.modalidadProgramacion,
         tipo_servicio: datos.tipoServicio,
         tipo_ruta: datos.tipoRuta
       });
+      // Sec3: validación servidor — el servidor es fuente de verdad, el cliente no puede falsificar paso
+      try {
+        const respPaso = await fetch("/api/traslados", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paso,
+            wizardPaso: paso,
+            ...datos,
+            vehiculoSeleccionadoId,
+            vehiculosUsuarioIds: vehiculosGuardados.map((v) => v.id),
+            zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            aceptaPoliticas: aceptaPoliticasPagoCancelacion,
+            paradas: datos.paradas,
+          }),
+        });
+        if (!respPaso.ok) {
+          const j = await respPaso.json().catch(() => null) as { error?: string } | null;
+          throw new Error(j?.error || "Validación de pasos fallida en el servidor.");
+        }
+      } catch (e) {
+        // Si la validación de paso falla, no continuar con geocodificación/creación
+        if (e instanceof Error && /Solicitud incompleta|Validación de pasos|Wizard incompleto/i.test(e.message)) throw e;
+        // Error de red en validación no bloquea si es 5xx genérico, pero logueamos
+        console.warn("[traslados/nuevo] validación paso servidor no disponible", e);
+      }
       const cliente = crearClienteNavegador();
       const origenDireccion = domicilioCompleto({
         calle: datos.origenCalle,
@@ -1054,9 +1197,8 @@ export function useNuevoTraslado() {
       }
 
       if (coordenadas.incompletas && !tieneMapboxConfigurado()) {
-        console.warn(
-          "[traslados/nuevo] NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN no está configurado: origen/destino se guardan sin geocodificar."
-        );
+        // Sec2: log genérico sin exponer nombre de variable de entorno; detalle va a observabilidad
+        console.warn("[traslados/nuevo] servicio de mapas no configurado: origen/destino se guardan sin geocodificar.");
       }
 
       const nuevoTraslado = await crear(cliente, datos, vehiculoSeleccionadoId, coordenadas, claveIdempotencia);
@@ -1087,7 +1229,13 @@ export function useNuevoTraslado() {
     } finally {
       setEnviando(false);
     }
-  }
+  }, [
+    aceptaPoliticasPagoCancelacion, cargandoSesion, claveIdempotencia, crear, datos, datosParaValidacion, enfocarPrimerError,
+    geocodificarRuta, geocodificarRutaConParadas,
+    paso, router, sesionReal, setDetallesVehiculoExpandido, setEnviando, setErrorPaso,
+    setErrores, setPaso, setResultado, setRutaAviso, setSubpasoRuta, setTrasladoCreado,
+    tarifaPreviaAceptada, vehiculoSeleccionadoId, vehiculosGuardados, rutaEstimacion
+  ]);
 
   return {
     // Paso
@@ -1141,6 +1289,7 @@ export function useNuevoTraslado() {
     rutaEstimacion,
     rutaCalculando,
     rutaAviso,
+    reintentarRuta,
     // Vehículos y detalles
     vehiculosGuardados,
     vehiculoSeleccionadoId,
@@ -1161,18 +1310,20 @@ export function useNuevoTraslado() {
     setResultado,
     aceptaPoliticasPagoCancelacion,
     setAceptaPoliticasPagoCancelacion,
-    // Borrador
+    // Borrador y feedback guardado
     borradorDisponible,
     restaurarBorrador,
     descartarBorrador,
-    // Pago
+    estadoGuardado,
+    tiempoUltimoGuardado,
+    // Envío y estados finales
     trasladoCreado,
     cotizacionAceptada,
     aceptandoCotizacion,
     errorAceptacion,
     pagoConfirmado,
     setPagoConfirmado,
-    reintentarAceptacion: () => setReintentoAceptacion((n) => n + 1),
+    reintentarAceptacion,
     // Export backward-compatibility
     crear
   };

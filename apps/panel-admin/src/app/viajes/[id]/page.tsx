@@ -8,6 +8,7 @@ import { AdminLoadingState, AdminEmptyState, AdminErrorState } from "../../admin
 import { ETIQUETA_TIPO_VEHICULO, ETIQUETA_NIVEL_CONCER } from "@ruum/shared/constants";
 import { resumenClasificacionVehiculo } from "@ruum/shared/catalogos";
 import { ETIQUETA_ESTADO_TRASLADO, TRANSICIONES } from "@ruum/shared/states";
+import { suscribirCanalSeguro } from "@ruum/shared/utils";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 import {
@@ -133,14 +134,19 @@ export default function PaginaDetalleViajeAdmin() {
     void recargar();
 
     const cliente = tieneSupabaseConfigurado() ? crearClienteNavegador() : null;
-    const canal = cliente
-      ? cliente
-          .channel(`detalle-traslado-${id}`)
-          .on("postgres_changes", { event: "*", schema: "public", table: "traslados", filter: `id=eq.${id}` }, () => {
-            void recargar();
-          })
-          .subscribe()
-      : null;
+    let desuscribir: (() => Promise<void>) | null = null;
+
+    if (cliente) {
+      const canal = cliente
+        .channel(`detalle-traslado-${id}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "traslados", filter: `id=eq.${id}` }, () => {
+          void recargar();
+        });
+
+      desuscribir = suscribirCanalSeguro(cliente, canal, {
+        onError: (err) => console.warn("[AdminDetalleTraslado] error en canal", err)
+      });
+    }
 
     function manejarVisibilidad() {
       if (document.visibilityState === "visible") void recargar();
@@ -150,7 +156,7 @@ export default function PaginaDetalleViajeAdmin() {
     const intervalo = setInterval(() => void recargar(), 60000);
 
     return () => {
-      if (canal) cliente?.removeChannel(canal);
+      if (desuscribir) void desuscribir();
       document.removeEventListener("visibilitychange", manejarVisibilidad);
       clearInterval(intervalo);
     };

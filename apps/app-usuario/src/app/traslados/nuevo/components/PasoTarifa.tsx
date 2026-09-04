@@ -1,4 +1,5 @@
 "use client";
+import { memo } from "react";
 import { Button, PassportCard } from "@ruum/ui";
 import type { PrevisualizacionTarifa } from "@ruum/api/services";
 import { MARCAS_CATALOGO } from "../../../../lib/catalogo-vehiculos";
@@ -21,7 +22,7 @@ export interface PasoTarifaProps {
   onContinuar: () => void;
 }
 
-export function PasoTarifa({
+export const PasoTarifa = memo(function PasoTarifa({
   datos,
   errores,
   claseControl,
@@ -281,7 +282,7 @@ export function PasoTarifa({
 
                 <div className="flex flex-col gap-1.5">
                   <span id="label-gate-slots-horario" className="font-body text-sm font-medium">Horario sugerido</span>
-                  <div className="grid grid-cols-2 gap-1.5" role="group" aria-labelledby="label-gate-slots-horario">
+                  <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-labelledby="label-gate-slots-horario">
                     {SLOTS_HORARIOS.map((s) => {
                       const t = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0, 5) ?? "") : "";
                       const seleccionado = s.id === "personalizado"
@@ -291,7 +292,9 @@ export function PasoTarifa({
                         <button
                           key={s.id}
                           type="button"
-                          aria-pressed={seleccionado}
+                          role="radio"
+                          aria-checked={seleccionado}
+                          aria-label={s.etiqueta}
                           onClick={() => {
                             const fecha = datos.fechaHoraProgramada ? datos.fechaHoraProgramada.split("T")[0] : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
                             if (s.hora) actualizar("fechaHoraProgramada", `${fecha}T${s.hora}`);
@@ -400,4 +403,4 @@ export function PasoTarifa({
       </section>
     </div>
   );
-}
+});

@@ -1,5 +1,6 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
+import { suscribirCanalSeguro, type OpcionesSuscripcionSegura } from "@ruum/shared/utils";
 
 type Cliente = SupabaseClient<Database>;
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -82,9 +83,10 @@ export async function obtenerUltimaUbicacionTraslado(cliente: Cliente, trasladoI
 export function suscribirUbicacionTraslado(
   cliente: Cliente,
   trasladoId: string,
-  alRecibir: (ubicacion: UbicacionTraslado) => void
+  alRecibir: (ubicacion: UbicacionTraslado) => void,
+  opciones?: OpcionesSuscripcionSegura
 ): RealtimeChannel {
-  return cliente
+  const canal = cliente
     .channel(`ubicaciones-traslado-${trasladoId}`)
     .on(
       "postgres_changes",
@@ -95,8 +97,10 @@ export function suscribirUbicacionTraslado(
         filter: `traslado_id=eq.${trasladoId}`
       },
       (payload) => alRecibir(payload.new as UbicacionTraslado)
-    )
-    .subscribe();
+    );
+
+  suscribirCanalSeguro(cliente, canal, opciones);
+  return canal;
 }
 
 export async function obtenerEstadoTrasladoRealtime(cliente: Cliente, trasladoId: string): Promise<EstadoTrasladoRealtime | null> {
@@ -112,9 +116,10 @@ export async function obtenerEstadoTrasladoRealtime(cliente: Cliente, trasladoId
 export function suscribirEstadoTraslado(
   cliente: Cliente,
   trasladoId: string,
-  alRecibir: (estado: EstadoTrasladoRealtime) => void
+  alRecibir: (estado: EstadoTrasladoRealtime) => void,
+  opciones?: OpcionesSuscripcionSegura
 ): RealtimeChannel {
-  return cliente
+  const canal = cliente
     .channel(`estado-traslado-${trasladoId}`)
     .on(
       "postgres_changes",
@@ -125,6 +130,9 @@ export function suscribirEstadoTraslado(
         filter: `id=eq.${trasladoId}`
       },
       (payload) => alRecibir(payload.new as EstadoTrasladoRealtime)
-    )
-    .subscribe();
+    );
+
+  suscribirCanalSeguro(cliente, canal, opciones);
+  return canal;
 }
+

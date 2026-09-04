@@ -68,19 +68,44 @@ export function ChatViaje({ trasladoId, estado }: { trasladoId: string; estado: 
     clienteRef.current = cliente;
     setErrorChat(null);
 
+    let cancelado = false;
+
     obtenerMensajes(cliente, trasladoId)
-      .then(setMensajes)
+      .then((cargados) => {
+        if (!cancelado) setMensajes(cargados);
+      })
       .catch((err) => {
-        setMensajes([]);
-        setErrorChat(traducirErrorOperativo(err, "No pudimos cargar el chat."));
+        if (!cancelado) {
+          setMensajes([]);
+          setErrorChat(traducirErrorOperativo(err, "No pudimos cargar el chat."));
+        }
       });
 
-    const canal = suscribirseAMensajes(cliente, trasladoId, (nuevo) => {
-      setMensajes((prev) => (prev.some((m) => m.id === nuevo.id) ? prev : [...prev, nuevo]));
-    });
+    const canal = suscribirseAMensajes(
+      cliente,
+      trasladoId,
+      (nuevo) => {
+        if (!cancelado) {
+          setMensajes((prev) => (prev.some((m) => m.id === nuevo.id) ? prev : [...prev, nuevo]));
+        }
+      },
+      {
+        onError: (err) => {
+          if (!cancelado) {
+            setErrorChat("Se perdió la conexión en tiempo real con el chat.");
+            console.warn("[ChatViaje] error en suscripción realtime", err);
+          }
+        }
+      }
+    );
 
     return () => {
-      cliente.removeChannel(canal);
+      cancelado = true;
+      try {
+        void cliente.removeChannel(canal);
+      } catch {
+        // Ignorar fallos de cleanup si ya estaba cerrado
+      }
     };
   }, [trasladoId, disponible, chatAbierto]);
 

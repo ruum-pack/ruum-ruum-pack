@@ -5,7 +5,48 @@ function obtenerTokenPublico(): string | undefined {
   return process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 }
 const URL_GEOCODIFICACION = "https://api.mapbox.com/search/geocode/v6/forward";
-const MAPBOX_GEOCODING_TIMEOUT_MS = 10_000;
+export const MAPBOX_GEOCODING_TIMEOUT_MS = 8_000;
+export const MAPBOX_GEOCODING_MAX_INTENTOS = 3;
+export const MAPBOX_GEOCODING_RETRY_DELAY_MS = 300;
+
+// Sec1: rate limiter cliente Mapbox — evita agotar cuota (600 req/min). Token bucket simple.
+const MAPBOX_RPS_LIMIT = 8; // 480/min con margen bajo 600
+const MAPBOX_RPM_LIMIT = 450;
+const mapboxTimestamps: number[] = [];
+
+async function adquirirPermisoMapbox(signal?: AbortSignal): Promise<void> {
+  while (true) {
+    if (signal?.aborted) return;
+    const ahora = Date.now();
+    while (mapboxTimestamps.length && mapboxTimestamps[0]! < ahora - 60_000) mapboxTimestamps.shift();
+    const enUltimoSegundo = mapboxTimestamps.filter((t) => t > ahora - 1_000).length;
+    const enUltimoMinuto = mapboxTimestamps.length;
+    if (enUltimoSegundo < MAPBOX_RPS_LIMIT && enUltimoMinuto < MAPBOX_RPM_LIMIT) {
+      mapboxTimestamps.push(ahora);
+      return;
+    }
+    const esperaSegundo = enUltimoSegundo >= MAPBOX_RPS_LIMIT
+      ? (mapboxTimestamps[mapboxTimestamps.length - MAPBOX_RPS_LIMIT]! + 1_000 - ahora)
+      : 0;
+    const esperaMinuto = enUltimoMinuto >= MAPBOX_RPM_LIMIT
+      ? (mapboxTimestamps[0]! + 60_000 - ahora)
+      : 0;
+    const espera = Math.max(esperaSegundo, esperaMinuto, 0);
+    const ms = Math.min(Math.max(espera, 50), 1_000);
+    const continuo = await new Promise<boolean>((resolve) => {
+      let done = false;
+      const fin = (v: boolean) => { if (done) return; done = true; clearTimeout(t); signal?.removeEventListener("abort", onAbort); resolve(v); };
+      const onAbort = () => fin(false);
+      const t = setTimeout(() => fin(true), ms);
+      signal?.addEventListener("abort", onAbort, { once: true });
+    });
+    if (!continuo) return;
+  }
+}
+
+export function __resetMapboxRateLimitForTest() {
+  mapboxTimestamps.length = 0;
+}
 
 export interface CoordenadasGeocodificadas { lat: number; lng: number; }
 export interface RutaMapboxCalculada { distanciaKm: number; tiempoEstimadoHoras: number; }
@@ -29,6 +70,27 @@ export function tieneMapboxConfigurado(): boolean {
   return Boolean(obtenerTokenPublico()?.startsWith("pk."));
 }
 
+function esEstadoReintentable(status: number) {
+  return status === 408 || status === 425 || status === 429 || (status >= 500 && status <= 599);
+}
+
+function esperarReintento(ms: number, signal?: AbortSignal): Promise<boolean> {
+  if (signal?.aborted) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    let resuelto = false;
+    const finalizar = (continuar: boolean) => {
+      if (resuelto) return;
+      resuelto = true;
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", cancelar);
+      resolve(continuar);
+    };
+    const cancelar = () => finalizar(false);
+    const timer = setTimeout(() => finalizar(true), ms);
+    signal?.addEventListener("abort", cancelar, { once: true });
+  });
+}
+
 async function consultarMapbox(parametros: URLSearchParams, externalSignal?: AbortSignal): Promise<FeatureMapbox[]> {
   const token = obtenerTokenPublico();
   if (!tieneMapboxConfigurado() || !token) return [];
@@ -36,60 +98,74 @@ async function consultarMapbox(parametros: URLSearchParams, externalSignal?: Abo
   parametros.set("access_token", token);
   parametros.set("country", "mx");
   parametros.set("language", "es");
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), MAPBOX_GEOCODING_TIMEOUT_MS);
-  const onExternalAbort = () => controller.abort();
-  if (externalSignal) externalSignal.addEventListener("abort", onExternalAbort, { once: true });
-  // Combinar señales: aborta si cualquiera de las dos lo hace
-  const signal = controller.signal;
-  try {
-    const respuesta = await fetch(`${URL_GEOCODIFICACION}?${parametros.toString()}`, { signal });
-    if (!respuesta.ok) {
-      void recordOperationalEvent("geocoding_failure", {
-        status: respuesta.status,
-        scope: "geocoding_api"
-      }, "warning");
-      throw new MapboxUsuarioError(`Mapbox Geocoding respondió ${respuesta.status}.`, respuesta.status);
+  let ultimoError: MapboxUsuarioError | null = null;
+
+  for (let intento = 1; intento <= MAPBOX_GEOCODING_MAX_INTENTOS; intento += 1) {
+    if (externalSignal?.aborted) return [];
+    await adquirirPermisoMapbox(externalSignal);
+    if (externalSignal?.aborted) return [];
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), MAPBOX_GEOCODING_TIMEOUT_MS);
+    const onExternalAbort = () => controller.abort();
+    externalSignal?.addEventListener("abort", onExternalAbort, { once: true });
+    let error: MapboxUsuarioError | null = null;
+
+    try {
+      const respuesta = await fetch(`${URL_GEOCODIFICACION}?${parametros.toString()}`, { signal: controller.signal });
+      if (!respuesta.ok) {
+        error = new MapboxUsuarioError(`Mapbox Geocoding respondió ${respuesta.status}.`, respuesta.status);
+      } else {
+        const datos = (await respuesta.json()) as { features?: FeatureMapbox[] };
+        return datos.features ?? [];
+      }
+    } catch (rawError) {
+      if (externalSignal?.aborted) return [];
+      error = rawError instanceof MapboxUsuarioError
+        ? rawError
+        : controller.signal.aborted
+          ? new MapboxUsuarioError("Mapbox Geocoding agotó el tiempo de espera.", 504)
+          : new MapboxUsuarioError("Mapbox Geocoding no está disponible.", 503);
+    } finally {
+      clearTimeout(timeout);
+      externalSignal?.removeEventListener("abort", onExternalAbort);
     }
-    const datos = (await respuesta.json()) as { features?: FeatureMapbox[] };
-    return datos.features ?? [];
-  } catch (error) {
-    if (error instanceof MapboxUsuarioError) throw error;
-    // R3: abort por cancelación de usuario (sequence superseded) no es fallo operativo
-    const esAbortExterno = externalSignal?.aborted;
-    const esTimeout = controller.signal.aborted && !esAbortExterno;
-    if (error instanceof DOMException && error.name === "AbortError" && esAbortExterno) {
-      // Cancelación intencional: silenciar sin telemetría
-      return [];
-    }
+
+    ultimoError = error;
+    const reintentable = error !== null && esEstadoReintentable(error.status);
     void recordOperationalEvent("geocoding_failure", {
-      error: esTimeout ? "timeout" : error instanceof Error ? error.message : "error_red",
-      aborted: esAbortExterno ? "cancelado" : undefined
-    }, "warning");
-    return [];
-  } finally {
-    clearTimeout(timeout);
-    if (externalSignal) externalSignal.removeEventListener("abort", onExternalAbort);
+      status: error?.status,
+      scope: "geocoding_api",
+      intento,
+      max_intentos: MAPBOX_GEOCODING_MAX_INTENTOS,
+      reintentando: reintentable && intento < MAPBOX_GEOCODING_MAX_INTENTOS
+    }, reintentable && intento < MAPBOX_GEOCODING_MAX_INTENTOS ? "warning" : "error");
+
+    if (!error || !reintentable || intento >= MAPBOX_GEOCODING_MAX_INTENTOS) break;
+    if (!(await esperarReintento(MAPBOX_GEOCODING_RETRY_DELAY_MS * 2 ** (intento - 1), externalSignal))) return [];
   }
+
+  throw ultimoError ?? new MapboxUsuarioError("Mapbox Geocoding no está disponible.", 503);
 }
 
 export function esErrorConfiguracionMapbox(error: unknown): boolean {
   return (
     error instanceof MapboxUsuarioError ||
     error instanceof MapboxDirectionsError
-  ) && [401, 403, 429, 504].includes(error.status);
+  ) && [401, 403, 408, 425, 429, 502, 503, 504].includes(error.status);
 }
 
 export function mensajeErrorMapbox(error: unknown): string {
+  // Sec2: mensajes genéricos para UI — detalles van a server log via recordOperationalEvent, nunca exponer env vars
   if (error instanceof MapboxUsuarioError || error instanceof MapboxDirectionsError) {
     if (error.status === 401 || error.status === 403) {
-      return "Mapbox rechazó el token configurado. Revisa que NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN esté activo y autorizado para Geocoding y Directions.";
+      return "Servicio de mapas no disponible temporalmente. Intenta de nuevo más tarde.";
     }
     if (error.status === 429) {
-      return "Mapbox alcanzó el límite de cuota o frecuencia. Intenta de nuevo en unos minutos.";
+      return "Servicio de mapas con alta demanda. Intenta de nuevo en unos minutos.";
     }
-    if (error.status === 504) {
-      return "Mapbox tardó demasiado en responder. La ruta se podrá calcular de nuevo más tarde.";
+    if (error.status === 408 || error.status === 502 || error.status === 503 || error.status === 504) {
+      return "Servicio de mapas tardó demasiado. Puedes continuar y reintentaremos el cálculo.";
     }
   }
   return "No pudimos calcular distancia y tiempo en este momento.";
@@ -190,9 +266,17 @@ export async function calcularRutaMapbox(
   signal?: AbortSignal
 ): Promise<RutaMapboxCalculada | null> {
   if (signal?.aborted) return null;
+  await adquirirPermisoMapbox(signal);
+  if (signal?.aborted) return null;
   const token = obtenerTokenPublico();
   if (!tieneMapboxConfigurado() || !token) return null;
-  const ruta = await obtenerRutaDirectionsMapbox([origen.lng, origen.lat], [destino.lng, destino.lat], token, { lanzarErrores: true });
+  const ruta = await obtenerRutaDirectionsMapbox([origen.lng, origen.lat], [destino.lng, destino.lat], token, {
+    lanzarErrores: true,
+    signal,
+    maxIntentos: MAPBOX_GEOCODING_MAX_INTENTOS,
+    timeoutMs: MAPBOX_GEOCODING_TIMEOUT_MS,
+    demoraReintentoMs: MAPBOX_GEOCODING_RETRY_DELAY_MS
+  });
   if (signal?.aborted) return null;
   if (ruta?.distanciaKm == null || ruta?.tiempoHoras == null) return null;
   return { distanciaKm: ruta.distanciaKm, tiempoEstimadoHoras: ruta.tiempoHoras };
@@ -205,6 +289,8 @@ export async function calcularRutaMapboxConParadas(
   signal?: AbortSignal
 ): Promise<RutaMapboxCalculada | null> {
   if (signal?.aborted) return null;
+  await adquirirPermisoMapbox(signal);
+  if (signal?.aborted) return null;
   const token = obtenerTokenPublico();
   if (!tieneMapboxConfigurado() || !token) return null;
   const { obtenerRutaDirectionsMapboxConParadas } = await import("@ruum/shared/utils");
@@ -213,7 +299,13 @@ export async function calcularRutaMapboxConParadas(
     [destino.lng, destino.lat],
     paradas.map((p) => [p.lng, p.lat] as [number, number]),
     token,
-    { lanzarErrores: true }
+    {
+      lanzarErrores: true,
+      signal,
+      maxIntentos: MAPBOX_GEOCODING_MAX_INTENTOS,
+      timeoutMs: MAPBOX_GEOCODING_TIMEOUT_MS,
+      demoraReintentoMs: MAPBOX_GEOCODING_RETRY_DELAY_MS
+    }
   );
   if (signal?.aborted) return null;
   if (ruta?.distanciaKm == null || ruta?.tiempoHoras == null) return null;

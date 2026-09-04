@@ -27,7 +27,6 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/su
 import { consultarCodigoPostalMx } from "../../../lib/codigos-postales";
 import {
   calcularRutaMapbox,
-  esErrorConfiguracionMapbox,
   geocodificarDireccion,
   mensajeErrorMapbox,
   tieneMapboxConfigurado
@@ -61,52 +60,15 @@ async function calcularSha256(archivo: File): Promise<string> {
     .join("");
 }
 
-// ── R6 helpers: backoff y rate-limit Mapbox ─────────────────────────────────
 function dormir(ms: number, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) return Promise.resolve();
   return new Promise((resolve, reject) => {
-    const t = setTimeout(resolve, ms);
-    signal?.addEventListener("abort", () => { clearTimeout(t); reject(new DOMException("Aborted", "AbortError")); }, { once: true });
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => {
+      clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    }, { once: true });
   });
-}
-
-async function geocodificarConRetry(direccion: string, signal?: AbortSignal, intentos = 3): Promise<Awaited<ReturnType<typeof geocodificarDireccion>>> {
-  let ultimoError: unknown = null;
-  for (let i = 0; i < intentos; i++) {
-    if (signal?.aborted) return null;
-    try {
-      const res = await geocodificarDireccion(direccion, signal);
-      return res;
-    } catch (e) {
-      ultimoError = e;
-      const es429 = esErrorConfiguracionMapbox(e) && (e as { status: number }).status === 429;
-      if (!es429 || i === intentos - 1) throw e;
-      await dormir(400 * Math.pow(2, i), signal);
-    }
-  }
-  throw ultimoError;
-}
-
-async function calcularRutaConRetry(
-  origen: { lat: number; lng: number },
-  destino: { lat: number; lng: number },
-  signal?: AbortSignal,
-  intentos = 3
-): Promise<Awaited<ReturnType<typeof calcularRutaMapbox>>> {
-  let ultimoError: unknown = null;
-  for (let i = 0; i < intentos; i++) {
-    if (signal?.aborted) return null;
-    try {
-      const r = await calcularRutaMapbox(origen, destino, signal);
-      return r;
-    } catch (e) {
-      ultimoError = e;
-      const es429 = esErrorConfiguracionMapbox(e) && (e as { status: number }).status === 429;
-      if (!es429 || i === intentos - 1) throw e;
-      await dormir(500 * Math.pow(2, i), signal);
-    }
-  }
-  throw ultimoError;
 }
 
 export const MAX_INTENTOS_MASIVO = 20;
@@ -289,12 +251,12 @@ export function CargaMasivaForm() {
     let distanciaKm = numeroTexto(fila.distancia_km);
     let tiempoEstimadoHoras = numeroTexto(fila.tiempo_estimado_horas);
 
-    // Geocodificación Mapbox si faltan coordenadas — R6 con retry 429 y abort
+    // Geocodificación Mapbox si faltan coordenadas — timeout, retry y abort centralizados en lib/mapbox
     if (tieneMapboxConfigurado() && !signal?.aborted) {
       try {
         const [geoOrigen, geoDestino] = await Promise.all([
-          origenLat && origenLng ? null : geocodificarConRetry(origenDireccion, signal),
-          destinoLat && destinoLng ? null : geocodificarConRetry(destinoDireccion, signal)
+          origenLat && origenLng ? null : geocodificarDireccion(origenDireccion, signal),
+          destinoLat && destinoLng ? null : geocodificarDireccion(destinoDireccion, signal)
         ]);
         if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
         if (geoOrigen) {
@@ -308,7 +270,7 @@ export function CargaMasivaForm() {
 
         // Calcular distancia y tiempo si faltan
         if ((!distanciaKm || !tiempoEstimadoHoras) && origenLat && origenLng && destinoLat && destinoLng) {
-          const ruta = await calcularRutaConRetry(
+          const ruta = await calcularRutaMapbox(
             { lat: Number(origenLat), lng: Number(origenLng) },
             { lat: Number(destinoLat), lng: Number(destinoLng) },
             signal

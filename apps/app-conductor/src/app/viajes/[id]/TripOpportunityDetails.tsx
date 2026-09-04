@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO, TEXTOS_CARGANDO, type MotivoRechazo } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
-import { traducirErrorOperativo } from "@ruum/shared/utils";
+import { traducirErrorOperativo, suscribirCanalSeguro } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 import { solicitarAsignacionViaje, registrarEvento } from "@ruum/api/services";
 import { obtenerUbicacionActualConEstado, distanciaMetrosEntre, type Coordenadas } from "../../../lib/ubicacion";
@@ -77,11 +77,14 @@ export function TripOpportunityDetails({
             }
           }
         }
-      )
-      .subscribe();
+      );
+
+    const desuscribir = suscribirCanalSeguro(cliente, canal, {
+      onError: (err) => console.warn("[TripOpportunityDetails] error en canal oferta", err)
+    });
 
     return () => {
-      cliente.removeChannel(canal);
+      void desuscribir();
     };
   }, [trasladoId, conductorId, router]);
 

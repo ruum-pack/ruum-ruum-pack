@@ -1,6 +1,6 @@
-import type { RealtimeChannel } from "@supabase/supabase-js";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
+import { suscribirCanalSeguro, type OpcionesSuscripcionSegura } from "@ruum/shared/utils";
 
 type Cliente = SupabaseClient<Database>;
 type MensajeRow = Database["public"]["Tables"]["mensajes_chat"]["Row"];
@@ -35,21 +35,24 @@ export async function enviarMensaje(cliente: Cliente, trasladoId: string, conten
  * PRD §4.12 — el chat debe sentirse en vivo, no como un formulario que hay
  * que recargar. Usa Supabase Realtime (Postgres Changes) en vez de polling.
  * Devuelve el canal para que quien llame lo desuscriba en su cleanup de
- * useEffect — esta función no se desuscribe sola.
+ * useEffect y acepta opciones de suscripción segura para evitar leaks.
  */
 export function suscribirseAMensajes(
   cliente: Cliente,
   trasladoId: string,
-  alRecibir: (mensaje: MensajeRow) => void
+  alRecibir: (mensaje: MensajeRow) => void,
+  opciones?: OpcionesSuscripcionSegura
 ): RealtimeChannel {
-  return cliente
+  const canal = cliente
     .channel(`mensajes_chat:${trasladoId}`)
     .on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "mensajes_chat", filter: `traslado_id=eq.${trasladoId}` },
       (payload) => alRecibir(payload.new as MensajeRow)
-    )
-    .subscribe();
+    );
+
+  suscribirCanalSeguro(cliente, canal, opciones);
+  return canal;
 }
 
 /**

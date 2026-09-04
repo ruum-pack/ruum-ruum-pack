@@ -1,4 +1,5 @@
 "use client";
+import { memo } from "react";
 import { Field } from "@ruum/ui";
 import type { DatosCodigoPostal } from "../../../../lib/codigos-postales";
 
@@ -22,7 +23,7 @@ export interface CampoCodigoPostalProps {
 // en cada render (nueva referencia de función) y desmontaba/remontaba el
 // <input> en cada tecla — de ahí que solo se pudiera capturar un dígito del
 // CP a la vez y hubiera que hacer click de nuevo para seguir escribiendo.
-export function CampoCodigoPostal({
+export const CampoCodigoPostal = memo(function CampoCodigoPostal({
   id,
   nombre,
   valor,
@@ -97,4 +98,4 @@ export function CampoCodigoPostal({
       )}
     </div>
   );
-}
+});

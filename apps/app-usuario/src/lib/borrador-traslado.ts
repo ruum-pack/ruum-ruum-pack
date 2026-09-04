@@ -25,8 +25,21 @@ const CLAVE_ACTUAL = "ruumruum.traslados-nuevo.borrador.v2";
 const VERSION_ESQUEMA = 2;
 const VIGENCIA_MS = 24 * 60 * 60 * 1000;
 const LONGITUD_MAXIMA_CAMPO = 180;
-// Duplicado intencional de NuevoTrasladoForm.tsx → const PASOS = [...] as const (5 pasos). Ver comentario de cabecera.
 export const PASO_MAXIMO = 4; // = PASOS.length - 1
+
+export function formatearTiempoRelativoBorrador(guardadoEn: string, ahora: number = Date.now()): string {
+  const guardadoMs = new Date(guardadoEn).getTime();
+  if (!Number.isFinite(guardadoMs)) return "recientemente";
+  const difSegundos = Math.max(0, Math.floor((ahora - guardadoMs) / 1000));
+  if (difSegundos < 60) return "hace unos segundos";
+  const difMinutos = Math.floor(difSegundos / 60);
+  if (difMinutos < 60) return `hace ${difMinutos} ${difMinutos === 1 ? "minuto" : "minutos"}`;
+  const difHoras = Math.floor(difMinutos / 60);
+  if (difHoras < 24) return `hace ${difHoras} ${difHoras === 1 ? "hora" : "horas"}`;
+  const difDias = Math.floor(difHoras / 24);
+  return `hace ${difDias} ${difDias === 1 ? "día" : "días"}`;
+}
+
 
 export interface BorradorTrasladoLocal {
   versionEsquema: 2;

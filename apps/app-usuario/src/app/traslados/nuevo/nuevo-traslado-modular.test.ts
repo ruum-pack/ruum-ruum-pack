@@ -27,12 +27,13 @@ describe("NuevoTrasladoForm — Arquitectura Modular (GAP 1)", () => {
   it("exporta todos los componentes y hooks desacoplados", () => {
     expect(typeof NuevoTrasladoForm).toBe("function");
     expect(typeof useNuevoTraslado).toBe("function");
-    expect(typeof PasoTarifa).toBe("function");
-    expect(typeof PasoVehiculo).toBe("function");
-    expect(typeof PasoRuta).toBe("function");
-    expect(typeof PasoDetalles).toBe("function");
-    expect(typeof PasoPago).toBe("function");
-    expect(typeof CampoCodigoPostal).toBe("function");
+    // Paso* usan React.memo -> typeof es 'object' con $$typeof, aceptamos ambos
+    expect(["function", "object"]).toContain(typeof PasoTarifa);
+    expect(["function", "object"]).toContain(typeof PasoVehiculo);
+    expect(["function", "object"]).toContain(typeof PasoRuta);
+    expect(["function", "object"]).toContain(typeof PasoDetalles);
+    expect(["function", "object"]).toContain(typeof PasoPago);
+    expect(["function", "object"]).toContain(typeof CampoCodigoPostal);
   });
 
   it("define exactamente 5 pasos en PASOS y coinciden con el flujo del wizard", () => {

@@ -1,4 +1,5 @@
 "use client";
+import { memo } from "react";
 import Link from "next/link";
 import { Button, PassportCard, Aviso } from "@ruum/ui";
 import { PagoStripe } from "../../../PagoStripe";
@@ -17,7 +18,7 @@ export interface PasoPagoProps {
   cotizacionAceptada: boolean;
 }
 
-export function PasoPago({
+export const PasoPago = memo(function PasoPago({
   trasladoCreado,
   pagoConfirmado,
   setPagoConfirmado,
@@ -85,4 +86,4 @@ export function PasoPago({
       </div>
     </div>
   );
-}
+});
