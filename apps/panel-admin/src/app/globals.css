@@ -860,6 +860,21 @@ html[data-theme="light"] :where(input, select, textarea) {
   background: rgba(255, 255, 255, 0.82);
 }
 
+.admin-v2-shell .admin-auth-shell {
+  background:
+    linear-gradient(180deg, rgba(246, 248, 251, 0.82) 0%, rgba(255, 255, 255, 0.94) 100%),
+    url("/imagenes/torre-control-flota.webp") center / cover no-repeat,
+    var(--admin-v2-surface-secondary);
+  color: var(--admin-v2-primary);
+}
+
+.admin-v2-shell .admin-auth-card {
+  border-color: var(--admin-v2-border);
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--admin-v2-primary);
+  box-shadow: var(--ruum-shadow-3);
+}
+
 @media (max-width: 1023px) {
   .admin-topbar {
     display: none;

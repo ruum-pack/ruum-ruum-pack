@@ -96,7 +96,7 @@ function FormularioLoginAdmin() {
               </div>
             )}
 
-            <Button type="submit" disabled={enviando} className="mt-2 w-full">
+            <Button type="submit" disabled={enviando} className="admin-button admin-button-primary mt-2 w-full">
               {enviando ? "Entrando…" : "Entrar a la Torre de Control"}
             </Button>
           </form>

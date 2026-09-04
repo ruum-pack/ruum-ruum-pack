@@ -239,11 +239,15 @@ function FormularioPagoReal({
         return;
       }
 
-      if (paymentIntent && (paymentIntent.status === "succeeded" || paymentIntent.status === "processing")) {
+      if (paymentIntent?.status === "succeeded" || paymentIntent?.status === "processing") {
         onPagado();
-      } else {
-        onPagado();
+        return;
       }
+
+      setError(
+        "Stripe no confirmó el pago. Revisa el estado de tu tarjeta e inténtalo de nuevo.",
+      );
+      setEnviando(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ocurrió un error inesperado al procesar el cobro.");
       setEnviando(false);
