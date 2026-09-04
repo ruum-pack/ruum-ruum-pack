@@ -30,6 +30,11 @@ export type EventoUxUsuario =
   | "traslado_nuevo_enviado"
   | "traslado_nuevo_exitoso"
   | "traslado_nuevo_error"
+  | "tarifa_gate_vista"
+  | "tarifa_gate_calculada"
+  | "tarifa_gate_no_disponible"
+  | "tarifa_gate_aceptada"
+  | "tarifa_gate_abandonada"
   | "soporte_enviado"
   | "soporte_visto";
 

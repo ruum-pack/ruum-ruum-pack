@@ -31,10 +31,10 @@ const tonoBadge: Record<TonoAdmin, string> = {
 };
 
 const botonVariante = {
-  primary: "border-signal bg-signal text-ink hover:bg-signal/90",
-  secondary: "border-border-default bg-surface-primary text-ink hover:bg-surface-secondary",
-  quiet: "border-transparent bg-transparent text-text-secondary hover:bg-surface-secondary hover:text-ink",
-  danger: "border-status-error/30 bg-status-error-soft text-status-error hover:bg-status-error hover:text-background-main"
+  primary: "admin-button-primary border-transparent bg-route text-white hover:bg-route/90",
+  secondary: "admin-button-secondary border-border-default bg-surface-primary text-ink hover:bg-surface-secondary",
+  quiet: "admin-button-quiet border-transparent bg-transparent text-text-secondary hover:bg-surface-secondary hover:text-ink",
+  danger: "admin-button-danger border-status-error/30 bg-status-error-soft text-status-error hover:bg-status-error hover:text-white"
 } as const;
 
 type AdminButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -49,7 +49,7 @@ export function AdminButton({ variant = "primary", loading = false, disabled, cl
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={unir(
-        "inline-flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-lg border px-4 py-2 font-body text-admin-boton font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+        "admin-button inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg border px-4 py-2 font-body text-admin-boton font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
         botonVariante[variant],
         className
       )}

@@ -29,12 +29,26 @@ describe("analytics event names (R7)", () => {
     (globalThis as unknown as { window: unknown }).window = origWindow;
   });
 
-  it("cubre eventos clave de traslado", () => {
+  it("cubre eventos clave de traslado y gate de tarifa", () => {
     (window as unknown as { dataLayer: unknown[] }).dataLayer = [];
     registrarEventoUx("traslado_nuevo_visto");
+    registrarEventoUx("tarifa_gate_vista");
+    registrarEventoUx("tarifa_gate_calculada", { monto: 1500 });
+    registrarEventoUx("tarifa_gate_no_disponible");
+    registrarEventoUx("tarifa_gate_aceptada");
+    registrarEventoUx("tarifa_gate_abandonada");
     registrarEventoUx("traslado_nuevo_enviado");
     registrarEventoUx("traslado_nuevo_exitoso");
     const dl = (window as unknown as { dataLayer: Array<Record<string, unknown>> }).dataLayer;
-    expect(dl.map((e) => e.event)).toEqual(["ruum_traslado_nuevo_visto", "ruum_traslado_nuevo_enviado", "ruum_traslado_nuevo_exitoso"]);
+    expect(dl.map((e) => e.event)).toEqual([
+      "ruum_traslado_nuevo_visto",
+      "ruum_tarifa_gate_vista",
+      "ruum_tarifa_gate_calculada",
+      "ruum_tarifa_gate_no_disponible",
+      "ruum_tarifa_gate_aceptada",
+      "ruum_tarifa_gate_abandonada",
+      "ruum_traslado_nuevo_enviado",
+      "ruum_traslado_nuevo_exitoso"
+    ]);
   });
 });

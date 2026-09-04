@@ -139,24 +139,32 @@ describe("borrador-traslado (R7)", () => {
     expect(leerBorradorTrasladoLocal()).toBeNull();
   });
 
-  it("preserva paso 3 (límite superior corregido a PASO_MAXIMO)", async () => {
+  it("preserva paso 4 (límite superior corregido a PASO_MAXIMO)", async () => {
     const { guardarBorradorTrasladoLocal, leerBorradorTrasladoLocal, PASO_MAXIMO } = await import("./borrador-traslado");
-    expect(PASO_MAXIMO).toBe(3);
+    expect(PASO_MAXIMO).toBe(4);
+    const datos = baseDatos({ paso: 4 });
+    guardarBorradorTrasladoLocal(datos as never);
+    // Simular recarga leyendo crudo: debe volver como 4, no 0
+    const leido = leerBorradorTrasladoLocal();
+    expect(leido?.paso).toBe(4);
+  });
+
+  it("preserva paso intermedio 3", async () => {
+    const { guardarBorradorTrasladoLocal, leerBorradorTrasladoLocal } = await import("./borrador-traslado");
     const datos = baseDatos({ paso: 3 });
     guardarBorradorTrasladoLocal(datos as never);
-    // Simular recarga leyendo crudo: debe volver como 3, no 0
     const leido = leerBorradorTrasladoLocal();
     expect(leido?.paso).toBe(3);
   });
 
-  it("paso 99 fuera de rango cae a 0", async () => {
+  it("paso 5 o 99 fuera de rango cae a 0", async () => {
     const { leerBorradorTrasladoLocal } = await import("./borrador-traslado");
     const raw = {
       versionEsquema: 2,
       claveIdempotencia: crypto.randomUUID(),
       guardadoEn: new Date().toISOString(),
       expiraEn: new Date(Date.now() + 3600000).toISOString(),
-      paso: 99,
+      paso: 5,
       tipo: "sedan", transmision: "automatica", marca: "Nissan", modelo: "Versa", anio: "2022", color: "gris", condicion: "seminueva", estadoGeneral: "ok",
       tieneTarjeta: true, tieneVerificacion: true, tienePlacas: true, puedeCircular: true,
       origenCodigoPostal: "03100", origenEstado: "CDMX", origenCiudad: "CDMX", origenColonia: "Del Valle",
@@ -165,6 +173,9 @@ describe("borrador-traslado (R7)", () => {
       modalidadProgramacion: "lo_antes_posible", fechaHoraProgramada: "", tipoRuta: "local", ventanaRecoleccion: "", ventanaEntrega: "", tipoServicio: "personal", motivoServicio: "entrega_cliente"
     };
     localStorage.setItem(clave, JSON.stringify(raw));
+    expect(leerBorradorTrasladoLocal()?.paso).toBe(0);
+
+    localStorage.setItem(clave, JSON.stringify({ ...raw, paso: 99 }));
     expect(leerBorradorTrasladoLocal()?.paso).toBe(0);
   });
 });

@@ -7,7 +7,7 @@
  * único formulario largo (4 pasos, ~30 campos) sin persistencia.
  *
  * Fuente de verdad del número de pasos: src/app/traslados/nuevo/NuevoTrasladoForm.tsx → PASOS.length.
- * No importar PASOS aquí para evitar dependencia circular; duplicar PASO_MAXIMO = 3 (= PASOS.length - 1).
+ * No importar PASOS aquí para evitar dependencia circular; duplicar PASO_MAXIMO = 4 (= PASOS.length - 1).
  *
  * Excluido a propósito, por lo mismo que excluye borrador-registro.ts:
  *  - Domicilio preciso (calle, número, lat/lng): son domicilio real de
@@ -25,8 +25,8 @@ const CLAVE_ACTUAL = "ruumruum.traslados-nuevo.borrador.v2";
 const VERSION_ESQUEMA = 2;
 const VIGENCIA_MS = 24 * 60 * 60 * 1000;
 const LONGITUD_MAXIMA_CAMPO = 180;
-// Duplicado intencional de NuevoTrasladoForm.tsx → const PASOS = [...] as const (4 pasos). Ver comentario de cabecera.
-export const PASO_MAXIMO = 3; // = PASOS.length - 1
+// Duplicado intencional de NuevoTrasladoForm.tsx → const PASOS = [...] as const (5 pasos). Ver comentario de cabecera.
+export const PASO_MAXIMO = 4; // = PASOS.length - 1
 
 export interface BorradorTrasladoLocal {
   versionEsquema: 2;

@@ -97,7 +97,7 @@ export function Icono({ nombre }: { nombre: IconoNombre }) {
 
 export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
   {
-    titulo: "RIESGOS Y CUMPLIMIENTO",
+    titulo: "Riesgos y cumplimiento",
     secciones: [
       { href: "/", etiqueta: "Dashboard", icono: "dashboard" },
       { href: "/alertas-sla?filtro=vencidas", etiqueta: "Alertas y SLA", icono: "sla", contador: "alertasCriticas"},
@@ -106,7 +106,7 @@ export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
     ],
   },
   {
-    titulo: "OPERACION",
+      titulo: "Operación",
     secciones: [
       { href: "/viajes", etiqueta: "Traslados", icono: "viajes"},
       { href: "/masivos", etiqueta: "Traslados masivos", icono: "masivos" },
@@ -114,7 +114,7 @@ export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
     ],
   },
   {
-      titulo: "GESTIÓN DE ACTIVOS",
+      titulo: "Gestión de activos",
     secciones: [
       { href: "/conductores", etiqueta: "Conductores", icono: "conductor", contador: "conductoresRevision" },
       { href: "/usuarios", etiqueta: "Usuarios", icono: "usuario" },
@@ -123,7 +123,7 @@ export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
     ],
   },
   {
-    titulo: "FINANZAS Y GOBIERNO",
+      titulo: "Finanzas y gobierno",
     secciones: [
       { href: "/pagos?filtro=pendientes", etiqueta: "Pagos", icono: "pagos", contador: "pagosPendientes" },
       { href: "/aprobaciones", etiqueta: "Aprobaciones duales", icono: "auditoria" },
@@ -133,7 +133,7 @@ export const GRUPOS_NAVEGACION: GrupoNavegacionAdmin[] = [
     ],
   },
    {
-    titulo: "SISTEMAS Y ANALITICA",
+    titulo: "Sistemas y analítica",
     secciones: [
       { href: "/reportes", etiqueta: "Reportes operativos", icono: "reportes" },
       { href: "/metricas-registro", etiqueta: "Métricas de conductores", icono: "reportes" },
@@ -333,7 +333,7 @@ export function BarraLateral() {
       <nav className="flex-1 space-y-3 overflow-y-auto px-2 pb-3 lg:px-3" aria-label="Secciones del panel">
         {gruposVisibles.map((grupo) => (
           <section key={grupo.titulo} aria-label={grupo.titulo}>
-            <p className={`mb-1.5 px-2 font-mono-ruum text-admin-secundario uppercase tracking-widest text-text-tertiary ${colapsada ? "sr-only" : "hidden lg:block"}`}>
+            <p className={`mb-1.5 px-2 font-mono-ruum text-admin-secundario tracking-[0.1em] text-text-tertiary ${colapsada ? "sr-only" : "hidden lg:block"}`}>
               {grupo.titulo}
             </p>
             <div className="space-y-0.5">

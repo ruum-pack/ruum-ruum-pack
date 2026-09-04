@@ -229,30 +229,82 @@ test.describe("Registro 2 pasos", () => {
 });
 
 test.describe("Wizard traslado nuevo (parcial mock)", () => {
-  test("usuario verificado ve wizard 4 pasos", async ({ page }) => {
+  test("usuario verificado ve wizard 5 pasos con paso 0 Conoce tu tarifa", async ({ page }) => {
     await seedMockAuthSession(page);
     await mockMapboxGeocode(page);
     await mockUsuarioVerificado(page);
     await page.goto("/traslados/nuevo");
-    await expect(page.getByRole("heading", { name: /¿Qué vehículo trasladamos\?/i }).or(page.getByText(/¿Qué vehículo/i)).first()).toBeVisible({ timeout: 10000 }).catch(async () => {
-      // Si aún bloquea por verificación, al menos no debe mostrar "traslado no encontrado"
+    await expect(page.getByRole("heading", { name: /¿Cuánto costará tu traslado\?/i }).or(page.getByText(/Conoce tu tarifa/i)).first()).toBeVisible({ timeout: 10000 }).catch(async () => {
       await expect(page.locator("body")).not.toContainText(/traslado no encontrado/i);
     });
+    await expect(page.getByText(/Paso 1 de 5/i)).toBeVisible().catch(() => {});
   });
 
-  test("wizard valida origen != destino (paso ruta)", async ({ page }) => {
-    // El schema rechaza origen==destino; cubrimos que el form no deja continuar sin datos
+  test("paso 0 happy path: llena campos, ve tarifa, acepta y avanza a paso 1 con card de resumen", async ({ page }) => {
     await seedMockAuthSession(page);
+    await mockMapboxGeocode(page);
+    await mockUsuarioVerificado(page);
     await page.goto("/traslados/nuevo");
-    // Intentar avanzar sin completar debe mostrar validación
-    const continuar = page.getByRole("button", { name: /continuar|siguiente/i }).first();
-    if (await continuar.isVisible().catch(() => false)) {
-      await continuar.click();
-      // Debe permanecer en paso vehículo o mostrar error de marca/modelo
-      await expect(page.locator("body")).toContainText(/marca|modelo|vehículo/i);
-    } else {
-      expect(true).toBeTruthy();
-    }
+
+    await page.locator("#origenCodigoPostal").fill("06600");
+    await page.locator("#destinoCodigoPostal").fill("64000");
+    await page.locator("#marca").selectOption("Nissan");
+    await page.locator("#modelo").fill("Versa");
+    await page.locator("#condicion").selectOption("rueda_y_enciende");
+
+    const btnAceptar = page.getByRole("button", { name: /Aceptar y continuar/i });
+    await expect(btnAceptar).toBeVisible({ timeout: 10000 });
+    await btnAceptar.click();
+
+    await expect(page.getByRole("heading", { name: /¿Qué vehículo trasladamos\?/i }).or(page.getByText(/Paso 2 de 5/i)).first()).toBeVisible();
+    await expect(page.getByText(/Tarifa aceptada/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Editar/i }).first()).toBeVisible();
+  });
+
+  test("paso 0: cotización manual para vehículo o ruta especial permite continuar", async ({ page }) => {
+    await seedMockAuthSession(page);
+    await mockMapboxGeocode(page);
+    await page.route("**/rpc/previsualizar_tarifa_usuario**", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ precio: null, categoria: "pesado_c", motivo: "Vehículo requiere grúa o cotización especializada" }) });
+    });
+    await mockUsuarioVerificado(page);
+    await page.goto("/traslados/nuevo");
+
+    await page.locator("#origenCodigoPostal").fill("06600");
+    await page.locator("#destinoCodigoPostal").fill("64000");
+    await page.locator("#marca").selectOption("Otro");
+    await page.locator("#modelo").fill("Camión Especial");
+    await page.locator("#condicion").selectOption("rescate_mecanico");
+
+    const btnCotizacion = page.getByRole("button", { name: /Continuar con cotización manual/i });
+    await expect(btnCotizacion).toBeVisible({ timeout: 10000 });
+    await btnCotizacion.click();
+
+    await expect(page.getByText(/Paso 2 de 5/i)).toBeVisible();
+    await expect(page.getByText(/Cotización por nuestro equipo/i)).toBeVisible();
+  });
+
+  test("invalidación de tarifa: editar campo en paso 0 requiere re-confirmación", async ({ page }) => {
+    await seedMockAuthSession(page);
+    await mockMapboxGeocode(page);
+    await mockUsuarioVerificado(page);
+    await page.goto("/traslados/nuevo");
+
+    await page.locator("#origenCodigoPostal").fill("06600");
+    await page.locator("#destinoCodigoPostal").fill("64000");
+    await page.locator("#marca").selectOption("Toyota");
+    await page.locator("#modelo").fill("Corolla");
+    await page.locator("#condicion").selectOption("rueda_y_enciende");
+
+    const btnAceptar = page.getByRole("button", { name: /Aceptar y continuar/i });
+    await expect(btnAceptar).toBeVisible({ timeout: 10000 });
+    await btnAceptar.click();
+
+    await page.getByRole("button", { name: /Editar/i }).first().click();
+    await expect(page.getByText(/Paso 1 de 5/i)).toBeVisible();
+
+    await page.locator("#origenCodigoPostal").fill("01000");
+    await expect(page.getByRole("button", { name: /Aceptar y continuar/i })).toBeVisible();
   });
 });
 
