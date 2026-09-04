@@ -19,6 +19,10 @@ on:
       - "pnpm-lock.yaml"
       - ".github/workflows/supabase-types.yml"
 
+concurrency:
+  group: supabase-types-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

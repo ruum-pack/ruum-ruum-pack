@@ -41,6 +41,10 @@ on:
       - "deno.lock"
       - ".github/workflows/traslados-pagos-regression.yml"
 
+concurrency:
+  group: traslados-pagos-regression-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

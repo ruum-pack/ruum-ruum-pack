@@ -27,6 +27,10 @@ on:
       - "pnpm-lock.yaml"
       - ".github/workflows/conductor-sql-regression.yml"
 
+concurrency:
+  group: conductor-sql-regression-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
