@@ -36,6 +36,10 @@ describe("app-usuario — estado centralizado", () => {
 
     expect(estado["t-1"]?.estadoRealtime).toBe("traslado_en_curso");
     expect(estado["t-2"]?.estadoRealtime).toBeNull();
+
+    estado = realtimeTrasladosReducer(estado, { type: "patch", trasladoId: "t-1", patch: { pagoConfirmado: true } });
+    expect(estado["t-1"]?.pagoConfirmado).toBe(true);
+    expect(estado["t-2"]?.pagoConfirmado).toBe(false);
   });
 
   it("deduplica el mismo mensaje cuando llega por carga inicial y Realtime", () => {

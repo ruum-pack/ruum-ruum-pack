@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { aceptarCotizacionUsuario } from "@ruum/api/services";
 import { Aviso, Button } from "@ruum/ui";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { useTrasladoRealtime } from "../../../state/AppStateProvider";
 
 export function AceptarCotizacion({
   trasladoId,
@@ -14,18 +14,19 @@ export function AceptarCotizacion({
   tipoPago?: "anticipado" | "al_cierre" | null;
 }) {
   const router = useRouter();
-  const [procesando, setProcesando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { aceptandoCotizacion: procesando, errorAceptacion: error, actualizar } = useTrasladoRealtime(trasladoId);
 
   async function aceptar() {
-    setProcesando(true);
-    setError(null);
+    actualizar({ aceptandoCotizacion: true, errorAceptacion: null });
     try {
       await aceptarCotizacionUsuario(crearClienteNavegador(), trasladoId);
+      actualizar({ cotizacionAceptada: true, aceptandoCotizacion: false });
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo aceptar la tarifa");
-      setProcesando(false);
+      actualizar({
+        errorAceptacion: e instanceof Error ? e.message : "No se pudo aceptar la tarifa",
+        aceptandoCotizacion: false
+      });
     }
   }
 

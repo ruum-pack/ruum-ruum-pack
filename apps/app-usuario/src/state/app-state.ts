@@ -64,10 +64,6 @@ export interface NuevoTrasladoState {
   borradorDisponible: BorradorTrasladoLocal | null;
   claveIdempotencia: string;
   trasladoCreado: TrasladoCreado | null;
-  cotizacionAceptada: boolean;
-  aceptandoCotizacion: boolean;
-  errorAceptacion: string | null;
-  pagoConfirmado: boolean;
   reintentoAceptacion: number;
 }
 
@@ -108,10 +104,6 @@ export function crearEstadoNuevoTrasladoInicial(): NuevoTrasladoState {
     borradorDisponible: null,
     claveIdempotencia: "",
     trasladoCreado: null,
-    cotizacionAceptada: false,
-    aceptandoCotizacion: false,
-    errorAceptacion: null,
-    pagoConfirmado: false,
     reintentoAceptacion: 0
   };
 }
@@ -142,6 +134,10 @@ export interface EstadoRealtimeTraslado {
   errorChat: string | null;
   llamando: boolean;
   errorLlamada: string | null;
+  cotizacionAceptada: boolean;
+  aceptandoCotizacion: boolean;
+  errorAceptacion: string | null;
+  pagoConfirmado: boolean;
   ubicacion: UbicacionTraslado | null;
   estadoRealtime: EstadoTraslado | null;
   estadoActualizadoEn: string | null;
@@ -155,6 +151,10 @@ export function crearEstadoRealtimeTraslado(ubicacionInicial: UbicacionTraslado 
     errorChat: null,
     llamando: false,
     errorLlamada: null,
+    cotizacionAceptada: false,
+    aceptandoCotizacion: false,
+    errorAceptacion: null,
+    pagoConfirmado: false,
     ubicacion: ubicacionInicial,
     estadoRealtime: null,
     estadoActualizadoEn: null,

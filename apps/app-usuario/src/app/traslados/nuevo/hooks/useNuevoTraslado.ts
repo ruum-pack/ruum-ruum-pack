@@ -38,7 +38,7 @@ import { esquemaSolicitudTraslado, erroresFormulario } from "../schema";
 import { CAMPOS_PASO_TARIFA, generarTarifaSnapshot, haCambiadoTarifa } from "../tarifa-gate";
 import { construirPayloadCreacion, type CoordenadasTraslado, type CoordenadasParada } from "../adapters";
 import { useGeocodificacion } from "./useGeocodificacion";
-import { useNuevoTrasladoState } from "../../../../state/AppStateProvider";
+import { useNuevoTrasladoState, useTrasladoRealtime } from "../../../../state/AppStateProvider";
 import type { NuevoTrasladoState, RutaEstimacion, TrasladoCreado } from "../../../../state/app-state";
 import {
   CAMPOS_PASO_RUTA,
@@ -111,12 +111,17 @@ export function useNuevoTraslado() {
     borradorDisponible,
     claveIdempotencia,
     trasladoCreado,
+    reintentoAceptacion
+  } = formulario;
+
+  const estadoTrasladoId = trasladoCreado?.id ?? "nuevo";
+  const {
+    pagoConfirmado,
     cotizacionAceptada,
     aceptandoCotizacion,
     errorAceptacion,
-    pagoConfirmado,
-    reintentoAceptacion
-  } = formulario;
+    actualizar: actualizarEstadoTraslado
+  } = useTrasladoRealtime(estadoTrasladoId);
 
   const setFormulario = useCallback(<K extends keyof NuevoTrasladoState>(campo: K, valor: SetStateAction<NuevoTrasladoState[K]>) => setField(campo, valor), [setField]);
   const setPaso = useCallback((valor: SetStateAction<number>) => setFormulario("paso", valor), [setFormulario]);
@@ -154,10 +159,10 @@ export function useNuevoTraslado() {
   const setBorradorDisponible = useCallback((valor: SetStateAction<BorradorTrasladoLocal | null>) => setFormulario("borradorDisponible", valor), [setFormulario]);
   const setClaveIdempotencia = useCallback((valor: SetStateAction<string>) => setFormulario("claveIdempotencia", valor), [setFormulario]);
   const setTrasladoCreado = useCallback((valor: SetStateAction<TrasladoCreado | null>) => setFormulario("trasladoCreado", valor), [setFormulario]);
-  const setCotizacionAceptada = useCallback((valor: SetStateAction<boolean>) => setFormulario("cotizacionAceptada", valor), [setFormulario]);
-  const setAceptandoCotizacion = useCallback((valor: SetStateAction<boolean>) => setFormulario("aceptandoCotizacion", valor), [setFormulario]);
-  const setErrorAceptacion = useCallback((valor: SetStateAction<string | null>) => setFormulario("errorAceptacion", valor), [setFormulario]);
-  const setPagoConfirmado = useCallback((valor: SetStateAction<boolean>) => setFormulario("pagoConfirmado", valor), [setFormulario]);
+  const setCotizacionAceptada = useCallback((valor: boolean) => actualizarEstadoTraslado({ cotizacionAceptada: valor }), [actualizarEstadoTraslado]);
+  const setAceptandoCotizacion = useCallback((valor: boolean) => actualizarEstadoTraslado({ aceptandoCotizacion: valor }), [actualizarEstadoTraslado]);
+  const setErrorAceptacion = useCallback((valor: string | null) => actualizarEstadoTraslado({ errorAceptacion: valor }), [actualizarEstadoTraslado]);
+  const setPagoConfirmado = useCallback((valor: boolean) => actualizarEstadoTraslado({ pagoConfirmado: valor }), [actualizarEstadoTraslado]);
   const setReintentoAceptacion = useCallback((valor: SetStateAction<number>) => setFormulario("reintentoAceptacion", valor), [setFormulario]);
 
   // Analítica del gate de tarifa (Paso 0)

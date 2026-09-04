@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Aviso, Button } from "@ruum/ui";
+import { Button } from "@ruum/ui";
 import { formatearPrecio } from "@ruum/shared/utils";
 import { PagoStripe } from "../../PagoStripe";
+import { useTrasladoRealtime } from "../../../state/AppStateProvider";
 
 export interface PagoTrasladoProps {
   trasladoId: string;
@@ -13,7 +13,7 @@ export interface PagoTrasladoProps {
 
 export function PagoTraslado({ trasladoId, monto }: PagoTrasladoProps) {
   const router = useRouter();
-  const [pagado, setPagado] = useState(false);
+  const { pagoConfirmado: pagado, actualizar } = useTrasladoRealtime(trasladoId);
 
   if (pagado) {
     return (
@@ -39,7 +39,7 @@ export function PagoTraslado({ trasladoId, monto }: PagoTrasladoProps) {
         <p className="font-display text-base font-extrabold text-[#FFC400]">{formatearPrecio(monto)}</p>
       </div>
 
-      <PagoStripe trasladoId={trasladoId} monto={monto} onPagado={() => setPagado(true)} />
+      <PagoStripe trasladoId={trasladoId} monto={monto} onPagado={() => actualizar({ pagoConfirmado: true })} />
     </div>
   );
 }
