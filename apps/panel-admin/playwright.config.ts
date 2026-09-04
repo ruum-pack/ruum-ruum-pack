@@ -4,7 +4,10 @@ const PORT = Number(process.env.PANEL_ADMIN_SMOKE_PORT ?? 3102);
 
 export default defineConfig({
   testDir: "./tests/smoke",
-  timeout: 30_000,
+  // Next dev compiles Mapbox and the operational modules lazily per route.
+  // Keep the smoke gate bounded without requiring a fixed sleep.
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   fullyParallel: true,
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,

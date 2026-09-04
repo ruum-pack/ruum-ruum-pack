@@ -10,7 +10,7 @@ const rutasCriticas = [
 test.describe("panel-admin rutas críticas", () => {
   for (const caso of rutasCriticas) {
     test(`${caso.ruta} renderiza sin sesión real`, async ({ page }) => {
-      await page.goto(caso.ruta);
+      await page.goto(caso.ruta, { waitUntil: "domcontentloaded" });
       await expect(page.getByRole("heading", { name: caso.titulo, exact: true })).toBeVisible();
       if ("tabla" in caso) {
         await expect(page.getByRole("table", { name: caso.tabla })).toBeVisible();
@@ -21,7 +21,7 @@ test.describe("panel-admin rutas críticas", () => {
   }
 
   test("/metricas-registro falla de forma visible sin Supabase configurado", async ({ page }) => {
-    await page.goto("/metricas-registro");
+    await page.goto("/metricas-registro", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Métricas de registro" })).toBeVisible();
     await expect(page.getByText("Supabase no está configurado")).toBeVisible();
   });
