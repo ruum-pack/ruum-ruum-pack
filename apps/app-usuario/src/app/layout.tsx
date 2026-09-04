@@ -6,6 +6,7 @@ import { TextInputUppercaseBridge } from "@ruum/ui";
 import { TemaProvider } from "./TemaProvider";
 import { LiveRegionProvider } from "../components/LiveRegionProvider";
 import { OperationalAccessibilityBridge } from "./OperationalAccessibilityBridge";
+import { AppStateProvider } from "../state/AppStateProvider";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -65,7 +66,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <OperationalAccessibilityBridge />
           <TextInputUppercaseBridge />
           <TemaProvider>
-            <main id="contenido-principal">{children}</main>
+            <AppStateProvider>
+              <main id="contenido-principal">{children}</main>
+            </AppStateProvider>
           </TemaProvider>
         </LiveRegionProvider>
       </body>

@@ -1,70 +1,74 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Chat, type MensajeChat, Button, Aviso } from "@ruum/ui";
+import { useEffect, useRef } from "react";
+import { Chat, Button, Aviso } from "@ruum/ui";
 import { MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { chatDisponible } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 import { obtenerMensajes, enviarMensaje, suscribirseAMensajes, crearLlamadaEnmascarada } from "@ruum/api/services";
+import { useTrasladoRealtime } from "../../../state/AppStateProvider";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
 export function ChatTraslado({ trasladoId, estado }: { trasladoId: string; estado: EstadoTraslado }) {
-  const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const clienteRef = useRef<ReturnType<typeof crearClienteNavegador> | null>(null);
-  const [errorChat, setErrorChat] = useState<string | null>(null);
+  const { mensajes, errorChat, llamando, errorLlamada, inicializar, actualizar, cargarMensajes, agregarMensaje } = useTrasladoRealtime(trasladoId);
 
   const disponible = chatDisponible(estado);
 
   useEffect(() => {
-    if (!disponible) return;
+    inicializar();
+    if (!disponible) {
+      actualizar({ errorChat: null });
+      return;
+    }
 
     if (!tieneSupabaseConfigurado()) {
-      const timer = setTimeout(() => setErrorChat("Supabase no está configurado. El chat no está disponible."), 0);
-      return () => clearTimeout(timer);
+      actualizar({ errorChat: "Supabase no está configurado. El chat no está disponible." });
+      return;
     }
 
     const cliente = crearClienteNavegador();
     clienteRef.current = cliente;
-    const limpiarError = setTimeout(() => setErrorChat(null), 0);
+    actualizar({ errorChat: null });
+    let cancelado = false;
 
     obtenerMensajes(cliente, trasladoId)
-      .then(setMensajes)
+      .then((cargados) => {
+        if (!cancelado) cargarMensajes(cargados);
+      })
       .catch(() => {
-        setMensajes([]);
-        setErrorChat("No pudimos cargar los mensajes del traslado.");
+        if (!cancelado) {
+          cargarMensajes([]);
+          actualizar({ errorChat: "No pudimos cargar los mensajes del traslado." });
+        }
       });
 
     const canal = suscribirseAMensajes(cliente, trasladoId, (nuevo) => {
-      setMensajes((prev) => (prev.some((m) => m.id === nuevo.id) ? prev : [...prev, nuevo]));
+      if (!cancelado) agregarMensaje(nuevo);
     });
 
     return () => {
-      clearTimeout(limpiarError);
+      cancelado = true;
       cliente.removeChannel(canal);
     };
-  }, [trasladoId, disponible]);
+  }, [actualizar, agregarMensaje, cargarMensajes, disponible, inicializar, trasladoId]);
 
   async function manejarEnvio(contenido: string) {
     if (!tieneSupabaseConfigurado()) {
-      setErrorChat("Supabase no está configurado. No se puede enviar el mensaje.");
+      actualizar({ errorChat: "Supabase no está configurado. No se puede enviar el mensaje." });
       return;
     }
     if (!clienteRef.current) return;
     await enviarMensaje(clienteRef.current, trasladoId, contenido);
   }
 
-  const [llamando, setLlamando] = useState(false);
-  const [errorLlamada, setErrorLlamada] = useState<string | null>(null);
-
   async function manejarLlamada() {
-    setLlamando(true);
-    setErrorLlamada(null);
+    actualizar({ llamando: true, errorLlamada: null });
 
     if (!tieneSupabaseConfigurado()) {
-      setErrorLlamada("Supabase no está configurado. No se puede iniciar la llamada.");
-      setLlamando(false);
+      actualizar({ errorLlamada: "Supabase no está configurado. No se puede iniciar la llamada.", llamando: false });
       return;
     }
 
@@ -73,9 +77,9 @@ export function ChatTraslado({ trasladoId, estado }: { trasladoId: string; estad
       const numero = await crearLlamadaEnmascarada(cliente, trasladoId);
       window.location.href = `tel:${numero}`;
     } catch (err) {
-      setErrorLlamada(err instanceof Error ? err.message : "No pudimos iniciar la llamada.");
+      actualizar({ errorLlamada: err instanceof Error ? err.message : "No pudimos iniciar la llamada." });
     } finally {
-      setLlamando(false);
+      actualizar({ llamando: false });
     }
   }
 

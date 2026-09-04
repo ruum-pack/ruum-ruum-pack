@@ -525,7 +525,6 @@ jobs:
       NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO: "911"
       PLAYWRIGHT_DISABLE_AUTH_ARTIFACTS: "1"
       PLAYWRIGHT_A11Y_PROJECT: chromium
-      PLAYWRIGHT_SKIP_WEBSERVER: "1"
 
     steps:
       - name: Checkout
@@ -574,8 +573,33 @@ jobs:
           mkdir -p apps/app-conductor/tests/.auth
           echo '{"cookies":[],"origins":[]}' > apps/app-conductor/tests/.auth/conductor.json
 
+      - name: Build production app
+        run: pnpm --filter @ruum/app-conductor build
+
+      - name: Start production server
+        run: |
+          pnpm --filter @ruum/app-conductor exec next start -p 3001 > /tmp/ci-a11y-server.log 2>&1 &
+          echo $! > /tmp/ci-a11y-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsSL http://localhost:3001/onboarding > /dev/null 2>&1; then
+              echo "Server ready after $i attempts"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "ERROR: CI accessibility server not responding"
+              cat /tmp/ci-a11y-server.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+
       - name: Run accessibility tests
         run: pnpm --filter @ruum/app-conductor test:a11y -- --project=chromium --workers=1
+
+      - name: Stop production server
+        if: always()
+        run: |
+          if [ -f /tmp/ci-a11y-server.pid ]; then kill $(cat /tmp/ci-a11y-server.pid) || true; fi
 
       - name: Build Storybook
         run: pnpm --filter @ruum/app-conductor storybook:build
@@ -660,8 +684,30 @@ jobs:
       - name: Build production app
         run: pnpm --filter @ruum/app-conductor build
 
+      - name: Start production server
+        run: |
+          pnpm --filter @ruum/app-conductor exec next start -p 3001 > /tmp/ci-lighthouse-server.log 2>&1 &
+          echo $! > /tmp/ci-lighthouse-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsSL http://localhost:3001/onboarding > /dev/null 2>&1; then
+              echo "Server ready after $i attempts"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "ERROR: CI Lighthouse server not responding"
+              cat /tmp/ci-lighthouse-server.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+
       - name: Run Lighthouse public routes
         run: pnpm --filter @ruum/app-conductor test:lighthouse
+
+      - name: Stop production server
+        if: always()
+        run: |
+          if [ -f /tmp/ci-lighthouse-server.pid ]; then kill $(cat /tmp/ci-lighthouse-server.pid) || true; fi
 
       - name: Upload Lighthouse artifacts
         if: always()

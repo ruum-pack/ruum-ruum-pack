@@ -35,17 +35,6 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Get pnpm store directory
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Restore pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -86,17 +75,6 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Get pnpm store directory
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Restore pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -104,7 +82,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-chromium-1.51.1
+          key: ${{ runner.os }}-playwright-chromium-1.61.1
           restore-keys: |
             ${{ runner.os }}-playwright-
 
@@ -190,7 +168,6 @@ jobs:
       NEXT_PUBLIC_RUUM_EMERGENCIA_TELEFONO: "911"
       PLAYWRIGHT_DISABLE_AUTH_ARTIFACTS: "1"
       PLAYWRIGHT_A11Y_PROJECT: chromium
-      PLAYWRIGHT_SKIP_WEBSERVER: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -207,17 +184,6 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Get pnpm store directory
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Restore pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -225,7 +191,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-chromium-1.51.1
+          key: ${{ runner.os }}-playwright-chromium-1.61.1
           restore-keys: |
             ${{ runner.os }}-playwright-
 
@@ -237,8 +203,33 @@ jobs:
           mkdir -p apps/app-conductor/tests/.auth
           echo '{"cookies":[],"origins":[]}' > apps/app-conductor/tests/.auth/conductor.json
 
+      - name: Build application
+        run: pnpm --filter @ruum/app-conductor build
+
+      - name: Start production server
+        run: |
+          pnpm --filter @ruum/app-conductor exec next start -p 3001 > /tmp/a11y-server.log 2>&1 &
+          echo $! > /tmp/a11y-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsSL http://localhost:3001/onboarding > /dev/null 2>&1; then
+              echo "Server ready after $i attempts"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "ERROR: a11y server not responding"
+              cat /tmp/a11y-server.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+
       - name: Run Playwright accessibility tests
         run: pnpm --filter @ruum/app-conductor test:a11y -- --project=chromium --workers=1
+
+      - name: Stop production server
+        if: always()
+        run: |
+          if [ -f /tmp/a11y-server.pid ]; then kill $(cat /tmp/a11y-server.pid) || true; fi
 
       - name: Upload Playwright report
         if: always()
@@ -285,17 +276,6 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Get pnpm store directory
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Restore pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -303,7 +283,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-chromium-1.51.1
+          key: ${{ runner.os }}-playwright-chromium-1.61.1
           restore-keys: |
             ${{ runner.os }}-playwright-
 
@@ -313,8 +293,30 @@ jobs:
       - name: Build application
         run: pnpm --filter @ruum/app-conductor build
 
+      - name: Start production server
+        run: |
+          pnpm --filter @ruum/app-conductor exec next start -p 3001 > /tmp/lighthouse-server.log 2>&1 &
+          echo $! > /tmp/lighthouse-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsSL http://localhost:3001/onboarding > /dev/null 2>&1; then
+              echo "Server ready after $i attempts"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "ERROR: Lighthouse server not responding"
+              cat /tmp/lighthouse-server.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+
       - name: Run Lighthouse CI
         run: pnpm --filter @ruum/app-conductor test:lighthouse
+
+      - name: Stop production server
+        if: always()
+        run: |
+          if [ -f /tmp/lighthouse-server.pid ]; then kill $(cat /tmp/lighthouse-server.pid) || true; fi
 
       - name: Upload Lighthouse report
         if: always()
@@ -354,17 +356,6 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-
-      - name: Get pnpm store directory
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Restore pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

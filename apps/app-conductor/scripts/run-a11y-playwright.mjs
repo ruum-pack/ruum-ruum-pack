@@ -13,11 +13,12 @@ const projectRoot = resolve(__dirname, '..');
 // Cargar variables de entorno desde .env.local y .env
 config({ path: resolve(projectRoot, '.env.local') });
 config({ path: resolve(projectRoot, '.env') });
-const requestedOrigin = process.env.A11Y_BASE_URL || 'http://localhost:3001';
+const requestedOrigin = process.env.A11Y_BASE_URL || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001';
 const serverTimeoutMs = 90_000;
 const resultsDir = resolve(projectRoot, 'results');
 const serverLogPath = resolve(resultsDir, 'a11y-dev-server.log');
 const readinessRoutes = ['/login', '/onboarding', '/panel'];
+const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1' || process.env.PLAYWRIGHT_SKIP_WEBSERVER === 'true';
 
 function commandForLocalBin(name) {
   return process.platform === 'win32'
@@ -118,27 +119,31 @@ async function main() {
     process.exit(listResult.status ?? 1);
   }
 
-  const server = await pickServerOrigin();
-  const serverUrl = new URL(server.origin);
-  const serverPort = serverUrl.port || '3001';
+  const server = skipWebServer ? null : await pickServerOrigin();
+  const serverOrigin = server?.origin ?? requestedOrigin;
 
-  if (server.shouldStart) {
-    if (!existsSync(resultsDir)) {
-      mkdirSync(resultsDir, { recursive: true });
-    }
-    serverLog = openSync(serverLogPath, 'w');
-    serverProcess = spawn(`"${commandForLocalBin('next')}" dev -p ${serverPort}`, {
-      cwd: projectRoot,
-      detached: true,
-      shell: true,
-      stdio: ['ignore', serverLog, serverLog]
-    });
+  if (!skipWebServer) {
+    const serverUrl = new URL(server.origin);
+    const serverPort = serverUrl.port || '3001';
 
-    if (!(await waitForServer(server.origin))) {
-      stopProcessTree(serverProcess.pid);
-      closeSync(serverLog);
-      console.error(`[a11y] No se pudo iniciar ${server.origin} dentro de ${serverTimeoutMs / 1000}s. Revisa ${serverLogPath}.`);
-      process.exit(1);
+    if (server.shouldStart) {
+      if (!existsSync(resultsDir)) {
+        mkdirSync(resultsDir, { recursive: true });
+      }
+      serverLog = openSync(serverLogPath, 'w');
+      serverProcess = spawn(`"${commandForLocalBin('next')}" dev -p ${serverPort}`, {
+        cwd: projectRoot,
+        detached: true,
+        shell: true,
+        stdio: ['ignore', serverLog, serverLog]
+      });
+
+      if (!(await waitForServer(server.origin))) {
+        stopProcessTree(serverProcess.pid);
+        closeSync(serverLog);
+        console.error(`[a11y] No se pudo iniciar ${server.origin} dentro de ${serverTimeoutMs / 1000}s. Revisa ${serverLogPath}.`);
+        process.exit(1);
+      }
     }
   }
 
@@ -146,8 +151,8 @@ async function main() {
     cwd: projectRoot,
     env: {
       ...process.env,
-      A11Y_BASE_URL: server.origin,
-      PLAYWRIGHT_BASE_URL: server.origin,
+      A11Y_BASE_URL: serverOrigin,
+      PLAYWRIGHT_BASE_URL: serverOrigin,
       PLAYWRIGHT_SKIP_WEBSERVER: '1'
     },
     shell: process.platform === 'win32',

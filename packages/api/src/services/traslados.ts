@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, SolicitudAsignacionResultado } from "@ruum/shared/types";
 import { TRANSICIONES } from "@ruum/shared/states";
 import { calcularCargoCancelacion } from "@ruum/shared/rules";
+import { esquemaPayloadCrearTraslado } from "@ruum/shared/validacion";
 import { registrarEvento } from "./auditoria";
 
 type Cliente = SupabaseClient<Database>;
@@ -109,6 +110,18 @@ export interface DatosParadaParaTraslado {
  * pero nada impedía mandar un UUID ajeno directo al insert de traslados).
  */
 export async function crearTraslado(cliente: Cliente, vehiculo: DatosVehiculoParaTraslado, traslado: DatosNuevoTraslado, claveIdempotencia: string, paradas: DatosParadaParaTraslado[] = []) {
+  const validacion = esquemaPayloadCrearTraslado.safeParse({
+    claveIdempotencia,
+    vehiculo,
+    traslado,
+    paradas
+  });
+
+  if (!validacion.success) {
+    const errorMsg = validacion.error.issues.map((i) => i.message).join(" ");
+    throw new Error(`Datos de traslado inválidos: ${errorMsg}`);
+  }
+
   const { data, error } = await cliente.rpc("usuario_crea_traslado", {
     p_vehiculo_id: ("vehiculoId" in vehiculo ? vehiculo.vehiculoId : null) as never,
     p_vehiculo: ("vehiculo" in vehiculo ? vehiculo.vehiculo : null) as never,

@@ -2,12 +2,14 @@
 # syntax=docker/dockerfile:1
 
 ARG NODE_VERSION=24
-ARG PNPM_VERSION=10
+ARG PNPM_VERSION=10.0.0
 
 ################################################################################
 # Stage 1: Base
 ################################################################################
 FROM node:${NODE_VERSION}-alpine as base
+
+ARG PNPM_VERSION=10.0.0
 
 WORKDIR /app
 
@@ -23,6 +25,7 @@ FROM base as deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/ ./apps/
 COPY packages/ ./packages/
+COPY scripts/ ./scripts/
 
 # Instalar TODAS las dependencias
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \

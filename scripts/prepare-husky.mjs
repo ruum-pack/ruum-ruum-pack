@@ -13,9 +13,13 @@ if (!existsSync(join(huskyDir, "_", "husky.sh"))) {
   writeFileSync(join(huskyDir, "_", "husky.sh"), `#!/usr/bin/env sh\nif [ -f "$(dirname "$0")/../../node_modules/husky/lib/husky.sh" ]; then\n  . "$(dirname "$0")/../../node_modules/husky/lib/husky.sh"\nfi\n`);
 }
 
-mkdirSync(gitHooksDir, { recursive: true });
 const preCommitSrc = join(huskyDir, "pre-commit");
 const preCommitDest = join(gitHooksDir, "pre-commit");
+if (!existsSync(preCommitSrc) || !existsSync(join(root, ".git"))) {
+  console.log("ℹ️ Se omite la instalación de Husky fuera de un repositorio Git.");
+  process.exit(0);
+}
+mkdirSync(gitHooksDir, { recursive: true });
 try {
   copyFileSync(preCommitSrc, preCommitDest);
   chmodSync(preCommitDest, 0o755);

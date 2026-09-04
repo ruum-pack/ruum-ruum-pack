@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   obtenerEstadoTrasladoRealtime,
   obtenerUltimaUbicacionTraslado,
@@ -13,6 +13,7 @@ import { Aviso, EstadoBadge, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
 import { SkeletonMapa } from "../../components/SkeletonMapa";
+import { useTrasladoRealtime } from "../../../state/AppStateProvider";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 
@@ -86,11 +87,7 @@ export function SeguimientoTrasladoTiempoReal({
   destino,
   ubicacionInicial
 }: SeguimientoTrasladoTiempoRealProps) {
-  const [ubicacion, setUbicacion] = useState<UbicacionTraslado | null>(ubicacionInicial);
-  const [estadoRealtime, setEstadoRealtime] = useState<EstadoTraslado | null>(null);
-  const [estadoActualizadoEn, setEstadoActualizadoEn] = useState<string | null>(null);
-  const [cargando, setCargando] = useState(false);
-  const [mapaCargadoUrl, setMapaCargadoUrl] = useState<string | null>(null);
+  const { ubicacion, estadoRealtime, estadoActualizadoEn, cargando, mapaCargadoUrl, inicializar, actualizar } = useTrasladoRealtime(trasladoId);
   // R12: debounce refrescar + última vez para evitar spam
   const ultimoRefreshRef = useRef<number>(0);
 
@@ -100,6 +97,7 @@ export function SeguimientoTrasladoTiempoReal({
   const visible = estadoEnVivo ? ESTADOS_VISIBLES.includes(estadoEnVivo) : false;
 
   useEffect(() => {
+    inicializar(ubicacionInicial);
     if (!tieneSupabaseConfigurado()) return;
 
     const cliente = crearClienteNavegador();
@@ -110,12 +108,11 @@ export function SeguimientoTrasladoTiempoReal({
     try {
       canalEstado = suscribirEstadoTraslado(cliente, trasladoId, (traslado) => {
         if (cancelado) return;
-        setEstadoRealtime(traslado.estado);
-        setEstadoActualizadoEn(traslado.actualizado_en);
+        actualizar({ estadoRealtime: traslado.estado, estadoActualizadoEn: traslado.actualizado_en });
       });
       canalUbicacion = suscribirUbicacionTraslado(cliente, trasladoId, (u) => {
         if (cancelado) return;
-        setUbicacion(u);
+        actualizar({ ubicacion: u });
       });
     } catch (err) {
       console.warn("[SeguimientoTiempoReal] suscripción fallida", err);
@@ -124,8 +121,7 @@ export function SeguimientoTrasladoTiempoReal({
     void obtenerEstadoTrasladoRealtime(cliente, trasladoId)
       .then((traslado) => {
         if (cancelado || !traslado) return;
-        setEstadoRealtime(traslado.estado);
-        setEstadoActualizadoEn(traslado.actualizado_en);
+        actualizar({ estadoRealtime: traslado.estado, estadoActualizadoEn: traslado.actualizado_en });
       })
       .catch((err) => console.warn("[SeguimientoTiempoReal] fetch estado fallido", err));
 
@@ -147,7 +143,7 @@ export function SeguimientoTrasladoTiempoReal({
         if (fallidos.length > 0) console.warn("[SeguimientoTiempoReal] algunos canales no se cerraron", fallidos);
       });
     };
-  }, [trasladoId]);
+  }, [actualizar, inicializar, trasladoId, ubicacionInicial]);
 
   async function refrescar() {
     if (!tieneSupabaseConfigurado()) return;
@@ -156,22 +152,21 @@ export function SeguimientoTrasladoTiempoReal({
     if (ahora - ultimoRefreshRef.current < 800 || cargando) return;
     ultimoRefreshRef.current = ahora;
 
-    setCargando(true);
+    actualizar({ cargando: true });
     try {
       const cliente = crearClienteNavegador();
       const [ultimaUbicacion, estadoActual] = await Promise.all([
         obtenerUltimaUbicacionTraslado(cliente, trasladoId),
         obtenerEstadoTrasladoRealtime(cliente, trasladoId)
       ]);
-      setUbicacion(ultimaUbicacion);
+      actualizar({ ubicacion: ultimaUbicacion });
       if (estadoActual) {
-        setEstadoRealtime(estadoActual.estado);
-        setEstadoActualizadoEn(estadoActual.actualizado_en);
+        actualizar({ estadoRealtime: estadoActual.estado, estadoActualizadoEn: estadoActual.actualizado_en });
       }
     } catch (err) {
       console.warn("[SeguimientoTiempoReal] refrescar fallido", err);
     } finally {
-      setCargando(false);
+      actualizar({ cargando: false });
     }
   }
 
@@ -219,7 +214,7 @@ export function SeguimientoTrasladoTiempoReal({
             <img
               src={mapaUrl}
               alt="Mapa con la ruta y la última ubicación del conductor"
-              onLoad={() => setMapaCargadoUrl(mapaUrl)}
+              onLoad={() => actualizar({ mapaCargadoUrl: mapaUrl })}
               className={mapaCargado ? "h-72 w-full object-cover" : "hidden"}
             />
           </div>
