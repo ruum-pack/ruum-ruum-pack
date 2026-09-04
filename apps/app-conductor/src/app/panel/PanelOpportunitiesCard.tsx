@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { PasaporteRow } from "./panel-utils";
 import type { Disponibilidad } from "./usePanelData";
+import { ConductorStatusBadge, conductorButtonClasses } from "../../components/v2/ConductorUI";
 
 interface PanelOpportunitiesCardProps {
   disponibilidad: Disponibilidad;
@@ -41,13 +42,13 @@ export function PanelOpportunitiesCard({
   const promedioEstimado = trasladosHoy > 0 ? Math.round(gananciasHoy / trasladosHoy) : 850;
 
   return (
-    <div className="w-full p-5 rounded-3xl bg-surface-elevated border border-border/30 text-text-primary flex flex-col gap-4 shadow-lg text-left relative overflow-hidden">
+    <section className="conductor-operational-card w-full p-5 flex flex-col gap-4 text-left relative overflow-hidden">
       <div className="flex justify-between items-start w-full">
         <div className="flex flex-col gap-1 max-w-[75%]">
-          <span className="text-route-action text-[10px] font-extrabold uppercase tracking-widest leading-none flex items-center gap-1.5">
-            {esDisponible && <span className="h-2 w-2 rounded-full bg-signal" aria-hidden />}
-            {esDisponible ? "Traslados Disponibles" : "Modo No Disponible"}
-          </span>
+          <ConductorStatusBadge
+            status={esDisponible ? "active" : "neutral"}
+            label={esDisponible ? "Traslados disponibles" : "Modo no disponible"}
+          />
           <h2 className="font-display text-lg font-black tracking-tight text-text-primary leading-tight mt-2">
             {esDisponible
               ? cantidadDisponibles > 0
@@ -96,7 +97,7 @@ export function PanelOpportunitiesCard({
         <button
           type="button"
           onClick={onActivar}
-          className="w-full min-h-12 rounded-2xl font-display text-sm font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal mt-1 bg-signal hover:bg-signal/90 text-slate-950"
+          className={conductorButtonClasses({ variant: "primary", className: "w-full mt-1" })}
         >
           Activarme ahora →
         </button>
@@ -104,7 +105,7 @@ export function PanelOpportunitiesCard({
         <div className="flex gap-2 mt-1">
           <Link
             href="/viajes"
-            className="flex-1 min-h-12 rounded-2xl font-display text-sm font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action bg-surface hover:bg-surface-elevated text-text-primary border border-border/40"
+            className={conductorButtonClasses({ variant: "secondary", className: "flex-1" })}
           >
             Ver bandeja →
           </Link>
@@ -112,7 +113,7 @@ export function PanelOpportunitiesCard({
             type="button"
             onClick={onRecargar}
             disabled={refrescando}
-            className="shrink-0 min-h-12 px-4 rounded-2xl font-display text-sm font-bold border border-border bg-surface hover:bg-surface-elevated text-text-primary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action disabled:opacity-50"
+            className={conductorButtonClasses({ variant: "ghost", className: "shrink-0 px-4" })}
           >
             {refrescando ? "Buscando…" : "Buscar ahora"}
           </button>
@@ -120,7 +121,7 @@ export function PanelOpportunitiesCard({
       ) : (
         <Link
           href="/viajes"
-          className="w-full min-h-12 rounded-2xl font-display text-sm font-black tracking-wide transition-all cursor-pointer shadow-md select-none flex items-center justify-center gap-1.5 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action mt-1 bg-signal hover:bg-signal/85 text-slate-950"
+          className={conductorButtonClasses({ variant: "primary", className: "w-full mt-1" })}
         >
           {`Ver traslados (${cantidadDisponibles}) →`}
         </Link>
@@ -130,6 +131,6 @@ export function PanelOpportunitiesCard({
           Actualizado {hace} · Pull para refrescar
         </p>
       )}
-    </div>
+    </section>
   );
 }

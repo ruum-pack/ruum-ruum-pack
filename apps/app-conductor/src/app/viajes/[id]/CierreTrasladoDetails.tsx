@@ -9,6 +9,7 @@ import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado, extraerRutaComprobante, resolverUrlEvidencia } from "@ruum/api/services";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
+import { ConductorStatusBadge } from "../../../components/v2/ConductorUI";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -394,9 +395,7 @@ export function CierreTrasladoDetails({
           </svg>
         </div>
 
-        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest mb-2">
-          TRASLADO COMPLETADO
-        </span>
+        <ConductorStatusBadge status="success" label="Traslado completado" className="mb-2" />
         <h1 className="font-display text-3xl font-black text-center mb-2 leading-tight text-text-primary">
           ¡Excelente trabajo!
         </h1>
@@ -428,7 +427,7 @@ export function CierreTrasladoDetails({
         <div className="mt-8 w-full flex flex-col gap-3">
           <Link
             href="/viajes"
-            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-signal hover:bg-signal/85 px-4 py-3.5 font-display text-xs font-black tracking-widest text-slate-950 uppercase shadow-md active:scale-[0.98] transition-all cursor-pointer"
+            className="conductor-button conductor-button-primary w-full"
           >
             VOLVER AL PANEL
           </Link>

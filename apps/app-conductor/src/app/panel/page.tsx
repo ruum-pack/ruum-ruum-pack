@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Aviso, LogoMarca } from "@ruum/ui";
+import { ConductorStatusBadge } from "../../components/v2/ConductorUI";
 import { ConfirmarDisponibilidad } from "../ConfirmarDisponibilidad";
 import { RegistroViajeActivo } from "../ViajeActivoContext";
 import { EstadoRevisionConductor } from "./EstadoRevisionConductor";
@@ -327,7 +328,7 @@ export default function PaginaPanel() {
           {/* Header — Q6 simplificado: Logo + Notificaciones + Menú (menos ruido, pulgar) */}
           <header className="flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <LogoMarca tamano={28} color="signal" descriptor="Conductor" mostrarDescriptor={true} mostrarRespaldo={false} />
+              <LogoMarca tamano={28} tema="claro" color="route" descriptor="Conductor" mostrarDescriptor={true} mostrarRespaldo={false} />
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
@@ -471,14 +472,17 @@ export default function PaginaPanel() {
               )}
 
               {/* 2 — Estado del conductor */}
-              <section className="bg-surface rounded-2xl p-5 border border-border/40 text-left shadow-sm" aria-labelledby="titulo-estado-conductor">
+              <section className="conductor-operational-card bg-surface rounded-2xl p-5 text-left" aria-labelledby="titulo-estado-conductor">
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex flex-col gap-1 min-w-0">
-                    <span id="titulo-estado-conductor" className="text-text-tertiary text-xs font-extrabold tracking-wider uppercase">
-                      Estado del Conductor
+                    <ConductorStatusBadge
+                      status={disponibilidad === "en_viaje" ? "active" : esDisponible ? "success" : "neutral"}
+                      label={disponibilidad === "en_viaje" ? "En viaje" : esDisponible ? "Disponible" : "No disponible"}
+                    />
+                    <span id="titulo-estado-conductor" className="sr-only">
+                      Estado del conductor
                     </span>
                     <div className="flex items-center gap-2 mt-1.5">
-                      <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${esDisponible ? "bg-signal animate-pulse" : "bg-text-disabled"}`} aria-hidden />
                       <span className="font-display text-lg font-black text-text-primary uppercase tracking-wide">
                         {disponibilidad === "en_viaje" ? "En viaje" : esDisponible ? "Disponible" : "No Disponible"}
                       </span>

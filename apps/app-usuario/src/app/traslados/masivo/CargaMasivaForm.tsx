@@ -398,7 +398,7 @@ export function CargaMasivaForm() {
 
       // 2. Procesar lote en chunks — R6: delay + maxRetries para evitar loop infinito
       let resProcesamiento = await procesarCargaTrasladosMasivosUsuario(cliente, resCreacion.carga_id, 50);
-      const MAX_INTENTOS = 20;
+      const MAX_INTENTOS = MAX_INTENTOS_MASIVO;
       let intentos = 0;
 
       while (resProcesamiento.estado === "procesando") {

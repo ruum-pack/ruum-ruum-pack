@@ -1,7 +1,7 @@
-import { Button } from "@ruum/ui";
 import type { FotoEvidencia } from "@ruum/shared/types";
 import type { EvidenceRequirement } from "./evidence-requirements";
 import { EvidencePreview } from "./EvidencePreview";
+import { ConductorButton } from "../../../../components/v2/ConductorUI";
 
 function VehicleSilhouette({ label }: { label: string }) {
   return (
@@ -36,7 +36,7 @@ export function EvidenceCaptureStep({
   onNoAplica: (checked: boolean) => void;
 }) {
   return (
-    <section className="mt-5 rounded-2xl border border-border/28 bg-surface p-6 text-text-primary shadow-[0_18px_48px_rgba(0,0,0,0.45)]">
+    <section className="conductor-operational-card mt-5 p-6 text-text-primary">
       <p className="font-body text-sm font-semibold text-route-action">
         {step} de {total}
       </p>
@@ -53,12 +53,12 @@ export function EvidenceCaptureStep({
         </label>
       )}
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <Button onClick={onCapture} loading={busy}>
-          {foto ? "Repetir foto" : "Tomar foto"}
-        </Button>
-        <Button variant="secondary" onClick={onGallery} loading={busy}>
+      <ConductorButton onClick={onCapture} loading={busy}>
+        {foto ? "Repetir foto" : "Tomar foto"}
+      </ConductorButton>
+      <ConductorButton variant="secondary" onClick={onGallery} loading={busy}>
           Elegir de galería
-        </Button>
+      </ConductorButton>
       </div>
     </section>
   );

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { PasaporteRow, DetalleOperativo } from "./trips-utils";
 import { formatearDuracion, nombreVehiculo } from "./trips-utils";
+import { ConductorStatusBadge, conductorButtonClasses } from "../../components/v2/ConductorUI";
 
 function extraerColonia(direccion: string | null): string {
   if (!direccion) return "";
@@ -50,11 +51,11 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
   const duracionTexto = formatearDuracion(viaje.tiempo_estimado_horas);
 
   return (
-    <div className="w-full rounded-2xl border border-border/20 bg-surface-elevated overflow-hidden shadow-sm select-none text-left flex flex-col gap-0">
+    <article className="conductor-operational-card w-full overflow-hidden select-none text-left flex flex-col gap-0">
       {/* Cabecera: ID resaltado + Tipo de Auto + Tarifa */}
       <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-border/15 gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="h-2 w-2 rounded-full bg-signal animate-pulse shrink-0" aria-hidden />
+          <ConductorStatusBadge status="active" label="Oferta disponible" className="shrink-0" />
           <button
             type="button"
             onClick={() => {
@@ -175,11 +176,11 @@ export function OfertaCard({ viaje, detalle, hrefDetalle }: OfertaCardProps) {
       <div className="p-3 bg-surface/60 border-t border-border/15">
         <Link
           href={hrefDetalle}
-          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-signal hover:bg-signal/90 active:scale-[0.98] px-4 font-display text-sm font-bold tracking-wide text-slate-950 transition-all shadow-sm cursor-pointer focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-signal"
+          className={conductorButtonClasses({ variant: "primary", className: "w-full" })}
         >
           Ver oferta →
         </Link>
       </div>
-    </div>
+    </article>
   );
 }

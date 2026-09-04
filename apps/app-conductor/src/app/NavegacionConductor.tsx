@@ -187,7 +187,7 @@ export function NavegacionConductor() {
       <header role="banner" className="hidden md:block sticky top-0 z-30 border-b border-border bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur supports-[backdrop-filter]:bg-surface/85">
         <div className="ruum-container flex min-h-16 items-center gap-3 py-3">
           <Link href="/panel" aria-label="Ir al inicio de Ruum Ruum Conductor" className="flex shrink-0 items-center gap-2.5 rounded-lg">
-            <LogoMarca variante="horizontal" tema="auto" tamano={30} mostrarDescriptor={false} mostrarRespaldo={false} />
+            <LogoMarca variante="horizontal" tema="claro" color="route" tamano={30} mostrarDescriptor={false} mostrarRespaldo={false} />
             <span className="hidden font-body text-xs font-semibold text-text-tertiary lg:inline">Conductor</span>
           </Link>
 
@@ -276,7 +276,7 @@ export function NavegacionConductor() {
       </header>
 
       {/* Navegación móvil fija al fondo adaptada al Brand Book */}
-      <div className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-surface/95 border-t border-border/20 backdrop-blur-md pb-[max(8px,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-8px_30px_rgba(0,0,0,0.5)] supports-[backdrop-filter]:bg-surface/80">
+      <div className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-surface/95 border-t border-border/20 backdrop-blur-md pb-[max(8px,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-8px_30px_rgba(13,43,94,0.10)] supports-[backdrop-filter]:bg-surface/80">
         
         {/* Banner de viaje activo en móvil: flotante arriba de la barra fija */}
         {viajeActivo && !pathname.startsWith("/viajes") && pathname !== "/panel" && (
@@ -354,4 +354,3 @@ export function NavegacionConductor() {
     </>
   );
 }
-

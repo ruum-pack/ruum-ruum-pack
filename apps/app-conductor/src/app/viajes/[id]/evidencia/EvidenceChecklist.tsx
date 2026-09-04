@@ -19,9 +19,14 @@ export function EvidenceChecklist() {
               active ? "border-route-action bg-surface-elevated shadow-[inset_0_0_0_1px_rgba(77,163,255,0.32)]" : "border-border/22 bg-surface",
               status === "listo" ? "text-success" : status === "omitido" ? "text-text-tertiary" : "text-text-primary"
             ].join(" ")}
+            aria-current={active ? "step" : undefined}
+            aria-label={`${item.titulo}: ${status === "listo" ? "completado" : status === "omitido" ? "omitido" : "pendiente"}`}
           >
             <span className="block font-body text-xs font-semibold">{index + 1}</span>
             <span className="mt-1 block truncate font-body text-xs font-semibold">{item.titulo}</span>
+            <span className="mt-1 block font-body text-[11px] text-text-tertiary">
+              {status === "listo" ? "Listo" : status === "omitido" ? "Omitido" : "Pendiente"}
+            </span>
           </button>
         );
       })}

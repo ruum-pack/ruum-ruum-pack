@@ -11,6 +11,7 @@ import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
 import { EmergencyPanel } from "./EmergencyPanel";
+import { ConductorStatusBadge } from "../../../components/v2/ConductorUI";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
@@ -138,14 +139,12 @@ export function LocalizarVehiculoDetails({
             <path d="M10 9H8" />
           </svg>
         </div>
-        <div className="flex flex-col">
-          <span className="text-[10px] text-text-tertiary font-bold tracking-widest uppercase mb-0.5">ESTADO ACTUAL</span>
-          <div className="flex items-center gap-1.5">
-            <span className="font-display text-lg font-black uppercase tracking-wide text-text-primary">
-              {esEvidenciaCompletada ? "RECEPCIÓN LISTA" : "EN EL ORIGEN"}
-            </span>
-            <span className="h-2 w-2 rounded-full bg-signal animate-pulse mt-0.5" />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10px] text-text-tertiary font-bold tracking-widest uppercase">Estado actual</span>
+          <ConductorStatusBadge
+            status={esEvidenciaCompletada ? "success" : "active"}
+            label={esEvidenciaCompletada ? "Recepción lista" : "En el origen"}
+          />
         </div>
       </div>
 
@@ -260,7 +259,7 @@ export function LocalizarVehiculoDetails({
             type="button"
             onClick={handleAccionPrincipal}
             disabled={procesando}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-signal hover:bg-signal/85 text-slate-950 px-4 py-4 font-display text-xs font-black tracking-widest uppercase shadow-md active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="conductor-button conductor-button-primary w-full disabled:cursor-not-allowed"
           >
             {procesando ? (
               TEXTOS_CARGANDO.actualizando

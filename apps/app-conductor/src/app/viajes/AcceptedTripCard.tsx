@@ -3,22 +3,19 @@
 import Link from "next/link";
 import type { PasaporteRow, DetalleOperativo } from "./trips-utils";
 import { formatearDuracion, nombreVehiculo } from "./trips-utils";
+import { ConductorStatusBadge, conductorButtonClasses, type ConductorStatus } from "../../components/v2/ConductorUI";
 
 function getEstadoCardInfo(estado: string) {
   switch (estado) {
     case "conductor_asignado":
       return {
-        dotColor: "bg-amber-500",
-        textColor: "text-amber-700 dark:text-amber-300",
-        badgeBg: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
+        status: "pending" as ConductorStatus,
         titulo: "PENDIENTE DE INICIO",
         descripcion: "Dirígete al punto de origen."
       };
     case "conductor_en_camino_al_origen":
       return {
-        dotColor: "bg-emerald-500",
-        textColor: "text-emerald-700 dark:text-emerald-300",
-        badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+        status: "active" as ConductorStatus,
         titulo: "EN CAMINO AL ORIGEN",
         descripcion: "Dirígete al punto de recolección."
       };
@@ -28,17 +25,13 @@ function getEstadoCardInfo(estado: string) {
     case "evidencia_inicial_completada":
     case "vehiculo_recibido":
       return {
-        dotColor: "bg-emerald-500",
-        textColor: "text-emerald-700 dark:text-emerald-300",
-        badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+        status: "active" as ConductorStatus,
         titulo: "EN PUNTO DE ORIGEN",
         descripcion: "Realiza la recepción y evidencia del vehículo."
       };
     case "traslado_en_curso":
       return {
-        dotColor: "bg-emerald-500",
-        textColor: "text-emerald-700 dark:text-emerald-300",
-        badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+        status: "active" as ConductorStatus,
         titulo: "TRASLADO EN CURSO",
         descripcion: "Conduce de forma segura al destino."
       };
@@ -46,26 +39,20 @@ function getEstadoCardInfo(estado: string) {
     case "evidencia_final_en_proceso":
     case "evidencia_final_completada":
       return {
-        dotColor: "bg-emerald-500",
-        textColor: "text-emerald-700 dark:text-emerald-300",
-        badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+        status: "active" as ConductorStatus,
         titulo: "LLEGADA A DESTINO",
         descripcion: "Entrega la unidad y registra la evidencia final."
       };
     case "entrega_confirmada":
     case "servicio_cerrado":
       return {
-        dotColor: "bg-emerald-500",
-        textColor: "text-emerald-700 dark:text-emerald-300",
-        badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+        status: "success" as ConductorStatus,
         titulo: "TRASLADO FINALIZADO",
         descripcion: "El traslado ha sido concluido."
       };
     default:
       return {
-        dotColor: "bg-amber-500",
-        textColor: "text-amber-700 dark:text-amber-300",
-        badgeBg: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
+        status: "pending" as ConductorStatus,
         titulo: "PENDIENTE DE INICIO",
         descripcion: "Dirígete al punto de origen."
       };
@@ -105,7 +92,7 @@ export function AcceptedTripCard({
   const cardInfo = getEstadoCardInfo(viaje.estado || "");
 
   return (
-    <div className="w-full rounded-2xl border border-border/20 bg-surface-elevated p-4 shadow-sm flex flex-col gap-3 text-left select-none">
+    <article className="conductor-operational-card w-full p-4 flex flex-col gap-3 text-left select-none">
       {/* Cabecera: ID + Tarifa + Botón de Opciones */}
       <div className="flex items-center justify-between gap-2 border-b border-border/15 pb-2.5">
         <div className="flex items-center gap-2">
@@ -144,10 +131,7 @@ export function AcceptedTripCard({
 
       {/* Indicador de Estado */}
       <div className="flex flex-col text-left">
-        <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase border self-start ${cardInfo.badgeBg}`}>
-          <span className={`h-2 w-2 rounded-full ${cardInfo.dotColor} animate-pulse shrink-0`} />
-          <span>{cardInfo.titulo}</span>
-        </div>
+        <ConductorStatusBadge status={cardInfo.status} label={cardInfo.titulo} />
         <p className="font-body text-[10px] text-text-secondary mt-1 leading-snug">
           {cardInfo.descripcion}
         </p>
@@ -220,10 +204,10 @@ export function AcceptedTripCard({
       {/* CTA Button */}
       <Link
         href={hrefDetalle}
-        className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-route-action hover:bg-route-action/85 active:scale-[0.98] px-4 font-display text-xs font-black tracking-widest text-white uppercase transition-all shadow-sm select-none cursor-pointer mt-0.5"
+        className={conductorButtonClasses({ variant: "primary", className: "w-full mt-0.5" })}
       >
         INICIAR TRASLADO →
       </Link>
-    </div>
+    </article>
   );
 }

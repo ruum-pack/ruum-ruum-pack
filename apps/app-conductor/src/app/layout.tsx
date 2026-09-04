@@ -58,11 +58,11 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const nonce = (await headers()).get("x-nonce") ?? "";
   return (
-    <html lang="es" data-theme="dark" suppressHydrationWarning>
+    <html lang="es" data-theme="light" suppressHydrationWarning>
       <head suppressHydrationWarning>
         <Script src="/theme-init.js" strategy="beforeInteractive" nonce={nonce || undefined} suppressHydrationWarning />
       </head>
-      <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}>
+      <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} conductor-v2-shell min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">Saltar al contenido principal</a>
         <LiveRegionProvider>
           <ErrorBoundaryConductor scope="global">
@@ -77,7 +77,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <TextInputUppercaseBridge />
               <OfflineShell />
               <PWABootstrap />
-              <main id="contenido-principal" className="conductor-page" role="main">
+              <main id="contenido-principal" className="conductor-page conductor-v2" role="main">
                 {children}
               </main>
             </ViajeActivoProvider>

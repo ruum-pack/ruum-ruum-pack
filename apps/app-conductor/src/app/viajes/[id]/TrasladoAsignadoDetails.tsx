@@ -14,6 +14,7 @@ import { formatearDuracion, nombreVehiculo } from "../trips-utils";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
 import { EmergencyPanel } from "./EmergencyPanel";
+import { ConductorStatusBadge } from "../../../components/v2/ConductorUI";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 
@@ -137,16 +138,11 @@ export function TrasladoAsignadoDetails({
               <polyline points="10 9 9 9 8 9" />
             </svg>
           </div>
-          <div className="flex flex-col">
-            <span className="text-[10px] text-text-tertiary font-bold tracking-widest uppercase mb-0.5">
-              ESTADO ACTUAL
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] text-text-tertiary font-bold tracking-widest uppercase">
+              Estado actual
             </span>
-            <div className="flex items-center gap-2">
-              <span className="font-display text-lg font-black uppercase tracking-wide text-text-primary">
-                ASIGNADO
-              </span>
-              <span className="h-2 w-2 rounded-full bg-signal animate-pulse" />
-            </div>
+            <ConductorStatusBadge status="assigned" label="Asignado" />
           </div>
         </div>
 
@@ -321,7 +317,7 @@ export function TrasladoAsignadoDetails({
             type="button"
             onClick={handleIniciarCamino}
             disabled={procesando}
-            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-signal hover:bg-signal/85 px-4 py-4 font-display text-xs font-black tracking-widest text-slate-950 uppercase shadow-md active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="conductor-button conductor-button-primary w-full disabled:cursor-not-allowed"
           >
             {procesando ? (
               TEXTOS_CARGANDO.actualizando
