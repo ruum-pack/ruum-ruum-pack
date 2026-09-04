@@ -992,6 +992,7 @@ export function NuevoTrasladoForm() {
       const datosNuevos = { ...datos, [campo]: valor };
       if (haCambiadoTarifa(tarifaPreviaSnapshot, datosNuevos)) {
         setTarifaPreviaAceptada(false);
+        setErrorPaso("Tu tarifa puede haber cambiado. Confírmala antes de continuar.");
       }
     }
 
@@ -1075,6 +1076,7 @@ export function NuevoTrasladoForm() {
       const datosNuevos = { ...datos, [campoCp]: s.codigoPostal };
       if (haCambiadoTarifa(tarifaPreviaSnapshot, datosNuevos)) {
         setTarifaPreviaAceptada(false);
+        setErrorPaso("Tu tarifa puede haber cambiado. Confírmala antes de continuar.");
       }
     }
 
@@ -1107,6 +1109,7 @@ export function NuevoTrasladoForm() {
       };
       if (haCambiadoTarifa(tarifaPreviaSnapshot, datosNuevos)) {
         setTarifaPreviaAceptada(false);
+        setErrorPaso("Tu tarifa puede haber cambiado. Confírmala antes de continuar.");
       }
     }
 
@@ -1577,8 +1580,8 @@ export function NuevoTrasladoForm() {
   }
 
   function validarPasoActual() {
-    if (paso === 3 && !tarifaPreviaAceptada) {
-      setErrorPaso("Tu tarifa cambió o requiere confirmación. Por favor revísala en el paso inicial.");
+    if (paso > 0 && !tarifaPreviaAceptada) {
+      setErrorPaso("Tu tarifa puede haber cambiado. Confírmala antes de continuar.");
       setPaso(0);
       return false;
     }
@@ -1626,7 +1629,7 @@ export function NuevoTrasladoForm() {
 
   async function enviarSolicitud() {
     if (!tarifaPreviaAceptada) {
-      setErrorPaso("Tu tarifa cambió o requiere confirmación. Por favor revísala en el paso inicial.");
+      setErrorPaso("Tu tarifa puede haber cambiado. Confírmala antes de continuar.");
       setPaso(0);
       return;
     }
@@ -2299,6 +2302,7 @@ export function NuevoTrasladoForm() {
                       if (!validarPasoActual()) return;
                       setTarifaPreviaAceptada(true);
                       setTarifaPreviaSnapshot(generarTarifaSnapshot(datos));
+                      setErrorPaso(null);
                       registrarEventoUx("tarifa_gate_aceptada", {
                         monto: previsualizacion?.tarifa ?? null,
                         marca: datos.marca,
