@@ -1580,12 +1580,12 @@ export function NuevoTrasladoForm() {
   }
 
   function validarPasoActual() {
-    if (paso > 0 && !tarifaPreviaAceptada) {
-      setErrorPaso("Tu tarifa puede haber cambiado. Confírmala antes de continuar.");
-      setPaso(0);
-      return false;
-    }
-
+       if (paso > 0 && paso < 3 && !tarifaPreviaAceptada) {
+     setErrorPaso("Tu tarifa cambió o requiere confirmación. Por favor revísala en el paso inicial.");
+     setPaso(0);
+     return false;
+   }
+      
     const todos = erroresFormulario(esquemaSolicitudTraslado.safeParse(datosParaValidacion()));
     const siguientesErrores = Object.fromEntries(
       Object.entries(todos).filter(([campo]) => {
