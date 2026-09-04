@@ -1,5 +1,5 @@
 "use client";
-import { memo } from "react";
+import React, { memo } from "react";
 import { Button, PassportCard, Aviso } from "@ruum/ui";
 import { MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { PrevisualizacionTarifa } from "@ruum/api/services";
@@ -29,7 +29,7 @@ export interface PasoDetallesProps {
   onRevisarTarifa: () => void;
 }
 
-export const PasoDetalles = memo(function PasoDetalles({
+function PasoDetallesComponent({
   datos,
   actualizar,
   onEditarAgenda,
@@ -343,9 +343,23 @@ export const PasoDetalles = memo(function PasoDetalles({
               </p>
             ) : null}
             <p className="text-center font-body text-xs leading-4 text-ink/40">Visa · Mastercard · Amex · SPEI · 3-D Secure</p>
-          </div>
-        </div>
-      </section>
-    </div>
+           </div>
+         </div>
+       </section>
+     </div>
+   );
+}
+
+function areEqualPasoDetalles(prev: PasoDetallesProps, next: PasoDetallesProps) {
+  return (
+    prev.datos.tipoRuta === next.datos.tipoRuta &&
+    prev.datos.ventanaRecoleccion === next.datos.ventanaRecoleccion &&
+    prev.datos.ventanaEntrega === next.datos.ventanaEntrega &&
+    prev.datos.tipoServicio === next.datos.tipoServicio &&
+    prev.datos.motivoServicio === next.datos.motivoServicio &&
+    prev.previsualizacion === next.previsualizacion &&
+    prev.enviando === next.enviando &&
+    prev.tarifaPreviaAceptada === next.tarifaPreviaAceptada
   );
-});
+}
+export const PasoDetalles = memo(PasoDetallesComponent, areEqualPasoDetalles);

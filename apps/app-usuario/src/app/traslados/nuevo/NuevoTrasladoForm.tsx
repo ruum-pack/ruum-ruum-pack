@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button, Aviso } from "@ruum/ui";
 import { NavegacionUsuario } from "../../NavegacionUsuario";
@@ -10,9 +10,15 @@ import { useNuevoTraslado } from "./hooks/useNuevoTraslado";
 import { EstadoCreacion } from "./components/EstadoCreacion";
 import { PasoTarifa } from "./components/PasoTarifa";
 import { PasoVehiculo } from "./components/PasoVehiculo";
-import { PasoRuta } from "./components/PasoRuta";
-import { PasoDetalles } from "./components/PasoDetalles";
 import { PasoPago } from "./components/PasoPago";
+
+// 1.3 Lazy load — PasoRuta es ~350 líneas, se carga solo cuando paso 2/3 lo necesita
+const PasoRuta = lazy(() => import("./components/PasoRuta").then((m) => ({ default: m.PasoRuta })));
+const PasoDetalles = lazy(() => import("./components/PasoDetalles").then((m) => ({ default: m.PasoDetalles })));
+
+function SkeletonPaso() {
+  return <div className="animate-pulse rounded-xl border border-ink/10 bg-mist p-6 h-64" aria-busy="true" aria-label="Cargando paso" />;
+}
 
 export function NuevoTrasladoForm() {
   const t = useNuevoTraslado();
@@ -245,40 +251,43 @@ export function NuevoTrasladoForm() {
 
 
           {t.paso === 2 && (
-            <PasoRuta
-              datos={t.datos}
-              errores={t.errores}
-              claseControl={t.claseControl}
-              actualizar={t.actualizar}
-              actualizarTelefono={t.actualizarTelefono}
-              actualizarCodigoPostal={t.actualizarCodigoPostal}
-              consultarCodigoPostal={t.consultarCodigoPostal}
-              validarCampo={t.validarCampo}
-              aplicarSugerenciaCp={t.aplicarSugerenciaCp}
-              aplicarSugerenciaDireccion={t.aplicarSugerenciaDireccion}
-              cpConsultando={t.cpConsultando}
-              cpAviso={t.cpAviso}
-              cpOpciones={t.cpOpciones}
-              placesOpciones={t.placesOpciones}
-              origenBusqueda={t.origenBusqueda}
-              setOrigenBusqueda={t.setOrigenBusqueda}
-              destinoBusqueda={t.destinoBusqueda}
-              setDestinoBusqueda={t.setDestinoBusqueda}
-              origenSugerencias={t.origenSugerencias}
-              destinoSugerencias={t.destinoSugerencias}
-              buscandoOrigen={t.buscandoOrigen}
-              buscandoDestino={t.buscandoDestino}
-              rutaEstimacion={t.rutaEstimacion}
-              rutaCalculando={t.rutaCalculando}
-              rutaAviso={t.rutaAviso}
-              onReintentarRuta={t.reintentarRuta}
-              onParadasChange={t.actualizarParadas}
-              erroresParadas={t.erroresParadas}
-            />
+            <Suspense fallback={<SkeletonPaso />}>
+              <PasoRuta
+                datos={t.datos}
+                errores={t.errores}
+                claseControl={t.claseControl}
+                actualizar={t.actualizar}
+                actualizarTelefono={t.actualizarTelefono}
+                actualizarCodigoPostal={t.actualizarCodigoPostal}
+                consultarCodigoPostal={t.consultarCodigoPostal}
+                validarCampo={t.validarCampo}
+                aplicarSugerenciaCp={t.aplicarSugerenciaCp}
+                aplicarSugerenciaDireccion={t.aplicarSugerenciaDireccion}
+                cpConsultando={t.cpConsultando}
+                cpAviso={t.cpAviso}
+                cpOpciones={t.cpOpciones}
+                placesOpciones={t.placesOpciones}
+                origenBusqueda={t.origenBusqueda}
+                setOrigenBusqueda={t.setOrigenBusqueda}
+                destinoBusqueda={t.destinoBusqueda}
+                setDestinoBusqueda={t.setDestinoBusqueda}
+                origenSugerencias={t.origenSugerencias}
+                destinoSugerencias={t.destinoSugerencias}
+                buscandoOrigen={t.buscandoOrigen}
+                buscandoDestino={t.buscandoDestino}
+                rutaEstimacion={t.rutaEstimacion}
+                rutaCalculando={t.rutaCalculando}
+                rutaAviso={t.rutaAviso}
+                onReintentarRuta={t.reintentarRuta}
+                onParadasChange={t.actualizarParadas}
+                erroresParadas={t.erroresParadas}
+              />
+            </Suspense>
           )}
 
           {t.paso === 3 && (
-            <PasoDetalles
+            <Suspense fallback={<SkeletonPaso />}>
+              <PasoDetalles
               datos={t.datos}
               actualizar={t.actualizar}
               onEditarAgenda={volverPasoInicial}
@@ -297,6 +306,7 @@ export function NuevoTrasladoForm() {
               tarifaPreviaAceptada={t.tarifaPreviaAceptada}
               onRevisarTarifa={volverPasoInicial}
             />
+            </Suspense>
           )}
 
 

@@ -1,5 +1,5 @@
 "use client";
-import { memo } from "react";
+import React, { memo } from "react";
 import { Button, PassportCard } from "@ruum/ui";
 import type { PrevisualizacionTarifa } from "@ruum/api/services";
 import { MARCAS_CATALOGO } from "../../../../lib/catalogo-vehiculos";
@@ -22,7 +22,7 @@ export interface PasoTarifaProps {
   onContinuar: () => void;
 }
 
-export const PasoTarifa = memo(function PasoTarifa({
+function PasoTarifaComponent({
   datos,
   errores,
   claseControl,
@@ -403,4 +403,21 @@ export const PasoTarifa = memo(function PasoTarifa({
       </section>
     </div>
   );
-});
+}
+
+function areEqualPasoTarifa(prev: PasoTarifaProps, next: PasoTarifaProps) {
+  return (
+    prev.datos.origenCodigoPostal === next.datos.origenCodigoPostal &&
+    prev.datos.destinoCodigoPostal === next.datos.destinoCodigoPostal &&
+    prev.datos.marca === next.datos.marca &&
+    prev.datos.modelo === next.datos.modelo &&
+    prev.datos.condicion === next.datos.condicion &&
+    prev.datos.modalidadProgramacion === next.datos.modalidadProgramacion &&
+    prev.datos.fechaHoraProgramada === next.datos.fechaHoraProgramada &&
+    prev.previsualizacion === next.previsualizacion &&
+    prev.previsualizando === next.previsualizando &&
+    prev.cpConsultando === next.cpConsultando &&
+    prev.errores === next.errores
+  );
+}
+export const PasoTarifa = memo(PasoTarifaComponent, areEqualPasoTarifa);

@@ -1,5 +1,5 @@
 "use client";
-import { memo, useCallback } from "react";
+import React, { memo, useCallback } from "react";
 import { Button, Field, PassportCard } from "@ruum/ui";
 import { esNativo } from "../../../../lib/capacitor";
 import { obtenerUbicacionActual } from "../../../../lib/ubicacion";
@@ -50,7 +50,7 @@ export interface PasoRutaProps {
   erroresParadas?: Array<Partial<Record<keyof ParadaForm, string>>>;
 }
 
-export const PasoRuta = memo(function PasoRuta({
+function PasoRutaComponent({
   datos,
   errores,
   claseControl,
@@ -510,4 +510,20 @@ export const PasoRuta = memo(function PasoRuta({
       </PassportCard>
     </div>
   );
-});
+}
+
+function areEqualPasoRuta(prev: PasoRutaProps, next: PasoRutaProps) {
+  return (
+    prev.datos.origenCodigoPostal === next.datos.origenCodigoPostal &&
+    prev.datos.origenCalle === next.datos.origenCalle &&
+    prev.datos.origenNumero === next.datos.origenNumero &&
+    prev.datos.destinoCodigoPostal === next.datos.destinoCodigoPostal &&
+    prev.datos.destinoCalle === next.datos.destinoCalle &&
+    prev.datos.destinoNumero === next.datos.destinoNumero &&
+    prev.datos.paradas === next.datos.paradas &&
+    prev.rutaEstimacion === next.rutaEstimacion &&
+    prev.rutaCalculando === next.rutaCalculando &&
+    prev.errores === next.errores
+  );
+}
+export const PasoRuta = memo(PasoRutaComponent, areEqualPasoRuta);

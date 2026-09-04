@@ -1,5 +1,5 @@
 "use client";
-import { memo, useState } from "react";
+import React, { memo, useState } from "react";
 import { Field } from "@ruum/ui";
 import type { ParadaForm, TipoParadaForm, TipoTareaForm } from "../types";
 
@@ -119,9 +119,9 @@ export const EscalasAcordeon = memo(function EscalasAcordeon({
               {abierto && (
                 <div className="grid gap-3 border-t border-ink/10 bg-white px-3 py-3">
                   {/* Tipo switch */}
-                  <div className="grid grid-cols-2 gap-1 rounded-lg border border-ink/10 bg-mist p-1">
-                    <button type="button" onClick={() => actualizar(p.id, { tipo: "escala" as TipoParadaForm })} className={["rounded-md px-2 py-1.5 font-body text-xs font-bold", p.tipo === "escala" ? "bg-signal text-ink shadow-sm" : "text-ink/60 hover:bg-white"].join(" ")}>📍 Escala</button>
-                    <button type="button" onClick={() => actualizar(p.id, { tipo: "tarea" as TipoParadaForm, tipoTarea: p.tipoTarea ?? "entrega_parcial" })} className={["rounded-md px-2 py-1.5 font-body text-xs font-bold", p.tipo === "tarea" ? "bg-signal text-ink shadow-sm" : "text-ink/60 hover:bg-white"].join(" ")}>✅ Tarea</button>
+                  <div className="grid grid-cols-2 gap-1 rounded-lg border border-ink/10 bg-mist p-1" role="radiogroup" aria-label={`Tipo de parada ${idx + 1}`}>
+                    <button type="button" role="radio" aria-checked={p.tipo === "escala"} aria-label="Escala" onClick={() => actualizar(p.id, { tipo: "escala" as TipoParadaForm })} className={["rounded-md px-2 py-1.5 font-body text-xs font-bold", p.tipo === "escala" ? "bg-signal text-ink shadow-sm" : "text-ink/60 hover:bg-white"].join(" ")}>📍 Escala</button>
+                    <button type="button" role="radio" aria-checked={p.tipo === "tarea"} aria-label="Tarea" onClick={() => actualizar(p.id, { tipo: "tarea" as TipoParadaForm, tipoTarea: p.tipoTarea ?? "entrega_parcial" })} className={["rounded-md px-2 py-1.5 font-body text-xs font-bold", p.tipo === "tarea" ? "bg-signal text-ink shadow-sm" : "text-ink/60 hover:bg-white"].join(" ")}>✅ Tarea</button>
                   </div>
 
                   {p.tipo === "tarea" && (

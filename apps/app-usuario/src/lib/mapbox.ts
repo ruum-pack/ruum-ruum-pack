@@ -1,5 +1,6 @@
 import { MapboxDirectionsError, obtenerRutaDirectionsMapbox } from "@ruum/shared/utils";
 import { recordOperationalEvent } from "./observability";
+import { registrarEventoUx } from "./analytics";
 
 function obtenerTokenPublico(): string | undefined {
   return process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -25,6 +26,10 @@ async function adquirirPermisoMapbox(signal?: AbortSignal): Promise<void> {
       mapboxTimestamps.push(ahora);
       return;
     }
+    // 3.1 rate limit hit
+    try {
+      registrarEventoUx("traslado_rate_limit_hit", { error_code: enUltimoSegundo >= MAPBOX_RPS_LIMIT ? "rps" : "rpm", timestamp: new Date().toISOString() } as never);
+    } catch {}
     const esperaSegundo = enUltimoSegundo >= MAPBOX_RPS_LIMIT
       ? (mapboxTimestamps[mapboxTimestamps.length - MAPBOX_RPS_LIMIT]! + 1_000 - ahora)
       : 0;
@@ -140,6 +145,10 @@ async function consultarMapbox(parametros: URLSearchParams, externalSignal?: Abo
       max_intentos: MAPBOX_GEOCODING_MAX_INTENTOS,
       reintentando: reintentable && intento < MAPBOX_GEOCODING_MAX_INTENTOS
     }, reintentable && intento < MAPBOX_GEOCODING_MAX_INTENTOS ? "warning" : "error");
+    try {
+      if (error?.status === 429) registrarEventoUx("traslado_rate_limit_hit", { error_code: "429", timestamp: new Date().toISOString() } as never);
+      else if (error) registrarEventoUx("traslado_geocodificacion_error", { error_code: String(error.status), timestamp: new Date().toISOString() } as never);
+    } catch {}
 
     if (!error || !reintentable || intento >= MAPBOX_GEOCODING_MAX_INTENTOS) break;
     if (!(await esperarReintento(MAPBOX_GEOCODING_RETRY_DELAY_MS * 2 ** (intento - 1), externalSignal))) return [];

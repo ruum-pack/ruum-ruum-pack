@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
+import * as Sentry from "@sentry/nextjs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TipoCuenta, TipoVehiculo, Usuario } from "@ruum/shared/types";
 import { determinarMomentoPago, calcularCargoCancelacion } from "@ruum/shared/rules";
@@ -13,7 +14,7 @@ import {
   aceptarCotizacionUsuario,
   type PrevisualizacionTarifa
 } from "@ruum/api/services";
-import { registrarEventoUx } from "../../../../lib/analytics";
+import { registrarEventoUx, iniciarFlujoTraslado, registrarPasoIniciado, registrarPasoCompletado, registrarAbandono } from "../../../../lib/analytics";
 import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../../lib/codigos-postales";
 import {
   esErrorConfiguracionMapbox,
@@ -190,6 +191,11 @@ export function useNuevoTraslado() {
   const trasladoAceptacionIntentado = useRef<string | null>(null);
   const seqGeocodificaRef = useRef(0);
   const abortGeocodificaRef = useRef<AbortController | null>(null);
+  // 1.4 Debounce dinámico — inmediato si onBlur, 650ms si typing
+  const geocodificacionInmediataRef = useRef(false);
+  const solicitarGeocodificacionInmediata = useCallback(() => {
+    geocodificacionInmediataRef.current = true;
+  }, []);
   const seqCodigoPostalRef = useRef<Record<PrefijoDomicilio, number>>({ origen: 0, destino: 0 });
   const codigoPostalTimersRef = useRef<Record<PrefijoDomicilio, ReturnType<typeof setTimeout> | null>>({ origen: null, destino: null });
   const codigoPostalAbortRef = useRef<Record<PrefijoDomicilio, AbortController | null>>({ origen: null, destino: null });
@@ -241,10 +247,28 @@ export function useNuevoTraslado() {
     [datos.destinoCodigoPostal, datos.origenCodigoPostal]
   );
 
-  // Evento inicial
+  // Evento inicial + 3.1 flujo duración y abandono
   useEffect(() => {
     registrarEventoUx("traslado_nuevo_visto");
+    iniciarFlujoTraslado();
+    registrarPasoIniciado(paso);
+    const handleBeforeUnload = () => registrarAbandono(paso, "usuario_navegó_fuera");
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      registrarAbandono(paso, "unmount_flujo");
+    };
   }, []);
+
+  // 3.1 tracking duración por paso
+  const prevPasoRef = useRef(paso);
+  useEffect(() => {
+    if (prevPasoRef.current !== paso) {
+      registrarPasoCompletado(prevPasoRef.current);
+      registrarPasoIniciado(paso);
+      prevPasoRef.current = paso;
+    }
+  }, [paso]);
 
   // Analítica gate tarifa
   useEffect(() => {
@@ -423,6 +447,9 @@ export function useNuevoTraslado() {
     setRutaCalculando(true);
     setPrevisualizacion(null);
 
+    // 1.4 Debounce dinámico: 0 si viene de onBlur, 650 si es typing
+    const delay = geocodificacionInmediataRef.current ? 0 : 650;
+    geocodificacionInmediataRef.current = false;
     const timer = setTimeout(async () => {
       abortGeocodificaRef.current?.abort();
       const controller = new AbortController();
@@ -457,7 +484,7 @@ export function useNuevoTraslado() {
       } finally {
         if (!esStale()) setRutaCalculando(false);
       }
-    }, 650);
+    }, delay);
 
     return () => {
       clearTimeout(timer);
@@ -648,6 +675,17 @@ export function useNuevoTraslado() {
       if (haCambiadoTarifa(tarifaPreviaSnapshotRef.current, datosNuevos)) {
         setTarifaPreviaAceptada(false);
         setErrorPaso("Tu tarifa puede haber cambiado. Confírmala antes de continuar.");
+        // 3.1 tarifa validación fallida
+        try {
+          const prev = JSON.parse(tarifaPreviaSnapshotRef.current) as Record<string, unknown>;
+          registrarEventoUx("tarifa_validacion_fallida", {
+            paso: pasoRef.current,
+            razon: String(campo),
+            tarifa_anterior: String(prev.marca ?? ""),
+            tarifa_nueva: String(valor ?? ""),
+            timestamp: new Date().toISOString(),
+          } as never);
+        } catch {}
       }
     }
 
@@ -1057,12 +1095,20 @@ export function useNuevoTraslado() {
     coordenadas: CoordenadasTraslado & { paradasCoords?: CoordenadasParada[] },
     idempotenciaKey: string
   ) => {
-    if (!idempotenciaKey) throw new Error("No se pudo generar la clave de seguridad de la solicitud.");
-    const payload = construirPayloadCreacion(datosForm, vehiculoId, coordenadas);
-    const traslado = await crearTraslado(cliente, payload.vehiculo, payload.traslado, idempotenciaKey, payload.paradas);
-    limpiarBorradorTrasladoLocal();
-    return traslado;
-  }, []);
+    try {
+      if (!idempotenciaKey) throw new Error("No se pudo generar la clave de seguridad de la solicitud.");
+      const payload = construirPayloadCreacion(datosForm, vehiculoId, coordenadas);
+      const traslado = await crearTraslado(cliente, payload.vehiculo, payload.traslado, idempotenciaKey, payload.paradas);
+      limpiarBorradorTrasladoLocal();
+      return traslado;
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { componente: "NuevoTraslado", paso, etapa: "creacion" },
+        contexts: { traslado: { paso, tarifaPreviaAceptada, datosCompletos: Boolean(datosForm.marca && datosForm.modelo) } },
+      });
+      throw error;
+    }
+  }, [paso, tarifaPreviaAceptada]);
 
   const enviarSolicitud = useCallback(async () => {
     if (!tarifaPreviaAceptada) {
@@ -1217,6 +1263,29 @@ export function useNuevoTraslado() {
         tipo_ruta: datos.tipoRuta
       });
     } catch (err) {
+      // 3.2 Monitoreo Sentry con contexto
+      const isMapbox = err instanceof Error && /Mapbox/i.test(err.message);
+      const isSupabase = err instanceof Error && /supabase|auth|usuario/i.test(err.message);
+      Sentry.captureException(err, {
+        tags: {
+          componente: "NuevoTraslado",
+          paso,
+          etapa: isMapbox ? "geocodificacion" : isSupabase ? "supabase" : "creacion",
+          error_code: err instanceof Error ? err.name : "unknown",
+        },
+        contexts: {
+          traslado: {
+            paso,
+            tarifaPreviaAceptada,
+            datosCompletos: Boolean(datos.marca && datos.modelo && datos.origenCodigoPostal),
+            modalidad: datos.modalidadProgramacion,
+            tipo_servicio: datos.tipoServicio,
+          },
+        },
+        extra: {
+          mensaje: err instanceof Error ? err.message.slice(0, 500) : String(err).slice(0, 500),
+        },
+      });
       setResultado({
         ok: false,
         mensaje: mensajeAmigableErrorCreacion(err)
@@ -1224,8 +1293,14 @@ export function useNuevoTraslado() {
       registrarEventoUx("traslado_nuevo_error", {
         modalidad: datos.modalidadProgramacion,
         tipo_servicio: datos.tipoServicio,
-        tipo_ruta: datos.tipoRuta
+        tipo_ruta: datos.tipoRuta,
+        error_code: err instanceof Error ? err.name : "unknown",
+        timestamp: new Date().toISOString(),
       });
+      // 3.1 eventos específicos
+      if (isMapbox) {
+        registrarEventoUx("traslado_geocodificacion_error", { paso, error_code: (err as Error & { status?: number })?.status?.toString() ?? "mapbox", timestamp: new Date().toISOString() } as never);
+      }
     } finally {
       setEnviando(false);
     }
@@ -1324,6 +1399,8 @@ export function useNuevoTraslado() {
     pagoConfirmado,
     setPagoConfirmado,
     reintentarAceptacion,
+    // 1.4 debounce dinámico
+    solicitarGeocodificacionInmediata,
     // Export backward-compatibility
     crear
   };

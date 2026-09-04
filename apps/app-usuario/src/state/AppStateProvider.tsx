@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useReducer, type Context, type ReactNode } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useReducer, type Context, type ReactNode } from "react";
 import type { UbicacionTraslado } from "@ruum/api/services";
 import {
   crearEstadoNuevoTrasladoInicial,

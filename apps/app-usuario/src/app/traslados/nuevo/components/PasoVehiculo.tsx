@@ -1,5 +1,5 @@
 "use client";
-import { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { Field, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { PrevisualizacionTarifa } from "@ruum/api/services";
@@ -31,7 +31,7 @@ export interface PasoVehiculoProps {
 }
 
 
-export const PasoVehiculo = memo(function PasoVehiculo({
+function PasoVehiculoComponent({
   datos,
   errores,
   claseControl,
@@ -53,6 +53,8 @@ export const PasoVehiculo = memo(function PasoVehiculo({
   setDetallesVehiculoExpandido,
   tarifaPreviaAceptada
 }: PasoVehiculoProps) {
+  // 1.2 useMemo en valores derivados (modelos ya viene memoizado del hook, reforzamos aquí)
+  const modelosMemo = useMemo(() => modelosDisponibles, [modelosDisponibles]);
 
   return (
     <div className="grid gap-4">
@@ -166,11 +168,11 @@ export const PasoVehiculo = memo(function PasoVehiculo({
                   ayuda={clasificacionCatalogo
                     ? `Clasificación del catálogo: ${clasificacionCatalogo}. El tipo de vehículo se prellenó automáticamente.`
                     : datos.marca.trim()
-                    ? `${modelosDisponibles.length} modelos disponibles. Al elegir uno sugeriremos el tipo de vehículo.`
+                    ? `${modelosMemo.length} modelos disponibles. Al elegir uno sugeriremos el tipo de vehículo.`
                     : "Primero captura o selecciona la marca."}
                 />
                 <datalist id="catalogo-modelos-vehiculos">
-                  {modelosDisponibles.map((modelo) => <option key={modelo} value={modelo} />)}
+                  {modelosMemo.map((modelo) => <option key={modelo} value={modelo} />)}
                 </datalist>
               </div>
 
@@ -359,4 +361,20 @@ export const PasoVehiculo = memo(function PasoVehiculo({
       </div>
     </div>
   );
-});
+}
+
+function areEqualPasoVehiculo(prev: PasoVehiculoProps, next: PasoVehiculoProps) {
+  return (
+    prev.datos.marca === next.datos.marca &&
+    prev.datos.modelo === next.datos.modelo &&
+    prev.datos.anio === next.datos.anio &&
+    prev.datos.condicion === next.datos.condicion &&
+    prev.datos.transmision === next.datos.transmision &&
+    prev.datos.color === next.datos.color &&
+    prev.previsualizacion === next.previsualizacion &&
+    prev.vehiculoSeleccionadoId === next.vehiculoSeleccionadoId &&
+    prev.errores === next.errores &&
+    prev.modelosDisponibles === next.modelosDisponibles
+  );
+}
+export const PasoVehiculo = memo(PasoVehiculoComponent, areEqualPasoVehiculo);
