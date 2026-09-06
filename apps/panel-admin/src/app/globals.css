@@ -555,7 +555,7 @@ html[data-theme="light"] {
   --admin-v2-warning: #F5B400;
   --admin-v2-warning-text: #8A6200;
   --admin-v2-danger: #D94B5B;
-  --admin-v2-gradient-action: linear-gradient(120deg, #00C2B8 0%, #1677FF 100%);
+  --admin-v2-gradient-action: linear-gradient(90deg, #00C2B8 0%, #1677FF 100%);
 
   --color-ink: var(--admin-v2-primary);
   --color-ink-soft: #244472;
@@ -584,7 +584,7 @@ html[data-theme="light"] {
   --ruum-text: var(--admin-v2-primary);
   --ruum-text-secondary: var(--admin-v2-muted);
   --ruum-text-tertiary: var(--admin-v2-muted);
-  --ruum-text-disabled: #8EA0BC;
+  --ruum-text-disabled: #9AA8BD;
   --ruum-status-success: var(--admin-v2-success);
   --ruum-status-success-soft: #E5FAF5;
   --ruum-status-warning: var(--admin-v2-warning-text);
@@ -603,13 +603,13 @@ html[data-theme="light"] {
   --ruum-border: var(--admin-v2-border);
   --ruum-border-strong: #B8D1F4;
   --ruum-action-primary: var(--admin-v2-action);
-  --ruum-action-primary-hover: #0D5FD4;
-  --ruum-action-primary-active: #0A4EAE;
+  --ruum-action-primary-hover: #1267DD;
+  --ruum-action-primary-active: #0E5CAB;
   --ruum-on-primary: #FFFFFF;
   --ruum-on-danger: #FFFFFF;
   --ruum-route: var(--admin-v2-action);
-  --ruum-route-hover: #0D5FD4;
-  --ruum-route-active: #0A4EAE;
+  --ruum-route-hover: #1267DD;
+  --ruum-route-active: #0E5CAB;
   --ruum-success: var(--admin-v2-success);
   --ruum-warning: var(--admin-v2-warning-text);
   --ruum-danger: var(--admin-v2-danger);

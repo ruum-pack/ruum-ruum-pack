@@ -30,13 +30,13 @@ function CtaLink({ cta, primary = false }: { cta: OperationalActionCta; primary?
   const variant = cta.variant ?? (primary ? "primary" : "secondary");
   const classes = [
     "inline-flex min-h-12 min-w-12 w-full items-center justify-center gap-2 rounded-xl px-5 py-3",
-    "font-display text-sm font-bold leading-5 transition-[background-color,border-color,box-shadow,transform] duration-150",
+    "font-body text-sm font-semibold leading-5 transition-all duration-200",
     "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2",
     variant === "primary"
-      ? "border border-action-primary bg-action-primary text-[#14213D] shadow-sm hover:-translate-y-0.5 hover:bg-[#FFB940] hover:shadow-md active:translate-y-0 active:bg-action-primary-active focus-visible:outline-route-action"
+      ? "border-transparent bg-[linear-gradient(90deg,#00C2B8_0%,#1677FF_100%)] text-white shadow-xs hover:brightness-105 active:scale-[0.98] focus-visible:outline-route-action"
       : variant === "danger" || variant === "emergency"
-        ? "border border-danger-action bg-danger-action text-white shadow-sm hover:-translate-y-0.5 hover:bg-danger-action-hover hover:shadow-md active:translate-y-0 active:bg-danger-action-active focus-visible:outline-danger-action"
-      : "border border-border-strong bg-surface text-text-primary shadow-sm hover:-translate-y-0.5 hover:border-route-action hover:bg-surface-elevated hover:shadow-md active:translate-y-0 active:bg-surface-elevated focus-visible:outline-route-action"
+        ? "border border-danger-action bg-danger-action text-white shadow-xs hover:brightness-105 active:scale-[0.98] focus-visible:outline-danger-action"
+      : "border border-border bg-white text-text-primary shadow-xs hover:border-brand hover:bg-[#ECFBFA] hover:text-primary active:scale-[0.98] focus-visible:outline-route-action"
   ].join(" ");
 
   return (

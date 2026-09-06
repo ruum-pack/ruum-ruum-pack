@@ -57,11 +57,11 @@ export function SimboloVectorial({
   const esClaro = tema === "claro";
   const esMono = tema === "monocromatico";
 
-  const colorFondo = esClaro ? "#F8F8F5" : tema === "auto" ? "var(--ruum-canvas, #151515)" : "#151515";
-  const colorBorde = esMono ? (esClaro ? "#151515" : "#F8F8F5") : "#FFC400";
-  const colorLetras = esMono ? (esClaro ? "#151515" : "#F8F8F5") : esClaro ? "#151515" : tema === "auto" ? "var(--ruum-text-primary, #FFFFFF)" : "#FFFFFF";
-  const colorRuta = esMono ? (esClaro ? "#151515" : "#F8F8F5") : "#FFC400";
-  const colorPuntoFin = esMono ? (esClaro ? "#151515" : "#F8F8F5") : colorDestino;
+  const colorFondo = esClaro ? "#FFFFFF" : tema === "auto" ? "var(--ruum-canvas, #FFFFFF)" : "#0D2B5E";
+  const colorBorde = esMono ? (esClaro ? "#0D2B5E" : "#FFFFFF") : "#00C2B8";
+  const colorLetras = esMono ? (esClaro ? "#0D2B5E" : "#FFFFFF") : esClaro ? "#0D2B5E" : tema === "auto" ? "var(--ruum-text-primary, #0D2B5E)" : "#FFFFFF";
+  const colorRuta = esMono ? (esClaro ? "#0D2B5E" : "#FFFFFF") : "#00C2B8";
+  const colorPuntoFin = esMono ? (esClaro ? "#0D2B5E" : "#FFFFFF") : colorDestino;
 
   return (
     <svg
@@ -75,16 +75,16 @@ export function SimboloVectorial({
       className={`shrink-0 ${className}`}
       {...props}
     >
-      {/* Fondo circular institucional */}
+      {/* Fondo circular institucional V2 */}
       <circle cx="32" cy="32" r="30" fill={colorFondo} />
       <circle cx="32" cy="32" r="28" stroke={colorBorde} strokeWidth="2.5" strokeOpacity={esMono ? "1" : "0.9"} />
 
-      {/* Monograma RR institucional */}
+      {/* Monograma RR institucional V2 */}
       <text
         x="15"
         y="38"
         fill={colorLetras}
-        fontFamily="Montserrat, system-ui, sans-serif"
+        fontFamily="Inter, Montserrat, system-ui, sans-serif"
         fontSize="19"
         fontWeight="800"
         letterSpacing="-1.5"
@@ -92,7 +92,7 @@ export function SimboloVectorial({
         RR
       </text>
 
-      {/* Ruta amarilla que cruza el monograma */}
+      {/* Ruta turquesa V2 que cruza el monograma */}
       <path
         d="M13 46 C 22 30, 31 50, 40 32 C 44 24, 48 24, 52 27"
         fill="none"
@@ -138,13 +138,13 @@ export function LogoMarca({
   color = "signal",
   className = ""
 }: LogoMarcaProps) {
-  const colorDestino = color === "route" ? "#1E88E5" : color === "control" ? "#08734F" : "#FFC400";
+  const colorDestino = color === "route" ? "#1677FF" : color === "control" ? "#13B89B" : "#00C2B8";
   const esClaro = tema === "claro";
 
-  const colorTextoTitulo = esClaro ? "text-[#151515]" : tema === "auto" ? "text-text-primary" : "text-white";
-  const colorTextoAcento = "text-[#FFC400]";
-  const colorTextoSecundario = esClaro ? "text-[#5F6368]" : tema === "auto" ? "text-text-secondary" : "text-[#B7C2D4]";
-  const colorTextoRespaldo = esClaro ? "text-[#5F6368]/80" : tema === "auto" ? "text-text-tertiary" : "text-white/45";
+  const colorTextoTitulo = esClaro ? "text-[#0D2B5E]" : tema === "auto" ? "text-text-primary" : "text-white";
+  const colorTextoAcento = "text-[#00C2B8]";
+  const colorTextoSecundario = esClaro ? "text-[#5F7192]" : tema === "auto" ? "text-text-secondary" : "text-[#B7C2D4]";
+  const colorTextoRespaldo = esClaro ? "text-[#5F7192]/80" : tema === "auto" ? "text-text-tertiary" : "text-white/45";
 
   // Símbolo independiente o avatar
   if (variante === "simbolo" || variante === "avatar") {

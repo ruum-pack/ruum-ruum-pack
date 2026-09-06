@@ -2,13 +2,13 @@
 @import "@ruum/ui/styles/tokens.css";
 
 /*
- * App Usuario — base legacy V1 + scope migrado UI/UX V2
+ * App Usuario — DESIGN SYSTEM V2 (Septiembre 2026)
  *
- * Proporción institucional:
- *   60% Blanco evidencia #F8F8F5 / 25% Negro asfalto #151515 / 10% Amarillo ruta #FFC400 (acento/CTA)
- *   5% Azul trazabilidad #1E88E5 (#4da3ff en oscuro) + Gris acero #5F6368.
- * Tipografía: Montserrat Bold/SemiBold (títulos), Inter (cuerpo/formularios), IBM Plex Mono (datos/folios).
- * Las pantallas migradas a V2 consumen el scope .user-v2-scope definido al final.
+ * Jerarquía cromática funcional V2:
+ *   Navy Primary #0D2B5E · Teal Brand #00C2B8 · Blue Action #1677FF
+ *   Surface #F6F8FB · Canvas #FFFFFF · Border #E6F0FF · Text Muted #5F7192
+ *   Semántica: Éxito #13B89B · Advertencia/Pendiente #F5B400 · Error #D94B5B
+ * Tipografía: Inter (Display, UI, Cuerpo), IBM Plex Mono (Datos/Folios/Bitácoras).
  */
 
 :root {
@@ -41,7 +41,7 @@ html {
 body {
   min-width: 320px;
   margin: 0;
-  background: var(--ruum-canvas);
+  background: var(--ruum-surface-elevated, var(--ruum-canvas));
   color: var(--ruum-text);
   font-family: var(--font-body);
   text-rendering: optimizeLegibility;
@@ -53,7 +53,8 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
+  color: var(--ruum-text-primary);
   letter-spacing: -0.015em;
 }
 
@@ -64,8 +65,8 @@ h6 {
 }
 
 ::selection {
-  background: var(--color-signal);
-  color: #14213d;
+  background: var(--ruum-brand, #00C2B8);
+  color: #FFFFFF;
 }
 
 a {

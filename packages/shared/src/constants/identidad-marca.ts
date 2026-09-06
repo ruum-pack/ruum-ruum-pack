@@ -62,16 +62,30 @@ export const IDENTIDAD_MARCA = {
   },
 
   paletaColores: {
-    negroAsfalto: { hex: "#151515", uso: "Fondos oscuros, textos principales, presencia institucional" },
-    amarilloRuta: { hex: "#FFC400", uso: "Ruta, check, botones, llamadas a la acción, acentos (~10%)" },
-    blancoEvidencia: { hex: "#F8F8F5", uso: "Fondos limpios, documentos, formularios, lectura (~60%)" },
-    grisAcero: { hex: "#5F6368", uso: "Textos secundarios, líneas, datos técnicos, detalles (~5%)" },
-    azulTrazabilidad: { hex: "#1E88E5", uso: "Mapas, estados de seguimiento, ubicación, datos digitales (~5%)" }
+    navyPrimary: { hex: "#0D2B5E", uso: "Títulos, iconos, navegación, texto de alto énfasis (Primary)" },
+    tealBrand: { hex: "#00C2B8", uso: "Marca, confirmación, highlights, acentos (Brand)" },
+    blueAction: { hex: "#1677FF", uso: "CTA, links, activo, selección (Action)" },
+    surface: { hex: "#F6F8FB", uso: "Fondo general de pantalla" },
+    canvas: { hex: "#FFFFFF", uso: "Tarjetas, modales, app bar, fondos limpios" },
+    border: { hex: "#E6F0FF", uso: "Bordes, divisores y campos de formulario" },
+    textMuted: { hex: "#5F7192", uso: "Texto secundario y metadata" },
+    success: { hex: "#13B89B", uso: "Confirmado, completado" },
+    warning: { hex: "#F5B400", uso: "Pendiente, advertencia" },
+    danger: { hex: "#D94B5B", uso: "Error, cancelación crítica" },
+    // Aliases de compatibilidad Brand Book V1
+    negroAsfalto: { hex: "#0D2B5E", uso: "Mapeado a Navy Primary institucional V2" },
+    amarilloRuta: { hex: "#00C2B8", uso: "Mapeado a Teal Brand institucional V2; el amarillo se reserva para advertencia/pendiente #F5B400" },
+    blancoEvidencia: { hex: "#F6F8FB", uso: "Mapeado a Surface suave V2" },
+    grisAcero: { hex: "#5F7192", uso: "Mapeado a Text Muted V2" },
+    azulTrazabilidad: { hex: "#1677FF", uso: "Mapeado a Blue Action V2" }
   },
 
+  gradienteAccion: "linear-gradient(90deg, #00C2B8 0%, #1677FF 100%)",
+
   tipografia: {
-    principal: "Montserrat (Bold / SemiBold)",
-    secundaria: "Inter (Regular / Medium)",
+    principal: "Inter",
+    display: "Inter Display, Inter",
+    secundaria: "Inter",
     mono: "IBM Plex Mono"
   },
 
