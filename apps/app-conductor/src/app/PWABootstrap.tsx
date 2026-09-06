@@ -8,6 +8,10 @@ import { useEffect } from "react";
  */
 export function PWABootstrap() {
   useEffect(() => {
+    // No registrar SW en desarrollo ni en entornos de testing/Playwright para evitar interferir con tests y requests
+    if (process.env.NODE_ENV !== "production") return;
+    if (typeof window !== "undefined" && (window.navigator.webdriver || window.location.hostname === "localhost")) return;
+
     // Verificar si el navegador soporta Service Workers
     if ("serviceWorker" in navigator) {
       const registerSW = async () => {

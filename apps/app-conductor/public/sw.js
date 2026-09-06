@@ -10,6 +10,7 @@
 
 const CACHE_NAME = "ruum-conductor-v1";
 const ASSETS_CACHE_NAME = "ruum-conductor-assets-v1";
+const STATIC_RESOURCES_CACHE_NAME = ASSETS_CACHE_NAME;
 
 // Recursos estáticos para cachear
 const STATIC_RESOURCES = [

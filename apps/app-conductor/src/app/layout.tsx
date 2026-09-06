@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Inter, IBM_Plex_Mono } from "next/font/google";
-import Script from "next/script";
 import { headers } from "next/headers";
 import { TextInputUppercaseBridge } from "@ruum/ui";
 import "./globals.css";
@@ -60,7 +59,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="es" data-theme="light" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head suppressHydrationWarning>
-        <Script src="/theme-init.js" strategy="beforeInteractive" nonce={nonce || undefined} suppressHydrationWarning />
+        <meta property="csp-nonce" content={nonce} />
+        <script src="/theme-init.js" nonce={nonce || undefined} suppressHydrationWarning />
       </head>
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} conductor-v2-shell min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">Saltar al contenido principal</a>

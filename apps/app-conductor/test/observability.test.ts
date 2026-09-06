@@ -4,6 +4,9 @@ const mockRpc = vi.fn(async () => ({ error: null }));
 
 vi.mock("../src/lib/supabase-browser", () => ({
   crearClienteNavegador: vi.fn(() => ({
+    auth: {
+      getSession: vi.fn(async () => ({ data: { session: { user: { id: "test-user" } } } }))
+    },
     rpc: mockRpc
   }))
 }));

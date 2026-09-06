@@ -7,6 +7,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from 'dotenv';
 
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
 
@@ -66,12 +69,21 @@ async function pickServerOrigin() {
 
 function isPortFree(port) {
   return new Promise((resolvePort) => {
-    const server = createServer();
-    server.once('error', () => resolvePort(false));
-    server.once('listening', () => {
-      server.close(() => resolvePort(true));
+    const s4 = createServer();
+    s4.once('error', () => resolvePort(false));
+    s4.once('listening', () => {
+      const s6 = createServer();
+      s6.once('error', () => {
+        s4.close(() => resolvePort(false));
+      });
+      s6.once('listening', () => {
+        s6.close(() => {
+          s4.close(() => resolvePort(true));
+        });
+      });
+      s6.listen(port, '::');
     });
-    server.listen(port, '::');
+    s4.listen(port, '0.0.0.0');
   });
 }
 
@@ -131,10 +143,10 @@ async function main() {
         mkdirSync(resultsDir, { recursive: true });
       }
       serverLog = openSync(serverLogPath, 'w');
-      serverProcess = spawn(`"${commandForLocalBin('next')}" dev -p ${serverPort}`, {
+      const nextBin = require.resolve('next/dist/bin/next', { paths: [projectRoot] });
+      serverProcess = spawn(process.execPath, [nextBin, 'dev', '-p', serverPort], {
         cwd: projectRoot,
         detached: true,
-        shell: true,
         stdio: ['ignore', serverLog, serverLog]
       });
 

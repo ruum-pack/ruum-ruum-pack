@@ -42,6 +42,11 @@ export async function recordOperationalEvent(
 ) {
   try {
     const client = crearClienteNavegador();
+    const { data: sessionData } = await client.auth.getSession();
+    if (!sessionData?.session) {
+      // El RPC en base de datos requiere rol autenticado; si no hay sesión activa omitir la llamada RPC
+      return;
+    }
     const ruta = typeof window !== "undefined" ? window.location.pathname.slice(0, 120) : undefined;
     await client.rpc("registrar_evento_operativo_app", {
       p_tipo: type,
