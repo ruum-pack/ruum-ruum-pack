@@ -60,6 +60,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="es" data-theme="light" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head suppressHydrationWarning>
         <meta property="csp-nonce" content={nonce} />
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script src="/theme-init.js" nonce={nonce || undefined} suppressHydrationWarning />
       </head>
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} conductor-v2-shell min-h-screen`}>
