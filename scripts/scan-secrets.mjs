@@ -25,7 +25,10 @@ const DIRS_EXCLUIDOS = new Set([
   ".lighthouseci",
   "storybook-static",
   "backups",
-  ".gradle"
+  ".gradle",
+  "scratch",
+  ".scratch",
+  "work"
 ]);
 
 // Archivos individuales excluidos

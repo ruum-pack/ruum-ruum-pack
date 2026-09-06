@@ -58,7 +58,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const nonce = (await headers()).get("x-nonce") ?? "";
   return (
-    <html lang="es" data-theme="light" suppressHydrationWarning>
+    <html lang="es" data-theme="light" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head suppressHydrationWarning>
         <Script src="/theme-init.js" strategy="beforeInteractive" nonce={nonce || undefined} suppressHydrationWarning />
       </head>

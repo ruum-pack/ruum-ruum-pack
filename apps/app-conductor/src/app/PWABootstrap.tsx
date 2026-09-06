@@ -78,7 +78,7 @@ function showUpdateNotification() {
       right: 20px;
       z-index: 9999;
       padding: 16px 20px;
-      background: #1E88E5;
+      background: #0D5FD4;
       color: white;
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
@@ -91,7 +91,7 @@ function showUpdateNotification() {
       <span>📦 Nueva versión disponible</span>
       <button onclick="window.location.reload()" style="
         background: white;
-        color: #1E88E5;
+        color: #0D5FD4;
         border: none;
         border-radius: 8px;
         padding: 8px 16px;

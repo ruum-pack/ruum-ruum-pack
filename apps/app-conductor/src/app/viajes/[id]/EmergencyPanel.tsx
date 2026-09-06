@@ -241,7 +241,7 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-body text-sm font-semibold text-danger-action">Emergencia</p>
-          <p className="mt-1 font-body text-sm text-text-secondary">
+          <p className="mt-1 font-body text-sm text-text-primary">
             Abre opciones seguras para pedir ayuda, compartir ubicación o reportar un problema crítico.
           </p>
         </div>

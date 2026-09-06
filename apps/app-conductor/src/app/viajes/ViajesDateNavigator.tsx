@@ -58,7 +58,7 @@ export function ViajesDateNavigator({
               : "HOY"}
           </span>
           {claveDia(diaCalendarioSeleccionado?.dia ?? new Date()) === diaHoy && (
-            <span className="bg-route-action/20 text-route-action border border-route-action/30 text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase">
+            <span className="bg-route-soft text-route-action border border-route-action/30 text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase">
               Hoy
             </span>
           )}

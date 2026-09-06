@@ -327,6 +327,7 @@ export default function PaginaPanel() {
         <div className="w-full flex flex-col flex-1 pb-20 md:pb-6 lg:col-span-2">
           {/* Header — Q6 simplificado: Logo + Notificaciones + Menú (menos ruido, pulgar) */}
           <header className="flex justify-between items-center gap-2">
+            <h1 className="sr-only">Panel de control del conductor</h1>
             <div className="flex items-center gap-2 min-w-0">
               <LogoMarca tamano={28} tema="claro" color="route" descriptor="Conductor" mostrarDescriptor={true} mostrarRespaldo={false} />
             </div>

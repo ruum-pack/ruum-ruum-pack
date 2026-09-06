@@ -193,6 +193,8 @@ test.afterAll(() => {
 });
 
 test.describe('Accessibility Audit - Axe Core', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   for (const route of PUBLIC_AXE_SMOKE_ROUTES) {
     test(`Axe accessibility audit for ${route}`, async ({ page }) => {
       test.skip(
@@ -240,6 +242,7 @@ test.describe('Accessibility Audit - Axe Core Authenticated', () => {
 });
 
 test.describe('Accessibility - Specific Checks', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
   test.skip(skipAuthInDummy, 'Skipped in CI dummy — specific checks require real data; covered by Axe Core');
 
 

@@ -8,16 +8,16 @@
 html[data-theme="light"] {
   --conductor-primary: #0D2B5E;
   --conductor-brand: #00C2B8;
-  --conductor-action: #1677FF;
+  --conductor-action: #0D5FD4;
   --conductor-surface: #FFFFFF;
   --conductor-surface-secondary: #F6F8FB;
   --conductor-border: #E6F0FF;
   --conductor-muted: #5F7192;
   --conductor-success: #13B89B;
-  --conductor-pending: #F5B400;
-  --conductor-error: #D94B5B;
-  --conductor-focus: #1677FF;
-  --conductor-gradient-action: linear-gradient(120deg, #00C2B8 0%, #1677FF 100%);
+  --conductor-pending: #8A6200;
+  --conductor-error: #B32626;
+  --conductor-focus: #0D5FD4;
+  --conductor-gradient-action: linear-gradient(120deg, #00C2B8 0%, #0D5FD4 100%);
 
   /* V2 uses Inter for display and body copy across the conductor shell. */
   --font-display: var(--font-body-loaded), "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -36,19 +36,19 @@ html[data-theme="light"] {
   --ruum-text-tertiary: var(--conductor-muted);
   --ruum-text-disabled: #8EA0BC;
   --ruum-focus: var(--conductor-focus);
-  --ruum-focus-ring: rgba(22, 119, 255, 0.24);
+  --ruum-focus-ring: rgba(13, 95, 212, 0.24);
   --ruum-action-primary: var(--conductor-action);
-  --ruum-action-primary-hover: #0D5FD4;
-  --ruum-action-primary-active: #0A4EAE;
+  --ruum-action-primary-hover: #0A4EAE;
+  --ruum-action-primary-active: #083D88;
   --ruum-on-primary: #FFFFFF;
   --ruum-route: var(--conductor-action);
-  --ruum-route-hover: #0D5FD4;
-  --ruum-route-active: #0A4EAE;
+  --ruum-route-hover: #0A4EAE;
+  --ruum-route-active: #083D88;
   --ruum-success: var(--conductor-success);
   --ruum-warning: var(--conductor-pending);
   --ruum-danger: var(--conductor-error);
-  --ruum-danger-hover: #B83D4B;
-  --ruum-danger-active: #9E3340;
+  --ruum-danger-hover: #8F1D1D;
+  --ruum-danger-active: #751616;
   --ruum-shadow-1: 0 1px 3px rgba(13, 43, 94, 0.08);
   --ruum-shadow-2: 0 8px 24px rgba(13, 43, 94, 0.10);
   --ruum-shadow-3: 0 16px 40px rgba(13, 43, 94, 0.14);
@@ -475,6 +475,7 @@ html[data-theme="dark"] .bg-signal { color: var(--ruum-surface-strong); }
 html[data-theme="dark"] .bg-route-dark { color: var(--color-mist); }
 html[data-theme="dark"] .bg-control { color: var(--color-mist); }
 html[data-theme="dark"] .bg-danger { color: var(--color-mist); }
+html[data-theme="dark"] .bg-danger-action { color: #070b14; }
 /* Folio del PassportCard: se posiciona sobre el listón dorado. */
 html[data-theme="dark"] .rounded-card > span.font-mono-ruum.absolute { color: var(--ruum-surface-strong); }
 
@@ -604,9 +605,10 @@ html[data-theme="dark"] .conductor-auth-card input[type="checkbox"]:focus-visibl
 
 .conductor-button-primary {
   border: 1px solid transparent;
-  background: var(--conductor-gradient-action);
+  background-color: var(--conductor-action);
+  background-image: var(--conductor-gradient-action);
   color: #FFFFFF;
-  box-shadow: 0 6px 16px rgba(22, 119, 255, 0.18);
+  box-shadow: 0 6px 16px rgba(13, 95, 212, 0.18);
 }
 
 .conductor-button-primary:hover:not(:disabled) {
