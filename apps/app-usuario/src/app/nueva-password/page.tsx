@@ -121,31 +121,31 @@ export default function PaginaNuevaPassword() {
   return (
     <PantallaPublica>
       <section className="flex min-h-screen flex-col px-5 py-10">
-        <Link href="/login" className="font-body text-xs text-[#f1d797] transition hover:text-white">
+        <Link href="/login" className="font-body text-xs text-route-action transition hover:text-text-primary">
           ← Inicio de sesión
         </Link>
 
         <LogoRuum className="mx-auto mt-8 text-center" />
 
-        <div className="mt-14 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
+        <div className="mt-14 rounded-card border border-border bg-surface px-5 py-7 shadow-[var(--ruum-shadow-3)]">
           {verificando ? (
-            <p className="font-body text-sm text-[var(--ruum-dark-text-secondary)] text-center py-4">Verificando enlace…</p>
+            <p className="py-4 text-center font-body text-sm text-text-secondary">Verificando enlace…</p>
           ) : listo ? (
             <div className="grid gap-4 text-center">
-              <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#e6f9f0]">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-control-soft">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                   stroke="#1d9e75" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
                   aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
               </div>
-              <h1 className="font-display text-[22px] font-extrabold text-white">Contraseña actualizada</h1>
-              <p className="font-body text-sm text-[var(--ruum-dark-text-secondary)]">
+              <h1 className="font-display text-[22px] font-extrabold text-text-primary">Contraseña actualizada</h1>
+              <p className="font-body text-sm text-text-secondary">
                 Tu contraseña fue actualizada. Los cambios son inmediatos. Redirigiendo al inicio…
               </p>
             </div>
           ) : !sesionLista ? (
             <div className="grid gap-4">
-              <h1 className="font-display text-[22px] font-extrabold text-white">Enlace inválido o expirado</h1>
-              <p className="font-body text-sm leading-6 text-[var(--ruum-dark-text-secondary)]">
+              <h1 className="font-display text-[22px] font-extrabold text-text-primary">Enlace inválido o expirado</h1>
+              <p className="font-body text-sm leading-6 text-text-secondary">
                 El enlace de recuperación expiró o ya fue usado. Los enlaces son válidos por 60 minutos y solo se pueden usar una vez.
               </p>
               <Link href="/recuperar-password" className={botonAzul}>
@@ -154,10 +154,10 @@ export default function PaginaNuevaPassword() {
             </div>
           ) : (
             <>
-              <h1 className="font-display text-[22px] font-extrabold leading-tight text-white">
+              <h1 className="font-display text-[22px] font-extrabold leading-tight text-text-primary">
                 Nueva contraseña
               </h1>
-              <p className="mt-2 font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
+              <p className="mt-2 font-body text-xs leading-5 text-text-secondary">
                 Elige una contraseña segura. Mínimo 8 caracteres.
               </p>
 
@@ -166,16 +166,16 @@ export default function PaginaNuevaPassword() {
                 <div className="flex flex-col gap-1.5">
                   <Field
                     etiqueta="Nueva contraseña"
-                    etiquetaClassName="!text-[#d4d9e2] !text-xs !font-medium"
+                    etiquetaClassName="text-text-secondary text-xs font-medium"
                     type="password"
-                    passwordToggleClassName="!text-white/60 hover:!bg-white/10 hover:!text-white focus-visible:!outline-[#f5a623]"
+                    passwordToggleClassName="text-text-secondary hover:bg-surface-elevated hover:text-text-primary focus-visible:outline-focus"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={8}
                     autoComplete="new-password"
                     placeholder="Mínimo 8 caracteres"
-                    className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[var(--ruum-dark-text-tertiary)] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                    className="border-border bg-surface text-text-primary placeholder:text-text-tertiary focus:border-route-action focus:ring-route-action/25"
                   />
                   {password.length > 0 && (
                     <>
@@ -184,13 +184,13 @@ export default function PaginaNuevaPassword() {
                           <div key={n} className={[
                             "h-1 flex-1 rounded-full transition-all",
                             n <= pwd.nivel
-                              ? pwd.nivel === 1 ? "bg-red-500" : pwd.nivel === 2 ? "bg-[#f5a623]" : "bg-green-500"
-                              : "bg-[#4d5668]",
+                              ? pwd.nivel === 1 ? "bg-status-error" : pwd.nivel === 2 ? "bg-warning" : "bg-success"
+                              : "bg-border-strong",
                           ].join(" ")} />
                         ))}
                       </div>
                       {pwd.etiqueta && (
-                        <span className="font-body text-xs text-[var(--ruum-dark-text-tertiary)]">{pwd.etiqueta}</span>
+                        <span className="font-body text-xs text-text-tertiary">{pwd.etiqueta}</span>
                       )}
                     </>
                   )}
@@ -205,7 +205,7 @@ export default function PaginaNuevaPassword() {
                       return (
                         <li
                           key={requisito.clave}
-                          className={requisito.cumplido ? "text-emerald-400" : "text-[var(--ruum-dark-text-tertiary)]"}
+                          className={requisito.cumplido ? "text-success" : "text-text-tertiary"}
                         >
                           {requisito.cumplido ? "✓" : "○"} {etiquetas[requisito.clave]}
                         </li>
@@ -216,15 +216,15 @@ export default function PaginaNuevaPassword() {
 
                 <Field
                   etiqueta="Confirmar nueva contraseña"
-                  etiquetaClassName="!text-[#d4d9e2] !text-xs !font-medium"
+                  etiquetaClassName="text-text-secondary text-xs font-medium"
                   type="password"
-                  passwordToggleClassName="!text-white/60 hover:!bg-white/10 hover:!text-white focus-visible:!outline-[#f5a623]"
+                  passwordToggleClassName="text-text-secondary hover:bg-surface-elevated hover:text-text-primary focus-visible:outline-focus"
                   value={confirmar}
                   onChange={(e) => setConfirmar(e.target.value)}
                   required
                   autoComplete="new-password"
                   placeholder="Repite tu contraseña"
-                  className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[var(--ruum-dark-text-tertiary)] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                  className="border-border bg-surface text-text-primary placeholder:text-text-tertiary focus:border-route-action focus:ring-route-action/25"
                 />
 
                 {error && (

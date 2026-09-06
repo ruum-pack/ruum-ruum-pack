@@ -183,6 +183,33 @@ summary:focus-visible {
   backdrop-filter: blur(6px);
 }
 
+/* Accesos públicos y autenticación: shell V2 compatible con ambos temas. */
+.ruum-public-shell {
+  background:
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--ruum-brand) 12%, transparent), transparent 38%),
+    radial-gradient(circle at 88% 82%, color-mix(in srgb, var(--ruum-action) 14%, transparent), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--ruum-canvas) 72%, transparent) 0%, color-mix(in srgb, var(--ruum-surface) 94%, transparent) 100%),
+    url("/imagenes/onboarding-paso2.webp") center / cover no-repeat,
+    var(--ruum-canvas);
+  color: var(--ruum-text-primary);
+}
+
+.ruum-public-shell__content {
+  background: color-mix(in srgb, var(--ruum-surface) 96%, transparent);
+  color: var(--ruum-text-primary);
+}
+
+.ruum-public-shell__overlay {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ruum-canvas) 84%, transparent), color-mix(in srgb, var(--ruum-canvas) 98%, transparent)),
+    url("/imagenes/seguridad-traslado.png") 42% 46% / cover;
+}
+
+.ruum-public-primary-button {
+  background: linear-gradient(100deg, var(--ruum-brand) 0%, var(--ruum-action) 100%);
+  box-shadow: var(--ruum-shadow-3);
+}
+
 /* Skip link de accesibilidad */
 .ruum-skip-link {
   position: absolute;
@@ -613,6 +640,50 @@ summary:focus-visible {
 .user-v2-secondary-screen [class*="text-[#0B111B]"],
 .user-v2-secondary-screen [class*="text-[#151515]"] {
   color: var(--user-color-primary);
+}
+
+/* Compatibilidad acotada para las pantallas públicas de autenticación que
+   todavía conservan utilidades legacy en su marcado. */
+.ruum-public-shell [class*="bg-[#232a3a]"],
+.ruum-public-shell [class*="bg-[#151a25]"],
+.ruum-public-shell [class*="bg-[#151515]"] {
+  background-color: var(--user-color-surface);
+}
+
+.ruum-public-shell [class*="border-[#4d5668]"],
+.ruum-public-shell [class*="border-[#5F6368]"] {
+  border-color: var(--user-color-border);
+}
+
+.ruum-public-shell [class*="text-[#f1d797]"],
+.ruum-public-shell [class*="text-[#FFC400]"],
+.ruum-public-shell [class*="text-[#f5a623]"] {
+  color: var(--user-color-brand-dark);
+}
+
+.ruum-public-shell [class*="text-[#d4d9e2]"],
+.ruum-public-shell [class*="text-[#e6e9ef]"],
+.ruum-public-shell [class*="text-white"] {
+  color: var(--user-color-primary);
+}
+
+.ruum-public-shell [class*="text-[#8d96a8]"],
+.ruum-public-shell [class*="text-[#8E9CAE]"],
+.ruum-public-shell [class*="text-[#94A3B8]"],
+.ruum-public-shell [class*="text-[#B7C2D4]"] {
+  color: var(--user-color-muted);
+}
+
+.ruum-public-shell [class*="hover:text-white"]:hover {
+  color: var(--user-color-primary);
+}
+
+.ruum-public-shell [class*="hover:border-[#FFC400]"]:hover {
+  border-color: var(--user-color-brand);
+}
+
+.ruum-public-shell [class*="hover:bg-[#FFC400]"]:hover {
+  background-color: var(--user-color-brand-soft);
 }
 
 .user-v2-modal {

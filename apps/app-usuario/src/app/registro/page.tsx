@@ -34,10 +34,10 @@ function BarraProgreso({ paso }: { paso: 1 | 2 }) {
           <div
             className={[
               "h-1 rounded-full transition-all",
-              n <= paso ? "bg-[#f5a623]" : "bg-[#4d5668]",
+              n <= paso ? "bg-signal" : "bg-border-strong",
             ].join(" ")}
           />
-          <span className="font-body text-xs text-[var(--ruum-dark-text-tertiary)]">
+          <span className="font-body text-xs text-text-tertiary">
             {n === 1 ? "Datos básicos" : "Acceso"}
           </span>
         </div>
@@ -196,30 +196,30 @@ export default function PaginaRegistro() {
             <button
               type="button"
               onClick={() => { setError(null); setPaso(1); }}
-              className="font-body text-xs text-[#f1d797] transition hover:text-white"
+              className="font-body text-xs text-route-action transition hover:text-text-primary"
             >
               ← Atrás
             </button>
           ) : (
-            <Link href="/" className="font-body text-xs text-[#f1d797] transition hover:text-white">
+            <Link href="/" className="font-body text-xs text-route-action transition hover:text-text-primary">
               ← Atrás
             </Link>
           )}
-          <span className="font-body text-xs text-[var(--ruum-dark-text-tertiary)]">Paso {paso} de 2</span>
+          <span className="font-body text-xs text-text-tertiary">Paso {paso} de 2</span>
         </div>
 
         <LogoRuum className="mx-auto mt-8 text-center" />
 
-        <div className="mt-10 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
+        <div className="mt-10 rounded-card border border-border bg-surface px-5 py-7 shadow-[var(--ruum-shadow-3)]">
           <BarraProgreso paso={paso} />
 
           {/* ════════════ PASO 1 ════════════ */}
           {paso === 1 && (
             <>
-              <h1 className="font-display text-[22px] font-extrabold leading-tight text-white">
+              <h1 className="font-display text-[22px] font-extrabold leading-tight text-text-primary">
                 Crea tu cuenta
               </h1>
-              <p className="mt-2 font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
+              <p className="mt-2 font-body text-xs leading-5 text-text-secondary">
                 Solo necesitamos tus datos básicos para empezar.
               </p>
 
@@ -233,8 +233,8 @@ export default function PaginaRegistro() {
                     className={[
                       "rounded-lg border py-2.5 font-body text-sm font-semibold transition",
                       tipoCuenta === tipo
-                        ? "border-[#f5a623] bg-[#f5a623]/10 text-[#f5a623]"
-                        : "border-[#4d5668] text-[var(--ruum-dark-text-tertiary)] hover:border-white/30 hover:text-white",
+                        ? "border-signal bg-signal/10 text-signal"
+                        : "border-border text-text-tertiary hover:border-border-strong hover:text-text-primary",
                     ].join(" ")}
                   >
                     {tipo === "personal" ? "Personal" : "Empresa"}
@@ -289,10 +289,10 @@ export default function PaginaRegistro() {
           {/* ════════════ PASO 2 ════════════ */}
           {paso === 2 && (
             <form className="grid gap-4" onSubmit={crearCuenta}>
-              <h1 className="font-display text-[22px] font-extrabold leading-tight text-white">
+              <h1 className="font-display text-[22px] font-extrabold leading-tight text-text-primary">
                 Elige tus credenciales
               </h1>
-              <p className="font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
+              <p className="font-body text-xs leading-5 text-text-secondary">
                 Con esto accederás a tu cuenta y recibirás notificaciones de tus traslados.
               </p>
 
@@ -309,15 +309,15 @@ export default function PaginaRegistro() {
               <div className="flex flex-col gap-1.5">
                   <Field
                     etiqueta="Contraseña"
-                    etiquetaClassName="!text-[#d4d9e2] !text-xs !font-medium"
+                    etiquetaClassName="text-text-secondary text-xs font-medium"
                     type="password"
-                    passwordToggleClassName="!text-white/60 hover:!bg-white/10 hover:!text-white focus-visible:!outline-[#f5a623]"
+                    passwordToggleClassName="text-text-secondary hover:bg-surface-elevated hover:text-text-primary focus-visible:outline-focus"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     autoComplete="new-password"
                     placeholder="Mínimo 8 caracteres"
-                    className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[var(--ruum-dark-text-tertiary)] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                    className="border-border bg-surface text-text-primary placeholder:text-text-tertiary focus:border-route-action focus:ring-route-action/25"
                   />
                 {password.length > 0 && (
                   <>
@@ -331,15 +331,15 @@ export default function PaginaRegistro() {
                               ? pwd.nivel === 1
                                 ? "bg-red-500"
                                 : pwd.nivel === 2
-                                ? "bg-[#f5a623]"
+                                ? "bg-warning"
                                 : "bg-green-500"
-                              : "bg-[#4d5668]",
+                              : "bg-border-strong",
                           ].join(" ")}
                         />
                       ))}
                     </div>
                     {pwd.etiqueta && (
-                      <span className="font-body text-xs leading-5 text-[var(--ruum-dark-text-tertiary)]">
+                      <span className="font-body text-xs leading-5 text-text-tertiary">
                         {pwd.etiqueta}
                       </span>
                     )}
@@ -357,7 +357,7 @@ export default function PaginaRegistro() {
                     return (
                       <li
                         key={requisito.clave}
-                        className={requisito.cumplido ? "text-emerald-400" : "text-[var(--ruum-dark-text-tertiary)]"}
+                        className={requisito.cumplido ? "text-success" : "text-text-tertiary"}
                       >
                         {requisito.cumplido ? "✓" : "○"} {etiquetas[requisito.clave]}
                       </li>
@@ -368,30 +368,30 @@ export default function PaginaRegistro() {
 
               <Field
                 etiqueta="Confirmar contraseña"
-                etiquetaClassName="!text-[#d4d9e2] !text-xs !font-medium"
+                etiquetaClassName="text-text-secondary text-xs font-medium"
                 type="password"
-                passwordToggleClassName="!text-white/60 hover:!bg-white/10 hover:!text-white focus-visible:!outline-[#f5a623]"
+                passwordToggleClassName="text-text-secondary hover:bg-surface-elevated hover:text-text-primary focus-visible:outline-focus"
                 value={confirmarPassword}
                 onChange={(e) => setConfirmarPassword(e.target.value)}
                 required
                 autoComplete="new-password"
                 placeholder="Repite tu contraseña"
-                className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[var(--ruum-dark-text-tertiary)] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+                className="border-border bg-surface text-text-primary placeholder:text-text-tertiary focus:border-route-action focus:ring-route-action/25"
               />
 
               {/* Términos — inline, no como .docx descargable */}
-              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#4d5668] bg-[#1a2030] p-3.5">
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-surface-elevated p-3.5">
                 <input
                   type="checkbox"
                   checked={aceptaTerminos}
                   onChange={(e) => setAceptaTerminos(e.target.checked)}
                   className="mt-0.5 flex-shrink-0 accent-[#f5a623]"
                 />
-                <span className="font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
+                <span className="font-body text-xs leading-5 text-text-secondary">
                   Acepto los{" "}
                   <Link
                     href="/legal/terminos"
-                    className="text-[#f5a623] underline-offset-2 hover:underline"
+                    className="text-route-action underline-offset-2 hover:underline"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -400,7 +400,7 @@ export default function PaginaRegistro() {
                   y el{" "}
                   <Link
                     href="/legal/privacidad"
-                    className="text-[#f5a623] underline-offset-2 hover:underline"
+                    className="text-route-action underline-offset-2 hover:underline"
                     target="_blank"
                     rel="noopener noreferrer"
                   >

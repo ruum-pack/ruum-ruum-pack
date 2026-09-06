@@ -22,7 +22,7 @@ import { normalizarRolAdmin, puedeVerRuta, obtenerCapacidadParaRuta } from "./li
  * anterior: no hay sesión que refrescar ni autorización que exigir.
  */
 
-const RUTAS_PUBLICAS = ["/login"];
+const RUTAS_PUBLICAS = ["/login", "/theme-init.js"];
 
 function esRutaPublica(pathname: string): boolean {
   return RUTAS_PUBLICAS.some((ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`));

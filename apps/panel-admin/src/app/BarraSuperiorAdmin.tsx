@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SelectorTemaAdmin } from "./TemaAdmin";
 
 const TITULOS_RUTA: Array<[string, string]> = [
   ["/alertas-sla", "Alertas y SLA"],
@@ -45,6 +46,7 @@ export function BarraSuperiorAdmin() {
       <nav className="admin-topbar__actions" aria-label="Acciones globales">
         <Link href="/alertas-sla?filtro=vencidas" className="admin-topbar__link">Alertas</Link>
         <Link href="/configuracion" className="admin-topbar__link">Configuración</Link>
+        <SelectorTemaAdmin />
       </nav>
     </header>
   );

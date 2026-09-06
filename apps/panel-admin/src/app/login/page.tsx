@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Field, Aviso, LogoMarca } from "@ruum/ui";
 import { traducirErrorAuth, validarDestinoSeguro } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
+import { SelectorTemaAdmin } from "../TemaAdmin";
 
 function errorInicialDesdeUrl(): string | null {
   if (typeof window === "undefined") return null;
@@ -49,7 +50,10 @@ function FormularioLoginAdmin() {
   }
 
   return (
-    <main className="admin-auth-shell flex items-center justify-center px-4 py-10 sm:px-6">
+    <main className="admin-auth-shell relative flex items-center justify-center px-4 py-10 sm:px-6">
+      <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
+        <SelectorTemaAdmin />
+      </div>
       <section className="admin-auth-card p-6 sm:p-8" aria-labelledby="titulo-acceso-admin">
         <div className="flex items-center gap-3">
           <LogoMarca tamano={34} color="signal" />

@@ -6,6 +6,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { BarraLateral } from "./BarraLateral";
 import { NavegacionAdminMovil } from "./NavegacionAdminMovil";
 import { BarraSuperiorAdmin } from "./BarraSuperiorAdmin";
+import Script from "next/script";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -34,7 +35,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" data-theme="light" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
+      </head>
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} admin-v2-shell min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link">Saltar al contenido principal</a>
         <TextInputUppercaseBridge />

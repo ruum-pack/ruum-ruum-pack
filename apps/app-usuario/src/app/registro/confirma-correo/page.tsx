@@ -91,9 +91,9 @@ if (!correo) {
     <PantallaPublica>
       <section className="flex min-h-screen flex-col px-5 py-10 text-center">
         <LogoRuum className="mx-auto mt-8" />
-        <div className="mt-12 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7">
-          <h1 className="font-display text-[22px] font-extrabold text-white">No encontramos tu correo</h1>
-          <p className="mt-3 font-body text-sm text-[var(--ruum-dark-text-secondary)]">
+        <div className="mt-12 rounded-card border border-border bg-surface px-5 py-7">
+          <h1 className="font-display text-[22px] font-extrabold text-text-primary">No encontramos tu correo</h1>
+          <p className="mt-3 font-body text-sm text-text-secondary">
             El correo electrónico no está disponible. Puedes volver a la página de registro para intentarlo de nuevo.
           </p>
           <Link href="/registro" className={`${botonAzul} mt-6 inline-block`}>
@@ -108,14 +108,14 @@ if (!correo) {
     <PantallaPublica>
       <section className="flex min-h-screen flex-col px-5 py-10">
         <LogoRuum className="mx-auto mt-8 text-center" />
-        <div className="mt-12 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7 text-center shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#FFC400]/15 text-[#FFC400]" aria-hidden>✉</div>
-          <h1 className="mt-5 font-display text-[22px] font-extrabold text-white">Revisa tu correo</h1>
-          <p className="mt-3 font-body text-sm leading-6 text-[var(--ruum-dark-text-secondary)]">
-            Enviamos un enlace de confirmación{correo ? <> a <strong className="text-white">{correo}</strong></> : " al correo registrado"}.
+        <div className="mt-12 rounded-card border border-border bg-surface px-5 py-7 text-center shadow-[var(--ruum-shadow-3)]">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-signal/15 text-signal" aria-hidden>✉</div>
+          <h1 className="mt-5 font-display text-[22px] font-extrabold text-text-primary">Revisa tu correo</h1>
+          <p className="mt-3 font-body text-sm leading-6 text-text-secondary">
+            Enviamos un enlace de confirmación{correo ? <> a <strong className="text-text-primary">{correo}</strong></> : " al correo registrado"}.
             Ábrelo para activar tu cuenta.
           </p>
-          <p className="mt-3 font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
+          <p className="mt-3 font-body text-xs leading-5 text-text-secondary">
             Si no lo encuentras, revisa spam o correo no deseado. Hasta confirmar tu correo todavía no puedes solicitar un traslado.
           </p>
 
@@ -126,7 +126,7 @@ if (!correo) {
             {reenviando ? "Enviando…" : restante > 0 ? `Reenviar en ${restante}s` : "Reenviar correo"}
           </button>
           <Link href="/login" className={`${botonContorno} mt-3`}>Volver al inicio de sesión</Link>
-          <Link href="/registro" className="mt-5 inline-block font-body text-xs text-[#FFC400] underline-offset-4 hover:underline">
+          <Link href="/registro" className="mt-5 inline-block font-body text-xs text-route-action underline-offset-4 hover:underline">
             Corregir el correo o volver a registrarme
           </Link>
         </div>

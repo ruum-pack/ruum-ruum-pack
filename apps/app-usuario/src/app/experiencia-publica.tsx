@@ -1,29 +1,22 @@
 import type { ReactNode } from "react";
 import { LogoMarca, type LogoVariante } from "@ruum/ui";
 
-const fondoPublico = "bg-[#151515]";
-const fondoPublicoTransparente = "bg-[#151515]/95";
-const bordePublico = "border-[#5F6368]/40";
-const campoPublico = "bg-[#1f2633]";
-const textoSecundarioPublico = "text-[var(--ruum-dark-text-secondary)]";
-const textoFuncionalPublico = "text-[var(--ruum-dark-text-tertiary)]";
-const acentoPublico = "bg-[#FFC400]";
-const focoPublico = "focus:border-[#1E88E5] focus:ring-[#1E88E5]/25";
-const focoAcentoPublico = "focus-visible:ring-[#FFC400]/70 focus-visible:ring-offset-[#151515]";
+const fondoPublico = "bg-surface-elevated";
+const fondoPublicoTransparente = "bg-surface";
+const bordePublico = "border-border";
+const campoPublico = "bg-surface";
+const textoSecundarioPublico = "text-text-secondary";
+const textoFuncionalPublico = "text-text-tertiary";
+const focoPublico = "focus:border-route-action focus:ring-route-action/25";
+const focoAcentoPublico = "focus-visible:ring-focus focus-visible:ring-offset-surface";
 
 export function PantallaPublica({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <main className={`ruum-auth-shell min-h-screen ${fondoPublico} px-4 text-white sm:px-6 ${className}`}>
-      <div className={`relative mx-auto min-h-screen w-full max-w-md overflow-hidden ${fondoPublicoTransparente} shadow-[0_24px_64px_rgba(0,0,0,0.4)]`}>
+    <main className={`user-v2-scope user-v2-page user-v2-secondary-screen ruum-auth-shell ruum-public-shell min-h-screen ${fondoPublico} px-4 text-text-primary sm:px-6 ${className}`}>
+      <div className={`ruum-public-shell__content relative mx-auto min-h-screen w-full max-w-md overflow-hidden ${fondoPublicoTransparente} shadow-[var(--ruum-shadow-4)]`}>
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-40"
-          style={{
-            backgroundImage:
-              "linear-gradient(180deg, rgba(21,21,21,0.85), rgba(21,21,21,0.98)), url('/imagenes/seguridad-traslado.png')",
-            backgroundPosition: "42% 46%",
-            backgroundSize: "cover"
-          }}
+          className="ruum-public-shell__overlay pointer-events-none absolute inset-0 opacity-40"
         />
         <div className="relative z-10">{children}</div>
       </div>
@@ -41,7 +34,7 @@ export function LogoRuum({
   return (
     <LogoMarca
       variante={variante}
-      tema="oscuro"
+      tema="auto"
       className={className}
       mostrarDescriptor
       mostrarRespaldo
@@ -112,13 +105,13 @@ export function IconoLinea({ tipo }: { tipo: "escudo" | "maletin" | "pin" | "can
 }
 
 export const campoOscuro =
-  `w-full rounded-lg border ${bordePublico} ${campoPublico} px-3.5 py-2.5 font-body text-sm text-white outline-none transition placeholder:text-[var(--ruum-dark-text-tertiary)] ${focoPublico}`;
+  `w-full rounded-lg border ${bordePublico} ${campoPublico} px-3.5 py-2.5 font-body text-sm text-text-primary outline-none transition placeholder:text-text-tertiary ${focoPublico}`;
 
 export const etiquetaOscura = `font-body text-xs font-medium ${textoSecundarioPublico}`;
 export const botonAzul =
-  `inline-flex min-h-11 w-full items-center justify-center rounded-lg ${acentoPublico} px-5 py-3 font-display text-sm font-bold text-[#151515] shadow-[0_10px_28px_rgba(255,196,0,0.22)] outline-none transition hover:bg-[#e0ac00] focus-visible:ring-2 ${focoAcentoPublico} focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45`;
+  `ruum-public-primary-button inline-flex min-h-11 w-full items-center justify-center rounded-lg px-5 py-3 font-display text-sm font-bold text-on-primary outline-none transition hover:brightness-95 focus-visible:ring-2 ${focoAcentoPublico} focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45`;
 export const botonContorno =
-  `inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-[#5F6368] bg-transparent px-5 py-3 font-display text-sm font-bold text-white outline-none transition hover:border-[#FFC400] hover:bg-[#FFC400]/10 focus-visible:ring-2 ${focoAcentoPublico} focus-visible:ring-offset-2`;
+  `inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border bg-transparent px-5 py-3 font-display text-sm font-bold text-text-primary outline-none transition hover:border-signal hover:bg-signal/10 focus-visible:ring-2 ${focoAcentoPublico} focus-visible:ring-offset-2`;
 
 export function CampoOscuro({
   etiqueta,

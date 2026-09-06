@@ -64,32 +64,32 @@ export default function PaginaRecuperarPassword() {
   return (
     <PantallaPublica>
       <section className="flex min-h-screen flex-col px-5 py-10">
-        <Link href="/login" className="font-body text-xs text-[#f1d797] transition hover:text-white">
+        <Link href="/login" className="font-body text-xs text-route-action transition hover:text-text-primary">
           ← Volver al inicio de sesión
         </Link>
 
         <LogoRuum className="mx-auto mt-8 text-center" />
 
-        <div className="mt-14 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
+        <div className="mt-14 rounded-card border border-border bg-surface px-5 py-7 shadow-[var(--ruum-shadow-3)]">
           {enviado ? (
             /* Estado de éxito */
             <div className="grid gap-4 text-center">
-              <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#e6f9f0]">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-control-soft">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                   stroke="#1d9e75" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
                   aria-hidden="true">
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
               </div>
-              <h1 className="font-display text-[22px] font-extrabold leading-tight text-white">
+              <h1 className="font-display text-[22px] font-extrabold leading-tight text-text-primary">
                 Correo enviado
               </h1>
-              <p className="font-body text-sm leading-6 text-[var(--ruum-dark-text-secondary)]">
+              <p className="font-body text-sm leading-6 text-text-secondary">
                 Revisa tu bandeja de entrada en{" "}
-                <span className="font-semibold text-white">{email}</span>, incluyendo
+                <span className="font-semibold text-text-primary">{email}</span>, incluyendo
                 la carpeta de spam. El enlace expira en 60 minutos.
               </p>
-              <p className="font-body text-xs text-[#8d96a8]">
+              <p className="font-body text-xs text-text-tertiary">
                 Si no llega en unos minutos, puedes solicitar otro enlace.
               </p>
               <button
@@ -103,10 +103,10 @@ export default function PaginaRecuperarPassword() {
           ) : (
             /* Formulario */
             <>
-              <h1 className="font-display text-[22px] font-extrabold leading-tight text-white">
+              <h1 className="font-display text-[22px] font-extrabold leading-tight text-text-primary">
                 Recuperar contraseña
               </h1>
-              <p className="mt-2 font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
+              <p className="mt-2 font-body text-xs leading-5 text-text-secondary">
                 Escribe el correo con el que te registraste y te enviamos un enlace para crear una nueva contraseña.
               </p>
 

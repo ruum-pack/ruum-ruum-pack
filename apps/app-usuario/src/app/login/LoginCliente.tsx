@@ -73,15 +73,15 @@ export function LoginCliente({ motivo, siguiente }: LoginClienteProps) {
   return (
     <PantallaPublica>
       <section className="flex min-h-screen flex-col px-5 py-10">
-        <Link href="/" className="font-body text-xs text-[#f1d797] transition hover:text-white">
+        <Link href="/" className="font-body text-xs text-route-action transition hover:text-text-primary">
           ← Atrás
         </Link>
 
         <LogoRuum className="mx-auto mt-8 text-center" />
 
-        <div className="mt-14 rounded-[14px] border border-[#4d5668] bg-[#232a3a] px-5 py-7 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
-          <h1 className="font-display text-[22px] font-extrabold leading-tight text-white">Iniciar sesión</h1>
-          <p className="mt-2 font-body text-xs leading-5 text-[var(--ruum-dark-text-secondary)]">
+        <div className="mt-14 rounded-card border border-border bg-surface px-5 py-7 shadow-[var(--ruum-shadow-3)]">
+          <h1 className="font-display text-[22px] font-extrabold leading-tight text-text-primary">Iniciar sesión</h1>
+          <p className="mt-2 font-body text-xs leading-5 text-text-secondary">
             Accede para ver tus traslados reales y solicitar nuevos.
           </p>
           {motivo === "email_confirmation" && (
@@ -111,21 +111,21 @@ export function LoginCliente({ motivo, siguiente }: LoginClienteProps) {
             />
             <Field
               etiqueta="Contraseña"
-              etiquetaClassName="!text-[#d4d9e2] !text-xs !font-medium"
+              etiquetaClassName="text-text-secondary text-xs font-medium"
               type="password"
-              passwordToggleClassName="!text-white/60 hover:!bg-white/10 hover:!text-white focus-visible:!outline-[#f5a623]"
+              passwordToggleClassName="text-text-secondary hover:bg-surface-elevated hover:text-text-primary focus-visible:outline-focus"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
               placeholder="Tu contraseña"
-              className="!border-[#4d5668] !bg-[#151a25] !text-white placeholder:!text-[var(--ruum-dark-text-tertiary)] focus:!border-[#1e88e5] focus:!ring-[#1e88e5]/25"
+              className="border-border bg-surface text-text-primary placeholder:text-text-tertiary focus:border-route-action focus:ring-route-action/25"
             />
 
             <div className="flex justify-end">
               <Link
                 href="/recuperar-password"
-                className="font-body text-xs text-[#f1d797] underline-offset-2 hover:underline"
+                className="font-body text-xs text-route-action underline-offset-2 hover:underline"
               >
                 ¿Olvidaste tu contraseña?
               </Link>
