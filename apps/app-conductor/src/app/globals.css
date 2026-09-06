@@ -452,53 +452,53 @@ html[data-theme="light"] .ruum-card {
 }
 
 /* =========================================================================
- * TEMA NOCTURNO NEÓN — app-conductor
+ * DARK MODE V2 — app-conductor
  *
  * El tema se activa explícitamente con <html data-theme="dark">.
  * Los tokens semánticos viven en @ruum/ui; aquí solo quedan ajustes visuales
- * locales. No invertir aliases históricos como ink/mist/paper.
+ * locales acordes al Brand Book V2 Dark Mode (#08182E / #0D2340 / #22D3C5 / #4D9AFF).
  * ========================================================================= */
 
-/* Lienzo Brand Book: negro asfalto #151515 protagonista, amarillo #FFC400 solo como acento, azul #1E88E5 para trazabilidad. */
+/* Lienzo Dark Mode V2: Deep Navy #08182E como lienzo, acentos sutiles de ruta y marca. */
 html[data-theme="dark"] body {
   background:
-    radial-gradient(circle at 12% 0%, rgba(30, 136, 229, 0.08), transparent 44%),
-    radial-gradient(circle at 95% 100%, rgba(255, 196, 0, 0.05), transparent 40%),
+    radial-gradient(circle at 12% 0%, rgba(77, 154, 255, 0.08), transparent 44%),
+    radial-gradient(circle at 95% 100%, rgba(34, 211, 197, 0.05), transparent 40%),
     var(--ruum-canvas);
   background-attachment: fixed;
 }
 
 html[data-theme="dark"] ::selection {
-  background: var(--color-signal);
-  color: var(--ruum-surface-strong);
+  background: var(--ruum-brand);
+  color: #08182E;
 }
 
 /* --- Correcciones de contraste para superficies de marca sobre tema oscuro. */
-html[data-theme="dark"] .bg-signal { color: var(--ruum-surface-strong); }
-html[data-theme="dark"] .bg-route-dark { color: var(--color-mist); }
-html[data-theme="dark"] .bg-control { color: var(--color-mist); }
-html[data-theme="dark"] .bg-danger { color: var(--color-mist); }
-html[data-theme="dark"] .bg-danger-action { color: #070b14; }
-/* Folio del PassportCard: se posiciona sobre el listón dorado. */
-html[data-theme="dark"] .rounded-card > span.font-mono-ruum.absolute { color: var(--ruum-surface-strong); }
+html[data-theme="dark"] .bg-signal { color: #08182E; }
+html[data-theme="dark"] .bg-route-dark { color: #F5F9FF; }
+html[data-theme="dark"] .bg-control { color: #08182E; }
+html[data-theme="dark"] .bg-danger { color: #F5F9FF; }
+html[data-theme="dark"] .bg-danger-action { color: #FFFFFF; }
+/* Folio del PassportCard */
+html[data-theme="dark"] .rounded-card > span.font-mono-ruum.absolute { color: #08182E; }
 
-/* --- Superficies locales del conductor en clave neón --- */
+/* --- Superficies locales del conductor en clave Dark Mode V2 --- */
 html[data-theme="dark"] .conductor-status-panel {
   border-color: var(--ruum-border-strong);
-  background: rgba(58, 165, 255, 0.12);
+  background: rgba(77, 154, 255, 0.10);
 }
 
 html[data-theme="dark"] .conductor-auth-shell {
   background:
-    radial-gradient(circle at 18% 12%, rgba(255, 196, 0, 0.10), transparent 38%),
-    radial-gradient(circle at 88% 82%, rgba(30, 136, 229, 0.14), transparent 42%),
-    linear-gradient(180deg, rgba(21, 21, 21, 0.72) 0%, rgba(15, 19, 26, 0.94) 62%, var(--ruum-canvas) 100%),
+    radial-gradient(circle at 18% 12%, rgba(34, 211, 197, 0.08), transparent 38%),
+    radial-gradient(circle at 88% 82%, rgba(77, 154, 255, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(8, 24, 46, 0.72) 0%, rgba(13, 35, 64, 0.94) 62%, var(--ruum-canvas) 100%),
     url("/imagenes/onboarding-paso2.webp") center / cover no-repeat,
     var(--ruum-canvas);
 }
 
 html[data-theme="dark"] .conductor-auth-card {
-  background: rgba(13, 22, 38, 0.92);
+  background: rgba(13, 35, 64, 0.92);
   border-color: var(--ruum-border);
   color: var(--ruum-text);
   backdrop-filter: blur(6px);
@@ -521,12 +521,13 @@ html[data-theme="dark"] textarea::placeholder {
   color: var(--ruum-text-disabled);
 }
 
-/* Mejorar visibilidad de campos en tarjeta de autenticación (tema oscuro) */
+/* Visibilidad de campos en tarjeta de autenticación (Dark Mode V2) */
 html[data-theme="dark"] .conductor-auth-card input,
 html[data-theme="dark"] .conductor-auth-card select,
 html[data-theme="dark"] .conductor-auth-card textarea {
   border-color: var(--ruum-border);
-  background-color: rgba(13, 22, 38, 0.8);
+  background-color: var(--ruum-surface);
+  color: var(--ruum-text);
 }
 
 html[data-theme="dark"] .conductor-auth-card input:hover,
@@ -538,15 +539,15 @@ html[data-theme="dark"] .conductor-auth-card textarea:hover {
 html[data-theme="dark"] .conductor-auth-card input:focus,
 html[data-theme="dark"] .conductor-auth-card select:focus,
 html[data-theme="dark"] .conductor-auth-card textarea:focus {
-  border-color: var(--ruum-route);
+  border-color: var(--ruum-action);
   box-shadow: 0 0 0 3px var(--ruum-focus-ring);
   outline: none;
 }
 
 /* Checkbox en tarjeta de autenticación */
 html[data-theme="dark"] .conductor-auth-card input[type="checkbox"] {
-  border-color: rgba(122, 162, 214, 0.5);
-  background-color: rgba(13, 22, 38, 0.8);
+  border-color: var(--ruum-border-strong);
+  background-color: var(--ruum-surface);
 }
 
 html[data-theme="dark"] .conductor-auth-card input[type="checkbox"]:focus-visible {

@@ -44,57 +44,57 @@
 html[data-theme="dark"] {
   color-scheme: dark;
 
-  /* --- Paleta Tailwind (@theme de @ruum/ui) reasignada --- */
-  --color-ink: #e8edf6;            /* texto principal, ahora claro */
-  --color-ink-soft: #c7d2e2;
-  --color-steel: #93a0b5;
-  --color-mist: #101a2c;           /* superficie de tarjetas, ahora oscura */
-  --color-mist-dim: #0b1322;
-  --color-signal: #f5a623;         /* dorado de marca, sin cambios */
-  --color-signal-soft: rgba(245, 166, 35, 0.14);
-  --color-route: #3aa5ff;          /* azul neón */
-  --color-route-dark: #4da3ff;     /* legible como texto sobre fondo oscuro */
-  --color-route-soft: rgba(58, 165, 255, 0.14);
-  --color-control: #3ddc97;
-  --color-control-soft: rgba(61, 220, 151, 0.13);
-  --color-warn: #f0b429;
-  --color-warn-soft: rgba(240, 180, 41, 0.12);
-  --color-danger: #ff6b6b;
-  --color-danger-soft: rgba(255, 107, 107, 0.12);
+  /* --- Paleta Tailwind (@theme de @ruum/ui) adaptada a Dark Mode V2 --- */
+  --color-ink: #F5F9FF;
+  --color-ink-soft: #C7D5E7;
+  --color-steel: #A9BCD3;
+  --color-mist: #0D2340;
+  --color-mist-dim: #08182E;
+  --color-signal: #22D3C5;
+  --color-signal-soft: rgba(34, 211, 197, 0.12);
+  --color-route: #4D9AFF;
+  --color-route-dark: #D8E8FF;
+  --color-route-soft: rgba(77, 154, 255, 0.14);
+  --color-control: #22C7A8;
+  --color-control-soft: rgba(34, 199, 168, 0.14);
+  --color-warn: #F6C547;
+  --color-warn-soft: rgba(246, 197, 71, 0.14);
+  --color-danger: #F06A78;
+  --color-danger-soft: rgba(240, 106, 120, 0.14);
 
-  /* --- Tokens semánticos --- */
-  --ruum-background-main: #070b14;
-  --ruum-surface-primary: #101a2c;
-  --ruum-surface-secondary: #0d1626;
-  --ruum-border-default: rgba(122, 162, 214, 0.2);
-  --ruum-text-main: #e8edf6;
-  --ruum-status-success: #3ddc97;
-  --ruum-status-success-soft: rgba(61, 220, 151, 0.13);
-  --ruum-status-warning: #f0b429;
-  --ruum-status-warning-soft: rgba(240, 180, 41, 0.12);
-  --ruum-status-error: #ff6b6b;
-  --ruum-status-error-soft: rgba(255, 107, 107, 0.12);
-  --ruum-status-info: #4da3ff;
-  --ruum-status-info-soft: rgba(58, 165, 255, 0.14);
-  --ruum-focus-default: #4da3ff;
-  --ruum-canvas: var(--ruum-background-main);
-  --ruum-surface: var(--ruum-surface-primary);
-  --ruum-surface-subtle: var(--ruum-surface-secondary);
-  --ruum-surface-elevated: #162238;
-  --ruum-surface-strong: #05080f;
-  --ruum-border: var(--ruum-border-default);
-  --ruum-border-strong: rgba(122, 162, 214, 0.38);
-  --ruum-text-primary: var(--ruum-text-main);
-  --ruum-text: var(--ruum-text-main);
-  --ruum-text-secondary: #b7c2d4;
-  --ruum-text-tertiary: #8b98ad;
-  --ruum-text-disabled: #6f7c92;
-  --ruum-focus: var(--ruum-focus-default);
-  --ruum-focus-ring: rgba(77, 163, 255, 0.3);
-  --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.4);
-  --ruum-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.55);
-  --ruum-shadow-4: 0 24px 64px rgba(0, 0, 0, 0.65);
+  /* --- Tokens semánticos Dark Mode V2 --- */
+  --ruum-background-main: #08182E;
+  --ruum-surface-primary: #0D2340;
+  --ruum-surface-secondary: #08182E;
+  --ruum-border-default: #254565;
+  --ruum-text-main: #F5F9FF;
+  --ruum-status-success: #22C7A8;
+  --ruum-status-success-soft: rgba(34, 199, 168, 0.14);
+  --ruum-status-warning: #F6C547;
+  --ruum-status-warning-soft: rgba(246, 197, 71, 0.14);
+  --ruum-status-error: #F06A78;
+  --ruum-status-error-soft: rgba(240, 106, 120, 0.14);
+  --ruum-status-info: #4D9AFF;
+  --ruum-status-info-soft: rgba(77, 154, 255, 0.14);
+  --ruum-focus-default: #4D9AFF;
+  --ruum-canvas: #08182E;
+  --ruum-surface: #0D2340;
+  --ruum-surface-subtle: #102844;
+  --ruum-surface-elevated: #123052;
+  --ruum-surface-strong: #0D2340;
+  --ruum-border: #254565;
+  --ruum-border-strong: #356083;
+  --ruum-text-primary: #F5F9FF;
+  --ruum-text: #F5F9FF;
+  --ruum-text-secondary: #C7D5E7;
+  --ruum-text-tertiary: #A9BCD3;
+  --ruum-text-disabled: #6F839B;
+  --ruum-focus: #4D9AFF;
+  --ruum-focus-ring: rgba(77, 154, 255, 0.18);
+  --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --ruum-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.22);
+  --ruum-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --ruum-shadow-4: 0 16px 36px rgba(0, 0, 0, 0.36);
   --ruum-admin-text-operativo: 14px;
   --ruum-admin-text-secundario: 12px;
   --ruum-admin-text-compacto: 11px;
@@ -103,18 +103,18 @@ html[data-theme="dark"] {
   --ruum-admin-touch-target: 40px;
 }
 
-/* Lienzo con los mismos resplandores radiales del onboarding. */
+/* Lienzo Dark Mode V2 */
 body {
   background:
-    radial-gradient(circle at 12% 0%, rgba(58, 165, 255, 0.1), transparent 42%),
-    radial-gradient(circle at 95% 100%, rgba(168, 232, 32, 0.06), transparent 38%),
+    radial-gradient(circle at 12% 0%, rgba(77, 154, 255, 0.08), transparent 42%),
+    radial-gradient(circle at 95% 100%, rgba(34, 211, 197, 0.05), transparent 38%),
     var(--ruum-canvas);
   background-attachment: fixed;
 }
 
 ::selection {
   background: var(--color-signal);
-  color: var(--ruum-surface-strong);
+  color: #08182E;
 }
 
 html {

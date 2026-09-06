@@ -329,52 +329,67 @@ summary:focus-visible {
 }
 
 /* =========================================================================
- * TEMA NOCTURNO NEÓN — Brand Book Oficial
+ * DARK MODE V2 — Brand Book Oficial
  * ========================================================================= */
-:root {
+[data-theme="dark"] {
   color-scheme: dark;
 
-  /* Paleta semántica */
-  --color-ink: #e8edf6;
-  --color-ink-soft: #c7d2e2;
-  --color-steel: #93a0b5;
-  --color-mist: #101a2c;
-  --color-mist-dim: #0b1322;
-  --color-signal: #ffc400;
-  --color-signal-soft: rgba(255, 196, 0, 0.14);
-  --color-route: #3aa5ff;
-  --color-route-dark: #4da3ff;
-  --color-route-soft: rgba(58, 165, 255, 0.14);
-  --color-control: #3ddc97;
-  --color-control-soft: rgba(61, 220, 151, 0.13);
-  --color-warn: #ffc400;
-  --color-warn-soft: rgba(255, 196, 0, 0.12);
-  --color-danger: #ff6b6b;
-  --color-danger-soft: rgba(255, 107, 107, 0.12);
+  /* Paleta semántica Dark Mode V2 */
+  --color-ink: #F5F9FF;
+  --color-ink-soft: #C7D5E7;
+  --color-steel: #A9BCD3;
+  --color-mist: #0D2340;
+  --color-mist-dim: #08182E;
+  --color-signal: #22D3C5;
+  --color-signal-soft: rgba(34, 211, 197, 0.12);
+  --color-route: #4D9AFF;
+  --color-route-dark: #D8E8FF;
+  --color-route-soft: rgba(77, 154, 255, 0.14);
+  --color-control: #22C7A8;
+  --color-control-soft: rgba(34, 199, 168, 0.14);
+  --color-warn: #F6C547;
+  --color-warn-soft: rgba(246, 197, 71, 0.14);
+  --color-danger: #F06A78;
+  --color-danger-soft: rgba(240, 106, 120, 0.14);
 
-  /* Tokens semánticos compartidos con @ruum/ui — Sprint 2: contraste mejorado para WCAG 1.4.11 */
-  --ruum-canvas: #070b14;
-  --ruum-surface: #101a2c;
-  --ruum-surface-subtle: #0d1626;
-  --ruum-surface-strong: #05080f;
-  --ruum-border: rgba(122, 162, 214, 0.32);
-  --ruum-border-strong: rgba(122, 162, 214, 0.45);
-  --ruum-text: #e8edf6;
-  --ruum-text-secondary: #b7c2d4;
-  --ruum-text-tertiary: #8b98ad;
-  --ruum-focus: #4da3ff;
-  --ruum-focus-ring: rgba(77, 163, 255, 0.3);
-  --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.4);
-  --ruum-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.55);
-  --ruum-shadow-4: 0 24px 64px rgba(0, 0, 0, 0.65);
+  /* Tokens semánticos compartidos con @ruum/ui */
+  --ruum-canvas: #08182E;
+  --ruum-surface: #0D2340;
+  --ruum-surface-raised: #123052;
+  --ruum-surface-soft: #102844;
+  --ruum-surface-elevated: #123052;
+  --ruum-surface-subtle: #102844;
+  --ruum-surface-strong: #0D2340;
+  --ruum-border: #254565;
+  --ruum-border-strong: #356083;
+  --ruum-text: #F5F9FF;
+  --ruum-text-primary: #F5F9FF;
+  --ruum-text-secondary: #C7D5E7;
+  --ruum-text-tertiary: #A9BCD3;
+  --ruum-text-muted: #A9BCD3;
+  --ruum-text-disabled: #6F839B;
+  --ruum-brand: #22D3C5;
+  --ruum-action: #4D9AFF;
+  --ruum-primary: #D8E8FF;
+  --ruum-success: #22C7A8;
+  --ruum-warning: #F6C547;
+  --ruum-error: #F06A78;
+  --ruum-danger: #F06A78;
+  --ruum-info: #6BA7FF;
+  --ruum-focus: #4D9AFF;
+  --ruum-focus-ring: rgba(77, 154, 255, 0.18);
+  --ruum-gradient-action: linear-gradient(90deg, #22D3C5 0%, #4D9AFF 100%);
+  --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --ruum-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.22);
+  --ruum-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --ruum-shadow-4: 0 16px 36px rgba(0, 0, 0, 0.36);
 }
 
-/* Lienzo con resplandores radiales de marca */
-body {
+/* Lienzo Dark Mode V2 */
+[data-theme="dark"] body {
   background:
-    radial-gradient(circle at 12% 0%, rgba(58, 165, 255, 0.1), transparent 42%),
-    radial-gradient(circle at 95% 100%, rgba(255, 196, 0, 0.06), transparent 38%),
+    radial-gradient(circle at 12% 0%, rgba(77, 154, 255, 0.08), transparent 42%),
+    radial-gradient(circle at 95% 100%, rgba(34, 211, 197, 0.05), transparent 38%),
     var(--ruum-canvas);
   background-attachment: fixed;
   color: var(--ruum-text);
@@ -387,24 +402,24 @@ body {
   .app-card-interactive:hover { transform: none; }
 }
 
-input,
-select,
-textarea {
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
   color-scheme: dark;
 }
 
-input::placeholder,
-textarea::placeholder {
-  color: #7b8aa3;
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #6F839B;
 }
 
 /* Contrastes fijos sobre fondos de color */
-.bg-signal { color: #14213d; }
-.bg-route-dark { color: #071120; }
-.bg-control { color: #06281a; }
-.bg-danger { color: #2a0808; }
-.bg-ink { background-color: #0d1626; }
-.rounded-card > span.font-mono-ruum.absolute { color: #14213d; }
+.bg-signal { color: #08182E; }
+.bg-route-dark { color: #F5F9FF; }
+.bg-control { color: #08182E; }
+.bg-danger { color: #F5F9FF; }
+.bg-ink { background-color: #0D2340; }
+.rounded-card > span.font-mono-ruum.absolute { color: #08182E; }
 
 /* Animaciones */
 @keyframes fadeIn {
@@ -454,6 +469,34 @@ textarea::placeholder {
   color: var(--user-color-primary);
   color-scheme: light;
   font-family: var(--font-body);
+}
+
+[data-theme="dark"] .user-v2-scope {
+  --user-color-primary: #F5F9FF;
+  --user-color-primary-soft: #D8E8FF;
+  --user-color-brand: #22D3C5;
+  --user-color-brand-dark: #129E93;
+  --user-color-brand-soft: rgba(34, 211, 197, 0.12);
+  --user-color-action: #4D9AFF;
+  --user-color-action-hover: #3A8AEF;
+  --user-color-surface: #0D2340;
+  --user-color-background: #08182E;
+  --user-color-surface-soft: #102844;
+  --user-color-border: #254565;
+  --user-color-muted: #A9BCD3;
+  --user-color-success: #22C7A8;
+  --user-color-success-ink: #63E0C7;
+  --user-color-pending: #F6C547;
+  --user-color-pending-ink: #FFD873;
+  --user-color-error: #F06A78;
+  --user-color-error-ink: #FF98A4;
+  --user-color-on-action: #FFFFFF;
+  --user-shadow-card: 0 5px 20px rgba(0, 0, 0, 0.22);
+  --user-shadow-soft: 0 4px 18px rgba(0, 0, 0, 0.18);
+  --user-shadow-primary: 0 8px 18px rgba(77, 154, 255, 0.25);
+  --user-shadow-nav: 0 -5px 18px rgba(0, 0, 0, 0.25);
+  color: var(--user-color-primary);
+  color-scheme: dark;
 }
 
 .user-v2-page {

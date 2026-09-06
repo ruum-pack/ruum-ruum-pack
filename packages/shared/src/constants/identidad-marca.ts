@@ -80,7 +80,29 @@ export const IDENTIDAD_MARCA = {
     azulTrazabilidad: { hex: "#1677FF", uso: "Mapeado a Blue Action V2" }
   },
 
+  paletaColoresDark: {
+    canvas: { hex: "#08182E", uso: "Fondo general" },
+    surface: { hex: "#0D2340", uso: "Superficie principal" },
+    surfaceRaised: { hex: "#123052", uso: "Cards elevadas / overlays" },
+    surfaceSoft: { hex: "#102844", uso: "Secciones suaves / agrupadores" },
+    text: { hex: "#F5F9FF", uso: "Texto principal" },
+    textSecondary: { hex: "#C7D5E7", uso: "Texto secundario" },
+    textMuted: { hex: "#A9BCD3", uso: "Metadata / ayuda" },
+    textDisabled: { hex: "#6F839B", uso: "Deshabilitado" },
+    border: { hex: "#254565", uso: "Bordes y divisores" },
+    borderStrong: { hex: "#356083", uso: "Bordes activos / mayor contraste" },
+    brand: { hex: "#22D3C5", uso: "Marca, confirmación, highlights" },
+    action: { hex: "#4D9AFF", uso: "CTA, links, activo" },
+    primary: { hex: "#D8E8FF", uso: "Títulos e iconos de alto contraste" },
+    success: { hex: "#22C7A8", uso: "Confirmado / completado" },
+    warning: { hex: "#F6C547", uso: "Pendiente / advertencia" },
+    error: { hex: "#F06A78", uso: "Error / cancelación" },
+    info: { hex: "#6BA7FF", uso: "Información neutra" }
+  },
+
   gradienteAccion: "linear-gradient(90deg, #00C2B8 0%, #1677FF 100%)",
+  gradienteAccionDark: "linear-gradient(90deg, #22D3C5 0%, #4D9AFF 100%)",
+  gradienteHighlightDark: "linear-gradient(135deg, rgba(34, 211, 197, 0.10), rgba(77, 154, 255, 0.08))",
 
   tipografia: {
     principal: "Inter",

@@ -158,52 +158,95 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Tema oscuro explícito: solo tokens semánticos.
-     Los aliases históricos ink/mist/paper conservan su significado original. */
-  --ruum-canvas: #0f131a;
-  --ruum-surface: #151b26;
-  --ruum-surface-elevated: #1a2230;
-  --ruum-surface-subtle: #121721;
-  --ruum-surface-strong: #151515;
-  --ruum-border: rgba(122, 162, 214, 0.45);
-  --ruum-border-strong: rgba(77, 163, 255, 0.5);
-  --ruum-text-primary: #e8edf6;
-  --ruum-text: #e8edf6;
-  --ruum-text-secondary: #b7c2d4;
-  --ruum-text-tertiary: #8b98ad;
-  --ruum-text-disabled: #6f7c92;
-  --ruum-dark-text-secondary: #b7c2d4;
-  --ruum-dark-text-tertiary: #8b98ad;
-  --ruum-focus: #4da3ff;
-  --ruum-focus-ring: rgba(77, 163, 255, 0.3);
-  --ruum-action-primary: #ffc400;
-  --ruum-on-primary: #151515;
-  --ruum-on-danger: #070b14;
-  --ruum-overlay: rgba(0, 0, 0, 0.78);
-  --ruum-action-primary-hover: #e0ac00;
-  --ruum-action-primary-active: #c79800;
-  --ruum-route: #4da3ff;
-  --ruum-route-hover: #3a8ee6;
-  --ruum-route-active: #2d79c8;
-  --ruum-success: #3ddc97;
-  --ruum-warning: #ffc400;
-  --ruum-danger: #ff6b6b;
-  --ruum-danger-hover: #e45a5a;
-  --ruum-danger-active: #c94d4d;
-  --ruum-action: #ffc400;
-  --ruum-action-hover: #e0ac00;
-  --ruum-pulse: #aef22c;
-  --ruum-pulse-soft: rgba(174, 242, 44, 0.22);
-  --ruum-pulse-ink: #1c2b00;
-  --color-signal-soft: rgba(255, 196, 0, 0.18);
-  --color-route-soft: rgba(77, 163, 255, 0.16);
-  --color-control-soft: rgba(61, 220, 151, 0.18);
-  --color-warn-soft: rgba(255, 196, 0, 0.18);
-  --color-danger-soft: rgba(255, 107, 107, 0.16);
-  --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --ruum-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.4);
-  --ruum-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.55);
-  --ruum-shadow-4: 0 24px 64px rgba(0, 0, 0, 0.65);
+  /* Ruum Ruum — Dark Mode V2 (Documento complementario Brand Book V2)
+   * Base Deep Navy (#08182E), Teal (#22D3C5) para marca/highlights, Blue (#4D9AFF) para acción/links.
+   * Sin bloques negro puro + amarillo. Amarillo (#F6C547) reservado para advertencias/pendientes. */
+  --ruum-canvas: #08182E;
+  --ruum-surface: #0D2340;
+  --ruum-surface-raised: #123052;
+  --ruum-surface-soft: #102844;
+  --ruum-surface-elevated: #123052;
+  --ruum-surface-subtle: #102844;
+  --ruum-surface-strong: #0D2340;
+
+  --ruum-text: #F5F9FF;
+  --ruum-text-primary: #F5F9FF;
+  --ruum-text-secondary: #C7D5E7;
+  --ruum-text-tertiary: #A9BCD3;
+  --ruum-text-muted: #A9BCD3;
+  --ruum-text-disabled: #6F839B;
+  --ruum-dark-text-secondary: #C7D5E7;
+  --ruum-dark-text-tertiary: #A9BCD3;
+
+  --ruum-border: #254565;
+  --ruum-border-strong: #356083;
+
+  --ruum-brand: #22D3C5;
+  --ruum-brand-dark: #129E93;
+  --ruum-brand-soft: rgba(34, 211, 197, 0.12);
+
+  --ruum-action: #4D9AFF;
+  --ruum-action-hover: #3A8AEF;
+  --ruum-action-active: #2B7BDD;
+  --ruum-action-primary: #4D9AFF;
+  --ruum-action-primary-hover: #3A8AEF;
+  --ruum-action-primary-active: #2B7BDD;
+  --ruum-on-primary: #FFFFFF;
+  --ruum-on-danger: #FFFFFF;
+
+  --ruum-primary: #D8E8FF;
+
+  --ruum-focus: #4D9AFF;
+  --ruum-focus-ring: rgba(77, 154, 255, 0.18);
+
+  --ruum-route: #4D9AFF;
+  --ruum-route-hover: #3A8AEF;
+  --ruum-route-active: #2B7BDD;
+
+  --ruum-success: #22C7A8;
+  --ruum-warning: #F6C547;
+  --ruum-error: #F06A78;
+  --ruum-danger: #F06A78;
+  --ruum-danger-hover: #D95362;
+  --ruum-danger-active: #BF3F4D;
+  --ruum-info: #6BA7FF;
+
+  --ruum-gradient-action: linear-gradient(90deg, #22D3C5 0%, #4D9AFF 100%);
+  --ruum-gradient-highlight: linear-gradient(135deg, rgba(34, 211, 197, 0.10), rgba(77, 154, 255, 0.08));
+
+  --ruum-pulse: #22D3C5;
+  --ruum-pulse-soft: rgba(34, 211, 197, 0.16);
+  --ruum-pulse-ink: #D8E8FF;
+
+  --ruum-overlay: rgba(8, 24, 46, 0.85);
+
+  /* Sombras Dark Mode V2 (apoyo sutil, sin glow pesado) */
+  --ruum-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --ruum-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.10);
+  --ruum-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --ruum-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --ruum-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.22);
+  --ruum-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --ruum-shadow-4: 0 16px 36px rgba(0, 0, 0, 0.36);
+
+  /* Aliases de compatibilidad para estilos Tailwind */
+  --color-ink: #F5F9FF;
+  --color-ink-soft: #C7D5E7;
+  --color-asphalt: #0D2340;
+  --color-steel: #A9BCD3;
+  --color-mist: #0D2340;
+  --color-mist-dim: #08182E;
+  --color-signal: #22D3C5;
+  --color-signal-soft: rgba(34, 211, 197, 0.12);
+  --color-route: #4D9AFF;
+  --color-route-dark: #D8E8FF;
+  --color-route-soft: rgba(77, 154, 255, 0.14);
+  --color-control: #22C7A8;
+  --color-control-soft: rgba(34, 199, 168, 0.14);
+  --color-warn: #F6C547;
+  --color-warn-soft: rgba(246, 197, 71, 0.14);
+  --color-danger: #F06A78;
+  --color-danger-soft: rgba(240, 106, 120, 0.14);
 }
 
 html {
@@ -292,6 +335,18 @@ select,
 textarea {
   min-height: 48px;
   border-radius: var(--ruum-radius-field);
+  border: 1px solid var(--ruum-border);
+  background: var(--ruum-surface);
+  color: var(--ruum-text);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--ruum-action);
+  box-shadow: 0 0 0 3px var(--ruum-focus-ring);
+  outline: none;
 }
 
 textarea {
@@ -338,11 +393,19 @@ input[type="radio"] {
   padding-block: 32px 48px;
 }
 
+/* Cards V2: Estándar (16px) y Destacada (20-24px) */
 .ruum-card {
   border: 1px solid var(--ruum-border);
   border-radius: var(--ruum-radius-card);
   background: var(--ruum-surface);
-  box-shadow: var(--ruum-shadow-1);
+  box-shadow: var(--ruum-shadow-sm);
+}
+
+.ruum-card-raised {
+  border: 1px solid var(--ruum-border-strong);
+  border-radius: var(--ruum-radius-xl, 20px);
+  background: var(--ruum-surface-raised);
+  box-shadow: var(--ruum-shadow-md);
 }
 
 .ruum-card-interactive {
@@ -352,7 +415,7 @@ input[type="radio"] {
 .ruum-card-interactive:hover {
   transform: translateY(-2px);
   border-color: var(--ruum-focus);
-  box-shadow: var(--ruum-shadow-2);
+  box-shadow: var(--ruum-shadow-md);
 }
 
 /* Línea de ruta — elemento de firma visual.

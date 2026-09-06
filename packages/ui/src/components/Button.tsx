@@ -21,11 +21,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  */
 const ESTILOS: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "border-transparent bg-[linear-gradient(90deg,#00C2B8_0%,#1677FF_100%)] text-white shadow-xs hover:brightness-105 active:scale-[0.98] focus-visible:outline-route-action",
+    "border-transparent bg-[image:var(--ruum-gradient-action)] text-white shadow-xs hover:brightness-105 active:scale-[0.98] focus-visible:outline-route-action",
   secondary:
-    "border border-border bg-white text-text-primary shadow-xs hover:border-brand hover:bg-[#ECFBFA] hover:text-primary active:scale-[0.98] focus-visible:outline-route-action",
+    "border border-border-strong bg-surface text-primary shadow-xs hover:border-brand hover:bg-surface-elevated hover:text-primary active:scale-[0.98] focus-visible:outline-route-action",
   quiet:
-    "border border-transparent bg-transparent text-route-action hover:bg-[#EEF5FF] hover:text-route-action active:bg-[#EEF5FF] focus-visible:outline-route-action",
+    "border border-transparent bg-transparent text-text-muted hover:text-text-secondary active:text-text-primary focus-visible:outline-route-action",
   danger:
     "border border-danger-action bg-danger-action text-white shadow-xs hover:brightness-105 active:scale-[0.98] focus-visible:outline-danger-action",
   emergency:

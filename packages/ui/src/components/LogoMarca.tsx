@@ -141,10 +141,10 @@ export function LogoMarca({
   const colorDestino = color === "route" ? "#1677FF" : color === "control" ? "#13B89B" : "#00C2B8";
   const esClaro = tema === "claro";
 
-  const colorTextoTitulo = esClaro ? "text-[#0D2B5E]" : tema === "auto" ? "text-text-primary" : "text-white";
+  const colorTextoTitulo = esClaro ? "text-[#0D2B5E]" : tema === "auto" ? "text-text-primary" : "text-[#F5F9FF]";
   const colorTextoAcento = "text-[#00C2B8]";
-  const colorTextoSecundario = esClaro ? "text-[#5F7192]" : tema === "auto" ? "text-text-secondary" : "text-[#B7C2D4]";
-  const colorTextoRespaldo = esClaro ? "text-[#5F7192]/80" : tema === "auto" ? "text-text-tertiary" : "text-white/45";
+  const colorTextoSecundario = esClaro ? "text-[#5F7192]" : tema === "auto" ? "text-text-secondary" : "text-[#C7D5E7]";
+  const colorTextoRespaldo = esClaro ? "text-[#5F7192]/80" : tema === "auto" ? "text-text-tertiary" : "text-[#A9BCD3]";
 
   // Símbolo independiente o avatar
   if (variante === "simbolo" || variante === "avatar") {
@@ -152,7 +152,7 @@ export function LogoMarca({
     return (
       <div
         className={`inline-flex items-center justify-center ${
-          variante === "avatar" ? "rounded-xl bg-[#151515] p-1.5 shadow-md" : ""
+          variante === "avatar" ? "rounded-xl bg-[#08182E] p-1.5 shadow-md" : ""
         } ${className}`}
       >
         <SimboloVectorial tamano={tamanoSimbolo} tema={variante === "avatar" ? "oscuro" : tema} colorDestino={colorDestino} />
