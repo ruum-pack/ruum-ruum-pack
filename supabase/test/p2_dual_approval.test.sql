@@ -5,7 +5,7 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(16);
+select plan(20);
 
 -- ── Setup ──────────────────────────────────────────────────────────────
 
@@ -40,35 +40,14 @@ values
    'Entrega2','+525500000003','Recepcion2','+525500000004',
    19.43,-99.13,'Origen2','CDMX',19.50,-99.20,'Destino2','CDMX', 'anticipado', 600.00, gen_random_uuid());
 
+insert into public.pagos (id, traslado_id, monto, momento, estado, metodo)
+values ('a1b00002-0000-4000-8000-000000000002', 'a1e00001-0000-4000-8000-000000000002', 600.00, 'anticipado', 'completado', 'transferencia');
+
 insert into public.conductores (id, auth_user_id, nombre, estado, no_presentaciones_6m, cancelaciones_sin_justificacion_count)
 values
   ('a1f00001-0000-4000-8000-000000000001', 'a1a00001-0000-4000-8000-000000000001', 'Conductor S1', 'activo', 0, 0),
   ('a1f00001-0000-4000-8000-000000000002', 'a1a00001-0000-4000-8000-000000000004', 'Conductor NP', 'activo', 0, 0),
   ('a1f00001-0000-4000-8000-000000000003', 'a1a00001-0000-4000-8000-000000000005', 'Conductor CJ', 'activo', 0, 0);
-
--- 🔥 NUEVO: Agregar política RLS temporal para pruebas
--- Esto permite que las pruebas inserten en solicitudes_aprobacion_admin sin violar RLS
-do $$
-begin
-  -- Verificar si la política ya existe
-  if not exists (
-    select 1 from pg_policies 
-    where tablename = 'solicitudes_aprobacion_admin' 
-    and policyname = 'Política de prueba para P2'
-  ) then
-    -- Crear política temporal para pruebas
-    execute 'CREATE POLICY "Política de prueba para P2" ON public.solicitudes_aprobacion_admin
-             FOR ALL TO authenticated USING (true) WITH CHECK (true)';
-  end if;
-exception 
-  when others then
-    raise notice 'No se pudo crear política: %', SQLERRM;
-end;
-$$;
-
--- 🔥 NUEVO: Deshabilitar RLS temporalmente para la prueba
--- Esto evita el error "new row violates row-level security policy"
-ALTER TABLE public.solicitudes_aprobacion_admin DISABLE ROW LEVEL SECURITY;
 
 select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000003', true);
 select set_config('role', 'authenticated', true);
@@ -88,19 +67,39 @@ select throws_like(
 -- ═════════════════════════════════════════════════════════════════════════
 -- T2: admin_ejecutar_pago con aprobación expirada → rechazo
 -- ═════════════════════════════════════════════════════════════════════════
-insert into public.solicitudes_aprobacion_admin (
-  id, tipo, capacidad_requerida, recurso, recurso_id, accion, payload,
-  estado, solicitada_por, aprobada_por, creada_en, expira_en, version
-) values (
-  'a1f00001-0000-4000-8000-000000000001', 'finanzas', 'pagos:ejecutar',
-  'traslados', 'a1e00001-0000-4000-8000-000000000001', 'ejecutar_pago', '{}'::jsonb,
-  'aprobada', 'a1b00001-0000-4000-8000-000000000001', 'a1b00001-0000-4000-8000-000000000002',
-  now() - interval '2 days', now() - interval '1 day', 1
-);
+select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000001', true);
+
+do $$ declare v_id uuid;
+begin
+  v_id := public.admin_solicitar_aprobacion(
+    'finanzas', 'pagos:ejecutar',
+    'traslados', 'a1e00001-0000-4000-8000-000000000001',
+    'ejecutar_pago', '{}'::jsonb
+  );
+  perform set_config('ruum.s1_aprobacion_expirada', v_id::text, true);
+end $$;
+
+select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
+
+do $$ begin
+  perform public.admin_decidir_aprobacion(
+    (select current_setting('ruum.s1_aprobacion_expirada')::uuid),
+    true, 'Aprobado', 1
+  );
+end $$;
+
+-- Simular expiración pasando a rol postgres temporalmente o reseteando claims
+select set_config('role', 'postgres', true);
+update public.solicitudes_aprobacion_admin
+set expira_en = now() - interval '1 hour'
+where id = (select current_setting('ruum.s1_aprobacion_expirada')::uuid);
+select set_config('role', 'authenticated', true);
+
+select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000003', true);
 
 select throws_like(
   $sql$ select public.admin_ejecutar_pago(
-    'a1f00001-0000-4000-8000-000000000001',
+    (select current_setting('ruum.s1_aprobacion_expirada')::uuid),
     'a1e00001-0000-4000-8000-000000000001', 500
   ) $sql$,
   '%APROBACION_EXPIRADA%',
@@ -263,17 +262,17 @@ select throws_like(
 -- ═════════════════════════════════════════════════════════════════════════
 -- T11: Aprobación dual — autoaprobación impedida
 -- ═════════════════════════════════════════════════════════════════════════
-select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
 
 do $$ declare v_id uuid;
 begin
   v_id := public.admin_solicitar_aprobacion(
-    'finanzas', 'pagos:ejecutar', 'traslados', null, 'test_auto', '{}'::jsonb
+    'sancion', 'conductores:sancionar', 'conductores', 'a1f00001-0000-4000-8000-000000000001', 'suspender',
+    jsonb_build_object('nuevo_estado', 'suspendido_7d', 'motivo', 'test_auto')
   );
   perform set_config('ruum.s1_aprobacion_auto', v_id::text, true);
 end $$;
 
--- 🔥 CORREGIDO: Especificar mensaje de error exacto o usar like
 select throws_like(
   $sql$ select public.admin_decidir_aprobacion(
     (select current_setting('ruum.s1_aprobacion_auto')::uuid),
@@ -286,6 +285,8 @@ select throws_like(
 -- ═════════════════════════════════════════════════════════════════════════
 -- T12: admin_cambiar_estado_traslado estado crítico sin aprobación → rechazo
 -- ═════════════════════════════════════════════════════════════════════════
+select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000003', true);
+
 select throws_like(
   $sql$ select public.admin_cambiar_estado_traslado(
     'a1e00001-0000-4000-8000-000000000002', 'pago_completado', null, null
@@ -297,7 +298,7 @@ select throws_like(
 -- ═════════════════════════════════════════════════════════════════════════
 -- T13: admin_suspender_conductor — aplicación real
 -- ═════════════════════════════════════════════════════════════════════════
-select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
 
 do $$ declare v_id uuid;
 begin
@@ -309,7 +310,7 @@ begin
   perform set_config('ruum.s1_aprobacion_suspender', v_id::text, true);
 end $$;
 
-select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
+select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000003', true);
 
 do $$ begin
   perform public.admin_decidir_aprobacion(
@@ -379,7 +380,7 @@ select is(
 -- ═════════════════════════════════════════════════════════════════════════
 -- T15: admin_registrar_no_presentacion con aprobación válida
 -- ═════════════════════════════════════════════════════════════════════════
-select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
 
 do $$ declare v_id uuid;
 begin
@@ -391,7 +392,7 @@ begin
   perform set_config('ruum.s1_aprobacion_np', v_id::text, true);
 end $$;
 
-select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
+select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000003', true);
 
 do $$ begin
   perform public.admin_decidir_aprobacion(
@@ -414,7 +415,7 @@ select is(
 -- ═════════════════════════════════════════════════════════════════════════
 -- T16: admin_registrar_cancelacion_injustificada con aprobación válida
 -- ═════════════════════════════════════════════════════════════════════════
-select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
 
 do $$ declare v_id uuid;
 begin
@@ -426,7 +427,7 @@ begin
   perform set_config('ruum.s1_aprobacion_cj', v_id::text, true);
 end $$;
 
-select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
+select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000003', true);
 
 do $$ begin
   perform public.admin_decidir_aprobacion(
@@ -445,12 +446,6 @@ select is(
   'true',
   'S1-T16: cancelación injustificada ejecutada con aprobación dual'
 );
-
--- 🔥 NUEVO: Restaurar RLS después de la prueba
-ALTER TABLE public.solicitudes_aprobacion_admin ENABLE ROW LEVEL SECURITY;
-
--- 🔥 NUEVO: Eliminar política temporal
-drop policy if exists "Política de prueba para P2" on public.solicitudes_aprobacion_admin;
 
 select * from finish();
 

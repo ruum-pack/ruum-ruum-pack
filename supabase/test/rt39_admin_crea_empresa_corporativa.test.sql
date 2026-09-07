@@ -18,7 +18,7 @@ select set_config('role', 'authenticated', true);
 select public.admin_crea_empresa_corporativa(
   jsonb_build_object(
     'nombre', 'Empresa RT-39',
-    'rfc', 'rt390101ab1',
+    'rfc', 'rtu900101ab1',
     'razon_social', 'Empresa RT-39 SA de CV',
     'correo_facturacion', 'facturas@rt39.test',
     'condiciones_pago', 'Pago semanal'
@@ -37,7 +37,7 @@ select ok((:'resultado'::jsonb->>'usuario_id') is not null, 'RT-39.2: devuelve u
 
 select is(
   (select rfc from public.empresas where id = (:'resultado'::jsonb->>'empresa_id')::uuid),
-  'RT390101AB1',
+  'RTU900101AB1',
   'RT-39.3: normaliza RFC de empresa'
 );
 

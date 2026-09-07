@@ -60,19 +60,10 @@ select throws_like(
   'RT-25.5: conductor A no puede aprobar su propio documento'
 );
 
-select throws_like(
-  $sql$
-    do $$
-    declare v_rows int;
-    begin
-      update public.solicitudes_conductor set estado='aprobado' where id='92500000-0000-4000-8000-00000000001a';
-      get diagnostics v_rows = row_count;
-      if v_rows = 0 then
-        raise exception 'PERMISSION_DENIED: RLS bloquea actualizacion directa';
-      end if;
-    end $$;
-  $sql$,
-  '%PERMISSION_DENIED%|%flujo autorizado%',
+update public.solicitudes_conductor set estado='aprobado' where id='92500000-0000-4000-8000-00000000001a';
+select is(
+  (select estado::text from public.solicitudes_conductor where id='92500000-0000-4000-8000-00000000001a'),
+  'en_revision',
   'RT-25.6: conductor A no puede modificar directamente su estado'
 );
 reset role;

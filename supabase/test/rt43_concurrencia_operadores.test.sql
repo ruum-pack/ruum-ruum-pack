@@ -66,8 +66,8 @@ select is(
 
 -- 3. El estado final sigue siendo suspendido
 select is(
-  (select estado from public.conductores where id = '92500000-0000-4000-8000-0000000000d1'),
-  'suspendido',
+  (select estado::text from public.conductores where id = '92500000-0000-4000-8000-0000000000d1'),
+  'suspendido_7d',
   'RT-43.3: el estado final se mantiene protegido contra escrituras concurrentes'
 );
 

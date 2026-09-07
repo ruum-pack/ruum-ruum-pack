@@ -49,7 +49,7 @@ select public.registrar_evento_registro_conductor(
 
 select throws_like(
   $sql$ select * from public.eventos_registro_conductor limit 1 $sql$,
-  '%permission denied%|%denegado%',
+  '%permission denied%',
   'RT-27.1: anónimo no puede leer telemetría'
 );
 reset role;
@@ -76,8 +76,8 @@ select is(
 );
 
 select throws_like(
-  $sql$ update public.eventos_registro_conductor set codigo='alterado' where sesion_id='92700000-0000-4000-8000-0000000000100' $sql$,
-  '%telemetría de registro es inmutable%',
+  $sql$ update public.eventos_registro_conductor set codigo='alterado' where sesion_id='92700000-0000-4000-8000-000000000100' $sql$,
+  '%inmutable%',
   'RT-27.4: la telemetría es append-only e inmutable'
 );
 

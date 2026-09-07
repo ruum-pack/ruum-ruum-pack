@@ -117,7 +117,7 @@ revoke all on function public.titular_es_dueno_de_empresa_de_usuario(uuid) from 
 grant execute on function public.titular_es_dueno_de_empresa_de_usuario(uuid) to authenticated;
 
 revoke all on function public.es_admin() from public;
-grant execute on function public.es_admin() to authenticated;
+grant execute on function public.es_admin() to anon, authenticated;
 
 -- Actualizar politicas de usuarios
 drop policy if exists "titular_ve_usuarios_de_su_empresa" on public.usuarios;
