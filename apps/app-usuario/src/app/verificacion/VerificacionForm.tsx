@@ -185,7 +185,13 @@ function ConfirmacionEnRevision() {
   );
 }
 
-export function VerificacionForm({ fotoPerfilInicial }: { fotoPerfilInicial?: string | null } = {}) {
+interface VerificacionFormProps {
+  fotoPerfilInicial?: string | null;
+  /** En revisión documental se ofrece Didit sin repetir el formulario manual. */
+  soloDidit?: boolean;
+}
+
+export function VerificacionForm({ fotoPerfilInicial, soloDidit = false }: VerificacionFormProps = {}) {
   const router = useRouter();
 
   /* Didit Verification State */
@@ -531,23 +537,25 @@ export function VerificacionForm({ fotoPerfilInicial }: { fotoPerfilInicial?: st
         onFinalizar={finalizarDidit}
       />
 
-      {/* ── Separador / Opción 2: Verificación Tradicional Manual ── */}
-      <div className="relative my-2 text-center">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-ink/15" />
-        </div>
-        <div className="relative flex justify-center">
-          <button
-            type="button"
-            onClick={() => setMostrarFormularioManual(!mostrarFormularioManual)}
-            className="rounded-full bg-surface px-4 py-1 text-xs font-medium text-ink/60 border border-ink/15 hover:text-ink transition cursor-pointer"
-          >
-            {mostrarFormularioManual ? "▲ Ocultar verificación manual" : "▼ O prefiero subir mis documentos manualmente (24-48h)"}
-          </button>
-        </div>
-      </div>
+      {!soloDidit && (
+        <>
+          {/* ── Separador / Opción 2: Verificación Tradicional Manual ── */}
+          <div className="relative my-2 text-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-ink/15" />
+            </div>
+            <div className="relative flex justify-center">
+              <button
+                type="button"
+                onClick={() => setMostrarFormularioManual(!mostrarFormularioManual)}
+                className="rounded-full bg-surface px-4 py-1 text-xs font-medium text-ink/60 border border-ink/15 hover:text-ink transition cursor-pointer"
+              >
+                {mostrarFormularioManual ? "▲ Ocultar verificación manual" : "▼ O prefiero subir mis documentos manualmente (24-48h)"}
+              </button>
+            </div>
+          </div>
 
-      {mostrarFormularioManual && (
+          {mostrarFormularioManual && (
         <form onSubmit={enviarManual} className="grid gap-6 animate-fadeIn">
           {/* ── Domicilio ── */}
           <fieldset className="grid gap-4">
@@ -756,7 +764,9 @@ export function VerificacionForm({ fotoPerfilInicial }: { fotoPerfilInicial?: st
           >
             {enviando ? "Enviando…" : "Enviar para revisión manual"}
           </button>
-        </form>
+          </form>
+          )}
+        </>
       )}
     </div>
   );

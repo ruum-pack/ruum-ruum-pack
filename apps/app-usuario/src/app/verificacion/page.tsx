@@ -64,7 +64,7 @@ function CuentaYaVerificada() {
 }
 
 /* Pantalla de espera para usuarios que ya enviaron su documentación manual */
-function EsperandoRevision() {
+function EsperandoRevision({ fotoPerfilUrl }: { fotoPerfilUrl: string | null }) {
   return (
     <div className="grid gap-5">
       <div className="flex justify-center">
@@ -189,6 +189,16 @@ function EsperandoRevision() {
       >
         Podrás solicitar tu traslado cuando tu cuenta quede aprobada.
       </div>
+
+      <div className="mt-2 border-t border-ink/10 pt-6">
+        <div className="mb-4">
+          <h2 className="font-display text-lg font-bold text-ink">Acelera la revisión con Didit</h2>
+          <p className="mt-1 font-body text-sm leading-5 text-ink/60">
+            Igual que en el registro de conductor, puedes completar la prueba de vida y validación biométrica mientras tu expediente está en revisión.
+          </p>
+        </div>
+        <VerificacionForm fotoPerfilInicial={fotoPerfilUrl} soloDidit />
+      </div>
     </div>
   );
 }
@@ -241,7 +251,7 @@ export default async function PaginaVerificacion({ searchParams }: Props) {
 
         <div className="mx-auto max-w-lg">
           {yaEnRevision ? (
-            <EsperandoRevision />
+            <EsperandoRevision fotoPerfilUrl={fotoPerfilUrl} />
           ) : (
             <>
               <div className="mb-8">
