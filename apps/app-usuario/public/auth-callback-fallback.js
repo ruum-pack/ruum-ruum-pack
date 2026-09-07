@@ -16,7 +16,7 @@
     hash.indexOf("refresh_token=") !== -1 ||
     hash.indexOf("code=") !== -1
   ) {
-    var target = isRecovery ? origin + "/nueva-password" : origin + "/onboarding?nuevo=1";
+    var target = isRecovery ? origin + "/nueva-password" : origin + "/";
     window.location.replace(target + hash);
   } else {
     window.location.replace(fallback);

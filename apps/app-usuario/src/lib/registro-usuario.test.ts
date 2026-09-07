@@ -17,9 +17,9 @@ describe("helpers de registro de usuario", () => {
     expect(telefonoMx("55 1234 5678")).toBe("+525512345678");
   });
 
-  it("codifica correctamente el next con query en el callback de confirmacion", () => {
+  it("codifica correctamente el next en el callback de confirmacion", () => {
     const redirect = crearRedirectConfirmacion("https://usuario.ruum.test");
-    expect(redirect).toBe("https://usuario.ruum.test/auth/callback?next=%2Fonboarding%3Fnuevo%3D1");
-    expect(new URL(redirect).searchParams.get("next")).toBe("/onboarding?nuevo=1");
+    expect(redirect).toBe("https://usuario.ruum.test/auth/callback?next=%2F");
+    expect(new URL(redirect).searchParams.get("next")).toBe("/");
   });
 });

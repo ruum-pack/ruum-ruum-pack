@@ -28,6 +28,6 @@ export function nombreCompleto(nombre: string, apellido: string) {
 
 export function crearRedirectConfirmacion(origen: string) {
   const destino = new URL("/auth/callback", origen);
-  destino.searchParams.set("next", "/onboarding?nuevo=1");
+  destino.searchParams.set("next", "/");
   return destino.toString();
 }

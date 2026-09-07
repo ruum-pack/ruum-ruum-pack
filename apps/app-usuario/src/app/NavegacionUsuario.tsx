@@ -69,7 +69,7 @@ function estaActivo(pathname: string, href: string) {
 
 export function NavegacionUsuario({ variante = "oscuro" }: { variante?: VarianteNavegacion }) {
   const pathname = usePathname();
-  const esAcceso = pathname === "/login" || pathname === "/registro" || pathname === "/onboarding";
+  const esAcceso = pathname === "/login" || pathname === "/registro";
   const esClaro = variante === "claro";
 
   if (esAcceso) return null;

@@ -66,7 +66,7 @@ export default async function PaginaInicio({
           <LogoMarca variante="horizontal" tema="oscuro" tamano={34} />
           <div className="flex items-center gap-3">
             <Link
-              href="/onboarding"
+              href="#como-funciona"
               className="hidden sm:inline-flex rounded-lg px-3 py-2 font-display text-xs font-semibold text-[#8B98AD] transition hover:text-white"
             >
               Cómo funciona
@@ -120,7 +120,7 @@ export default async function PaginaInicio({
             <Link href="/registro" className={`sm:w-auto ${botonAzul} sm:px-8`}>
               Crear cuenta y cotizar
             </Link>
-            <Link href="/onboarding" className={`sm:w-auto ${botonContorno} sm:px-8`}>
+            <Link href="#como-funciona" className={`sm:w-auto ${botonContorno} sm:px-8`}>
               Conoce el servicio
             </Link>
             <Link
@@ -180,7 +180,7 @@ export default async function PaginaInicio({
       </section>
 
       {/* 3. CÓMO FUNCIONA (Protocolo Operativo de 6 Pasos · Página 28) */}
-      <section className="border-b border-white/10 py-16 sm:py-20">
+      <section id="como-funciona" className="border-b border-white/10 py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="text-center">
             <span className="font-display text-xs font-bold uppercase tracking-wider text-[#FFC400]">
@@ -273,9 +273,6 @@ export default async function PaginaInicio({
             <Link href="/registro" className={`sm:w-auto ${botonAzul} sm:px-8`}>
               Comenzar ahora
             </Link>
-            <Link href="/onboarding" className={`sm:w-auto ${botonContorno} sm:px-8`}>
-              Ver recorrido de onboarding
-            </Link>
             <Link href="/login" className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center rounded-lg px-5 py-3 font-display text-sm font-semibold text-[#8B98AD] transition hover:text-white">
               Iniciar sesión
             </Link>
@@ -293,8 +290,8 @@ export default async function PaginaInicio({
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4 font-body text-xs text-[#8B98AD]">
-            <Link href="/onboarding" className="transition hover:text-white">
-              Cómo funciona (Onboarding)
+            <Link href="#como-funciona" className="transition hover:text-white">
+              Cómo funciona
             </Link>
             <Link href="/login" className="transition hover:text-white">
               Iniciar sesión

@@ -4,7 +4,7 @@
  * Supabase redirige aquí tras confirmar email (signup), recuperar contraseña
  * (recovery) o usar magic link. Intercambia el code/token_hash por sesión y
  * redirige al destino correcto. Si el cliente recibe fragmentos hash (#access_token=...),
- * el fallback HTML/JS procesa la sesión en el navegador y enruta a /nueva-password o /onboarding.
+ * el fallback HTML/JS procesa la sesión en el navegador y enruta a /nueva-password o /.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     type = "signup";
   }
 
-  const nextSolicitado = searchParams.get("next") ?? (type === "recovery" ? "/nueva-password" : "/onboarding?nuevo=1");
+  const nextSolicitado = searchParams.get("next") ?? (type === "recovery" ? "/nueva-password" : "/");
   const next = nextSolicitado.startsWith("/") && !nextSolicitado.startsWith("//") ? nextSolicitado : "/";
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;

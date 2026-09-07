@@ -154,7 +154,8 @@ export default function PaginaRegistro() {
 
       if (data.session) {
         registrarEventoUx("registro_exitoso", { tipo_cuenta: tipoCuenta, requiere_confirmacion: false });
-        router.push("/onboarding?nuevo=1");
+        router.push("/");
+        router.refresh();
       } else {
         try {
           window.sessionStorage.setItem(CLAVE_CORREO_CONFIRMACION, correo);

@@ -212,7 +212,7 @@ test.describe("Registro 2 pasos", () => {
     await expect(page.getByText(/minúscula.*mayúscula.*número/i).first()).toBeVisible({ timeout: 4000 });
   });
 
-  test("registro con sesión -> /onboarding, sin sesión -> confirma-correo", async ({ page }) => {
+  test("registro con sesión -> /, sin sesión -> confirma-correo", async ({ page }) => {
     await mockSignUp(page, false);
     await page.goto("/registro", { waitUntil: "domcontentloaded" });
     await page.getByLabel(/^nombre$/i).fill("Ana");
