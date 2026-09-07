@@ -31,5 +31,5 @@ export function EstadoTrackingGlobal() {
   }, []);
   if (!status?.active && !status?.lastError) return null;
   const warning = Boolean(status?.lastError || (status?.lastLocationAt && Date.now() - status.lastLocationAt > 120_000));
-  return <output className={`mx-auto mt-3 block w-[min(100%-24px,1120px)] rounded-xl border px-4 py-2 font-body text-sm font-semibold ${warning ? "border-warning/40 bg-warning/10 text-warning" : "border-success/30 bg-success/10 text-success"}`}>{status ? etiqueta(status) : "Consultando seguimiento"}</output>;
+  return <output className={`mx-auto mt-3 block w-[min(100%-24px,1120px)] rounded-xl border px-4 py-2 font-body text-sm font-semibold ${warning ? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-300" : "border-emerald-600/30 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300"}`}>{status ? etiqueta(status) : "Consultando seguimiento"}</output>;
 }

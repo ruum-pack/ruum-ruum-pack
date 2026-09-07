@@ -6,13 +6,13 @@ import { calcularSyncSnapshot, obtenerUltimoSyncSnapshot, publicarSyncSnapshot, 
 import { recordOperationalEvent } from "../lib/observability";
 
 const CLASES: Record<GlobalSyncSnapshot["status"], string> = {
-  todo_sincronizado: "border-success/30 bg-success/10 text-success",
-  sin_conexion: "border-warning/40 bg-warning/10 text-warning",
-  pendientes: "border-route-action/35 bg-route-soft text-route-action",
-  sincronizando: "border-route-action/35 bg-route-soft text-route-action",
-  accion_requerida: "border-warning/40 bg-warning/10 text-warning",
-  error_recuperable: "border-warning/40 bg-warning/10 text-warning",
-  conflicto_revision: "border-danger-action/45 bg-danger-soft text-danger-action"
+  todo_sincronizado: "border-emerald-600/30 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300",
+  sin_conexion: "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-300",
+  pendientes: "border-blue-500/35 bg-blue-50 text-blue-900 dark:border-blue-500/35 dark:bg-blue-950/40 dark:text-blue-300",
+  sincronizando: "border-blue-500/35 bg-blue-50 text-blue-900 dark:border-blue-500/35 dark:bg-blue-950/40 dark:text-blue-300",
+  accion_requerida: "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-300",
+  error_recuperable: "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-300",
+  conflicto_revision: "border-red-500/45 bg-red-50 text-red-800 dark:border-red-500/45 dark:bg-red-950/40 dark:text-red-300"
 };
 
 // CODE-003 — mapeo de accion_requerida a UI accionable + observabilidad
@@ -94,7 +94,7 @@ export function EstadoSincronizacionGlobal() {
           <polyline points="20 6 9 17 4 12" />
         </svg>
         <span>Sincronizado ✓ — todo al día</span>
-        <span className="ml-auto font-body text-xs opacity-70">Conectado</span>
+        <span className="ml-auto font-body text-xs font-semibold text-emerald-700 dark:text-emerald-400">Conectado</span>
       </div>
     );
   }
