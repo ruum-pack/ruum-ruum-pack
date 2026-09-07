@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import type { AxeResults, Result as AxeViolation } from 'axe-core';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 const AUTH_STATE_PATH = 'tests/.auth/conductor.json';
@@ -11,7 +11,19 @@ const isDummySupabase =
   !process.env.PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY ||
   process.env.PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY === 'ci-service-role' ||
   (process.env.PLAYWRIGHT_SUPABASE_URL || '').includes('ci.supabase.test');
-const skipAuthInDummy = isDummySupabase || process.env.PLAYWRIGHT_SKIP_GLOBAL_SETUP === '1';
+
+function hasValidAuthSession(): boolean {
+  try {
+    const resolvedPath = resolve(process.cwd(), AUTH_STATE_PATH);
+    if (!existsSync(resolvedPath)) return false;
+    const content = JSON.parse(readFileSync(resolvedPath, 'utf-8'));
+    return Boolean(Array.isArray(content.cookies) && content.cookies.length > 0);
+  } catch {
+    return false;
+  }
+}
+
+const skipAuthInDummy = isDummySupabase || process.env.PLAYWRIGHT_SKIP_GLOBAL_SETUP === '1' || !hasValidAuthSession();
 
 type AxeException = {
   route: string;

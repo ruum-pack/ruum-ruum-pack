@@ -59,18 +59,18 @@ function estatusViaje(traslado: TrasladoConductorGanancia, payoutEnlazado?: Payo
 function etiquetaEstadoUnica(estatus: EstadoEconomicoExplicito): { texto: string; clase: string } {
   switch (estatus) {
     case "pagado":
-      return { texto: "💳 Pago Transferido", clase: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" };
+      return { texto: "💳 Pago Transferido", clase: "border-emerald-600/30 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300" };
     case "programado":
-      return { texto: "🗓️ Depósito Programado", clase: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400" };
+      return { texto: "🗓️ Depósito Programado", clase: "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-300" };
     case "confirmado":
-      return { texto: "✓ Viaje Concluido", clase: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" };
+      return { texto: "✓ Viaje Concluido", clase: "border-emerald-600/30 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300" };
     case "en_validacion":
-      return { texto: "🔍 En Validación", clase: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400" };
+      return { texto: "🔍 En Validación", clase: "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-300" };
     case "estimado":
-      return { texto: "⏳ En Curso / Estimado", clase: "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400" };
+      return { texto: "⏳ En Curso / Estimado", clase: "border-sky-500/40 bg-sky-50 text-sky-800 dark:border-sky-500/40 dark:bg-sky-950/40 dark:text-sky-300" };
     case "rechazado":
     case "retenido":
-      return { texto: "⚠️ En Revisión / Retenido", clase: "border-red-500/40 bg-red-500/10 text-red-500 dark:text-red-400" };
+      return { texto: "⚠️ En Revisión / Retenido", clase: "border-red-500/45 bg-red-50 text-red-800 dark:border-red-500/45 dark:bg-red-950/40 dark:text-red-300" };
     default:
       return { texto: "Sin calcular", clase: "border-border bg-surface-elevated text-text-tertiary" };
   }
@@ -404,7 +404,7 @@ export default function PaginaGanancias() {
               <div className="rounded-2xl border border-border/40 bg-surface-elevated p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <span className="font-display text-[11px] font-black tracking-widest uppercase text-text-tertiary">Ruta de tu pago</span>
-                  <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 font-body text-[11px] font-bold text-emerald-600">{paso === 3 ? "Pagado" : paso === 2 ? "En validación" : paso === 1 ? "Traslado completado" : "Sin actividad"}</span>
+                  <span className="rounded-full border border-emerald-600/30 bg-emerald-50 px-2.5 py-1 font-body text-[11px] font-bold text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300">{paso === 3 ? "Pagado" : paso === 2 ? "En validación" : paso === 1 ? "Traslado completado" : "Sin actividad"}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {[
@@ -437,7 +437,7 @@ export default function PaginaGanancias() {
                       </svg>
                       Tu pago {formatearMoneda(montoPendiente)} {tienePagado ? "depositado" : proximoPayout ? `llega ${fechaDispersion}` : `se dispersa ${fechaDispersion}`}
                     </span>
-                    <span className="font-body text-[10px] font-bold text-text-tertiary whitespace-nowrap">Push proactivo</span>
+                    <span className="font-body text-[10px] font-bold text-text-secondary whitespace-nowrap">Push proactivo</span>
                   </div>
                 )}
               </div>
@@ -547,7 +547,7 @@ export default function PaginaGanancias() {
                       Bonos
                       <button type="button" onClick={() => setInfoSheet({ titulo: "Bonos", texto: "Incentivos por puntualidad, disponibilidad o campañas vigentes. Se suman a tu ganancia. Ejemplo: +$150 por racha de 5 traslados sin incidencias." })} aria-label="Qué son los bonos, toca para ver explicación" className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary hover:border-signal/40 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action">?</button>
                     </span>
-                    <span className="font-display text-sm font-bold text-emerald-500 dark:text-emerald-400 tabular-nums">+ {formatearMoneda(resumen.bonos)}</span>
+                    <span className="font-display text-sm font-bold text-emerald-800 dark:text-emerald-300 tabular-nums">+ {formatearMoneda(resumen.bonos)}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3 px-4 py-3.5">
                     <span className="flex items-center gap-1.5 font-body text-sm font-semibold text-text-secondary">
@@ -626,7 +626,7 @@ export default function PaginaGanancias() {
                         </div>
                         <div className="hidden sm:block text-right shrink-0">
                           <p className="font-body text-[10px] font-bold uppercase tracking-wider text-text-tertiary">Ganancia</p>
-                          <p className="font-display text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatearMoneda(viaje.montoGanado)}</p>
+                          <p className="font-display text-sm font-bold text-emerald-800 dark:text-emerald-300">{formatearMoneda(viaje.montoGanado)}</p>
                         </div>
                         <span className={`hidden sm:inline-flex items-center rounded-full border px-2.5 py-1 font-body text-[11px] font-bold shrink-0 ${badge.clase}`}>{badge.texto}</span>
                         <span
@@ -647,7 +647,7 @@ export default function PaginaGanancias() {
                             {/* Resumen rápido visible en móvil */}
                             <div className="sm:hidden flex items-center justify-between gap-2">
                               <span className={`inline-flex items-center rounded-full border px-2.5 py-1 font-body text-xs font-bold ${badge.clase}`}>{badge.texto}</span>
-                              <span className="font-display text-sm font-bold text-emerald-500 dark:text-emerald-400">{formatearMoneda(viaje.montoGanado)}</span>
+                              <span className="font-display text-sm font-bold text-emerald-800 dark:text-emerald-300">{formatearMoneda(viaje.montoGanado)}</span>
                             </div>
 
                             {/* Desglose por viaje — mismos datos que tarjeta Deposito acumulado: Precio base + Bono + Ajuste - Tasa + Reembolso */}
@@ -666,7 +666,7 @@ export default function PaginaGanancias() {
                                     Bonos
                                     <button type="button" onClick={() => setInfoSheet({ titulo: "Bonos", texto: "Incentivos por puntualidad o campañas. Se suman." })} aria-label="Qué son los bonos, toca para ver explicación" className="flex size-6 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-bold text-text-tertiary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action">?</button>
                                   </span>
-                                  <span className="font-display text-xs font-bold text-emerald-500 dark:text-emerald-400 tabular-nums">+ {formatearMoneda(viaje.bonos)}</span>
+                                  <span className="font-display text-xs font-bold text-emerald-800 dark:text-emerald-300 tabular-nums">+ {formatearMoneda(viaje.bonos)}</span>
                                 </div>
                                 <div className="flex items-center justify-between gap-3 px-3 py-2.5">
                                   <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-text-secondary">
