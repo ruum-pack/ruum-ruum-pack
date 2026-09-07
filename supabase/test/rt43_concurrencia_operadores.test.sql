@@ -1,47 +1,76 @@
--- rt43: Concurrencia con operadores simultáneos
-BEGIN;
-    SELECT plan(3);
+-- RT-43 — Concurrencia entre dos operadores.
+-- Simula dos operadores actualizando el mismo registro con versionado.
 
-    -- Preparar datos
-    INSERT INTO usuarios (id, email, rol)
-    VALUES 
-        ('550e8400-e29b-41d4-a716-446655440201'::uuid, 'op1@test.com', 'operador'),
-        ('550e8400-e29b-41d4-a716-446655440202'::uuid, 'op2@test.com', 'operador');
+create extension if not exists pgtap with schema extensions;
 
-    INSERT INTO operadores (usuario_id, estado)
-    VALUES 
-        ('550e8400-e29b-41d4-a716-446655440201'::uuid, 'activo'),
-        ('550e8400-e29b-41d4-a716-446655440202'::uuid, 'activo');
+begin;
 
-    INSERT INTO conductores (id, usuario_id, estado, rfc, licencia_numero)
-    VALUES 
-        ('550e8400-e29b-41d4-a716-446655440301'::uuid, '550e8400-e29b-41d4-a716-446655440201'::uuid, 'activo', 'AAA000000000', 'LIC001'),
-        ('550e8400-e29b-41d4-a716-446655440302'::uuid, '550e8400-e29b-41d4-a716-446655440202'::uuid, 'activo', 'BBB000000000', 'LIC002');
+select plan(3);
 
-    -- Test 1: Dos operadores pueden crear traslados simultáneamente
-    SELECT is(
-        (SELECT COUNT(*) FROM traslados 
-         WHERE created_at > NOW() - INTERVAL '1 second'),
-        2,
-        'Dos operadores crean traslados sin bloqueo'
-    );
+insert into auth.users(id,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
+  ('92500000-0000-4000-8000-0000000000b1','rt43-op1@local.test',now(),'{}','{}',now(),now()),
+  ('92500000-0000-4000-8000-0000000000b2','rt43-op2@local.test',now(),'{}','{}',now(),now());
 
-    -- Test 2: Estados válidos de conductor - usa solo valores que existan en el enum
-    -- Valores típicos: 'activo', 'inactivo', 'bloqueado', 'pendiente_aprobacion'
-    SELECT throws_matching(
-        'UPDATE conductores SET estado = ''activo'' 
-         WHERE id = ''550e8400-e29b-41d4-a716-446655440301''::uuid',
-        '%',  -- No debe lanzar error
-        'Puede cambiar a estado válido activo'
-    );
+insert into public.conductores(id,auth_user_id,nombre,estado) values
+  ('92500000-0000-4000-8000-0000000000d1','92500000-0000-4000-8000-0000000000b1','Conductor de Prueba','activo');
 
-    -- Test 3: Concurrencia no causa race conditions
-    SELECT is(
-        (SELECT COUNT(DISTINCT operador_id) FROM traslados 
-         WHERE created_at > NOW() - INTERVAL '5 seconds'),
-        2,
-        'Ambos operadores registrados correctamente'
-    );
+-- Operador 1 lee, Operador 2 lee y escribe primero, luego Operador 1 intenta escribir
+do $$
+declare
+  v_version_1 integer;
+  v_version_2 integer;
+  v_actualizada integer;
+begin
+  select version into v_version_1 from public.conductores
+    where id = '92500000-0000-4000-8000-0000000000d1';
+  v_version_2 := v_version_1;
 
-    SELECT * FROM finish();
-ROLLBACK;
+  -- Operador 2 actualiza primero
+  update public.conductores
+    set estado = 'suspendido_7d', version = version + 1
+    where id = '92500000-0000-4000-8000-0000000000d1'
+      and version = v_version_2;
+  get diagnostics v_actualizada = row_count;
+  if v_actualizada <> 1 then
+    raise exception 'RT-43: Operador 2 debió poder actualizar (versión %).', v_version_2;
+  end if;
+end $$;
+
+-- 1. Verificar que la actualización del Operador 2 surtió efecto
+select is(
+  (select estado::text from public.conductores where id = '92500000-0000-4000-8000-0000000000d1'),
+  'suspendido_7d',
+  'RT-43.1: Operador 2 actualizó el estado a suspendido'
+);
+
+-- 2. Operador 1 intenta actualizar con versión obsoleta (versión 1) y afecta 0 filas
+do $$
+declare
+  v_actualizada integer;
+begin
+  update public.conductores
+    set estado = 'activo', version = version + 1
+    where id = '92500000-0000-4000-8000-0000000000d1'
+      and version = 1;
+  get diagnostics v_actualizada = row_count;
+  if v_actualizada <> 0 then
+    raise exception 'RT-43: Operador 1 no debía sobrescribir con versión obsoleta.';
+  end if;
+end $$;
+
+select is(
+  (select version::int from public.conductores where id = '92500000-0000-4000-8000-0000000000d1'),
+  2,
+  'RT-43.2: la versión se mantuvo en 2 y no fue sobrescrita por Operador 1'
+);
+
+-- 3. El estado final sigue siendo suspendido
+select is(
+  (select estado from public.conductores where id = '92500000-0000-4000-8000-0000000000d1'),
+  'suspendido',
+  'RT-43.3: el estado final se mantiene protegido contra escrituras concurrentes'
+);
+
+select * from finish();
+
+rollback;

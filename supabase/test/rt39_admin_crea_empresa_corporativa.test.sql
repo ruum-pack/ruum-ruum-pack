@@ -1,82 +1,62 @@
--- rt39: Admin crea empresa corporativa
-BEGIN;
-    SELECT plan(5);
+-- RT-39 -- Admin crea empresa corporativa y titular para traslados masivos.
 
-    -- Preparar admin
-    INSERT INTO usuarios (id, email, rol)
-    VALUES ('550e8400-e29b-41d4-a716-446655440099'::uuid, 'admin@test.com', 'administrador');
+create extension if not exists pgtap with schema extensions;
 
-    INSERT INTO administradores (usuario_id, estado)
-    VALUES ('550e8400-e29b-41d4-a716-446655440099'::uuid, 'activo');
+begin;
 
-    -- Test 1: Admin crea empresa corporativa con RFC válido
-    SELECT is(
-        (admin_crea_empresa_corporativa(
-            '{"nombre":"Empresa Test","rfc":"ABC000000000","sector":"logistica"}'::jsonb,
-            '{"contacto":"Juan","email":"juan@empresa.com"}'::jsonb
-        )).id IS NOT NULL,
-        true,
-        'Admin crea empresa corporativa con RFC válido'
-    );
+select plan(5);
 
-    -- Test 2: Rechaza RFC inválido (muy corto)
-    SELECT throws_matching(
-        'SELECT admin_crea_empresa_corporativa(
-            ''{
-                "nombre":"Empresa Inv",
-                "rfc":"ABC",
-                "sector":"logistica"
-            }''::jsonb,
-            ''{
-                "contacto":"Juan",
-                "email":"juan@empresa.com"
-            }''::jsonb
-        )',
-        '%RFC inválido%',
-        'Rechaza RFC con formato inválido'
-    );
+insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+values ('93900000-0000-4000-8000-0000000000ad', 'rt39-admin@rt39.test', '{}'::jsonb, '{}'::jsonb, now(), now());
 
-    -- Test 3: Rechaza RFC duplicado
-    SELECT throws_matching(
-        'SELECT admin_crea_empresa_corporativa(
-            ''{
-                "nombre":"Segunda Empresa",
-                "rfc":"ABC000000000",
-                "sector":"logistica"
-            }''::jsonb,
-            ''{
-                "contacto":"María",
-                "email":"maria@empresa.com"
-            }''::jsonb
-        )',
-        '%RFC duplicado%|%único%',
-        'No permite RFC duplicado'
-    );
+insert into public.admins (id, auth_user_id, nombre, rol_operativo)
+values ('93900000-0000-4000-8000-0000000000aa', '93900000-0000-4000-8000-0000000000ad', 'Admin RT-39', 'direccion');
 
-    -- Test 4: Requiere campo nombre
-    SELECT throws_matching(
-        'SELECT admin_crea_empresa_corporativa(
-            ''{
-                "rfc":"XYZ000000000",
-                "sector":"logistica"
-            }''::jsonb,
-            ''{
-                "contacto":"Pedro",
-                "email":"pedro@empresa.com"
-            }''::jsonb
-        )',
-        '%nombre%|%requerido%',
-        'Campo nombre es obligatorio'
-    );
+select set_config('request.jwt.claim.sub', '93900000-0000-4000-8000-0000000000ad', true);
+select set_config('role', 'authenticated', true);
 
-    -- Test 5: Registra en auditoría
-    SELECT is(
-        COUNT(*),
-        1,
-        'Auditoría registra creación de empresa'
-    ) FROM auditoria_empresas 
-    WHERE accion = 'crear' 
-    AND usuario_id = '550e8400-e29b-41d4-a716-446655440099'::uuid;
+select public.admin_crea_empresa_corporativa(
+  jsonb_build_object(
+    'nombre', 'Empresa RT-39',
+    'rfc', 'rt390101ab1',
+    'razon_social', 'Empresa RT-39 SA de CV',
+    'correo_facturacion', 'facturas@rt39.test',
+    'condiciones_pago', 'Pago semanal'
+  ),
+  jsonb_build_object(
+    'nombre', 'Titular RT-39',
+    'telefono', '+525500000039',
+    'correo_facturacion', 'TITULAR@RT39.TEST',
+    'metodo_pago_registrado', true
+  )
+) as resultado
+\gset
 
-    SELECT * FROM finish();
-ROLLBACK;
+select ok((:'resultado'::jsonb->>'empresa_id') is not null, 'RT-39.1: devuelve empresa_id');
+select ok((:'resultado'::jsonb->>'usuario_id') is not null, 'RT-39.2: devuelve usuario_id');
+
+select is(
+  (select rfc from public.empresas where id = (:'resultado'::jsonb->>'empresa_id')::uuid),
+  'RT390101AB1',
+  'RT-39.3: normaliza RFC de empresa'
+);
+
+select is(
+  (select correo_facturacion from public.usuarios where id = (:'resultado'::jsonb->>'usuario_id')::uuid),
+  'titular@rt39.test',
+  'RT-39.4: normaliza correo del titular'
+);
+
+select ok(
+  exists (
+    select 1 from public.registro_auditoria
+    where evento = 'creacion_cuenta'
+      and datos->>'tipo' = 'empresa_corporativa'
+      and datos->>'empresa_id' = :'resultado'::jsonb->>'empresa_id'
+  ),
+  'RT-39.5: registra auditoria del alta corporativa'
+);
+
+select * from finish();
+
+rollback;

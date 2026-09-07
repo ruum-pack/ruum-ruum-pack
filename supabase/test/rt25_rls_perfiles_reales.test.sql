@@ -1,111 +1,127 @@
--- rt25: RLS - Perfiles reales
-BEGIN;
-    SELECT plan(11);
+-- RT-25 — Matriz RLS con los cinco perfiles operativos reales.
+-- Falla en el primer aislamiento o permiso administrativo incorrecto.
 
-    -- Preparar datos
-    INSERT INTO usuarios (id, email, rol)
-    VALUES 
-        ('550e8400-e29b-41d4-a716-446655440501'::uuid, 'conductor@test.com', 'conductor'),
-        ('550e8400-e29b-41d4-a716-446655440502'::uuid, 'otro@test.com', 'conductor');
+create extension if not exists pgtap with schema extensions;
 
-    INSERT INTO conductores (id, usuario_id, estado, rfc, licencia_numero)
-    VALUES 
-        ('550e8400-e29b-41d4-a716-446655440601'::uuid, '550e8400-e29b-41d4-a716-446655440501'::uuid, 'activo', 'AAA000000000', 'LIC001'),
-        ('550e8400-e29b-41d4-a716-446655440602'::uuid, '550e8400-e29b-41d4-a716-446655440502'::uuid, 'activo', 'BBB000000000', 'LIC002');
+begin;
 
-    -- RT-25.1: Conductor ve solo sus propios datos
-    SELECT is(
-        (SELECT COUNT(*) FROM conductores 
-         WHERE usuario_id = '550e8400-e29b-41d4-a716-446655440501'::uuid),
-        1,
-        'RT-25.1: Conductor ve solo su registro'
-    );
+select plan(11);
 
-    -- RT-25.2: Conductor no ve datos de otros
-    SELECT is(
-        (SELECT COUNT(*) FROM conductores 
-         WHERE usuario_id = '550e8400-e29b-41d4-a716-446655440502'::uuid
-         AND id != '550e8400-e29b-41d4-a716-446655440602'::uuid),
-        0,
-        'RT-25.2: Conductor no accede a otros registros'
-    );
+insert into auth.users(id,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
+  ('92500000-0000-4000-8000-00000000000a','rt25-a@local.test',now(),'{}','{}',now(),now()),
+  ('92500000-0000-4000-8000-00000000000b','rt25-b@local.test',now(),'{}','{}',now(),now()),
+  ('92500000-0000-4000-8000-0000000000ad','rt25-admin@local.test',now(),'{}','{}',now(),now());
 
-    -- RT-25.3: Admin ve todos los conductores
-    SELECT is(
-        COUNT(*) >= 2,
-        true,
-        'RT-25.3: Admin ve múltiples conductores'
-    ) FROM conductores;
+insert into public.admins(id,auth_user_id,nombre)
+values('92500000-0000-4000-8000-000000000aad','92500000-0000-4000-8000-0000000000ad','Admin RT-25');
 
-    -- RT-25.4: Conductor no puede insertar registros falsos
-    SELECT throws_matching(
-        'INSERT INTO conductores (id, usuario_id, estado, rfc, licencia_numero) 
-         VALUES (''550e8400-e29b-41d4-a716-446655440610''::uuid, 
-                 ''550e8400-e29b-41d4-a716-446655440502''::uuid, 
-                 ''activo'', ''CCC000000000'', ''LIC999'')',
-        '%permission denied%|%PERMISSION_DENIED%',
-        'RT-25.4: RLS bloquea inserción no autorizada'
-    );
+insert into public.solicitudes_conductor(id,auth_user_id,estado,enviado_en,datos_personales) values
+  ('92500000-0000-4000-8000-00000000001a','92500000-0000-4000-8000-00000000000a','en_revision',now(),'{"nombre":"Conductor A"}'),
+  ('92500000-0000-4000-8000-00000000001b','92500000-0000-4000-8000-00000000000b','en_revision',now(),'{"nombre":"Conductor B"}');
 
-    -- RT-25.5: Conductor no puede ver datos sensibles
-    SELECT is(
-        (SELECT datos_bancarios FROM conductores 
-         WHERE id = '550e8400-e29b-41d4-a716-446655440601'::uuid),
-        NULL,
-        'RT-25.5: Datos sensibles no visibles al conductor'
-    );
+insert into public.documentos_conductor(id,solicitud_id,tipo,nombre_archivo,url,estado,version,es_actual) values
+  ('92500000-0000-4000-8000-00000000002a','92500000-0000-4000-8000-00000000001a','licencia_frente','a.jpg','rt25/a.jpg','en_revision',1,true),
+  ('92500000-0000-4000-8000-00000000002b','92500000-0000-4000-8000-00000000001b','licencia_frente','b.jpg','rt25/b.jpg','en_revision',1,true);
 
-    -- RT-25.6: Conductor A no puede modificar su estado directamente
-    -- IMPORTANTE: El mensaje de error debe coincidir con una de las opciones en la expectativa
-    SELECT throws_matching(
-        'UPDATE conductores SET estado = ''inactivo'' 
-         WHERE id = ''550e8400-e29b-41d4-a716-446655440601''::uuid',
-        '%PERMISSION_DENIED%|%RLS%|%flujo autorizado%',
-        'RT-25.6: Conductor A no puede modificar su estado directamente - debe usar flujo autorizado'
-    );
+-- 1. Anónimo: una falta de privilegio y cero filas visibles son ambos resultados seguros.
+set local role anon;
+select set_config('request.jwt.claim.sub','',true);
 
-    -- RT-25.7: Solo cambios autorizados pueden actualizar estado
-    SELECT is(
-        (SELECT COUNT(*) FROM cambios_de_estado 
-         WHERE conductor_id = '550e8400-e29b-41d4-a716-446655440601'::uuid),
-        0,
-        'RT-25.7: No hay cambios no autorizados registrados'
-    );
+select ok(
+  (select count(*) from public.solicitudes_conductor) = 0,
+  'RT-25.1: anónimo no puede ver solicitudes_conductor'
+);
 
-    -- RT-25.8: Operador ve solo sus conductores asignados
-    SELECT is(
-        (SELECT COUNT(*) FROM conductores 
-         WHERE operador_id IS NOT NULL),
-        0,
-        'RT-25.8: Operador tiene vista limitada'
-    );
+select ok(
+  (select count(*) from public.documentos_conductor) = 0,
+  'RT-25.2: anónimo no puede ver documentos_conductor'
+);
+reset role;
 
-    -- RT-25.9: Auditoría de intentos de acceso no autorizado
-    SELECT is(
-        COUNT(*),
-        1,
-        'RT-25.9: Intento de acceso registrado en auditoría'
-    ) FROM auditoria_rls 
-    WHERE evento = 'update_bloqueado' 
-    AND tabla = 'conductores'
-    ORDER BY created_at DESC 
-    LIMIT 1;
+-- 2. Conductor A: ve sólo lo propio y no puede mutar recursos administrativos.
+set local role authenticated;
+select set_config('request.jwt.claim.sub','92500000-0000-4000-8000-00000000000a',true);
 
-    -- RT-25.10: RLS no afecta selects autorizados
-    SELECT is(
-        (SELECT COUNT(*) FROM conductores 
-         WHERE estado = 'activo'),
-        2,
-        'RT-25.10: Selects autorizados funcionan correctamente'
-    );
+select is(
+  (select count(*) from public.solicitudes_conductor where id='92500000-0000-4000-8000-00000000001a')::int,
+  1,
+  'RT-25.3: conductor A ve su propia solicitud'
+);
 
-    -- RT-25.11: Políticas se aplican en cascada
-    SELECT is(
-        (SELECT COUNT(*) FROM traslados 
-         WHERE conductor_id = '550e8400-e29b-41d4-a716-446655440601'::uuid),
-        0,
-        'RT-25.11: Políticas cascada funcionan'
-    );
+select is(
+  (select count(*) from public.solicitudes_conductor where id='92500000-0000-4000-8000-00000000001b')::int,
+  0,
+  'RT-25.4: conductor A no ve solicitudes ajenas'
+);
 
-    SELECT * FROM finish();
-ROLLBACK;
+select throws_like(
+  $sql$ select public.revisar_documento_conductor_admin('92500000-0000-4000-8000-00000000002a','aprobado',null) $sql$,
+  '%Acceso exclusivo de administradores%',
+  'RT-25.5: conductor A no puede aprobar su propio documento'
+);
+
+select throws_like(
+  $sql$
+    do $$
+    declare v_rows int;
+    begin
+      update public.solicitudes_conductor set estado='aprobado' where id='92500000-0000-4000-8000-00000000001a';
+      get diagnostics v_rows = row_count;
+      if v_rows = 0 then
+        raise exception 'PERMISSION_DENIED: RLS bloquea actualizacion directa';
+      end if;
+    end $$;
+  $sql$,
+  '%PERMISSION_DENIED%|%flujo autorizado%',
+  'RT-25.6: conductor A no puede modificar directamente su estado'
+);
+reset role;
+
+-- 3. Conductor B: prueba simétrica de lectura.
+set local role authenticated;
+select set_config('request.jwt.claim.sub','92500000-0000-4000-8000-00000000000b',true);
+
+select is(
+  (select count(*) from public.solicitudes_conductor where id='92500000-0000-4000-8000-00000000001b')::int,
+  1,
+  'RT-25.7: conductor B ve su propia solicitud'
+);
+
+select is(
+  (select count(*) from public.solicitudes_conductor where id='92500000-0000-4000-8000-00000000001a')::int,
+  0,
+  'RT-25.8: conductor B no ve solicitudes ajenas'
+);
+reset role;
+
+-- 4. Administrador: ve ambos expedientes y revisa por la RPC autorizada.
+set local role authenticated;
+select set_config('request.jwt.claim.sub','92500000-0000-4000-8000-0000000000ad',true);
+
+select is(
+  (select count(*) from public.solicitudes_conductor where id in (
+    '92500000-0000-4000-8000-00000000001a','92500000-0000-4000-8000-00000000001b'
+  ))::int,
+  2,
+  'RT-25.9: administrador ve todos los expedientes'
+);
+
+select lives_ok(
+  $sql$ select public.revisar_documento_conductor_admin('92500000-0000-4000-8000-00000000002a','aprobado','Documento validado por RT-25.') $sql$,
+  'RT-25.10: administrador puede revisar documento via RPC'
+);
+reset role;
+
+-- 5. Atribución correcta
+select ok(
+  exists(
+    select 1 from public.documentos_conductor
+    where id='92500000-0000-4000-8000-00000000002a'
+      and estado='aprobado' and revisado_por='92500000-0000-4000-8000-000000000aad'
+  ),
+  'RT-25.11: la revisión administrativa quedó correctamente atribuida'
+);
+
+select * from finish();
+
+rollback;
