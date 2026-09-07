@@ -107,12 +107,14 @@ function stopProcessTree(pid) {
 async function main() {
   let serverProcess = null;
   let serverLog = null;
+  
   // pnpm/npm puede reenviar el separador de argumentos como un literal "--".
   // Playwright no lo necesita y puede interpretarlo como una entrada extra.
   const playwrightArgs = process.argv.slice(2).filter((arg) => arg !== '--');
   const args = playwrightArgs[0] === 'test'
     ? playwrightArgs
     : ['test', 'tests/a11y', ...playwrightArgs];
+    
   if (process.env.PLAYWRIGHT_A11Y_PROJECT && !args.some((arg) => arg === '--project' || arg.startsWith('--project='))) {
     args.push(`--project=${process.env.PLAYWRIGHT_A11Y_PROJECT}`);
   }
@@ -133,34 +135,88 @@ async function main() {
     process.exit(listResult.status ?? 1);
   }
 
-  const server = skipWebServer ? null : await pickServerOrigin();
+  // 🔥 MODIFICACIÓN: En CI o si ya hay servidor, no iniciar uno nuevo
+  // Verificar si estamos en CI o si el servidor ya está corriendo
+  const isCI = process.env.CI === 'true' || process.env.CI === '1';
+  const serverAlreadyRunning = await isServerReady(requestedOrigin);
+  
+  let server = null;
+  
+  if (isCI || skipWebServer || serverAlreadyRunning) {
+    if (serverAlreadyRunning) {
+      console.log(`[a11y] ✅ Servidor ya está corriendo en ${requestedOrigin}`);
+    } else {
+      console.log('[a11y] 🚀 CI detectado o SKIP_WEBSERVER activado - usando servidor existente');
+    }
+    
+    // Verificar que el servidor está respondiendo
+    if (!(await isServerReady(requestedOrigin))) {
+      console.error(`[a11y] ❌ Servidor no disponible en ${requestedOrigin}`);
+      console.error('[a11y] Asegúrate de que el servidor esté corriendo antes de ejecutar este script');
+      process.exit(1);
+    }
+    server = { origin: requestedOrigin, shouldStart: false };
+  } else {
+    server = skipWebServer ? null : await pickServerOrigin();
+  }
+  
   const serverOrigin = server?.origin ?? requestedOrigin;
 
-  if (!skipWebServer) {
+  // Solo iniciar servidor si no estamos en CI y el servidor no está corriendo
+  if (!isCI && !skipWebServer && server && server.shouldStart) {
     const serverUrl = new URL(server.origin);
     const serverPort = serverUrl.port || '3001';
 
-    if (server.shouldStart) {
-      if (!existsSync(resultsDir)) {
-        mkdirSync(resultsDir, { recursive: true });
-      }
-      serverLog = openSync(serverLogPath, 'w');
-      const nextBin = require.resolve('next/dist/bin/next', { paths: [projectRoot] });
-      serverProcess = spawn(process.execPath, [nextBin, 'dev', '-p', serverPort], {
-        cwd: projectRoot,
-        detached: true,
-        stdio: ['ignore', serverLog, serverLog]
-      });
+    if (!existsSync(resultsDir)) {
+      mkdirSync(resultsDir, { recursive: true });
+    }
+    serverLog = openSync(serverLogPath, 'w');
+    const nextBin = require.resolve('next/dist/bin/next', { paths: [projectRoot] });
+    
+    // 🔥 MODIFICACIÓN: Usar 'start' en lugar de 'dev' para modo producción
+    serverProcess = spawn(process.execPath, [nextBin, 'start', '-p', serverPort], {
+      cwd: projectRoot,
+      detached: true,
+      stdio: ['ignore', serverLog, serverLog]
+    });
 
-      if (!(await waitForServer(server.origin))) {
-        stopProcessTree(serverProcess.pid);
-        closeSync(serverLog);
-        console.error(`[a11y] No se pudo iniciar ${server.origin} dentro de ${serverTimeoutMs / 1000}s. Revisa ${serverLogPath}.`);
-        process.exit(1);
-      }
+    if (!(await waitForServer(server.origin))) {
+      stopProcessTree(serverProcess.pid);
+      closeSync(serverLog);
+      console.error(`[a11y] No se pudo iniciar ${server.origin} dentro de ${serverTimeoutMs / 1000}s. Revisa ${serverLogPath}.`);
+      process.exit(1);
     }
   }
 
+  // 🔥 NUEVO: Ejecutar el setup de autenticación antes de las pruebas
+  console.log('[a11y] 🔑 Ejecutando setup de autenticación...');
+  const setupResult = spawnSync(commandForLocalBin('playwright'), ['test', 'auth.setup.ts', '--project=setup'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      A11Y_BASE_URL: serverOrigin,
+      PLAYWRIGHT_BASE_URL: serverOrigin,
+      PLAYWRIGHT_SKIP_WEBSERVER: '1'
+    },
+    shell: process.platform === 'win32',
+    stdio: 'inherit'
+  });
+
+  if (setupResult.status !== 0) {
+    console.error('[a11y] ❌ Falló el setup de autenticación');
+    process.exit(setupResult.status ?? 1);
+  }
+
+  // Verificar que el archivo de sesión se creó
+  const authFile = resolve(projectRoot, 'tests/.auth/conductor.json');
+  if (!existsSync(authFile)) {
+    console.error('[a11y] ❌ No se encontró el archivo de sesión después del setup');
+    process.exit(1);
+  }
+  console.log('[a11y] ✅ Sesión de autenticación creada correctamente');
+
+  // Ejecutar las pruebas
+  console.log(`[a11y] 🧪 Ejecutando pruebas en ${serverOrigin}...`);
   const result = spawnSync(commandForLocalBin('playwright'), args, {
     cwd: projectRoot,
     env: {
