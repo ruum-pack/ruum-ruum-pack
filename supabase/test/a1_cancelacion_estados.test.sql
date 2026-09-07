@@ -75,14 +75,14 @@ begin
     -- Crear un traslado y forzarlo al estado bajo prueba, saltándose el trigger
     -- de transiciones (deshabilitado solo para el setup del fixture).
     insert into public.traslados (
-      estado, usuario_id, vehiculo_id,
+      estado, usuario_id, vehiculo_id, clave_idempotencia,
       contacto_entrega_nombre, contacto_entrega_telefono,
       contacto_recepcion_nombre, contacto_recepcion_telefono,
       origen_lat, origen_lng, origen_direccion, origen_ciudad,
       destino_lat, destino_lng, destino_direccion, destino_ciudad,
       precio_cotizado, tipo_pago
     ) values (
-      'solicitud_creada', v_usuario_id, v_vehiculo_id,
+      'solicitud_creada', v_usuario_id, v_vehiculo_id, gen_random_uuid(),
       'A', '+520000000000', 'B', '+520000000001',
       19.0, -99.0, 'origen', 'CDMX',
       19.5, -99.5, 'destino', 'CDMX',

@@ -17,7 +17,7 @@ insert into public.empresas (id, nombre, rfc, razon_social, regimen_fiscal, codi
   ('90800000-0000-4000-8000-000000000e01', 'Empresa PR08 SA de CV', 'EMP010101AA1', 'Empresa PR08 SA de CV', '601', '06000', 'G03', 'facturas@empresa-pr08.test');
 
 insert into public.usuarios (id, auth_user_id, tipo_cuenta, rol, estado_verificacion, empresa_id, rfc, razon_social, regimen_fiscal, codigo_postal_fiscal, uso_cfdi, correo_facturacion) values
-  ('90800000-0000-4000-8000-000000000u01', '90800000-0000-4000-8000-000000000001', 'empresa', 'titular_empresa', 'verificado', '90800000-0000-4000-8000-000000000e01', 'EMP010101AA1', 'Empresa PR08 SA de CV', '601', '06000', 'G03', 'facturas@empresa-pr08.test'),
+  ('90800000-0000-4000-8000-000000000001', '90800000-0000-4000-8000-000000000001', 'empresa', 'titular_empresa', 'verificado', '90800000-0000-4000-8000-000000000e01', 'EMP010101AA1', 'Empresa PR08 SA de CV', '601', '06000', 'G03', 'facturas@empresa-pr08.test'),
   ('90800000-0000-4000-8000-000000000u02', '90800000-0000-4000-8000-000000000002', 'personal', 'personal', 'verificado', null, null, null, null, null, null, null);
 
 -- 2. Prueba 1: Usuario personal actualiza sus datos fiscales correctamente

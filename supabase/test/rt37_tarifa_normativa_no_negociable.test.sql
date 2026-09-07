@@ -29,7 +29,7 @@ insert into public.vehiculos (
 );
 
 insert into public.traslados (
-  id, usuario_id, vehiculo_id,
+  id, usuario_id, vehiculo_id, clave_idempotencia,
   contacto_entrega_nombre, contacto_entrega_telefono,
   contacto_recepcion_nombre, contacto_recepcion_telefono,
   origen_lat, origen_lng, origen_direccion, origen_ciudad,
