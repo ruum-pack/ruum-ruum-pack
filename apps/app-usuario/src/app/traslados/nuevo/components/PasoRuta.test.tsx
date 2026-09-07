@@ -45,7 +45,9 @@ describe("PasoRuta", () => {
 
     const datosActualizados: DatosFormulario = {
       ...iniciales.datos,
+      origenNumero: "101",
       origenReferencias: "Portón azul",
+      destinoNumero: "202",
       destinoReferencias: "Acceso por estacionamiento",
     };
     vista.rerender(
@@ -59,6 +61,9 @@ describe("PasoRuta", () => {
 
     expect(screen.getByLabelText("Buscar dirección de origen")).toHaveValue("Av. Reforma");
     expect(screen.getByLabelText("Buscar dirección de destino")).toHaveValue("Calle 5");
+    const numeros = screen.getAllByLabelText("Número exterior / interior", { selector: "input" });
+    expect(numeros[0]).toHaveValue("101");
+    expect(numeros[1]).toHaveValue("202");
     const referencias = screen.getAllByLabelText("Referencias", { selector: "input" });
     expect(referencias[0]).toHaveValue("Portón azul");
     expect(referencias[1]).toHaveValue("Acceso por estacionamiento");

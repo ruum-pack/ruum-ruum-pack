@@ -365,16 +365,30 @@ function PasoVehiculoComponent({
 
 function areEqualPasoVehiculo(prev: PasoVehiculoProps, next: PasoVehiculoProps) {
   return (
+    prev.datos === next.datos &&
     prev.datos.marca === next.datos.marca &&
     prev.datos.modelo === next.datos.modelo &&
     prev.datos.anio === next.datos.anio &&
     prev.datos.condicion === next.datos.condicion &&
     prev.datos.transmision === next.datos.transmision &&
     prev.datos.color === next.datos.color &&
+    prev.datos.placas === next.datos.placas &&
+    prev.datos.vin === next.datos.vin &&
+    prev.datos.estadoGeneral === next.datos.estadoGeneral &&
+    prev.datos.tieneTarjeta === next.datos.tieneTarjeta &&
+    prev.datos.tieneVerificacion === next.datos.tieneVerificacion &&
+    prev.datos.tienePlacas === next.datos.tienePlacas &&
+    prev.datos.puedeCircular === next.datos.puedeCircular &&
     prev.previsualizacion === next.previsualizacion &&
     prev.vehiculoSeleccionadoId === next.vehiculoSeleccionadoId &&
     prev.errores === next.errores &&
-    prev.modelosDisponibles === next.modelosDisponibles
+    prev.modelosDisponibles === next.modelosDisponibles &&
+    prev.vehiculosGuardados === next.vehiculosGuardados &&
+    prev.categoriaCatalogo === next.categoriaCatalogo &&
+    prev.gamaCatalogo === next.gamaCatalogo &&
+    prev.clasificacionCatalogo === next.clasificacionCatalogo &&
+    prev.detallesVehiculoExpandido === next.detallesVehiculoExpandido &&
+    prev.tarifaPreviaAceptada === next.tarifaPreviaAceptada
   );
 }
 export const PasoVehiculo = memo(PasoVehiculoComponent, areEqualPasoVehiculo);

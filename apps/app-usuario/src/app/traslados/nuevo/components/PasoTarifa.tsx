@@ -407,6 +407,7 @@ function PasoTarifaComponent({
 
 function areEqualPasoTarifa(prev: PasoTarifaProps, next: PasoTarifaProps) {
   return (
+    prev.datos === next.datos &&
     prev.datos.origenCodigoPostal === next.datos.origenCodigoPostal &&
     prev.datos.destinoCodigoPostal === next.datos.destinoCodigoPostal &&
     prev.datos.marca === next.datos.marca &&

@@ -352,13 +352,22 @@ function PasoDetallesComponent({
 
 function areEqualPasoDetalles(prev: PasoDetallesProps, next: PasoDetallesProps) {
   return (
+    prev.datos === next.datos &&
     prev.datos.tipoRuta === next.datos.tipoRuta &&
     prev.datos.ventanaRecoleccion === next.datos.ventanaRecoleccion &&
     prev.datos.ventanaEntrega === next.datos.ventanaEntrega &&
     prev.datos.tipoServicio === next.datos.tipoServicio &&
     prev.datos.motivoServicio === next.datos.motivoServicio &&
     prev.previsualizacion === next.previsualizacion &&
+    prev.previsualizando === next.previsualizando &&
+    prev.momentoPago === next.momentoPago &&
+    prev.categoriaCatalogo === next.categoriaCatalogo &&
+    prev.gamaCatalogo === next.gamaCatalogo &&
+    prev.rutaEstimacion === next.rutaEstimacion &&
+    prev.politicaCancelacion === next.politicaCancelacion &&
+    prev.aceptaPoliticasPagoCancelacion === next.aceptaPoliticasPagoCancelacion &&
     prev.enviando === next.enviando &&
+    prev.cargandoSesion === next.cargandoSesion &&
     prev.tarifaPreviaAceptada === next.tarifaPreviaAceptada
   );
 }
