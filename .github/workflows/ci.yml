@@ -467,21 +467,8 @@ jobs:
           sudo cp k6-v0.54.0-linux-amd64/k6 /usr/local/bin/k6
           k6 version
 
-      - name: Start panel-admin server
-        run: |
-          pnpm --filter @ruum/panel-admin build
-          pnpm --filter @ruum/panel-admin exec next start -p 3102 &
-          for i in $(seq 1 15); do
-            if curl -fsSL http://127.0.0.1:3102/api/observabilidad > /dev/null 2>&1 || curl -fsSL http://127.0.0.1:3102 > /dev/null 2>&1; then
-              echo "Server ready after $i attempts"
-              break
-            fi
-            if [ "$i" -eq 15 ]; then
-              echo "Server not ready after 30s"
-              exit 1
-            fi
-            sleep 2
-          done
+      - name: Build panel-admin
+        run: pnpm --filter @ruum/panel-admin build
 
       - name: Run k6 load test
         run: |
