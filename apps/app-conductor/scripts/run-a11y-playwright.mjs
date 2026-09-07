@@ -136,7 +136,6 @@ async function main() {
   }
 
   // 🔥 MODIFICACIÓN: En CI o si ya hay servidor, no iniciar uno nuevo
-  // Verificar si estamos en CI o si el servidor ya está corriendo
   const isCI = process.env.CI === 'true' || process.env.CI === '1';
   const serverAlreadyRunning = await isServerReady(requestedOrigin);
   
@@ -149,7 +148,6 @@ async function main() {
       console.log('[a11y] 🚀 CI detectado o SKIP_WEBSERVER activado - usando servidor existente');
     }
     
-    // Verificar que el servidor está respondiendo
     if (!(await isServerReady(requestedOrigin))) {
       console.error(`[a11y] ❌ Servidor no disponible en ${requestedOrigin}`);
       console.error('[a11y] Asegúrate de que el servidor esté corriendo antes de ejecutar este script');
@@ -173,7 +171,7 @@ async function main() {
     serverLog = openSync(serverLogPath, 'w');
     const nextBin = require.resolve('next/dist/bin/next', { paths: [projectRoot] });
     
-    // 🔥 MODIFICACIÓN: Usar 'start' en lugar de 'dev' para modo producción
+    // Usar 'start' en lugar de 'dev' para modo producción
     serverProcess = spawn(process.execPath, [nextBin, 'start', '-p', serverPort], {
       cwd: projectRoot,
       detached: true,
@@ -188,34 +186,11 @@ async function main() {
     }
   }
 
-  // 🔥 NUEVO: Ejecutar el setup de autenticación antes de las pruebas
-  console.log('[a11y] 🔑 Ejecutando setup de autenticación...');
-  const setupResult = spawnSync(commandForLocalBin('playwright'), ['test', 'auth.setup.ts', '--project=setup'], {
-    cwd: projectRoot,
-    env: {
-      ...process.env,
-      A11Y_BASE_URL: serverOrigin,
-      PLAYWRIGHT_BASE_URL: serverOrigin,
-      PLAYWRIGHT_SKIP_WEBSERVER: '1'
-    },
-    shell: process.platform === 'win32',
-    stdio: 'inherit'
-  });
+  // 🔥 ELIMINADO: Ejecución explícita del setup de autenticación
+  // Playwright ya lo maneja automáticamente mediante 'dependencies: ["setup"]' en playwright.config.ts.
+  // Ejecutarlo aquí causa que se ejecute dos veces y sobrescriba la sesión.
 
-  if (setupResult.status !== 0) {
-    console.error('[a11y] ❌ Falló el setup de autenticación');
-    process.exit(setupResult.status ?? 1);
-  }
-
-  // Verificar que el archivo de sesión se creó
-  const authFile = resolve(projectRoot, 'tests/.auth/conductor.json');
-  if (!existsSync(authFile)) {
-    console.error('[a11y] ❌ No se encontró el archivo de sesión después del setup');
-    process.exit(1);
-  }
-  console.log('[a11y] ✅ Sesión de autenticación creada correctamente');
-
-  // Ejecutar las pruebas
+  // Ejecutar las pruebas directamente
   console.log(`[a11y] 🧪 Ejecutando pruebas en ${serverOrigin}...`);
   const result = spawnSync(commandForLocalBin('playwright'), args, {
     cwd: projectRoot,
