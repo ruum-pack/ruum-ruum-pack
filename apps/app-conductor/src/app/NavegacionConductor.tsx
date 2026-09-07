@@ -183,8 +183,7 @@ export function NavegacionConductor() {
 
   return (
     <>
-      {/* Ocultar encabezado global en pantallas móviles para dar un look nativo y limpio */}
-      <header role="banner" className="hidden md:block sticky top-0 z-30 border-b border-border bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur supports-[backdrop-filter]:bg-surface/85">
+      <header role="banner" className="sticky top-0 z-30 border-b border-border bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur supports-[backdrop-filter]:bg-surface/85">
         <div className="ruum-container flex min-h-16 items-center gap-3 py-3">
           <Link href="/panel" aria-label="Ir al inicio de Ruum Ruum Conductor" className="flex shrink-0 items-center gap-2.5 rounded-lg">
             <LogoMarca variante="horizontal" tema="claro" color="route" tamano={30} mostrarDescriptor={false} mostrarRespaldo={false} />

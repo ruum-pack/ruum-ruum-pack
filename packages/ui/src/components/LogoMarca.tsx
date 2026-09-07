@@ -38,6 +38,30 @@ export interface LogoMarcaProps {
   progreso?: number;
 }
 
+const LOGO_HEADER_SRC = "/imagenes/ruum-logo-header.png";
+
+function ImagenLogoHeader({
+  tamano,
+  className,
+  alt = "Ruum Ruum"
+}: {
+  tamano: number;
+  className?: string;
+  alt?: string;
+}) {
+  return (
+    <img
+      src={LOGO_HEADER_SRC}
+      alt={alt}
+      width={1195}
+      height={389}
+      className={`block h-auto w-auto shrink-0 object-contain ${className ?? ""}`}
+      style={{ height: `${tamano}px`, width: "auto", maxWidth: "min(68vw, 260px)" }}
+      decoding="async"
+    />
+  );
+}
+
 /**
  * Monograma vectorial oficial Ruum Ruum:
  * Símbolo RR + Línea amarilla de ruta (#FFC400) + Punto de origen + Punto de destino + Check de confirmación.
@@ -141,8 +165,6 @@ export function LogoMarca({
   const colorDestino = color === "route" ? "#1677FF" : color === "control" ? "#13B89B" : "#00C2B8";
   const esClaro = tema === "claro";
 
-  const colorTextoTitulo = esClaro ? "text-[#0D2B5E]" : tema === "auto" ? "text-text-primary" : "text-[#F5F9FF]";
-  const colorTextoAcento = "text-[#00C2B8]";
   const colorTextoSecundario = esClaro ? "text-[#5F7192]" : tema === "auto" ? "text-text-secondary" : "text-[#C7D5E7]";
   const colorTextoRespaldo = esClaro ? "text-[#5F7192]/80" : tema === "auto" ? "text-text-tertiary" : "text-[#A9BCD3]";
 
@@ -162,61 +184,40 @@ export function LogoMarca({
 
   // Versión vertical (centrada)
   if (variante === "vertical") {
-    const tamanoSimbolo = tamano ?? 48;
     return (
       <div className={`inline-flex flex-col items-center text-center ${className}`}>
-        <SimboloVectorial tamano={tamanoSimbolo} tema={tema} colorDestino={colorDestino} />
-        <div className="mt-2.5">
-          <div className="flex items-baseline justify-center gap-1.5">
-            <span className={`font-display text-2xl font-black tracking-tight ${colorTextoTitulo}`}>Ruum</span>
-            <span className={`font-display text-2xl font-black tracking-tight ${colorTextoAcento}`}>Ruum</span>
-          </div>
-          {mostrarDescriptor && (
-            <p className={`mt-1 font-body text-xs font-semibold uppercase tracking-wider ${colorTextoSecundario}`}>
-              {descriptor ?? "Traslado vehicular con conductores certificados"}
-            </p>
-          )}
-          {subtitulo && (
-            <span className={`mt-0.5 block font-body text-[10px] font-medium tracking-wide ${colorTextoSecundario}`}>
-              {subtitulo}
-            </span>
-          )}
-          {mostrarRespaldo && (
-            <span className={`mt-0.5 block font-body text-[10px] font-medium tracking-widest ${colorTextoRespaldo}`}>
-              by MoviliaX
-            </span>
-          )}
-        </div>
+        <ImagenLogoHeader tamano={tamano ?? 48} />
+        {mostrarDescriptor && descriptor && (
+          <span className={`mt-1 font-body text-xs font-semibold uppercase tracking-wider ${colorTextoSecundario}`}>
+            {descriptor}
+          </span>
+        )}
+        {subtitulo && (
+          <span className={`mt-0.5 block font-body text-[10px] font-medium tracking-wide ${colorTextoSecundario}`}>
+            {subtitulo}
+          </span>
+        )}
       </div>
     );
   }
 
   // Versión horizontal oficial (por defecto)
-  const tamanoSimbolo = tamano ?? 36;
   return (
-    <div className={`inline-flex items-center gap-3 ${className}`}>
-      <SimboloVectorial tamano={tamanoSimbolo} tema={tema} colorDestino={colorDestino} />
-      <div className="flex flex-col justify-center leading-tight">
-        <div className="flex items-baseline gap-1">
-          <span className={`font-display text-xl font-black tracking-tight ${colorTextoTitulo}`}>Ruum</span>
-          <span className={`font-display text-xl font-black tracking-tight ${colorTextoAcento}`}>Ruum</span>
-        </div>
-        {mostrarDescriptor && (
-          <span className={`font-body text-[11px] font-semibold leading-none tracking-normal ${colorTextoSecundario}`}>
-            {descriptor ?? "Traslado vehicular con conductores certificados"}
-          </span>
-        )}
-        {subtitulo && (
-          <span className={`mt-0.5 font-body text-[10px] font-medium leading-none ${colorTextoSecundario}`}>
-            {subtitulo}
-          </span>
-        )}
-        {mostrarRespaldo && (
-          <span className={`mt-0.5 font-body text-[9px] font-medium leading-none tracking-wider ${colorTextoRespaldo}`}>
-            by MoviliaX
-          </span>
-        )}
-      </div>
+    <div className={`inline-flex min-w-0 items-center gap-2 ${className}`}>
+      <ImagenLogoHeader tamano={tamano ?? 36} />
+      {mostrarDescriptor && descriptor && (
+        <span className={`shrink-0 font-body text-xs font-semibold ${colorTextoSecundario}`}>
+          {descriptor}
+        </span>
+      )}
+      {subtitulo && (
+        <span className={`shrink-0 font-body text-[10px] font-medium ${colorTextoSecundario}`}>
+          {subtitulo}
+        </span>
+      )}
+      {mostrarRespaldo && !descriptor && (
+        <span className={`sr-only ${colorTextoRespaldo}`}>by MoviliaX</span>
+      )}
     </div>
   );
 }

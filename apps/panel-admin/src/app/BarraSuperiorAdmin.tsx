@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogoMarca } from "@ruum/ui";
 import { SelectorTemaAdmin } from "./TemaAdmin";
 
 const TITULOS_RUTA: Array<[string, string]> = [
@@ -38,6 +39,9 @@ export function BarraSuperiorAdmin() {
 
   return (
     <header className="admin-topbar" aria-label="Contexto de la Torre de Control">
+      <Link href="/" className="admin-topbar__logo" aria-label="Ir al dashboard de la Torre de Control">
+        <LogoMarca tamano={30} color="signal" mostrarDescriptor={false} mostrarRespaldo={false} />
+      </Link>
       <div className="admin-topbar__context">
         <span className="admin-topbar__brand">Torre de Control</span>
         <span className="admin-topbar__separator" aria-hidden="true">/</span>

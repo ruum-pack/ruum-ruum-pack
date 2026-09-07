@@ -93,9 +93,6 @@ export function NavegacionAdminMovil() {
       <div className="ruum-container flex min-h-14 items-center justify-between gap-3 py-2">
         <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-lg" aria-label="Ir a la Torre de Control">
           <LogoMarca tamano={28} color="signal" />
-          <span className="font-display text-sm font-extrabold tracking-tight text-ink">
-            ruum<span className="text-signal">ruum</span>
-          </span>
           <span className="font-mono-ruum text-admin-secundario uppercase tracking-[0.12em] text-text-tertiary">Control</span>
         </Link>
         <button
