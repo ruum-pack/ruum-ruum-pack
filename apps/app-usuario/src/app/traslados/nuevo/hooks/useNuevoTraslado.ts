@@ -295,10 +295,11 @@ export function useNuevoTraslado() {
     };
   }, []);
 
-  // Aceptación automática cotización anticipada
+  // Toda solicitud nueva con tarifa se confirma automáticamente para habilitar
+  // el pago Stripe en el último paso del wizard.
   useEffect(() => {
     if (!trasladoCreado) return;
-    if (trasladoCreado.tipoPago !== "anticipado" || trasladoCreado.precioCotizado == null) return;
+    if (trasladoCreado.precioCotizado == null) return;
     if (trasladoAceptacionIntentado.current === trasladoCreado.id) return;
     trasladoAceptacionIntentado.current = trasladoCreado.id;
 

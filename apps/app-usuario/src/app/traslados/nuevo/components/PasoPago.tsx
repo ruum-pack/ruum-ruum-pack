@@ -53,10 +53,6 @@ export const PasoPago = memo(function PasoPago({
         <Aviso tono="info">
           No se requiere pago en este momento. Te avisaremos en cuanto exista una cotización autorizada. Si ves tarifa $0, nuestro equipo la revisará antes de solicitar cobro.
         </Aviso>
-      ) : trasladoCreado.tipoPago === "al_cierre" ? (
-        <Aviso tono="info">
-          Tu traslado quedó confirmado con pago al cierre. El cobro se activará más adelante, cuando el servicio esté por concluir.
-        </Aviso>
       ) : errorAceptacion ? (
         <div className="space-y-3">
           <Aviso tono="danger">{errorAceptacion}</Aviso>
@@ -68,6 +64,9 @@ export const PasoPago = memo(function PasoPago({
         <p className="font-body text-sm text-ink/55">Confirmando tarifa para iniciar el pago…</p>
       ) : (
         <div className="space-y-3">
+          <Aviso tono="info">
+            Completa el pago seguro con Stripe para confirmar tu solicitud de traslado.
+          </Aviso>
           <PagoStripe
             trasladoId={trasladoCreado.id}
             monto={trasladoCreado.precioCotizado}

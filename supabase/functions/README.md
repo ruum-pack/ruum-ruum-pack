@@ -62,20 +62,16 @@ Un gap real encontrado al construir Twilio: **ni `usuarios` ni `conductores` ten
 eso, Twilio Proxy no tiene a quién relacionar con el número virtual. Corregido en `0023_telefonos_twilio.sql`,
 y `/registro` de ambas apps ahora lo captura.
 
-## Gap real encontrado y cerrado: `crear-payment-intent` solo aceptaba pago anticipado
+## Pago por Stripe al concluir una solicitud
 
-`estadoTrasladoSiguienteTrasPago` (en `stripe-webhook/logica.ts`) ya sabía manejar un pago `al_cierre` desde
-hace tiempo — pero nada del lado del cliente podía llegar a dispararlo: `crear-payment-intent` rechazaba con
-422 cualquier traslado cuyo `tipo_pago` no fuera `"anticipado"`, y `/traslados/[id]` no tenía ningún botón de
-pago. Un traslado con pago al cierre llegaba a `pago_pendiente` y se quedaba ahí, sin manera real de cerrarse.
+Las solicitudes nuevas se crean con cotización automática, tipo de pago `anticipado` y un formulario Stripe en el
+último paso del wizard. Así cualquier usuario puede pagar inmediatamente al concluir su solicitud. La función
+`crear-payment-intent` sigue validando la sesión, la propiedad del traslado, la cotización y el rango del monto
+antes de crear el cobro.
 
-Corregido: la función ahora acepta `tipo_pago = "al_cierre"` siempre que el traslado esté en estado
-`pago_pendiente` (el único punto del camino feliz donde ese cobro tiene sentido — ver `TRANSICIONES`,
-`entrega_confirmada -> pago_pendiente -> pago_completado`); el pago anticipado sigue funcionando igual que
-antes, sin ese requisito de estado. También empieza a usar `precio_final` si ya existe (en vez de cobrar
-siempre `precio_cotizado`), aunque hoy ninguna pantalla escribe esa columna todavía — queda lista para cuando
-se modele un ajuste de precio al cierre. Del lado de `app-usuario`, `PagoTraslado.tsx` monta el mismo
-`PagoStripe` del wizard dentro del Pasaporte Digital cuando `estado === "pago_pendiente"`.
+Los traslados históricos con `tipo_pago = "al_cierre"` conservan su camino: `crear-payment-intent` los acepta
+cuando llegan a `pago_pendiente`, y `PagoTraslado.tsx` monta el mismo formulario dentro del Pasaporte Digital.
+La función también usa `precio_final` si existe; de lo contrario cobra `precio_cotizado`.
 
 ## Variables de entorno (Supabase Dashboard → Edge Functions → Secrets, nunca en el repo)
 

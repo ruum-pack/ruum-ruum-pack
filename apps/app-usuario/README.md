@@ -79,11 +79,10 @@ Permiso agregado a mano en `android/app/src/main/AndroidManifest.xml`: `ACCESS_F
 
 ## Fase 6 — Stripe (cobro anticipado real)
 
-PRD §4.6 — decisión de producto: Stripe. El paso de confirmación del wizard ahora puede mostrar un formulario de
-pago real (`PagoStripe.tsx`, Stripe Elements) cuando `momentoPago.momento === "anticipado"` **y**
-`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` está configurada. Sin esa variable, el flujo de pago anticipado
-se detiene con un error visible para no crear una solicitud sin cobro. El traslado se crea primero, y el PaymentIntent se crea contra ese
-`traslado_id` real (vía la Edge Function `crear-payment-intent`, ver `supabase/functions/README.md`).
+PRD §4.6 — decisión de producto: Stripe. Al concluir una solicitud con cotización válida, el wizard siempre muestra
+un formulario de pago real (`PagoStripe.tsx`, Stripe Elements), independientemente del tipo de cuenta. La RPC
+persiste la tarifa automática, fija el nuevo traslado como pago anticipado y devuelve el `traslado_id` que usa la
+Edge Function `crear-payment-intent`.
 
 No se pudo probar un cobro real contra una cuenta de Stripe en este entorno — validado por `tsc`/`next build` y,
 del lado de la función, por `deno check` + `deno test` sobre su lógica de decisión.
@@ -111,13 +110,11 @@ el número virtual que regresa — no hay softphone embebido, es un puente hacia
 estado real de los traslados (no hay tabla de notificaciones en el esquema), accesos rápidos, últimos viajes y
 los mismos pilares de confianza.
 
-## Pago al cierre — gap cerrado
+## Pago al cierre — compatibilidad histórica
 
-`PagoStripe.tsx` solo se montaba en el wizard de nuevo traslado (pago anticipado); un traslado con pago al
-cierre llegaba a `pago_pendiente` sin ningún botón real para pagar — la Edge Function `crear-payment-intent`
-rechazaba cualquier `tipo_pago` que no fuera `"anticipado"`. Ver el detalle del fix en
-`supabase/functions/README.md`. Del lado de esta app: `traslados/[id]/PagoTraslado.tsx` monta el mismo
-`PagoStripe` dentro del Pasaporte Digital cuando `estado === "pago_pendiente"`, con su propio aviso cuando
+Los traslados históricos que ya fueron creados con pago al cierre mantienen su camino de compatibilidad: cuando
+llegan a `pago_pendiente`, `traslados/[id]/PagoTraslado.tsx` monta el mismo `PagoStripe` dentro del Pasaporte
+Digital, con su propio aviso cuando
 Supabase o Stripe no están configurados.
 
 
