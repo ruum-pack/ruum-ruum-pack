@@ -30,22 +30,10 @@ export const esquemaParada = z.object({
   referencias: z.string().max(300).optional().default(""),
   lat: z.number().optional(),
   lng: z.number().optional(),
-  tipoTarea: z.enum(["entrega_parcial", "recoleccion", "tramite", "inspeccion", "carga_descarga", "otro"]).optional(),
-  contactoNombre: z.string().optional(),
-  contactoTelefono: z.string().optional(),
-  instrucciones: z.string().max(500, "Máximo 500 caracteres.").optional().default(""),
-  requiereEvidencia: z.boolean().optional().default(false),
-  tiempoEsperaMin: z.string().optional().default("")
+  tipoTarea: z.enum(["entrega_parcial", "recoleccion", "tramite", "inspeccion", "carga_descarga", "otro"]).optional()
 }).superRefine((d, ctx) => {
   if (d.tipo === "tarea") {
     if (!d.tipoTarea) ctx.addIssue({ code: "custom", path: ["tipoTarea"], message: "Selecciona el tipo de tarea." });
-    if (!d.contactoNombre || !d.contactoNombre.trim()) ctx.addIssue({ code: "custom", path: ["contactoNombre"], message: "Completa el contacto de la tarea." });
-    if (!d.contactoTelefono || !REGEX_TELEFONO_10_DIGITOS.test(d.contactoTelefono)) {
-      ctx.addIssue({ code: "custom", path: ["contactoTelefono"], message: "Captura 10 dígitos." });
-    }
-  }
-  if (d.tiempoEsperaMin && d.tiempoEsperaMin.trim() && !/^\d+$/.test(d.tiempoEsperaMin.trim())) {
-    ctx.addIssue({ code: "custom", path: ["tiempoEsperaMin"], message: "Minutos inválidos." });
   }
 });
 
@@ -234,7 +222,7 @@ export const esquemaPayloadCrearTraslado = z.object({
     tipo_tarea: z.string().optional().nullable(),
     contacto_nombre: z.string().optional().nullable(),
     contacto_telefono: z.string().optional().nullable(),
-    requiere_evidencia: z.boolean(),
+    requiere_evidencia: z.boolean().optional().default(false),
     tiempo_espera_min: z.number().optional().nullable()
   })).max(MAX_PARADAS_TRASLADO, `Máximo ${MAX_PARADAS_TRASLADO} paradas permitidas.`).default([])
 });

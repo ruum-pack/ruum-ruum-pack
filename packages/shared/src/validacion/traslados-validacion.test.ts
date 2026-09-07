@@ -107,7 +107,7 @@ describe("Reglas y Esquemas Centralizados de Traslado (@ruum/shared)", () => {
     };
     expect(esquemaParada.safeParse(escalaValida).success).toBe(true);
 
-    const tareaInvalida = {
+    const tareaSinTipo = {
       id: "p2",
       tipo: "tarea" as const,
       calle: "Av Insurgentes",
@@ -116,11 +116,11 @@ describe("Reglas y Esquemas Centralizados de Traslado (@ruum/shared)", () => {
       codigoPostal: "06700",
       estado: "CDMX",
       ciudad: "CDMX",
-      tipoTarea: undefined,
-      contactoNombre: "",
-      contactoTelefono: "123"
+      tipoTarea: undefined
     };
-    expect(esquemaParada.safeParse(tareaInvalida).success).toBe(false);
+    expect(esquemaParada.safeParse(tareaSinTipo).success).toBe(false);
+
+    expect(esquemaParada.safeParse({ ...tareaSinTipo, tipoTarea: "tramite" }).success).toBe(true);
   });
 
   it("valida payload de servicio crearTraslado", () => {

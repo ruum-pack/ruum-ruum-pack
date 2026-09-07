@@ -17,12 +17,9 @@ export interface ParadaForm {
   // domicilio
   calle: string; numero: string; colonia: string; codigoPostal: string; estado: string; ciudad: string; referencias: string;
   lat?: number; lng?: number;
-  // solo tarea
+  // solo tarea: conserva el tipo para clasificar la parada; los datos
+  // operativos adicionales se capturan fuera de este formulario.
   tipoTarea?: TipoTareaForm;
-  contactoNombre?: string; contactoTelefono?: string; // 10 dígitos local
-  instrucciones?: string;
-  requiereEvidencia?: boolean;
-  tiempoEsperaMin?: string; // string para input
 }
 
 export interface DatosFormulario {

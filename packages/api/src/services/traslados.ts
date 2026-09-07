@@ -96,7 +96,7 @@ export interface DatosParadaParaTraslado {
   direccion: string; referencias?: string | null;
   lat: number | null; lng: number | null;
   tipo_tarea?: string | null; contacto_nombre?: string | null; contacto_telefono?: string | null;
-  instrucciones?: string | null; requiere_evidencia: boolean; tiempo_espera_min?: number | null;
+  instrucciones?: string | null; requiere_evidencia?: boolean; tiempo_espera_min?: number | null;
 }
 
 /**

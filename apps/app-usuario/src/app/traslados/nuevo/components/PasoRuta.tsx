@@ -514,16 +514,29 @@ function PasoRutaComponent({
 
 function areEqualPasoRuta(prev: PasoRutaProps, next: PasoRutaProps) {
   return (
+    prev.datos === next.datos &&
     prev.datos.origenCodigoPostal === next.datos.origenCodigoPostal &&
     prev.datos.origenCalle === next.datos.origenCalle &&
     prev.datos.origenNumero === next.datos.origenNumero &&
     prev.datos.destinoCodigoPostal === next.datos.destinoCodigoPostal &&
     prev.datos.destinoCalle === next.datos.destinoCalle &&
     prev.datos.destinoNumero === next.datos.destinoNumero &&
+    prev.origenBusqueda === next.origenBusqueda &&
+    prev.destinoBusqueda === next.destinoBusqueda &&
+    prev.origenSugerencias === next.origenSugerencias &&
+    prev.destinoSugerencias === next.destinoSugerencias &&
+    prev.buscandoOrigen === next.buscandoOrigen &&
+    prev.buscandoDestino === next.buscandoDestino &&
+    prev.cpConsultando === next.cpConsultando &&
+    prev.cpAviso === next.cpAviso &&
+    prev.cpOpciones === next.cpOpciones &&
+    prev.placesOpciones === next.placesOpciones &&
     prev.datos.paradas === next.datos.paradas &&
     prev.rutaEstimacion === next.rutaEstimacion &&
     prev.rutaCalculando === next.rutaCalculando &&
-    prev.errores === next.errores
+    prev.rutaAviso === next.rutaAviso &&
+    prev.errores === next.errores &&
+    prev.erroresParadas === next.erroresParadas
   );
 }
 export const PasoRuta = memo(PasoRutaComponent, areEqualPasoRuta);

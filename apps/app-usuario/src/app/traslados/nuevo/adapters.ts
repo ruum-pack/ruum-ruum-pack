@@ -32,12 +32,7 @@ export function construirPayloadCreacion(datos: DatosFormulario, vehiculoSelecci
     referencias: p.referencias || null,
     lat: coords.paradasCoords?.[idx]?.lat ?? p.lat ?? null,
     lng: coords.paradasCoords?.[idx]?.lng ?? p.lng ?? null,
-    tipo_tarea: p.tipo === "tarea" ? (p.tipoTarea ?? "otro") : null,
-    contacto_nombre: p.tipo === "tarea" ? (p.contactoNombre?.trim() || null) : null,
-    contacto_telefono: p.tipo === "tarea" ? telefono(p.contactoTelefono ?? "") : null,
-    instrucciones: p.tipo === "tarea" ? (p.instrucciones || null) : null,
-    requiere_evidencia: p.tipo === "tarea" ? Boolean(p.requiereEvidencia) : false,
-    tiempo_espera_min: p.tiempoEsperaMin ? Number(p.tiempoEsperaMin) : null
+    tipo_tarea: p.tipo === "tarea" ? (p.tipoTarea ?? "otro") : null
   }));
   return { vehiculo, traslado: {
     contacto_entrega_nombre: nombre(datos.entregaNombre, datos.entregaApellido), contacto_entrega_telefono: telefono(datos.entregaTelefono),

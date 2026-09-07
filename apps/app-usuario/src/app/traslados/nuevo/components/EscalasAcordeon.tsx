@@ -1,7 +1,9 @@
 "use client";
-import React, { memo, useState } from "react";
+
+import React, { memo, useEffect, useRef, useState } from "react";
 import { Field } from "@ruum/ui";
-import type { ParadaForm, TipoParadaForm, TipoTareaForm } from "../types";
+import { sugerirDireccionesAutocomplete, type SugerenciaDireccion } from "../../../../lib/mapbox";
+import type { ParadaForm, TipoTareaForm } from "../types";
 
 const TIPOS_TAREA: Array<{ valor: TipoTareaForm; etiqueta: string }> = [
   { valor: "entrega_parcial", etiqueta: "Entrega parcial" },
@@ -27,40 +29,96 @@ export const EscalasAcordeon = memo(function EscalasAcordeon({
   erroresParadas?: Array<Partial<Record<keyof ParadaForm, string>>>;
 }) {
   const [abiertoId, setAbiertoId] = useState<string | null>(paradas[0]?.id ?? null);
-  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [busquedas, setBusquedas] = useState<Record<string, string>>(() => (
+    Object.fromEntries(paradas.map((p) => [p.id, ""]))
+  ));
+  const [sugerencias, setSugerencias] = useState<Record<string, SugerenciaDireccion[]>>({});
+  const [buscandoId, setBuscandoId] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const busquedaSeqRef = useRef(0);
 
-  function agregar(tipo: TipoParadaForm) {
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    busquedaSeqRef.current += 1;
+  }, []);
+
+  function agregar() {
     if (paradas.length >= 8) return;
     const nuevo: ParadaForm = {
       id: crypto.randomUUID(),
-      tipo,
+      tipo: "escala",
       calle: "",
       numero: "",
       colonia: "",
       codigoPostal: "",
       estado: "",
       ciudad: "",
-      referencias: "",
-      tipoTarea: tipo === "tarea" ? "entrega_parcial" : undefined,
-      contactoNombre: "",
-      contactoTelefono: "",
-      instrucciones: "",
-      requiereEvidencia: false,
-      tiempoEsperaMin: ""
+      referencias: ""
     };
-    const next = [...paradas, nuevo];
-    onChange(next);
+    onChange([...paradas, nuevo]);
     setAbiertoId(nuevo.id);
-    setMenuAbierto(false);
+    setBusquedas((prev) => ({ ...prev, [nuevo.id]: "" }));
   }
 
   function actualizar(id: string, patch: Partial<ParadaForm>) {
     onChange(paradas.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   }
 
+  function cambiarBusqueda(id: string, valor: string) {
+    setBusquedas((prev) => ({ ...prev, [id]: valor }));
+    setSugerencias((prev) => ({ ...prev, [id]: [] }));
+    busquedaSeqRef.current += 1;
+    const seq = busquedaSeqRef.current;
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    if (valor.trim().length < 3) {
+      setBuscandoId(null);
+      return;
+    }
+
+    setBuscandoId(id);
+    timerRef.current = setTimeout(async () => {
+      try {
+        const res = await sugerirDireccionesAutocomplete(valor);
+        if (seq === busquedaSeqRef.current) setSugerencias((prev) => ({ ...prev, [id]: res }));
+      } catch {
+        if (seq === busquedaSeqRef.current) setSugerencias((prev) => ({ ...prev, [id]: [] }));
+      } finally {
+        if (seq === busquedaSeqRef.current) setBuscandoId(null);
+      }
+    }, 350);
+  }
+
+  function aplicarSugerencia(id: string, sugerencia: SugerenciaDireccion) {
+    const calleExtraida = sugerencia.direccion || sugerencia.textoCompleto.split(",")[0] || "";
+    actualizar(id, {
+      calle: calleExtraida,
+      colonia: sugerencia.colonia || "",
+      codigoPostal: sugerencia.codigoPostal || "",
+      ciudad: sugerencia.ciudad || "",
+      estado: sugerencia.estado || "",
+      ...(sugerencia.lat !== undefined && sugerencia.lng !== undefined
+        ? { lat: sugerencia.lat, lng: sugerencia.lng }
+        : {})
+    });
+    setBusquedas((prev) => ({ ...prev, [id]: sugerencia.textoCompleto }));
+    setSugerencias((prev) => ({ ...prev, [id]: [] }));
+    setBuscandoId(null);
+  }
+
   function eliminar(id: string) {
     onChange(paradas.filter((p) => p.id !== id));
     if (abiertoId === id) setAbiertoId(null);
+    setBusquedas((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setSugerencias((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   }
 
   function mover(id: string, dir: -1 | 1) {
@@ -79,9 +137,8 @@ export const EscalasAcordeon = memo(function EscalasAcordeon({
         <p className="font-body text-sm font-semibold">Escalas y tareas intermedias</p>
         <span className="rounded-full border border-ink/10 bg-mist px-2.5 py-1 font-mono-ruum text-xs font-bold text-ink/60">{paradas.length}/8</span>
       </div>
-      <p className="font-body text-xs leading-4 text-ink/55">Se recorren en orden entre origen y destino. Escala = parada breve sin contacto. Tarea = gestión con contacto y tiempo de espera.</p>
+      <p className="font-body text-xs leading-4 text-ink/55">Agrega una parada y elige si es escala o tarea. La búsqueda prellena código postal, estado, ciudad, colonia y calle; el número queda editable.</p>
 
-      {/* Timeline mini visual */}
       {paradas.length > 0 && (
         <div className="flex items-center gap-1 overflow-x-auto py-1" aria-hidden>
           <span className="size-2 shrink-0 rounded-full bg-emerald-500" title="Origen" />
@@ -94,21 +151,16 @@ export const EscalasAcordeon = memo(function EscalasAcordeon({
         </div>
       )}
 
-      {/* Lista acordeón */}
       <div className="grid gap-2">
         {paradas.map((p, idx) => {
           const abierto = abiertoId === p.id;
           const err = erroresParadas?.[idx];
           const resumen = [p.calle, p.numero].filter(Boolean).join(" ") || p.colonia || p.ciudad || "Nueva parada";
           const hasError = err && Object.keys(err).length > 0;
+          const sugerenciasParada = sugerencias[p.id] ?? [];
           return (
             <div key={p.id} className={["rounded-xl border bg-mist overflow-hidden", hasError ? "border-danger/40" : "border-ink/10"].join(" ")}>
-              <button
-                type="button"
-                onClick={() => setAbiertoId(abierto ? null : p.id)}
-                aria-expanded={abierto}
-                className="flex w-full items-center gap-2 px-3 py-3 text-left hover:bg-ink/[0.03]"
-              >
+              <button type="button" onClick={() => setAbiertoId(abierto ? null : p.id)} aria-expanded={abierto} className="flex w-full items-center gap-2 px-3 py-3 text-left hover:bg-ink/[0.03]">
                 <span className={["inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-body text-[11px] font-bold", p.tipo === "tarea" ? "bg-amber-100 text-amber-900 border border-amber-200" : "bg-sky-100 text-sky-900 border border-sky-200"].join(" ")}>
                   {p.tipo === "tarea" ? "✅ Tarea" : "📍 Escala"} #{idx + 1}
                 </span>
@@ -118,10 +170,9 @@ export const EscalasAcordeon = memo(function EscalasAcordeon({
               </button>
               {abierto && (
                 <div className="grid gap-3 border-t border-ink/10 bg-white px-3 py-3">
-                  {/* Tipo switch */}
                   <div className="grid grid-cols-2 gap-1 rounded-lg border border-ink/10 bg-mist p-1" role="radiogroup" aria-label={`Tipo de parada ${idx + 1}`}>
-                    <button type="button" role="radio" aria-checked={p.tipo === "escala"} aria-label="Escala" onClick={() => actualizar(p.id, { tipo: "escala" as TipoParadaForm })} className={["rounded-md px-2 py-1.5 font-body text-xs font-bold", p.tipo === "escala" ? "bg-signal text-ink shadow-sm" : "text-ink/60 hover:bg-white"].join(" ")}>📍 Escala</button>
-                    <button type="button" role="radio" aria-checked={p.tipo === "tarea"} aria-label="Tarea" onClick={() => actualizar(p.id, { tipo: "tarea" as TipoParadaForm, tipoTarea: p.tipoTarea ?? "entrega_parcial" })} className={["rounded-md px-2 py-1.5 font-body text-xs font-bold", p.tipo === "tarea" ? "bg-signal text-ink shadow-sm" : "text-ink/60 hover:bg-white"].join(" ")}>✅ Tarea</button>
+                    <button type="button" role="radio" aria-checked={p.tipo === "escala"} aria-label="Escala" onClick={() => actualizar(p.id, { tipo: "escala" })} className={["rounded-md px-2 py-1.5 font-body text-xs font-bold", p.tipo === "escala" ? "bg-signal text-ink shadow-sm" : "text-ink/60 hover:bg-white"].join(" ")}>📍 Escala</button>
+                    <button type="button" role="radio" aria-checked={p.tipo === "tarea"} aria-label="Tarea" onClick={() => actualizar(p.id, { tipo: "tarea", tipoTarea: p.tipoTarea ?? "entrega_parcial" })} className={["rounded-md px-2 py-1.5 font-body text-xs font-bold", p.tipo === "tarea" ? "bg-signal text-ink shadow-sm" : "text-ink/60 hover:bg-white"].join(" ")}>✅ Tarea</button>
                   </div>
 
                   {p.tipo === "tarea" && (
@@ -134,6 +185,38 @@ export const EscalasAcordeon = memo(function EscalasAcordeon({
                     </label>
                   )}
 
+                  <div>
+                    <label htmlFor={`parada-${p.id}-busqueda`} className="font-body text-xs font-semibold text-ink">Busca tu dirección</label>
+                    <div className="relative mt-1.5">
+                      <input
+                        id={`parada-${p.id}-busqueda`}
+                        value={busquedas[p.id] ?? ""}
+                        onChange={(e) => cambiarBusqueda(p.id, e.target.value)}
+                        placeholder="Ej. Av. Patriotismo 12, CDMX"
+                        className="w-full rounded-xl border border-ink/20 bg-mist px-3.5 py-2.5 pr-10 font-body text-sm text-ink placeholder:text-ink/45 focus:border-signal focus:outline-none focus:ring-2 focus:ring-signal/20"
+                        role="combobox"
+                        aria-label={`Buscar dirección de parada ${idx + 1}`}
+                        aria-autocomplete="list"
+                        aria-controls={`parada-${p.id}-sugerencias`}
+                        aria-expanded={sugerenciasParada.length > 0}
+                        autoComplete="off"
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink/40">{buscandoId === p.id ? "…" : "🔍"}</span>
+                      {sugerenciasParada.length > 0 && (
+                        <ul id={`parada-${p.id}-sugerencias`} role="listbox" aria-label={`Sugerencias de parada ${idx + 1}`} className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-ink/10 bg-mist shadow-2">
+                          {sugerenciasParada.map((s, i) => (
+                            <li key={`${s.textoCompleto}-${i}`} role="option" aria-selected={false}>
+                              <button type="button" onClick={() => aplicarSugerencia(p.id, s)} className="w-full px-3 py-2 text-left font-body text-xs leading-5 hover:bg-signal/10">
+                                <span className="font-semibold text-ink">{s.textoCompleto}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <p className="mt-1 font-body text-[11px] leading-4 text-ink/55">Prellenamos los datos hasta calle; captura o corrige el número abajo.</p>
+                  </div>
+
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field etiqueta="Calle" value={p.calle} onChange={(e) => actualizar(p.id, { calle: e.target.value })} error={err?.calle} />
                     <Field etiqueta="Número" value={p.numero} onChange={(e) => actualizar(p.id, { numero: e.target.value })} error={err?.numero} />
@@ -143,38 +226,6 @@ export const EscalasAcordeon = memo(function EscalasAcordeon({
                     <Field etiqueta="Estado" value={p.estado} onChange={(e) => actualizar(p.id, { estado: e.target.value })} error={err?.estado} />
                   </div>
                   <Field etiqueta="Referencias" value={p.referencias} onChange={(e) => actualizar(p.id, { referencias: e.target.value })} placeholder="Entre calles, fachada, acceso..." error={err?.referencias} />
-
-                  {p.tipo === "tarea" && (
-                    <>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <Field etiqueta="Contacto (nombre)" value={p.contactoNombre ?? ""} onChange={(e) => actualizar(p.id, { contactoNombre: e.target.value })} error={err?.contactoNombre} />
-                        <div className="flex flex-col gap-1.5">
-                          <label htmlFor={`parada-${p.id}-telefono`} className="font-body text-sm font-medium">Teléfono contacto</label>
-                          <div className="flex overflow-hidden rounded-lg border border-ink/30 bg-mist">
-                            <span className="flex items-center border-r border-ink/10 px-3 font-body text-sm font-semibold text-ink/60">+52</span>
-                            <input id={`parada-${p.id}-telefono`} value={p.contactoTelefono ?? ""} onChange={(e) => actualizar(p.id, { contactoTelefono: soloDigitos(e.target.value, 10) })} inputMode="numeric" maxLength={10} placeholder="10 dígitos" aria-label={`Teléfono de contacto para ${p.tipo} ${idx + 1}`} aria-invalid={Boolean(err?.contactoTelefono)} aria-describedby={err?.contactoTelefono ? `parada-${p.id}-telefono-error` : undefined} className="min-w-0 flex-1 bg-transparent px-3 py-2.5 font-body text-sm focus:outline-none" />
-                          </div>
-                          {err?.contactoTelefono && <span id={`parada-${p.id}-telefono-error`} className="font-body text-xs text-danger">{err.contactoTelefono}</span>}
-                        </div>
-                      </div>
-                      <label className="flex flex-col gap-1.5">
-                        <span className="font-body text-sm font-medium">Instrucciones tarea</span>
-                        <textarea value={p.instrucciones ?? ""} onChange={(e) => actualizar(p.id, { instrucciones: e.target.value })} maxLength={500} rows={2} placeholder="Qué hacer en esta tarea..." className="rounded-lg border border-ink/30 bg-mist px-3 py-2.5 font-body text-sm" />
-                        {err?.instrucciones && <span className="font-body text-xs text-danger">{err.instrucciones}</span>}
-                      </label>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <Field etiqueta="Tiempo espera (min)" value={p.tiempoEsperaMin ?? ""} onChange={(e) => actualizar(p.id, { tiempoEsperaMin: soloDigitos(e.target.value, 3) })} inputMode="numeric" placeholder="Ej. 15" error={err?.tiempoEsperaMin} />
-                        <label className="flex items-center gap-2 font-body text-sm">
-                          <input type="checkbox" checked={Boolean(p.requiereEvidencia)} onChange={(e) => actualizar(p.id, { requiereEvidencia: e.target.checked })} className="size-4" />
-                          Requiere foto/evidencia
-                        </label>
-                      </div>
-                    </>
-                  )}
-
-                  {p.tipo === "escala" && (
-                    <Field etiqueta="Tiempo espera (min) opcional" value={p.tiempoEsperaMin ?? ""} onChange={(e) => actualizar(p.id, { tiempoEsperaMin: soloDigitos(e.target.value, 3) })} inputMode="numeric" placeholder="Ej. 10" error={err?.tiempoEsperaMin} />
-                  )}
 
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={() => mover(p.id, -1)} disabled={idx === 0} className="rounded-lg border border-ink/15 bg-mist px-3 py-1.5 font-body text-xs font-semibold disabled:opacity-40">↑ Subir</button>
@@ -188,31 +239,11 @@ export const EscalasAcordeon = memo(function EscalasAcordeon({
         })}
       </div>
 
-      {/* Menú agregar */}
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setMenuAbierto((v) => !v)}
-          disabled={paradas.length >= 8}
-          aria-expanded={menuAbierto}
-          aria-haspopup="menu"
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-ink/20 bg-mist px-4 py-3 font-body text-sm font-semibold text-ink hover:border-signal/40 hover:bg-signal/10 disabled:opacity-40"
-        >
-          <span className="text-lg">＋</span> Agregar escala o tarea
+      <div>
+        <button type="button" onClick={agregar} disabled={paradas.length >= 8} aria-label="Agregar escala o tarea" className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-ink/20 bg-mist px-4 py-3 font-body text-sm font-semibold text-ink hover:border-signal/40 hover:bg-signal/10 disabled:opacity-40">
+          <span className="text-lg">＋</span> Agregar escala/tarea
           <span className="rounded-full bg-ink/10 px-2 py-0.5 font-mono-ruum text-[11px]">{paradas.length}/8</span>
         </button>
-        {menuAbierto && paradas.length < 8 && (
-          <div role="menu" className="absolute left-0 right-0 z-10 mt-2 grid grid-cols-2 gap-2 rounded-xl border border-ink/10 bg-white p-2 shadow-xl">
-            <button type="button" role="menuitem" onClick={() => agregar("escala")} className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-4 text-left hover:bg-sky-100">
-              <span className="block font-body text-sm font-bold text-sky-900">📍 Escala</span>
-              <span className="mt-1 block font-body text-xs leading-4 text-sky-700">Parada breve sin contacto. Solo dirección y espera opcional.</span>
-            </button>
-            <button type="button" role="menuitem" onClick={() => agregar("tarea")} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-4 text-left hover:bg-amber-100">
-              <span className="block font-body text-sm font-bold text-amber-900">✅ Tarea</span>
-              <span className="mt-1 block font-body text-xs leading-4 text-amber-800">Gestión con contacto, instrucciones y evidencia.</span>
-            </button>
-          </div>
-        )}
         {paradas.length >= 8 && <p className="mt-1 font-body text-xs text-danger">Máximo 8 escalas/tareas alcanzado.</p>}
       </div>
     </div>
