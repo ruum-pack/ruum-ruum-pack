@@ -169,7 +169,6 @@ summary:focus-visible {
     radial-gradient(circle at 18% 12%, rgba(255, 196, 0, 0.10), transparent 38%),
     radial-gradient(circle at 88% 82%, rgba(30, 136, 229, 0.14), transparent 42%),
     linear-gradient(180deg, rgba(21, 21, 21, 0.72) 0%, rgba(15, 19, 26, 0.94) 62%, var(--ruum-canvas) 100%),
-    url("/imagenes/onboarding-paso2.webp") center / cover no-repeat,
     var(--ruum-canvas);
 }
 
@@ -189,7 +188,6 @@ summary:focus-visible {
     radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--ruum-brand) 12%, transparent), transparent 38%),
     radial-gradient(circle at 88% 82%, color-mix(in srgb, var(--ruum-action) 14%, transparent), transparent 42%),
     linear-gradient(180deg, color-mix(in srgb, var(--ruum-canvas) 72%, transparent) 0%, color-mix(in srgb, var(--ruum-surface) 94%, transparent) 100%),
-    url("/imagenes/onboarding-paso2.webp") center / cover no-repeat,
     var(--ruum-canvas);
   color: var(--ruum-text-primary);
 }

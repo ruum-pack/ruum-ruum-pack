@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import type { Database } from "@ruum/shared/types";
 import { IDENTIDAD_MARCA } from "@ruum/shared/constants";
 import { LogoMarca, SelloConductor } from "@ruum/ui";
@@ -55,6 +56,12 @@ export default async function PaginaInicio({
         </div>
       </main>
     );
+  }
+
+  // Si no hay sesión activa y no se solicitó la landing explícitamente (?landing=true),
+  // redirigir directamente al inicio de sesión (/login)
+  if (!forzarLanding) {
+    redirect("/login");
   }
 
   // Experiencia Pública / Landing Page Inicial (Brand Book Ruum Ruum V1 · Página 28)
