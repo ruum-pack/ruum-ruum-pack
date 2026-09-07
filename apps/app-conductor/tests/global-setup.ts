@@ -1,6 +1,7 @@
 import { chromium, type FullConfig } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config as loadDotenv } from "dotenv";
+import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -96,9 +97,9 @@ async function ensureConductor(admin: AdminClient, authUserId: string) {
   // el bypass del trigger realmente aplique. Antes, esa bandera se intentaba
   // fijar con una llamada RPC separada, en su propia transacción de
   // PostgREST, así que nunca sobrevivía hasta el upsert siguiente.
-  const { data: conductorId, error: prepararError } = await admin.rpc("preparar_conductor_e2e", {
+  const preparar = (conductorId: string) => admin.rpc("preparar_conductor_e2e", {
     p_auth_user_id: authUserId,
-    p_conductor_id: E2E_CONDUCTOR_ID,
+    p_conductor_id: conductorId,
     p_datos: {
       nombre: "Conductor E2E Ruum",
       telefono: "+525510000201",
@@ -108,7 +109,21 @@ async function ensureConductor(admin: AdminClient, authUserId: string) {
       licencia_vigencia: "2030-12-31"
     }
   });
+
+  let { data: conductorId, error: prepararError } = await preparar(E2E_CONDUCTOR_ID);
+  if (prepararError?.code === "23505" && /conductores_pkey/i.test(prepararError.message)) {
+    // Compatibilidad con proyectos cuyo RPC todavía es la versión anterior
+    // de la migración: si quedó ocupado el UUID fijo, reintentar con un UUID
+    // estable derivado del usuario Auth evita acumular fixtures aleatorios.
+    const digest = createHash("sha256").update(`ruum-e2e-conductor:${authUserId}`).digest();
+    digest[6] = (digest[6] & 0x0f) | 0x50;
+    digest[8] = (digest[8] & 0x3f) | 0x80;
+    const hex = digest.subarray(0, 16).toString("hex");
+    const fallbackId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    ({ data: conductorId, error: prepararError } = await preparar(fallbackId));
+  }
   if (prepararError) throw new Error(`No se pudo preparar conductores: ${prepararError.message}`);
+  if (!conductorId) throw new Error("No se pudo preparar conductores: RPC sin id de retorno.");
 
   const { error: updateError } = await admin
     .from("conductores")

@@ -107,7 +107,9 @@ function stopProcessTree(pid) {
 async function main() {
   let serverProcess = null;
   let serverLog = null;
-  const playwrightArgs = process.argv.slice(2);
+  // pnpm/npm puede reenviar el separador de argumentos como un literal "--".
+  // Playwright no lo necesita y puede interpretarlo como una entrada extra.
+  const playwrightArgs = process.argv.slice(2).filter((arg) => arg !== '--');
   const args = playwrightArgs[0] === 'test'
     ? playwrightArgs
     : ['test', 'tests/a11y', ...playwrightArgs];
