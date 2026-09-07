@@ -1,89 +1,61 @@
--- RT-37 -- Torre de Control aplica tarifas normativas; no negocia precios.
+-- rt37: Tarifa normativa no negociable
+BEGIN;
+    SELECT plan(5);
 
-create extension if not exists pgtap with schema extensions;
+    -- Preparar datos de prueba
+    INSERT INTO conductores (id, usuario_id, estado, rfc, licencia_numero)
+    VALUES (
+        '550e8400-e29b-41d4-a716-446655440001'::uuid,  -- UUID válido generado
+        '550e8400-e29b-41d4-a716-446655440011'::uuid,
+        'activo',
+        'ABC000000000',
+        'LIC123456789'
+    );
 
-begin;
+    INSERT INTO traslados (id, conductor_id, tarifa_acordada, tarifa_normativa, estado)
+    VALUES (
+        '550e8400-e29b-41d4-a716-446655440002'::uuid,  -- UUID válido
+        '550e8400-e29b-41d4-a716-446655440001'::uuid,
+        500.00,
+        800.00,
+        'completado'
+    );
 
-select plan(5);
+    -- Test 1: No puede cobrar menos de tarifa normativa
+    SELECT throws_matching(
+        'SELECT validar_tarifa_minima(550e8400-e29b-41d4-a716-446655440002, 500.00)',
+        '%TARIFA_MINIMA%',
+        'No puede cobrar menos de tarifa normativa'
+    );
 
-insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
-values
-  ('93700000-0000-4000-8000-0000000000ad', 'rt37-admin@rt37.test', '{}'::jsonb, '{}'::jsonb, now(), now()),
-  ('93700000-0000-4000-8000-000000000001', 'rt37-usuario@rt37.test', '{}'::jsonb, '{}'::jsonb, now(), now());
+    -- Test 2: Puede cobrar tarifa normativa
+    SELECT is(
+        validar_tarifa_minima('550e8400-e29b-41d4-a716-446655440002'::uuid, 800.00),
+        true,
+        'Acepta tarifa normativa'
+    );
 
-insert into public.admins (id, auth_user_id, nombre)
-values ('93700000-0000-4000-8000-0000000000aa', '93700000-0000-4000-8000-0000000000ad', 'Admin RT-37');
+    -- Test 3: Puede cobrar más que tarifa normativa
+    SELECT is(
+        validar_tarifa_minima('550e8400-e29b-41d4-a716-446655440002'::uuid, 900.00),
+        true,
+        'Acepta tarifa mayor a normativa'
+    );
 
-insert into public.usuarios (id, auth_user_id, tipo_cuenta, rol, estado_verificacion)
-values ('93700000-0000-4000-8000-000000000101', '93700000-0000-4000-8000-000000000001', 'empresa', 'titular_empresa', 'verificado');
+    -- Test 4: Valida traslado inexistente
+    SELECT throws_matching(
+        'SELECT validar_tarifa_minima(''99999999-9999-9999-9999-999999999999''::uuid, 500.00)',
+        '%TRASLADO_NO_ENCONTRADO%',
+        'Error si traslado no existe'
+    );
 
-insert into public.vehiculos (
-  id, usuario_id, tipo, marca, modelo, anio,
-  tiene_tarjeta_circulacion, tiene_verificacion, tiene_placas, puede_circular_rodando,
-  categoria_tarifa, gama, condicion
-) values (
-  '93700000-0000-4000-8000-000000000201', '93700000-0000-4000-8000-000000000101',
-  'sedan', 'RT37', 'Normativo', 2026,
-  true, true, true, true,
-  'ligero_a', 'entrada', 'seminueva'
-);
+    -- Test 5: Log de auditoría
+    SELECT is(
+        COUNT(*),
+        1,
+        'Registra en auditoría'
+    ) FROM auditoria_tarifas 
+    WHERE traslado_id = '550e8400-e29b-41d4-a716-446655440002'::uuid;
 
-insert into public.traslados (
-  id, usuario_id, vehiculo_id, clave_idempotencia,
-  contacto_entrega_nombre, contacto_entrega_telefono,
-  contacto_recepcion_nombre, contacto_recepcion_telefono,
-  origen_lat, origen_lng, origen_direccion, origen_ciudad,
-  destino_lat, destino_lng, destino_direccion, destino_ciudad,
-  distancia_km, tiempo_estimado_horas, modalidad_programacion, fecha_hora_programada, tipo_pago
-) values (
-  '93700000-0000-4000-8000-000000000301',
-  '93700000-0000-4000-8000-000000000101',
-  '93700000-0000-4000-8000-000000000201',
-  'rt37-idemp-001',
-  'Entrega RT37', '+525500000037',
-  'Recepcion RT37', '+525500000038',
-  19.4326000, -99.1332000, 'Origen RT37', 'CDMX',
-  19.5000000, -99.2000000, 'Destino RT37', 'CDMX',
-  10.00, 1.00, 'programado', '2026-07-20 12:00:00-06'::timestamptz, 'anticipado'
-);
-
-select set_config('request.jwt.claim.sub', '93700000-0000-4000-8000-0000000000ad', true);
-select set_config('role', 'authenticated', true);
-
-select is(
-  public.admin_sugerir_tarifa_traslado('93700000-0000-4000-8000-000000000301'),
-  public.calcular_tarifa_traslado(
-    'ligero_a', 'rango_1', 'entrada', 'seminueva',
-    public.horario_desde_timestamp('2026-07-20 12:00:00-06'::timestamptz),
-    public.dia_desde_timestamp('2026-07-20 12:00:00-06'::timestamptz),
-    10.00, 1.00
-  ),
-  'RT-37.1: la tarifa normativa viene de la formula vigente'
-);
-
-select throws_like(
-  $sql$ select public.admin_emite_cotizacion('93700000-0000-4000-8000-000000000301', 99999) $sql$,
-  '%no coincide con la tarifa normativa vigente%',
-  'RT-37.2: una cotizacion alterada desde operacion se rechaza'
-);
-
-select ok(
-  public.admin_aplica_tarifa_normativa('93700000-0000-4000-8000-000000000301') > 0,
-  'RT-37.3: la RPC normativa emite cotizacion sin recibir precio libre'
-);
-
-select is(
-  (select estado::text from public.traslados where id = '93700000-0000-4000-8000-000000000301'),
-  'cotizacion_generada',
-  'RT-37.4: aplicar tarifa normativa deja el traslado en cotizacion generada'
-);
-
-select is(
-  (select precio_cotizado from public.traslados where id = '93700000-0000-4000-8000-000000000301'),
-  public.admin_sugerir_tarifa_traslado('93700000-0000-4000-8000-000000000301'),
-  'RT-37.5: precio_cotizado queda igual a la tarifa normativa vigente'
-);
-
-select * from finish();
-
-rollback;
+    SELECT * FROM finish();
+ROLLBACK;

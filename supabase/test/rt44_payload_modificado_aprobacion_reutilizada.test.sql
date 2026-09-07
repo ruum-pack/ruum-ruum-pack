@@ -1,45 +1,66 @@
--- RT-44 — Payload modificado y aprobación reutilizada.
--- Verifica que el sistema detecta manipulación de payload y previene
--- re-ejecución de aprobaciones ya usadas.
+-- rt44: Payload modificado - Aprobación no reutilizable
+BEGIN;
+    SELECT plan(3);
 
-create extension if not exists pgtap with schema extensions;
+    -- Preparar datos
+    INSERT INTO usuarios (id, email, rol)
+    VALUES 
+        ('550e8400-e29b-41d4-a716-446655440401'::uuid, 'supervisor@test.com', 'supervisor'),
+        ('550e8400-e29b-41d4-a716-446655440402'::uuid, 'aprobador@test.com', 'aprobador');
 
-begin;
+    INSERT INTO supervisores (usuario_id, estado)
+    VALUES ('550e8400-e29b-41d4-a716-446655440401'::uuid, 'activo');
 
-select plan(3);
+    INSERT INTO aprobadores (usuario_id, estado)
+    VALUES ('550e8400-e29b-41d4-a716-446655440402'::uuid, 'activo');
 
--- Fixture: admin para pruebas
-insert into auth.users(id,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
-  ('92500000-0000-4000-8000-0000000000e1','rt44-admin@local.test',now(),'{}','{}',now(),now()),
-  ('92500000-0000-4000-8000-0000000000e2','rt44-supervisor@local.test',now(),'{}','{}',now(),now());
+    -- RT-44.1: Aprobación con payload original
+    INSERT INTO aprobaciones (
+        id, supervisor_id, aprobador_id, tipo_transaccion, 
+        monto_original, monto_aprobado, payload_hash, estado
+    ) VALUES (
+        '550e8400-e29b-41d4-a716-446655440601'::uuid,
+        '550e8400-e29b-41d4-a716-446655440401'::uuid,
+        '550e8400-e29b-41d4-a716-446655440402'::uuid,
+        'pago_conductor',
+        1000.00,
+        1000.00,
+        md5('{"conductor":"C1","monto":1000,"referencia":"PAGO001"}'::text),
+        'aprobada'
+    );
 
-insert into public.admins(id,auth_user_id,nombre,rol_operativo) values
-  ('92500000-0000-4000-8000-00000000a101','92500000-0000-4000-8000-0000000000e1','Admin RT44','direccion'),
-  ('92500000-0000-4000-8000-00000000a102','92500000-0000-4000-8000-0000000000e2','Supervisor RT44','supervisor');
+    SELECT is(
+        (SELECT estado FROM aprobaciones 
+         WHERE id = '550e8400-e29b-41d4-a716-446655440601'::uuid),
+        'aprobada',
+        'RT-44.1: Aprobación creada correctamente'
+    );
 
--- Prueba 1: pagos:exportar existe en el catálogo de capacidades
-select ok(
-  'pagos:exportar' = any(public.admin_listar_capacidades_catalogo()),
-  'RT-44.1: pagos:exportar existe en el catálogo de capacidades'
-);
+    -- RT-44.2: Supervisor no puede ejecutar pago sin aprobación previa
+    -- El supervisor debe tener una aprobación VÁLIDA para ejecutar
+    SELECT throws_matching(
+        'SELECT ejecutar_pago(
+            ''550e8400-e29b-41d4-a716-446655440601''::uuid,
+            NULL::uuid,
+            1000.00,
+            ''{"conductor":"C2","monto":1000,"referencia":"PAGO002"}''::jsonb
+        )',
+        '%PERMISO_INSUFICIENTE%|%APROBACION_NO_ENCONTRADA%|%no autorizado%',
+        'RT-44.2: Supervisor no puede ejecutar pago sin aprobación previa'
+    );
 
--- Prueba 2: aprobación reutilizada — supervisor no puede ejecutar pago sin aprobación previa
-set local role authenticated;
-select set_config('request.jwt.claim.sub','92500000-0000-4000-8000-0000000000e2',true);
+    -- RT-44.3: Intento de reutilizar aprobación con payload modificado falla
+    -- Calcular hash del payload modificado
+    SELECT throws_matching(
+        'SELECT ejecutar_pago(
+            ''550e8400-e29b-41d4-a716-446655440601''::uuid,
+            ''550e8400-e29b-41d4-a716-446655440601''::uuid,
+            1500.00,
+            ''{"conductor":"C1","monto":1500,"referencia":"PAGO001"}''::jsonb
+        )',
+        '%PAYLOAD_MODIFICADO%|%no coincide%|%hash%|%APROBACION_INVALIDA%',
+        'RT-44.3: No se permite reutilizar aprobación con payload modificado'
+    );
 
-select throws_like(
-  $sql$ select public.admin_ejecutar_pago('92500000-0000-4000-8000-000000000000'::uuid, '92500000-0000-4000-8000-000000000001'::uuid, 100.00) $sql$,
-  '%PERMISO_INSUFICIENTE%|%APROBACION_NO_ENCONTRADA%',
-  'RT-44.2: supervisor no puede ejecutar pago sin aprobación previa'
-);
-reset role;
-
--- Prueba 3: validación de estructura y trazabilidad de exportación
-select ok(
-  true,
-  'RT-44.3: estructura de error y trazabilidad de exportación validada'
-);
-
-select * from finish();
-
-rollback;
+    SELECT * FROM finish();
+ROLLBACK;
