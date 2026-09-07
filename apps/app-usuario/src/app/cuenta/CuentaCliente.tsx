@@ -276,7 +276,7 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
         </h3>
         <div className="overflow-hidden rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 shadow-xl divide-y divide-[#1C2A3E]/70">
           <FilaOpcion
-            href="/cuenta/perfil"
+            href="/cuenta/perfil#informacion-personal"
             icono={
               <div className="flex size-9 items-center justify-center rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400">
                 <IconoUsuarioCirculo className="size-5" />
@@ -286,7 +286,7 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
             subtitulo="Datos personales y de identificación"
           />
           <FilaOpcion
-            href="/cuenta/perfil"
+            href="/cuenta/perfil#contacto"
             icono={
               <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                 <IconoTelefonoVerde className="size-5" />
@@ -296,7 +296,7 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
             subtitulo="Correo, teléfono y medios de contacto"
           />
           <FilaOpcion
-            href="/cuenta/perfil"
+            href="/cuenta/vehiculos"
             icono={
               <div className="flex size-9 items-center justify-center rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
                 <IconoPinMorado className="size-5" />
@@ -315,7 +315,7 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
         </h3>
         <div className="overflow-hidden rounded-2xl border border-[#1C2A3E] bg-[#0A1220]/95 shadow-xl divide-y divide-[#1C2A3E]/70">
           <FilaOpcion
-            href="/cuenta/perfil"
+            href="/cuenta/perfil#acceso"
             icono={
               <div className="flex size-9 items-center justify-center rounded-xl bg-[#FFC400]/10 border border-[#FFC400]/20 text-[#FFC400]">
                 <IconoCandadoAmarillo className="size-5" />
@@ -325,7 +325,7 @@ export function CuentaCliente({ usuario }: { usuario: Usuario | null }) {
             subtitulo="Cambia tu contraseña y método de acceso"
           />
           <FilaOpcion
-            href="/cuenta/perfil"
+            href="/cuenta/perfil#seguridad"
             icono={
               <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                 <IconoEscudoVerde className="size-5" />

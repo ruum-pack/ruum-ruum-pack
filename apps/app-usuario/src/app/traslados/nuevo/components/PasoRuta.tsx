@@ -429,23 +429,28 @@ function PasoRutaComponent({
             <div className="flex flex-col gap-1.5">
               <label htmlFor="entregaTelefono" className="font-body text-sm font-medium">Teléfono de contacto para recolección</label>
               <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("entregaTelefono")}`}>
-                <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">+52</span>
+                <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70" aria-hidden="true">+52</span>
                 <input
                   id="entregaTelefono"
                   name="entregaTelefono"
+                  type="tel"
+                  autoComplete="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]{10}"
+                  maxLength={10}
                   value={datos.entregaTelefono}
                   onChange={(e) => actualizarTelefono("entregaTelefono", e.target.value)}
                   onBlur={() => validarCampo("entregaTelefono")}
-                  inputMode="numeric"
-                  maxLength={10}
                   className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
                   placeholder="10 dígitos"
-                  aria-label="Teléfono de entrega (10 dígitos)"
+                  aria-label="Teléfono de entrega, 10 dígitos sin incluir +52"
                   aria-invalid={Boolean(errores.entregaTelefono)}
-                  aria-describedby={errores.entregaTelefono ? "telefono-entrega-error" : undefined}
+                  aria-describedby={errores.entregaTelefono ? "telefono-entrega-error telefono-entrega-ayuda" : "telefono-entrega-ayuda"}
+                  title="10 dígitos, sin espacios ni prefijo"
                 />
               </div>
-              {errores.entregaTelefono && <p id="telefono-entrega-error" className="font-body text-xs text-danger">{errores.entregaTelefono}</p>}
+              <p id="telefono-entrega-ayuda" className="sr-only">Prefijo +52 ya incluido, ingresa solo 10 dígitos.</p>
+              {errores.entregaTelefono && <p id="telefono-entrega-error" className="font-body text-xs text-danger" role="alert">{errores.entregaTelefono}</p>}
             </div>
 
             <p className="mt-2 font-body text-sm font-semibold">Quien recibe el vehículo</p>
@@ -472,23 +477,28 @@ function PasoRutaComponent({
             <div className="flex flex-col gap-1.5">
               <label htmlFor="recepcionTelefono" className="font-body text-sm font-medium">Teléfono de contacto para entrega</label>
               <div className={`flex overflow-hidden rounded-lg border bg-mist ${claseControl("recepcionTelefono")}`}>
-                <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70">+52</span>
+                <span className="flex items-center border-r border-ink/10 px-3.5 font-body text-sm font-semibold text-ink/70" aria-hidden="true">+52</span>
                 <input
                   id="recepcionTelefono"
                   name="recepcionTelefono"
+                  type="tel"
+                  autoComplete="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]{10}"
+                  maxLength={10}
                   value={datos.recepcionTelefono}
                   onChange={(e) => actualizarTelefono("recepcionTelefono", e.target.value)}
                   onBlur={() => validarCampo("recepcionTelefono")}
-                  inputMode="numeric"
-                  maxLength={10}
                   className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-body text-sm text-ink placeholder:text-ink/65 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark"
                   placeholder="10 dígitos"
-                  aria-label="Teléfono de recepción (10 dígitos)"
+                  aria-label="Teléfono de recepción, 10 dígitos sin incluir +52"
                   aria-invalid={Boolean(errores.recepcionTelefono)}
-                  aria-describedby={errores.recepcionTelefono ? "telefono-recepcion-error" : undefined}
+                  aria-describedby={errores.recepcionTelefono ? "telefono-recepcion-error telefono-recepcion-ayuda" : "telefono-recepcion-ayuda"}
+                  title="10 dígitos, sin espacios ni prefijo"
                 />
               </div>
-              {errores.recepcionTelefono && <p id="telefono-recepcion-error" className="font-body text-xs text-danger">{errores.recepcionTelefono}</p>}
+              <p id="telefono-recepcion-ayuda" className="sr-only">Prefijo +52 ya incluido, ingresa solo 10 dígitos.</p>
+              {errores.recepcionTelefono && <p id="telefono-recepcion-error" className="font-body text-xs text-danger" role="alert">{errores.recepcionTelefono}</p>}
             </div>
 
             <label htmlFor="instruccionesEspeciales" className="flex flex-col gap-1.5">

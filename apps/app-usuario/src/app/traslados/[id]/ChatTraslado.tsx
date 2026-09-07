@@ -14,6 +14,8 @@ type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 export function ChatTraslado({ trasladoId, estado }: { trasladoId: string; estado: EstadoTraslado }) {
   const clienteRef = useRef<ReturnType<typeof crearClienteNavegador> | null>(null);
   const { mensajes, errorChat, llamando, errorLlamada, inicializar, actualizar, cargarMensajes, agregarMensaje } = useTrasladoRealtime(trasladoId);
+  const mensajesRef = useRef(mensajes);
+  useEffect(() => { mensajesRef.current = mensajes; }, [mensajes]);
 
   const disponible = chatDisponible(estado);
 
@@ -71,13 +73,65 @@ export function ChatTraslado({ trasladoId, estado }: { trasladoId: string; estad
     };
   }, [actualizar, agregarMensaje, cargarMensajes, disponible, inicializar, trasladoId]);
 
+  // C-06: dedupe optimista cuando llega el real por Realtime (mismo contenido en ventana 10s)
+  useEffect(() => {
+    const pendientes = mensajes.filter((m) => (m as { pendiente?: boolean }).pendiente);
+    if (pendientes.length === 0) return;
+    const noPendientes = mensajes.filter((m) => !(m as { pendiente?: boolean }).pendiente);
+    for (const p of pendientes) {
+      const duplicado = noPendientes.find(
+        (r) => r.contenido === p.contenido && Math.abs(Date.parse(r.enviado_en) - Date.parse(p.enviado_en)) < 10000
+      );
+      if (duplicado) {
+        actualizar({ mensajes: mensajes.filter((m) => m.id !== p.id) });
+        break;
+      }
+    }
+  }, [mensajes, actualizar]);
+
   async function manejarEnvio(contenido: string) {
     if (!tieneSupabaseConfigurado()) {
       actualizar({ errorChat: "Supabase no está configurado. No se puede enviar el mensaje." });
       return;
     }
     if (!clienteRef.current) return;
-    await enviarMensaje(clienteRef.current, trasladoId, contenido);
+    const texto = contenido.trim();
+    if (!texto) return;
+    // C-06: optimistic UI — mostrar mensaje inmediato antes de Realtime
+    const idTemp = `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const mensajeOptimista = {
+      id: idTemp,
+      remitente: "usuario" as const,
+      contenido: texto,
+      enviado_en: new Date().toISOString(),
+      pendiente: true,
+    };
+    agregarMensaje(mensajeOptimista);
+    actualizar({ errorChat: null });
+    try {
+      await enviarMensaje(clienteRef.current, trasladoId, texto);
+      // Éxito: quitar opacidad pendiente en ~800ms si Realtime no dedupeó aún
+      setTimeout(() => {
+        const actual = mensajesRef.current;
+        const idx = actual.findIndex((m) => m.id === idTemp);
+        if (idx >= 0) {
+          const sinPendiente = actual.map((m) => (m.id === idTemp ? { ...m, pendiente: false } : m));
+          actualizar({ mensajes: sinPendiente });
+          // Limpieza final si ya llegó el real duplicado (el efecto dedupe lo quitará)
+          setTimeout(() => {
+            const cur = mensajesRef.current;
+            if (cur.some((m) => m.id === idTemp)) {
+              actualizar({ mensajes: cur.filter((m) => m.id !== idTemp) });
+            }
+          }, 2500);
+        }
+      }, 800);
+    } catch (err) {
+      actualizar({
+        mensajes: mensajesRef.current.filter((m) => m.id !== idTemp),
+        errorChat: err instanceof Error ? err.message : "No pudimos enviar el mensaje. Intenta de nuevo.",
+      });
+    }
   }
 
   async function manejarLlamada() {

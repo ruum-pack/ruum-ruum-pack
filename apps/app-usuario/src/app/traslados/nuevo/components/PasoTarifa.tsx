@@ -60,6 +60,8 @@ function PasoTarifaComponent({
                   name="origenCodigoPostal"
                   type="text"
                   inputMode="numeric"
+                  pattern="[0-9]{5}"
+                  autoComplete="postal-code"
                   maxLength={5}
                   placeholder="Ej. 03100"
                   value={datos.origenCodigoPostal}
@@ -67,10 +69,14 @@ function PasoTarifaComponent({
                   onBlur={() => validarCampo("origenCodigoPostal")}
                   className={`w-full rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark ${claseControl("origenCodigoPostal")}`}
                   aria-invalid={Boolean(errores.origenCodigoPostal)}
-                  aria-describedby={errores.origenCodigoPostal ? "gate-origen-cp-error" : undefined}
+                  aria-busy={cpConsultando === "origen"}
+                  aria-describedby={[
+                    errores.origenCodigoPostal ? "gate-origen-cp-error" : null,
+                    cpConsultando === "origen" ? "gate-origen-cp-buscando" : null,
+                  ].filter(Boolean).join(" ") || undefined}
                 />
                 {cpConsultando === "origen" && (
-                  <span className="absolute right-3 top-2.5 text-xs text-ink/40">Buscando…</span>
+                  <span id="gate-origen-cp-buscando" className="absolute right-3 top-2.5 text-xs text-ink/40" role="status" aria-live="polite">Buscando…</span>
                 )}
               </div>
               {datos.origenCiudad && (
@@ -93,6 +99,8 @@ function PasoTarifaComponent({
                   name="destinoCodigoPostal"
                   type="text"
                   inputMode="numeric"
+                  pattern="[0-9]{5}"
+                  autoComplete="postal-code"
                   maxLength={5}
                   placeholder="Ej. 06600"
                   value={datos.destinoCodigoPostal}
@@ -100,10 +108,14 @@ function PasoTarifaComponent({
                   onBlur={() => validarCampo("destinoCodigoPostal")}
                   className={`w-full rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm text-ink focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-route-dark ${claseControl("destinoCodigoPostal")}`}
                   aria-invalid={Boolean(errores.destinoCodigoPostal)}
-                  aria-describedby={errores.destinoCodigoPostal ? "gate-destino-cp-error" : undefined}
+                  aria-busy={cpConsultando === "destino"}
+                  aria-describedby={[
+                    errores.destinoCodigoPostal ? "gate-destino-cp-error" : null,
+                    cpConsultando === "destino" ? "gate-destino-cp-buscando" : null,
+                  ].filter(Boolean).join(" ") || undefined}
                 />
                 {cpConsultando === "destino" && (
-                  <span className="absolute right-3 top-2.5 text-xs text-ink/40">Buscando…</span>
+                  <span id="gate-destino-cp-buscando" className="absolute right-3 top-2.5 text-xs text-ink/40" role="status" aria-live="polite">Buscando…</span>
                 )}
               </div>
               {datos.destinoCiudad && (
@@ -266,7 +278,7 @@ function PasoTarifaComponent({
                     name="fechaHoraProgramada"
                     type="date"
                     value={datos.fechaHoraProgramada ? datos.fechaHoraProgramada.split("T")[0] : ""}
-                    min={new Date(Date.now() + 2 * 60 * 60 * 1000).toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" })}
+                    min={new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().split("T")[0]}
                     onChange={(e) => {
                       const fecha = e.target.value;
                       const horaActual = datos.fechaHoraProgramada ? (datos.fechaHoraProgramada.split("T")[1]?.slice(0, 5) ?? "09:00") : "09:00";
@@ -276,7 +288,7 @@ function PasoTarifaComponent({
                     onBlur={() => validarCampo("fechaHoraProgramada")}
                     className={`rounded-lg border bg-mist px-3.5 py-2.5 font-body text-sm ${claseControl("fechaHoraProgramada")}`}
                     aria-invalid={Boolean(errores.fechaHoraProgramada)}
-                    aria-describedby={errores.fechaHoraProgramada ? "gate-fecha-error" : undefined}
+                    aria-describedby={errores.fechaHoraProgramada ? "gate-fecha-error" : "gate-fecha-ayuda"}
                   />
                 </label>
 
@@ -346,16 +358,17 @@ function PasoTarifaComponent({
 
               <div className="flex items-center gap-2 rounded-lg border border-route/15 bg-route-soft/50 p-2.5 font-body text-xs text-ink/70">
                 <span aria-hidden="true">🌐</span>
-                <span>Zona horaria: <strong className="text-ink">America/Mexico_City (Centro de México)</strong> · Anticipación mínima de 2 horas.</span>
+                <span>Zona horaria: <strong className="text-ink">{typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "America/Mexico_City"} (hora local del dispositivo)</strong> · Anticipación mínima de 2 horas.</span>
               </div>
+              <p id="gate-fecha-ayuda" className="sr-only">Fecha mínima con 2 horas de anticipación respecto a ahora en tu zona horaria.</p>
               {errores.fechaHoraProgramada && <p id="gate-fecha-error" className="font-body text-xs text-danger">{errores.fechaHoraProgramada}</p>}
             </div>
           )}
         </div>
       </PassportCard>
 
-      {/* Resultado de la Tarifa a pagar */}
-      <section className="app-status-strip px-5 py-5" aria-labelledby="titulo-tarifa-gate">
+      {/* Resultado de la Tarifa a pagar — aria-live para cambios de cálculo */}
+      <section className="app-status-strip px-5 py-5" aria-labelledby="titulo-tarifa-gate" aria-live="polite" aria-atomic="true">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p id="titulo-tarifa-gate" className="font-body text-xs font-semibold uppercase tracking-wide text-ink/45">
@@ -390,14 +403,40 @@ function PasoTarifaComponent({
             )}
           </div>
 
-          <div className="flex flex-col sm:items-end">
+          <div className="flex flex-col gap-2 sm:items-end sm:min-w-[220px]">
             <Button
               type="button"
               disabled={!previsualizacion || previsualizando}
               onClick={onContinuar}
+              aria-describedby={!previsualizacion && !previsualizando ? "tarifa-gate-ayuda" : previsualizacion && !previsualizacion.disponible ? "tarifa-gate-no-disponible-ayuda" : undefined}
+              aria-busy={previsualizando}
             >
               Continuar con mi solicitud
             </Button>
+            {!previsualizando && !previsualizacion && (
+              <div className="w-full sm:text-right">
+                <p id="tarifa-gate-ayuda" className="font-body text-xs leading-4 text-ink/60">
+                  Completa origen, destino, vehículo y fecha para calcular. Si ya completaste todo y no aparece tarifa, puedes continuar igualmente.
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={onContinuar}
+                  className="mt-2 w-full sm:w-auto text-xs"
+                  aria-label="Continuar y solicitar revisión manual de tarifa por operación"
+                >
+                  Solicitar revisión manual
+                </Button>
+                <p className="mt-1 font-body text-[11px] leading-3 text-ink/50 sm:text-right">
+                  Operación confirmará tu tarifa antes de asignar conductor.
+                </p>
+              </div>
+            )}
+            {!previsualizando && previsualizacion && !previsualizacion.disponible && (
+              <p id="tarifa-gate-no-disponible-ayuda" className="max-w-[260px] font-body text-xs leading-4 text-ink/60 sm:text-right">
+                Puedes continuar: nuestro equipo confirmará la tarifa en la siguiente etapa.
+              </p>
+            )}
           </div>
         </div>
       </section>

@@ -52,11 +52,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" dir="ltr" suppressHydrationWarning>
       <head>
         <Script src="/theme-init.js" strategy="beforeInteractive" nonce={nonce} />
       </head>
       <body
+        suppressHydrationWarning
         className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} min-h-screen`}
       >
         <a href="#contenido-principal" className="ruum-skip-link" aria-label="Saltar al contenido principal">
@@ -67,7 +68,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <TextInputUppercaseBridge />
           <TemaProvider>
             <AppStateProvider>
-              <div id="contenido-principal">{children}</div>
+              <div id="contenido-principal" tabIndex={-1} className="outline-none focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[var(--ruum-focus)]">
+                {children}
+              </div>
             </AppStateProvider>
           </TemaProvider>
         </LiveRegionProvider>

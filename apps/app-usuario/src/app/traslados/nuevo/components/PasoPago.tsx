@@ -49,9 +49,9 @@ export const PasoPago = memo(function PasoPago({
         <Aviso tono="info">
           Pago confirmado. Puede tardar unos segundos en reflejarse mientras Stripe termina de procesarlo. Da seguimiento a tu traslado desde “Mis traslados”.
         </Aviso>
-      ) : trasladoCreado.precioCotizado == null ? (
+      ) : trasladoCreado.precioCotizado == null || trasladoCreado.precioCotizado <= 0 ? (
         <Aviso tono="info">
-          No se requiere pago en este momento. Te avisaremos en cuanto exista una cotización autorizada.
+          No se requiere pago en este momento. Te avisaremos en cuanto exista una cotización autorizada. Si ves tarifa $0, nuestro equipo la revisará antes de solicitar cobro.
         </Aviso>
       ) : trasladoCreado.tipoPago === "al_cierre" ? (
         <Aviso tono="info">
@@ -70,7 +70,7 @@ export const PasoPago = memo(function PasoPago({
         <div className="space-y-3">
           <PagoStripe
             trasladoId={trasladoCreado.id}
-            monto={trasladoCreado.precioCotizado ?? 0}
+            monto={trasladoCreado.precioCotizado}
             onPagado={() => setPagoConfirmado(true)}
           />
         </div>

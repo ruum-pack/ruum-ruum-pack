@@ -312,7 +312,7 @@ export function SeccionPerfil({ usuario }: { usuario: Usuario }) {
   return (
     <Seccion titulo="Perfil del usuario" descripcion="Datos visibles y de contacto de la cuenta.">
       <div className="flex flex-col gap-6">
-        <div className="flex items-center gap-4">
+        <div id="informacion-personal" className="flex items-center gap-4 scroll-mt-28">
           {usuario.foto_url ? (
             <Image src={usuario.foto_url} alt="Foto de perfil" width={80} height={80} className="size-20 rounded-full object-cover" />
           ) : (
@@ -328,8 +328,10 @@ export function SeccionPerfil({ usuario }: { usuario: Usuario }) {
             </p>
           </div>
         </div>
-        <PerfilCuentaForm usuario={usuario} />
-        <div className="rounded-lg border border-ink/10 px-4 py-4">
+        <div id="contacto" className="scroll-mt-28">
+          <PerfilCuentaForm usuario={usuario} />
+        </div>
+        <div id="acceso" className="rounded-lg border border-ink/10 px-4 py-4 scroll-mt-28">
           <p className="font-body text-sm font-semibold">Verificación de identidad</p>
           <p className="mt-1 font-body text-sm text-ink/55">Estado actual: {etiquetaVerificacion(usuario.estado_verificacion)}.</p>
           <div className="mt-4">
@@ -338,7 +340,7 @@ export function SeccionPerfil({ usuario }: { usuario: Usuario }) {
             </Link>
           </div>
         </div>
-        <div className="rounded-lg border border-ink/10 px-4 py-4">
+        <div id="seguridad" className="rounded-lg border border-ink/10 px-4 py-4 scroll-mt-28">
           <p className="font-body text-sm font-semibold">Contraseña</p>
           <p className="mt-1 font-body text-sm text-ink/55">
             Te enviaremos un enlace a tu correo para crear una nueva contraseña de forma segura.

@@ -975,27 +975,25 @@ export function useNuevoTraslado() {
     const siguientesErrores = Object.fromEntries(
       Object.entries(todos).filter(([campo]) => {
         if (paso === 0) return CAMPOS_PASO_TARIFA.has(campo as keyof DatosFormulario);
-        if (paso === 1) return esCampoEsencialVehiculo(campo);
+        if (paso === 1) return CAMPOS_PASO_VEHICULO.has(campo as string) || campo === "vehiculoSeleccionadoId";
         if (paso === 2) return CAMPOS_PASO_RUTA.has(campo) || campo === "paradas";
         return pasoDeCampo(campo) === paso;
       })
     ) as ErroresFormulario;
 
-    const detallesFaltantes = paso === 1 ? Object.keys(todos).filter((c) => CAMPOS_PASO_VEHICULO_DETALLE.has(c)).length : 0;
     const totalErrores = Object.keys(siguientesErrores).length;
     setErrores(siguientesErrores);
 
     if (totalErrores) {
-      setErrorPaso(`${totalErrores} ${totalErrores === 1 ? "campo por completar" : "campos por completar"}. Revisa los campos marcados.`);
+      const esDetalleVehiculo = paso === 1 && Object.keys(siguientesErrores).some((c) => CAMPOS_PASO_VEHICULO_DETALLE.has(c));
+      if (esDetalleVehiculo) setDetallesVehiculoExpandido(true);
+      setErrorPaso(`${totalErrores} ${totalErrores === 1 ? "campo por completar" : "campos por completar"}. Revisa los campos marcados${paso === 1 ? " — color, placas, VIN y documentación son obligatorios" : ""}.`);
       if (paso === 2) {
         const primerCampo = Object.keys(siguientesErrores)[0]!;
         if (CAMPOS_RUTA_ORIGEN.has(primerCampo)) setSubpasoRuta("origen");
         else if (CAMPOS_RUTA_DESTINO_CONTACTOS.has(primerCampo)) setSubpasoRuta("destino_contactos");
       }
       enfocarPrimerError(Object.keys(siguientesErrores));
-    } else if (detallesFaltantes > 0 && paso === 1) {
-      setErrorPaso(null);
-      setDetallesVehiculoExpandido(true);
     } else {
       setErrorPaso(null);
     }

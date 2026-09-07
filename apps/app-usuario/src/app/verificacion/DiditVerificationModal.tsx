@@ -177,7 +177,7 @@ export function DiditVerificationModal({
           </button>
         </div>
 
-        {/* R4: descripciones para aria-describedby + aviso previo de permisos sensible */}
+        {/* R4: descripciones para aria-describedby + aviso previo de permisos sensible — C-05: nota visible antes de conceder */}
         <p id="didit-desc" className="sr-only">
           Modal de verificación externa de identidad con Didit. Usa Tab y Shift+Tab para navegar entre controles y Esc para cerrar en cualquier momento.
         </p>
@@ -236,8 +236,8 @@ export function DiditVerificationModal({
                 Abrir en nueva ventana ↗
               </button>
             </div>
-            <div className="px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 text-[11px] leading-4 text-amber-200">
-              Antes de continuar, Didit solicitará acceso a <strong>cámara</strong>, <strong>micrófono</strong> y <strong>ubicación</strong> para la prueba de vida. Solo se usan para esta verificación y puedes revocar el permiso desde el navegador.
+            <div className="px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 text-[11px] leading-4 text-amber-200" role="note" aria-live="polite">
+              Antes de continuar, Didit solicitará acceso a <strong>cámara</strong>, <strong>micrófono</strong> y <strong>ubicación</strong> para la prueba de vida. Solo se usan para esta verificación y puedes revocar el permiso desde el diálogo del navegador. Ningún dato biométrico se comparte con conductores.
             </div>
             <div className="relative h-[460px] sm:h-[520px] w-full bg-black/40">
               <iframe
@@ -245,7 +245,10 @@ export function DiditVerificationModal({
                 src={url}
                 className="w-full h-full border-0"
                 title="Verificación de identidad Didit — iframe externo verify.didit.me"
-                allow="camera; microphone; geolocation; fullscreen; accelerometer; gyroscope; display-capture; autoplay; encrypted-media"
+                allow="camera; microphone; geolocation"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                referrerPolicy="strict-origin"
+                loading="lazy"
                 aria-describedby="didit-permisos-nota"
               />
             </div>

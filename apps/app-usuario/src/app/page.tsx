@@ -16,12 +16,13 @@ interface ContextoSesion {
   usuario: UsuarioRow | null;
   traslados: PasaporteRow[];
   conductorFotoUrl: string | null;
+  error?: string | null;
 }
 
 async function obtenerContextoSesion(): Promise<ContextoSesion> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return { usuario: null, traslados: [], conductorFotoUrl: null };
+  if (!url || !anonKey) return { usuario: null, traslados: [], conductorFotoUrl: null, error: "config_error" };
 
   try {
     const { crearClienteServidor } = await import("../lib/supabase-server");
@@ -51,12 +52,12 @@ async function obtenerContextoSesion(): Promise<ContextoSesion> {
       }
     }
 
-    return { usuario, traslados, conductorFotoUrl };
+    return { usuario, traslados, conductorFotoUrl, error: null };
   } catch (err) {
     console.error("[app-usuario:obtenerContextoSesion] supabase_error", {
       message: err instanceof Error ? err.message : String(err),
     });
-    return { usuario: null, traslados: [], conductorFotoUrl: null };
+    return { usuario: null, traslados: [], conductorFotoUrl: null, error: "supabase_error" };
   }
 }
 
@@ -66,8 +67,50 @@ export default async function PaginaInicio({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = (await searchParams) ?? {};
-  const { usuario, traslados, conductorFotoUrl } = await obtenerContextoSesion();
+  const { usuario, traslados, conductorFotoUrl, error } = await obtenerContextoSesion();
   const forzarLanding = params.landing === "true";
+
+  // C-08: no silenciar error de Supabase — mostrar Aviso en lugar de landing/redirect confuso
+  if (error && !usuario) {
+    const esConfigError = error === "config_error";
+    return (
+      <main className="user-v2-scope user-v2-page">
+        <NavegacionUsuario variante="claro" />
+        <div className="user-v2-content">
+          <div className="user-v2-card p-6 text-center" role="alert" aria-live="assertive">
+            <p className="font-display text-xs font-bold uppercase tracking-widest text-[var(--user-color-error)]">
+              {esConfigError ? "Servicio no configurado" : "No pudimos verificar tu sesión"}
+            </p>
+            <h1 className="mt-2 font-display text-xl font-bold text-[var(--user-color-primary)]">
+              {esConfigError ? "Configuración incompleta" : "Error temporal de conexión"}
+            </h1>
+            <p className="mt-2 font-body text-sm leading-6 text-[var(--user-color-muted)]">
+              {esConfigError
+                ? "Falta configuración de Supabase. Contacta a soporte si ves este mensaje en producción."
+                : "No pudimos cargar tu sesión por un error de red. Tus datos siguen seguros; intenta recargar o inicia sesión de nuevo."}
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Link
+                href="/"
+                className="user-v2-primary-button inline-flex items-center justify-center px-6"
+              >
+                Reintentar
+              </Link>
+              <Link
+                href="/login"
+                className="user-v2-secondary-button inline-flex items-center justify-center px-6"
+              >
+                Ir a iniciar sesión
+              </Link>
+            </div>
+            <p className="mt-4 font-body text-xs text-[var(--user-color-muted)]">
+              Si el problema persiste, <Link href="/soporte" className="underline hover:text-[var(--user-color-primary)]">contacta a soporte</Link>.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   if (usuario && !forzarLanding) {
     return (

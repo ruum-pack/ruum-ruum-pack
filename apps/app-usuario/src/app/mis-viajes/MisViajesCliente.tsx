@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useTransition, useRef } from "react";
 import Link from "next/link";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
@@ -198,6 +198,22 @@ function direccion(valor: string | null | undefined, fallback: string): string {
   return valor?.trim() || fallback;
 }
 
+function SkeletonCard() {
+  return (
+    <div className="user-v2-trip-card animate-pulse" aria-hidden="true">
+      <div className="flex gap-3">
+        <div className="size-11 rounded-full bg-[var(--user-color-border)]" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-24 rounded bg-[var(--user-color-border)]" />
+          <div className="h-3 w-40 rounded bg-[var(--user-color-border)]" />
+        </div>
+      </div>
+      <div className="mt-4 h-16 rounded-xl bg-[var(--user-color-border)]/60" />
+      <div className="mt-4 h-10 rounded-xl bg-[var(--user-color-border)]/60" />
+    </div>
+  );
+}
+
 function FichaVacia({ hayBusqueda, hayFiltro, pestana }: { hayBusqueda: boolean; hayFiltro: boolean; pestana: PestañaViajes }) {
   const titulo = hayBusqueda || hayFiltro ? "No se encontraron traslados" : `Sin traslados ${pestana}`;
   const descripcion = hayBusqueda || hayFiltro
@@ -226,9 +242,25 @@ export function MisViajesCliente({
   pestanaInicial: PestañaViajes;
 }) {
   const [pestana, setPestana] = useState<PestañaViajes>(pestanaInicial);
+  const [busquedaInput, setBusquedaInput] = useState("");
   const [busqueda, setBusqueda] = useState("");
+  const [buscando, setBuscando] = useState(false);
   const [filtroAbierto, setFiltroAbierto] = useState(false);
   const [tipoVehiculoSeleccionado, setTipoVehiculoSeleccionado] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const tablistRef = useRef<HTMLDivElement>(null);
+
+  // C-09: debounce búsqueda 300ms con aria-busy y skeleton
+  useEffect(() => {
+    setBuscando(true);
+    const t = setTimeout(() => {
+      startTransition(() => {
+        setBusqueda(busquedaInput);
+        setBuscando(false);
+      });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [busquedaInput]);
 
   const conteos = useMemo(() => {
     const counts: Record<PestañaViajes, number> = { activos: 0, programados: 0, finalizados: 0, cancelados: 0 };
@@ -261,8 +293,31 @@ export function MisViajesCliente({
   }, [viajes, pestana, busqueda, tipoVehiculoSeleccionado]);
 
   function limpiarFiltros() {
+    setBusquedaInput("");
     setBusqueda("");
     setTipoVehiculoSeleccionado("");
+  }
+
+  function handlePestanaChange(nueva: PestañaViajes) {
+    startTransition(() => setPestana(nueva));
+  }
+
+  function handleTablistKeyDown(e: React.KeyboardEvent) {
+    const tabs = Array.from(tablistRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]') ?? []);
+    const idx = tabs.indexOf(document.activeElement as HTMLButtonElement);
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      tabs[(idx + 1) % tabs.length]?.focus();
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      tabs[(idx - 1 + tabs.length) % tabs.length]?.focus();
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      tabs[0]?.focus();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      tabs[tabs.length - 1]?.focus();
+    }
   }
 
   return (
@@ -280,10 +335,12 @@ export function MisViajesCliente({
             <input
               id="buscar-traslado"
               type="search"
-              value={busqueda}
-              onChange={(event) => setBusqueda(event.target.value)}
+              value={busquedaInput}
+              onChange={(event) => setBusquedaInput(event.target.value)}
               placeholder="Buscar traslado"
               className="user-v2-search-input"
+              aria-busy={buscando}
+              aria-describedby="busqueda-ayuda"
             />
           </label>
           <button
@@ -297,7 +354,10 @@ export function MisViajesCliente({
             <span>Filtrar</span>
           </button>
         </div>
-        <p className="user-v2-caption user-v2-muted px-1">Folio, placa, vehículo, ciudad o conductor</p>
+        <div className="flex items-center gap-2 px-1">
+          <p id="busqueda-ayuda" className="user-v2-caption user-v2-muted">Folio, placa, vehículo, ciudad o conductor</p>
+          {buscando && <span className="inline-flex items-center gap-1 text-xs text-[var(--user-color-muted)]" role="status" aria-live="polite"><span className="size-3 animate-spin rounded-full border-2 border-[var(--user-color-border)] border-t-[var(--user-color-action)]" aria-hidden />Buscando…</span>}
+        </div>
 
         {filtroAbierto && (
           <div id="panel-filtros-traslados" className="user-v2-filter-panel">
@@ -320,7 +380,13 @@ export function MisViajesCliente({
         )}
       </section>
 
-      <section aria-label="Estados de los traslados" className="flex gap-2 overflow-x-auto no-scrollbar py-0.5" role="tablist">
+      <section
+        aria-label="Estados de los traslados"
+        className="flex gap-2 overflow-x-auto no-scrollbar py-0.5"
+        role="tablist"
+        ref={tablistRef}
+        onKeyDown={handleTablistKeyDown}
+      >
         {([
           ["activos", "En curso"],
           ["programados", "Por iniciar"],
@@ -335,7 +401,8 @@ export function MisViajesCliente({
               role="tab"
               aria-selected={activo}
               aria-controls="lista-traslados"
-              onClick={() => setPestana(id)}
+              tabIndex={activo ? 0 : -1}
+              onClick={() => handlePestanaChange(id)}
               className={`user-v2-ghost-button shrink-0 px-4 ${activo ? "border-[var(--user-color-brand)] bg-[var(--user-color-brand-soft)] text-[var(--user-color-brand-dark)]" : ""}`}
             >
               {etiqueta} ({conteos[id]})
@@ -344,8 +411,20 @@ export function MisViajesCliente({
         })}
       </section>
 
-      <section id="lista-traslados" aria-live="polite" className="space-y-4">
-        {filtrados.length === 0 ? (
+      <section
+        id="lista-traslados"
+        aria-live="polite"
+        aria-busy={isPending || buscando}
+        aria-label={`Lista de traslados ${pestana} — ${filtrados.length} resultados`}
+        className="space-y-4"
+      >
+        {(isPending || buscando) ? (
+          <div className="space-y-4" role="status" aria-label="Cargando traslados">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        ) : filtrados.length === 0 ? (
           <FichaVacia hayBusqueda={Boolean(busqueda.trim())} hayFiltro={Boolean(tipoVehiculoSeleccionado)} pestana={pestana} />
         ) : (
           filtrados.map(({ pasaporte, traslado }) => {

@@ -58,7 +58,7 @@ export function tieneStripePublicoConfigurado(): boolean {
 
 export interface PagoStripeProps {
   trasladoId: string;
-  monto?: number;
+  monto?: number | null;
   onPagado: () => void;
 }
 
@@ -110,7 +110,7 @@ async function crearPaymentIntent(trasladoId: string): Promise<string> {
 /**
  * Componente principal de cobro con Stripe Elements conectado a la pasarela real
  */
-export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
+export function PagoStripe({ trasladoId, monto, onPagado }: PagoStripeProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stripeModule, setStripeModule] = useState<any>(null);
@@ -121,6 +121,11 @@ export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
       try {
         setError(null);
         setClientSecret(null);
+
+        if (monto != null && monto <= 0) {
+          setError("Tarifa no válida para pago ($0). Nuestro equipo revisará la cotización antes de solicitar cobro.");
+          return;
+        }
 
         if (!clavePublica) {
           setError("Stripe no está configurado en este entorno. Configura NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.");
@@ -154,7 +159,7 @@ export function PagoStripe({ trasladoId, onPagado }: PagoStripeProps) {
     }
 
     void iniciar();
-  }, [trasladoId, reintento]);
+  }, [trasladoId, reintento, monto]);
 
   if (error) {
     return (

@@ -45,6 +45,8 @@ export const CampoCodigoPostal = memo(function CampoCodigoPostal({
       }))
     : [];
 
+  const consultandoId = id ? `${id}-consultando` : undefined;
+  const avisoId = id ? `${id}-aviso` : undefined;
   return (
     <div className="grid gap-2">
       <Field
@@ -56,9 +58,29 @@ export const CampoCodigoPostal = memo(function CampoCodigoPostal({
         onBlur={(e) => onSalir(e.target.value)}
         inputMode="numeric"
         maxLength={5}
-        ayuda={consultando ? "Consultando CP..." : aviso}
+        pattern="[0-9]{5}"
+        autoComplete="postal-code"
+        aria-busy={consultando}
+        aria-describedby={consultando && consultandoId ? consultandoId : undefined}
+        ayuda={consultando ? "Consultando CP…" : aviso}
         error={error}
       />
+      {/* A-05: live region para consultar CP — visible para lectores, oculta visualmente cuando no está consultando */}
+      <span
+        id={consultandoId}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {consultando ? "Buscando código postal, espera un momento…" : ""}
+      </span>
+      {consultando && (
+        <span className="inline-flex items-center gap-1.5 font-body text-xs text-ink/55" aria-hidden="true">
+          <span className="size-3 animate-spin rounded-full border-2 border-ink/10 border-t-signal" />
+          Buscando…
+        </span>
+      )}
       {(sugerenciasMapbox.length > 0 || sugerencias.length > 0) && (
         <div className="rounded-lg border border-ink/10 bg-mist px-3 py-2">
           {sugerenciasMapbox.length > 0 && (

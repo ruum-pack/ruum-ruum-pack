@@ -17,19 +17,48 @@ const PasoRuta = lazy(() => import("./components/PasoRuta").then((m) => ({ defau
 const PasoDetalles = lazy(() => import("./components/PasoDetalles").then((m) => ({ default: m.PasoDetalles })));
 
 function SkeletonPaso() {
-  return <div className="animate-pulse rounded-xl border border-ink/10 bg-mist p-6 h-64" aria-busy="true" aria-label="Cargando paso" />;
+  return <div role="status" aria-live="polite" aria-busy="true" aria-label="Cargando paso" className="animate-pulse rounded-xl border border-ink/10 bg-mist p-6 h-64" />;
 }
 
 export function NuevoTrasladoForm() {
   const t = useNuevoTraslado();
   const encabezadoPasoRef = useRef<HTMLHeadingElement>(null);
+  const avisoTarifaRef = useRef<HTMLDivElement>(null);
+  const primerCampoRef = useRef<HTMLElement | null>(null);
   const { setPaso, setResultado } = t;
   const volverPasoInicial = useCallback(() => setPaso(0), [setPaso]);
   const cerrarResultado = useCallback(() => setResultado(null), [setResultado]);
 
+  // A-01 + C-02: focus visible al primer campo del paso, no al h2 sr-only. Anuncia paso via live region separada.
   useEffect(() => {
-    encabezadoPasoRef.current?.focus();
+    // Intenta enfocar primer input/select/textarea del paso actual para mover viewport y anunciar
+    const container = document.querySelector("[data-paso-actual]");
+    const primerCampo = container?.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])");
+    if (primerCampo) {
+      primerCampo.focus({ preventScroll: false });
+      primerCampoRef.current = primerCampo;
+    } else {
+      encabezadoPasoRef.current?.focus();
+    }
   }, [t.paso]);
+
+  // C-02: cuando la tarifa se invalida en pasos >0, hacer scroll y foco al aviso para desbloquear al usuario
+  useEffect(() => {
+    if (!t.tarifaPreviaAceptada && t.tarifaPreviaSnapshot && t.paso > 0) {
+      // microtask para esperar render del aviso
+      const id = setTimeout(() => {
+        const el = avisoTarifaRef.current ?? document.getElementById("aviso-tarifa-desactualizada") ?? document.getElementById("aviso-tarifa-invalida-detalles");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          // enfocar el botón dentro del aviso
+          const btn = el.querySelector<HTMLButtonElement>("button");
+          if (btn) btn.focus();
+          else (el as HTMLElement).focus();
+        }
+      }, 100);
+      return () => clearTimeout(id);
+    }
+  }, [t.tarifaPreviaAceptada, t.tarifaPreviaSnapshot, t.paso]);
 
   if (t.resultado) {
     return <EstadoCreacion resultado={t.resultado} volver={cerrarResultado} />;
@@ -97,7 +126,7 @@ export function NuevoTrasladoForm() {
         </div>
 
 
-        <div className="mt-4 p-3.5 rounded-xl border border-[#FFC400]/30 bg-[#FFC400]/5 flex items-center justify-between gap-3">
+        <aside aria-label="Acceso a carga masiva para múltiples traslados" className="mt-4 p-3.5 rounded-xl border border-[#FFC400]/30 bg-[#FFC400]/5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 text-xs">
             <span className="text-lg" aria-hidden="true">📁</span>
             <div>
@@ -107,11 +136,12 @@ export function NuevoTrasladoForm() {
           </div>
           <Link
             href="/traslados/masivo"
-            className="text-xs font-bold text-[#FFC400] hover:text-[#e6b000] whitespace-nowrap underline transition"
+            aria-label="Ir a carga masiva CSV, hasta 100 traslados"
+            className="text-xs font-bold text-[#FFC400] hover:text-[#e6b000] whitespace-nowrap underline transition focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
           >
             Carga masiva CSV →
           </Link>
-        </div>
+        </aside>
 
         {/* Slim sticky progress visible en móvil al hacer scroll */}
         <div className="sticky top-0 z-10 -mx-4 mt-4 h-1 bg-surface-elevated sm:hidden" aria-hidden>
@@ -180,32 +210,46 @@ export function NuevoTrasladoForm() {
           </ol>
         </div>
 
-        {/* Aviso de tarifa desactualizada si se editó algún campo relevante */}
+        {/* Aviso de tarifa desactualizada si se editó algún campo relevante — C-02: scroll+foco automático */}
         {!t.tarifaPreviaAceptada && t.tarifaPreviaSnapshot && t.paso > 0 && (
-          <div className="mt-4" role="status" aria-live="polite">
+          <div
+            id="aviso-tarifa-desactualizada"
+            ref={avisoTarifaRef as unknown as React.RefObject<HTMLDivElement>}
+            tabIndex={-1}
+            className="mt-4 scroll-mt-28 rounded-xl focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action"
+            role="alert"
+            aria-live="assertive"
+          >
             <Aviso tono="atencion">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <span>Tu tarifa puede haber cambiado. Confírmala antes de continuar.</span>
-                <Button type="button" variant="secondary" onClick={volverPasoInicial}>
+                <Button type="button" variant="secondary" onClick={volverPasoInicial} aria-describedby="aviso-tarifa-ayuda">
                   Confirmar tarifa
                 </Button>
               </div>
+              <p id="aviso-tarifa-ayuda" className="mt-2 font-body text-xs text-ink/70">
+                Te llevamos al paso 1 para recalcular la tarifa con los datos actualizados. No perderás el resto del formulario.
+              </p>
             </Aviso>
           </div>
         )}
 
-        {/* Anuncio de paso actual para lectores de pantalla + gestión de foco */}
+        {/* Anuncio de paso actual para lectores de pantalla */}
         <h2
           ref={encabezadoPasoRef}
           tabIndex={-1}
           className="sr-only"
           aria-live="polite"
+          aria-atomic="true"
         >
           Paso {t.paso + 1} de {PASOS.length}: {PASOS[t.paso]}
         </h2>
+        <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {`Paso ${t.paso + 1} de ${PASOS.length}: ${PASOS[t.paso]}`}
+        </p>
 
         {/* Pasos */}
-        <div className="mt-6">
+        <div className="mt-6" data-paso-actual={t.paso}>
           {t.paso === 0 && (
             <PasoTarifa
               datos={t.datos}

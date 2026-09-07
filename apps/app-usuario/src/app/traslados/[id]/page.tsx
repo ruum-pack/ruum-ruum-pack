@@ -25,6 +25,7 @@ import { ExportarPasaportePdf } from "./ExportarPasaportePdf";
 import { AceptarCotizacion } from "./AceptarCotizacion";
 import { PagoRecuperable } from "./PagoRecuperable";
 import { PagoTraslado } from "./PagoTraslado";
+import { AccionesRapidasPasaporte } from "./AccionesRapidasPasaporte";
 
 import { NavegacionUsuario } from "../../NavegacionUsuario";
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -502,44 +503,6 @@ function AcordeonPasaporte({
       </summary>
       <div className="border-t border-ink/10 px-5 py-5 sm:px-6">{children}</div>
     </details>
-  );
-}
-
-function AccionesRapidasPasaporte({ trasladoId, estado }: { trasladoId: string; estado: EstadoTraslado }) {
-  const enCurso = ["conductor_asignado","conductor_en_camino_al_origen","conductor_en_punto_de_recoleccion","traslado_en_curso","llegada_a_destino"].includes(estado);
-  const primario = estado === "cotizacion_generada"
-    ? { href: "#pago-soporte", label: "Aceptar cotización", clase: "bg-signal text-ink border-signal hover:bg-signal/90" }
-    : estado === "cotizacion_aceptada"
-    ? { href: "#pago-soporte", label: "Pagar traslado", clase: "bg-signal text-ink border-signal hover:bg-signal/90" }
-    : estado === "pago_pendiente"
-    ? { href: "#pago-soporte", label: "Completar pago", clase: "bg-signal text-ink border-signal hover:bg-signal/90" }
-    : enCurso 
-    ? { href: "#chat-conductor", label: "Chatear con conductor", clase: "bg-signal text-ink border-signal hover:bg-signal/90" }
-    : { href: "#acciones-incidencia", label: "Reportar incidencia", clase: "bg-surface-elevated border-border text-text-primary hover:border-signal/40" };
-  
-  // Solo mostrar 1 CTA primario contextual + menú de más opciones
-  return (
-    <nav aria-label="Acciones rápidas del traslado" className="sticky top-0 z-30 mt-4 rounded-[var(--ruum-radius-modal)] border border-border bg-surface/95 p-2 shadow-3 backdrop-blur">
-      <div className="flex gap-2">
-        {/* CTA Primario - siempre visible */}
-        <a 
-          href={primario.href} 
-          className={`flex-1 inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border px-3 text-center font-body text-xs font-bold transition focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${primario.clase}`}
-        >
-          {primario.label}
-        </a>
-        
-        {/* Menú de acciones secundarias */}
-        <div className="relative">
-          <button 
-            type="button"
-            className="inline-flex min-h-11 items-center justify-center rounded-[var(--ruum-radius-field)] border border-border bg-surface-elevated px-3 text-center font-body text-xs font-bold text-text-secondary hover:border-border-strong transition"
-          >
-            Más
-          </button>
-        </div>
-      </div>
-    </nav>
   );
 }
 

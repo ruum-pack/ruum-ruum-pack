@@ -25,9 +25,9 @@ function tarjetaVehiculo(traslado: PasaporteRow): string {
   return partes.length > 0 ? partes.join(" ") : "Vehículo";
 }
 
-function primerNombre(nombre: string | null | undefined): string {
+function primerNombre(nombre: string | null | undefined): string | null {
   const valor = nombre?.trim().split(/\s+/)[0];
-  if (!valor) return "Luis";
+  if (!valor) return null;
   return valor.charAt(0).toUpperCase() + valor.slice(1).toLowerCase();
 }
 
@@ -80,6 +80,7 @@ function IconoChevron({ className = "size-5" }: { className?: string }) {
 export function InicioUsuario({ usuario, traslados, conductorFotoUrl = null }: InicioUsuarioProps) {
   const viajeActivo = obtenerViajeActivo(traslados);
   const nombre = primerNombre(usuario?.nombre);
+  const saludo = nombre ? `Hola, ${nombre}` : "Hola";
   const conductorAsignado = viajeActivo?.traslado_id && viajeActivo.conductor_id && viajeActivo.conductor_nombre && viajeActivo.estado
     ? {
         trasladoId: viajeActivo.traslado_id,
@@ -91,7 +92,7 @@ export function InicioUsuario({ usuario, traslados, conductorFotoUrl = null }: I
   return (
     <div className="user-v2-screen">
       <section id="greetingBlock" aria-labelledby="saludo-usuario">
-        <h1 id="saludo-usuario" className="user-v2-heading-1">Hola, {nombre}</h1>
+        <h1 id="saludo-usuario" className="user-v2-heading-1">{saludo}</h1>
         <p className="user-v2-body user-v2-muted mt-1">Gestiona tus traslados fácilmente.</p>
       </section>
 

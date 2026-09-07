@@ -273,7 +273,7 @@ function PasoDetallesComponent({
       </label>
 
       {!tarifaPreviaAceptada && (
-        <div role="alert" aria-live="assertive">
+        <div id="aviso-tarifa-invalida-detalles" role="alert" aria-live="assertive" tabIndex={-1} className="scroll-mt-28 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action rounded-xl">
           <Aviso tono="danger">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -291,7 +291,8 @@ function PasoDetallesComponent({
       )}
 
       <section
-        className="sticky bottom-4 z-20 rounded-[var(--ruum-radius-modal)] border border-ink/15 bg-mist px-5 py-5 shadow-3"
+        id="sticky-tarifa-paso-detalles"
+        className="sticky bottom-4 z-20 rounded-[var(--ruum-radius-modal)] border border-ink/15 bg-mist px-5 py-5 shadow-3 scroll-mt-28"
         aria-labelledby="titulo-tarifa-flotante"
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -319,29 +320,44 @@ function PasoDetallesComponent({
             </p>
           </div>
           <div className="flex flex-col items-stretch gap-2 sm:w-48">
-            <Button
-              onClick={enviarSolicitud}
-              disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion || !tarifaPreviaAceptada}
-              aria-disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion || !tarifaPreviaAceptada}
-              aria-describedby={!aceptaPoliticasPagoCancelacion ? "confirmar-solicitud-ayuda" : !tarifaPreviaAceptada ? "tarifa-invalida-ayuda" : undefined}
-            >
-              {enviando
-                ? TEXTOS_CARGANDO.enviando
-                : cargandoSesion
-                  ? "Validando sesión…"
-                  : previsualizacion?.disponible && momentoPago.momento === "anticipado"
-                    ? "Confirmar y pagar"
-                    : "Confirmar solicitud"}
-            </Button>
             {!tarifaPreviaAceptada ? (
-              <p id="tarifa-invalida-ayuda" className="font-body text-xs leading-5 text-danger font-medium">
-                Confirma la tarifa en el paso inicial para proceder.
-              </p>
-            ) : !aceptaPoliticasPagoCancelacion ? (
-              <p id="confirmar-solicitud-ayuda" className="font-body text-xs leading-5 text-ink/65">
-                Acepta la política arriba para continuar.
-              </p>
-            ) : null}
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={onRevisarTarifa}
+                  aria-describedby="tarifa-invalida-ayuda"
+                  className="border-signal bg-signal/10 text-ink hover:bg-signal/20"
+                >
+                  Revisar tarifa
+                </Button>
+                <p id="tarifa-invalida-ayuda" className="font-body text-xs leading-5 text-danger font-medium">
+                  Tu tarifa cambió. Revísala en el paso 1 antes de confirmar.
+                </p>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={enviarSolicitud}
+                  disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}
+                  aria-disabled={enviando || cargandoSesion || !aceptaPoliticasPagoCancelacion}
+                  aria-describedby={!aceptaPoliticasPagoCancelacion ? "confirmar-solicitud-ayuda" : undefined}
+                >
+                  {enviando
+                    ? TEXTOS_CARGANDO.enviando
+                    : cargandoSesion
+                      ? "Validando sesión…"
+                      : previsualizacion?.disponible && momentoPago.momento === "anticipado"
+                        ? "Confirmar y pagar"
+                        : "Confirmar solicitud"}
+                </Button>
+                {!aceptaPoliticasPagoCancelacion ? (
+                  <p id="confirmar-solicitud-ayuda" className="font-body text-xs leading-5 text-ink/65">
+                    Acepta la política arriba para continuar.
+                  </p>
+                ) : null}
+              </>
+            )}
             <p className="text-center font-body text-xs leading-4 text-ink/40">Visa · Mastercard · Amex · SPEI · 3-D Secure</p>
            </div>
          </div>

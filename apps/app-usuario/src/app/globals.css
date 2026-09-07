@@ -619,6 +619,7 @@ summary:focus-visible {
   border-color: var(--user-color-brand);
 }
 
+.user-v2-secondary-screen [class*="text-white"],
 .user-v2-secondary-screen [class~="text-white"],
 .user-v2-secondary-screen [class*="text-[#F8F8F5]"] {
   color: var(--user-color-primary);
@@ -627,7 +628,10 @@ summary:focus-visible {
 .user-v2-secondary-screen [class*="text-[#8E9CAE]"],
 .user-v2-secondary-screen [class*="text-[#94A3B8]"],
 .user-v2-secondary-screen [class*="text-[#94a3b8]"],
-.user-v2-secondary-screen [class*="text-[#64748B]"] {
+.user-v2-secondary-screen [class*="text-[#64748B]"],
+.user-v2-secondary-screen [class*="text-[#B7C2D4]"],
+.user-v2-secondary-screen [class*="text-[#8B98AD]"],
+.user-v2-secondary-screen [class*="text-[#5F6368]"] {
   color: var(--user-color-muted);
 }
 
@@ -638,6 +642,19 @@ summary:focus-visible {
 .user-v2-secondary-screen [class*="text-[#0B111B]"],
 .user-v2-secondary-screen [class*="text-[#151515]"] {
   color: var(--user-color-primary);
+}
+
+/* A-06: cobertura completa para fondos oscuros legacy que puedan colarse en secondary-screen vía navegación cliente */
+.user-v2-secondary-screen [class*="bg-[#151515]"],
+.user-v2-secondary-screen [class*="bg-[#121721]"],
+.user-v2-secondary-screen [class*="bg-[#151b26]"],
+.user-v2-secondary-screen [class*="bg-[#0d1117]"],
+.user-v2-secondary-screen [class*="bg-black"] {
+  background-color: var(--user-color-surface) !important;
+}
+.user-v2-secondary-screen [class*="border-white/10"],
+.user-v2-secondary-screen [class*="border-white/"] {
+  border-color: var(--user-color-border) !important;
 }
 
 /* Compatibilidad acotada para las pantallas públicas de autenticación que

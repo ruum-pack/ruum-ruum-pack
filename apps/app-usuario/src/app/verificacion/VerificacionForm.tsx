@@ -17,8 +17,8 @@ import {
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 import { DiditVerificationModal } from "./DiditVerificationModal";
 
-const TIPOS_ACEPTADOS = ["image/jpeg", "image/png", "application/pdf"];
-const EXTENSIONES_ACEPTADAS = [".jpg", ".jpeg", ".png", ".pdf"];
+const TIPOS_ACEPTADOS = ["image/jpeg", "image/png", "application/pdf", "image/heic", "image/heif"];
+const EXTENSIONES_ACEPTADAS = [".jpg", ".jpeg", ".png", ".pdf", ".heic", ".heif"];
 const TAMANO_MAXIMO_MB = 10;
 const TAMANO_MAXIMO_RETRATO_DIDIT_MB = 2;
 
@@ -259,19 +259,64 @@ export function VerificacionForm({ fotoPerfilInicial, soloDidit = false }: Verif
       setErrorDidit("Selecciona una fotografía en formato JPG, PNG o WEBP.");
       return;
     }
+    // A-12: si supera 2 MB, intentar compresión cliente antes de rechazar; si falla, guiar
+    let archivoAEnviar = archivo;
     if (archivo.size > TAMANO_MAXIMO_RETRATO_DIDIT_MB * 1024 * 1024) {
-      setErrorDidit(`La fotografía de referencia debe pesar máximo ${TAMANO_MAXIMO_RETRATO_DIDIT_MB} MB.`);
-      return;
+      const sizeMB = (archivo.size / 1024 / 1024).toFixed(1);
+      // Intentar compresión vía canvas para imágenes grandes (evita obligar al usuario a buscar herramienta externa)
+      try {
+        const comprimido = await comprimirImagenCliente(archivo, TAMANO_MAXIMO_RETRATO_DIDIT_MB);
+        if (comprimido && comprimido.size <= TAMANO_MAXIMO_RETRATO_DIDIT_MB * 1024 * 1024) {
+          archivoAEnviar = comprimido;
+        } else {
+          setErrorDidit(
+            `La foto pesa ${sizeMB} MB y supera el límite de ${TAMANO_MAXIMO_RETRATO_DIDIT_MB} MB. Se intentó comprimir sin éxito. Prueba: envía la foto por WhatsApp a ti mismo y descárgala (se comprime a JPG), o usa tinypng.com / fotos.google.com para reducirla, o toma la foto con resolución menor.`
+          );
+          return;
+        }
+      } catch {
+        setErrorDidit(
+          `La foto pesa ${sizeMB} MB y supera ${TAMANO_MAXIMO_RETRATO_DIDIT_MB} MB. Comprime la imagen antes de subirla: en iPhone Fotos > Compartir > Guardar en Archivos reduce calidad, o usa tinypng.com.`
+        );
+        return;
+      }
     }
 
     setSubiendoFotoPerfil(true);
     try {
-      const url = await subirFotoPerfil(crearClienteNavegador(), archivo);
+      const url = await subirFotoPerfil(crearClienteNavegador(), archivoAEnviar);
       setFotoPerfilUrl(url);
     } catch (err) {
       setErrorDidit(err instanceof Error ? err.message : "No pudimos guardar tu fotografía de perfil.");
     } finally {
       setSubiendoFotoPerfil(false);
+    }
+  }
+
+  async function comprimirImagenCliente(archivo: File, maxMB: number): Promise<File | null> {
+    // Solo imágenes
+    if (!archivo.type.startsWith("image/")) return null;
+    try {
+      const bitmap = await createImageBitmap(archivo);
+      const maxDim = 1024;
+      let { width, height } = bitmap;
+      if (width > maxDim || height > maxDim) {
+        const ratio = Math.min(maxDim / width, maxDim / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+      ctx.drawImage(bitmap, 0, 0, width, height);
+      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.72));
+      if (!blob) return null;
+      if (blob.size > maxMB * 1024 * 1024) return null;
+      return new File([blob], archivo.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+    } catch {
+      return null;
     }
   }
 
@@ -360,27 +405,35 @@ export function VerificacionForm({ fotoPerfilInicial, soloDidit = false }: Verif
     const formatoSoportado =
       TIPOS_ACEPTADOS.includes(archivo.type) || EXTENSIONES_ACEPTADAS.includes(extension);
 
+    // C-04: HEIC — no borrar selección; conservar archivo y ofrecer guía de conversión. iOS 17+ default HEIC.
     if (esHeic) {
-      setDocumento(null);
+      setDocumento(archivo);
       setDocAviso(
-        "Este archivo está en formato HEIC/HEIF. En tu iPhone cambia a Ajustes › Cámara › Formatos › Más compatible y toma la foto nuevamente. También puedes convertirla a JPG o PDF."
+        "Detectamos formato HEIC (iPhone). Lo conservamos para que no pierdas la selección, pero para máxima compatibilidad conviértelo a JPG: en iPhone ve a Ajustes › Cámara › Formatos › Más compatible y vuelve a tomar la foto, o usa un conversor a JPG/PDF. Puedes intentar enviarlo; si el servidor lo rechaza, conviértelo e intenta de nuevo."
       );
-      e.target.value = "";
+      // No limpiar e.target.value para no perder archivo si el usuario decide reintentar tras convertir
       return;
     }
     if (!formatoSoportado) {
       setDocumento(null);
-      setDocAviso("Formato no soportado. Selecciona un archivo JPG, PNG o PDF.");
+      setDocAviso("Formato no soportado. Selecciona un archivo JPG, PNG, PDF o HEIC (recomendado JPG).");
       e.target.value = "";
       return;
     }
     if (archivo.size > TAMANO_MAXIMO_MB * 1024 * 1024) {
       setDocumento(null);
-      setDocAviso(`Archivo muy grande. Comprime el archivo hasta que pese máximo ${TAMANO_MAXIMO_MB} MB.`);
+      setDocAviso(`Archivo muy grande (${(archivo.size / 1024 / 1024).toFixed(1)} MB). Comprime o reduce la resolución hasta máximo ${TAMANO_MAXIMO_MB} MB. En iPhone, envía la foto por WhatsApp a ti mismo y descárgala — se comprime a JPG.`);
       e.target.value = "";
       return;
     }
-    setDocAviso(null);
+    // Advertencia para HEIC que llegó por tipo genérico pero con extensión permitida extendida
+    if (esHeic) {
+      setDocAviso(
+        "Archivo HEIC conservado. Si el envío falla, conviértelo a JPG antes de reintentar."
+      );
+    } else {
+      setDocAviso(null);
+    }
     setDocumento(archivo);
   }
 
@@ -510,7 +563,7 @@ export function VerificacionForm({ fotoPerfilInicial, soloDidit = false }: Verif
                 className="w-full rounded-lg border border-amber-900/20 bg-white/70 px-3 py-2 font-body text-xs text-ink file:mr-3 file:rounded-md file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-mist"
               />
               <span className="font-body text-[11px] text-amber-900/75">
-                {subiendoFotoPerfil ? "Guardando fotografía…" : "Máximo 2 MB. Se usa únicamente como referencia de identidad."}
+                {subiendoFotoPerfil ? "Guardando fotografía…" : "Máximo 2 MB. Si tu foto pesa más, la comprimimos automáticamente o puedes usar tinypng.com."}
               </span>
             </label>
           </div>
@@ -689,7 +742,7 @@ export function VerificacionForm({ fotoPerfilInicial, soloDidit = false }: Verif
               INE, pasaporte vigente o licencia de conducir.
             </p>
             <p className="font-body text-xs font-medium text-ink/70">
-              Formatos aceptados: JPG, PNG y PDF. Tamaño máximo: {TAMANO_MAXIMO_MB} MB.
+              Formatos aceptados: JPG, PNG, PDF y HEIC (iPhone — se recomienda convertir a JPG). Tamaño máximo: {TAMANO_MAXIMO_MB} MB.
             </p>
 
             <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ink/15 px-4 py-6 transition hover:border-route/40 hover:bg-mist">
@@ -736,16 +789,19 @@ export function VerificacionForm({ fotoPerfilInicial, soloDidit = false }: Verif
                 </>
               )}
               <input
+                id="input-documento-identidad"
                 type="file"
                 accept={[...TIPOS_ACEPTADOS, ...EXTENSIONES_ACEPTADAS].join(",")}
                 onChange={manejarDocumento}
                 disabled={enviando}
                 className="sr-only"
                 aria-label="Subir identificación oficial"
+                aria-describedby={docAviso ? "doc-aviso" : undefined}
+                aria-invalid={Boolean(docAviso && !documento)}
               />
             </label>
             {docAviso && (
-              <p className="font-body text-xs text-red-600" role="alert" aria-live="assertive">
+              <p id="doc-aviso" className="font-body text-xs text-red-600" role="alert" aria-live="assertive">
                 {docAviso}
               </p>
             )}

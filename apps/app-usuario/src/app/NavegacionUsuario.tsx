@@ -85,25 +85,15 @@ export function NavegacionUsuario({ variante = "oscuro" }: { variante?: Variante
       >
         <div className={esClaro ? "user-v2-shell-inner" : "mx-auto flex w-full max-w-[430px] items-center justify-between px-4 py-3"}>
           <Link href="/" className="group flex select-none items-center gap-2.5" aria-label="Ir al inicio de Ruum Ruum">
-            {esClaro ? (
-              <Image
-                src="/imagenes/ruum-logo-header.png"
-                alt="Ruum Ruum"
-                width={1195}
-                height={389}
-                priority
-                className="user-v2-header-logo"
-              />
-            ) : (
-              <Image
-                src="/imagenes/ruum-logo-header.png"
-                alt="Ruum Ruum"
-                width={1195}
-                height={389}
-                priority
-                className="h-10 w-auto max-w-[52vw] object-contain"
-              />
-            )}
+            <Image
+              src="/imagenes/ruum-logo-header.png"
+              alt="Ruum Ruum"
+              width={1195}
+              height={389}
+              priority
+              sizes="(max-width: 430px) 52vw, 220px"
+              className={esClaro ? "user-v2-header-logo" : "h-10 w-auto max-w-[52vw] object-contain"}
+            />
           </Link>
 
           <div className="flex items-center gap-2">

@@ -118,7 +118,7 @@ function PasoVehiculoComponent({
                 </div>
               </div>
 
-              <label className="flex flex-col gap-1.5">
+              <label htmlFor="transmision" className="flex flex-col gap-1.5">
                 <span className="font-body text-sm font-medium">Transmisión</span>
                 <select
                   id="transmision"
@@ -143,6 +143,9 @@ function PasoVehiculoComponent({
                   name="marca"
                   id="marca"
                   list="catalogo-marcas-vehiculos"
+                  aria-autocomplete="list"
+                  aria-controls="catalogo-marcas-vehiculos"
+                  autoComplete="off"
                   value={datos.marca}
                   onChange={(e) => actualizarMarcaCatalogo(e.target.value)}
                   onBlur={() => validarCampo("marca")}
@@ -160,10 +163,14 @@ function PasoVehiculoComponent({
                   name="modelo"
                   id="modelo"
                   list="catalogo-modelos-vehiculos"
+                  aria-autocomplete="list"
+                  aria-controls="catalogo-modelos-vehiculos"
+                  autoComplete="off"
                   value={datos.modelo}
                   onChange={(e) => actualizarModeloCatalogo(e.target.value)}
                   onBlur={() => validarCampo("modelo")}
                   disabled={!datos.marca.trim()}
+                  aria-disabled={!datos.marca.trim()}
                   error={errores.modelo}
                   ayuda={clasificacionCatalogo
                     ? `Clasificación del catálogo: ${clasificacionCatalogo}. El tipo de vehículo se prellenó automáticamente.`
@@ -176,7 +183,7 @@ function PasoVehiculoComponent({
                 </datalist>
               </div>
 
-              <label className="flex flex-col gap-1.5">
+              <label htmlFor="condicion" className="flex flex-col gap-1.5">
                 <span className="font-body text-sm font-medium">Condición</span>
                 <select
                   id="condicion"
@@ -257,15 +264,16 @@ function PasoVehiculoComponent({
                 type="button"
                 onClick={() => setDetallesVehiculoExpandido((v) => !v)}
                 aria-expanded={detallesVehiculoExpandido}
+                aria-controls="vehiculo-detalles-expandibles"
                 className="flex w-full items-center justify-between rounded-lg border border-ink/10 bg-mist px-3.5 py-3 font-body text-sm font-semibold text-ink transition hover:border-signal/30"
               >
                 <span>Detalles del vehículo {detallesVehiculoExpandido ? "▲" : "▼"}</span>
-                <span className="font-body text-xs font-normal text-ink/55">{detallesVehiculoExpandido ? "Ocultar" : "Completar después (color, placas, VIN…)"}</span>
+                <span className="font-body text-xs font-normal text-ink/55">{detallesVehiculoExpandido ? "Ocultar" : "Requerido antes de confirmar (color, placas, VIN…)"}</span>
               </button>
 
               {detallesVehiculoExpandido && (
-                <div className="grid gap-4 animate-fade-in">
-                  <Field etiqueta="Color" name="color" id="color" value={datos.color} onChange={(e) => actualizar("color", e.target.value)} onBlur={() => validarCampo("color")} error={errores.color} />
+                <div id="vehiculo-detalles-expandibles" className="grid gap-4 animate-fade-in">
+                  <Field etiqueta="Color" name="color" id="color" value={datos.color} onChange={(e) => actualizar("color", e.target.value)} onBlur={() => validarCampo("color")} error={errores.color} required />
                   <Field
                     etiqueta="Placas"
                     name="placas"
@@ -276,6 +284,7 @@ function PasoVehiculoComponent({
                     error={errores.placas}
                     autoCapitalize="characters"
                     autoCorrect="off"
+                    required
                   />
                   <Field
                     etiqueta="Número de serie / VIN"
@@ -287,9 +296,10 @@ function PasoVehiculoComponent({
                     error={errores.vin}
                     autoCapitalize="characters"
                     autoCorrect="off"
-                    ayuda="17 caracteres. Si no lo tienes a mano, podrás agregarlo antes de la recolección."
+                    ayuda="17 caracteres. Obligatorio para confirmar traslado."
+                    required
                   />
-                  <label className="flex flex-col gap-1.5">
+                  <label htmlFor="estadoGeneral" className="flex flex-col gap-1.5">
                     <span className="font-body text-sm font-medium">Estado general declarado</span>
                     <select
                       id="estadoGeneral"
@@ -351,8 +361,8 @@ function PasoVehiculoComponent({
               )}
 
               {!detallesVehiculoExpandido && (
-                <p className="rounded-lg border border-dashed border-ink/15 bg-ink/[0.02] px-3 py-2 font-body text-xs leading-5 text-ink/55">
-                  Completarás color, placas, VIN y documentación antes de confirmar. Puedes avanzar y volver después.
+                <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 font-body text-xs leading-5 text-amber-800">
+                  <strong>Requerido antes de confirmar:</strong> color, placas, VIN, estado general y documentación. Puedes avanzar y volver, pero la solicitud no se enviará sin estos datos. Se validarán al intentar confirmar.
                 </p>
               )}
             </div>
