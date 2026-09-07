@@ -83,6 +83,7 @@ test('traslados masivos usa orden operativa simple y enriquecimiento automatico'
 });
 test('didit separa inicio con CORS y webhook firmado',()=>{
   const iniciar=read('supabase/functions/iniciar-verificacion-didit/index.ts');
+  const diditSession=read('supabase/functions/_shared/didit-session.ts');
   const webhook=read('supabase/functions/webhook-didit/index.ts');
   const conductores=read('packages/api/src/services/conductores.ts');
   const nextConfigConductor=read('apps/app-conductor/next.config.ts');
@@ -91,7 +92,9 @@ test('didit separa inicio con CORS y webhook firmado',()=>{
   assert.match(conductores,/functions\.invoke\("iniciar-verificacion-didit"/);
   assert.match(iniciar,/Access-Control-Allow-Origin/);
   assert.match(iniciar,/req\.method === "OPTIONS"/);
-  assert.match(iniciar,/verification\.didit\.me\/v3\/session/);
+  assert.match(iniciar,/urlSesionDidit\(\)/);
+  assert.match(diditSession,/DIDIT_SESSION_PATH = "\/v3\/session\/"/);
+  assert.match(diditSession,/https:\/\/verification\.didit\.me\$\{DIDIT_SESSION_PATH\}/);
   assert.match(iniciar,/DIDIT_CALLBACK_URL/);
   assert.doesNotMatch(iniciar,/DIDIT_WEBHOOK_SECRET|firmaValida|aprobar_solicitud_conductor_sistema/);
   assert.match(webhook,/DIDIT_WEBHOOK_SECRET/);
