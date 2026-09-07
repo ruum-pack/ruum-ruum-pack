@@ -112,6 +112,7 @@ async function assertEssentialTextNotClipped(page: Page) {
       .filter((element) => {
         const text = element.textContent?.trim();
         if (!text) return false;
+        if (element.classList.contains("sr-only")) return false;
         const styles = window.getComputedStyle(element);
         if (styles.overflow === "visible") return false;
         return element.scrollWidth > element.clientWidth + 2 || element.scrollHeight > element.clientHeight + 2;

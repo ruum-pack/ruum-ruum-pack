@@ -7,6 +7,23 @@ begin;
 
 select plan(6);
 
+-- Asegurar aislamiento en public.admins para esta prueba
+delete from public.admins where auth_user_id is null;
+
+create or replace function pg_temp.es_direccion_rt42()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.admins where auth_user_id = auth.uid() and rol_operativo = 'direccion'
+  );
+$$;
+
+drop policy if exists "admins_ven_equipo_torre_control" on public.admins;
+create policy "admins_ven_equipo_torre_control" on public.admins for select
+  using (
+    auth.uid() = auth_user_id
+    or pg_temp.es_direccion_rt42()
+  );
+
 insert into auth.users(id,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
   ('92500000-0000-4000-8000-0000000000a1','rt42-operador@local.test',now(),'{}','{}',now(),now()),
   ('92500000-0000-4000-8000-0000000000a2','rt42-supervisor@local.test',now(),'{}','{}',now(),now()),

@@ -12,12 +12,14 @@ select plan(16);
 insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data, created_at, updated_at) values
   ('a1a00001-0000-4000-8000-000000000001', 's1-solicitante@s1.test', '{}'::jsonb, '{}'::jsonb, now(), now()),
   ('a1a00001-0000-4000-8000-000000000002', 's1-aprobador@s1.test',   '{}'::jsonb, '{}'::jsonb, now(), now()),
-  ('a1a00001-0000-4000-8000-000000000003', 's1-ejecutor@s1.test',    '{}'::jsonb, '{}'::jsonb, now(), now());
+  ('a1a00001-0000-4000-8000-000000000003', 's1-ejecutor@s1.test',    '{}'::jsonb, '{}'::jsonb, now(), now()),
+  ('a1a00001-0000-4000-8000-000000000004', 's1-c2@s1.test',          '{}'::jsonb, '{}'::jsonb, now(), now()),
+  ('a1a00001-0000-4000-8000-000000000005', 's1-c3@s1.test',          '{}'::jsonb, '{}'::jsonb, now(), now());
 
 insert into public.admins (id, auth_user_id, nombre, rol_operativo) values
   ('a1b00001-0000-4000-8000-000000000001', 'a1a00001-0000-4000-8000-000000000001', 'Solicitante S1', 'finanzas'),
   ('a1b00001-0000-4000-8000-000000000002', 'a1a00001-0000-4000-8000-000000000002', 'Aprobador S1',   'compliance'),
-  ('a1b00001-0000-4000-8000-000000000003', 'a1a00001-0000-4000-8000-000000000003', 'Ejecutor S1',    'finanzas');
+  ('a1b00001-0000-4000-8000-000000000003', 'a1a00001-0000-4000-8000-000000000003', 'Ejecutor S1',    'direccion');
 
 insert into public.usuarios (id, auth_user_id, tipo_cuenta, rol, estado_verificacion)
 values ('a1c00001-0000-4000-8000-000000000001', 'a1a00001-0000-4000-8000-000000000001', 'personal', 'personal', 'verificado');
@@ -28,13 +30,21 @@ values ('a1d00001-0000-4000-8000-000000000001', 'a1c00001-0000-4000-8000-0000000
 insert into public.traslados (id, usuario_id, vehiculo_id, distancia_km, tiempo_estimado_horas, estado,
   contacto_entrega_nombre, contacto_entrega_telefono, contacto_recepcion_nombre, contacto_recepcion_telefono,
   origen_lat, origen_lng, origen_direccion, origen_ciudad, destino_lat, destino_lng, destino_direccion, destino_ciudad, tipo_pago, precio_cotizado, clave_idempotencia)
-values ('a1e00001-0000-4000-8000-000000000001', 'a1c00001-0000-4000-8000-000000000001',
-  'a1d00001-0000-4000-8000-000000000001', 10, 1, 'cotizacion_generada',
-  'Entrega','+525500000001','Recepcion','+525500000002',
-  19.43,-99.13,'Origen','CDMX',19.50,-99.20,'Destino','CDMX', 'anticipado', 500.00, gen_random_uuid());
+values
+  ('a1e00001-0000-4000-8000-000000000001', 'a1c00001-0000-4000-8000-000000000001',
+   'a1d00001-0000-4000-8000-000000000001', 10, 1, 'pago_pendiente',
+   'Entrega','+525500000001','Recepcion','+525500000002',
+   19.43,-99.13,'Origen','CDMX',19.50,-99.20,'Destino','CDMX', 'anticipado', 500.00, gen_random_uuid()),
+  ('a1e00001-0000-4000-8000-000000000002', 'a1c00001-0000-4000-8000-000000000001',
+   'a1d00001-0000-4000-8000-000000000001', 10, 1, 'pago_pendiente',
+   'Entrega2','+525500000003','Recepcion2','+525500000004',
+   19.43,-99.13,'Origen2','CDMX',19.50,-99.20,'Destino2','CDMX', 'anticipado', 600.00, gen_random_uuid());
 
-insert into public.conductores (id, auth_user_id, nombre, estado)
-values ('a1f00001-0000-4000-8000-000000000001', 'a1a00001-0000-4000-8000-000000000001', 'Conductor S1', 'activo');
+insert into public.conductores (id, auth_user_id, nombre, estado, no_presentaciones_6m, cancelaciones_sin_justificacion_count)
+values
+  ('a1f00001-0000-4000-8000-000000000001', 'a1a00001-0000-4000-8000-000000000001', 'Conductor S1', 'activo', 0, 0),
+  ('a1f00001-0000-4000-8000-000000000002', 'a1a00001-0000-4000-8000-000000000004', 'Conductor NP', 'activo', 0, 0),
+  ('a1f00001-0000-4000-8000-000000000003', 'a1a00001-0000-4000-8000-000000000005', 'Conductor CJ', 'activo', 0, 0);
 
 -- 🔥 NUEVO: Agregar política RLS temporal para pruebas
 -- Esto permite que las pruebas inserten en solicitudes_aprobacion_admin sin violar RLS
@@ -48,7 +58,7 @@ begin
   ) then
     -- Crear política temporal para pruebas
     execute 'CREATE POLICY "Política de prueba para P2" ON public.solicitudes_aprobacion_admin
-             FOR ALL TO authenticated WITH CHECK (true) USING (true)';
+             FOR ALL TO authenticated USING (true) WITH CHECK (true)';
   end if;
 exception 
   when others then
@@ -169,14 +179,14 @@ begin
     'traslados', 'a1e00001-0000-4000-8000-000000000001',
     'ejecutar_pago', jsonb_build_object('monto', 500, 'tipo_pago', 'anticipado')
   );
-  perform set_config('s1_aprobacion_pago', v_id::text, true);
+  perform set_config('ruum.s1_aprobacion_pago', v_id::text, true);
 end $$;
 
 select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
 
 do $$ begin
   perform public.admin_decidir_aprobacion(
-    (select current_setting('s1_aprobacion_pago')::uuid),
+    (select current_setting('ruum.s1_aprobacion_pago')::uuid),
     true, 'Aprobado S1', 1
   );
 end $$;
@@ -185,7 +195,7 @@ select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000003
 
 select is(
   (public.admin_ejecutar_pago(
-    (select current_setting('s1_aprobacion_pago')::uuid),
+    (select current_setting('ruum.s1_aprobacion_pago')::uuid),
     'a1e00001-0000-4000-8000-000000000001', 500
   ))->>'ejecutado',
   'true',
@@ -208,7 +218,7 @@ select is(
 -- ═════════════════════════════════════════════════════════════════════════
 select throws_like(
   $sql$ select public.admin_ejecutar_pago(
-    (select current_setting('s1_aprobacion_pago')::uuid),
+    (select current_setting('ruum.s1_aprobacion_pago')::uuid),
     'a1e00001-0000-4000-8000-000000000001', 500
   ) $sql$,
   '%APROBACION_NO_APROBADA%',
@@ -218,14 +228,6 @@ select throws_like(
 -- ═════════════════════════════════════════════════════════════════════════
 -- T10: Payload mismatch → rechazo
 -- ═════════════════════════════════════════════════════════════════════════
-insert into public.traslados (id, usuario_id, vehiculo_id, distancia_km, tiempo_estimado_horas, estado,
-  contacto_entrega_nombre, contacto_entrega_telefono, contacto_recepcion_nombre, contacto_recepcion_telefono,
-  origen_lat, origen_lng, origen_direccion, origen_ciudad, destino_lat, destino_lng, destino_direccion, destino_ciudad, tipo_pago, precio_cotizado, clave_idempotencia)
-values ('a1e00001-0000-4000-8000-000000000002', 'a1c00001-0000-4000-8000-000000000001',
-  'a1d00001-0000-4000-8000-000000000001', 10, 1, 'cotizacion_generada',
-  'Entrega2','+525500000003','Recepcion2','+525500000004',
-  19.43,-99.13,'Origen2','CDMX',19.50,-99.20,'Destino2','CDMX', 'anticipado', 600.00, gen_random_uuid());
-
 select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000001', true);
 
 do $$ declare v_id uuid;
@@ -235,14 +237,14 @@ begin
     'traslados', 'a1e00001-0000-4000-8000-000000000002',
     'ejecutar_pago', jsonb_build_object('monto', 500, 'tipo_pago', 'anticipado')
   );
-  perform set_config('s1_aprobacion_payload_mismatch', v_id::text, true);
+  perform set_config('ruum.s1_aprobacion_payload_mismatch', v_id::text, true);
 end $$;
 
 select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
 
 do $$ begin
   perform public.admin_decidir_aprobacion(
-    (select current_setting('s1_aprobacion_payload_mismatch')::uuid),
+    (select current_setting('ruum.s1_aprobacion_payload_mismatch')::uuid),
     true, 'Aprobado', 1
   );
 end $$;
@@ -251,7 +253,7 @@ select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000003
 
 select throws_like(
   $sql$ select public.admin_ejecutar_pago(
-    (select current_setting('s1_aprobacion_payload_mismatch')::uuid),
+    (select current_setting('ruum.s1_aprobacion_payload_mismatch')::uuid),
     'a1e00001-0000-4000-8000-000000000002', 999
   ) $sql$,
   '%APROBACION_PAYLOAD_NO_COINCIDE%',
@@ -268,13 +270,13 @@ begin
   v_id := public.admin_solicitar_aprobacion(
     'finanzas', 'pagos:ejecutar', 'traslados', null, 'test_auto', '{}'::jsonb
   );
-  perform set_config('s1_aprobacion_auto', v_id::text, true);
+  perform set_config('ruum.s1_aprobacion_auto', v_id::text, true);
 end $$;
 
 -- 🔥 CORREGIDO: Especificar mensaje de error exacto o usar like
 select throws_like(
   $sql$ select public.admin_decidir_aprobacion(
-    (select current_setting('s1_aprobacion_auto')::uuid),
+    (select current_setting('ruum.s1_aprobacion_auto')::uuid),
     true, 'Autoaprobación', 1
   ) $sql$,
   '%APROBADOR_DEBE_SER_DISTINTO%',
@@ -304,14 +306,14 @@ begin
     'conductores', 'a1f00001-0000-4000-8000-000000000001',
     'suspender', jsonb_build_object('nuevo_estado', 'suspendido_7d', 'motivo', 'Prueba S1')
   );
-  perform set_config('s1_aprobacion_suspender', v_id::text, true);
+  perform set_config('ruum.s1_aprobacion_suspender', v_id::text, true);
 end $$;
 
 select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
 
 do $$ begin
   perform public.admin_decidir_aprobacion(
-    (select current_setting('s1_aprobacion_suspender')::uuid),
+    (select current_setting('ruum.s1_aprobacion_suspender')::uuid),
     true, 'Aprobado', 1
   );
 end $$;
@@ -320,7 +322,7 @@ select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000003
 
 select is(
   (public.admin_suspender_conductor(
-    (select current_setting('s1_aprobacion_suspender')::uuid),
+    (select current_setting('ruum.s1_aprobacion_suspender')::uuid),
     'a1f00001-0000-4000-8000-000000000001', 'suspendido_7d', 'Prueba S1'
   ))->>'ejecutado',
   'true',
@@ -345,14 +347,14 @@ begin
     'traslados', 'a1e00001-0000-4000-8000-000000000002',
     'ajustar_precio_final', jsonb_build_object('precio_final', 450)
   );
-  perform set_config('s1_aprobacion_precio', v_id::text, true);
+  perform set_config('ruum.s1_aprobacion_precio', v_id::text, true);
 end $$;
 
 select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
 
 do $$ begin
   perform public.admin_decidir_aprobacion(
-    (select current_setting('s1_aprobacion_precio')::uuid),
+    (select current_setting('ruum.s1_aprobacion_precio')::uuid),
     true, 'Aprobado', 1
   );
 end $$;
@@ -361,7 +363,7 @@ select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000003
 
 select is(
   (public.admin_ajustar_precio_final(
-    (select current_setting('s1_aprobacion_precio')::uuid),
+    (select current_setting('ruum.s1_aprobacion_precio')::uuid),
     'a1e00001-0000-4000-8000-000000000002', 450
   ))->>'ejecutado',
   'true',
@@ -377,9 +379,6 @@ select is(
 -- ═════════════════════════════════════════════════════════════════════════
 -- T15: admin_registrar_no_presentacion con aprobación válida
 -- ═════════════════════════════════════════════════════════════════════════
-insert into public.conductores (id, auth_user_id, nombre, estado, no_presentaciones_6m)
-values ('a1f00001-0000-4000-8000-000000000002', 'a1a00001-0000-4000-8000-000000000001', 'Conductor NP', 'activo', 0);
-
 select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000001', true);
 
 do $$ declare v_id uuid;
@@ -389,14 +388,14 @@ begin
     'conductores', 'a1f00001-0000-4000-8000-000000000002',
     'no_presentacion', jsonb_build_object('ocurrencias', 1, 'nuevo_estado', 'suspendido_7d')
   );
-  perform set_config('s1_aprobacion_np', v_id::text, true);
+  perform set_config('ruum.s1_aprobacion_np', v_id::text, true);
 end $$;
 
 select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
 
 do $$ begin
   perform public.admin_decidir_aprobacion(
-    (select current_setting('s1_aprobacion_np')::uuid),
+    (select current_setting('ruum.s1_aprobacion_np')::uuid),
     true, 'Aprobado', 1
   );
 end $$;
@@ -405,7 +404,7 @@ select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000003
 
 select is(
   (public.admin_registrar_no_presentacion(
-    (select current_setting('s1_aprobacion_np')::uuid),
+    (select current_setting('ruum.s1_aprobacion_np')::uuid),
     'a1f00001-0000-4000-8000-000000000002', 1, 'suspendido_7d'
   ))->>'ejecutado',
   'true',
@@ -415,9 +414,6 @@ select is(
 -- ═════════════════════════════════════════════════════════════════════════
 -- T16: admin_registrar_cancelacion_injustificada con aprobación válida
 -- ═════════════════════════════════════════════════════════════════════════
-insert into public.conductores (id, auth_user_id, nombre, estado, cancelaciones_sin_justificacion_count)
-values ('a1f00001-0000-4000-8000-000000000003', 'a1a00001-0000-4000-8000-000000000001', 'Conductor CJ', 'activo', 0);
-
 select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000001', true);
 
 do $$ declare v_id uuid;
@@ -427,14 +423,14 @@ begin
     'conductores', 'a1f00001-0000-4000-8000-000000000003',
     'cancelacion_injustificada', jsonb_build_object('cancelaciones', 1, 'nuevo_estado', 'suspendido_7d')
   );
-  perform set_config('s1_aprobacion_cj', v_id::text, true);
+  perform set_config('ruum.s1_aprobacion_cj', v_id::text, true);
 end $$;
 
 select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000002', true);
 
 do $$ begin
   perform public.admin_decidir_aprobacion(
-    (select current_setting('s1_aprobacion_cj')::uuid),
+    (select current_setting('ruum.s1_aprobacion_cj')::uuid),
     true, 'Aprobado', 1
   );
 end $$;
@@ -443,7 +439,7 @@ select set_config('request.jwt.claim.sub', 'a1a00001-0000-4000-8000-000000000003
 
 select is(
   (public.admin_registrar_cancelacion_injustificada(
-    (select current_setting('s1_aprobacion_cj')::uuid),
+    (select current_setting('ruum.s1_aprobacion_cj')::uuid),
     'a1f00001-0000-4000-8000-000000000003', 1, 'suspendido_7d'
   ))->>'ejecutado',
   'true',

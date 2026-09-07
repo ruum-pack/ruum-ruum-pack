@@ -437,7 +437,7 @@ export default function PaginaGanancias() {
                       </svg>
                       Tu pago {formatearMoneda(montoPendiente)} {tienePagado ? "depositado" : proximoPayout ? `llega ${fechaDispersion}` : `se dispersa ${fechaDispersion}`}
                     </span>
-                    <span className="font-body text-[10px] font-bold text-text-secondary whitespace-nowrap">Push proactivo</span>
+                    <span className="font-body text-[10px] font-bold text-text-primary whitespace-nowrap">Push proactivo</span>
                   </div>
                 )}
               </div>

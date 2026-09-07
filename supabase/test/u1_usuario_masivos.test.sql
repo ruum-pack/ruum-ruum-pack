@@ -12,30 +12,6 @@ begin;
 
 select plan(8);
 
--- 🔥 NUEVO: Agregar valor 'aprobado' al enum si no existe
-do $$
-begin
-  -- Verificar si el valor 'aprobado' existe en el enum
-  if not exists (
-    select 1 
-    from pg_enum 
-    where enumlabel = 'aprobado' 
-    and enumtypid = (
-      select oid 
-      from pg_type 
-      where typname = 'estado_verificacion'
-    )
-  ) then
-    -- Agregar el valor al enum
-    execute 'ALTER TYPE public.estado_verificacion ADD VALUE IF NOT EXISTS ''aprobado''';
-  end if;
-exception 
-  when others then
-    -- Si el tipo no existe o hay otro error, continuar
-    raise notice 'No se pudo agregar valor al enum: %', SQLERRM;
-end;
-$$;
-
 create or replace function pg_temp.correr_u1() returns setof text as $$
 declare
   v_auth_a uuid := gen_random_uuid();

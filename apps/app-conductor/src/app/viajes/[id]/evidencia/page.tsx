@@ -472,10 +472,10 @@ export default function PaginaEvidencia() {
         <header className="hidden md:flex justify-between items-center pb-4 border-b border-border/20">
           <div className="flex items-center gap-2">
             <span className="font-display text-lg font-black tracking-tight text-text-primary">
-              ruum<span className="text-signal">ruum</span>
+              ruum<span className="text-route-action">ruum</span>
             </span>
             <div className="bg-surface-elevated border border-border/30 px-2 py-0.5 rounded-md">
-              <span className="font-display text-[9px] font-black text-signal tracking-wider">CONDUCTOR CERTIFICADO</span>
+              <span className="font-display text-[9px] font-black text-route-action tracking-wider">CONDUCTOR CERTIFICADO</span>
             </div>
           </div>
           
@@ -514,7 +514,7 @@ export default function PaginaEvidencia() {
             {tipo === "inicial" ? "Checklist de Origen" : "Checklist de Destino"}
           </h1>
           <p className="font-body text-xs text-text-secondary leading-relaxed mt-1">
-            <span className="font-bold text-signal block mb-0.5">
+            <span className="font-bold text-route-action block mb-0.5">
               {tipo === "inicial" ? "Verificación y evidencia de salida" : "Verificación y evidencia de entrega"}
             </span>
             {tipo === "inicial" 
@@ -542,7 +542,7 @@ export default function PaginaEvidencia() {
                     {totalCapturados} de {totalRequisitos} verificaciones · {fotosObligCapturadas}/{fotosObligatorias} fotos
                   </span>
                   {faltantesFotos.length > 0 && faltantesFotos.length <= 3 && (
-                    <span className="font-body text-[11px] font-bold text-amber-600 mt-1">
+                    <span className="font-body text-[11px] font-bold text-amber-800 dark:text-amber-300 mt-1">
                       Falta: {faltantesFotos.join(", ")} → <a href="#evid-fotos" onClick={(e) => { e.preventDefault(); document.getElementById("evid-fotos")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="underline hover:text-amber-700">ir</a>
                     </span>
                   )}
@@ -560,11 +560,11 @@ export default function PaginaEvidencia() {
                       strokeLinecap="round"
                       strokeDasharray={c}
                       strokeDashoffset={offset}
-                      className={`${porcentaje === 100 ? "text-signal" : "text-route-action"} conductor-progress-ring`}
+                      className="text-route-action conductor-progress-ring"
                     />
                   </svg>
                   <span className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={`font-display text-[13px] font-black leading-none ${porcentaje === 100 ? "text-signal" : "text-route-action"}`}>{porcentaje}%</span>
+                    <span className="font-display text-[13px] font-black leading-none text-route-action">{porcentaje}%</span>
                     <span className="font-display text-[7px] font-extrabold uppercase tracking-wider text-text-tertiary">completo</span>
                   </span>
                 </div>
@@ -581,11 +581,11 @@ export default function PaginaEvidencia() {
               </div>
 
               {porcentaje === 100 ? (
-                <span className="font-body text-xs text-signal font-extrabold flex items-center gap-1.5 animate-pulse">
+                <span className="font-body text-xs text-route-action font-extrabold flex items-center gap-1.5 animate-pulse">
                   ✓ ¡Checklist completado al 100%! Puedes finalizar evidencias.
                 </span>
               ) : (
-                <span className="font-body text-[11px] text-amber-400 font-bold flex items-center gap-1">
+                <span className="font-body text-[11px] text-amber-800 dark:text-amber-300 font-bold flex items-center gap-1">
                   ⚠️ Faltan {totalRequisitos - totalCapturados} elementos por verificar para poder finalizar.
                 </span>
               )}
@@ -615,13 +615,13 @@ export default function PaginaEvidencia() {
                           e.preventDefault();
                           document.getElementById(p.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
                         }}
-                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 min-h-9 text-xs font-bold transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${p.done ? "bg-signal/15 border-signal/30 text-signal" : "bg-surface-elevated border-border/30 text-text-secondary hover:text-text-primary"}`}
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 min-h-9 text-xs font-bold transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-route-action ${p.done ? "bg-signal/15 border-signal/30 text-route-action" : "bg-surface-elevated border-border/30 text-text-secondary hover:text-text-primary"}`}
                       >
                         <span className={`flex size-5 items-center justify-center rounded-full text-[11px] font-black ${p.done ? "bg-signal text-slate-950" : "bg-surface border border-border/30 text-text-tertiary"}`}>
                           {p.done ? "✓" : idx + 1}
                         </span>
                         <span className="hidden sm:inline">{p.label}</span>
-                        <span className="text-[10px] opacity-70 tabular-nums">{p.sub}</span>
+                        <span className="text-[10px] tabular-nums">{p.sub}</span>
                       </a>
                       {idx < pasos.length - 1 && <span className="h-px w-4 bg-border/30 hidden sm:block" aria-hidden />}
                     </li>
@@ -630,8 +630,8 @@ export default function PaginaEvidencia() {
               </nav>
               {pendientes > 0 && (
                 <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 flex items-center justify-between">
-                  <span className="font-body text-xs font-semibold text-amber-600 dark:text-amber-400">Faltan {pendientes} fotos obligatorias</span>
-                  <a href="#evid-fotos" onClick={(e) => { e.preventDefault(); document.getElementById("evid-fotos")?.scrollIntoView({ behavior: "smooth" }); }} className="font-body text-xs font-bold text-amber-600 hover:underline">Ir a fotos →</a>
+                  <span className="font-body text-xs font-semibold text-amber-800 dark:text-amber-300">Faltan {pendientes} fotos obligatorias</span>
+                  <a href="#evid-fotos" onClick={(e) => { e.preventDefault(); document.getElementById("evid-fotos")?.scrollIntoView({ behavior: "smooth" }); }} className="font-body text-xs font-bold text-amber-800 dark:text-amber-300 hover:underline">Ir a fotos →</a>
                 </div>
               )}
             </>
@@ -888,8 +888,8 @@ export default function PaginaEvidencia() {
             <div className="flex items-center gap-3">
               <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
                 docsCapturados === 5
-                  ? "bg-signal/15 text-signal border border-signal/25"
-                  : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
+                  ? "bg-signal/15 text-route-action border border-signal/25"
+                  : "bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/25"
               }`}>
                 {docsCapturados === 5 ? "✓ COMPLETADO" : `${docsCapturados}/5 VERIFICADOS`}
               </span>
@@ -913,8 +913,8 @@ export default function PaginaEvidencia() {
                 </div>
                 <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
                   tarjetaCirculacion === "si"
-                    ? "bg-signal/15 text-signal border border-signal/25"
-                    : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
+                    ? "bg-signal/15 text-route-action border border-signal/25"
+                    : "bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/25"
                 }`}>
                   {tarjetaCirculacion === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
                 </span>
@@ -933,8 +933,8 @@ export default function PaginaEvidencia() {
                 </div>
                 <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
                   talonVerificacion === "si"
-                    ? "bg-signal/15 text-signal border border-signal/25"
-                    : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
+                    ? "bg-signal/15 text-route-action border border-signal/25"
+                    : "bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/25"
                 }`}>
                   {talonVerificacion === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
                 </span>
@@ -953,8 +953,8 @@ export default function PaginaEvidencia() {
                 </div>
                 <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
                   hologramaVerificacion === "si"
-                    ? "bg-signal/15 text-signal border border-signal/25"
-                    : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
+                    ? "bg-signal/15 text-route-action border border-signal/25"
+                    : "bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/25"
                 }`}>
                   {hologramaVerificacion === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
                 </span>
@@ -973,8 +973,8 @@ export default function PaginaEvidencia() {
                 </div>
                 <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
                   placaDelantera === "si"
-                    ? "bg-signal/15 text-signal border border-signal/25"
-                    : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
+                    ? "bg-signal/15 text-route-action border border-signal/25"
+                    : "bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/25"
                 }`}>
                   {placaDelantera === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
                 </span>
@@ -993,8 +993,8 @@ export default function PaginaEvidencia() {
                 </div>
                 <span className={`font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide ${
                   placaTrasera === "si"
-                    ? "bg-signal/15 text-signal border border-signal/25"
-                    : "bg-amber-500/15 text-amber-500 border border-amber-500/25"
+                    ? "bg-signal/15 text-route-action border border-signal/25"
+                    : "bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/25"
                 }`}>
                   {placaTrasera === "si" ? "✓ VERIFICADO" : "📋 PENDIENTE"}
                 </span>
@@ -1021,7 +1021,7 @@ export default function PaginaEvidencia() {
 
             <div className="flex items-center gap-3">
               {notas.trim().length > 5 ? (
-                <span className="font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide bg-signal/15 text-signal border border-signal/25">
+                <span className="font-display text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide bg-signal/15 text-route-action border border-signal/25">
                   ✓ REGISTRADO
                 </span>
               ) : (
@@ -1058,7 +1058,7 @@ export default function PaginaEvidencia() {
                   </div>
 
                   {presentaDanosNuevos && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex flex-col gap-1.5 text-[11px] font-body text-amber-500 leading-relaxed">
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex flex-col gap-1.5 text-[11px] font-body text-amber-800 dark:text-amber-300 leading-relaxed">
                       <span className="font-bold flex items-center gap-1">
                         ⚠️ SUGERENCIA DE REGISTRO FOTOGRÁFICO:
                       </span>

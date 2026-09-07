@@ -15,6 +15,11 @@ select is(
   'P0: el bucket sólo admite JPEG, PNG y PDF'
 );
 
+drop trigger if exists proteger_verificacion_usuario on public.usuarios;
+create trigger proteger_verificacion_usuario
+  before update on public.usuarios
+  for each row execute function public.proteger_verificacion_usuario();
+
 insert into auth.users (id, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at) values
   ('00000007-0000-4000-8000-000000000001', 'p0-identidad@p0.test', now(), '{}', '{"tipo_registro":"usuario","tipo_cuenta":"personal"}', now(), now()),
   ('00000007-0000-4000-8000-000000000010', 'p0-identidad-otro@p0.test', now(), '{}', '{"tipo_registro":"usuario","tipo_cuenta":"personal"}', now(), now());

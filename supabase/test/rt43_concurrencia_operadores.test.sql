@@ -27,7 +27,7 @@ begin
 
   -- Operador 2 actualiza primero
   update public.conductores
-    set estado = 'suspendido', version = version + 1
+    set estado = 'suspendido_7d', version = version + 1
     where id = '92500000-0000-4000-8000-0000000000d1'
       and version = v_version_2;
   get diagnostics v_actualizada = row_count;
@@ -38,8 +38,8 @@ end $$;
 
 -- 1. Verificar que la actualización del Operador 2 surtió efecto
 select is(
-  (select estado from public.conductores where id = '92500000-0000-4000-8000-0000000000d1'),
-  'suspendido',
+  (select estado::text from public.conductores where id = '92500000-0000-4000-8000-0000000000d1'),
+  'suspendido_7d',
   'RT-43.1: Operador 2 actualizó el estado a suspendido'
 );
 

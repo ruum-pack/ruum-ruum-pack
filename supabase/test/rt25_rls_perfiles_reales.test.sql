@@ -54,13 +54,25 @@ select is(
   'RT-25.4: conductor A no ve solicitudes ajenas'
 );
 
-select throws_ok(
+select throws_like(
   $sql$ select public.revisar_documento_conductor_admin('92500000-0000-4000-8000-00000000002a','aprobado',null) $sql$,
+  '%Acceso exclusivo de administradores%',
   'RT-25.5: conductor A no puede aprobar su propio documento'
 );
 
-select throws_ok(
-  $sql$ update public.solicitudes_conductor set estado='aprobado' where id='92500000-0000-4000-8000-00000000001a' $sql$,
+select throws_like(
+  $sql$
+    do $$
+    declare v_rows int;
+    begin
+      update public.solicitudes_conductor set estado='aprobado' where id='92500000-0000-4000-8000-00000000001a';
+      get diagnostics v_rows = row_count;
+      if v_rows = 0 then
+        raise exception 'PERMISSION_DENIED: RLS bloquea actualizacion directa';
+      end if;
+    end $$;
+  $sql$,
+  '%PERMISSION_DENIED%|%flujo autorizado%',
   'RT-25.6: conductor A no puede modificar directamente su estado'
 );
 reset role;

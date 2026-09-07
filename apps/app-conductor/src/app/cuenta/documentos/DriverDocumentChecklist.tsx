@@ -33,7 +33,7 @@ const ESTILO_ESTADO: Record<EstadoChecklist, { texto: string; clase: string; ico
   falta: { texto: "Falta documento", clase: "border-red-500/40 bg-red-500/10 text-red-500 dark:text-red-400", icono: "⚠️" },
   cargado: { texto: "Cargado", clase: "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400", icono: "⏳" },
   en_revision: { texto: "En revisión", clase: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400", icono: "🔍" },
-  aprobado: { texto: "Aprobado", clase: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", icono: "✓" },
+  aprobado: { texto: "Aprobado", clase: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300", icono: "✓" },
   rechazado: { texto: "Rechazado", clase: "border-red-500/40 bg-red-500/10 text-red-500 dark:text-red-400", icono: "❌" },
   por_vencer: { texto: "Por vencer", clase: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400", icono: "⏰" },
   vencido: { texto: "Vencido", clase: "border-red-500/40 bg-red-500/10 text-red-500 dark:text-red-400", icono: "🚨" }
@@ -317,7 +317,7 @@ export function DriverDocumentChecklist({
                           <div className="flex items-center gap-2">
                             <h3 className="font-display text-sm font-bold text-text-primary">{requerido.etiqueta}</h3>
                             {documento?.version && (
-                              <span className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-body text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                              <span className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-body text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
                                 v{documento.version}
                               </span>
                             )}
@@ -339,7 +339,7 @@ export function DriverDocumentChecklist({
                           ✏️ {estaAbierto ? "Cancelar actualización" : "Actualizar / Reemplazar"}
                         </button>
 
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 font-body text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 font-body text-xs font-bold text-emerald-700 dark:text-emerald-300">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>

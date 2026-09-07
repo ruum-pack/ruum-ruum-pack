@@ -47,8 +47,9 @@ select public.registrar_evento_registro_conductor(
   '92700000-0000-4000-8000-000000000100','otp_error',1::smallint,'otp_expirado',1200
 );
 
-select throws_ok(
+select throws_like(
   $sql$ select * from public.eventos_registro_conductor limit 1 $sql$,
+  '%permission denied%|%denegado%',
   'RT-27.1: anónimo no puede leer telemetría'
 );
 reset role;
@@ -60,8 +61,9 @@ select public.registrar_evento_registro_conductor(
   '92700000-0000-4000-8000-000000000100','rpc_error',3::smallint,'guardar_borrador',800
 );
 
-select throws_ok(
+select throws_like(
   $sql$ select public.registrar_evento_registro_conductor('92700000-0000-4000-8000-000000000100','rpc_error',3::smallint,'correo@personal.test',800) $sql$,
+  '%Código de telemetría no permitido%',
   'RT-27.2: rechaza código de telemetría no sanitizado'
 );
 reset role;
@@ -73,8 +75,9 @@ select is(
   'RT-27.3: se registraron exactamente 2 eventos en la sesión'
 );
 
-select throws_ok(
-  $sql$ update public.eventos_registro_conductor set codigo='alterado' where sesion_id='92700000-0000-4000-8000-000000000100' $sql$,
+select throws_like(
+  $sql$ update public.eventos_registro_conductor set codigo='alterado' where sesion_id='92700000-0000-4000-8000-0000000000100' $sql$,
+  '%telemetría de registro es inmutable%',
   'RT-27.4: la telemetría es append-only e inmutable'
 );
 
@@ -82,8 +85,9 @@ select throws_ok(
 set local role authenticated;
 select set_config('request.jwt.claim.sub','92700000-0000-4000-8000-000000000001',true);
 
-select throws_ok(
+select throws_like(
   $sql$ select public.obtener_metricas_registro_conductor(current_date-7,current_date) $sql$,
+  '%Acceso exclusivo de administradores%',
   'RT-27.5: conductor no puede consultar métricas administrativas'
 );
 reset role;

@@ -49,7 +49,7 @@ declare
   v_existente public.cargas_traslados_masivos%rowtype;
 begin
   select * into strict v_usuario from public.usuarios where auth_user_id = auth.uid();
-  if v_usuario.estado_verificacion not in ('verificado', 'aprobado') then
+  if v_usuario.estado_verificacion::text not in ('verificado', 'aprobado') then
     raise exception using errcode='42501', message='USUARIO_NO_VERIFICADO';
   end if;
 
