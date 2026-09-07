@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const disableAuthArtifacts = process.env.PLAYWRIGHT_DISABLE_AUTH_ARTIFACTS === '1';
+// 3000 puede estar ocupado por Docker/WSL en el entorno de desarrollo; usar
+// un puerto dedicado evita que Playwright confunda otro listener con Next.
+const PORT = Number(process.env.PLAYWRIGHT_PORT ?? 3012);
 
 export default defineConfig({
   testDir: './tests',
@@ -14,9 +17,9 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${PORT}`,
     actionTimeout: 10_000,
-    navigationTimeout: 30_000,
+    navigationTimeout: 60_000,
     trace: disableAuthArtifacts ? 'off' : 'on-first-retry',
     screenshot: disableAuthArtifacts ? 'off' : 'only-on-failure',
     video: disableAuthArtifacts ? 'off' : 'retain-on-failure',
@@ -30,8 +33,8 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER
     ? undefined
     : {
-        command: 'pnpm dev -p 3000',
-        port: 3000,
+        command: `pnpm exec next dev -p ${PORT}`,
+        port: PORT,
         timeout: 120_000,
         reuseExistingServer: !process.env.CI,
       },

@@ -57,7 +57,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const nonce = (await headers()).get("x-nonce") ?? "";
   return (
-    <html lang="es" data-theme="light" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="es" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head suppressHydrationWarning>
         <meta property="csp-nonce" content={nonce} />
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}

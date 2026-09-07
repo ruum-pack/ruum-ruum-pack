@@ -55,7 +55,9 @@ async function addCspStyle(page: Page, content: string) {
 }
 
 async function abrirRuta(page: Page, route: string, options: { requireAuth?: boolean } = {}) {
-  await page.goto(route, { waitUntil: 'commit', timeout: 30_000 });
+  // Las rutas lazy pueden compilarse por primera vez bajo carga de la suite;
+  // mantenemos un límite explícito sin introducir esperas fijas.
+  await page.goto(route, { waitUntil: 'commit', timeout: 60_000 });
   await page.locator('#contenido-principal, body').first().waitFor({ state: 'visible', timeout: 20_000 });
   const finalUrl = new URL(page.url());
 

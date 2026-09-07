@@ -8,6 +8,10 @@
  * Tipografía: Inter (Display, UI, Cuerpo), IBM Plex Mono (Datos/Folios/Bitácoras).
  * Concepto: Orden + Seguridad + Evidencia + Trazabilidad + Conductor certificado.
  */
+
+/* El tema explícito de producto vive en data-theme; no debe depender del OS. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme {
   --color-ink: #0D2B5E;
   --color-ink-soft: #5F7192;
@@ -76,6 +80,19 @@
   --shadow-4: 0 20px 48px rgba(13, 43, 94, 0.14);
 }
 
+/* Clase estable para botones compartidos: evita depender de que Tailwind
+   escanee utilidades arbitrarias dentro de un paquete workspace. */
+.ruum-button-primary {
+  border-color: transparent;
+  background: var(--ruum-gradient-action);
+  color: var(--ruum-on-primary);
+}
+
+.ruum-button-primary:disabled {
+  background: var(--ruum-surface-elevated);
+  color: var(--ruum-text-disabled);
+}
+
 :root,
 [data-theme="light"] {
   color-scheme: light;
@@ -112,16 +129,17 @@
   --ruum-focus-ring: rgba(22, 119, 255, 0.24);
 
   /* Actions & Gradient V2 */
-  --ruum-action-primary: #1677FF;
+  --ruum-action-primary: #0E5CAB;
   --ruum-on-primary: #FFFFFF;
   --ruum-on-danger: #FFFFFF;
   --ruum-overlay: rgba(13, 43, 94, 0.6);
   --ruum-action-primary-hover: #1267DD;
   --ruum-action-primary-active: #0E5CAB;
-  --ruum-gradient-action: linear-gradient(90deg, #00C2B8 0%, #1677FF 100%);
+  --ruum-gradient-action: linear-gradient(90deg, #00C2B8 0%, #0E5CAB 100%);
 
   /* Route & Status V2 */
   --ruum-route: #1677FF;
+  --ruum-route-contrast: #0E5CAB;
   --ruum-route-hover: #1267DD;
   --ruum-route-active: #0E5CAB;
   --ruum-success: #13B89B;
@@ -191,7 +209,7 @@
   --ruum-action-primary: #4D9AFF;
   --ruum-action-primary-hover: #3A8AEF;
   --ruum-action-primary-active: #2B7BDD;
-  --ruum-on-primary: #FFFFFF;
+  --ruum-on-primary: #08182E;
   --ruum-on-danger: #FFFFFF;
 
   --ruum-primary: #D8E8FF;
@@ -200,6 +218,7 @@
   --ruum-focus-ring: rgba(77, 154, 255, 0.18);
 
   --ruum-route: #4D9AFF;
+  --ruum-route-contrast: #D8E8FF;
   --ruum-route-hover: #3A8AEF;
   --ruum-route-active: #2B7BDD;
 

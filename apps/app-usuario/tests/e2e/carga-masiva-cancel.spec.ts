@@ -21,7 +21,7 @@ async function seedMockAuthSession(page: import("@playwright/test").Page) {
     user: { id: "00000000-0000-4000-8000-00000000e001", aud: "authenticated", role: "authenticated", email: "usuario@ejemplo.com" },
   };
   const value = `base64-${Buffer.from(JSON.stringify(session), "utf8").toString("base64url")}`;
-  await page.context().addCookies([{ name: `sb-${projectRef}-auth-token`, value, url: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000" }]);
+  await page.context().addCookies([{ name: `sb-${projectRef}-auth-token`, value, url: process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${process.env.PLAYWRIGHT_PORT ?? "3012"}` }]);
 }
 
 test.describe("R6 Carga masiva — cancelación y cleanup on-unmount", () => {

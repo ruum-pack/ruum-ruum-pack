@@ -468,7 +468,7 @@ aside.bg-ink {
   z-index: 9999;
   padding: 8px 16px;
   background: var(--ruum-text-main);
-  color: var(--ruum-status-info);
+  color: var(--ruum-surface-primary);
   border: 2px solid var(--ruum-status-info);
   border-radius: 8px;
   font-family: var(--font-body);
@@ -602,12 +602,14 @@ html[data-theme="light"] {
   --ruum-surface-strong: var(--admin-v2-primary);
   --ruum-border: var(--admin-v2-border);
   --ruum-border-strong: #B8D1F4;
-  --ruum-action-primary: var(--admin-v2-action);
-  --ruum-action-primary-hover: #1267DD;
-  --ruum-action-primary-active: #0E5CAB;
+  --ruum-action-primary: #0E5CAB;
+  --ruum-action-primary-hover: #0A4F9C;
+  --ruum-action-primary-active: #083E7E;
   --ruum-on-primary: #FFFFFF;
+  --ruum-gradient-action: linear-gradient(90deg, #00C2B8 0%, #0E5CAB 100%);
   --ruum-on-danger: #FFFFFF;
   --ruum-route: var(--admin-v2-action);
+  --ruum-route-contrast: #0E5CAB;
   --ruum-route-hover: #1267DD;
   --ruum-route-active: #0E5CAB;
   --ruum-success: var(--admin-v2-success);
@@ -702,9 +704,11 @@ html[data-theme="dark"] {
   --ruum-action-primary: var(--admin-v2-action);
   --ruum-action-primary-hover: #3A8AEF;
   --ruum-action-primary-active: #2B7BDD;
-  --ruum-on-primary: #FFFFFF;
+  --ruum-on-primary: #08182E;
+  --ruum-gradient-action: var(--admin-v2-gradient-action);
   --ruum-on-danger: #FFFFFF;
   --ruum-route: var(--admin-v2-action);
+  --ruum-route-contrast: #D8E8FF;
   --ruum-route-hover: #3A8AEF;
   --ruum-route-active: #2B7BDD;
   --ruum-success: var(--admin-v2-success);
@@ -883,7 +887,7 @@ html[data-theme="light"] :where(input, select, textarea) {
 .admin-v2-shell .admin-button-primary {
   border-color: transparent;
   background: var(--admin-v2-gradient-action);
-  color: #FFFFFF;
+  color: var(--ruum-on-primary);
   box-shadow: 0 5px 14px rgba(22, 119, 255, 0.18);
 }
 

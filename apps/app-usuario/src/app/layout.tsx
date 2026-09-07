@@ -67,7 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <TextInputUppercaseBridge />
           <TemaProvider>
             <AppStateProvider>
-              <main id="contenido-principal">{children}</main>
+              <div id="contenido-principal">{children}</div>
             </AppStateProvider>
           </TemaProvider>
         </LiveRegionProvider>

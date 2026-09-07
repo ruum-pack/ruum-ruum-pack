@@ -8,16 +8,17 @@
 html[data-theme="light"] {
   --conductor-primary: #0D2B5E;
   --conductor-brand: #00C2B8;
-  --conductor-action: #1677FF;
+  --conductor-action: #0E5CAB;
+  --conductor-action-primary: #0E5CAB;
   --conductor-surface: #FFFFFF;
   --conductor-surface-secondary: #F6F8FB;
   --conductor-border: #E6F0FF;
   --conductor-muted: #5F7192;
   --conductor-success: #13B89B;
-  --conductor-pending: #F5B400;
-  --conductor-error: #D94B5B;
+  --conductor-pending: #8A5A00;
+  --conductor-error: #B83D4B;
   --conductor-focus: #1677FF;
-  --conductor-gradient-action: linear-gradient(90deg, #00C2B8 0%, #1677FF 100%);
+  --conductor-gradient-action: linear-gradient(90deg, #00C2B8 0%, #0E5CAB 100%);
 
   /* V2 uses Inter for display and body copy across the conductor shell. */
   --font-display: var(--font-body-loaded), "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -37,11 +38,13 @@ html[data-theme="light"] {
   --ruum-text-disabled: #9AA8BD;
   --ruum-focus: var(--conductor-focus);
   --ruum-focus-ring: rgba(22, 119, 255, 0.24);
-  --ruum-action-primary: var(--conductor-action);
-  --ruum-action-primary-hover: #1267DD;
-  --ruum-action-primary-active: #0E5CAB;
+  --ruum-action-primary: var(--conductor-action-primary);
+  --ruum-action-primary-hover: #0A4F9C;
+  --ruum-action-primary-active: #083E7E;
   --ruum-on-primary: #FFFFFF;
+  --ruum-gradient-action: var(--conductor-gradient-action);
   --ruum-route: var(--conductor-action);
+  --ruum-route-contrast: var(--conductor-action-primary);
   --ruum-route-hover: #1267DD;
   --ruum-route-active: #0E5CAB;
   --ruum-success: var(--conductor-success);
@@ -77,6 +80,22 @@ html[data-theme="light"] {
   --color-warn-soft: #FFF7DB;
   --color-danger: var(--conductor-error);
   --color-danger-soft: #FDECEF;
+}
+
+html[data-theme="dark"] {
+  --conductor-primary: #D8E8FF;
+  --conductor-brand: #22D3C5;
+  --conductor-action: #4D9AFF;
+  --conductor-action-primary: #4D9AFF;
+  --conductor-surface: #08182E;
+  --conductor-surface-secondary: #0D2340;
+  --conductor-border: #254565;
+  --conductor-muted: #A9BCD3;
+  --conductor-success: #22C7A8;
+  --conductor-pending: #F6C547;
+  --conductor-error: #F06A78;
+  --conductor-focus: #4D9AFF;
+  --conductor-gradient-action: linear-gradient(90deg, #22D3C5 0%, #4D9AFF 100%);
 }
 
 /* Prevenir overflow horizontal en zooms altos (200%+) - Accesibilidad A11Y */
@@ -349,8 +368,8 @@ html, body {
   z-index: 9999;
   padding: 8px 16px;
   background: var(--ruum-surface);
-  color: var(--ruum-route);
-  border: 2px solid var(--ruum-route);
+  color: var(--ruum-route-contrast);
+  border: 2px solid var(--ruum-route-contrast);
   border-radius: 8px;
   font-family: var(--font-body);
   font-size: 14px;
@@ -478,7 +497,7 @@ html[data-theme="dark"] .bg-signal { color: #08182E; }
 html[data-theme="dark"] .bg-route-dark { color: #F5F9FF; }
 html[data-theme="dark"] .bg-control { color: #08182E; }
 html[data-theme="dark"] .bg-danger { color: #F5F9FF; }
-html[data-theme="dark"] .bg-danger-action { color: #FFFFFF; }
+html[data-theme="dark"] .bg-danger-action { color: #08182E; }
 /* Folio del PassportCard */
 html[data-theme="dark"] .rounded-card > span.font-mono-ruum.absolute { color: #08182E; }
 
@@ -506,8 +525,8 @@ html[data-theme="dark"] .conductor-auth-card {
 
 html[data-theme="dark"] .ruum-skip-link {
   background: var(--ruum-surface);
-  color: var(--ruum-route);
-  border-color: var(--ruum-route);
+  color: var(--ruum-route-contrast);
+  border-color: var(--ruum-route-contrast);
 }
 
 html[data-theme="dark"] input,
@@ -617,6 +636,10 @@ html[data-theme="dark"] .conductor-auth-card input[type="checkbox"]:focus-visibl
 
 .conductor-button-primary:hover:not(:disabled) {
   box-shadow: 0 8px 22px rgba(22, 119, 255, 0.24);
+}
+
+html[data-theme="dark"] .conductor-button-primary {
+  color: #08182E;
 }
 
 .conductor-button-secondary {

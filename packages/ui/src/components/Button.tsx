@@ -21,7 +21,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  */
 const ESTILOS: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "border-transparent bg-[image:var(--ruum-gradient-action)] text-white shadow-xs hover:brightness-105 active:scale-[0.98] focus-visible:outline-route-action",
+    "ruum-button-primary shadow-xs hover:brightness-105 active:scale-[0.98] focus-visible:outline-route-action",
   secondary:
     "border border-border-strong bg-surface text-primary shadow-xs hover:border-brand hover:bg-surface-elevated hover:text-primary active:scale-[0.98] focus-visible:outline-route-action",
   quiet:

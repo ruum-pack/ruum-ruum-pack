@@ -95,7 +95,7 @@ async function seedMockAuthSession(page: import("@playwright/test").Page) {
   await page.context().addCookies([{
     name: `sb-${projectRef}-auth-token`,
     value,
-    url: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
+    url: process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${process.env.PLAYWRIGHT_PORT ?? "3012"}`,
   }]);
 }
 

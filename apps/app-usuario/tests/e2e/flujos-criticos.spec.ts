@@ -29,7 +29,7 @@ async function seedMockAuthSession(page: import("@playwright/test").Page) {
   await page.context().addCookies([{
     name: `sb-${projectRef}-auth-token`,
     value,
-    url: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
+    url: process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${process.env.PLAYWRIGHT_PORT ?? "3012"}`,
   }]);
 }
 
@@ -119,7 +119,7 @@ async function mockDidit(page: import("@playwright/test").Page) {
 
 test.describe("Middleware protección rutas", () => {
   test("sin sesión, /traslados redirige a /login?next", async ({ page }) => {
-    await page.goto("/traslados/nuevo");
+    await page.goto("/traslados/nuevo", { waitUntil: "domcontentloaded" });
     await expect(page).toHaveURL(/\/login\?next=%2Ftraslados/);
     await expect(page.getByText(/authentication_required|inicia sesión para solicitar/i).first()).toBeVisible({ timeout: 8000 }).catch(async () => {
       // fallback: al menos el heading de login debe estar
@@ -128,13 +128,13 @@ test.describe("Middleware protección rutas", () => {
   });
 
   test("sin sesión, /mis-viajes redirige a login", async ({ page }) => {
-    await page.goto("/mis-viajes");
+    await page.goto("/mis-viajes", { waitUntil: "domcontentloaded" });
     await expect(page).toHaveURL(/\/login/);
   });
 
   test("con sesión, /login redirige a /", async ({ page }) => {
     await seedMockAuthSession(page);
-    await page.goto("/login");
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
     // Middleware debe mandar a / (landing autenticada)
     await expect(page).toHaveURL(/\/$|\/landing/ , { timeout: 8000 }).catch(async () => {
       // Si no redirige por falta de cookie válida en jsdom, al menos no muestra form login como guest
@@ -144,7 +144,7 @@ test.describe("Middleware protección rutas", () => {
 
 test.describe("Login E2E", () => {
   test("muestra formulario y valida email requerido", async ({ page }) => {
-    await page.goto("/login");
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: /iniciar sesión/i })).toBeVisible();
     await page.getByRole("button", { name: /entrar/i }).click();
     // HTML5 required valida, el form no hace submit si email vacío -> permanece en login
@@ -154,7 +154,7 @@ test.describe("Login E2E", () => {
   test("login éxito con email normalizado (R7)", async ({ page }) => {
     const capture: { email?: string } = {};
     await mockSignIn(page, true, capture);
-    await page.goto("/login");
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
     // R7: usuario escribe mayúsculas y debe enviarse lowercase
     await page.getByLabel(/correo electrónico/i).fill("USUARIO@EJEMPLO.COM");
     await page.locator('input[type="password"]').first().fill("Segura123");
@@ -165,7 +165,7 @@ test.describe("Login E2E", () => {
 
   test("login error muestra mensaje traducido", async ({ page }) => {
     await mockSignIn(page, false);
-    await page.goto("/login");
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
     await page.getByLabel(/correo electrónico/i).fill("usuario@ejemplo.com");
     await page.locator('input[type="password"]').first().fill("wrong");
     await page.getByRole("button", { name: /entrar/i }).click();
@@ -173,10 +173,10 @@ test.describe("Login E2E", () => {
   });
 
   test("login respeta ?next seguro y bloquea //evil", async ({ page }) => {
-    await page.goto("/login?next=%2Ftraslados%2Fnuevo");
+    await page.goto("/login?next=%2Ftraslados%2Fnuevo", { waitUntil: "domcontentloaded" });
     // destinoSeguro debe mantener /traslados/nuevo
     await expect(page).toHaveURL(/next=%2Ftraslados/);
-    await page.goto("/login?next=%2F%2Fevil.com");
+    await page.goto("/login?next=%2F%2Fevil.com", { waitUntil: "domcontentloaded" });
     // No debe reflejar //evil.com en siguiente hidden
     await expect(page).toHaveURL(/\/login/);
   });
@@ -184,7 +184,7 @@ test.describe("Login E2E", () => {
 
 test.describe("Registro 2 pasos", () => {
   test("paso1 avanza solo con teléfono 10 dígitos", async ({ page }) => {
-    await page.goto("/registro");
+    await page.goto("/registro", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: /crea tu cuenta/i })).toBeVisible();
     await page.getByLabel(/^nombre$/i).fill("Ana");
     await page.getByLabel(/apellido/i).fill("López");
@@ -198,7 +198,7 @@ test.describe("Registro 2 pasos", () => {
   });
 
   test("paso2 valida password débil y mismatch", async ({ page }) => {
-    await page.goto("/registro");
+    await page.goto("/registro", { waitUntil: "domcontentloaded" });
     await page.getByLabel(/^nombre$/i).fill("Ana");
     await page.getByLabel(/apellido/i).fill("López");
     await page.getByLabel(/teléfono/i).fill("5512345678");
@@ -214,7 +214,7 @@ test.describe("Registro 2 pasos", () => {
 
   test("registro con sesión -> /onboarding, sin sesión -> confirma-correo", async ({ page }) => {
     await mockSignUp(page, false);
-    await page.goto("/registro");
+    await page.goto("/registro", { waitUntil: "domcontentloaded" });
     await page.getByLabel(/^nombre$/i).fill("Ana");
     await page.getByLabel(/apellido/i).fill("López");
     await page.getByLabel(/teléfono/i).fill("5512345678");
@@ -233,7 +233,7 @@ test.describe("Wizard traslado nuevo (parcial mock)", () => {
     await seedMockAuthSession(page);
     await mockMapboxGeocode(page);
     await mockUsuarioVerificado(page);
-    await page.goto("/traslados/nuevo");
+    await page.goto("/traslados/nuevo", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: /¿Cuánto costará tu traslado\?/i }).or(page.getByText(/Conoce tu tarifa/i)).first()).toBeVisible({ timeout: 10000 }).catch(async () => {
       await expect(page.locator("body")).not.toContainText(/traslado no encontrado/i);
     });
@@ -244,7 +244,7 @@ test.describe("Wizard traslado nuevo (parcial mock)", () => {
     await seedMockAuthSession(page);
     await mockMapboxGeocode(page);
     await mockUsuarioVerificado(page);
-    await page.goto("/traslados/nuevo");
+    await page.goto("/traslados/nuevo", { waitUntil: "domcontentloaded" });
 
     await page.locator("#origenCodigoPostal").fill("06600");
     await page.locator("#destinoCodigoPostal").fill("64000");
@@ -268,7 +268,7 @@ test.describe("Wizard traslado nuevo (parcial mock)", () => {
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ precio: null, categoria: "pesado_c", motivo: "Vehículo requiere grúa o cotización especializada" }) });
     });
     await mockUsuarioVerificado(page);
-    await page.goto("/traslados/nuevo");
+    await page.goto("/traslados/nuevo", { waitUntil: "domcontentloaded" });
 
     await page.locator("#origenCodigoPostal").fill("06600");
     await page.locator("#destinoCodigoPostal").fill("64000");
@@ -288,7 +288,7 @@ test.describe("Wizard traslado nuevo (parcial mock)", () => {
     await seedMockAuthSession(page);
     await mockMapboxGeocode(page);
     await mockUsuarioVerificado(page);
-    await page.goto("/traslados/nuevo");
+    await page.goto("/traslados/nuevo", { waitUntil: "domcontentloaded" });
 
     await page.locator("#origenCodigoPostal").fill("06600");
     await page.locator("#destinoCodigoPostal").fill("64000");
@@ -313,7 +313,7 @@ test.describe("Didit modal a11y (R4)", () => {
     await seedMockAuthSession(page);
     await mockDidit(page);
     await page.route("**/rest/v1/rpc/subir_foto_perfil**", async (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify("https://cdn.test/foto.jpg") }));
-    await page.goto("/verificacion");
+    await page.goto("/verificacion", { waitUntil: "domcontentloaded" });
     // Si ya está verificado no hay botón, skip
     const btnDidit = page.getByRole("button", { name: /iniciar verificación con didit/i });
     if (!(await btnDidit.isVisible().catch(() => false))) {
@@ -336,7 +336,7 @@ test.describe("Didit modal a11y (R4)", () => {
     await seedMockAuthSession(page);
     await mockDidit(page);
     await page.route("**/rest/v1/rpc/subir_foto_perfil**", async (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify("https://cdn.test/foto.jpg") }));
-    await page.goto("/verificacion");
+    await page.goto("/verificacion", { waitUntil: "domcontentloaded" });
     const btnDidit = page.getByRole("button", { name: /iniciar verificación con didit/i });
     if (!(await btnDidit.isVisible().catch(() => false))) { test.skip(); return; }
     await btnDidit.click();
@@ -352,7 +352,7 @@ test.describe("Didit modal a11y (R4)", () => {
 test.describe("Carga masiva", () => {
   test("plantilla descarga y validación límite 100", async ({ page }) => {
     await seedMockAuthSession(page);
-    await page.goto("/traslados/masivo");
+    await page.goto("/traslados/masivo", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: /creación masiva/i })).toBeVisible();
     const btn = page.getByRole("button", { name: /descargar plantilla/i });
     await expect(btn).toBeVisible();
@@ -367,7 +367,7 @@ test.describe("Mis viajes y soporte", () => {
     await seedMockAuthSession(page);
     // Mock pasaporte_digital vacío para que no falle
     await page.route("**/rest/v1/pasaporte_digital**", async (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([]) }));
-    await page.goto("/mis-viajes");
+    await page.goto("/mis-viajes", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: /mis traslados/i })).toBeVisible();
     await page.getByRole("button", { name: /En curso/i }).click();
     await page.getByRole("button", { name: /Historial/i }).click();
@@ -375,7 +375,7 @@ test.describe("Mis viajes y soporte", () => {
   });
 
   test("soporte muestra contexto y link con ?viaje", async ({ page }) => {
-    await page.goto("/soporte?viaje=123e4567-e89b-12d3-a456-426614174000");
+    await page.goto("/soporte?viaje=123e4567-e89b-12d3-a456-426614174000", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: /ayuda|soporte/i }).first()).toBeVisible({ timeout: 5000 }).catch(async () => {
       await expect(page.locator("body")).toContainText(/soporte/i);
     });

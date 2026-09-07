@@ -206,7 +206,7 @@ summary:focus-visible {
 }
 
 .ruum-public-primary-button {
-  background: linear-gradient(100deg, var(--ruum-brand) 0%, var(--ruum-action) 100%);
+  background: linear-gradient(100deg, var(--ruum-brand) 0%, var(--ruum-action-primary) 100%);
   box-shadow: var(--ruum-shadow-3);
 }
 
@@ -218,7 +218,7 @@ summary:focus-visible {
   z-index: 9999;
   padding: 8px 16px;
   background: var(--ruum-surface);
-  color: var(--ruum-route);
+  color: var(--ruum-route-contrast);
   border: 2px solid var(--ruum-route);
   border-radius: 8px;
   font-family: var(--font-body);
