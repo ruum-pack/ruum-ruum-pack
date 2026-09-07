@@ -79,6 +79,23 @@ test.describe("Sprint C5 flujos críticos", () => {
     });
 
     test("restablecer contraseña en /nueva-password con sesión de recuperación y validación de checklist", async ({ page }) => {
+      // /nueva-password autoriza mediante el endpoint server-side, no solo con
+      // GET /auth/v1/user. Mantener el mock alineado con el contrato PR-02
+      // evita que el test caiga en el estado de enlace expirado/login.
+      await page.route("**/api/recovery/verify**", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ authorized: true, userId: "user-test-recovery-123" }),
+        }),
+      );
+      await page.route("**/api/recovery/clear**", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ cleared: true }),
+        }),
+      );
       await page.route("**/auth/v1/user*", (route) => {
         if (route.request().method() === "PUT") {
           return route.fulfill({

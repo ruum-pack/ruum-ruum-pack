@@ -452,7 +452,7 @@ export default function PaginaPerfilCuenta() {
             aria-live="polite"
             aria-atomic="true"
             className={`conductor-toast-bottom fixed inset-x-4 z-50 rounded-xl border px-4 py-3 font-body text-sm font-semibold shadow-[0_18px_48px_rgba(0,0,0,0.42)] sm:left-auto sm:right-6 sm:max-w-sm ${claseToast(notificacion.tipo)}`}
-            style={{ bottom: "calc(var(--conductor-mobile-nav-offset,80px) + env(safe-area-inset-bottom) + 16px)" }}
+            data-offset="mobile-nav"
           >
             {notificacion.mensaje}
           </div>
@@ -762,7 +762,7 @@ export default function PaginaPerfilCuenta() {
         </Card>
 
         {/* 3. Botón de acción flotante (Sticky Button) para móvil y escritorio */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-surface/95 px-4 py-3 backdrop-blur-md shadow-lg sm:relative sm:z-auto sm:mt-6 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+        <div className="conductor-profile-sticky-action fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-surface/95 px-4 py-3 backdrop-blur-md shadow-lg sm:relative sm:z-auto sm:mt-6 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
           <div className="mx-auto max-w-3xl flex items-center justify-between gap-4">
             <p className="hidden font-body text-xs text-text-tertiary sm:block">
               {hayCambiosReales ? "Hay cambios pendientes por guardar" : "Sin cambios detectados"}

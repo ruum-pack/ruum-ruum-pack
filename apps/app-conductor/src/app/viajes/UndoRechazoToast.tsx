@@ -48,8 +48,8 @@ export function UndoRechazoToast({
           </span>
           <div className="mt-1.5 h-1 w-full rounded-full bg-surface overflow-hidden" aria-hidden>
             <div
-              className="h-full bg-warning transition-all duration-250 ease-linear"
-              style={{ width: `${(segundosRestantes / 8) * 100}%` }}
+              className="h-full bg-warning transition-all duration-250 ease-linear conductor-progress-fill"
+              data-progress={Math.round((segundosRestantes / 8) * 100)}
             />
           </div>
         </div>

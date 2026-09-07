@@ -3,8 +3,8 @@ export default function CargandoViajes() {
     <output className="conductor-content" aria-label="Cargando viajes" aria-busy="true">
       {/* Skeleton pestañas */}
       <div className="flex gap-2 border-b border-border pb-0">
-        {[100, 110].map((w, i) => (
-          <div key={i} className="h-10 animate-pulse rounded-t bg-surface-elevated" style={{ width: `${w}px` }} />
+        {["w-[100px]", "w-[110px]"].map((widthClass) => (
+          <div key={widthClass} className={`h-10 animate-pulse rounded-t bg-surface-elevated ${widthClass}`} />
         ))}
       </div>
       {/* Skeleton cards de viaje */}

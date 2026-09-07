@@ -76,44 +76,21 @@ function showUpdateNotification() {
   const updateBanner = document.createElement("div");
   updateBanner.id = "ruum-pwa-update-banner";
   updateBanner.innerHTML = `
-    <div style="
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-      padding: 16px 20px;
-      background: #0D5FD4;
-      color: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-family: var(--font-body);
-      font-size: 14px;
-    ">
+    <div class="conductor-pwa-update-card">
       <span>📦 Nueva versión disponible</span>
-      <button onclick="window.location.reload()" style="
-        background: white;
-        color: #0D5FD4;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 16px;
-        font-weight: 600;
-        cursor: pointer;
-        font-family: var(--font-body);
-      ">Actualizar</button>
-      <button onclick="document.getElementById('ruum-pwa-update-banner').remove(); localStorage.setItem('ruum_pwa_update_prompted', 'true');" style="
-        background: transparent;
-        color: white;
-        border: none;
-        cursor: pointer;
-        font-size: 20px;
-        line-height: 1;
-      ">×</button>
+      <button type="button" class="conductor-pwa-update-action">Actualizar</button>
+      <button type="button" class="conductor-pwa-dismiss-action" aria-label="Cerrar aviso de actualización">×</button>
     </div>
   `;
   document.body.appendChild(updateBanner);
+
+  updateBanner.querySelector<HTMLButtonElement>(".conductor-pwa-update-action")?.addEventListener("click", () => {
+    window.location.reload();
+  });
+  updateBanner.querySelector<HTMLButtonElement>(".conductor-pwa-dismiss-action")?.addEventListener("click", () => {
+    updateBanner.remove();
+    localStorage.setItem("ruum_pwa_update_prompted", "true");
+  });
   
   // Auto-ocultar después de 10 segundos
   setTimeout(() => {

@@ -43,8 +43,7 @@ function ProgressRing({ value, max = 3 }: { value: number; max?: number }) {
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={offset}
-          className={pct >= 1 ? "text-emerald-600 dark:text-emerald-400" : "text-route-action"}
-          style={{ transition: "stroke-dashoffset 600ms ease" }}
+          className={`${pct >= 1 ? "text-emerald-600 dark:text-emerald-400" : "text-route-action"} conductor-progress-ring`}
         />
       </svg>
       <span className="absolute inset-0 flex items-center justify-center font-display text-[11px] font-black tabular-nums text-text-primary">

@@ -57,7 +57,7 @@ export function RegistrationProgress({
         <div className="h-2 w-full overflow-hidden rounded-full bg-surface-elevated border border-border/30">
           <div
             className="h-full bg-signal transition-all duration-500 ease-out shadow-[0_0_12px_rgba(245,166,35,0.4)]"
-            style={{ width: `${porcentaje}%` }}
+            data-progress={porcentaje}
           />
         </div>
       </div>

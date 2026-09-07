@@ -560,8 +560,7 @@ export default function PaginaEvidencia() {
                       strokeLinecap="round"
                       strokeDasharray={c}
                       strokeDashoffset={offset}
-                      className={porcentaje === 100 ? "text-signal" : "text-route-action"}
-                      style={{ transition: "stroke-dashoffset 600ms ease" }}
+                      className={`${porcentaje === 100 ? "text-signal" : "text-route-action"} conductor-progress-ring`}
                     />
                   </svg>
                   <span className="absolute inset-0 flex flex-col items-center justify-center">
@@ -574,10 +573,10 @@ export default function PaginaEvidencia() {
               {/* Progress Bar Track */}
               <div className="w-full bg-surface rounded-full h-3.5 overflow-hidden border border-border/15 relative p-0.5">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${
+                  className={`h-full rounded-full transition-all duration-500 conductor-progress-fill ${
                     porcentaje === 100 ? "bg-signal shadow-[0_0_12px_rgba(255,196,0,0.4)]" : "bg-route-action shadow-[0_0_10px_rgba(30,136,229,0.3)]"
                   }`}
-                  style={{ width: `${porcentaje}%` }}
+                  data-progress={porcentaje}
                 />
               </div>
 

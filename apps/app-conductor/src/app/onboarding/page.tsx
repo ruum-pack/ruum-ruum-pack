@@ -122,13 +122,7 @@ export default function PaginaOnboarding() {
 
   return (
     <div
-      className="flex min-h-dvh flex-col text-text-primary"
-      style={{
-        background:
-          "radial-gradient(circle at 12% 8%, rgba(30,136,229,0.10), transparent 42%)," +
-          "radial-gradient(circle at 92% 88%, rgba(255,196,0,0.06), transparent 38%)," +
-          "var(--ruum-canvas)"
-      }}
+      className="flex min-h-dvh flex-col text-text-primary conductor-onboarding-shell"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >

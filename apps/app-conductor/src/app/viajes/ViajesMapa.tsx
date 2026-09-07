@@ -90,7 +90,7 @@ export function ViajesMapa({ viajes, onSelect, vistaId }: ViajesMapaProps) {
 
           const precio = viaje.ganancia_conductor != null ? new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(viaje.ganancia_conductor) : "—";
           const distancia = viaje.distancia_km != null ? `${viaje.distancia_km.toFixed(1)} km` : "";
-          const popupHtml = `<div style="font-family:Inter,sans-serif;padding:6px 2px;min-width:140px"><div style="font-size:11px;font-weight:800;color:#64748b;letter-spacing:0.04em">OFERTA</div><div style="font-size:14px;font-weight:900;color:#0f172a">${viaje.origen_ciudad ?? "Origen"} → ${viaje.destino_ciudad ?? "Destino"}</div><div style="font-size:12px;color:#334155;margin-top:2px">${precio} · ${distancia}</div><div style="margin-top:8px;font-size:12px;font-weight:800;color:#1e88e5">Toca para ver →</div></div>`;
+          const popupHtml = `<div class="conductor-map-popup"><div class="conductor-map-popup__eyebrow">OFERTA</div><div class="conductor-map-popup__route">${viaje.origen_ciudad ?? "Origen"} → ${viaje.destino_ciudad ?? "Destino"}</div><div class="conductor-map-popup__meta">${precio} · ${distancia}</div><div class="conductor-map-popup__action">Toca para ver →</div></div>`;
 
           const popup = new mapboxgl.Popup({ offset: 18, closeButton: false, maxWidth: "220px" }).setHTML(popupHtml);
 

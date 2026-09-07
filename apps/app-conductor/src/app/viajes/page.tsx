@@ -442,7 +442,7 @@ export default function PaginaViajes() {
         {/* Header — sticky con acciones 44px y barra fina */}
         {refrescando && (
           <div className="pointer-events-none fixed left-0 right-0 top-0 z-50 h-1 bg-signal/20" aria-hidden>
-            <div className="h-full w-1/3 animate-pulse bg-signal" style={{ animationDuration: "0.9s" }} />
+            <div className="h-full w-1/3 animate-pulse conductor-refresh-bar bg-signal" />
           </div>
         )}
         <header className="sticky top-0 z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80 border-b border-border/20 py-3 flex items-center justify-between gap-3">

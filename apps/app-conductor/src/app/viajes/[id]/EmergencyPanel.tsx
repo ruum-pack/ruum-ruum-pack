@@ -256,8 +256,7 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
             ref={dialogRef}
             aria-modal="true"
             aria-labelledby="emergency-panel-title"
-            className="mx-auto flex max-h-[calc(100dvh_-_24px_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_24px_80px_rgba(26,31,46,0.34)]"
-            style={{ marginTop: "max(0px, env(safe-area-inset-top))" }}
+            className="mx-auto flex max-h-[calc(100dvh_-_24px_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_24px_80px_rgba(26,31,46,0.34)] conductor-emergency-panel"
           >
             <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-4">
               <div>

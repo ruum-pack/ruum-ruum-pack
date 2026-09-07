@@ -342,7 +342,11 @@ async function globalSetup(config: FullConfig) {
   const ownerEmail = optionalEnv("usuario-e2e-conductor@ruumruum.test", "PLAYWRIGHT_E2E_OWNER_EMAIL", "E2E_OWNER_EMAIL");
   const rawOwnerPassword = requiredEnv("PLAYWRIGHT_E2E_OWNER_PASSWORD", "E2E_OWNER_PASSWORD", "PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD");
   const ownerPassword = ensureStrongPassword(rawOwnerPassword);
-  const baseURL = String(config.projects[0].use.baseURL ?? "http://localhost:3001");
+  // El primer proyecto es `setup` y no hereda `use.baseURL` de forma fiable.
+  // Usar ese proyecto dejaba el storageState en localhost:3001 aunque la suite
+  // apuntara a otro host/puerto, por lo que middleware no recibía la cookie y
+  // redirigía las rutas protegidas a /login.
+  const baseURL = String(config.use.baseURL ?? "http://localhost:3001");
 
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false }

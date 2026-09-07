@@ -271,7 +271,7 @@ export function EstadoRevisionConductor({ conductorId, solicitudId, nombre, docu
             </div>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-elevated" aria-hidden>
-            <div className="h-full rounded-full bg-signal transition-all duration-300" style={{ width: `${porcentaje}%` }} />
+            <div className="h-full rounded-full bg-signal transition-all duration-300 conductor-progress-fill" data-progress={porcentaje} />
           </div>
           <p className="mt-1 font-body text-xs text-text-tertiary/80">{porcentaje}% completado</p>
           <div className="mt-3 grid gap-2 font-body text-xs text-text-tertiary/80 sm:grid-cols-2">

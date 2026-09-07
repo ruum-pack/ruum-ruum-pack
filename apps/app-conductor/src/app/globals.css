@@ -804,3 +804,105 @@ html[data-theme="light"] .conductor-page :where(input, select, textarea):focus {
     animation: none;
   }
 }
+
+/* CSP-safe visual states: keep dynamic values in data attributes instead of
+   React style attributes, which are blocked by style-src nonce policies. */
+.conductor-refresh-bar {
+  animation-duration: 0.9s;
+}
+
+.conductor-progress-ring {
+  transition: stroke-dashoffset 600ms ease;
+}
+
+.conductor-progress-fill[data-progress] {
+  width: calc(attr(data-progress type(<number>)) * 1%);
+}
+
+.conductor-onboarding-shell {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(30, 136, 229, 0.1), transparent 42%),
+    radial-gradient(circle at 92% 88%, rgba(255, 196, 0, 0.06), transparent 38%),
+    var(--ruum-canvas);
+}
+
+.conductor-pwa-update-card {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: #0d5fd4;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.conductor-pwa-update-action {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+  color: #0d5fd4;
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.conductor-pwa-dismiss-action {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.conductor-toast-bottom[data-offset="mobile-nav"] {
+  bottom: calc(var(--conductor-mobile-nav-offset, 80px) + env(safe-area-inset-bottom) + 16px);
+}
+
+.conductor-profile-sticky-action {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+.conductor-emergency-panel {
+  margin-top: max(0px, env(safe-area-inset-top));
+}
+
+.conductor-map-popup {
+  min-width: 140px;
+  padding: 6px 2px;
+  font-family: Inter, sans-serif;
+}
+
+.conductor-map-popup__eyebrow {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.conductor-map-popup__route {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.conductor-map-popup__meta {
+  margin-top: 2px;
+  color: #334155;
+  font-size: 12px;
+}
+
+.conductor-map-popup__action {
+  margin-top: 8px;
+  color: #1e88e5;
+  font-size: 12px;
+  font-weight: 800;
+}
