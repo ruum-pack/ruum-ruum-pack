@@ -149,13 +149,20 @@ jobs:
     needs: eslint-a11y
     timeout-minutes: 15
     env:
+      # ─── Variables para la aplicación ───
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://ci.supabase.test' }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'ci-anon-key' }}
+      
+      # ─── Variables para Playwright (auth.setup.ts) ───
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || 'ci-service-role' }}
       PLAYWRIGHT_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://ci.supabase.test' }}
       PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || 'ci-service-role' }}
+      
+      # ─── Credenciales de usuario de prueba ───
       PLAYWRIGHT_E2E_CONDUCTOR_EMAIL: ${{ secrets.E2E_CONDUCTOR_EMAIL || 'test@example.test' }}
       PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD: ${{ secrets.E2E_CONDUCTOR_PASSWORD || 'TestPass123!' }}
+      
+      # ─── Configuración de la app ───
       NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: pk.ci
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
       NEXT_PUBLIC_APP_VERSION: 1.0.0
@@ -198,10 +205,20 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter @ruum/app-conductor exec playwright install --with-deps chromium
 
-      - name: Ensure dummy auth state for CI without real Supabase
+      # 🔥 NUEVO: Limpiar sesión antigua para asegurar login fresco
+      - name: Clean old auth state
+        run: rm -f apps/app-conductor/tests/.auth/conductor.json || true
+
+      # 🔥 NUEVO: Debug variables de entorno (opcional - útil para diagnóstico)
+      - name: Debug auth environment
         run: |
-          mkdir -p apps/app-conductor/tests/.auth
-          echo '{"cookies":[],"origins":[]}' > apps/app-conductor/tests/.auth/conductor.json
+          echo "PLAYWRIGHT_SUPABASE_URL: ${PLAYWRIGHT_SUPABASE_URL}"
+          echo "PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY: ${PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY:0:30}..."
+          echo "PLAYWRIGHT_E2E_CONDUCTOR_EMAIL: ${PLAYWRIGHT_E2E_CONDUCTOR_EMAIL}"
+          echo "PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD: ${PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD:0:5}..."
+
+      # ❌ ELIMINADO: Ensure dummy auth state for CI without real Supabase
+      # Ya no creamos un archivo dummy vacío, ahora usamos autenticación real
 
       - name: Build application
         run: pnpm --filter @ruum/app-conductor build
