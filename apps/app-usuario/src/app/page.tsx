@@ -6,6 +6,7 @@ import { IDENTIDAD_MARCA } from "@ruum/shared/constants";
 import { LogoMarca, SelloConductor } from "@ruum/ui";
 import { NavegacionUsuario } from "./NavegacionUsuario";
 import { InicioUsuario } from "./InicioUsuario";
+import { obtenerViajeActivo } from "../lib/inicio";
 import { botonAzul, botonContorno } from "./experiencia-publica";
 
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
@@ -14,11 +15,13 @@ type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 interface ContextoSesion {
   usuario: UsuarioRow | null;
   traslados: PasaporteRow[];
+  conductorFotoUrl: string | null;
 }
+
 async function obtenerContextoSesion(): Promise<ContextoSesion> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return { usuario: null, traslados: [] };
+  if (!url || !anonKey) return { usuario: null, traslados: [], conductorFotoUrl: null };
 
   try {
     const { crearClienteServidor } = await import("../lib/supabase-server");
@@ -26,15 +29,34 @@ async function obtenerContextoSesion(): Promise<ContextoSesion> {
 
     const cliente = await crearClienteServidor();
     const usuario = await obtenerUsuarioActual(cliente);
-    if (!usuario) return { usuario: null, traslados: [] };
+    if (!usuario) return { usuario: null, traslados: [], conductorFotoUrl: null };
 
     const traslados = await listarTrasladosDeUsuario(cliente, usuario.id);
-    return { usuario, traslados };
+    const viajeActivo = obtenerViajeActivo(traslados);
+    let conductorFotoUrl: string | null = null;
+
+    if (viajeActivo?.conductor_id) {
+      const { data, error } = await cliente
+        .from("conductores")
+        .select("foto_perfil_url")
+        .eq("id", viajeActivo.conductor_id)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("[app-usuario:obtenerContextoSesion] conductor_photo_unavailable", {
+          message: error.message,
+        });
+      } else {
+        conductorFotoUrl = data?.foto_perfil_url ?? null;
+      }
+    }
+
+    return { usuario, traslados, conductorFotoUrl };
   } catch (err) {
     console.error("[app-usuario:obtenerContextoSesion] supabase_error", {
       message: err instanceof Error ? err.message : String(err),
     });
-    return { usuario: null, traslados: [] };
+    return { usuario: null, traslados: [], conductorFotoUrl: null };
   }
 }
 
@@ -44,7 +66,7 @@ export default async function PaginaInicio({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = (await searchParams) ?? {};
-  const { usuario, traslados } = await obtenerContextoSesion();
+  const { usuario, traslados, conductorFotoUrl } = await obtenerContextoSesion();
   const forzarLanding = params.landing === "true";
 
   if (usuario && !forzarLanding) {
@@ -52,7 +74,7 @@ export default async function PaginaInicio({
       <main className="user-v2-scope user-v2-page">
         <NavegacionUsuario variante="claro" />
         <div className="user-v2-content">
-          <InicioUsuario usuario={usuario} traslados={traslados} />
+          <InicioUsuario usuario={usuario} traslados={traslados} conductorFotoUrl={conductorFotoUrl} />
         </div>
       </main>
     );

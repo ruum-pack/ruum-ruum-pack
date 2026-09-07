@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Database } from "@ruum/shared/types";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import { obtenerViajeActivo } from "../lib/inicio";
+import { ConductorAsignado } from "./ConductorAsignado";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
@@ -11,6 +12,7 @@ type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 export interface InicioUsuarioProps {
   usuario: UsuarioRow | null;
   traslados: PasaporteRow[];
+  conductorFotoUrl?: string | null;
 }
 
 function tarjetaVehiculo(traslado: PasaporteRow): string {
@@ -75,9 +77,16 @@ function IconoChevron({ className = "size-5" }: { className?: string }) {
   );
 }
 
-export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
+export function InicioUsuario({ usuario, traslados, conductorFotoUrl = null }: InicioUsuarioProps) {
   const viajeActivo = obtenerViajeActivo(traslados);
   const nombre = primerNombre(usuario?.nombre);
+  const conductorAsignado = viajeActivo?.traslado_id && viajeActivo.conductor_id && viajeActivo.conductor_nombre && viajeActivo.estado
+    ? {
+        trasladoId: viajeActivo.traslado_id,
+        estado: viajeActivo.estado,
+        nombre: viajeActivo.conductor_nombre,
+      }
+    : null;
 
   return (
     <div className="user-v2-screen">
@@ -157,6 +166,15 @@ export function InicioUsuario({ usuario, traslados }: InicioUsuarioProps) {
           </Link>
         </div>
       </section>
+
+      {conductorAsignado && (
+        <ConductorAsignado
+          trasladoId={conductorAsignado.trasladoId}
+          estado={conductorAsignado.estado}
+          nombre={conductorAsignado.nombre}
+          fotoUrl={conductorFotoUrl}
+        />
+      )}
     </div>
   );
 }
