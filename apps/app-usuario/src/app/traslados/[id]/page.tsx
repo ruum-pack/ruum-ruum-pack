@@ -28,6 +28,12 @@ import { PagoTraslado } from "./PagoTraslado";
 import { AccionesRapidasPasaporte } from "./AccionesRapidasPasaporte";
 
 import { NavegacionUsuario } from "../../NavegacionUsuario";
+
+// El Pasaporte contiene datos protegidos por sesión y cambia con el estado
+// operativo del traslado; nunca debe prerenderizarse ni servirse desde caché.
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
+
 type Pasaporte = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type Traslado = Pick<
   Database["public"]["Tables"]["traslados"]["Row"],

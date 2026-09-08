@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import { crearClienteServidor } from "../../lib/supabase-server";
 import { listarTrasladosDeUsuario, obtenerUsuarioActual } from "@ruum/api/services";
 
+// El destino depende de la sesión y del traslado activo del usuario. Evita
+// que el despliegue genere una versión estática compartida entre sesiones.
+export const dynamic = "force-dynamic";
+
 export default async function PaginaPasaporteRedirect() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
