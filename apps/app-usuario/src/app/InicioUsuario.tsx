@@ -3,7 +3,9 @@
 import Link from "next/link";
 import type { Database } from "@ruum/shared/types";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
+import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
 import { obtenerViajeActivo } from "../lib/inicio";
+import { TERMINOLOGIA_USUARIO } from "../lib/glosario";
 import { ConductorAsignado } from "./ConductorAsignado";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
@@ -15,14 +17,8 @@ export interface InicioUsuarioProps {
   conductorFotoUrl?: string | null;
 }
 
-function tarjetaVehiculo(traslado: PasaporteRow): string {
-  const partes = [
-    traslado.vehiculo_marca,
-    traslado.vehiculo_modelo,
-    traslado.vehiculo_anio ? String(traslado.vehiculo_anio) : null,
-  ].filter(Boolean);
-
-  return partes.length > 0 ? partes.join(" ") : "Vehículo";
+function folioVisible(trasladoId: string | null): string {
+  return trasladoId ? `#${trasladoId.slice(0, 8).toUpperCase()}` : "#—";
 }
 
 function primerNombre(nombre: string | null | undefined): string | null {
@@ -114,10 +110,42 @@ export function InicioUsuario({ usuario, traslados, conductorFotoUrl = null }: I
                 <IconoCarro className="size-8" />
               </span>
               <div className="min-w-0">
-                <h2 id="traslados-activos" className="user-v2-card-title">Traslado activo</h2>
-                <p className="user-v2-caption user-v2-muted mt-1 truncate">{tarjetaVehiculo(viajeActivo)}</p>
+                <h2 id="traslados-activos" className="user-v2-card-title">
+                  Traslado Activo {folioVisible(viajeActivo.traslado_id)}
+                </h2>
+                <span className="mt-2 inline-flex max-w-full items-center rounded-full bg-[var(--user-color-brand)]/15 px-2.5 py-1 text-xs font-semibold text-[var(--user-color-brand-dark)]">
+                  {viajeActivo.estado
+                    ? TERMINOLOGIA_USUARIO[viajeActivo.estado] ?? ETIQUETA_ESTADO_TRASLADO[viajeActivo.estado]
+                    : "En seguimiento"}
+                </span>
               </div>
             </div>
+            <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-[var(--user-color-border)] pt-4">
+              <div>
+                <dt className="user-v2-caption user-v2-muted">Marca</dt>
+                <dd className="mt-0.5 text-sm font-semibold text-[var(--user-color-primary)]">
+                  {viajeActivo.vehiculo_marca ?? "Pendiente"}
+                </dd>
+              </div>
+              <div>
+                <dt className="user-v2-caption user-v2-muted">Modelo</dt>
+                <dd className="mt-0.5 text-sm font-semibold text-[var(--user-color-primary)]">
+                  {viajeActivo.vehiculo_modelo ?? "Pendiente"}
+                </dd>
+              </div>
+              <div>
+                <dt className="user-v2-caption user-v2-muted">Año</dt>
+                <dd className="mt-0.5 text-sm font-semibold text-[var(--user-color-primary)]">
+                  {viajeActivo.vehiculo_anio ?? "Pendiente"}
+                </dd>
+              </div>
+              <div>
+                <dt className="user-v2-caption user-v2-muted">Placas</dt>
+                <dd className="mt-0.5 text-sm font-semibold uppercase text-[var(--user-color-primary)]">
+                  {viajeActivo.vehiculo_placas ?? "Pendientes"}
+                </dd>
+              </div>
+            </dl>
             <Link
               href={viajeActivo.traslado_id ? `/traslados/${viajeActivo.traslado_id}` : "/mis-viajes"}
               className="user-v2-secondary-button group mt-5 flex items-center justify-between px-3.5"

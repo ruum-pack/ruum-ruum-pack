@@ -670,7 +670,41 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
       const {
         data: { user },
       } = await clienteAuth.auth.getUser();
-      if (!user || user.id !== pasaporte.usuario_id) {
+      if (!user) {
+        // Tratar como no encontrado para no filtrar existencia (IDOR)
+        return (
+          <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
+            <NavegacionUsuario variante="claro" />
+            <div className="w-full max-w-md mx-auto py-20 px-4 text-center">
+              <p className="font-display text-xs font-bold uppercase tracking-widest text-[#FFC400]">Traslado no encontrado</p>
+              <h1 className="mt-3 font-display text-2xl font-black text-white">No encontramos ese traslado</h1>
+              <p className="mt-3 max-w-sm mx-auto font-body text-xs leading-relaxed text-[#8E9CAE]">
+                Revisa el enlace o el folio. Si recién lo creaste, puede tardar unos segundos en sincronizarse con la plataforma.
+              </p>
+              <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <Link
+                  href="/mis-viajes"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#FFC400] px-5 py-2.5 font-display text-xs font-black uppercase tracking-wider text-[#0B111B] shadow-md transition hover:bg-[#e6b000]"
+                >
+                  Ver mis traslados
+                </Link>
+              </div>
+            </div>
+          </main>
+        );
+      }
+
+      // `pasaporte.usuario_id` referencia public.usuarios.id; no es el mismo
+      // UUID que auth.users.id. Resolver primero el perfil evita rechazar
+      // traslados legítimos como "no encontrados".
+      const { data: perfil, error: errorPerfil } = await clienteAuth
+        .from("usuarios")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (errorPerfil) throw errorPerfil;
+      if (!perfil || perfil.id !== pasaporte.usuario_id) {
         // Tratar como no encontrado para no filtrar existencia (IDOR)
         return (
           <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
