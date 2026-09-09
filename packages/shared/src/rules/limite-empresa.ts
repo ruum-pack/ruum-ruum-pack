@@ -1,13 +1,14 @@
 import type { RolUsuario } from "../types/usuario";
 
 /**
- * PRD §3 — "Una empresa puede tener máximo dos usuarios internos: titular y
- * usuario autorizado." Es decir: como máximo un titular_empresa y como
- * máximo un usuario_autorizado por empresa (dos en total). Espejo deliberado
- * del trigger validar_limite_empresa() en supabase/migrations/0015_empresas.sql
- * (defensa en profundidad, mismo criterio que nivel_operativo_vigente en 0003):
- * la app sigue siendo la fuente de verdad legible, la base de datos también
- * rechaza el caso aunque el bug esté en la aplicación.
+ * PRD §3 (modelo legacy) — "Una empresa puede tener máximo dos usuarios
+ * internos: titular y usuario autorizado."
+ *
+ * @deprecated FASE 2: el límite de 2 se eliminó en DB (drop del trigger
+ * validar_limite_empresa en 20260908000002_equipo_empresa.sql). La autoridad
+ * ahora es empresa_miembros + empresa_rol_permisos (ver types/empresa-equipo.ts).
+ * Se conserva sin cambios por compatibilidad con código que aún distingue los
+ * roles legacy titular_empresa/usuario_autorizado.
  */
 export interface MiembroEmpresa {
   rol: RolUsuario;

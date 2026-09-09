@@ -24,3 +24,4 @@ export * from "./_rpc-validado";
 export * from "./repositorio-conductor";
 export * from "./masivos-usuario";
 export * from "./operaciones";
+export * from "./empresa-equipo";
