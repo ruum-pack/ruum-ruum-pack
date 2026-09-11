@@ -37,6 +37,11 @@ Esta matriz es la referencia unica para los archivos de `supabase/test`. Cada ca
 | `rt51_equipo_empresa.test.sql` | Admin, RLS | Equipo empresa sin limite de 2, matriz de permisos y RPC de membresias. | Cambios en roles, miembros, sucursales o permisos. |
 | `rt52_ciclo_operativo.test.sql` | Traslado | Estado operativo derivado, transicion valida/invalida e historial con actor/motivo. | Cambios en ciclo de vida, traduccion o historial de traslados. |
 | `rt53_asignaciones.test.sql` | Traslado | Assignment formal: oferta/aceptacion/rechazo/cancelacion/reasignacion, doble bloqueo, idempotencia, score y RLS. | Cambios en asignaciones, CONCER o conductor_id. |
+| `rt54_operacion_masiva.test.sql` | Traslado | Carga masiva ligada a operación: preview, centros, dedup, idempotencia, agregar/retirar; v1 intacto. | Cambios en masivos, operaciones o sucursales. |
+| `rt55_cadena_custodia.test.sql` | Traslado | Cadena de custodia: registro, hash, monotonía, append-only, RLS y backfill vivo. | Cambios en custodia, evidencia o transiciones de traslado. |
+| `rt56_tracking_operacional.test.sql` | Traslado | Sesiones, heartbeat, salud STALE/OFFLINE, detenido, desviación y cierre. | Cambios en tracking, sesiones o telemetría. |
+| `rt57_incidentes_independientes.test.sql` | Traslado | Familia incidente/reclamo/disputa sin mover estado: severidad, SLA, historial, opt-in legacy. | Cambios en incidencias, disputas, reclamos o sus RPC. |
+| `rt58_finanzas.test.sql` | Traslado | Quote persistente con snapshot y versión, versionado de política, finanzas por operación (facturado/costo/gastos/comisiones/margen), sin-pago y comision_mxn. | Cambios en cotizaciones, tarifas, pagos, operaciones o finanzas. |
 
 ## Comandos
 

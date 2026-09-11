@@ -293,7 +293,6 @@ export const USUARIOS_DEMO: UsuarioRow[] = [
     rol: "personal",
     empresa_id: null,
     estado_verificacion: "verificado",
-    curp: null,
     estado_cuenta: "activa",
     traslados_completados_sin_incidencia: 3,
     metodo_pago_registrado: true,
@@ -336,7 +335,6 @@ export const USUARIOS_DEMO: UsuarioRow[] = [
     rol: "personal",
     empresa_id: null,
     estado_verificacion: "en_revision",
-    curp: null,
     estado_cuenta: "activa",
     traslados_completados_sin_incidencia: 0,
     metodo_pago_registrado: false,
@@ -382,6 +380,14 @@ export const INCIDENCIAS_DEMO: IncidenciaRow[] = [
     descripcion: "El vehículo presentó una falla en el sistema de frenos a medio camino.",
     resuelta: false,
     creada_en: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    resuelta_en: null
+    resuelta_en: null,
+    asignada_en: null,
+    escalada_en: null,
+    estado: "abierta",
+    nivel_escalamiento: 0,
+    responsable_admin_id: null,
+    severidad: "medium",
+    sla_horas: null,
+    sla_vence_en: null
   }
 ];

@@ -347,7 +347,10 @@ function VistaControl({ empresa, usuarios, alertas, cambios, versionesCondicione
 }
 
 function VistaFlota({ vehiculos, conductores }: { vehiculos: Vehiculo[]; conductores: Conductor[] }) {
-  const conductorPorId = new Map(conductores.map((conductor) => [conductor.id, conductor]));
+  // Deriva conocida (Fase 12): vehiculos.conductor_id no existe en el esquema real,
+  // así que no hay vínculo conductor↔vehículo que mostrar; se conserva el prop
+  // para no romper a los llamadores.
+  void conductores;
   return (
     <div className="grid gap-6 xl:grid-cols-2">
       <section>
@@ -365,7 +368,6 @@ function VistaFlota({ vehiculos, conductores }: { vehiculos: Vehiculo[]; conduct
             </thead>
             <tbody>
               {vehiculos.map((vehiculo) => {
-                const conductor = vehiculo.conductor_id ? conductorPorId.get(vehiculo.conductor_id) : null;
                 return (
                   <tr key={vehiculo.id} className="border-b border-ink/5 align-top">
                     <td className="py-3 pr-4">
@@ -378,7 +380,7 @@ function VistaFlota({ vehiculos, conductores }: { vehiculos: Vehiculo[]; conduct
                       <Checklist items={[["Placas", vehiculo.tiene_placas], ["Tarjeta", vehiculo.tiene_tarjeta_circulacion], ["Verificacion", vehiculo.tiene_verificacion]]} />
                     </td>
                     <td className="py-3 pl-4">
-                      {conductor ? <Link href={`/conductores/activos/${conductor.id}`} className="font-semibold text-focus-default hover:underline">{conductor.nombre}</Link> : "Sin asignar"}
+                      Sin asignar
                     </td>
                   </tr>
                 );

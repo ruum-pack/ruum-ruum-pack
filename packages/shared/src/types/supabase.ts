@@ -100,6 +100,313 @@ export type Database = {
         }
         Relationships: []
       }
+      alertas_sla_historial: {
+        Row: {
+          accion: string
+          admin_id: string | null
+          alerta_id: string
+          comentario: string | null
+          creado_en: string
+          datos: Json
+          estado_anterior: string | null
+          estado_nuevo: string | null
+          id: string
+          responsable_anterior: string | null
+          responsable_nuevo: string | null
+        }
+        Insert: {
+          accion: string
+          admin_id?: string | null
+          alerta_id: string
+          comentario?: string | null
+          creado_en?: string
+          datos?: Json
+          estado_anterior?: string | null
+          estado_nuevo?: string | null
+          id?: string
+          responsable_anterior?: string | null
+          responsable_nuevo?: string | null
+        }
+        Update: {
+          accion?: string
+          admin_id?: string | null
+          alerta_id?: string
+          comentario?: string | null
+          creado_en?: string
+          datos?: Json
+          estado_anterior?: string | null
+          estado_nuevo?: string | null
+          id?: string
+          responsable_anterior?: string | null
+          responsable_nuevo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alertas_sla_historial_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_sla_historial_alerta_id_fkey"
+            columns: ["alerta_id"]
+            isOneToOne: false
+            referencedRelation: "alertas_sla_operacionales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alertas_sla_operacionales: {
+        Row: {
+          actualizado_en: string
+          acuse_en: string | null
+          acuse_por_admin_id: string | null
+          asignado_en: string | null
+          asignado_por_admin_id: string | null
+          categoria: string
+          cerrado_en: string | null
+          cerrado_por_admin_id: string | null
+          creado_en: string
+          dedupe_key: string
+          descripcion: string
+          entidad_id: string
+          entidad_tipo: string
+          escalado_en: string | null
+          escalado_por_admin_id: string | null
+          estado: string
+          folio: string
+          horas_limite: number
+          horas_transcurridas: number
+          id: string
+          metadata: Json
+          notificacion_estado: string
+          origen_creado_en: string
+          porcentaje_consumido: number
+          prioridad: number
+          regla_id: string | null
+          responsable: string | null
+          resuelto_en: string | null
+          resuelto_por_admin_id: string | null
+          severidad: string
+          sla_restante_horas: number
+          traslado_id: string | null
+          vence_en: string
+        }
+        Insert: {
+          actualizado_en?: string
+          acuse_en?: string | null
+          acuse_por_admin_id?: string | null
+          asignado_en?: string | null
+          asignado_por_admin_id?: string | null
+          categoria: string
+          cerrado_en?: string | null
+          cerrado_por_admin_id?: string | null
+          creado_en?: string
+          dedupe_key: string
+          descripcion: string
+          entidad_id: string
+          entidad_tipo: string
+          escalado_en?: string | null
+          escalado_por_admin_id?: string | null
+          estado?: string
+          folio: string
+          horas_limite: number
+          horas_transcurridas?: number
+          id?: string
+          metadata?: Json
+          notificacion_estado?: string
+          origen_creado_en: string
+          porcentaje_consumido?: number
+          prioridad?: number
+          regla_id?: string | null
+          responsable?: string | null
+          resuelto_en?: string | null
+          resuelto_por_admin_id?: string | null
+          severidad: string
+          sla_restante_horas: number
+          traslado_id?: string | null
+          vence_en: string
+        }
+        Update: {
+          actualizado_en?: string
+          acuse_en?: string | null
+          acuse_por_admin_id?: string | null
+          asignado_en?: string | null
+          asignado_por_admin_id?: string | null
+          categoria?: string
+          cerrado_en?: string | null
+          cerrado_por_admin_id?: string | null
+          creado_en?: string
+          dedupe_key?: string
+          descripcion?: string
+          entidad_id?: string
+          entidad_tipo?: string
+          escalado_en?: string | null
+          escalado_por_admin_id?: string | null
+          estado?: string
+          folio?: string
+          horas_limite?: number
+          horas_transcurridas?: number
+          id?: string
+          metadata?: Json
+          notificacion_estado?: string
+          origen_creado_en?: string
+          porcentaje_consumido?: number
+          prioridad?: number
+          regla_id?: string | null
+          responsable?: string | null
+          resuelto_en?: string | null
+          resuelto_por_admin_id?: string | null
+          severidad?: string
+          sla_restante_horas?: number
+          traslado_id?: string | null
+          vence_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alertas_sla_operacionales_acuse_por_admin_id_fkey"
+            columns: ["acuse_por_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_sla_operacionales_asignado_por_admin_id_fkey"
+            columns: ["asignado_por_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_sla_operacionales_cerrado_por_admin_id_fkey"
+            columns: ["cerrado_por_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_sla_operacionales_escalado_por_admin_id_fkey"
+            columns: ["escalado_por_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_sla_operacionales_regla_id_fkey"
+            columns: ["regla_id"]
+            isOneToOne: false
+            referencedRelation: "sla_reglas_operativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_sla_operacionales_resuelto_por_admin_id_fkey"
+            columns: ["resuelto_por_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_sla_operacionales_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "alertas_sla_operacionales_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asignaciones: {
+        Row: {
+          aceptada_en: string | null
+          actualizado_en: string
+          asignada_en: string
+          cancelada_en: string | null
+          completada_en: string | null
+          conductor_id: string
+          creado_en: string
+          estado: Database["public"]["Enums"]["estado_asignacion"]
+          gestionada_por: string | null
+          id: string
+          iniciada_en: string | null
+          metadata: Json
+          motivo: string | null
+          ofrecida_en: string | null
+          origen: string
+          puntaje: number | null
+          rechazada_en: string | null
+          traslado_id: string
+        }
+        Insert: {
+          aceptada_en?: string | null
+          actualizado_en?: string
+          asignada_en?: string
+          cancelada_en?: string | null
+          completada_en?: string | null
+          conductor_id: string
+          creado_en?: string
+          estado?: Database["public"]["Enums"]["estado_asignacion"]
+          gestionada_por?: string | null
+          id?: string
+          iniciada_en?: string | null
+          metadata?: Json
+          motivo?: string | null
+          ofrecida_en?: string | null
+          origen?: string
+          puntaje?: number | null
+          rechazada_en?: string | null
+          traslado_id: string
+        }
+        Update: {
+          aceptada_en?: string | null
+          actualizado_en?: string
+          asignada_en?: string
+          cancelada_en?: string | null
+          completada_en?: string | null
+          conductor_id?: string
+          creado_en?: string
+          estado?: Database["public"]["Enums"]["estado_asignacion"]
+          gestionada_por?: string | null
+          id?: string
+          iniciada_en?: string | null
+          metadata?: Json
+          motivo?: string | null
+          ofrecida_en?: string | null
+          origen?: string
+          puntaje?: number | null
+          rechazada_en?: string | null
+          traslado_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asignaciones_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asignaciones_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "asignaciones_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auditoria_admin_seguridad: {
         Row: {
           accion: string | null
@@ -195,15 +502,15 @@ export type Database = {
       }
       cargas_traslados_masivos: {
         Row: {
-          creado_en: string
-          creado_por_admin_id: string | null
           cancelado_en: string | null
           cancelado_por: string | null
-          empresa_id: string
+          creado_en: string
+          creado_por_admin_id: string | null
+          empresa_id: string | null
           estado: string
-          filas_procesadas: number
           filas_creadas: number
           filas_error: number
+          filas_procesadas: number
           finalizado_en: string | null
           hash_archivo: string | null
           id: string
@@ -211,21 +518,22 @@ export type Database = {
           mensaje_estado: string | null
           mime_type: string | null
           nombre_archivo: string
+          operation_id: string | null
           reporte_errores_csv: string | null
           tamano_bytes: number
           total_filas: number
           usuario_id: string
         }
         Insert: {
-          creado_en?: string
-          creado_por_admin_id?: string | null
           cancelado_en?: string | null
           cancelado_por?: string | null
-          empresa_id: string
+          creado_en?: string
+          creado_por_admin_id?: string | null
+          empresa_id?: string | null
           estado?: string
-          filas_procesadas?: number
           filas_creadas?: number
           filas_error?: number
+          filas_procesadas?: number
           finalizado_en?: string | null
           hash_archivo?: string | null
           id?: string
@@ -233,21 +541,22 @@ export type Database = {
           mensaje_estado?: string | null
           mime_type?: string | null
           nombre_archivo: string
+          operation_id?: string | null
           reporte_errores_csv?: string | null
           tamano_bytes?: number
           total_filas?: number
           usuario_id: string
         }
         Update: {
-          creado_en?: string
-          creado_por_admin_id?: string | null
           cancelado_en?: string | null
           cancelado_por?: string | null
-          empresa_id?: string
+          creado_en?: string
+          creado_por_admin_id?: string | null
+          empresa_id?: string | null
           estado?: string
-          filas_procesadas?: number
           filas_creadas?: number
           filas_error?: number
+          filas_procesadas?: number
           finalizado_en?: string | null
           hash_archivo?: string | null
           id?: string
@@ -255,6 +564,7 @@ export type Database = {
           mensaje_estado?: string | null
           mime_type?: string | null
           nombre_archivo?: string
+          operation_id?: string | null
           reporte_errores_csv?: string | null
           tamano_bytes?: number
           total_filas?: number
@@ -280,6 +590,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargas_traslados_masivos_operation_id_fkey"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operaciones"
             referencedColumns: ["id"]
           },
           {
@@ -344,6 +661,132 @@ export type Database = {
           },
         ]
       }
+      certificaciones_operativas_conductor: {
+        Row: {
+          conductor_id: string
+          creada_en: string
+          id: string
+          revocada_en: string | null
+          tipo: string
+          vigente_desde: string
+          vigente_hasta: string | null
+        }
+        Insert: {
+          conductor_id: string
+          creada_en?: string
+          id?: string
+          revocada_en?: string | null
+          tipo: string
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Update: {
+          conductor_id?: string
+          creada_en?: string
+          id?: string
+          revocada_en?: string | null
+          tipo?: string
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificaciones_operativas_conductor_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      claves_idempotencia: {
+        Row: {
+          clave: string
+          creado_en: string
+          entidad: string
+          entidad_id: string | null
+          expira_en: string
+          id: string
+          resultado: Json | null
+        }
+        Insert: {
+          clave: string
+          creado_en?: string
+          entidad: string
+          entidad_id?: string | null
+          expira_en?: string
+          id?: string
+          resultado?: Json | null
+        }
+        Update: {
+          clave?: string
+          creado_en?: string
+          entidad?: string
+          entidad_id?: string | null
+          expira_en?: string
+          id?: string
+          resultado?: Json | null
+        }
+        Relationships: []
+      }
+      competencias_asignacion: {
+        Row: {
+          abierta_en: string
+          cierra_en: string
+          conductor_seleccionado_id: string | null
+          detalle_resolucion: Json
+          estado: string
+          id: string
+          politica_version: number
+          resuelta_en: string | null
+          traslado_id: string
+        }
+        Insert: {
+          abierta_en?: string
+          cierra_en: string
+          conductor_seleccionado_id?: string | null
+          detalle_resolucion?: Json
+          estado?: string
+          id?: string
+          politica_version: number
+          resuelta_en?: string | null
+          traslado_id: string
+        }
+        Update: {
+          abierta_en?: string
+          cierra_en?: string
+          conductor_seleccionado_id?: string | null
+          detalle_resolucion?: Json
+          estado?: string
+          id?: string
+          politica_version?: number
+          resuelta_en?: string | null
+          traslado_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competencias_asignacion_conductor_seleccionado_id_fkey"
+            columns: ["conductor_seleccionado_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competencias_asignacion_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "competencias_asignacion_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conductores: {
         Row: {
           actualizado_en: string
@@ -359,10 +802,10 @@ export type Database = {
           contacto_emergencia_nombre: string | null
           contacto_emergencia_telefono: string | null
           creado_en: string
-          empresa_id: string | null
           curp: string | null
           declara_sin_suspensiones: boolean
           documentos_vigentes: boolean
+          empresa_id: string | null
           estado: Database["public"]["Enums"]["estado_conductor"]
           estado_expediente: Database["public"]["Enums"]["estado_expediente_conductor"]
           estado_residencia: string | null
@@ -404,10 +847,10 @@ export type Database = {
           contacto_emergencia_nombre?: string | null
           contacto_emergencia_telefono?: string | null
           creado_en?: string
-          empresa_id?: string | null
           curp?: string | null
           declara_sin_suspensiones?: boolean
           documentos_vigentes?: boolean
+          empresa_id?: string | null
           estado?: Database["public"]["Enums"]["estado_conductor"]
           estado_expediente?: Database["public"]["Enums"]["estado_expediente_conductor"]
           estado_residencia?: string | null
@@ -449,10 +892,10 @@ export type Database = {
           contacto_emergencia_nombre?: string | null
           contacto_emergencia_telefono?: string | null
           creado_en?: string
-          empresa_id?: string | null
           curp?: string | null
           declara_sin_suspensiones?: boolean
           documentos_vigentes?: boolean
+          empresa_id?: string | null
           estado?: Database["public"]["Enums"]["estado_conductor"]
           estado_expediente?: Database["public"]["Enums"]["estado_expediente_conductor"]
           estado_residencia?: string | null
@@ -480,7 +923,56 @@ export type Database = {
           version?: number
           version_terminos_aceptada?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conductores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      configuracion_admin: {
+        Row: {
+          actualizada_en: string
+          actualizada_por: string | null
+          categoria: string
+          clave: string
+          descripcion: string
+          nombre: string
+          valor: Json
+          version: number
+        }
+        Insert: {
+          actualizada_en?: string
+          actualizada_por?: string | null
+          categoria: string
+          clave: string
+          descripcion?: string
+          nombre: string
+          valor?: Json
+          version?: number
+        }
+        Update: {
+          actualizada_en?: string
+          actualizada_por?: string | null
+          categoria?: string
+          clave?: string
+          descripcion?: string
+          nombre?: string
+          valor?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "configuracion_admin_actualizada_por_fkey"
+            columns: ["actualizada_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       configuracion_contactos_soporte: {
         Row: {
@@ -546,6 +1038,211 @@ export type Database = {
             columns: ["solicitud_id"]
             isOneToOne: false
             referencedRelation: "solicitudes_conductor"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cotizaciones: {
+        Row: {
+          aceptada_en: string | null
+          emitida_en: string
+          emitida_por_admin_id: string | null
+          estado: string
+          expira_en: string | null
+          id: string
+          moneda: string
+          politica_tarifa_version: number | null
+          precio: number
+          reglas_snapshot: Json
+          traslado_id: string
+          version: number
+        }
+        Insert: {
+          aceptada_en?: string | null
+          emitida_en?: string
+          emitida_por_admin_id?: string | null
+          estado?: string
+          expira_en?: string | null
+          id?: string
+          moneda?: string
+          politica_tarifa_version?: number | null
+          precio: number
+          reglas_snapshot?: Json
+          traslado_id: string
+          version: number
+        }
+        Update: {
+          aceptada_en?: string | null
+          emitida_en?: string
+          emitida_por_admin_id?: string | null
+          estado?: string
+          expira_en?: string | null
+          id?: string
+          moneda?: string
+          politica_tarifa_version?: number | null
+          precio?: number
+          reglas_snapshot?: Json
+          traslado_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotizaciones_emitida_por_admin_id_fkey"
+            columns: ["emitida_por_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_politica_tarifa_version_fkey"
+            columns: ["politica_tarifa_version"]
+            isOneToOne: false
+            referencedRelation: "tarifas_politica_versiones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custodia_evento_fotos: {
+        Row: {
+          evento_id: string
+          foto_id: string
+        }
+        Insert: {
+          evento_id: string
+          foto_id: string
+        }
+        Update: {
+          evento_id?: string
+          foto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custodia_evento_fotos_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "custodia_eventos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custodia_evento_fotos_foto_id_fkey"
+            columns: ["foto_id"]
+            isOneToOne: false
+            referencedRelation: "evidencia_fotos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custodia_eventos: {
+        Row: {
+          actor_id: string | null
+          actor_tipo: string
+          combustible: string | null
+          creado_en: string
+          firma_metodo: string | null
+          firma_referencia: string | null
+          hash_cadena: string
+          id: string
+          inspeccion_id: string | null
+          lat: number | null
+          lng: number | null
+          metadata: Json
+          n_orden: number
+          notas: string | null
+          ocurrido_en: string
+          odometro: number | null
+          pin_verificado: boolean
+          prev_hash: string
+          tipo: Database["public"]["Enums"]["tipo_evento_custodia"]
+          traslado_id: string
+          vehiculo_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_tipo?: string
+          combustible?: string | null
+          creado_en?: string
+          firma_metodo?: string | null
+          firma_referencia?: string | null
+          hash_cadena?: string
+          id?: string
+          inspeccion_id?: string | null
+          lat?: number | null
+          lng?: number | null
+          metadata?: Json
+          n_orden?: never
+          notas?: string | null
+          ocurrido_en?: string
+          odometro?: number | null
+          pin_verificado?: boolean
+          prev_hash?: string
+          tipo: Database["public"]["Enums"]["tipo_evento_custodia"]
+          traslado_id: string
+          vehiculo_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_tipo?: string
+          combustible?: string | null
+          creado_en?: string
+          firma_metodo?: string | null
+          firma_referencia?: string | null
+          hash_cadena?: string
+          id?: string
+          inspeccion_id?: string | null
+          lat?: number | null
+          lng?: number | null
+          metadata?: Json
+          n_orden?: never
+          notas?: string | null
+          ocurrido_en?: string
+          odometro?: number | null
+          pin_verificado?: boolean
+          prev_hash?: string
+          tipo?: Database["public"]["Enums"]["tipo_evento_custodia"]
+          traslado_id?: string
+          vehiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custodia_eventos_inspeccion_id_fkey"
+            columns: ["inspeccion_id"]
+            isOneToOne: false
+            referencedRelation: "evidencia_inspecciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custodia_eventos_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "custodia_eventos_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custodia_eventos_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
             referencedColumns: ["id"]
           },
         ]
@@ -714,53 +1411,6 @@ export type Database = {
         }
         Relationships: []
       }
-      documentos_vehiculo: {
-        Row: {
-          actualizado_en: string
-          creado_en: string
-          estado: string
-          id: string
-          mime_type: string
-          nombre_archivo: string
-          tamano_bytes: number
-          tipo: string
-          url: string
-          vehiculo_id: string
-        }
-        Insert: {
-          actualizado_en?: string
-          creado_en?: string
-          estado?: string
-          id?: string
-          mime_type: string
-          nombre_archivo: string
-          tamano_bytes: number
-          tipo: string
-          url: string
-          vehiculo_id: string
-        }
-        Update: {
-          actualizado_en?: string
-          creado_en?: string
-          estado?: string
-          id?: string
-          mime_type?: string
-          nombre_archivo?: string
-          tamano_bytes?: number
-          tipo?: string
-          url?: string
-          vehiculo_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "documentos_vehiculo_vehiculo_id_fkey"
-            columns: ["vehiculo_id"]
-            isOneToOne: false
-            referencedRelation: "vehiculos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       documentos_conductor: {
         Row: {
           actualizado_en: string
@@ -768,8 +1418,8 @@ export type Database = {
           creado_en: string
           documento_anterior_id: string | null
           es_actual: boolean
-          expira_en: string | null
           estado: string
+          expira_en: string | null
           id: string
           motivo_rechazo: string | null
           nombre_archivo: string
@@ -788,8 +1438,8 @@ export type Database = {
           creado_en?: string
           documento_anterior_id?: string | null
           es_actual?: boolean
-          expira_en?: string | null
           estado?: string
+          expira_en?: string | null
           id?: string
           motivo_rechazo?: string | null
           nombre_archivo: string
@@ -808,8 +1458,8 @@ export type Database = {
           creado_en?: string
           documento_anterior_id?: string | null
           es_actual?: boolean
-          expira_en?: string | null
           estado?: string
+          expira_en?: string | null
           id?: string
           motivo_rechazo?: string | null
           nombre_archivo?: string
@@ -927,7 +1577,6 @@ export type Database = {
           eliminado_storage_en?: string | null
           error_eliminacion?: string | null
           es_actual?: boolean
-          expira_en?: string | null
           estado?: string
           id?: string
           intentos_eliminacion?: number
@@ -948,7 +1597,6 @@ export type Database = {
           eliminado_storage_en?: string | null
           error_eliminacion?: string | null
           es_actual?: boolean
-          expira_en?: string | null
           estado?: string
           id?: string
           intentos_eliminacion?: number
@@ -1017,6 +1665,186 @@ export type Database = {
         }
         Relationships: []
       }
+      empresa_miembros: {
+        Row: {
+          actualizado_en: string
+          creado_en: string
+          empresa_id: string
+          estado: string
+          id: string
+          invitado_por: string | null
+          rol_clave: string
+          usuario_id: string
+        }
+        Insert: {
+          actualizado_en?: string
+          creado_en?: string
+          empresa_id: string
+          estado?: string
+          id?: string
+          invitado_por?: string | null
+          rol_clave: string
+          usuario_id: string
+        }
+        Update: {
+          actualizado_en?: string
+          creado_en?: string
+          empresa_id?: string
+          estado?: string
+          id?: string
+          invitado_por?: string | null
+          rol_clave?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_miembros_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empresa_miembros_invitado_por_fkey"
+            columns: ["invitado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empresa_miembros_rol_clave_fkey"
+            columns: ["rol_clave"]
+            isOneToOne: false
+            referencedRelation: "empresa_roles"
+            referencedColumns: ["clave"]
+          },
+          {
+            foreignKeyName: "empresa_miembros_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresa_rol_permisos: {
+        Row: {
+          permiso: string
+          rol_clave: string
+        }
+        Insert: {
+          permiso: string
+          rol_clave: string
+        }
+        Update: {
+          permiso?: string
+          rol_clave?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_rol_permisos_rol_clave_fkey"
+            columns: ["rol_clave"]
+            isOneToOne: false
+            referencedRelation: "empresa_roles"
+            referencedColumns: ["clave"]
+          },
+        ]
+      }
+      empresa_roles: {
+        Row: {
+          clave: string
+          descripcion: string | null
+          es_sistema: boolean
+          nombre: string
+        }
+        Insert: {
+          clave: string
+          descripcion?: string | null
+          es_sistema?: boolean
+          nombre: string
+        }
+        Update: {
+          clave?: string
+          descripcion?: string | null
+          es_sistema?: boolean
+          nombre?: string
+        }
+        Relationships: []
+      }
+      empresa_sucursales: {
+        Row: {
+          activo: boolean
+          actualizado_en: string
+          calle: string | null
+          ciudad: string | null
+          codigo_postal: string | null
+          colonia: string | null
+          contacto_nombre: string | null
+          contacto_telefono: string | null
+          creado_en: string
+          direccion: string | null
+          empresa_id: string
+          es_principal: boolean
+          estado: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          nombre: string
+          numero: string | null
+          referencias: string | null
+        }
+        Insert: {
+          activo?: boolean
+          actualizado_en?: string
+          calle?: string | null
+          ciudad?: string | null
+          codigo_postal?: string | null
+          colonia?: string | null
+          contacto_nombre?: string | null
+          contacto_telefono?: string | null
+          creado_en?: string
+          direccion?: string | null
+          empresa_id: string
+          es_principal?: boolean
+          estado?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          nombre: string
+          numero?: string | null
+          referencias?: string | null
+        }
+        Update: {
+          activo?: boolean
+          actualizado_en?: string
+          calle?: string | null
+          ciudad?: string | null
+          codigo_postal?: string | null
+          colonia?: string | null
+          contacto_nombre?: string | null
+          contacto_telefono?: string | null
+          creado_en?: string
+          direccion?: string | null
+          empresa_id?: string
+          es_principal?: boolean
+          estado?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          nombre?: string
+          numero?: string | null
+          referencias?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_sucursales_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           actualizado_en: string
@@ -1026,8 +1854,8 @@ export type Database = {
           creado_en: string
           credito_disponible_mxn: number
           dias_credito: number
-          estado_verificacion: Database["public"]["Enums"]["estado_verificacion"]
           estado_operativo: string
+          estado_verificacion: Database["public"]["Enums"]["estado_verificacion"]
           id: string
           limite_credito_mxn: number
           motivo_suspension: string | null
@@ -1048,8 +1876,8 @@ export type Database = {
           creado_en?: string
           credito_disponible_mxn?: number
           dias_credito?: number
-          estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"]
           estado_operativo?: string
+          estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"]
           id?: string
           limite_credito_mxn?: number
           motivo_suspension?: string | null
@@ -1070,8 +1898,8 @@ export type Database = {
           creado_en?: string
           credito_disponible_mxn?: number
           dias_credito?: number
-          estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"]
           estado_operativo?: string
+          estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"]
           id?: string
           limite_credito_mxn?: number
           motivo_suspension?: string | null
@@ -1084,7 +1912,15 @@ export type Database = {
           suspendida_por?: string | null
           uso_cfdi?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "empresas_suspendida_por_fkey"
+            columns: ["suspendida_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       empresas_cambios_sensibles: {
         Row: {
@@ -1131,10 +1967,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "empresas_cambios_sensibles_aprobado_por_fkey"
+            columns: ["aprobado_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "empresas_cambios_sensibles_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empresas_cambios_sensibles_solicitado_por_fkey"
+            columns: ["solicitado_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
             referencedColumns: ["id"]
           },
         ]
@@ -1188,7 +2038,36 @@ export type Database = {
           vigente_desde?: string
           vigente_hasta?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "empresas_condiciones_cambio_fkey"
+            columns: ["cambio_sensible_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_cambios_sensibles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empresas_condiciones_comerciales_versiones_aprobado_por_fkey"
+            columns: ["aprobado_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empresas_condiciones_comerciales_versiones_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empresas_condiciones_comerciales_versiones_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       empresas_datos_fiscales_versiones: {
         Row: {
@@ -1242,7 +2121,36 @@ export type Database = {
           vigente_desde?: string
           vigente_hasta?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "empresas_datos_fiscales_cambio_fkey"
+            columns: ["cambio_sensible_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_cambios_sensibles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empresas_datos_fiscales_versiones_aprobado_por_fkey"
+            columns: ["aprobado_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empresas_datos_fiscales_versiones_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empresas_datos_fiscales_versiones_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       empresas_documentos: {
         Row: {
@@ -1295,13 +2203,42 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "empresas_documentos_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "empresas_documentos_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "empresas_documentos_revisado_por_fkey"
+            columns: ["revisado_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      estado_operativo_transiciones_validas: {
+        Row: {
+          estado_actual: Database["public"]["Enums"]["estado_operativo_traslado"]
+          estado_siguiente: Database["public"]["Enums"]["estado_operativo_traslado"]
+        }
+        Insert: {
+          estado_actual: Database["public"]["Enums"]["estado_operativo_traslado"]
+          estado_siguiente: Database["public"]["Enums"]["estado_operativo_traslado"]
+        }
+        Update: {
+          estado_actual?: Database["public"]["Enums"]["estado_operativo_traslado"]
+          estado_siguiente?: Database["public"]["Enums"]["estado_operativo_traslado"]
+        }
+        Relationships: []
       }
       estado_transiciones_validas: {
         Row: {
@@ -1387,35 +2324,54 @@ export type Database = {
           codigo: string | null
           creado_en: string
           duracion_ms: number | null
+          empresa_id: string | null
           evento: string
+          fuente: string | null
           id: string
           paso: number | null
+          recibido_en: string
           sesion_id: string
           solicitud_id: string | null
+          zona: string | null
         }
         Insert: {
           auth_user_id?: string | null
           codigo?: string | null
           creado_en?: string
           duracion_ms?: number | null
+          empresa_id?: string | null
           evento: string
+          fuente?: string | null
           id?: string
           paso?: number | null
+          recibido_en?: string
           sesion_id: string
           solicitud_id?: string | null
+          zona?: string | null
         }
         Update: {
           auth_user_id?: string | null
           codigo?: string | null
           creado_en?: string
           duracion_ms?: number | null
+          empresa_id?: string | null
           evento?: string
+          fuente?: string | null
           id?: string
           paso?: number | null
+          recibido_en?: string
           sesion_id?: string
           solicitud_id?: string | null
+          zona?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "eventos_registro_conductor_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "eventos_registro_conductor_solicitud_id_fkey"
             columns: ["solicitud_id"]
@@ -1545,47 +2501,6 @@ export type Database = {
           },
         ]
       }
-      gastos_traslado: {
-        Row: {
-          comprobante_ruta: string | null
-          descripcion: string | null
-          id: string
-          monto: number
-          registrado_en: string
-          registrado_por: string | null
-          tipo: string
-          traslado_id: string
-        }
-        Insert: {
-          comprobante_ruta?: string | null
-          descripcion?: string | null
-          id?: string
-          monto: number
-          registrado_en?: string
-          registrado_por?: string | null
-          tipo: string
-          traslado_id: string
-        }
-        Update: {
-          comprobante_ruta?: string | null
-          descripcion?: string | null
-          id?: string
-          monto?: number
-          registrado_en?: string
-          registrado_por?: string | null
-          tipo?: string
-          traslado_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "gastos_traslado_traslado_id_fkey"
-            columns: ["traslado_id"]
-            isOneToOne: false
-            referencedRelation: "traslados"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       expediente_conductor_transiciones: {
         Row: {
           destino: Database["public"]["Enums"]["estado_expediente_conductor"]
@@ -1681,46 +2596,52 @@ export type Database = {
       filas_carga_traslados_masivos: {
         Row: {
           carga_id: string
+          clave_idempotencia: string | null
           creado_en: string
           datos: Json
           errores: string[]
           estado: string
           hash_fila: string | null
           id: string
-          clave_idempotencia: string | null
           numero_fila: number
           procesado_en: string | null
           referencia_externa: string | null
+          sucursal_destino_id: string | null
+          sucursal_origen_id: string | null
           traslado_id: string | null
           vehiculo_id: string | null
         }
         Insert: {
           carga_id: string
+          clave_idempotencia?: string | null
           creado_en?: string
           datos: Json
           errores?: string[]
           estado: string
           hash_fila?: string | null
           id?: string
-          clave_idempotencia?: string | null
           numero_fila: number
           procesado_en?: string | null
           referencia_externa?: string | null
+          sucursal_destino_id?: string | null
+          sucursal_origen_id?: string | null
           traslado_id?: string | null
           vehiculo_id?: string | null
         }
         Update: {
           carga_id?: string
+          clave_idempotencia?: string | null
           creado_en?: string
           datos?: Json
           errores?: string[]
           estado?: string
           hash_fila?: string | null
           id?: string
-          clave_idempotencia?: string | null
           numero_fila?: number
           procesado_en?: string | null
           referencia_externa?: string | null
+          sucursal_destino_id?: string | null
+          sucursal_origen_id?: string | null
           traslado_id?: string | null
           vehiculo_id?: string | null
         }
@@ -1730,6 +2651,20 @@ export type Database = {
             columns: ["carga_id"]
             isOneToOne: false
             referencedRelation: "cargas_traslados_masivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "filas_carga_traslados_masivos_sucursal_destino_id_fkey"
+            columns: ["sucursal_destino_id"]
+            isOneToOne: false
+            referencedRelation: "empresa_sucursales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "filas_carga_traslados_masivos_sucursal_origen_id_fkey"
+            columns: ["sucursal_origen_id"]
+            isOneToOne: false
+            referencedRelation: "empresa_sucursales"
             referencedColumns: ["id"]
           },
           {
@@ -1751,6 +2686,61 @@ export type Database = {
             columns: ["vehiculo_id"]
             isOneToOne: false
             referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gastos_traslado: {
+        Row: {
+          comprobante_ruta: string | null
+          descripcion: string | null
+          id: string
+          monto: number
+          registrado_en: string
+          registrado_por: string | null
+          tipo: string
+          traslado_id: string
+        }
+        Insert: {
+          comprobante_ruta?: string | null
+          descripcion?: string | null
+          id?: string
+          monto: number
+          registrado_en?: string
+          registrado_por?: string | null
+          tipo: string
+          traslado_id: string
+        }
+        Update: {
+          comprobante_ruta?: string | null
+          descripcion?: string | null
+          id?: string
+          monto?: number
+          registrado_en?: string
+          registrado_por?: string | null
+          tipo?: string
+          traslado_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_traslado_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_traslado_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "gastos_traslado_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
             referencedColumns: ["id"]
           },
         ]
@@ -1816,83 +2806,203 @@ export type Database = {
           },
         ]
       }
-      notas_internas_solicitud_conductor: {
+      historial_estados_traslado: {
         Row: {
-          admin_id: string | null
+          actor_id: string | null
+          actor_tipo: string
           creado_en: string
+          estado_anterior: Database["public"]["Enums"]["estado_traslado"]
+          estado_nuevo: Database["public"]["Enums"]["estado_traslado"]
           id: string
-          mensaje: string
-          solicitud_id: string
+          metadata: Json
+          motivo: string | null
+          operativo_anterior: Database["public"]["Enums"]["estado_operativo_traslado"]
+          operativo_nuevo: Database["public"]["Enums"]["estado_operativo_traslado"]
+          traslado_id: string
         }
         Insert: {
-          admin_id?: string | null
+          actor_id?: string | null
+          actor_tipo?: string
           creado_en?: string
+          estado_anterior: Database["public"]["Enums"]["estado_traslado"]
+          estado_nuevo: Database["public"]["Enums"]["estado_traslado"]
           id?: string
-          mensaje: string
-          solicitud_id: string
+          metadata?: Json
+          motivo?: string | null
+          operativo_anterior: Database["public"]["Enums"]["estado_operativo_traslado"]
+          operativo_nuevo: Database["public"]["Enums"]["estado_operativo_traslado"]
+          traslado_id: string
         }
         Update: {
-          admin_id?: string | null
+          actor_id?: string | null
+          actor_tipo?: string
           creado_en?: string
+          estado_anterior?: Database["public"]["Enums"]["estado_traslado"]
+          estado_nuevo?: Database["public"]["Enums"]["estado_traslado"]
           id?: string
-          mensaje?: string
-          solicitud_id?: string
+          metadata?: Json
+          motivo?: string | null
+          operativo_anterior?: Database["public"]["Enums"]["estado_operativo_traslado"]
+          operativo_nuevo?: Database["public"]["Enums"]["estado_operativo_traslado"]
+          traslado_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "notas_internas_solicitud_conductor_admin_id_fkey"
-            columns: ["admin_id"]
+            foreignKeyName: "historial_estados_traslado_traslado_id_fkey"
+            columns: ["traslado_id"]
             isOneToOne: false
-            referencedRelation: "admins"
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "historial_estados_traslado_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incidencia_evidencia_fotos: {
+        Row: {
+          foto_id: string
+          incidencia_id: string
+        }
+        Insert: {
+          foto_id: string
+          incidencia_id: string
+        }
+        Update: {
+          foto_id?: string
+          incidencia_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidencia_evidencia_fotos_foto_id_fkey"
+            columns: ["foto_id"]
+            isOneToOne: false
+            referencedRelation: "evidencia_fotos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "notas_internas_solicitud_conductor_solicitud_id_fkey"
-            columns: ["solicitud_id"]
+            foreignKeyName: "incidencia_evidencia_fotos_incidencia_id_fkey"
+            columns: ["incidencia_id"]
             isOneToOne: false
-            referencedRelation: "solicitudes_conductor"
+            referencedRelation: "incidencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incidencia_historial: {
+        Row: {
+          accion: string
+          actor: string
+          actor_id: string | null
+          creado_en: string
+          estado_anterior: string | null
+          estado_nuevo: string | null
+          id: string
+          incidencia_id: string
+          motivo: string | null
+        }
+        Insert: {
+          accion: string
+          actor?: string
+          actor_id?: string | null
+          creado_en?: string
+          estado_anterior?: string | null
+          estado_nuevo?: string | null
+          id?: string
+          incidencia_id: string
+          motivo?: string | null
+        }
+        Update: {
+          accion?: string
+          actor?: string
+          actor_id?: string | null
+          creado_en?: string
+          estado_anterior?: string | null
+          estado_nuevo?: string | null
+          id?: string
+          incidencia_id?: string
+          motivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidencia_historial_incidencia_id_fkey"
+            columns: ["incidencia_id"]
+            isOneToOne: false
+            referencedRelation: "incidencias"
             referencedColumns: ["id"]
           },
         ]
       }
       incidencias: {
         Row: {
+          asignada_en: string | null
           creada_en: string
           descripcion: string
+          escalada_en: string | null
+          estado: string
           id: string
           momento: Database["public"]["Enums"]["momento_incidencia"]
+          nivel_escalamiento: number
           reportada_por: Database["public"]["Enums"]["actor_reporte"]
+          responsable_admin_id: string | null
           resuelta: boolean
           resuelta_en: string | null
+          severidad: string
+          sla_horas: number | null
+          sla_vence_en: string | null
           tipo: Database["public"]["Enums"]["tipo_incidencia"]
           traslado_id: string
-          usuario_id?: string | null
         }
         Insert: {
+          asignada_en?: string | null
           creada_en?: string
           descripcion: string
+          escalada_en?: string | null
+          estado?: string
           id?: string
           momento: Database["public"]["Enums"]["momento_incidencia"]
+          nivel_escalamiento?: number
           reportada_por: Database["public"]["Enums"]["actor_reporte"]
+          responsable_admin_id?: string | null
           resuelta?: boolean
           resuelta_en?: string | null
+          severidad?: string
+          sla_horas?: number | null
+          sla_vence_en?: string | null
           tipo: Database["public"]["Enums"]["tipo_incidencia"]
           traslado_id: string
-          usuario_id?: string | null
         }
         Update: {
+          asignada_en?: string | null
           creada_en?: string
           descripcion?: string
+          escalada_en?: string | null
+          estado?: string
           id?: string
           momento?: Database["public"]["Enums"]["momento_incidencia"]
+          nivel_escalamiento?: number
           reportada_por?: Database["public"]["Enums"]["actor_reporte"]
+          responsable_admin_id?: string | null
           resuelta?: boolean
           resuelta_en?: string | null
+          severidad?: string
+          sla_horas?: number | null
+          sla_vence_en?: string | null
           tipo?: Database["public"]["Enums"]["tipo_incidencia"]
           traslado_id?: string
-          usuario_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "incidencias_responsable_admin_id_fkey"
+            columns: ["responsable_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "incidencias_traslado_id_fkey"
             columns: ["traslado_id"]
@@ -2006,6 +3116,36 @@ export type Database = {
           },
         ]
       }
+      metas_registro_conductor: {
+        Row: {
+          activo: boolean
+          actualizado_en: string
+          clave: string
+          nombre: string
+          objetivo: number
+          operador: string
+          severidad: string
+        }
+        Insert: {
+          activo?: boolean
+          actualizado_en?: string
+          clave: string
+          nombre: string
+          objetivo: number
+          operador: string
+          severidad?: string
+        }
+        Update: {
+          activo?: boolean
+          actualizado_en?: string
+          clave?: string
+          nombre?: string
+          objetivo?: number
+          operador?: string
+          severidad?: string
+        }
+        Relationships: []
+      }
       modo_prueba_supervisada: {
         Row: {
           conductor_id: string
@@ -2040,6 +3180,45 @@ export type Database = {
             columns: ["conductor_id"]
             isOneToOne: false
             referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas_internas_solicitud_conductor: {
+        Row: {
+          admin_id: string | null
+          creado_en: string
+          id: string
+          mensaje: string
+          solicitud_id: string
+        }
+        Insert: {
+          admin_id?: string | null
+          creado_en?: string
+          id?: string
+          mensaje: string
+          solicitud_id: string
+        }
+        Update: {
+          admin_id?: string | null
+          creado_en?: string
+          id?: string
+          mensaje?: string
+          solicitud_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_internas_solicitud_conductor_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_internas_solicitud_conductor_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "solicitudes_conductor"
             referencedColumns: ["id"]
           },
         ]
@@ -2086,6 +3265,50 @@ export type Database = {
             columns: ["traslado_id"]
             isOneToOne: false
             referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificaciones_admin_operativas: {
+        Row: {
+          alerta_id: string | null
+          canal: string
+          creado_en: string
+          cuerpo: string
+          destinatario_rol: string
+          enviado_en: string | null
+          estado: string
+          id: string
+          titulo: string
+        }
+        Insert: {
+          alerta_id?: string | null
+          canal?: string
+          creado_en?: string
+          cuerpo: string
+          destinatario_rol?: string
+          enviado_en?: string | null
+          estado?: string
+          id?: string
+          titulo: string
+        }
+        Update: {
+          alerta_id?: string | null
+          canal?: string
+          creado_en?: string
+          cuerpo?: string
+          destinatario_rol?: string
+          enviado_en?: string | null
+          estado?: string
+          id?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificaciones_admin_operativas_alerta_id_fkey"
+            columns: ["alerta_id"]
+            isOneToOne: false
+            referencedRelation: "alertas_sla_operacionales"
             referencedColumns: ["id"]
           },
         ]
@@ -2207,8 +3430,84 @@ export type Database = {
           },
         ]
       }
+      operaciones: {
+        Row: {
+          actualizado_en: string
+          cliente_contacto_nombre: string | null
+          cliente_contacto_telefono: string | null
+          creado_en: string
+          descripcion: string | null
+          empresa_id: string | null
+          estado: Database["public"]["Enums"]["estado_operacion"]
+          folio: string
+          id: string
+          metadata: Json
+          nombre: string
+          planned_end_at: string | null
+          planned_start_at: string | null
+          prioridad: string
+          responsable_interno_admin_id: string | null
+          sla_horas: number | null
+          tipo: Database["public"]["Enums"]["tipo_operacion"]
+        }
+        Insert: {
+          actualizado_en?: string
+          cliente_contacto_nombre?: string | null
+          cliente_contacto_telefono?: string | null
+          creado_en?: string
+          descripcion?: string | null
+          empresa_id?: string | null
+          estado?: Database["public"]["Enums"]["estado_operacion"]
+          folio: string
+          id?: string
+          metadata?: Json
+          nombre: string
+          planned_end_at?: string | null
+          planned_start_at?: string | null
+          prioridad?: string
+          responsable_interno_admin_id?: string | null
+          sla_horas?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_operacion"]
+        }
+        Update: {
+          actualizado_en?: string
+          cliente_contacto_nombre?: string | null
+          cliente_contacto_telefono?: string | null
+          creado_en?: string
+          descripcion?: string | null
+          empresa_id?: string | null
+          estado?: Database["public"]["Enums"]["estado_operacion"]
+          folio?: string
+          id?: string
+          metadata?: Json
+          nombre?: string
+          planned_end_at?: string | null
+          planned_start_at?: string | null
+          prioridad?: string
+          responsable_interno_admin_id?: string | null
+          sla_horas?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_operacion"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operaciones_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operaciones_responsable_interno_admin_id_fkey"
+            columns: ["responsable_interno_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pagos: {
         Row: {
+          comision_mxn: number | null
           estado: Database["public"]["Enums"]["estado_pago"]
           id: string
           metodo: string
@@ -2218,9 +3517,9 @@ export type Database = {
           stripe_event_id: string | null
           stripe_payment_intent_id: string | null
           traslado_id: string
-          usuario_id?: string | null
         }
         Insert: {
+          comision_mxn?: number | null
           estado?: Database["public"]["Enums"]["estado_pago"]
           id?: string
           metodo: string
@@ -2230,9 +3529,9 @@ export type Database = {
           stripe_event_id?: string | null
           stripe_payment_intent_id?: string | null
           traslado_id: string
-          usuario_id?: string | null
         }
         Update: {
+          comision_mxn?: number | null
           estado?: Database["public"]["Enums"]["estado_pago"]
           id?: string
           metodo?: string
@@ -2242,7 +3541,6 @@ export type Database = {
           stripe_event_id?: string | null
           stripe_payment_intent_id?: string | null
           traslado_id?: string
-          usuario_id?: string | null
         }
         Relationships: [
           {
@@ -2257,13 +3555,6 @@ export type Database = {
             columns: ["traslado_id"]
             isOneToOne: false
             referencedRelation: "traslados"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pagos_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -2454,6 +3745,83 @@ export type Database = {
           },
         ]
       }
+      puntualidad_traslado: {
+        Row: {
+          conductor_id: string
+          confirmada_en: string | null
+          confirmar_despues_de: string
+          creada_en: string
+          diferencia_min: number
+          disputa_id: string | null
+          estado: string
+          llegada_real_en: string
+          motivo_resolucion: string | null
+          objetivo_llegada_en: string
+          resultado: string
+          tolerancia_min: number
+          traslado_id: string
+        }
+        Insert: {
+          conductor_id: string
+          confirmada_en?: string | null
+          confirmar_despues_de: string
+          creada_en?: string
+          diferencia_min: number
+          disputa_id?: string | null
+          estado: string
+          llegada_real_en: string
+          motivo_resolucion?: string | null
+          objetivo_llegada_en: string
+          resultado: string
+          tolerancia_min: number
+          traslado_id: string
+        }
+        Update: {
+          conductor_id?: string
+          confirmada_en?: string | null
+          confirmar_despues_de?: string
+          creada_en?: string
+          diferencia_min?: number
+          disputa_id?: string | null
+          estado?: string
+          llegada_real_en?: string
+          motivo_resolucion?: string | null
+          objetivo_llegada_en?: string
+          resultado?: string
+          tolerancia_min?: number
+          traslado_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "puntualidad_traslado_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "puntualidad_traslado_disputa_id_fkey"
+            columns: ["disputa_id"]
+            isOneToOne: false
+            referencedRelation: "disputas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "puntualidad_traslado_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: true
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "puntualidad_traslado_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: true
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reclamos_seguro: {
         Row: {
           abierto_en: string
@@ -2553,36 +3921,6 @@ export type Database = {
           },
         ]
       }
-      sesiones_usuario: {
-        Row: {
-          activa: boolean
-          agente_usuario: string | null
-          auth_user_id: string | null
-          creada_en: string
-          direccion_ip: string | null
-          id: string
-          ultimo_acceso: string | null
-        }
-        Insert: {
-          activa?: boolean
-          agente_usuario?: string | null
-          auth_user_id?: string | null
-          creada_en?: string
-          direccion_ip?: string | null
-          id?: string
-          ultimo_acceso?: string | null
-        }
-        Update: {
-          activa?: boolean
-          agente_usuario?: string | null
-          auth_user_id?: string | null
-          creada_en?: string
-          direccion_ip?: string | null
-          id?: string
-          ultimo_acceso?: string | null
-        }
-        Relationships: []
-      }
       sesiones_proxy_traslado: {
         Row: {
           cerrada_en: string | null
@@ -2630,6 +3968,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sla_reglas_operativas: {
+        Row: {
+          activo: boolean
+          actualizado_en: string
+          cliente_segmento: string
+          creado_en: string
+          horas_limite: number
+          id: string
+          pausa_fuera_horario: boolean
+          prioridad: number
+          severidad_base: string
+          tipo_alerta: string
+          tipo_servicio: string
+          umbral_alerta_pct: number
+          zona_horaria: string
+        }
+        Insert: {
+          activo?: boolean
+          actualizado_en?: string
+          cliente_segmento?: string
+          creado_en?: string
+          horas_limite: number
+          id?: string
+          pausa_fuera_horario?: boolean
+          prioridad?: number
+          severidad_base: string
+          tipo_alerta: string
+          tipo_servicio?: string
+          umbral_alerta_pct?: number
+          zona_horaria?: string
+        }
+        Update: {
+          activo?: boolean
+          actualizado_en?: string
+          cliente_segmento?: string
+          creado_en?: string
+          horas_limite?: number
+          id?: string
+          pausa_fuera_horario?: boolean
+          prioridad?: number
+          severidad_base?: string
+          tipo_alerta?: string
+          tipo_servicio?: string
+          umbral_alerta_pct?: number
+          zona_horaria?: string
+        }
+        Relationships: []
       }
       solicitudes_aprobacion_admin: {
         Row: {
@@ -2697,6 +4083,155 @@ export type Database = {
           {
             foreignKeyName: "solicitudes_aprobacion_admin_solicitada_por_fkey"
             columns: ["solicitada_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solicitudes_asignacion: {
+        Row: {
+          asignaciones_7d: number
+          categoria_puntualidad: string
+          clave_desempate: string
+          competencia_id: string
+          conductor_id: string
+          distancia_origen_km: number | null
+          elegibilidad_snapshot: Json
+          estado: string
+          eta_aproximado_min: number | null
+          id: string
+          puntualidad_muestra: number
+          puntualidad_porcentaje: number | null
+          solicitada_en: string
+          traslado_id: string
+          ubicacion_lat: number | null
+          ubicacion_lng: number | null
+          ultima_asignacion_en: string | null
+          viabilidad: string
+        }
+        Insert: {
+          asignaciones_7d?: number
+          categoria_puntualidad: string
+          clave_desempate: string
+          competencia_id: string
+          conductor_id: string
+          distancia_origen_km?: number | null
+          elegibilidad_snapshot: Json
+          estado?: string
+          eta_aproximado_min?: number | null
+          id?: string
+          puntualidad_muestra?: number
+          puntualidad_porcentaje?: number | null
+          solicitada_en?: string
+          traslado_id: string
+          ubicacion_lat?: number | null
+          ubicacion_lng?: number | null
+          ultima_asignacion_en?: string | null
+          viabilidad: string
+        }
+        Update: {
+          asignaciones_7d?: number
+          categoria_puntualidad?: string
+          clave_desempate?: string
+          competencia_id?: string
+          conductor_id?: string
+          distancia_origen_km?: number | null
+          elegibilidad_snapshot?: Json
+          estado?: string
+          eta_aproximado_min?: number | null
+          id?: string
+          puntualidad_muestra?: number
+          puntualidad_porcentaje?: number | null
+          solicitada_en?: string
+          traslado_id?: string
+          ubicacion_lat?: number | null
+          ubicacion_lng?: number | null
+          ultima_asignacion_en?: string | null
+          viabilidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_asignacion_competencia_id_fkey"
+            columns: ["competencia_id"]
+            isOneToOne: false
+            referencedRelation: "competencias_asignacion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_asignacion_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_asignacion_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "solicitudes_asignacion_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solicitudes_cambio_conductor: {
+        Row: {
+          actualizado_en: string
+          conductor_id: string
+          creado_en: string
+          estado: Database["public"]["Enums"]["estado_solicitud_cambio_conductor"]
+          id: string
+          motivo_rechazo: string | null
+          payload_anterior: Json
+          payload_propuesto: Json
+          revisado_en: string | null
+          revisado_por: string | null
+          tipo: Database["public"]["Enums"]["tipo_solicitud_cambio_conductor"]
+        }
+        Insert: {
+          actualizado_en?: string
+          conductor_id: string
+          creado_en?: string
+          estado?: Database["public"]["Enums"]["estado_solicitud_cambio_conductor"]
+          id?: string
+          motivo_rechazo?: string | null
+          payload_anterior: Json
+          payload_propuesto: Json
+          revisado_en?: string | null
+          revisado_por?: string | null
+          tipo: Database["public"]["Enums"]["tipo_solicitud_cambio_conductor"]
+        }
+        Update: {
+          actualizado_en?: string
+          conductor_id?: string
+          creado_en?: string
+          estado?: Database["public"]["Enums"]["estado_solicitud_cambio_conductor"]
+          id?: string
+          motivo_rechazo?: string | null
+          payload_anterior?: Json
+          payload_propuesto?: Json
+          revisado_en?: string | null
+          revisado_por?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_solicitud_cambio_conductor"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_cambio_conductor_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_cambio_conductor_revisado_por_fkey"
+            columns: ["revisado_por"]
             isOneToOne: false
             referencedRelation: "admins"
             referencedColumns: ["id"]
@@ -2931,6 +4466,38 @@ export type Database = {
           },
         ]
       }
+      tarifas_politica_versiones: {
+        Row: {
+          creada_en: string
+          creada_por: string | null
+          id: number
+          snapshot: Json
+          xact_id: number
+        }
+        Insert: {
+          creada_en?: string
+          creada_por?: string | null
+          id?: never
+          snapshot: Json
+          xact_id: number
+        }
+        Update: {
+          creada_en?: string
+          creada_por?: string | null
+          id?: never
+          snapshot?: Json
+          xact_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarifas_politica_versiones_creada_por_fkey"
+            columns: ["creada_por"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tarifas_vehiculo: {
         Row: {
           actualizado_en: string
@@ -3034,10 +4601,183 @@ export type Database = {
           },
         ]
       }
+      tracking_sesiones: {
+        Row: {
+          actualizado_en: string
+          conductor_id: string
+          creado_en: string
+          desviacion_sospechosa: boolean
+          estado: string
+          finalizada_en: string | null
+          id: string
+          iniciada_en: string
+          metadata: Json
+          plataforma: string | null
+          traslado_id: string
+          ultima_bateria_pct: number | null
+          ultima_distancia_destino_km: number | null
+          ultima_lat: number | null
+          ultima_lng: number | null
+          ultima_precision_m: number | null
+          ultima_velocidad_mps: number | null
+          ultimo_heartbeat_en: string | null
+        }
+        Insert: {
+          actualizado_en?: string
+          conductor_id: string
+          creado_en?: string
+          desviacion_sospechosa?: boolean
+          estado?: string
+          finalizada_en?: string | null
+          id?: string
+          iniciada_en?: string
+          metadata?: Json
+          plataforma?: string | null
+          traslado_id: string
+          ultima_bateria_pct?: number | null
+          ultima_distancia_destino_km?: number | null
+          ultima_lat?: number | null
+          ultima_lng?: number | null
+          ultima_precision_m?: number | null
+          ultima_velocidad_mps?: number | null
+          ultimo_heartbeat_en?: string | null
+        }
+        Update: {
+          actualizado_en?: string
+          conductor_id?: string
+          creado_en?: string
+          desviacion_sospechosa?: boolean
+          estado?: string
+          finalizada_en?: string | null
+          id?: string
+          iniciada_en?: string
+          metadata?: Json
+          plataforma?: string | null
+          traslado_id?: string
+          ultima_bateria_pct?: number | null
+          ultima_distancia_destino_km?: number | null
+          ultima_lat?: number | null
+          ultima_lng?: number | null
+          ultima_precision_m?: number | null
+          ultima_velocidad_mps?: number | null
+          ultimo_heartbeat_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_sesiones_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_sesiones_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "tracking_sesiones_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traslado_paradas: {
+        Row: {
+          calle: string
+          ciudad: string
+          codigo_postal: string
+          colonia: string
+          contacto_nombre: string | null
+          contacto_telefono: string | null
+          creado_en: string
+          direccion: string
+          estado: string
+          id: string
+          instrucciones: string | null
+          lat: number | null
+          lng: number | null
+          numero: string
+          orden: number
+          referencias: string | null
+          requiere_evidencia: boolean
+          tiempo_espera_min: number | null
+          tipo: Database["public"]["Enums"]["tipo_parada"]
+          tipo_tarea: Database["public"]["Enums"]["tipo_tarea_parada"] | null
+          traslado_id: string
+        }
+        Insert: {
+          calle: string
+          ciudad: string
+          codigo_postal: string
+          colonia: string
+          contacto_nombre?: string | null
+          contacto_telefono?: string | null
+          creado_en?: string
+          direccion: string
+          estado: string
+          id?: string
+          instrucciones?: string | null
+          lat?: number | null
+          lng?: number | null
+          numero: string
+          orden: number
+          referencias?: string | null
+          requiere_evidencia?: boolean
+          tiempo_espera_min?: number | null
+          tipo: Database["public"]["Enums"]["tipo_parada"]
+          tipo_tarea?: Database["public"]["Enums"]["tipo_tarea_parada"] | null
+          traslado_id: string
+        }
+        Update: {
+          calle?: string
+          ciudad?: string
+          codigo_postal?: string
+          colonia?: string
+          contacto_nombre?: string | null
+          contacto_telefono?: string | null
+          creado_en?: string
+          direccion?: string
+          estado?: string
+          id?: string
+          instrucciones?: string | null
+          lat?: number | null
+          lng?: number | null
+          numero?: string
+          orden?: number
+          referencias?: string | null
+          requiere_evidencia?: boolean
+          tiempo_espera_min?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_parada"]
+          tipo_tarea?: Database["public"]["Enums"]["tipo_tarea_parada"] | null
+          traslado_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traslado_paradas_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "pasaporte_digital"
+            referencedColumns: ["traslado_id"]
+          },
+          {
+            foreignKeyName: "traslado_paradas_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       traslados: {
         Row: {
           actualizado_en: string
           causa_fallido: Database["public"]["Enums"]["causa_fallido"] | null
+          cerrado_en: string | null
           clave_idempotencia: string
           conductor_id: string | null
           contacto_entrega_nombre: string
@@ -3053,17 +4793,20 @@ export type Database = {
           destino_referencias: string | null
           distancia_km: number | null
           estado: Database["public"]["Enums"]["estado_traslado"]
+          estado_operativo: Database["public"]["Enums"]["estado_operativo_traslado"]
           fecha_hora_programada: string | null
           ganancia_conductor_congelada: number | null
           id: string
           instrucciones_especiales: string | null
           modalidad_programacion: string | null
           motivo_servicio: string | null
+          operation_id: string | null
           origen_ciudad: string
           origen_direccion: string
           origen_lat: number | null
           origen_lng: number | null
           origen_referencias: string | null
+          payout_id: string | null
           precio_cotizado: number | null
           precio_final: number | null
           presupuesto_usuario: number | null
@@ -3081,6 +4824,7 @@ export type Database = {
         Insert: {
           actualizado_en?: string
           causa_fallido?: Database["public"]["Enums"]["causa_fallido"] | null
+          cerrado_en?: string | null
           clave_idempotencia: string
           conductor_id?: string | null
           contacto_entrega_nombre: string
@@ -3096,17 +4840,20 @@ export type Database = {
           destino_referencias?: string | null
           distancia_km?: number | null
           estado?: Database["public"]["Enums"]["estado_traslado"]
+          estado_operativo?: Database["public"]["Enums"]["estado_operativo_traslado"]
           fecha_hora_programada?: string | null
           ganancia_conductor_congelada?: number | null
           id?: string
           instrucciones_especiales?: string | null
           modalidad_programacion?: string | null
           motivo_servicio?: string | null
+          operation_id?: string | null
           origen_ciudad: string
           origen_direccion: string
           origen_lat?: number | null
           origen_lng?: number | null
           origen_referencias?: string | null
+          payout_id?: string | null
           precio_cotizado?: number | null
           precio_final?: number | null
           presupuesto_usuario?: number | null
@@ -3124,6 +4871,7 @@ export type Database = {
         Update: {
           actualizado_en?: string
           causa_fallido?: Database["public"]["Enums"]["causa_fallido"] | null
+          cerrado_en?: string | null
           clave_idempotencia?: string
           conductor_id?: string | null
           contacto_entrega_nombre?: string
@@ -3139,17 +4887,20 @@ export type Database = {
           destino_referencias?: string | null
           distancia_km?: number | null
           estado?: Database["public"]["Enums"]["estado_traslado"]
+          estado_operativo?: Database["public"]["Enums"]["estado_operativo_traslado"]
           fecha_hora_programada?: string | null
           ganancia_conductor_congelada?: number | null
           id?: string
           instrucciones_especiales?: string | null
           modalidad_programacion?: string | null
           motivo_servicio?: string | null
+          operation_id?: string | null
           origen_ciudad?: string
           origen_direccion?: string
           origen_lat?: number | null
           origen_lng?: number | null
           origen_referencias?: string | null
+          payout_id?: string | null
           precio_cotizado?: number | null
           precio_final?: number | null
           presupuesto_usuario?: number | null
@@ -3170,6 +4921,20 @@ export type Database = {
             columns: ["conductor_id"]
             isOneToOne: false
             referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "traslados_operation_id_fkey"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "traslados_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "payouts_conductor"
             referencedColumns: ["id"]
           },
           {
@@ -3284,13 +5049,12 @@ export type Database = {
           colonia: string | null
           correo_facturacion: string | null
           creado_en: string
-          curp: string | null
           direccion_principal: string | null
           doc_identidad_subido_en: string | null
           doc_identidad_url: string | null
           empresa_id: string | null
           estado: string | null
-          estado_cuenta: string | null
+          estado_cuenta: string
           estado_verificacion: Database["public"]["Enums"]["estado_verificacion"]
           foto_url: string | null
           id: string
@@ -3327,13 +5091,12 @@ export type Database = {
           colonia?: string | null
           correo_facturacion?: string | null
           creado_en?: string
-          curp?: string | null
           direccion_principal?: string | null
           doc_identidad_subido_en?: string | null
           doc_identidad_url?: string | null
           empresa_id?: string | null
           estado?: string | null
-          estado_cuenta?: string | null
+          estado_cuenta?: string
           estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"]
           foto_url?: string | null
           id?: string
@@ -3370,13 +5133,12 @@ export type Database = {
           colonia?: string | null
           correo_facturacion?: string | null
           creado_en?: string
-          curp?: string | null
           direccion_principal?: string | null
           doc_identidad_subido_en?: string | null
           doc_identidad_url?: string | null
           empresa_id?: string | null
           estado?: string | null
-          estado_cuenta?: string | null
+          estado_cuenta?: string
           estado_verificacion?: Database["public"]["Enums"]["estado_verificacion"]
           foto_url?: string | null
           id?: string
@@ -3406,6 +5168,111 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehiculos: {
+        Row: {
+          actualizado_en: string
+          alias: string | null
+          anio: number
+          categoria_tarifa:
+            | Database["public"]["Enums"]["categoria_tarifa_vehiculo"]
+            | null
+          color: string | null
+          condicion: Database["public"]["Enums"]["condicion_vehiculo"] | null
+          creado_en: string
+          empresa_id: string | null
+          estado_general_declarado: string | null
+          fotos_urls: string[]
+          gama: Database["public"]["Enums"]["gama_vehiculo"] | null
+          id: string
+          marca: string
+          modelo: string
+          permiso_especial_vigente: string | null
+          placas: string | null
+          puede_circular_rodando: boolean
+          tiene_placas: boolean
+          tiene_tarjeta_circulacion: boolean
+          tiene_verificacion: boolean
+          tipo: Database["public"]["Enums"]["tipo_vehiculo"]
+          transmision: string | null
+          usuario_id: string
+          version: number
+          vin: string | null
+        }
+        Insert: {
+          actualizado_en?: string
+          alias?: string | null
+          anio: number
+          categoria_tarifa?:
+            | Database["public"]["Enums"]["categoria_tarifa_vehiculo"]
+            | null
+          color?: string | null
+          condicion?: Database["public"]["Enums"]["condicion_vehiculo"] | null
+          creado_en?: string
+          empresa_id?: string | null
+          estado_general_declarado?: string | null
+          fotos_urls?: string[]
+          gama?: Database["public"]["Enums"]["gama_vehiculo"] | null
+          id?: string
+          marca: string
+          modelo: string
+          permiso_especial_vigente?: string | null
+          placas?: string | null
+          puede_circular_rodando?: boolean
+          tiene_placas?: boolean
+          tiene_tarjeta_circulacion?: boolean
+          tiene_verificacion?: boolean
+          tipo: Database["public"]["Enums"]["tipo_vehiculo"]
+          transmision?: string | null
+          usuario_id: string
+          version?: number
+          vin?: string | null
+        }
+        Update: {
+          actualizado_en?: string
+          alias?: string | null
+          anio?: number
+          categoria_tarifa?:
+            | Database["public"]["Enums"]["categoria_tarifa_vehiculo"]
+            | null
+          color?: string | null
+          condicion?: Database["public"]["Enums"]["condicion_vehiculo"] | null
+          creado_en?: string
+          empresa_id?: string | null
+          estado_general_declarado?: string | null
+          fotos_urls?: string[]
+          gama?: Database["public"]["Enums"]["gama_vehiculo"] | null
+          id?: string
+          marca?: string
+          modelo?: string
+          permiso_especial_vigente?: string | null
+          placas?: string | null
+          puede_circular_rodando?: boolean
+          tiene_placas?: boolean
+          tiene_tarjeta_circulacion?: boolean
+          tiene_verificacion?: boolean
+          tipo?: Database["public"]["Enums"]["tipo_vehiculo"]
+          transmision?: string | null
+          usuario_id?: string
+          version?: number
+          vin?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehiculos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehiculos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -3464,231 +5331,6 @@ export type Database = {
           },
         ]
       }
-      historial_asignacion_vehiculo: {
-        Row: {
-          activo: boolean
-          asignado_en: string
-          conductor_id: string
-          desasignado_en: string | null
-          id: string
-          motivo: string | null
-          vehiculo_id: string
-        }
-        Insert: {
-          activo?: boolean
-          asignado_en?: string
-          conductor_id: string
-          desasignado_en?: string | null
-          id?: string
-          motivo?: string | null
-          vehiculo_id: string
-        }
-        Update: {
-          activo?: boolean
-          asignado_en?: string
-          conductor_id?: string
-          desasignado_en?: string | null
-          id?: string
-          motivo?: string | null
-          vehiculo_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "historial_asignacion_vehiculo_conductor_id_fkey"
-            columns: ["conductor_id"]
-            isOneToOne: false
-            referencedRelation: "conductores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "historial_asignacion_vehiculo_vehiculo_id_fkey"
-            columns: ["vehiculo_id"]
-            isOneToOne: false
-            referencedRelation: "vehiculos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      historial_vehiculos: {
-        Row: {
-          cambiado_en: string
-          cambiado_por: string
-          conductor_id: string | null
-          empresa_id: string | null
-          estado_anterior: string | null
-          estado_nuevo: string
-          id: string
-          vehiculo_id: string
-        }
-        Insert: {
-          cambiado_en?: string
-          cambiado_por: string
-          conductor_id?: string | null
-          empresa_id?: string | null
-          estado_anterior?: string | null
-          estado_nuevo: string
-          id?: string
-          vehiculo_id: string
-        }
-        Update: {
-          cambiado_en?: string
-          cambiado_por?: string
-          conductor_id?: string | null
-          empresa_id?: string | null
-          estado_anterior?: string | null
-          estado_nuevo?: string
-          id?: string
-          vehiculo_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "historial_vehiculos_vehiculo_id_fkey"
-            columns: ["vehiculo_id"]
-            isOneToOne: false
-            referencedRelation: "vehiculos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      historial_estatus_conductor: {
-        Row: {
-          cambiado_en: string
-          cambiado_por: string
-          conductor_id: string
-          estado_anterior: string | null
-          estado_nuevo: string
-          id: string
-          motivo: string | null
-        }
-        Insert: {
-          cambiado_en?: string
-          cambiado_por: string
-          conductor_id: string
-          estado_anterior?: string | null
-          estado_nuevo: string
-          id?: string
-          motivo?: string | null
-        }
-        Update: {
-          cambiado_en?: string
-          cambiado_por?: string
-          conductor_id?: string
-          estado_anterior?: string | null
-          estado_nuevo?: string
-          id?: string
-          motivo?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "historial_estatus_conductor_conductor_id_fkey"
-            columns: ["conductor_id"]
-            isOneToOne: false
-            referencedRelation: "conductores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vehiculos: {
-        Row: {
-          alias: string | null
-          anio: number
-          categoria_tarifa:
-            | Database["public"]["Enums"]["categoria_tarifa_vehiculo"]
-            | null
-          color: string | null
-          condicion: Database["public"]["Enums"]["condicion_vehiculo"] | null
-          creado_en: string
-          conductor_id: string | null
-          empresa_id: string | null
-          estado_general_declarado: string | null
-          fotos_urls: string[]
-          gama: Database["public"]["Enums"]["gama_vehiculo"] | null
-          id: string
-          marca: string
-          modelo: string
-          permiso_especial_vigente: string | null
-          placas: string | null
-          puede_circular_rodando: boolean
-          tiene_placas: boolean
-          tiene_tarjeta_circulacion: boolean
-          tiene_verificacion: boolean
-          tipo: Database["public"]["Enums"]["tipo_vehiculo"]
-          transmision: string | null
-          usuario_id: string
-          vin: string | null
-          version: number
-          actualizado_en: string
-        }
-        Insert: {
-          alias?: string | null
-          anio: number
-          categoria_tarifa?:
-            | Database["public"]["Enums"]["categoria_tarifa_vehiculo"]
-            | null
-          color?: string | null
-          condicion?: Database["public"]["Enums"]["condicion_vehiculo"] | null
-          creado_en?: string
-          conductor_id?: string | null
-          empresa_id?: string | null
-          estado_general_declarado?: string | null
-          fotos_urls?: string[]
-          gama?: Database["public"]["Enums"]["gama_vehiculo"] | null
-          id?: string
-          marca: string
-          modelo: string
-          permiso_especial_vigente?: string | null
-          placas?: string | null
-          puede_circular_rodando?: boolean
-          tiene_placas?: boolean
-          tiene_tarjeta_circulacion?: boolean
-          tiene_verificacion?: boolean
-          tipo: Database["public"]["Enums"]["tipo_vehiculo"]
-          transmision?: string | null
-          usuario_id: string
-          vin?: string | null
-          version?: number
-          actualizado_en?: string
-        }
-        Update: {
-          alias?: string | null
-          anio?: number
-          categoria_tarifa?:
-            | Database["public"]["Enums"]["categoria_tarifa_vehiculo"]
-            | null
-          color?: string | null
-          condicion?: Database["public"]["Enums"]["condicion_vehiculo"] | null
-          creado_en?: string
-          conductor_id?: string | null
-          empresa_id?: string | null
-          estado_general_declarado?: string | null
-          fotos_urls?: string[]
-          gama?: Database["public"]["Enums"]["gama_vehiculo"] | null
-          id?: string
-          marca?: string
-          modelo?: string
-          permiso_especial_vigente?: string | null
-          placas?: string | null
-          puede_circular_rodando?: boolean
-          tiene_placas?: boolean
-          tiene_tarjeta_circulacion?: boolean
-          tiene_verificacion?: boolean
-          tipo?: Database["public"]["Enums"]["tipo_vehiculo"]
-          transmision?: string | null
-          usuario_id?: string
-          vin?: string | null
-          version?: number
-          actualizado_en?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vehiculos_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       versiones_documento_consentimiento: {
         Row: {
           hash_documento: string
@@ -3715,63 +5357,6 @@ export type Database = {
           vigente_hasta?: string | null
         }
         Relationships: []
-      }
-      solicitudes_cambio_conductor: {
-        Row: {
-          actualizado_en: string
-          conductor_id: string
-          creado_en: string
-          estado: Database["public"]["Enums"]["estado_solicitud_cambio_conductor"]
-          id: string
-          motivo_rechazo: string | null
-          payload_anterior: Json
-          payload_propuesto: Json
-          revisado_en: string | null
-          revisado_por: string | null
-          tipo: Database["public"]["Enums"]["tipo_solicitud_cambio_conductor"]
-        }
-        Insert: {
-          actualizado_en?: string
-          conductor_id: string
-          creado_en?: string
-          estado?: Database["public"]["Enums"]["estado_solicitud_cambio_conductor"]
-          id?: string
-          motivo_rechazo?: string | null
-          payload_anterior: Json
-          payload_propuesto: Json
-          revisado_en?: string | null
-          revisado_por?: string | null
-          tipo: Database["public"]["Enums"]["tipo_solicitud_cambio_conductor"]
-        }
-        Update: {
-          actualizado_en?: string
-          conductor_id?: string
-          creado_en?: string
-          estado?: Database["public"]["Enums"]["estado_solicitud_cambio_conductor"]
-          id?: string
-          motivo_rechazo?: string | null
-          payload_anterior?: Json
-          payload_propuesto?: Json
-          revisado_en?: string | null
-          revisado_por?: string | null
-          tipo?: Database["public"]["Enums"]["tipo_solicitud_cambio_conductor"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "solicitudes_cambio_conductor_conductor_id_fkey"
-            columns: ["conductor_id"]
-            isOneToOne: false
-            referencedRelation: "conductores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "solicitudes_cambio_conductor_revisado_por_fkey"
-            columns: ["revisado_por"]
-            isOneToOne: false
-            referencedRelation: "admins"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {
@@ -3857,65 +5442,83 @@ export type Database = {
       }
     }
     Functions: {
+      abrir_disputa_traslado:
+        | {
+            Args: {
+              p_abierta_por: Database["public"]["Enums"]["abierta_por_actor"]
+              p_descripcion: string
+              p_tipo: Database["public"]["Enums"]["tipo_disputa"]
+              p_traslado_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_abierta_por: Database["public"]["Enums"]["abierta_por_actor"]
+              p_descripcion: string
+              p_mantener_estado?: boolean
+              p_tipo: Database["public"]["Enums"]["tipo_disputa"]
+              p_traslado_id: string
+            }
+            Returns: string
+          }
+      aceptar_asignacion: {
+        Args: { p_asignacion_id: string }
+        Returns: undefined
+      }
       actualizar_datos_facturacion: {
         Args: {
-          p_cfdi_uso: string
-          p_codigo_postal: string
-          p_correo_facturacion: string
-          p_razon_social: string
-          p_regimen_fiscal: string
-          p_rfc: string
+          p_codigo_postal_fiscal?: string
+          p_correo_facturacion?: string
+          p_razon_social?: string
+          p_regimen_fiscal?: string
+          p_rfc?: string
+          p_uso_cfdi?: string
         }
         Returns: Json
       }
-      aprobar_solicitud_cambio_conductor: {
-        Args: {
-          p_solicitud_id: string
-        }
+      admin_accion_masiva: {
+        Args: { p_accion: string; p_payload?: Json; p_traslado_ids: string[] }
         Returns: Json
-      }
-      cancelar_solicitud_cambio_conductor: {
-        Args: {
-          p_solicitud_id: string
-        }
-        Returns: Json
-      }
-      rechazar_solicitud_cambio_conductor: {
-        Args: {
-          p_motivo: string
-          p_solicitud_id: string
-        }
-        Returns: Json
-      }
-      solicitar_cambio_expediente_conductor: {
-        Args: {
-          p_cambios: Json
-        }
-        Returns: Json
-      }
-      abrir_disputa_traslado: {
-        Args: {
-          p_abierta_por: Database["public"]["Enums"]["abierta_por_actor"]
-          p_descripcion: string
-          p_tipo: Database["public"]["Enums"]["tipo_disputa"]
-          p_traslado_id: string
-        }
-        Returns: string
       }
       admin_actual_id: { Args: never; Returns: string }
+      admin_actualiza_alerta_sla: {
+        Args: {
+          p_accion: string
+          p_alerta_id: string
+          p_comentario?: string
+          p_responsable?: string
+        }
+        Returns: Json
+      }
       admin_actualiza_conductor_documentos: {
         Args: { p_aprobado: boolean; p_conductor_id: string }
         Returns: undefined
       }
-      admin_actualiza_reclamo_seguro: {
-        Args: {
-          p_estado: Database["public"]["Enums"]["estado_reclamo_seguro"]
-          p_notas_admin: string
-          p_reclamo_id: string
-          p_responsable_pago: string
-        }
-        Returns: undefined
+      admin_actualiza_empresa_corporativa: {
+        Args: { p_datos: Json; p_empresa_id: string; p_motivo?: string }
+        Returns: Json
       }
+      admin_actualiza_reclamo_seguro:
+        | {
+            Args: {
+              p_estado: Database["public"]["Enums"]["estado_reclamo_seguro"]
+              p_notas_admin: string
+              p_reclamo_id: string
+              p_responsable_pago: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_estado: Database["public"]["Enums"]["estado_reclamo_seguro"]
+              p_mantener_estado?: boolean
+              p_notas_admin: string
+              p_reclamo_id: string
+              p_responsable_pago: string
+            }
+            Returns: undefined
+          }
       admin_actualiza_usuario_verificacion: {
         Args: {
           p_estado: Database["public"]["Enums"]["estado_verificacion"]
@@ -3923,6 +5526,34 @@ export type Database = {
           p_usuario_id: string
         }
         Returns: undefined
+      }
+      admin_actualizar_conductor_atomic: {
+        Args: { p_conductor_id: string; p_datos: Json }
+        Returns: Json
+      }
+      admin_actualizar_configuracion: {
+        Args: {
+          p_clave: string
+          p_motivo: string
+          p_valor: Json
+          p_version_esperada: number
+        }
+        Returns: {
+          actualizada_en: string
+          actualizada_por: string | null
+          categoria: string
+          clave: string
+          descripcion: string
+          nombre: string
+          valor: Json
+          version: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "configuracion_admin"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       admin_actualizar_estado_traslado_con_version: {
         Args: {
@@ -3934,6 +5565,31 @@ export type Database = {
       }
       admin_actualizar_politica_tarifaria_normativa: {
         Args: { p_aprobacion_id: string; p_payload: Json }
+        Returns: Json
+      }
+      admin_actualizar_rol_colaborador: {
+        Args: {
+          p_admin_id: string
+          p_motivo: string
+          p_rol: Database["public"]["Enums"]["rol_admin_operativo"]
+        }
+        Returns: {
+          creado_en: string
+          id: string
+          nombre: string
+          rol_operativo: Database["public"]["Enums"]["rol_admin_operativo"]
+        }[]
+      }
+      admin_actualizar_usuario_atomic: {
+        Args: { p_datos: Json; p_usuario_id: string }
+        Returns: Json
+      }
+      admin_actualizar_vehiculo: {
+        Args: {
+          p_datos: Json
+          p_vehiculo_id: string
+          p_version_esperada: number
+        }
         Returns: Json
       }
       admin_ajustar_precio_final: {
@@ -3952,11 +5608,11 @@ export type Database = {
         Args: { p_conductor_id: string; p_traslado_id: string }
         Returns: Database["public"]["Enums"]["estado_traslado"]
       }
-      admin_actualizar_vehiculo: {
+      admin_cambia_estado_empresa: {
         Args: {
-          p_vehiculo_id: string
-          p_datos: Json
-          p_version_esperada: number
+          p_empresa_id: string
+          p_estado_operativo: string
+          p_motivo: string
         }
         Returns: Json
       }
@@ -3967,6 +5623,10 @@ export type Database = {
           p_traslado_id: string
           p_version_esperada?: number
         }
+        Returns: Json
+      }
+      admin_cancela_carga_traslados_masivos: {
+        Args: { p_carga_id: string; p_motivo: string }
         Returns: Json
       }
       admin_completar_exportacion: {
@@ -3987,27 +5647,45 @@ export type Database = {
         }
         Returns: undefined
       }
-      admin_crea_empresa_corporativa: {
-        Args: { p_empresa: Json; p_titular: Json }
-        Returns: Json
-      }
-      admin_invitar_usuario: {
-        Args: {
-          p_correo: string
-          p_nombre?: string | null
-          p_tipo_cuenta?: string
-        }
-        Returns: string
-      }
-      admin_crea_traslados_masivos: {
+      admin_crea_carga_masiva_operacion: {
         Args: {
           p_empresa_id: string
           p_filas: Json
+          p_hash_archivo: string
+          p_mime_type: string
           p_nombre_archivo: string
+          p_operacion_id: string
+          p_tamano_bytes: number
           p_usuario_id: string
         }
         Returns: Json
       }
+      admin_crea_empresa_corporativa: {
+        Args: { p_empresa: Json; p_titular: Json }
+        Returns: Json
+      }
+      admin_crea_traslados_masivos:
+        | {
+            Args: {
+              p_empresa_id: string
+              p_filas: Json
+              p_nombre_archivo: string
+              p_usuario_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_empresa_id: string
+              p_filas: Json
+              p_hash_archivo: string
+              p_mime_type: string
+              p_nombre_archivo: string
+              p_tamano_bytes: number
+              p_usuario_id: string
+            }
+            Returns: Json
+          }
       admin_decidir_aprobacion: {
         Args: {
           p_aprobar: boolean
@@ -4033,6 +5711,34 @@ export type Database = {
         Args: { p_precio: number; p_traslado_id: string }
         Returns: undefined
       }
+      admin_exportar_evidencia_firmada: {
+        Args: { p_traslado_ids: string[] }
+        Returns: Json
+      }
+      admin_finanzas_operacion: {
+        Args: { p_operacion_id: string }
+        Returns: Json
+      }
+      admin_finanzas_traslado: {
+        Args: { p_traslado_id: string }
+        Returns: Json
+      }
+      admin_generar_payouts_periodo: {
+        Args: { p_periodo_fin: string; p_periodo_inicio: string }
+        Returns: Json
+      }
+      admin_guarda_documento_empresa: {
+        Args: { p_documento: Json; p_empresa_id: string }
+        Returns: Json
+      }
+      admin_guarda_usuario_empresa: {
+        Args: { p_empresa_id: string; p_usuario: Json }
+        Returns: Json
+      }
+      admin_invitar_usuario: {
+        Args: { p_correo: string; p_nombre?: string; p_tipo_cuenta?: string }
+        Returns: string
+      }
       admin_listar_capacidades: {
         Args: { p_admin_id?: string }
         Returns: {
@@ -4045,6 +5751,38 @@ export type Database = {
         }[]
       }
       admin_listar_capacidades_catalogo: { Args: never; Returns: string[] }
+      admin_listar_configuracion: {
+        Args: never
+        Returns: {
+          actualizada_en: string
+          actualizada_por: string | null
+          categoria: string
+          clave: string
+          descripcion: string
+          nombre: string
+          valor: Json
+          version: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "configuracion_admin"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      admin_listar_solicitudes_conductor_paginadas: {
+        Args: {
+          p_busqueda?: string
+          p_filtro?: string
+          p_pagina?: number
+          p_tamano?: number
+        }
+        Returns: Json
+      }
+      admin_listar_vehiculos_paginados: {
+        Args: { p_busqueda?: string; p_pagina?: number; p_tamano?: number }
+        Returns: Json
+      }
       admin_marca_traslado_fallido: {
         Args: {
           p_cargo_aplica_cliente: boolean
@@ -4055,6 +5793,22 @@ export type Database = {
           p_traslado_id: string
         }
         Returns: undefined
+      }
+      admin_mutacion_con_auditoria: {
+        Args: { p_accion: string; p_payload?: Json; p_traslado_id: string }
+        Returns: Json
+      }
+      admin_obtener_evidencia_vehiculo: {
+        Args: { p_vehiculo_id: string }
+        Returns: Json
+      }
+      admin_previsualizar_carga_masiva: {
+        Args: { p_empresa_id: string; p_filas: Json; p_usuario_id: string }
+        Returns: Json
+      }
+      admin_procesa_carga_traslados_masivos: {
+        Args: { p_carga_id: string; p_limite?: number }
+        Returns: Json
       }
       admin_registrar_cancelacion_injustificada: {
         Args: {
@@ -4078,14 +5832,33 @@ export type Database = {
         }
         Returns: Json
       }
-      admin_resuelve_disputa: {
-        Args: {
-          p_detalle: string
-          p_disputa_id: string
-          p_estado: Database["public"]["Enums"]["estado_disputa"]
-          p_resolucion: Database["public"]["Enums"]["resolucion_disputa"]
-        }
-        Returns: undefined
+      admin_resuelve_cambio_empresa: {
+        Args: { p_aprobar: boolean; p_cambio_id: string; p_comentario?: string }
+        Returns: Json
+      }
+      admin_resuelve_disputa:
+        | {
+            Args: {
+              p_detalle: string
+              p_disputa_id: string
+              p_estado: Database["public"]["Enums"]["estado_disputa"]
+              p_resolucion: Database["public"]["Enums"]["resolucion_disputa"]
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_detalle: string
+              p_disputa_id: string
+              p_estado: Database["public"]["Enums"]["estado_disputa"]
+              p_mantener_estado?: boolean
+              p_resolucion: Database["public"]["Enums"]["resolucion_disputa"]
+            }
+            Returns: undefined
+          }
+      admin_resumen_disputas_perdidas_conductor: {
+        Args: { p_conductor_id: string }
+        Returns: Json
       }
       admin_sancionar_conductor: {
         Args: {
@@ -4095,6 +5868,50 @@ export type Database = {
           p_motivo: string
         }
         Returns: Json
+      }
+      admin_sincroniza_alertas_sla_operacionales: {
+        Args: never
+        Returns: {
+          actualizado_en: string
+          acuse_en: string | null
+          acuse_por_admin_id: string | null
+          asignado_en: string | null
+          asignado_por_admin_id: string | null
+          categoria: string
+          cerrado_en: string | null
+          cerrado_por_admin_id: string | null
+          creado_en: string
+          dedupe_key: string
+          descripcion: string
+          entidad_id: string
+          entidad_tipo: string
+          escalado_en: string | null
+          escalado_por_admin_id: string | null
+          estado: string
+          folio: string
+          horas_limite: number
+          horas_transcurridas: number
+          id: string
+          metadata: Json
+          notificacion_estado: string
+          origen_creado_en: string
+          porcentaje_consumido: number
+          prioridad: number
+          regla_id: string | null
+          responsable: string | null
+          resuelto_en: string | null
+          resuelto_por_admin_id: string | null
+          severidad: string
+          sla_restante_horas: number
+          traslado_id: string | null
+          vence_en: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "alertas_sla_operacionales"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       admin_solicitar_aprobacion: {
         Args: {
@@ -4129,17 +5946,40 @@ export type Database = {
           p_payload?: Json
           p_recurso: string
           p_recurso_id: string
-          p_requerida_por?: string
         }
         Returns: Json
+      }
+      admin_validar_configuracion_normativa: {
+        Args: { p_clave: string; p_valor: Json }
+        Returns: undefined
       }
       aprobar_expediente_conductor_admin: {
         Args: { p_conductor_id: string }
         Returns: undefined
       }
+      aprobar_solicitud_cambio_conductor: {
+        Args: { p_solicitud_id: string }
+        Returns: Json
+      }
       aprobar_solicitud_conductor_admin: {
         Args: { p_motivo?: string; p_solicitud_id: string }
         Returns: string
+      }
+      aprobar_solicitud_conductor_sistema: {
+        Args: { p_solicitud_id: string; p_verificacion_id: string }
+        Returns: string
+      }
+      aprobar_usuario_por_verificacion_sistema: {
+        Args: { p_usuario_id: string; p_verificacion_id: string }
+        Returns: string
+      }
+      asignar_incidencia: {
+        Args: {
+          p_admin_id: string
+          p_incidencia_id: string
+          p_severidad?: string
+        }
+        Returns: undefined
       }
       auth_es_conductor_de_traslado: {
         Args: { p_conductor_id: string; p_traslado_id: string }
@@ -4191,6 +6031,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      cancelar_asignacion: {
+        Args: { p_asignacion_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      cancelar_solicitud_cambio_conductor: {
+        Args: { p_solicitud_id: string }
+        Returns: Json
+      }
       catalogar_vehiculo_para_tarifa: {
         Args: { p_marca: string; p_modelo: string }
         Returns: {
@@ -4235,7 +6083,7 @@ export type Database = {
         Args: {
           p_banco: string
           p_clabe: string
-          p_numero_tarjeta?: string | null
+          p_numero_tarjeta?: string
           p_titular_cuenta: string
         }
         Returns: {
@@ -4257,13 +6105,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      conductor_id_actual: { Args: never; Returns: string }
       conductor_operativamente_aprobado: {
         Args: { p_auth_user_id?: string }
         Returns: boolean
       }
+      conductor_solicita_asignacion: {
+        Args: { p_lat?: number; p_lng?: number; p_traslado_id: string }
+        Returns: Json
+      }
       consentimientos_solicitud_completos: {
         Args: { p_solicitud_id: string }
         Returns: boolean
+      }
+      consumir_clave_idempotencia: {
+        Args: { p_clave: string; p_entidad: string; p_entidad_id?: string }
+        Returns: Json
       }
       crear_incidencia_sistema_dano_no_reportado: {
         Args: { p_descripcion: string; p_traslado_id: string }
@@ -4272,6 +6129,10 @@ export type Database = {
       crear_usuario_legacy_desde_auth: {
         Args: { p_usuario: unknown }
         Returns: undefined
+      }
+      custodia_tipo_desde_estado: {
+        Args: { e: Database["public"]["Enums"]["estado_traslado"] }
+        Returns: Database["public"]["Enums"]["tipo_evento_custodia"]
       }
       desactivar_dispositivo_push: {
         Args: { p_device_id: string }
@@ -4285,7 +6146,23 @@ export type Database = {
         Args: { p_ts: string }
         Returns: Database["public"]["Enums"]["dia_traslado"]
       }
+      empresa_cambiar_rol_miembro: {
+        Args: { p_miembro_id: string; p_rol: string }
+        Returns: undefined
+      }
       empresa_id_del_titular_actual: { Args: never; Returns: string }
+      empresa_invitar_miembro: {
+        Args: { p_empresa_id: string; p_rol: string; p_usuario_id: string }
+        Returns: string
+      }
+      empresa_remover_miembro: {
+        Args: { p_miembro_id: string }
+        Returns: undefined
+      }
+      empresa_tiene_permiso: {
+        Args: { p_empresa_id: string; p_permiso: string }
+        Returns: boolean
+      }
       encolar_notificacion_conductor: {
         Args: {
           p_cuerpo: string
@@ -4328,9 +6205,18 @@ export type Database = {
         }[]
       }
       es_admin: { Args: never; Returns: boolean }
+      escalar_incidencia: {
+        Args: { p_incidencia_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      evaluar_salud_tracking: { Args: { p_traslado_id: string }; Returns: Json }
       expediente_conductor_tiene_datos: {
         Args: { p_conductor_id: string }
         Returns: boolean
+      }
+      finalizar_sesion_tracking: {
+        Args: { p_traslado_id: string }
+        Returns: string
       }
       guardar_borrador_conductor: {
         Args: {
@@ -4355,6 +6241,11 @@ export type Database = {
         Args: { p_ts: string }
         Returns: Database["public"]["Enums"]["horario_traslado"]
       }
+      incidencia_sla_horas: { Args: { p_severidad: string }; Returns: number }
+      iniciar_sesion_tracking: {
+        Args: { p_traslado_id: string }
+        Returns: string
+      }
       iniciar_solicitud_conductor: {
         Args: never
         Returns: {
@@ -4364,8 +6255,78 @@ export type Database = {
           solicitud_id: string
         }[]
       }
+      is_superadmin: { Args: never; Returns: boolean }
+      listar_conductores_admin_paginados: {
+        Args: {
+          p_busqueda?: string
+          p_estado?: string
+          p_pagina?: number
+          p_tamano?: number
+        }
+        Returns: Json
+      }
+      listar_usuarios_admin_paginados: {
+        Args: { p_busqueda?: string; p_pagina?: number; p_tamano?: number }
+        Returns: Json
+      }
+      listar_viajes_admin_paginados: {
+        Args: {
+          p_busqueda?: string
+          p_filtro_estado?: string
+          p_orden_columna?: string
+          p_orden_direccion?: string
+          p_pagina?: number
+          p_tamano?: number
+        }
+        Returns: Json
+      }
       marcar_notificacion_leida: {
         Args: { p_notificacion_id: string }
+        Returns: undefined
+      }
+      masivo_clave_dedup: { Args: { p_fila: Json }; Returns: string }
+      masivo_hash_fila: {
+        Args: { p_fila: Json; p_numero_fila: number }
+        Returns: string
+      }
+      masivo_reporte_errores_csv: {
+        Args: { p_carga_id: string }
+        Returns: string
+      }
+      masivo_uuid_idempotencia: {
+        Args: { p_carga_id: string; p_numero_fila: number }
+        Returns: string
+      }
+      masivo_validar_archivo: {
+        Args: {
+          p_hash_archivo: string
+          p_mime_type: string
+          p_nombre_archivo: string
+          p_rol: Database["public"]["Enums"]["rol_admin_operativo"]
+          p_tamano_bytes: number
+          p_total_filas: number
+        }
+        Returns: undefined
+      }
+      masivo_validar_fila: { Args: { p_fila: Json }; Returns: string[] }
+      masivo_validar_fila_v2: {
+        Args: { p_empresa_id: string; p_fila: Json }
+        Returns: string[]
+      }
+      metricas_registro_conductor_segmento: {
+        Args: {
+          p_desde: string
+          p_dimension: string
+          p_empresa_id?: string
+          p_fuente?: string
+          p_hasta: string
+          p_zona?: string
+        }
+        Returns: Json
+      }
+      mis_empresas_miembro: { Args: never; Returns: string[] }
+      notificar_torre_incidencia: {
+        Args: { p_accion: string; p_detalle: string; p_incidencia_id: string }
         Returns: undefined
       }
       objetivo_documento_pertenece_auth: {
@@ -4380,11 +6341,38 @@ export type Database = {
         Args: { p_desde?: string; p_hasta?: string }
         Returns: Json
       }
+      obtener_metricas_registro_conductor_v2: {
+        Args: {
+          p_desde?: string
+          p_empresa_id?: string
+          p_fuente?: string
+          p_hasta?: string
+          p_zona?: string
+        }
+        Returns: Json
+      }
+      obtener_paradas_traslado: {
+        Args: { p_traslado_id: string }
+        Returns: Json
+      }
       obtener_politica_version_app: {
         Args: { p_plataforma: string; p_version_actual: string }
         Returns: Json
       }
       obtener_preferencia_admin: { Args: { p_clave: string }; Returns: Json }
+      ofrecer_asignacion: {
+        Args: {
+          p_conductor_id: string
+          p_motivo?: string
+          p_traslado_id: string
+        }
+        Returns: string
+      }
+      preparar_conductor_e2e: {
+        Args: { p_auth_user_id: string; p_conductor_id: string; p_datos: Json }
+        Returns: string
+      }
+      procesar_competencias_asignacion: { Args: never; Returns: Json }
       puede_ver_tarifa_traslado: {
         Args: { p_usuario_id: string }
         Returns: boolean
@@ -4393,12 +6381,44 @@ export type Database = {
         Args: { p_km: number }
         Returns: Database["public"]["Enums"]["rango_distancia"]
       }
+      reasignar_conductor: {
+        Args: {
+          p_motivo?: string
+          p_nuevo_conductor_id: string
+          p_traslado_id: string
+        }
+        Returns: string
+      }
       recalcular_calificacion_conductor: {
         Args: { p_conductor_id: string }
         Returns: undefined
       }
+      rechazar_asignacion: {
+        Args: { p_asignacion_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      rechazar_solicitud_cambio_conductor: {
+        Args: { p_motivo: string; p_solicitud_id: string }
+        Returns: Json
+      }
       rechazar_solicitud_conductor_admin: {
         Args: { p_motivo: string; p_solicitud_id: string }
+        Returns: undefined
+      }
+      rechazar_solicitud_por_verificacion_sistema: {
+        Args: {
+          p_motivo?: string
+          p_solicitud_id: string
+          p_verificacion_id: string
+        }
+        Returns: undefined
+      }
+      rechazar_usuario_por_verificacion_sistema: {
+        Args: {
+          p_motivo?: string
+          p_usuario_id: string
+          p_verificacion_id: string
+        }
         Returns: undefined
       }
       reclamar_limpieza_documentos_identidad: {
@@ -4424,6 +6444,15 @@ export type Database = {
       registrar_apertura_push: {
         Args: { p_device_id: string; p_notificacion_id: string }
         Returns: undefined
+      }
+      registrar_consentimiento_usuario: {
+        Args: {
+          p_aceptado_en?: string
+          p_canal: string
+          p_version: number
+          p_version_app: string
+        }
+        Returns: Json
       }
       registrar_consentimientos_conductor: {
         Args: {
@@ -4469,6 +6498,24 @@ export type Database = {
         Args: { p_ruta: string }
         Returns: undefined
       }
+      registrar_evento_custodia: {
+        Args: {
+          p_combustible?: string
+          p_firma_metodo?: string
+          p_foto_ids?: string[]
+          p_inspeccion_id?: string
+          p_lat?: number
+          p_lng?: number
+          p_metadata?: Json
+          p_notas?: string
+          p_ocurrido_en?: string
+          p_odometro?: number
+          p_pin_verificado?: boolean
+          p_tipo: Database["public"]["Enums"]["tipo_evento_custodia"]
+          p_traslado_id: string
+        }
+        Returns: string
+      }
       registrar_evento_operativo_app: {
         Args: { p_detalle?: Json; p_tipo: string; p_version_app: string }
         Returns: string
@@ -4483,18 +6530,63 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_evento_registro_conductor_v2: {
+        Args: {
+          p_codigo?: string
+          p_creado_en?: string
+          p_duracion_ms?: number
+          p_empresa_id?: string
+          p_evento: string
+          p_fuente?: string
+          p_paso?: number
+          p_sesion_id: string
+          p_zona?: string
+        }
+        Returns: string
+      }
+      registrar_heartbeat_tracking: {
+        Args: {
+          p_bateria_pct?: number
+          p_lat: number
+          p_lng: number
+          p_online?: boolean
+          p_plataforma?: string
+          p_precision_m?: number
+          p_traslado_id: string
+          p_velocidad_mps?: number
+        }
+        Returns: Json
+      }
       registrar_permiso_admin_denegado: {
         Args: { p_motivo: string; p_permiso: string }
+        Returns: undefined
+      }
+      registrar_resultado_idempotente: {
+        Args: {
+          p_clave: string
+          p_entidad: string
+          p_entidad_id: string
+          p_resultado: Json
+        }
         Returns: undefined
       }
       registrar_telemetria_lote: {
         Args: { p_puntos: Json; p_traslado_id: string }
         Returns: Json
       }
+      resolver_incidencia: {
+        Args: {
+          p_incidencia_id: string
+          p_motivo?: string
+          p_severidad?: string
+        }
+        Returns: undefined
+      }
       revisar_documento_conductor_admin: {
         Args: { p_documento_id: string; p_estado: string; p_notas?: string }
         Returns: undefined
       }
+      rfc_mexicano_valido: { Args: { p_rfc: string }; Returns: boolean }
       ruta_documento_validada_para_auth: {
         Args: { p_ruta: string }
         Returns: boolean
@@ -4503,9 +6595,29 @@ export type Database = {
         Args: { p_ruta: string }
         Returns: boolean
       }
+      sla_categoria_desde_tipo: {
+        Args: { p_tipo: string; p_vencido: boolean }
+        Returns: string
+      }
+      sla_horas_operativas_desde: {
+        Args: { p_inicio: string; p_pausar?: boolean; p_zona_horaria: string }
+        Returns: number
+      }
+      solicitar_cambio_expediente_conductor: {
+        Args: { p_cambios: Json }
+        Returns: Json
+      }
       solicitud_conductor_datos_completos: {
         Args: { p_solicitud_id: string }
         Returns: boolean
+      }
+      titular_es_dueno_de_empresa_de_usuario: {
+        Args: { p_usuario_id: string }
+        Returns: boolean
+      }
+      traducir_estado_operativo: {
+        Args: { e: Database["public"]["Enums"]["estado_traslado"] }
+        Returns: Database["public"]["Enums"]["estado_operativo_traslado"]
       }
       traslado_tiene_metodo_pago_registrado: {
         Args: { p_traslado_id: string }
@@ -4529,11 +6641,27 @@ export type Database = {
       usuario_crea_traslado: {
         Args: {
           p_clave_idempotencia: string
+          p_paradas?: Json
           p_traslado: Json
           p_vehiculo: Json
           p_vehiculo_id: string
         }
         Returns: Json
+      }
+      usuario_crea_traslados_masivos: {
+        Args: {
+          p_filas: Json
+          p_hash_archivo: string
+          p_mime_type: string
+          p_nombre_archivo: string
+          p_tamano_bytes: number
+        }
+        Returns: Json
+      }
+      usuario_id_actual: { Args: never; Returns: string }
+      usuario_ids_de_traslados_asignados_conductor: {
+        Args: never
+        Returns: string[]
       }
       usuario_previsualizar_tarifa: {
         Args: {
@@ -4546,6 +6674,10 @@ export type Database = {
         }
         Returns: Json
       }
+      usuario_procesa_carga_traslados_masivos: {
+        Args: { p_carga_id: string; p_limite?: number }
+        Returns: Json
+      }
       validar_ruta_documento_conductor: {
         Args: {
           p_auth_user_id?: string
@@ -4554,6 +6686,10 @@ export type Database = {
           p_tipo: string
         }
         Returns: undefined
+      }
+      verificar_cadena_custodia: {
+        Args: { p_traslado_id: string }
+        Returns: boolean
       }
     }
     Enums: {
@@ -4578,6 +6714,14 @@ export type Database = {
       certificacion_conductor: "estandar" | "tipo_b" | "federal" | "premium"
       condicion_vehiculo: "nueva" | "seminueva" | "rescate_mecanico"
       dia_traslado: "entre_semana" | "fin_semana"
+      estado_asignacion:
+        | "pendiente"
+        | "ofrecida"
+        | "aceptada"
+        | "rechazada"
+        | "cancelada"
+        | "activa"
+        | "completada"
       estado_conductor:
         | "activo"
         | "suspendido_7d"
@@ -4608,6 +6752,27 @@ export type Database = {
         | "aprobado"
         | "rechazado"
         | "suspendido"
+      estado_operacion:
+        | "borrador"
+        | "planificada"
+        | "en_curso"
+        | "pausada"
+        | "cerrada"
+        | "cancelada"
+      estado_operativo_traslado:
+        | "draft"
+        | "requested"
+        | "confirmed"
+        | "planned"
+        | "assigned"
+        | "pickup_in_progress"
+        | "vehicle_received"
+        | "in_transit"
+        | "delivery_in_progress"
+        | "delivered"
+        | "closed"
+        | "cancelled"
+        | "failed"
       estado_pago: "pendiente" | "completado" | "reembolsado" | "fallido"
       estado_payout: "pendiente" | "procesado" | "fallido"
       estado_politica_tarifaria: "borrador" | "vigente" | "archivada"
@@ -4693,6 +6858,22 @@ export type Database = {
         | "aceptacion_terminos"
         | "carga_documento_identidad"
         | "actualizacion_datos_bancarios_conductor"
+        | "modificacion_masiva_traslados"
+        | "modificacion_vehiculo"
+        | "consulta_evidencia_vehiculo"
+        | "actualizacion_usuario"
+        | "actualizacion_conductor"
+        | "accion_masiva_admin"
+        | "solicitud_cambio_conductor_creada"
+        | "solicitud_cambio_conductor_aprobada"
+        | "solicitud_cambio_conductor_rechazada"
+        | "solicitud_cambio_conductor_cancelada"
+        | "actualizacion_perfil_conductor"
+        | "oferta_asignacion"
+        | "aceptacion_asignacion"
+        | "rechazo_asignacion"
+        | "cancelacion_asignacion"
+        | "reasignacion_conductor"
       gama_vehiculo: "entrada" | "media" | "alta" | "premium"
       horario_traslado: "diurno" | "nocturno"
       momento_incidencia:
@@ -4723,6 +6904,17 @@ export type Database = {
         | "aviso_privacidad"
         | "autorizacion_antecedentes"
         | "declaracion_suspensiones"
+      tipo_evento_custodia:
+        | "pickup_started"
+        | "vehicle_inspected"
+        | "vehicle_received"
+        | "transfer_started"
+        | "stop_registered"
+        | "incident_reported"
+        | "destination_reached"
+        | "delivery_inspection"
+        | "vehicle_delivered"
+        | "delivery_accepted"
       tipo_evidencia: "inicial" | "final"
       tipo_incidencia:
         | "vehiculo_no_enciende"
@@ -4736,7 +6928,9 @@ export type Database = {
         | "conductor_enfermo"
         | "perdida_conectividad"
         | "dano_no_reportado"
+      tipo_operacion: "corporativa" | "flota" | "evento" | "masiva" | "interna"
       tipo_pago: "anticipado" | "al_cierre"
+      tipo_parada: "escala" | "tarea"
       tipo_solicitud_cambio_conductor:
         | "perfil"
         | "curp"
@@ -4750,6 +6944,13 @@ export type Database = {
         | "empresa"
         | "legal"
         | "foto_perfil"
+      tipo_tarea_parada:
+        | "entrega_parcial"
+        | "recoleccion"
+        | "tramite"
+        | "inspeccion"
+        | "carga_descarga"
+        | "otro"
       tipo_vehiculo:
         | "sedan"
         | "suv"
@@ -5455,6 +7656,15 @@ export const Constants = {
       certificacion_conductor: ["estandar", "tipo_b", "federal", "premium"],
       condicion_vehiculo: ["nueva", "seminueva", "rescate_mecanico"],
       dia_traslado: ["entre_semana", "fin_semana"],
+      estado_asignacion: [
+        "pendiente",
+        "ofrecida",
+        "aceptada",
+        "rechazada",
+        "cancelada",
+        "activa",
+        "completada",
+      ],
       estado_conductor: [
         "activo",
         "suspendido_7d",
@@ -5489,10 +7699,39 @@ export const Constants = {
         "rechazado",
         "suspendido",
       ],
+      estado_operacion: [
+        "borrador",
+        "planificada",
+        "en_curso",
+        "pausada",
+        "cerrada",
+        "cancelada",
+      ],
+      estado_operativo_traslado: [
+        "draft",
+        "requested",
+        "confirmed",
+        "planned",
+        "assigned",
+        "pickup_in_progress",
+        "vehicle_received",
+        "in_transit",
+        "delivery_in_progress",
+        "delivered",
+        "closed",
+        "cancelled",
+        "failed",
+      ],
       estado_pago: ["pendiente", "completado", "reembolsado", "fallido"],
       estado_payout: ["pendiente", "procesado", "fallido"],
       estado_politica_tarifaria: ["borrador", "vigente", "archivada"],
       estado_reclamo_seguro: ["abierto", "en_revision", "resuelto"],
+      estado_solicitud_cambio_conductor: [
+        "pendiente",
+        "aprobado",
+        "rechazado",
+        "cancelado",
+      ],
       estado_traslado: [
         "usuario_pendiente_verificacion",
         "usuario_verificado",
@@ -5571,6 +7810,22 @@ export const Constants = {
         "aceptacion_terminos",
         "carga_documento_identidad",
         "actualizacion_datos_bancarios_conductor",
+        "modificacion_masiva_traslados",
+        "modificacion_vehiculo",
+        "consulta_evidencia_vehiculo",
+        "actualizacion_usuario",
+        "actualizacion_conductor",
+        "accion_masiva_admin",
+        "solicitud_cambio_conductor_creada",
+        "solicitud_cambio_conductor_aprobada",
+        "solicitud_cambio_conductor_rechazada",
+        "solicitud_cambio_conductor_cancelada",
+        "actualizacion_perfil_conductor",
+        "oferta_asignacion",
+        "aceptacion_asignacion",
+        "rechazo_asignacion",
+        "cancelacion_asignacion",
+        "reasignacion_conductor",
       ],
       gama_vehiculo: ["entrada", "media", "alta", "premium"],
       horario_traslado: ["diurno", "nocturno"],
@@ -5606,6 +7861,18 @@ export const Constants = {
         "autorizacion_antecedentes",
         "declaracion_suspensiones",
       ],
+      tipo_evento_custodia: [
+        "pickup_started",
+        "vehicle_inspected",
+        "vehicle_received",
+        "transfer_started",
+        "stop_registered",
+        "incident_reported",
+        "destination_reached",
+        "delivery_inspection",
+        "vehicle_delivered",
+        "delivery_accepted",
+      ],
       tipo_evidencia: ["inicial", "final"],
       tipo_incidencia: [
         "vehiculo_no_enciende",
@@ -5620,7 +7887,31 @@ export const Constants = {
         "perdida_conectividad",
         "dano_no_reportado",
       ],
+      tipo_operacion: ["corporativa", "flota", "evento", "masiva", "interna"],
       tipo_pago: ["anticipado", "al_cierre"],
+      tipo_parada: ["escala", "tarea"],
+      tipo_solicitud_cambio_conductor: [
+        "perfil",
+        "curp",
+        "licencia",
+        "licencia_vigencia",
+        "domicilio",
+        "contacto_emergencia",
+        "identidad",
+        "documento",
+        "datos_bancarios",
+        "empresa",
+        "legal",
+        "foto_perfil",
+      ],
+      tipo_tarea_parada: [
+        "entrega_parcial",
+        "recoleccion",
+        "tramite",
+        "inspeccion",
+        "carga_descarga",
+        "otro",
+      ],
       tipo_vehiculo: ["sedan", "suv", "pick_up", "van", "luxury", "coleccion"],
     },
   },

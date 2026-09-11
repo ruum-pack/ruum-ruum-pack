@@ -24,7 +24,8 @@ const DATOS_DEMO: DatosPagosAdmin = {
       metodo: "tarjeta",
       registrado_en: "2026-07-15T12:00:00.000Z",
       stripe_payment_intent_id: "pi_demo_4242",
-      stripe_event_id: "evt_demo_paid"
+      stripe_event_id: "evt_demo_paid",
+      comision_mxn: null
     }
   ],
   pasaportes: [],

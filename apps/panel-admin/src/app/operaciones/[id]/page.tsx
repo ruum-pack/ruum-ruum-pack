@@ -121,6 +121,9 @@ export default function PaginaDetalleOperacion() {
         descripcion={`Tipo ${operacion.tipo} · Estado ${operacion.estado} · Prioridad ${operacion.prioridad}`}
         accion={<Link href="/operaciones">Volver</Link>}
       />
+      <p>
+        <Link href={`/operaciones/${id}/finanzas`}>Ver finanzas</Link>
+      </p>
 
       {mensaje ? <p role="status">{mensaje}</p> : null}
       {error ? <p role="alert">{error}</p> : null}
