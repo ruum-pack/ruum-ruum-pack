@@ -56,13 +56,11 @@ if (typeof document !== "undefined" && typeof document.addEventListener === "fun
 async function fetchFlagConRetry(key: string, attempt = 0): Promise<{ data: FeatureFlagData | null; error: unknown | null }> {
   try {
     const client = crearClienteNavegador();
-    const { data, error } = await client
-      .from("feature_flags_app")
-      .select("habilitada,porcentaje_rollout,versiones_permitidas")
-      .eq("clave", key)
-      .maybeSingle();
-
-    if (error) {
+    const { obtenerFeatureFlagApp } = await import("@ruum/api/operations");
+    let data: FeatureFlagData | null;
+    try {
+      data = await obtenerFeatureFlagApp(client, key);
+    } catch (error) {
       const esRetriable = (error as { code?: string }).code === "PGRST301" || (error as { status?: number }).status === 429;
       if (esRetriable && attempt < MAX_RETRIES) {
         const backoff = 150 * Math.pow(2, attempt) + Math.random() * 100;
@@ -78,13 +76,7 @@ async function fetchFlagConRetry(key: string, attempt = 0): Promise<{ data: Feat
       return { data: null, error };
     }
 
-    const flagData: FeatureFlagData | null = data
-      ? {
-          habilitada: Boolean(data.habilitada),
-          porcentaje_rollout: Number(data.porcentaje_rollout ?? 0),
-          versiones_permitidas: (data.versiones_permitidas as string[] | null) ?? null
-        }
-      : null;
+    const flagData: FeatureFlagData | null = data;
 
     if (flagData === null) {
       console.warn("[feature-flags] flag no encontrada, retorna null (RLS o clave inexistente)", { key });

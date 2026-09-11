@@ -1,4 +1,3 @@
-import type { Json } from "@ruum/shared/types";
 import { crearClienteNavegador } from "./supabase-browser";
 
 /**
@@ -79,10 +78,11 @@ export async function recordOperationalEvent(
 
   try {
     const client = crearClienteNavegador();
-    await client.rpc("registrar_evento_operativo_app", {
-      p_tipo: type,
-      p_version_app: appVersion(),
-      p_detalle: sanitized as unknown as Json
+    const { registrarEventoOperativoApp } = await import("@ruum/api/operations");
+    await registrarEventoOperativoApp(client, {
+      tipo: type,
+      versionApp: appVersion(),
+      detalle: sanitized
     });
   } catch {
     /* observability must never break operation */

@@ -88,6 +88,21 @@ const eslintConfig = defineConfig([
       'jsx-a11y/scope': 'error',
       'jsx-a11y/tabindex-no-positive': 'error',
       'jsx-a11y/anchor-has-content': 'error',
+      // FASE 6 — Fronteras: avisa (el gate duro es pnpm check:fronteras).
+      'no-restricted-syntax': ['warn',
+        {
+          selector: "CallExpression > MemberExpression[property.name='from'][object.name!='Array'][object.name!='Buffer'][object.name!='Object']",
+          message: 'Fase 6: acceso directo a Supabase en apps. Usa un módulo de @ruum/api.'
+        },
+        {
+          selector: "CallExpression > MemberExpression[property.name='rpc']",
+          message: 'Fase 6: .rpc() directo en apps. Usa un módulo de @ruum/api.'
+        },
+        {
+          selector: "CallExpression > MemberExpression[property.name='invoke']",
+          message: 'Fase 6: invoke directo en apps. Usa un módulo de @ruum/api.'
+        }
+      ],
       // Reglas de tipado seguro (H5)
       '@typescript-eslint/no-explicit-any': 'warn'
     }

@@ -3,7 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteServidor } from "../../../../lib/supabase-server";
 import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
-import { normalizarError, registrarEvento } from "@ruum/api/services";
+import { actualizarEstadoCuentaUsuario } from "@ruum/api/identity";
+import { normalizarError, registrarEvento, tienePermisoAdmin, type PermisoAdmin } from "@ruum/api/services";
 
 type Recurso = "usuario" | "conductor";
 type Accion = "suspender" | "reactivar" | "baja";
@@ -53,10 +54,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "SOLICITUD_INVALIDA" }, { status: 400 });
     }
 
-    const permiso = recurso === "usuario" ? "usuarios:validar" : "conductores:sancionar";
-    const { data: tienePermiso, error: errorPermiso } = await cliente.rpc("admin_tiene_permiso", { p_permiso: permiso });
-    if (errorPermiso) throw errorPermiso;
-    if (!tienePermiso) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    const permiso: PermisoAdmin = recurso === "usuario" ? "usuarios:validar" : "conductores:sancionar";
+    if (!(await tienePermisoAdmin(cliente, permiso))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
     const authUserId = await obtenerAuthUserId(serviceRole, recurso, id);
     if (!authUserId) {
@@ -65,12 +64,7 @@ export async function POST(request: Request) {
 
     if (recurso === "usuario") {
       const estado = accion === "reactivar" ? "activa" : accion === "baja" ? "cerrada" : "suspendida";
-      const { error } = await cliente.rpc("admin_actualizar_estado_cuenta_usuario" as never, {
-        p_usuario_id: id,
-        p_estado: estado,
-        p_motivo: motivo || null
-      } as never);
-      if (error) throw error;
+      await actualizarEstadoCuentaUsuario(cliente, { usuarioId: id, estado, motivo: motivo || null });
     }
 
     const banDuration = accion === "reactivar" ? "none" : "876000h";

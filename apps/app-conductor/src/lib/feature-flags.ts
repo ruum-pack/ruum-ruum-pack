@@ -29,23 +29,10 @@ export async function getFeatureFlagData(key: string, forceRefresh = false): Pro
 
   try {
     const client = crearClienteNavegador();
-    const { data, error } = await client
-      .from("feature_flags_app")
-      .select("habilitada,porcentaje_rollout,versiones_permitidas")
-      .eq("clave", key)
-      .maybeSingle();
+    const { obtenerFeatureFlagApp } = await import("@ruum/api/operations");
+    const data = await obtenerFeatureFlagApp(client, key).catch(() => null);
 
-    if (error) {
-      return null;
-    }
-
-    const flagData: FeatureFlagData | null = data
-      ? {
-          habilitada: Boolean(data.habilitada),
-          porcentaje_rollout: Number(data.porcentaje_rollout ?? 0),
-          versiones_permitidas: (data.versiones_permitidas as string[] | null) ?? null
-        }
-      : null;
+    const flagData: FeatureFlagData | null = data;
 
     flagCache.set(key, { data: flagData, expiresAt: now + CACHE_TTL_MS });
     return flagData;

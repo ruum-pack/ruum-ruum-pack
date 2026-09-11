@@ -127,3 +127,14 @@ export async function assertAdminAnyPermission(cliente: Cliente, permisos: Permi
   });
   throw new AdminAuthorizationError(permisos[0]!);
 }
+
+/**
+ * FASE 6 — Frontera de permisos para rutas/páginas: booleano sin lanzar.
+ * Misma RPC que los asserts, pero preserva el flujo `if (!x) return 403`
+ * de las rutas existentes. No registra denegados (igual que antes).
+ */
+export async function tienePermisoAdmin(cliente: Cliente, permiso: PermisoAdmin): Promise<boolean> {
+  const { data, error } = await cliente.rpc("admin_tiene_permiso", { p_permiso: permiso });
+  if (error) throw error;
+  return data === true;
+}

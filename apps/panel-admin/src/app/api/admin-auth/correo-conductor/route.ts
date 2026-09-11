@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { crearClienteServidor } from "../../../../lib/supabase-server";
 import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
-import { normalizarError } from "@ruum/api/services";
+import { normalizarError, tienePermisoAdmin } from "@ruum/api/services";
 
 export async function GET(request: Request) {
   try {
@@ -14,9 +14,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "SOLICITUD_REQUERIDA" }, { status: 400 });
     }
 
-    const { data: tienePermiso, error: errorPermiso } = await cliente.rpc("admin_tiene_permiso", { p_permiso: "conductores:leer" });
-    if (errorPermiso) throw errorPermiso;
-    if (!tienePermiso) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    if (!(await tienePermisoAdmin(cliente, "conductores:leer"))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
     const { data: solicitud, error: errorSolicitud } = await serviceRole
       .from("solicitudes_conductor")

@@ -108,6 +108,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Fronteras de acceso (Fase 6 — sin nuevos .from/.rpc en apps)
+        run: pnpm check:fronteras
+
       - name: App conductor quality gate — typecheck (bloqueante)
         run: pnpm --filter @ruum/app-conductor typecheck
 

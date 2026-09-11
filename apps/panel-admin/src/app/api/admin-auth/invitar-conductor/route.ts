@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { crearClienteServidor } from "../../../../lib/supabase-server";
 import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
-import { normalizarError, registrarEvento } from "@ruum/api/services";
+import { normalizarError, registrarEvento, tienePermisoAdmin } from "@ruum/api/services";
 
 const LOGIN_CONDUCTOR_URL = process.env.NEXT_PUBLIC_APP_CONDUCTOR_URL ?? "https://conductor.ruumruum.mx/login";
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -79,9 +79,7 @@ export async function POST(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const email = correo(body.correo);
 
-    const { data: tienePermiso, error: errorPermiso } = await cliente.rpc("admin_tiene_permiso", { p_permiso: "conductores:validar" });
-    if (errorPermiso) throw errorPermiso;
-    if (!tienePermiso) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    if (!(await tienePermisoAdmin(cliente, "conductores:validar"))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: "CORREO_INVALIDO" }, { status: 400 });

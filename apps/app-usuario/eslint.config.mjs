@@ -21,6 +21,26 @@ const eslintConfig = defineConfig([
       'android/**',
       '**.android.js'
     ]
+  },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    rules: {
+      // FASE 6 — Fronteras: avisa (el gate duro es pnpm check:fronteras).
+      "no-restricted-syntax": ["warn",
+        {
+          selector: "CallExpression > MemberExpression[property.name='from'][object.name!='Array'][object.name!='Buffer'][object.name!='Object']",
+          message: "Fase 6: acceso directo a Supabase en apps. Usa un módulo de @ruum/api."
+        },
+        {
+          selector: "CallExpression > MemberExpression[property.name='rpc']",
+          message: "Fase 6: .rpc() directo en apps. Usa un módulo de @ruum/api."
+        },
+        {
+          selector: "CallExpression > MemberExpression[property.name='invoke']",
+          message: "Fase 6: invoke directo en apps. Usa un módulo de @ruum/api."
+        }
+      ]
+    }
   }
 ])
 

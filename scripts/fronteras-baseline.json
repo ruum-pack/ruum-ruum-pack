@@ -1,0 +1,17 @@
+{
+  "app-usuario": {
+    "from": 15,
+    "rpc": 0,
+    "invoke": 0
+  },
+  "app-conductor": {
+    "from": 39,
+    "rpc": 6,
+    "invoke": 0
+  },
+  "panel-admin": {
+    "from": 23,
+    "rpc": 5,
+    "invoke": 0
+  }
+}

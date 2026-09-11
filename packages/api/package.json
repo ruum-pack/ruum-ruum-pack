@@ -5,7 +5,18 @@
   "type": "module",
   "exports": {
     "./supabase": "./src/supabase/index.ts",
-    "./services": "./src/services/index.ts"
+    "./services": "./src/services/index.ts",
+    "./operations": "./src/operations/index.ts",
+    "./transfers": "./src/transfers/index.ts",
+    "./drivers": "./src/drivers/index.ts",
+    "./organizations": "./src/organizations/index.ts",
+    "./vehicles": "./src/vehicles/index.ts",
+    "./identity": "./src/identity/index.ts",
+    "./custody": "./src/custody/index.ts",
+    "./tracking": "./src/tracking/index.ts",
+    "./incidents": "./src/incidents/index.ts",
+    "./claims": "./src/claims/index.ts",
+    "./billing": "./src/billing/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",

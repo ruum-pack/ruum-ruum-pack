@@ -11,6 +11,7 @@ import {
   listarEmpresasAdmin,
   resolverCambioEmpresaAdmin,
   validarDocumentoEmpresa,
+  tienePermisoAdmin,
   type DatosEmpresasAdmin
 } from "@ruum/api/services";
 import type { Database } from "@ruum/shared/types";
@@ -600,13 +601,12 @@ export default function PaginaEmpresasAdmin() {
     try {
       setErrorCarga(null);
       const cliente = crearClienteNavegador();
-      const [datosEmpresas, permisoGestionar] = await Promise.all([
+      const [datosEmpresas, puedeGestionar] = await Promise.all([
         listarEmpresasAdmin(cliente),
-        cliente.rpc("admin_tiene_permiso", { p_permiso: "empresas:gestionar" })
+        tienePermisoAdmin(cliente, "empresas:gestionar")
       ]);
-      if (permisoGestionar.error) throw permisoGestionar.error;
       setDatos(datosEmpresas);
-      setPuedeGestionarEmpresas(permisoGestionar.data === true);
+      setPuedeGestionarEmpresas(puedeGestionar);
       setEsDemo(false);
       setEstadoConexion("datos_en_vivo");
       setUltimaActualizacion(new Date());

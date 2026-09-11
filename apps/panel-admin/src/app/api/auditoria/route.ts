@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { crearClienteServidor } from "../../../lib/supabase-server";
-import { normalizarError } from "@ruum/api/services";
+import { normalizarError, tienePermisoAdmin } from "@ruum/api/services";
 
 const CAMPOS_SENSIBLES_VISUALIZACION = new Set([
   "auth_user_id", "token", "secret", "password", "cvv", "card_number",
@@ -30,8 +30,7 @@ export async function GET(request: Request) {
     const cliente = await crearClienteServidor();
     const url = new URL(request.url);
 
-    const { data: tienePermiso } = await cliente.rpc("admin_tiene_permiso", { p_permiso: "auditoria:leer" });
-    if (!tienePermiso) {
+    if (!(await tienePermisoAdmin(cliente, "auditoria:leer").catch(() => false))) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 

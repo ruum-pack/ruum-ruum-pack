@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { crearClienteServidor } from "../../../../lib/supabase-server";
 import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
-import { normalizarError, registrarEvento } from "@ruum/api/services";
+import { normalizarError, registrarEvento, tienePermisoAdmin } from "@ruum/api/services";
 
 type TipoCuenta = "personal" | "empresa";
 type PerfilEmpresa = "administrador_flota" | "usuario_final" | "finanzas";
@@ -34,9 +34,7 @@ export async function POST(request: Request) {
     const perfil = cuenta === "empresa" ? perfilEmpresa(body.perfilEmpresa) : null;
     const rolUsuario = cuenta === "empresa" && perfil === "administrador_flota" ? "titular_empresa" : cuenta === "empresa" ? "usuario_autorizado" : "personal";
 
-    const { data: tienePermiso, error: errorPermiso } = await cliente.rpc("admin_tiene_permiso", { p_permiso: "usuarios:validar" });
-    if (errorPermiso) throw errorPermiso;
-    if (!tienePermiso) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    if (!(await tienePermisoAdmin(cliente, "usuarios:validar"))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
       return NextResponse.json({ error: "CORREO_INVALIDO" }, { status: 400 });

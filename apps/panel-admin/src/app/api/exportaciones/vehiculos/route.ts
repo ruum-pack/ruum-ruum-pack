@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import type { Json } from "@ruum/shared/types";
-import { listarVehiculosAdminPaginados } from "@ruum/api/services";
+import { listarVehiculosAdminPaginados, tienePermisoAdmin } from "@ruum/api/services";
+import { completarExportacionAdmin, registrarExportacionAdmin } from "@ruum/api/operations";
 import { crearClienteServidor } from "../../../../lib/supabase-server";
 
 const LIMITE_FILAS = 10_000;
@@ -20,18 +20,22 @@ export async function GET(request: Request) {
   const busqueda = url.searchParams.get("busqueda")?.trim() || null;
   const filtros = { busqueda };
 
-  const { data: puedeLeer } = await cliente.rpc("admin_tiene_permiso", { p_permiso: "vehiculos:leer" });
-  const { data: puedeExportar } = await cliente.rpc("admin_tiene_permiso", { p_permiso: "exportaciones:crear" });
+  const [puedeLeer, puedeExportar] = await Promise.all([
+    tienePermisoAdmin(cliente, "vehiculos:leer").catch(() => false),
+    tienePermisoAdmin(cliente, "exportaciones:crear").catch(() => false)
+  ]);
   if (!puedeLeer || !puedeExportar) {
     return NextResponse.json({ error: "forbidden", traceId }, { status: 403, headers: { "x-request-id": traceId } });
   }
 
-  const { data: registroId, error: registroError } = await cliente.rpc("admin_registrar_exportacion", {
-    p_recurso: "vehiculos",
-    p_filtros: filtros as unknown as Json,
-    p_formato: "csv"
-  });
-  if (registroError) {
+  let registroId: string | null = null;
+  try {
+    registroId = await registrarExportacionAdmin(cliente, {
+      recurso: "vehiculos",
+      filtros,
+      formato: "csv"
+    });
+  } catch {
     return NextResponse.json({ error: "export_init_failed", traceId }, { status: 500, headers: { "x-request-id": traceId } });
   }
 
@@ -65,13 +69,14 @@ export async function GET(request: Request) {
     });
     const csv = [encabezado, ...filas].join("\n");
     const hash = createHash("sha256").update(csv).digest("hex");
-    const { error: completarError } = await cliente.rpc("admin_completar_exportacion", {
-      p_id: registroId as string,
-      p_filas: datos.vehiculos.length,
-      p_hash: hash
-    });
-    if (completarError) {
-      console.error("[export] auditoría de vehículos fallida, no se entrega CSV", completarError);
+    try {
+      await completarExportacionAdmin(cliente, {
+        id: registroId as string,
+        filas: datos.vehiculos.length,
+        hash
+      });
+    } catch (errorCompletar) {
+      console.error("[export] auditoría de vehículos fallida, no se entrega CSV", errorCompletar);
       return NextResponse.json({ error: "export_audit_failed", traceId }, { status: 500, headers: { "x-request-id": traceId } });
     }
     return new NextResponse(csv, {
@@ -85,12 +90,12 @@ export async function GET(request: Request) {
       }
     });
   } catch (error) {
-    await cliente.rpc("admin_completar_exportacion", {
-      p_id: registroId as string,
-      p_filas: 0,
-      p_hash: "",
-      p_error: "export_failed"
-    });
+    await completarExportacionAdmin(cliente, {
+      id: registroId as string,
+      filas: 0,
+      hash: "",
+      error: "export_failed"
+    }).catch(() => {});
     return NextResponse.json({ error: "export_failed", traceId }, { status: 500, headers: { "x-request-id": traceId } });
   }
 }
