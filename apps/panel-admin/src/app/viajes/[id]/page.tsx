@@ -443,7 +443,13 @@ export default function PaginaDetalleViajeAdmin() {
           { label: "Traslados", href: "/viajes" },
           { label: pasaporte.traslado_id.slice(0, 8).toUpperCase() }
         ]}
-        accion={<EstadoBadge estado={pasaporte.estado} />}
+        accion={
+          <>
+            <EstadoBadge estado={pasaporte.estado} />
+            <Link href={`/viajes/${pasaporte.traslado_id}/custodia`} className="admin-button-primary inline-flex min-h-10 items-center justify-center rounded-lg bg-signal px-4 py-2 font-body text-admin-boton font-semibold text-ink">Cadena de custodia</Link>
+            <Link href={`/viajes/${pasaporte.traslado_id}/tracking`} className="admin-button-primary inline-flex min-h-10 items-center justify-center rounded-lg bg-signal px-4 py-2 font-body text-admin-boton font-semibold text-ink">Tracking GPS</Link>
+          </>
+        }
       />
 
       {aviso && (

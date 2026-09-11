@@ -3,19 +3,34 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
-import { listarIncidenciasAdmin, extraerRutaIncidencia, resolverUrlEvidencia } from "@ruum/api/services";
-import type { Database } from "@ruum/shared/types";
+import {
+  extraerRutaIncidencia,
+  obtenerAdminActual,
+  resolverUrlEvidencia
+} from "@ruum/api/services";
+import {
+  asignarIncidenciaAdmin,
+  escalarIncidenciaAdmin,
+  listarHistorialIncidencia,
+  listarIncidenciasTorre,
+  resolverIncidenciaAdmin,
+  type IncidenciaTorre,
+  type MovimientoIncidencia
+} from "@ruum/api/incidents";
+import { ETIQUETA_ESTADO_INCIDENCIA, ETIQUETA_SEVERIDAD_INCIDENCIA } from "@ruum/shared/constants";
 import { crearClienteNavegador, puedeUsarDatosDemo, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { AdminPageHeader, AdminPanel, limpiarParamsFiltroUrl } from "../admin-ui";
-import { AdminButton, AdminErrorState, AdminLoadingState, AdminTooltip } from "../admin-components";
+import { AdminButton, AdminDialog, AdminErrorState, AdminLoadingState, AdminTooltip } from "../admin-components";
 
-type Incidencia = Database["public"]["Tables"]["incidencias"]["Row"];
+type Incidencia = IncidenciaTorre;
 type EstadoConexionVista = "datos_en_vivo" | "actualizando" | "sin_conexion" | "demo";
 type FiltroTipo = "todos" | "abiertas" | "vehiculo_no_enciende" | "contacto_no_localizado" | "documentacion_incompleta" | "dano_previo_relevante";
 type FiltroOrigen = "todos" | "traslado" | "usuario" | "vehiculo" | "empresa";
 type FiltroResponsable = "todos" | "operacion" | "torre_control" | "documentacion" | "seguros";
 type GravedadIncidencia = "leve" | "media" | "grave";
 type FiltroGravedad = "todos" | GravedadIncidencia;
+type FiltroEstadoReal = "todos" | "abierta" | "en_atencion" | "escalada" | "resuelta" | "cerrada";
+type FiltroSeveridadReal = "todos" | "low" | "medium" | "high" | "critical";
 
 const TIPOS: Array<Exclude<FiltroTipo, "todos" | "abiertas">> = [
   "vehiculo_no_enciende",
@@ -56,6 +71,23 @@ const FILTROS_GRAVEDAD: Array<{ valor: FiltroGravedad; etiqueta: string }> = [
   { valor: "leve", etiqueta: "Leve" }
 ];
 
+const FILTROS_ESTADO_REAL: Array<{ valor: FiltroEstadoReal; etiqueta: string }> = [
+  { valor: "todos", etiqueta: "Todos los estados" },
+  { valor: "abierta", etiqueta: "Abierta" },
+  { valor: "en_atencion", etiqueta: "En atención" },
+  { valor: "escalada", etiqueta: "Escalada" },
+  { valor: "resuelta", etiqueta: "Resuelta" },
+  { valor: "cerrada", etiqueta: "Cerrada" }
+];
+
+const FILTROS_SEVERIDAD_REAL: Array<{ valor: FiltroSeveridadReal; etiqueta: string }> = [
+  { valor: "todos", etiqueta: "Todas las severidades" },
+  { valor: "low", etiqueta: "Baja" },
+  { valor: "medium", etiqueta: "Media" },
+  { valor: "high", etiqueta: "Alta" },
+  { valor: "critical", etiqueta: "Crítica" }
+];
+
 const RESPONSABLES_ASIGNABLES = FILTROS_RESPONSABLE.filter((item) => item.valor !== "todos");
 
 const INCIDENCIAS_DEMO: Incidencia[] = [
@@ -68,7 +100,15 @@ const INCIDENCIAS_DEMO: Incidencia[] = [
     creada_en: "2026-06-29T14:42:00.000Z",
     descripcion: "El kilometraje final no coincide con el registro inicial y falta foto clara del tablero.",
     resuelta: false,
-    resuelta_en: null
+    resuelta_en: null,
+    severidad: "high",
+    estado: "abierta",
+    responsable_admin_id: null,
+    asignada_en: null,
+    nivel_escalamiento: 0,
+    escalada_en: null,
+    sla_horas: 24,
+    sla_vence_en: null
   },
   {
     id: "INC-2026-0049",
@@ -79,7 +119,15 @@ const INCIDENCIAS_DEMO: Incidencia[] = [
     creada_en: "2026-06-29T16:15:00.000Z",
     descripcion: "La persona de entrega no responde teléfono ni WhatsApp autorizado.",
     resuelta: false,
-    resuelta_en: null
+    resuelta_en: null,
+    severidad: "medium",
+    estado: "abierta",
+    responsable_admin_id: null,
+    asignada_en: null,
+    nivel_escalamiento: 0,
+    escalada_en: null,
+    sla_horas: 72,
+    sla_vence_en: null
   },
   {
     id: "INC-2026-0050",
@@ -90,7 +138,15 @@ const INCIDENCIAS_DEMO: Incidencia[] = [
     creada_en: "2026-06-30T09:10:00.000Z",
     descripcion: "Pago retenido por diferencia entre tarifa final y gasto autorizado.",
     resuelta: false,
-    resuelta_en: null
+    resuelta_en: null,
+    severidad: "low",
+    estado: "abierta",
+    responsable_admin_id: null,
+    asignada_en: null,
+    nivel_escalamiento: 0,
+    escalada_en: null,
+    sla_horas: 168,
+    sla_vence_en: null
   }
 ];
 
@@ -264,21 +320,48 @@ function IncidenciaCard({
   ahora,
   responsable,
   onResponsable,
-  onAccion
+  onAccion,
+  onCambio,
+  esDemo
 }: {
   incidencia: Incidencia;
   ahora: Date;
   responsable: Exclude<FiltroResponsable, "todos"> | "";
   onResponsable: (value: Exclude<FiltroResponsable, "todos">) => void;
   onAccion: (accion: string) => void;
+  onCambio: () => void;
+  esDemo: boolean;
 }) {
   const gravedad = gravedadIncidencia(incidencia);
   const origen = origenInferido(incidencia);
-  const sla = slaIncidencia(incidencia, ahora);
-  const estado = incidencia.resuelta ? "resuelta" : "abierta";
+  const sla = incidencia.sla_vence_en
+    ? (() => {
+        const restanteMs = new Date(incidencia.sla_vence_en as string).getTime() - ahora.getTime();
+        const restanteHoras = restanteMs / 3_600_000;
+        return {
+          texto: incidencia.resuelta
+            ? "SLA cerrado"
+            : restanteHoras > 0
+              ? `${formatoDuracion(restanteHoras)} restantes (acuerdo)`
+              : `${formatoDuracion(Math.abs(restanteHoras))} vencido`,
+          enRiesgo: !incidencia.resuelta && restanteHoras > 0 && restanteHoras < 8,
+          vencido: !incidencia.resuelta && restanteHoras <= 0
+        };
+      })()
+    : slaIncidencia(incidencia, ahora);
+  const estado = incidencia.estado ?? (incidencia.resuelta ? "resuelta" : "abierta");
+  const severidad = incidencia.severidad ?? "medium";
   const trasladoHref = incidencia.traslado_id ? `/viajes/${incidencia.traslado_id}` : "/viajes";
   const { ruta: evidenciaRuta, nombre: evidenciaNombre, textoLimpio } = extraerRutaIncidencia(incidencia.descripcion);
   const [cargandoEvidencia, setCargandoEvidencia] = useState(false);
+  const [dialogo, setDialogo] = useState<null | "resolver" | "escalar">(null);
+  const [motivo, setMotivo] = useState("");
+  const [procesando, setProcesando] = useState(false);
+  const [historial, setHistorial] = useState<MovimientoIncidencia[] | null>(null);
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
+
+  const cerrada = estado === "resuelta" || estado === "cerrada";
 
   async function handleVerEvidencia() {
     if (!evidenciaRuta) return;
@@ -298,6 +381,71 @@ function IncidenciaCard({
     }
   }
 
+  async function ejecutarDialogo() {
+    if (!dialogo) return;
+    if (esDemo) {
+      onAccion(`[${dialogo}] solo demo: sin persistir.`);
+      setDialogo(null);
+      setMotivo("");
+      return;
+    }
+    setProcesando(true);
+    try {
+      const cliente = crearClienteNavegador();
+      if (dialogo === "resolver") {
+        await resolverIncidenciaAdmin(cliente, incidencia.id, motivo.trim() || null);
+        onAccion("Incidencia resuelta. El traslado conserva su estado operativo.");
+      } else {
+        await escalarIncidenciaAdmin(cliente, incidencia.id, motivo.trim());
+        onAccion("Incidencia escalada a supervisión.");
+      }
+      setDialogo(null);
+      setMotivo("");
+      setHistorial(null);
+      onCambio();
+    } catch (e) {
+      onAccion(e instanceof Error ? e.message : "No se pudo completar la acción.");
+    } finally {
+      setProcesando(false);
+    }
+  }
+
+  async function asignarme() {
+    if (esDemo) {
+      onAccion("[asignar] solo demo: sin persistir.");
+      return;
+    }
+    setProcesando(true);
+    try {
+      const cliente = crearClienteNavegador();
+      const admin = await obtenerAdminActual(cliente);
+      if (!admin) throw new Error("Sin sesión administrativa.");
+      await asignarIncidenciaAdmin(cliente, incidencia.id, admin.id);
+      onAccion("Te asignaste la incidencia.");
+      onCambio();
+    } catch (e) {
+      onAccion(e instanceof Error ? e.message : "No se pudo asignar.");
+    } finally {
+      setProcesando(false);
+    }
+  }
+
+  async function alternarHistorial() {
+    const siguiente = !mostrarHistorial;
+    setMostrarHistorial(siguiente);
+    if (siguiente && historial === null && !esDemo) {
+      setCargandoHistorial(true);
+      try {
+        setHistorial(await listarHistorialIncidencia(crearClienteNavegador(), incidencia.id));
+      } catch (e) {
+        onAccion(e instanceof Error ? e.message : "No se pudo cargar el historial.");
+        setMostrarHistorial(false);
+      } finally {
+        setCargandoHistorial(false);
+      }
+    }
+  }
+
   return (
     <AdminPanel className="p-5 sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -310,8 +458,18 @@ function IncidenciaCard({
           )}
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end">
-          <BadgeIncidencia className={CLASE_BADGE.estado[estado]}>{incidencia.resuelta ? "Resuelta" : "Abierta"}</BadgeIncidencia>
+          <BadgeIncidencia className={CLASE_BADGE.estado[incidencia.resuelta ? "resuelta" : "abierta"]}>
+            {ETIQUETA_ESTADO_INCIDENCIA[estado] ?? estado}
+          </BadgeIncidencia>
           <BadgeIncidencia className={CLASE_BADGE.gravedad[gravedad]}>{gravedad}</BadgeIncidencia>
+          <BadgeIncidencia className="border-border-default bg-surface-primary text-text-secondary">
+            Sev. {ETIQUETA_SEVERIDAD_INCIDENCIA[severidad] ?? severidad}
+          </BadgeIncidencia>
+          {incidencia.nivel_escalamiento > 0 ? (
+            <BadgeIncidencia className="border-status-error/30 bg-status-error-soft text-status-error">
+              Escalada N{incidencia.nivel_escalamiento}
+            </BadgeIncidencia>
+          ) : null}
         </div>
       </div>
 
@@ -331,6 +489,12 @@ function IncidenciaCard({
         <div>
           <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">SLA</dt>
           <dd className={`mt-1 font-body text-sm font-semibold ${sla.vencido || sla.enRiesgo ? "text-status-error" : "text-status-success"}`}>{sla.texto}</dd>
+        </div>
+        <div>
+          <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Responsable Torre</dt>
+          <dd className="mt-1 font-body text-sm font-medium">
+            {incidencia.responsable_admin_id ? `Admin ${incidencia.responsable_admin_id.slice(0, 8)}…` : "Sin asignar"}
+          </dd>
         </div>
         <div>
           <dt className="font-body text-xs uppercase tracking-wide text-text-tertiary">Reportada por</dt>
@@ -361,9 +525,18 @@ function IncidenciaCard({
           <Link href={trasladoHref} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-border-default px-4 py-2 font-body text-admin-boton font-semibold text-text-secondary transition-colors hover:border-signal/50 hover:text-ink">
             Ver origen
           </Link>
-          <AdminButton variant="quiet" type="button" onClick={() => onAccion("Escalamiento registrado en vista")}>Escalar</AdminButton>
-          <AdminButton variant="quiet" type="button" onClick={() => onAccion("Resolución preparada en vista")}>Resolver</AdminButton>
-          <AdminButton variant="quiet" type="button" onClick={() => onAccion("Cierre preparado en vista")}>Cerrar</AdminButton>
+          <AdminButton variant="quiet" type="button" onClick={() => void asignarme()} disabled={procesando || cerrada}>
+            Asignarme
+          </AdminButton>
+          <AdminButton variant="quiet" type="button" onClick={() => setDialogo("escalar")} disabled={procesando || cerrada}>
+            Escalar
+          </AdminButton>
+          <AdminButton variant="quiet" type="button" onClick={() => setDialogo("resolver")} disabled={procesando || cerrada}>
+            Resolver
+          </AdminButton>
+          <AdminButton variant="quiet" type="button" onClick={() => void alternarHistorial()} disabled={cargandoHistorial}>
+            {mostrarHistorial ? "Ocultar historial" : "Historial"}
+          </AdminButton>
           {evidenciaRuta ? (
             <AdminButton
               variant="secondary"
@@ -388,6 +561,68 @@ function IncidenciaCard({
           Responsable sugerido: {etiquetaResponsable(responsableSugerido(incidencia))}. La asignación rápida queda visible para operar sin abrir el detalle.
         </p>
       )}
+
+      {mostrarHistorial && (
+        <div className="mt-5">
+          <h3 className="font-body text-xs font-semibold uppercase tracking-wide text-text-tertiary">Historial</h3>
+          {cargandoHistorial ? (
+            <p className="mt-2 font-body text-sm text-text-secondary">Cargando historial…</p>
+          ) : historial === null || historial.length === 0 ? (
+            <p className="mt-2 font-body text-sm text-text-secondary">Sin movimientos registrados.</p>
+          ) : (
+            <ul className="mt-2 space-y-2">
+              {historial.map((movimiento) => (
+                <li key={movimiento.id} className="font-body text-sm text-text-secondary">
+                  <strong className="text-ink">{movimiento.accion}</strong>
+                  {movimiento.estado_anterior || movimiento.estado_nuevo
+                    ? ` · ${movimiento.estado_anterior ?? "?"} → ${movimiento.estado_nuevo ?? "?"}`
+                    : null}{" "}
+                  <span>· {movimiento.actor}{movimiento.motivo ? ` · ${movimiento.motivo}` : ""}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <AdminDialog
+        open={dialogo !== null}
+        title={dialogo === "resolver" ? "Resolver incidencia" : "Escalar incidencia"}
+        description={
+          dialogo === "resolver"
+            ? "Se marca resuelta y se apaga el flag del traslado sin mover su estado operativo."
+            : "Sube un nivel y avisa a supervisión."
+        }
+        onOpenChange={(abierto) => { if (!abierto) { setDialogo(null); setMotivo(""); } }}
+        footer={
+          <>
+            <button type="button" onClick={() => { setDialogo(null); setMotivo(""); }} className="rounded-lg border border-ink/20 px-4 py-2 font-body text-admin-boton font-semibold text-ink hover:bg-surface-secondary">Cancelar</button>
+            <button
+              type="button"
+              onClick={() => void ejecutarDialogo()}
+              disabled={procesando || (dialogo === "escalar" && motivo.trim().length < 5)}
+              className="rounded-lg bg-signal px-4 py-2 font-body text-admin-boton font-semibold text-ink hover:bg-signal/90"
+            >
+              {procesando ? "Procesando…" : "Confirmar"}
+            </button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <div>
+            <label className="font-body text-sm font-semibold text-text-secondary">
+              Motivo {dialogo === "escalar" ? "*" : "(opcional)"}
+            </label>
+            <textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              className="mt-1 block w-full rounded-lg border border-ink/20 bg-surface-primary px-3 py-2 font-body text-sm text-ink"
+              placeholder={dialogo === "escalar" ? "Motivo obligatorio (mín. 5 caracteres)" : "Motivo de resolución"}
+              rows={3}
+            />
+          </div>
+        </div>
+      </AdminDialog>
     </AdminPanel>
   );
 }
@@ -397,6 +632,8 @@ export default function PaginaIncidenciasAdmin() {
   const [origen, setOrigen] = useState<FiltroOrigen>("todos");
   const [responsableFiltro, setResponsableFiltro] = useState<FiltroResponsable>("todos");
   const [gravedadFiltro, setGravedadFiltro] = useState<FiltroGravedad>("todos");
+  const [estadoRealFiltro, setEstadoRealFiltro] = useState<FiltroEstadoReal>("todos");
+  const [severidadFiltro, setSeveridadFiltro] = useState<FiltroSeveridadReal>("todos");
   const [responsables, setResponsables] = useState<Record<string, Exclude<FiltroResponsable, "todos"> | "">>({});
   const [mensajeAccion, setMensajeAccion] = useState<string | null>(null);
   const [incidencias, setIncidencias] = useState<Incidencia[]>(INCIDENCIAS_DEMO);
@@ -436,7 +673,7 @@ export default function PaginaIncidenciasAdmin() {
 
     try {
       setError(null);
-      setIncidencias(await listarIncidenciasAdmin(crearClienteNavegador()));
+      setIncidencias(await listarIncidenciasTorre(crearClienteNavegador()));
       setEsDemo(false);
       setEstadoConexion("datos_en_vivo");
       setUltimaActualizacion(new Date());
@@ -481,8 +718,10 @@ export default function PaginaIncidenciasAdmin() {
     const coincideOrigen = origen === "todos" || origenInferido(incidencia) === origen;
     const coincideResponsable = responsableFiltro === "todos" || responsableActual === responsableFiltro;
     const coincideGravedad = gravedadFiltro === "todos" || gravedadIncidencia(incidencia) === gravedadFiltro;
-    return coincideTipo && coincideOrigen && coincideResponsable && coincideGravedad;
-  }), [gravedadFiltro, incidencias, origen, responsableFiltro, responsables, tipo]);
+    const coincideEstadoReal = estadoRealFiltro === "todos" || (incidencia.estado ?? "abierta") === estadoRealFiltro;
+    const coincideSeveridad = severidadFiltro === "todos" || (incidencia.severidad ?? "medium") === severidadFiltro;
+    return coincideTipo && coincideOrigen && coincideResponsable && coincideGravedad && coincideEstadoReal && coincideSeveridad;
+  }), [estadoRealFiltro, gravedadFiltro, incidencias, origen, responsableFiltro, responsables, severidadFiltro, tipo]);
 
   const kpis = useMemo(() => {
     const abiertas = incidencias.filter((incidencia) => !incidencia.resuelta);
@@ -494,7 +733,7 @@ export default function PaginaIncidenciasAdmin() {
       abiertas: abiertas.length,
       promedio: formatoDuracion(promedioHoras),
       enRiesgo: abiertas.filter((incidencia) => slaIncidencia(incidencia, ahora).enRiesgo).length,
-      sinAsignar: abiertas.filter((incidencia) => !responsables[incidencia.id]).length,
+      sinAsignar: abiertas.filter((incidencia) => !incidencia.responsable_admin_id).length,
       resueltasHoy: incidencias.filter((incidencia) => incidencia.resuelta_en?.startsWith(hoy)).length
     };
   }, [ahora, incidencias, responsables]);
@@ -504,6 +743,8 @@ export default function PaginaIncidenciasAdmin() {
     setOrigen("todos");
     setResponsableFiltro("todos");
     setGravedadFiltro("todos");
+    setEstadoRealFiltro("todos");
+    setSeveridadFiltro("todos");
     limpiarParamsFiltroUrl();
   }
 
@@ -512,6 +753,8 @@ export default function PaginaIncidenciasAdmin() {
     setOrigen("todos");
     setResponsableFiltro("todos");
     setGravedadFiltro("todos");
+    setEstadoRealFiltro("todos");
+    setSeveridadFiltro("todos");
     limpiarParamsFiltroUrl();
   }
 
@@ -568,7 +811,7 @@ export default function PaginaIncidenciasAdmin() {
 
       {mensajeAccion && (
         <div className="mt-4">
-          <Aviso tono="info">{mensajeAccion}. Esta acción visual aún no persiste cambios en Supabase.</Aviso>
+          <Aviso tono="info">{mensajeAccion}</Aviso>
         </div>
       )}
 
@@ -609,6 +852,8 @@ export default function PaginaIncidenciasAdmin() {
               <FiltroSelect label="Origen" value={origen} opciones={FILTROS_ORIGEN} onChange={setOrigen} />
               <FiltroSelect label="Responsable" value={responsableFiltro} opciones={FILTROS_RESPONSABLE} onChange={setResponsableFiltro} />
               <FiltroSelect label="Gravedad" value={gravedadFiltro} opciones={FILTROS_GRAVEDAD} onChange={setGravedadFiltro} />
+              <FiltroSelect label="Estado" value={estadoRealFiltro} opciones={FILTROS_ESTADO_REAL} onChange={setEstadoRealFiltro} />
+              <FiltroSelect label="Severidad" value={severidadFiltro} opciones={FILTROS_SEVERIDAD_REAL} onChange={setSeveridadFiltro} />
             </div>
           </div>
         </AdminPanel>
@@ -628,6 +873,8 @@ export default function PaginaIncidenciasAdmin() {
               setMensajeAccion(`Responsable seleccionado: ${etiquetaResponsable(value)}`);
             }}
             onAccion={(accion) => setMensajeAccion(accion)}
+            onCambio={() => void cargar(true)}
+            esDemo={esDemo}
           />
         ))}
       </section>

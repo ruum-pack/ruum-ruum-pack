@@ -17,6 +17,21 @@ export const ETIQUETA_TIPO_INCIDENCIA: Record<TipoIncidencia, string> = {
 
 export type PrioridadSoporte = "alta" | "media" | "baja";
 
+export const ETIQUETA_SEVERIDAD_INCIDENCIA: Record<string, string> = {
+  low: "Baja",
+  medium: "Media",
+  high: "Alta",
+  critical: "Crítica"
+};
+
+export const ETIQUETA_ESTADO_INCIDENCIA: Record<string, string> = {
+  abierta: "Abierta",
+  en_atencion: "En atención",
+  escalada: "Escalada",
+  resuelta: "Resuelta",
+  cerrada: "Cerrada"
+};
+
 // PRD §13 — "Clasificar casos en alta, media y baja prioridad para torre de control."
 // El PRD no fija la matriz tipo->prioridad explícitamente; esta es la
 // clasificación operativa razonable derivada de §4.5 (eventos críticos) y §8.

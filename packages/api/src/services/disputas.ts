@@ -26,7 +26,8 @@ export async function abrirDisputa(
   cliente: Cliente,
   trasladoId: string,
   tipo: TipoDisputa,
-  descripcion: string
+  descripcion: string,
+  opciones?: { mantenerEstado?: boolean }
 ) {
   const descripcionLimpia = descripcion.trim();
   if (descripcionLimpia.length < 10) {
@@ -52,7 +53,8 @@ export async function abrirDisputa(
     p_traslado_id: trasladoId,
     p_abierta_por: abiertaPor,
     p_tipo: tipo,
-    p_descripcion: descripcionLimpia
+    p_descripcion: descripcionLimpia,
+    p_mantener_estado: opciones?.mantenerEstado ?? false
   });
 
   if (error) throw error;

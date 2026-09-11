@@ -14,6 +14,12 @@ export type TipoIncidencia =
 
 export type MomentoIncidencia = "recoleccion" | "durante_traslado" | "entrega" | "post_cierre";
 
+// FASE 11 — la incidencia tiene vida propia (severidad, estado, responsable,
+// SLA); ya no necesita mover traslados.estado.
+export type SeveridadIncidencia = "low" | "medium" | "high" | "critical";
+
+export type EstadoIncidencia = "abierta" | "en_atencion" | "escalada" | "resuelta" | "cerrada";
+
 export interface Incidencia {
   id: string;
   traslado_id: string;
@@ -24,4 +30,10 @@ export interface Incidencia {
   resuelta: boolean;
   creada_en: string;
   resuelta_en?: string;
+  severidad?: SeveridadIncidencia | null;
+  estado?: EstadoIncidencia | null;
+  responsable_admin_id?: string | null;
+  nivel_escalamiento?: number | null;
+  sla_horas?: number | null;
+  sla_vence_en?: string | null;
 }

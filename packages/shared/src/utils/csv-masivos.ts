@@ -49,7 +49,10 @@ export const COLUMNAS_PLANTILLA = [
   "fecha_hora_programada",
   "ventana_recoleccion",
   "ventana_entrega",
-  "instrucciones_especiales"
+  "instrucciones_especiales",
+  // FASE 8 v2 — centros (UUID de sucursal; opcionales, validados en servidor)
+  "sucursal_origen_id",
+  "sucursal_destino_id"
 ] as const;
 
 export const COLUMNAS_TECNICAS_OPCIONALES = [
@@ -98,7 +101,9 @@ export const EJEMPLO_CSV_PLANTILLA = [
     "2026-07-20T12:00:00-06:00",
     "2026-07-20T11:00:00-06:00",
     "2026-07-20T14:00:00-06:00",
-    "Unidad prioritaria"
+    "Unidad prioritaria",
+    "",
+    ""
   ].join(",")
 ].join("\n");
 

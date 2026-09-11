@@ -37,7 +37,10 @@ const COLUMNAS = [
   "fecha_hora_programada",
   "ventana_recoleccion",
   "ventana_entrega",
-  "instrucciones_especiales"
+  "instrucciones_especiales",
+  // FASE 8 v2 — UUID de sucursal (ver /empresas/[id]/equipo); opcionales
+  "sucursal_origen_id",
+  "sucursal_destino_id"
 ] as const;
 
 const EJEMPLO = [
@@ -70,7 +73,9 @@ const EJEMPLO = [
   "2026-07-20T12:00:00-06:00",
   "2026-07-20T11:00:00-06:00",
   "2026-07-20T14:00:00-06:00",
-  "Unidad prioritaria"
+  "Unidad prioritaria",
+  "",
+  ""
 ] satisfies Celda[];
 
 const CONDICIONES = ["nueva", "seminueva", "rescate_mecanico"];

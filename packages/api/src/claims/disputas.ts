@@ -21,7 +21,8 @@ export async function resolverDisputaAdmin(
   disputaId: string,
   estado: EstadoDisputa,
   resolucion: ResolucionDisputa | null,
-  detalle: string
+  detalle: string,
+  mantenerEstado = false
 ) {
   await assertAdminPermission(cliente, "disputas:resolver");
   const esEstadoResuelto = estado === "resuelta" || estado === "resuelta_senior";
@@ -33,7 +34,8 @@ export async function resolverDisputaAdmin(
     p_disputa_id: disputaId,
     p_estado: estado,
     p_resolucion: (esEstadoResuelto ? resolucion : null) as never,
-    p_detalle: detalle
+    p_detalle: detalle,
+    p_mantener_estado: mantenerEstado
   });
 
   if (error) throw error;
@@ -51,7 +53,8 @@ export async function actualizarReclamoSeguroAdmin(
   reclamoId: string,
   estado: EstadoReclamoSeguro,
   responsablePago: "aplicacion" | "conductor" | null,
-  notasAdmin: string
+  notasAdmin: string,
+  mantenerEstado = false
 ) {
   await assertAdminPermission(cliente, "reclamos_seguro:gestionar");
   if (estado === "resuelto" && !responsablePago) {
@@ -62,7 +65,8 @@ export async function actualizarReclamoSeguroAdmin(
     p_reclamo_id: reclamoId,
     p_estado: estado,
     p_responsable_pago: responsablePago as never,
-    p_notas_admin: notasAdmin
+    p_notas_admin: notasAdmin,
+    p_mantener_estado: mantenerEstado
   });
 
   if (error) throw error;
