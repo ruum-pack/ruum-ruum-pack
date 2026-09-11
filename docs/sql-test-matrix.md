@@ -36,6 +36,7 @@ Esta matriz es la referencia unica para los archivos de `supabase/test`. Cada ca
 | `rt50_operaciones.test.sql` | Traslado | Operaciones logisticas, folio, vinculo nullable y RLS. | Cambios en operaciones o `operation_id`. |
 | `rt51_equipo_empresa.test.sql` | Admin, RLS | Equipo empresa sin limite de 2, matriz de permisos y RPC de membresias. | Cambios en roles, miembros, sucursales o permisos. |
 | `rt52_ciclo_operativo.test.sql` | Traslado | Estado operativo derivado, transicion valida/invalida e historial con actor/motivo. | Cambios en ciclo de vida, traduccion o historial de traslados. |
+| `rt53_asignaciones.test.sql` | Traslado | Assignment formal: oferta/aceptacion/rechazo/cancelacion/reasignacion, doble bloqueo, idempotencia, score y RLS. | Cambios en asignaciones, CONCER o conductor_id. |
 
 ## Comandos
 

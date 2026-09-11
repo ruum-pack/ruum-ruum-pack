@@ -25,3 +25,4 @@ export * from "./repositorio-conductor";
 export * from "./masivos-usuario";
 export * from "./operaciones";
 export * from "./empresa-equipo";
+export * from "./asignaciones";
