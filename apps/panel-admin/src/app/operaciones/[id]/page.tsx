@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@ruum/ui";
-import type { EstadoOperacion, Operacion, ResumenOperacional } from "@ruum/shared/types";
+import type { EstadoOperacion, EstadoTraslado, Operacion, ResumenOperacional } from "@ruum/shared/types";
 import {
   addTransferToOperation,
   getOperation,
@@ -18,6 +18,7 @@ import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/su
 import { AdminPageHeader } from "../../admin-ui";
 import { AdminEmptyState, AdminErrorState, AdminLoadingState } from "../../admin-components";
 import { TRANSICIONES_OPERACION } from "@ruum/shared/types";
+import { estaViajando } from "@ruum/shared/states";
 
 export default function PaginaDetalleOperacion() {
   const { id } = useParams<{ id: string }>();
@@ -174,6 +175,7 @@ export default function PaginaDetalleOperacion() {
               <tr>
                 <th>Traslado</th>
                 <th>Estado</th>
+                <th>Viaje</th>
                 <th>Conductor</th>
                 <th>Incidencia</th>
                 <th>Acciones</th>
@@ -184,6 +186,7 @@ export default function PaginaDetalleOperacion() {
                 <tr key={t.id}>
                   <td><Link href={`/viajes/${t.id}`}>{t.id.slice(0, 8)}…</Link></td>
                   <td>{t.estado}</td>
+                  <td>{estaViajando(t.estado as EstadoTraslado) ? "● en viaje" : "—"}</td>
                   <td>{t.conductor_id ? t.conductor_id.slice(0, 8) + "…" : "sin asignar"}</td>
                   <td>{t.tiene_incidencia_abierta ? "abierta" : "—"}</td>
                   <td>

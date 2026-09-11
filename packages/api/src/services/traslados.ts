@@ -448,3 +448,46 @@ export async function confirmarLlegadaDestino(
   if (error) throw error;
   return data ?? "llegada_a_destino";
 }
+
+export interface HistorialTraslado {
+  id: string;
+  traslado_id: string;
+  estado_anterior: EstadoTraslado;
+  estado_nuevo: EstadoTraslado;
+  operativo_anterior: string;
+  operativo_nuevo: string;
+  actor_id: string | null;
+  actor_tipo: "admin" | "conductor" | "usuario" | "sistema";
+  motivo: string | null;
+  metadata: Record<string, unknown>;
+  creado_en: string;
+}
+
+/**
+ * FASE 3 — historial de ciclo de vida (public.historial_estados_traslado).
+ * Lectura por RLS (dueño/conductor/Torre); la escritura la hace el trigger.
+ */
+export async function listarHistorialTraslado(
+  cliente: Cliente,
+  trasladoId: string
+): Promise<HistorialTraslado[]> {
+  const { data, error } = await (cliente as unknown as {
+    from: (t: string) => {
+      select: (c: string) => {
+        eq: (col: string, v: string) => {
+          order: (col: string, o: { ascending: boolean }) => Promise<{
+            data: HistorialTraslado[] | null;
+            error: unknown;
+          }>;
+        };
+      };
+    };
+  })
+    .from("historial_estados_traslado")
+    .select("*")
+    .eq("traslado_id", trasladoId)
+    .order("creado_en", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}

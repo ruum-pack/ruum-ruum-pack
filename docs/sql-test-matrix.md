@@ -33,6 +33,9 @@ Esta matriz es la referencia unica para los archivos de `supabase/test`. Cada ca
 | `rt23_rt24_torre_control_auditoria.test.sql` | Conductor, admin, auditoria, RLS | Decisiones de Torre de Control por RPC, actor/motivo e historial auditable. | Cambios en panel admin, revision de expedientes o auditoria de decisiones. |
 | `rt25_rls_perfiles_reales.test.sql` | Admin, RLS | Perfiles operativos reales, aislamiento por rol y privilegios admin. | Cambios en politicas RLS, perfiles, roles o permisos transversales. |
 | `rt27_metricas_registro_conductor.test.sql` | Admin, auditoria, RLS, metricas | Telemetria de registro, privacidad, inmutabilidad y agregacion admin. | Cambios en metricas de registro, eventos de conductor o dashboard admin. |
+| `rt50_operaciones.test.sql` | Traslado | Operaciones logisticas, folio, vinculo nullable y RLS. | Cambios en operaciones o `operation_id`. |
+| `rt51_equipo_empresa.test.sql` | Admin, RLS | Equipo empresa sin limite de 2, matriz de permisos y RPC de membresias. | Cambios en roles, miembros, sucursales o permisos. |
+| `rt52_ciclo_operativo.test.sql` | Traslado | Estado operativo derivado, transicion valida/invalida e historial con actor/motivo. | Cambios en ciclo de vida, traduccion o historial de traslados. |
 
 ## Comandos
 

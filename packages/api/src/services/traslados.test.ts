@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { crearTraslado } from "./traslados";
+import { crearTraslado, listarHistorialTraslado } from "./traslados";
 
 describe("crearTraslado service - validación preventiva", () => {
   const clienteMock = {
@@ -55,5 +55,24 @@ describe("crearTraslado service - validación preventiva", () => {
     const res = await crearTraslado(clienteMock as never, vehiculo, traslado, claveValida, []);
     expect(res.id).toBe("00000000-0000-0000-0000-000000000001");
     expect(clienteMock.rpc).toHaveBeenCalledWith("usuario_crea_traslado", expect.any(Object));
+  });
+
+  it("listarHistorialTraslado ordena del más reciente al más antiguo", async () => {
+    const order = vi.fn().mockResolvedValue({
+      data: [
+        { id: "h2", traslado_id: "t1", estado_nuevo: "cotizacion_generada" },
+        { id: "h1", traslado_id: "t1", estado_nuevo: "solicitud_creada" }
+      ],
+      error: null
+    });
+    const eq = vi.fn().mockReturnValue({ order });
+    const select = vi.fn().mockReturnValue({ eq });
+    const cliente = { from: vi.fn().mockReturnValue({ select }) };
+
+    const historial = await listarHistorialTraslado(cliente as never, "t1");
+    expect(cliente.from).toHaveBeenCalledWith("historial_estados_traslado");
+    expect(eq).toHaveBeenCalledWith("traslado_id", "t1");
+    expect(order).toHaveBeenCalledWith("creado_en", { ascending: false });
+    expect(historial).toHaveLength(2);
   });
 });
