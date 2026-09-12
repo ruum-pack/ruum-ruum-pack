@@ -42,6 +42,10 @@ Esta matriz es la referencia unica para los archivos de `supabase/test`. Cada ca
 | `rt56_tracking_operacional.test.sql` | Traslado | Sesiones, heartbeat, salud STALE/OFFLINE, detenido, desviación y cierre. | Cambios en tracking, sesiones o telemetría. |
 | `rt57_incidentes_independientes.test.sql` | Traslado | Familia incidente/reclamo/disputa sin mover estado: severidad, SLA, historial, opt-in legacy. | Cambios en incidencias, disputas, reclamos o sus RPC. |
 | `rt58_finanzas.test.sql` | Traslado | Quote persistente con snapshot y versión, versionado de política, finanzas por operación (facturado/costo/gastos/comisiones/margen), sin-pago y comision_mxn. | Cambios en cotizaciones, tarifas, pagos, operaciones o finanzas. |
+| `rt59_sla_motor_alertas.test.sql` | Traslado | Motor SLA Fase 13: catálogo global, jerarquía empresa/operación, evaluación periódica, warning antes de breach, puente a bandeja, cola Torre y reportes históricos. | Cambios en SLA, políticas, evaluación, alertas, Torre o reportes. |
+| `rt60_observabilidad_auditoria.test.sql` | Traslado | Observabilidad Fase 14: correlation ID, logs, latencias p95, edge errors, tracking OFFLINE, cola offline tardía, dashboard, auditoría con alcances, purga solo dirección y métricas de negocio. | Cambios en observabilidad, auditoría, retención o métricas. |
+| `rt61_testing_integral_dominios.test.sql` | Traslado, Admin, RLS | Testing integral Fase 15: aislamiento entre empresas, doble cobro/pago bloqueados, conductor fuera de pagos, inspección no duplicable, lote offline idempotente y outsider aislado. | Cambios en RLS, pagos, payouts, evidencia o telemetría. |
+| `rt62_golden_path.test.sql` | Traslado | Golden path Fase 15: operación con 5 traslados de cotización a cierre (asignación, evidencias, tracking, pago, finanzas, métricas y RLS). | Cambios en ciclo de vida, asignación, evidencia, pagos, finanzas o métricas. |
 
 ## Comandos
 

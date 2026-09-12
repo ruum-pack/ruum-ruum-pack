@@ -16,7 +16,9 @@
     "./tracking": "./src/tracking/index.ts",
     "./incidents": "./src/incidents/index.ts",
     "./claims": "./src/claims/index.ts",
-    "./billing": "./src/billing/index.ts"
+    "./billing": "./src/billing/index.ts",
+    "./sla": "./src/sla/index.ts",
+    "./obs": "./src/obs/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
