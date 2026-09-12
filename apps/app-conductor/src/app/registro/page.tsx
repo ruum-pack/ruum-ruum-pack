@@ -20,6 +20,11 @@ import {
   registrarConsentimientosConductor,
   type ExpedienteSolicitudConductorV2,
 } from "@ruum/api/services";
+import {
+  listarConsentimientosSolicitud,
+  listarDocumentosSolicitud,
+  obtenerBorradorSolicitud
+} from "@ruum/api/drivers";
 import { crearClienteNavegador, tieneSupabaseConfigurado, obtenerOriginApp } from "../../lib/supabase-browser";
 import type { Json } from "@ruum/shared/types";
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
@@ -465,12 +470,7 @@ export default function PaginaRegistroConductor() {
           : "No pudimos iniciar la solicitud."
       );
     }
-    const { data: solicitudRemota, error: errorSolicitudRemota } = await cliente
-      .from("solicitudes_conductor")
-      .select("datos_personales, domicilio, licencia, contacto_emergencia, paso_actual")
-      .eq("id", inicio.solicitudId)
-      .maybeSingle();
-    if (errorSolicitudRemota) throw errorSolicitudRemota;
+    const solicitudRemota = await obtenerBorradorSolicitud(cliente, inicio.solicitudId).catch(() => null);
 
     // Evita pisar el expediente capturado previamente (p. ej. en otro
     // dispositivo) con un contrato local casi vacío al reanudar tras el OTP.
@@ -729,12 +729,10 @@ export default function PaginaRegistroConductor() {
         if (["listo_para_enviar","en_revision","requiere_correccion","aprobado","rechazado","suspendido"].includes(solicitud.estado)) {
           router.replace("/panel"); return;
         }
-        const [resultadoDocs,resultadoConsentimientos]=await Promise.all([
-          cliente.from("documentos_conductor").select("tipo,estado,es_actual").eq("solicitud_id",solicitud.id).eq("es_actual",true),
-          cliente.from("consentimientos_usuario").select("tipo_documento,aceptado_en").eq("solicitud_id",solicitud.id)
+        const [docsRemotos, consentimientosRemotos] = await Promise.all([
+          listarDocumentosSolicitud(cliente, solicitud.id),
+          listarConsentimientosSolicitud(cliente, solicitud.id)
         ]);
-        if (resultadoDocs.error) throw resultadoDocs.error;
-        if (resultadoConsentimientos.error) throw resultadoConsentimientos.error;
         const personales=objetoJson(solicitud.datos_personales);
         const domicilio=objetoJson(solicitud.domicilio);
         const licencia=objetoJson(solicitud.licencia);
@@ -759,14 +757,14 @@ export default function PaginaRegistroConductor() {
         setVigenciaLicencia(String(licencia.vigencia??""));
         setContactoEmergenciaNombre(String(contacto.nombre??""));
         setContactoEmergenciaTelefono(soloDigitos(String(contacto.telefono??"")));
-        const consentimientos=new Set((resultadoConsentimientos.data??[]).map((fila)=>fila.tipo_documento));
+        const consentimientos = new Set(consentimientosRemotos.map((fila) => fila.tipo_documento));
         setAceptaTerminos(consentimientos.has("terminos_servicio"));
         setConfirmaPrivacidad(consentimientos.has("aviso_privacidad"));
         setAutorizaVerificacion(consentimientos.has("autorizacion_antecedentes"));
         setDeclaraSinSuspensiones(consentimientos.has("declaracion_suspensiones"));
-        const aceptacion=(resultadoConsentimientos.data??[])[0]?.aceptado_en;
-        if (aceptacion) aceptadosEnRef.current=aceptacion;
-        const tiposRemotos=new Set((resultadoDocs.data??[]).map((doc)=>doc.tipo));
+        const aceptacion = consentimientosRemotos[0]?.aceptado_en;
+        if (aceptacion) aceptadosEnRef.current = aceptacion;
+        const tiposRemotos = new Set(docsRemotos.map((doc) => doc.tipo));
         setDocumentosRemotos(tiposRemotos);
         setEstadoDocumentos({
           licenciaFrente:tiposRemotos.has("licencia_frente")?"subido":"pendiente",

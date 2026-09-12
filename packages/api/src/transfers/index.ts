@@ -4,3 +4,4 @@ export * from "./masivos";
 export * from "./masivos-operacion";
 export * from "./operativa";
 export * from "./notas";
+export * from "./pasaporte";

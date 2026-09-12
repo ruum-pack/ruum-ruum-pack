@@ -8,7 +8,7 @@ import { ETIQUETA_TIPO_VEHICULO, TEXTOS_CARGANDO, type MotivoRechazo } from "@ru
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo, suscribirCanalSeguro } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
-import { solicitarAsignacionViaje, registrarEvento } from "@ruum/api/services";
+import { solicitarAsignacionViaje, registrarEvento, obtenerConductorActual } from "@ruum/api/services";
 import { obtenerUbicacionActualConEstado, distanciaMetrosEntre, type Coordenadas } from "../../../lib/ubicacion";
 import { nombreVehiculo } from "../trips-utils";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
@@ -93,17 +93,10 @@ export function TripOpportunityDetails({
     async function verificarAsignacion() {
       if (!tieneSupabaseConfigurado()) return;
       try {
-        const cliente = crearClienteNavegador();
-        const { data: { session } } = await cliente.auth.getSession();
-        if (!session?.user) return;
-        const { data: cond } = await cliente
-          .from("conductores")
-          .select("id")
-          .eq("auth_user_id", session.user.id)
-          .maybeSingle();
-
-        if (cond) setConductorId(cond.id);
-        if (cond && pasaporte.conductor_id === cond.id) {
+        const cond = await obtenerConductorActual(crearClienteNavegador()).catch(() => null);
+        if (!cond) return;
+        setConductorId(cond.id);
+        if (pasaporte.conductor_id === cond.id) {
           router.replace(`/viajes/${trasladoId}`);
         }
       } catch {
@@ -188,13 +181,9 @@ export function TripOpportunityDetails({
         throw new Error("Inicia sesión para poder aceptar traslados.");
       }
 
-      const { data: conductorData, error: condError } = await cliente
-        .from("conductores")
-        .select("id")
-        .eq("auth_user_id", session.user.id)
-        .maybeSingle();
+      const conductorData = await obtenerConductorActual(cliente).catch(() => null);
 
-      if (condError || !conductorData) {
+      if (!conductorData) {
         throw new Error("No se encontró tu perfil de conductor en el sistema.");
       }
 
@@ -223,11 +212,7 @@ export function TripOpportunityDetails({
       const cliente = crearClienteNavegador();
       const { data: { session } } = await cliente.auth.getSession();
       if (session?.user) {
-        const { data: conductorData } = await cliente
-          .from("conductores")
-          .select("id")
-          .eq("auth_user_id", session.user.id)
-          .maybeSingle();
+        const conductorData = await obtenerConductorActual(cliente).catch(() => null);
 
         if (conductorData) {
           await registrarEvento(cliente, "modificacion_traslado_activo", "conductor", conductorData.id, {

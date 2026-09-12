@@ -8,6 +8,12 @@ import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import { avanzarEstadoTraslado, extraerRutaComprobante, resolverUrlEvidencia } from "@ruum/api/services";
+import {
+  eliminarGastoTraslado,
+  listarGastosTraslado,
+  listarInspeccionesTraslado,
+  registrarGastoTraslado
+} from "@ruum/api/drivers";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
 import { ConductorStatusBadge } from "../../../components/v2/ConductorUI";
 
@@ -73,14 +79,9 @@ export function CierreTrasladoDetails({
       setError(null);
       try {
         const cliente = crearClienteNavegador();
-        
-        // Fetch inspections
-        const { data: insps, error: inspError } = await cliente
-          .from("evidencia_inspecciones")
-          .select("*")
-          .eq("traslado_id", trasladoId);
 
-        if (inspError) throw inspError;
+        // Fetch inspections
+        const insps = await listarInspeccionesTraslado(cliente, trasladoId);
 
         if (insps) {
           const inicial = insps.find((i) => i.tipo === "inicial") as InspeccionData | undefined;
@@ -90,13 +91,8 @@ export function CierreTrasladoDetails({
         }
 
         // Fetch expenses
-        const { data: gst, error: gstError } = await cliente
-          .from("gastos_traslado")
-          .select("*")
-          .eq("traslado_id", trasladoId)
-          .order("registrado_en", { ascending: false });
+        const gst = await listarGastosTraslado(cliente, trasladoId);
 
-        if (gstError) throw gstError;
         if (gst) {
           setGastos(
             gst.map((g) => {
@@ -177,23 +173,17 @@ export function CierreTrasladoDetails({
         comprobanteRutaSubida = ruta;
       }
       
-      const finalDesc = comprobanteRutaSubida 
+      const finalDesc = comprobanteRutaSubida
         ? `[COMPROBANTE_RUTA: ${comprobanteRutaSubida}] ${descGasto.trim() || labelGasto(tipoGasto)}`
         : descGasto.trim() || null;
 
-      const { data, error: insertError } = await cliente
-        .from("gastos_traslado")
-        .insert({
-          traslado_id: trasladoId,
-          tipo: tipoGasto,
-          monto: montoVal,
-          descripcion: finalDesc,
-          comprobante_ruta: comprobanteRutaSubida || null
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
+      const data = await registrarGastoTraslado(cliente, {
+        trasladoId,
+        tipo: tipoGasto,
+        monto: montoVal,
+        descripcion: finalDesc,
+        comprobanteRuta: comprobanteRutaSubida || null
+      });
 
       if (data) {
         const { ruta, texto } = extraerRutaComprobante(data.descripcion, data.comprobante_ruta);
@@ -223,12 +213,7 @@ export function CierreTrasladoDetails({
     setProcesando(true);
     try {
       const cliente = crearClienteNavegador();
-      const { error: deleteError } = await cliente
-        .from("gastos_traslado")
-        .delete()
-        .eq("id", id);
-
-      if (deleteError) throw deleteError;
+      await eliminarGastoTraslado(cliente, id);
       setGastos((prev) => prev.filter((g) => g.id !== id));
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos eliminar el gasto."));
@@ -285,20 +270,17 @@ export function CierreTrasladoDetails({
             comprobanteRutaSubida = ruta;
           }
 
-          const finalDesc = comprobanteRutaSubida 
+          const finalDesc = comprobanteRutaSubida
             ? `[COMPROBANTE_RUTA: ${comprobanteRutaSubida}] ${descGasto.trim() || labelGasto(tipoGasto)}`
             : descGasto.trim() || null;
 
-          const { error: insertError } = await cliente
-            .from("gastos_traslado")
-            .insert({
-              traslado_id: trasladoId,
-              tipo: tipoGasto,
-              monto: montoVal,
-              descripcion: finalDesc,
-              comprobante_ruta: comprobanteRutaSubida || null
-            });
-          if (insertError) throw insertError;
+          await registrarGastoTraslado(cliente, {
+            trasladoId,
+            tipo: tipoGasto,
+            monto: montoVal,
+            descripcion: finalDesc,
+            comprobanteRuta: comprobanteRutaSubida || null
+          });
           
           setMontoGasto("");
           setDescGasto("");

@@ -3,20 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card } from "@ruum/ui";
+import {
+  contarNotificacionesNoLeidas,
+  listarNotificacionesConductor,
+  marcarNotificacionLeida,
+  type NotificacionConductor
+} from "@ruum/api/drivers";
 import { crearClienteNavegador } from "../../lib/supabase-browser";
 
-type Notificacion = {
-  id: string;
-  tipo: string;
-  titulo: string;
-  cuerpo: string;
-  destino: string;
-  entidad_tipo: string | null;
-  entidad_id: string | null;
-  leida_en: string | null;
-  estado: string;
-  creado_en: string;
-};
+type Notificacion = NotificacionConductor;
 
 type FiltroTab = "todas" | "no_leidas" | "leidas";
 
@@ -45,13 +40,11 @@ export default function CentroNotificaciones() {
   const router = useRouter();
 
   const cargar = useCallback(async () => {
-    const cliente = crearClienteNavegador();
-    const { data, error } = await cliente
-      .from("notificaciones_conductor")
-      .select("id,tipo,titulo,cuerpo,destino,entidad_tipo,entidad_id,leida_en,estado,creado_en")
-      .order("creado_en", { ascending: false })
-      .limit(100);
-    if (!error && data) setItems(data as unknown as Notificacion[]);
+    try {
+      setItems(await listarNotificacionesConductor(crearClienteNavegador(), 100));
+    } catch {
+      /* conservar lo último cargado ante fallos transitorios */
+    }
     setCargando(false);
   }, []);
 
@@ -63,8 +56,11 @@ export default function CentroNotificaciones() {
   }, [cargar]);
 
   async function abrir(item: Notificacion) {
-    const cliente = crearClienteNavegador();
-    await cliente.rpc("marcar_notificacion_leida", { p_notificacion_id: item.id });
+    try {
+      await marcarNotificacionLeida(crearClienteNavegador(), item.id);
+    } catch {
+      /* el acuse reintentará en la próxima carga */
+    }
     setItems((actuales) =>
       actuales.map((n) => (n.id === item.id ? { ...n, leida_en: n.leida_en ?? new Date().toISOString() } : n))
     );
@@ -78,7 +74,7 @@ export default function CentroNotificaciones() {
     try {
       const cliente = crearClienteNavegador();
       for (const item of sinLeer) {
-        await cliente.rpc("marcar_notificacion_leida", { p_notificacion_id: item.id });
+        await marcarNotificacionLeida(cliente, item.id);
       }
       const ahora = new Date().toISOString();
       setItems((actuales) => actuales.map((n) => ({ ...n, leida_en: n.leida_en ?? ahora })));

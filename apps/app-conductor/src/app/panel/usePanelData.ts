@@ -12,6 +12,7 @@ import {
   obtenerDisponibilidadConductor,
   obtenerSolicitudConductorActual
 } from "@ruum/api/services";
+import { contarNotificacionesNoLeidas } from "@ruum/api/drivers";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { viajeEsOperacionActiva } from "../ViajeActivoContext";
 import type { DriverAvailability } from "./DriverAvailabilityControl";
@@ -133,10 +134,7 @@ export function usePanelData() {
         listarViajesAceptados(cliente, real.id),
         listarViajesDisponibles(cliente),
         obtenerDisponibilidadConductor(cliente, real.id),
-        cliente
-          .from("notificaciones_conductor")
-          .select("id", { count: "exact", head: true })
-          .is("leida_en", null),
+        contarNotificacionesNoLeidas(cliente),
         cliente
           .from("traslados")
           .select("ganancia_conductor_congelada, precio_final, precio_cotizado")
@@ -156,9 +154,7 @@ export function usePanelData() {
         ? resultados[2].value
         : ("no_disponible" as const);
       const countNoLeidas =
-        resultados[3].status === "fulfilled" && "count" in resultados[3].value
-          ? (resultados[3].value.count ?? 0)
-          : 0;
+        resultados[3].status === "fulfilled" ? resultados[3].value : 0;
       const trasladosDelDia: Array<{ ganancia_conductor_congelada: number | null; precio_final: number | null; precio_cotizado: number | null }> =
         resultados[4].status === "fulfilled" && "data" in resultados[4].value
           ? ((resultados[4].value.data as Array<{ ganancia_conductor_congelada: number | null; precio_final: number | null; precio_cotizado: number | null }>) ?? [])

@@ -1,6 +1,11 @@
 "use client";
 
 import { Capacitor } from "@capacitor/core";
+import {
+  desactivarDispositivoPush,
+  registrarAperturaPush,
+  registrarDispositivoPush
+} from "@ruum/api/drivers";
 import { crearClienteNavegador } from "./supabase-browser";
 
 // Tipos de Capacitor PushNotifications
@@ -37,15 +42,14 @@ async function registrarToken(token: Token) {
     const { Device } = await import("@capacitor/device");
     const [{ data: sesion }, info] = await Promise.all([cliente.auth.getSession(), Device.getInfo()]);
     if (!sesion.session) return;
-    const { error } = await cliente.rpc("registrar_dispositivo_push", {
-      p_device_id: uuidLocal(),
-      p_token_push: token.value,
-      p_plataforma: "android",
-      p_modelo: info.model ?? null,
-      p_version_app: process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0",
-      p_version_so: info.osVersion ?? null
+    await registrarDispositivoPush(cliente, {
+      deviceId: uuidLocal(),
+      tokenPush: token.value,
+      plataforma: "android",
+      modelo: info.model ?? null,
+      versionApp: process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0",
+      versionSo: info.osVersion ?? null
     });
-    if (error) throw error;
   } catch {
     // Ignorar errores si los módulos no están disponibles
   }
@@ -91,7 +95,7 @@ export async function inicializarPush(onNavigate: (destino: string) => void) {
         const cliente = crearClienteNavegador();
         const notificacionId = notification.data?.notificacion_id;
         if (typeof notificacionId === "string") {
-          await cliente.rpc("registrar_apertura_push", { p_notificacion_id: notificacionId, p_device_id: uuidLocal() });
+          await registrarAperturaPush(cliente, { notificacionId, deviceId: uuidLocal() });
         }
         onNavigate(destinoDesdePush(notification));
       })
@@ -116,7 +120,7 @@ export async function desactivarPushDelDispositivo() {
   const deviceId = obtenerDeviceIdPush();
   if (!deviceId) return;
   const cliente = crearClienteNavegador();
-  await cliente.rpc("desactivar_dispositivo_push", { p_device_id: deviceId });
+  await desactivarDispositivoPush(cliente, deviceId);
   
   try {
     // @ts-ignore - Módulo solo disponible en entorno nativo

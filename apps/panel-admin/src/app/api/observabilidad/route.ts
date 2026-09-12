@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { verificarConexionDb, verificarRpcSupabase } from "@ruum/api/operations";
 import { crearClienteServidor } from "../../../lib/supabase-server";
 
 const VERSION = process.env.APP_VERSION || "0.0.1-local";
@@ -27,13 +28,13 @@ export async function GET(request: Request) {
 async function readinessCheck(): Promise<Response> {
   try {
     const cliente = await crearClienteServidor();
-    const { data, error } = await cliente.rpc("admin_tiene_permiso", { p_permiso: "dashboard:leer" });
-    if (error) {
+    const chequeo = await verificarRpcSupabase(cliente);
+    if (!chequeo.ok) {
       return NextResponse.json({
         status: "degraded",
         service: NOMBRE_SERVICIO,
         version: VERSION,
-        checks: { supabase: "error", mensaje: error.message },
+        checks: { supabase: "error", mensaje: chequeo.mensaje },
         timestamp: new Date().toISOString()
       }, { status: 503, headers: { "cache-control": "no-store" } });
     }
@@ -66,11 +67,11 @@ async function fullHealthCheck(): Promise<Response> {
   try {
     const cliente = await crearClienteServidor();
 
-    const { error: rpcError } = await cliente.rpc("admin_tiene_permiso", { p_permiso: "dashboard:leer" });
-    checks.rpc = rpcError ? { estado: "error", mensaje: rpcError.message } : { estado: "ok" };
+    const rpc = await verificarRpcSupabase(cliente);
+    checks.rpc = rpc.ok ? { estado: "ok" } : { estado: "error", mensaje: rpc.mensaje };
 
-    const { error: dbError } = await cliente.from("admins").select("id").limit(1);
-    checks.database = dbError ? { estado: "error", mensaje: dbError.message } : { estado: "ok" };
+    const db = await verificarConexionDb(cliente);
+    checks.database = db.ok ? { estado: "ok" } : { estado: "error", mensaje: db.mensaje };
 
     const status = Object.values(checks).some((c) => typeof c === "object" && c !== null && "estado" in c && c.estado === "error")
       ? "degraded" : "ok";

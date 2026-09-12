@@ -1,5 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { crearClienteServidor } from "@ruum/api/supabase";
+import {
+  obtenerAdminSesion,
+  registrarAccesoDenegado,
+  verificarPermisoRuta
+} from "@ruum/api/operations";
 import { normalizarRolAdmin, puedeVerRuta, obtenerCapacidadParaRuta } from "./lib/roles-admin";
 
 /**
@@ -76,11 +81,7 @@ export async function middleware(request: NextRequest) {
   // se le manda al dashboard para no mostrarle el formulario de nuevo.
   if (esRutaPublica(pathname)) {
     if (user) {
-      const { data: adminSesion } = await supabase
-        .from("admins")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .maybeSingle();
+      const adminSesion = await obtenerAdminSesion(supabase, user.id).catch(() => null);
       if (adminSesion) {
         return NextResponse.redirect(new URL("/", request.url));
       }
@@ -94,13 +95,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // Ruta protegida con sesión pero SIN fila en admins -> no autorizado.
-  const { data: admin, error } = await supabase
-    .from("admins")
-    .select("id,rol_operativo")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
+  let admin: { id: string; rol_operativo: string | null } | null;
+  try {
+    admin = await obtenerAdminSesion(supabase, user.id);
+  } catch {
+    admin = null;
+  }
 
-  if (error || !admin) {
+  if (!admin) {
     // Cerrar la sesión no-admin para no dejarla colgando en el panel.
     await supabase.auth.signOut();
     const destino = new URL("/login", request.url);
@@ -116,11 +118,11 @@ export async function middleware(request: NextRequest) {
       pathname,
       metodo: request.method
     });
-    await supabase.rpc("registrar_acceso_admin_denegado", {
-      p_ruta: pathname,
-      p_metodo: request.method,
-      p_motivo: "ruta_no_permitida"
-    });
+    await registrarAccesoDenegado(supabase, {
+      ruta: pathname,
+      metodo: request.method,
+      motivo: "ruta_no_permitida"
+    }).catch(() => undefined);
     const destino = new URL("/sin-permiso", request.url);
     destino.searchParams.set("ruta", pathname);
     return NextResponse.redirect(destino);
@@ -129,7 +131,7 @@ export async function middleware(request: NextRequest) {
   // Verificación de capacidad efectiva (incluye overrides de admin_capacidades)
   const permisoRequerido = obtenerCapacidadParaRuta(pathname);
   if (permisoRequerido) {
-    const { data: tienePermiso } = await supabase.rpc("admin_tiene_permiso", { p_permiso: permisoRequerido });
+    const tienePermiso = await verificarPermisoRuta(supabase, permisoRequerido).catch(() => false);
     if (tienePermiso !== true) {
       console.warn("[security] capacidad insuficiente para ruta", {
         adminId: admin.id,
@@ -138,11 +140,11 @@ export async function middleware(request: NextRequest) {
         permisoRequerido,
         metodo: request.method
       });
-      await supabase.rpc("registrar_acceso_admin_denegado", {
-        p_ruta: pathname,
-        p_metodo: request.method,
-        p_motivo: `capacidad_insuficiente:${permisoRequerido}`
-      });
+      await registrarAccesoDenegado(supabase, {
+        ruta: pathname,
+        metodo: request.method,
+        motivo: `capacidad_insuficiente:${permisoRequerido}`
+      }).catch(() => undefined);
       const destino = new URL("/sin-permiso", request.url);
       destino.searchParams.set("ruta", pathname);
       return NextResponse.redirect(destino);

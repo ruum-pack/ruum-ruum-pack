@@ -8,6 +8,11 @@ import { crearClienteNavegador } from "../../../lib/supabase-browser";
 import type { Database } from "@ruum/shared/types";
 import { Aviso } from "@ruum/ui";
 import { extraerRutaComprobante, resolverUrlEvidencia } from "@ruum/api/services";
+import {
+  eliminarGastoTraslado,
+  listarGastosTraslado,
+  registrarGastoTraslado
+} from "@ruum/api/drivers";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 export type GastoTipoDb = "combustible" | "caseta" | "maniobra" | "estadia" | "penalizacion" | "otro";
@@ -118,17 +123,7 @@ export function SecondaryTripNavBar({
   useEffect(() => {
     async function cargarGastos() {
       try {
-        const cliente = crearClienteNavegador();
-        const { data, error } = await cliente
-          .from("gastos_traslado")
-          .select("*")
-          .eq("traslado_id", trasladoId)
-          .order("registrado_en", { ascending: false });
-
-        if (error) {
-          console.warn("Error cargando gastos:", error);
-          return;
-        }
+        const data = await listarGastosTraslado(crearClienteNavegador(), trasladoId);
 
         if (data) {
           setGastosList(
@@ -221,21 +216,13 @@ export function SecondaryTripNavBar({
       // P1 limpieza total: guardar ruta solo en columna comprobante_ruta, no duplicar en descripcion
       const descripcionFinal = notas.trim() || null;
 
-      const { data, error: insertError } = await cliente
-        .from("gastos_traslado")
-        .insert({
-          traslado_id: trasladoId,
-          tipo: tipoGasto,
-          monto: montoNum,
-          descripcion: descripcionFinal || null,
-          comprobante_ruta: comprobanteRutaSubida || null
-        })
-        .select("*")
-        .single();
-
-      if (insertError) {
-        throw insertError;
-      }
+      const data = await registrarGastoTraslado(cliente, {
+        trasladoId,
+        tipo: tipoGasto,
+        monto: montoNum,
+        descripcion: descripcionFinal || null,
+        comprobanteRuta: comprobanteRutaSubida || null
+      });
 
       if (data) {
         const { ruta, texto } = extraerRutaComprobante(data.descripcion, data.comprobante_ruta);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { crearClienteServidor } from "../../../lib/supabase-server";
 import { normalizarError, tienePermisoAdmin } from "@ruum/api/services";
+import { listarAuditoriaSeguridad, listarExportacionesAdmin } from "@ruum/api/operations";
 
 const CAMPOS_SENSIBLES_VISUALIZACION = new Set([
   "auth_user_id", "token", "secret", "password", "cvv", "card_number",
@@ -39,28 +40,7 @@ export async function GET(request: Request) {
     const tipo = url.searchParams.get("tipo") || "";
     const busqueda = url.searchParams.get("busqueda") || "";
 
-    let query = cliente.from("auditoria_admin_seguridad").select("*", { count: "exact" });
-
-    if (tipo && tipo !== "todas") {
-      if (tipo === "denegado") {
-        query = query.ilike("tipo", "%denegado%");
-      } else {
-        query = query.eq("tipo", tipo);
-      }
-    }
-
-    if (busqueda.trim()) {
-      const q = `%${busqueda.trim()}%`;
-      query = query.or(`recurso.ilike.${q},accion.ilike.${q},rol.ilike.${q},motivo.ilike.${q}`);
-    }
-
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    const { data: eventos, error, count } = await query
-      .order("creado_en", { ascending: false })
-      .range(from, to);
-
-    if (error) throw error;
+    const { eventos, total } = await listarAuditoriaSeguridad(cliente, { page, pageSize, tipo, busqueda });
 
     const eventosSanitizados = (eventos ?? []).map((e) => ({
       ...e,
@@ -68,12 +48,7 @@ export async function GET(request: Request) {
       auth_user_id: "[REDACTED]"
     }));
 
-    let exportacionesQuery = cliente.from("exportaciones_admin").select("*", { count: "exact" });
-    const { data: exportaciones, error: expError, count: expCount } = await exportacionesQuery
-      .order("creada_en", { ascending: false })
-      .limit(50);
-
-    if (expError) throw expError;
+    const { exportaciones } = await listarExportacionesAdmin(cliente, 50);
 
     return NextResponse.json({
       eventos: eventosSanitizados,
@@ -81,8 +56,8 @@ export async function GET(request: Request) {
       paginacion: {
         page,
         pageSize,
-        total: count ?? 0,
-        totalPages: Math.ceil((count ?? 0) / pageSize)
+        total,
+        totalPages: Math.ceil(total / pageSize)
       }
     }, { headers: { "cache-control": "no-store" } });
   } catch (e) {

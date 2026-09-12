@@ -7,6 +7,18 @@ import {
   type FotoEvidenciaConUrlVisual,
   type UbicacionTraslado
 } from "@ruum/api/services";
+import {
+  listarDisputasTraslado,
+  listarFotosEvidencia,
+  listarIncidenciasTraslado,
+  listarPagosTraslado,
+  listarReclamosTraslado,
+  obtenerCalificacionTraslado,
+  obtenerConductorTraslado,
+  obtenerResumenTraslado,
+  obtenerTrasladoConRelaciones,
+  obtenerVehiculoTraslado
+} from "@ruum/api/transfers";
 import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_INCIDENCIA, ETIQUETA_TIPO_VEHICULO, MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
@@ -199,32 +211,6 @@ function calcularHorasDesdeCierre(actualizadoEn: string | null) {
   return (Date.now() - new Date(actualizadoEn).getTime()) / (1000 * 60 * 60);
 }
 
-async function querySegura<T>(promesa: PromiseLike<{ data: T | null; error: unknown }>): Promise<{ data: T | null }> {
-  try {
-    const res = await promesa;
-    if ((res as unknown as { error: unknown }).error) {
-      console.warn("[app-usuario:querySegura] supabase_error", (res as unknown as { error: unknown }).error);
-    }
-    return { data: res.data ?? null };
-  } catch (err) {
-    console.error("[app-usuario:querySegura] supabase_error", { message: err instanceof Error ? err.message : String(err) });
-    return { data: null };
-  }
-}
-
-async function queryArraySegura<T>(promesa: PromiseLike<{ data: T[] | null; error: unknown }>): Promise<{ data: T[] }> {
-  try {
-    const res = await promesa;
-    if ((res as unknown as { error: unknown }).error) {
-      console.warn("[app-usuario:queryArraySegura] supabase_error", (res as unknown as { error: unknown }).error);
-    }
-    return { data: res.data ?? [] };
-  } catch (err) {
-    console.error("[app-usuario:queryArraySegura] supabase_error", { message: err instanceof Error ? err.message : String(err) });
-    return { data: [] };
-  }
-}
-
 async function obtenerDatos(id: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -260,16 +246,10 @@ async function obtenerDatos(id: string) {
     if (!pasaporte) {
       let tRow: Record<string, unknown> | null = null;
       try {
-        const res = await cliente
-          .from("traslados")
-          .select(`
-            *,
-            vehiculos (*),
-            conductores (*)
-          `)
-          .eq("id", id)
-          .maybeSingle();
-        tRow = res.data as Record<string, unknown> | null;
+        const rel = await obtenerTrasladoConRelaciones(cliente, id);
+        tRow = rel.traslado
+          ? ({ ...rel.traslado, vehiculos: rel.vehiculo, conductores: rel.conductor } as unknown as Record<string, unknown>)
+          : null;
       } catch {
         tRow = null;
       }
@@ -352,94 +332,32 @@ async function obtenerDatos(id: string) {
       trasladoRes,
       vehiculoRes,
       conductorRes,
-      evidenciaRes,
-      incidenciasRes,
-      disputasRes,
-      reclamosSeguroRes,
-      calificacionRes,
-      pagosRes,
+      fotosEvidencia,
+      incidencias,
+      disputas,
+      reclamosSeguro,
+      calificacion,
+      pagos,
       ultimaUbicacion
     ] = await Promise.all([
-      querySegura<Traslado>(
-        cliente
-          .from("traslados")
-          .select(
-            "origen_direccion, origen_ciudad, destino_direccion, destino_ciudad, contacto_entrega_nombre, contacto_entrega_telefono, contacto_recepcion_nombre, contacto_recepcion_telefono, fecha_hora_programada, cotizacion_expira_en"
-          )
-          .eq("id", id)
-          .maybeSingle()
-      ),
-      vehiculoId
-        ? querySegura<Vehiculo>(
-            cliente
-              .from("vehiculos")
-              .select(
-                "tipo, marca, modelo, anio, tiene_tarjeta_circulacion, tiene_verificacion, tiene_placas, puede_circular_rodando"
-              )
-              .eq("id", vehiculoId)
-              .maybeSingle()
-          )
-        : Promise.resolve<{ data: Vehiculo | null }>({ data: null }),
-      conductorId
-        ? querySegura<Conductor>(
-            cliente
-              .from("conductores")
-              .select("id, nombre, estado, nivel_operativo_vigente, calificacion_promedio, traslados_completados")
-              .eq("id", conductorId)
-              .maybeSingle()
-          )
-        : Promise.resolve<{ data: Conductor | null }>({ data: null }),
-      queryArraySegura<FotoEvidencia>(
-        cliente
-          .from("evidencia_fotos")
-          .select("*")
-          .eq("traslado_id", id)
-          .order("capturada_en", { ascending: true })
-      ),
-      queryArraySegura<Incidencia>(
-        cliente
-          .from("incidencias")
-          .select("*")
-          .eq("traslado_id", id)
-          .order("creada_en", { ascending: false })
-      ),
-      queryArraySegura<Disputa>(
-        cliente
-          .from("disputas")
-          .select("*")
-          .eq("traslado_id", id)
-          .order("abierta_en", { ascending: false })
-      ),
-      queryArraySegura<ReclamoSeguroUsuario>(
-        cliente
-          .from("reclamos_seguro")
-          .select("id, traslado_id, estado, abierto_en, resuelto_en")
-          .eq("traslado_id", id)
-          .order("abierto_en", { ascending: false })
-      ),
-      querySegura<Calificacion>(
-        cliente
-          .from("calificaciones_traslado")
-          .select("*")
-          .eq("traslado_id", id)
-          .maybeSingle()
-      ),
-      queryArraySegura<Pago>(
-        cliente
-          .from("pagos")
-          .select("*")
-          .eq("traslado_id", id)
-          .order("registrado_en", { ascending: false })
-      ),
+      obtenerResumenTraslado(cliente, id).then((data) => ({ data })),
+      obtenerVehiculoTraslado(cliente, vehiculoId).then((data) => ({ data })),
+      obtenerConductorTraslado(cliente, conductorId).then((data) => ({ data })),
+      listarFotosEvidencia(cliente, id).then((data) => ({ data })),
+      listarIncidenciasTraslado(cliente, id).then((data) => ({ data })),
+      listarDisputasTraslado(cliente, id).then((data) => ({ data })),
+      listarReclamosTraslado(cliente, id).then((data) => ({ data })),
+      obtenerCalificacionTraslado(cliente, id).then((data) => ({ data })),
+      listarPagosTraslado(cliente, id).then((data) => ({ data })),
       obtenerUltimaUbicacionTraslado(cliente, id).catch(() => null)
     ]);
 
     let evidenciaFirmada: FotoEvidenciaVisual[] = [];
     try {
-      const fotos = (evidenciaRes?.data ?? []) as FotoEvidencia[];
+      const fotos = (fotosEvidencia?.data ?? []) as FotoEvidencia[];
       evidenciaFirmada = await firmarUrlsEvidencia(cliente, fotos);
     } catch {
-      evidenciaFirmada = (((evidenciaRes?.data ?? []) as FotoEvidencia[]) || []).map((f) => ({
+      evidenciaFirmada = (((fotosEvidencia?.data ?? []) as FotoEvidencia[]) || []).map((f) => ({
         ...f,
         url_visual: null
       }));
@@ -451,11 +369,11 @@ async function obtenerDatos(id: string) {
       vehiculo: vehiculoRes?.data ?? null,
       conductor: conductorRes?.data ?? null,
       evidencia: evidenciaFirmada,
-      incidencias: (incidenciasRes?.data ?? []) as Incidencia[],
-      disputas: (disputasRes?.data ?? []) as Disputa[],
-      reclamosSeguro: (reclamosSeguroRes?.data ?? []) as ReclamoSeguroUsuario[],
-      calificacion: calificacionRes?.data ?? null,
-      pagos: (pagosRes?.data ?? []) as Pago[],
+      incidencias: (incidencias?.data ?? []) as Incidencia[],
+      disputas: (disputas?.data ?? []) as Disputa[],
+      reclamosSeguro: (reclamosSeguro?.data ?? []) as ReclamoSeguroUsuario[],
+      calificacion: calificacion?.data ?? null,
+      pagos: (pagos?.data ?? []) as Pago[],
       ultimaUbicacion: ultimaUbicacion ?? null
     };
   } catch (error) {

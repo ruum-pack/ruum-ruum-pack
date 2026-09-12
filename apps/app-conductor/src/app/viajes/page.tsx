@@ -15,6 +15,8 @@ import {
   listarHistorialViajesConductor,
   registrarEvento
 } from "@ruum/api/services";
+import { contarNotificacionesNoLeidas } from "@ruum/api/drivers";
+import { obtenerTrasladosPorIds } from "@ruum/api/transfers";
 import { RejectTripDialog } from "./RejectTripDialog";
 import { OfertaCard } from "./OfertaCard";
 import { AcceptedTripCard } from "./AcceptedTripCard";
@@ -157,12 +159,7 @@ export default function PaginaViajes() {
     async function cargarNotificacionesCount() {
       if (!tieneSupabaseConfigurado()) return;
       try {
-        const cliente = crearClienteNavegador();
-        const { count } = await cliente
-          .from("notificaciones_conductor")
-          .select("id", { count: "exact", head: true })
-          .is("leida_en", null);
-        setNotificacionesCount(count ?? 0);
+        setNotificacionesCount(await contarNotificacionesNoLeidas(crearClienteNavegador()));
       } catch {
         // Ignorar
       }
@@ -240,12 +237,9 @@ export default function PaginaViajes() {
         if (todos.length > 0) {
           const ids = todos.map((viaje) => viaje.traslado_id).filter((id): id is string => Boolean(id));
           if (ids.length > 0) {
-            const { data } = await cliente
-              .from("traslados")
-              .select("id, origen_ciudad, origen_direccion, destino_ciudad, destino_direccion, fecha_hora_programada, tipo_servicio, motivo_servicio, instrucciones_especiales")
-              .in("id", ids);
+            const filas = await obtenerTrasladosPorIds(cliente, ids);
             const detallesReales = Object.fromEntries(
-              (data ?? []).map((fila) => {
+              filas.map((fila) => {
                 const viaje = todos.find((item) => item.traslado_id === fila.id);
                 return [
                   fila.id,
