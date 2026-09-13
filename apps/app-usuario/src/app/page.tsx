@@ -27,6 +27,7 @@ async function obtenerContextoSesion(): Promise<ContextoSesion> {
   try {
     const { crearClienteServidor } = await import("../lib/supabase-server");
     const { obtenerUsuarioActual, listarTrasladosDeUsuario } = await import("@ruum/api/services");
+    const { obtenerFotoPerfilConductor } = await import("@ruum/api/drivers");
 
     const cliente = await crearClienteServidor();
     const usuario = await obtenerUsuarioActual(cliente);
@@ -37,18 +38,12 @@ async function obtenerContextoSesion(): Promise<ContextoSesion> {
     let conductorFotoUrl: string | null = null;
 
     if (viajeActivo?.conductor_id) {
-      const { data, error } = await cliente
-        .from("conductores")
-        .select("foto_perfil_url")
-        .eq("id", viajeActivo.conductor_id)
-        .maybeSingle();
-
-      if (error) {
+      try {
+        conductorFotoUrl = await obtenerFotoPerfilConductor(cliente, viajeActivo.conductor_id);
+      } catch (error) {
         console.warn("[app-usuario:obtenerContextoSesion] conductor_photo_unavailable", {
-          message: error.message,
+          message: error instanceof Error ? error.message : String(error),
         });
-      } else {
-        conductorFotoUrl = data?.foto_perfil_url ?? null;
       }
     }
 

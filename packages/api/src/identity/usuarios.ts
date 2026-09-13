@@ -213,3 +213,17 @@ export async function actualizarEstadoCuentaUsuario(
   } as never);
   if (error) throw error;
 }
+
+/** FASE 6 cierre — resuelve public.usuarios.id desde auth.users.id bajo RLS. */
+export async function obtenerUsuarioIdPorAuth(cliente: Cliente, authUserId: string): Promise<string | null> {
+  const { data, error } = await cliente.from("usuarios").select("id").eq("auth_user_id", authUserId).maybeSingle();
+  if (error) throw error;
+  return data?.id ?? null;
+}
+
+/** FASE 6 cierre — contacto mínimo visible por RLS para un traslado asignado. */
+export async function obtenerContactoUsuarioVisible(cliente: Cliente, usuarioId: string): Promise<{ nombre: string | null; telefono: string | null } | null> {
+  const { data, error } = await cliente.from("usuarios").select("nombre,telefono").eq("id", usuarioId).maybeSingle();
+  if (error) throw error;
+  return data;
+}

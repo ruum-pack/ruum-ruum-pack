@@ -31,6 +31,7 @@ import {
   type TrazabilidadMasivaTraslado
 } from "@ruum/api/services";
 import { obtenerRutaMapbox, tieneMapboxConfigurado } from "../../../lib/mapbox-rutas";
+import { obtenerVersionTraslado } from "@ruum/api/transfers";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
@@ -100,7 +101,7 @@ export default function PaginaDetalleViajeAdmin() {
       const cliente = crearClienteNavegador();
       const [p, v, conds, notasReales, auditoriaReal, adminReal, trazabilidadReal, finanzasReales] = await Promise.all([
         obtenerPasaporteDigital(cliente, id),
-        cliente.from("traslados").select("version").eq("id", id).maybeSingle() as unknown as Promise<{ data: { version: number } | null; error: unknown }>,
+        obtenerVersionTraslado(cliente, id),
         listarConductoresAdmin(cliente),
         obtenerNotasInternas(cliente, id),
         obtenerAuditoriaTraslado(cliente, id),
@@ -109,7 +110,7 @@ export default function PaginaDetalleViajeAdmin() {
         obtenerFinanzasTrasladoAdmin(cliente, id).catch(() => null)
       ]);
       setPasaporte(p);
-      setVersion(v?.data?.version ?? undefined);
+      setVersion(v ?? undefined);
       setConductores(conds.filter((c) => c.estado === "activo" || c.estado === "modo_prueba_supervisada"));
       setNotas(notasReales);
       setAuditoria(auditoriaReal);
@@ -203,10 +204,10 @@ export default function PaginaDetalleViajeAdmin() {
       mostrarAviso({ tono: "info", texto: "Estatus actualizado." });
       const [nuevoP, nuevoV] = await Promise.all([
         obtenerPasaporteDigital(cliente, trasladoId),
-        cliente.from("traslados").select("version").eq("id", trasladoId).maybeSingle() as unknown as Promise<{ data: { version: number } | null; error: unknown }>
+        obtenerVersionTraslado(cliente, trasladoId)
       ]);
       setPasaporte(nuevoP);
-      setVersion(nuevoV?.data?.version ?? undefined);
+      setVersion(nuevoV ?? undefined);
       setAuditoria(await obtenerAuditoriaTraslado(cliente, trasladoId));
       setEstadoSeleccionado("");
     } catch (err) {

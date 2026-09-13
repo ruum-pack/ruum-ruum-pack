@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { crearClienteServidor } from "../../../../lib/supabase-server";
 import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
 import { normalizarError, tienePermisoAdmin } from "@ruum/api/services";
+import { obtenerAuthUserIdSolicitudConductorService } from "@ruum/api/identity";
 
 export async function GET(request: Request) {
   try {
@@ -16,17 +17,12 @@ export async function GET(request: Request) {
 
     if (!(await tienePermisoAdmin(cliente, "conductores:leer"))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-    const { data: solicitud, error: errorSolicitud } = await serviceRole
-      .from("solicitudes_conductor")
-      .select("auth_user_id")
-      .eq("id", solicitudId)
-      .maybeSingle();
-    if (errorSolicitud) throw errorSolicitud;
-    if (!solicitud?.auth_user_id) {
+    const authUserId = await obtenerAuthUserIdSolicitudConductorService(serviceRole, solicitudId);
+    if (!authUserId) {
       return NextResponse.json({ correo: null }, { headers: { "cache-control": "no-store" } });
     }
 
-    const { data, error } = await serviceRole.auth.admin.getUserById(solicitud.auth_user_id);
+    const { data, error } = await serviceRole.auth.admin.getUserById(authUserId);
     if (error) throw error;
 
     return NextResponse.json(

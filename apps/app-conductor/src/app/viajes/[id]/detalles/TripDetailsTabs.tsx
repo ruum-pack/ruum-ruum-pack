@@ -7,6 +7,9 @@ import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador } from "../../../../lib/supabase-browser";
 import { formatearDuracion, nombreVehiculo } from "../../trips-utils";
+import { obtenerDatosOperativosTraslado } from "@ruum/api/transfers";
+import { obtenerContactoUsuarioVisible } from "@ruum/api/identity";
+import { listarGastosTraslado } from "@ruum/api/drivers";
 
 function formatearMoneda(valor: number) {
   return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 }).format(valor);
@@ -117,12 +120,7 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
         const trasladoId = pasaporte.traslado_id;
         if (!trasladoId) return;
 
-        // 1. Consultar datos del traslado (ventanas y usuario_id del solicitante)
-        const { data: d } = await cliente
-          .from("traslados")
-          .select("ventana_recoleccion, ventana_entrega, usuario_id")
-          .eq("id", trasladoId)
-          .maybeSingle();
+        const d = await obtenerDatosOperativosTraslado(cliente, trasladoId);
 
         if (!cancelado && d) {
           if (d.ventana_recoleccion) setVentanaRecoleccion(d.ventana_recoleccion);
@@ -130,14 +128,8 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
         }
 
         const effectiveUserId = d?.usuario_id || pasaporte.usuario_id;
-        // 2. Invocar al titular de la cuenta de usuario (app-usuario) desde la tabla usuarios
         if (effectiveUserId) {
-          const { data: u } = await cliente
-            .from("usuarios")
-            .select("nombre, telefono")
-            .eq("id", effectiveUserId)
-            .maybeSingle();
-
+          const u = await obtenerContactoUsuarioVisible(cliente, effectiveUserId);
           if (!cancelado && u) {
             if (u.nombre) setSolicitanteNombre(u.nombre);
             if (u.telefono) setSolicitanteTelefono(u.telefono);
@@ -171,10 +163,9 @@ export function TripDetailsTabs({ pasaporte }: { pasaporte: PasaporteRow }) {
     async function cargarReembolso() {
       try {
         const cliente = crearClienteNavegador();
-        const resp = await (cliente as unknown as { from: (table: string) => { select: (cols: string) => { eq: (col: string, val: string) => Promise<{ data: { monto: number }[] | null }> } } }).from("gastos_traslado").select("monto").eq("traslado_id", trasladoId);
-        const data = (resp as { data: { monto: number }[] | null }).data;
+        const data = await listarGastosTraslado(cliente, trasladoId);
         if (!cancelado && data) {
-          const total = data.reduce((s: number, g: { monto: number }) => s + Number(g.monto || 0), 0);
+          const total = data.reduce((s: number, g) => s + Number(g.monto || 0), 0);
           setReembolsoPago(total);
         }
       } catch {

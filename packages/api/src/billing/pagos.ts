@@ -98,3 +98,19 @@ export async function ajustarPrecioFinalAdmin(
   if (error) throw error;
   if (!data?.ejecutado) throw new Error("No se pudo ajustar el precio final.");
 }
+
+/** FASE 6 cierre — dataset acotado para exportación administrativa de pagos. */
+export async function listarPagosParaExportacion(
+  cliente: Cliente,
+  params: { desdeIso: string; hastaIso: string; limite: number }
+) {
+  const { data, error } = await cliente
+    .from("pagos")
+    .select("id,traslado_id,monto,estado,registrado_en")
+    .gte("registrado_en", params.desdeIso)
+    .lte("registrado_en", params.hastaIso)
+    .order("registrado_en", { ascending: false })
+    .limit(params.limite);
+  if (error) throw error;
+  return data ?? [];
+}

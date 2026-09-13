@@ -217,3 +217,18 @@ export async function obtenerTrasladoConRelaciones(
     return vacio;
   }
 }
+
+/** FASE 6 cierre — versión optimista del traslado bajo RLS. */
+export async function obtenerVersionTraslado(cliente: Cliente, trasladoId: string): Promise<number | null> {
+  const { data, error } = await cliente.from("traslados").select("version").eq("id", trasladoId).maybeSingle();
+  if (error) throw error;
+  return data?.version ?? null;
+}
+
+export interface DatosOperativosTraslado { ventana_recoleccion: string | null; ventana_entrega: string | null; usuario_id: string | null }
+/** FASE 6 cierre — campos operativos mínimos que no proyecta el pasaporte. */
+export async function obtenerDatosOperativosTraslado(cliente: Cliente, trasladoId: string): Promise<DatosOperativosTraslado | null> {
+  const { data, error } = await cliente.from("traslados").select("ventana_recoleccion, ventana_entrega, usuario_id").eq("id", trasladoId).maybeSingle();
+  if (error) throw error;
+  return data;
+}

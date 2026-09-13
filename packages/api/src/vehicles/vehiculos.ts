@@ -422,3 +422,10 @@ export async function obtenerViajesDeVehiculoAdmin(
   }));
 
 }
+
+/** FASE 6 cierre — vehículos visibles para el usuario autenticado (RLS). */
+export async function listarVehiculosDeUsuario(cliente: Cliente, usuarioId: string): Promise<VehiculoRow[]> {
+  const { data, error } = await cliente.from("vehiculos").select("*").eq("usuario_id", usuarioId).order("creado_en", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}

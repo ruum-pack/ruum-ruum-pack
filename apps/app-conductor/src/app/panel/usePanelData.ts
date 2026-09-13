@@ -12,7 +12,7 @@ import {
   obtenerDisponibilidadConductor,
   obtenerSolicitudConductorActual
 } from "@ruum/api/services";
-import { contarNotificacionesNoLeidas } from "@ruum/api/drivers";
+import { contarNotificacionesNoLeidas, listarDocumentosSolicitud, listarDocumentosConductor, listarGananciasCerradasConductorDesde } from "@ruum/api/drivers";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { viajeEsOperacionActiva } from "../ViajeActivoContext";
 import type { DriverAvailability } from "./DriverAvailabilityControl";
@@ -97,17 +97,12 @@ export function usePanelData() {
           router.replace("/registro");
           return;
         }
-        const { data: docs, error: errorDocs } = await cliente
-          .from("documentos_conductor")
-          .select("*")
-          .eq("solicitud_id", solicitud.id)
-          .order("creado_en", { ascending: false });
-        if (errorDocs) throw errorDocs;
+        const docs = await listarDocumentosSolicitud(cliente, solicitud.id);
         const personales = solicitud.datos_personales as { nombre?: string };
         setEnRevision({
           solicitudId: solicitud.id,
           nombre: personales.nombre ?? "Conductor",
-          documentos: docs ?? [],
+          documentos: docs,
           estado: solicitud.estado,
           enviadoEn: solicitud.enviado_en
         });
@@ -115,13 +110,8 @@ export function usePanelData() {
       }
 
       if (real.estado_expediente !== "aprobado" || !["activo", "modo_prueba_supervisada"].includes(real.estado)) {
-        const { data: docs, error: errorDocs } = await cliente
-          .from("documentos_conductor")
-          .select("*")
-          .eq("conductor_id", real.id)
-          .order("creado_en", { ascending: false });
-        if (errorDocs) throw errorDocs;
-        setEnRevision({ conductorId: real.id, nombre: real.nombre, documentos: docs ?? [], estado: real.estado_expediente });
+        const docs = await listarDocumentosConductor(cliente, real.id);
+        setEnRevision({ conductorId: real.id, nombre: real.nombre, documentos: docs, estado: real.estado_expediente });
         return;
       }
 
@@ -135,17 +125,8 @@ export function usePanelData() {
         listarViajesDisponibles(cliente),
         obtenerDisponibilidadConductor(cliente, real.id),
         contarNotificacionesNoLeidas(cliente),
-        cliente
-          .from("traslados")
-          .select("ganancia_conductor_congelada, precio_final, precio_cotizado")
-          .eq("conductor_id", real.id)
-          .eq("estado", "servicio_cerrado")
-          .gte("cerrado_en", inicioHoy.toISOString()),
-        cliente
-          .from("documentos_conductor")
-          .select("*")
-          .eq("conductor_id", real.id)
-          .order("creado_en", { ascending: false })
+        listarGananciasCerradasConductorDesde(cliente, real.id, inicioHoy.toISOString()),
+        listarDocumentosConductor(cliente, real.id)
       ]);
 
       const aceptados = resultados[0].status === "fulfilled" ? resultados[0].value : [];
@@ -156,13 +137,9 @@ export function usePanelData() {
       const countNoLeidas =
         resultados[3].status === "fulfilled" ? resultados[3].value : 0;
       const trasladosDelDia: Array<{ ganancia_conductor_congelada: number | null; precio_final: number | null; precio_cotizado: number | null }> =
-        resultados[4].status === "fulfilled" && "data" in resultados[4].value
-          ? ((resultados[4].value.data as Array<{ ganancia_conductor_congelada: number | null; precio_final: number | null; precio_cotizado: number | null }>) ?? [])
-          : [];
+        resultados[4].status === "fulfilled" ? resultados[4].value : [];
       const docsConductor: DocumentoConductorRow[] =
-        resultados[5].status === "fulfilled" && "data" in resultados[5].value && resultados[5].value.data
-          ? (resultados[5].value.data as DocumentoConductorRow[])
-          : [];
+        resultados[5].status === "fulfilled" ? resultados[5].value : [];
 
       const gananciaDelDia = trasladosDelDia.reduce((acc, t) => {
         const monto = Number(t.ganancia_conductor_congelada ?? ((t.precio_final ?? t.precio_cotizado ?? 0) * 0.85));

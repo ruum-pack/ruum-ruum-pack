@@ -1,14 +1,13 @@
-// FASE 6 — Fronteras de acceso: impide que crezca el acceso directo a
-// Supabase desde apps/*/src. Uso:
-//   node scripts/check-fronteras.mjs            compara contra el baseline y falla si AUMENTA
-//   node scripts/check-fronteras.mjs --write    regenera scripts/fronteras-baseline.json tras una migración legítima
-// La reducción de conteos siempre está permitida; el aumento, nunca.
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { join, dirname } from "node:path";
+// FASE 6 — CIERRE ARQUITECTÓNICO.
+// Regla final: apps/* no acceden Supabase PostgREST/RPC/Functions directamente.
+// Únicamente se permiten excepciones explícitas, acotadas por archivo+tipo+máximo
+// en fronteras-allowlist.json (Storage/offline/health de infraestructura).
+import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { join, dirname, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
-const BASELINE_PATH = join(RAIZ, "scripts", "fronteras-baseline.json");
+const ALLOWLIST_PATH = join(RAIZ, "scripts", "fronteras-allowlist.json");
 const APPS = ["app-usuario", "app-conductor", "panel-admin"];
 const EXTENSIONES = new Set([".ts", ".tsx"]);
 
@@ -41,56 +40,59 @@ function sinComentariosLinea(contenido) {
     .join("\n");
 }
 
-function contarViolaciones(contenido) {
+function contar(contenido) {
   const codigo = sinComentariosLinea(contenido);
-  const from = (codigo.match(/(?<!\bArray|\bBuffer|\bObject)\.from\s*\(/g) ?? []).length;
-  const rpc = (codigo.match(/\.rpc\s*\(/g) ?? []).length;
-  const invoke = (codigo.match(/\.invoke\s*\(/g) ?? []).length;
-  return { from, rpc, invoke };
+  return {
+    from: (codigo.match(/(?<!\bArray|\bBuffer|\bObject)\.from\s*\(/g) ?? []).length,
+    rpc: (codigo.match(/\.rpc\s*\(/g) ?? []).length,
+    invoke: (codigo.match(/\.invoke\s*\(/g) ?? []).length
+  };
 }
 
-function medir() {
-  const resultado = {};
-  for (const app of APPS) {
-    const total = { from: 0, rpc: 0, invoke: 0 };
-    for (const archivo of listarFuentes(join(RAIZ, "apps", app, "src"))) {
-      const conteo = contarViolaciones(readFileSync(archivo, "utf8"));
-      total.from += conteo.from;
-      total.rpc += conteo.rpc;
-      total.invoke += conteo.invoke;
-    }
-    resultado[app] = total;
-  }
-  return resultado;
-}
-
-const actual = medir();
-
-if (process.argv.includes("--write")) {
-  writeFileSync(BASELINE_PATH, JSON.stringify(actual, null, 2) + "\n");
-  console.log("[fronteras] baseline actualizado:", JSON.stringify(actual));
-  process.exit(0);
-}
-
-if (!existsSync(BASELINE_PATH)) {
-  console.error("[fronteras] falta scripts/fronteras-baseline.json; genera con --write");
+if (!existsSync(ALLOWLIST_PATH)) {
+  console.error("[fronteras] falta scripts/fronteras-allowlist.json");
   process.exit(2);
 }
+const allow = JSON.parse(readFileSync(ALLOWLIST_PATH, "utf8"));
+let hayViolaciones = false;
 
-const base = JSON.parse(readFileSync(BASELINE_PATH, "utf8"));
-let aumento = false;
 for (const app of APPS) {
-  for (const clave of ["from", "rpc", "invoke"]) {
-    const antes = base[app]?.[clave] ?? 0;
-    const ahora = actual[app][clave];
-    const marca = ahora > antes ? "AUMENTA ✗" : ahora < antes ? "baja ✓" : "igual =";
-    console.log(`[fronteras] ${app}.${clave}: ${antes} -> ${ahora} ${marca}`);
-    if (ahora > antes) aumento = true;
+  const src = join(RAIZ, "apps", app, "src");
+  const reglas = allow[app] ?? [];
+  const totales = { from: 0, rpc: 0, invoke: 0 };
+  const permitidos = { from: 0, rpc: 0, invoke: 0 };
+  const violaciones = { from: 0, rpc: 0, invoke: 0 };
+
+  for (const archivo of listarFuentes(src)) {
+    const rel = relative(src, archivo).split(sep).join("/");
+    const c = contar(readFileSync(archivo, "utf8"));
+    for (const kind of ["from", "rpc", "invoke"]) {
+      totales[kind] += c[kind];
+      const regla = reglas.find((r) => r.file === rel && r.kind === kind);
+      const permitido = Math.min(c[kind], regla?.max ?? 0);
+      permitidos[kind] += permitido;
+      const extra = c[kind] - permitido;
+      if (extra > 0) {
+        violaciones[kind] += extra;
+        console.error(`[fronteras] VIOLACIÓN ${app}/${rel}: ${kind}=${c[kind]}, permitido=${regla?.max ?? 0}`);
+      }
+    }
   }
+
+  for (const regla of reglas) {
+    const ruta = join(src, regla.file);
+    if (!existsSync(ruta)) {
+      console.error(`[fronteras] allowlist obsoleta: no existe ${app}/${regla.file}`);
+      hayViolaciones = true;
+    }
+  }
+
+  console.log(`[fronteras] ${app}: raw=${JSON.stringify(totales)} allow=${JSON.stringify(permitidos)} violaciones=${JSON.stringify(violaciones)}`);
+  if (Object.values(violaciones).some((v) => v > 0)) hayViolaciones = true;
 }
 
-if (aumento) {
-  console.error("[fronteras] FASE 6: hay NUEVOS accesos directos a Supabase en apps/*. Muévelos a @ruum/api.");
+if (hayViolaciones) {
+  console.error("[fronteras] FASE 6 NO CERRADA: mueve el acceso a @ruum/api o documenta una excepción estrictamente infraestructural.");
   process.exit(1);
 }
-console.log("[fronteras] OK: sin nuevos accesos directos.");
+console.log("[fronteras] FASE 6 CERRADA: 0 accesos directos no justificados en apps/*.");

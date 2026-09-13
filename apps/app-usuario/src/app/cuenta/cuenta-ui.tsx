@@ -57,17 +57,16 @@ export async function obtenerCuenta(): Promise<CuentaReal | null> {
   try {
     const { crearClienteServidor } = await import("../../lib/supabase-server");
     const { listarTrasladosDeEmpresa, obtenerUsuarioActual } = await import("@ruum/api/services");
+    const { listarVehiculosDeUsuario } = await import("@ruum/api/vehicles");
+    const { obtenerEmpresaVisible } = await import("@ruum/api/organizations");
     const cliente = await crearClienteServidor();
     const usuario = await obtenerUsuarioActual(cliente);
     if (!usuario) return null;
 
-    const [vehiculosRes, empresaRes] = await Promise.all([
-      cliente.from("vehiculos").select("*").eq("usuario_id", usuario.id).order("creado_en", { ascending: false }),
-      usuario.empresa_id ? cliente.from("empresas").select("*").eq("id", usuario.empresa_id).maybeSingle() : null
+    const [vehiculos, empresa] = await Promise.all([
+      listarVehiculosDeUsuario(cliente, usuario.id),
+      usuario.empresa_id ? obtenerEmpresaVisible(cliente, usuario.empresa_id) : Promise.resolve(null)
     ]);
-
-    if (vehiculosRes.error) throw vehiculosRes.error;
-    if (empresaRes?.error) throw empresaRes.error;
 
     const historialEmpresa =
       usuario.rol === "titular_empresa" && usuario.empresa_id
@@ -76,8 +75,8 @@ export async function obtenerCuenta(): Promise<CuentaReal | null> {
 
     return {
       usuario,
-      vehiculos: vehiculosRes.data ?? [],
-      empresa: empresaRes?.data ?? null,
+      vehiculos,
+      empresa,
       historialEmpresa
     };
   } catch {

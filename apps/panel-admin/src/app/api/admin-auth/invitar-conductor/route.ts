@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { crearClienteServidor } from "../../../../lib/supabase-server";
 import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
 import { normalizarError, registrarEvento, tienePermisoAdmin } from "@ruum/api/services";
+import { crearPerfilConductorService, eliminarPerfilConductorService } from "@ruum/api/identity";
 
 const LOGIN_CONDUCTOR_URL = process.env.NEXT_PUBLIC_APP_CONDUCTOR_URL ?? "https://conductor.ruumruum.mx/login";
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -118,9 +119,9 @@ export async function POST(request: Request) {
     // vía acción explícita del conductor (versión concreta, timestamp real, canal).
     // Se deja version_terminos_aceptada y terminos_aceptados_en en NULL hasta
     // que el conductor acepte términos en su primer acceso.
-    const { data: conductor, error: errorConductor } = await serviceRole
-      .from("conductores")
-      .insert({
+    let conductor;
+    try {
+      conductor = await crearPerfilConductorService(serviceRole, {
         auth_user_id: cuenta.user.id,
         estado: "activo",
         nombre: nombreCompleto,
@@ -143,12 +144,10 @@ export async function POST(request: Request) {
         version_terminos_aceptada: null,
         terminos_aceptados_en: null,
         marca_terminos: null
-      })
-      .select("*")
-      .single();
-    if (errorConductor) {
+      });
+    } catch (errorConductor) {
       await serviceRole.auth.admin.deleteUser(cuenta.user.id);
-      if (errorConductor.code === "23505") {
+      if (typeof errorConductor === "object" && errorConductor && "code" in errorConductor && errorConductor.code === "23505") {
         return NextResponse.json({ error: "CONDUCTOR_DUPLICADO" }, { status: 409 });
       }
       throw errorConductor;
@@ -157,7 +156,7 @@ export async function POST(request: Request) {
     try {
       await enviarCorreoPasswordTemporal({ email, nombre: nombreCompleto, passwordTemporal });
     } catch (errorCorreo) {
-      await serviceRole.from("conductores").delete().eq("id", conductor.id);
+      await eliminarPerfilConductorService(serviceRole, conductor.id);
       await serviceRole.auth.admin.deleteUser(cuenta.user.id);
       throw errorCorreo;
     }

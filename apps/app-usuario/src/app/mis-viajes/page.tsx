@@ -38,6 +38,7 @@ async function obtenerViajes(): Promise<ViajeLista[]> {
   try {
     const { crearClienteServidor } = await import("../../lib/supabase-server");
     const { obtenerUsuarioActual, listarTrasladosDeUsuario } = await import("@ruum/api/services");
+    const { obtenerTrasladosPorIds } = await import("@ruum/api/transfers");
     const cliente = await crearClienteServidor();
     const usuario = await obtenerUsuarioActual(cliente);
 
@@ -45,17 +46,8 @@ async function obtenerViajes(): Promise<ViajeLista[]> {
 
     const pasaportes = await listarTrasladosDeUsuario(cliente, usuario.id);
     const ids = pasaportes.map((pasaporte) => pasaporte.traslado_id).filter((id): id is string => Boolean(id));
-    const trasladosRes =
-      ids.length > 0
-        ? await cliente
-            .from("traslados")
-            .select("id, origen_direccion, origen_ciudad, destino_direccion, destino_ciudad, fecha_hora_programada")
-            .in("id", ids)
-        : { data: [], error: null };
-
-    if (trasladosRes.error) throw trasladosRes.error;
-
-    const trasladosPorId = new Map((trasladosRes.data ?? []).map((traslado) => [traslado.id, traslado]));
+    const traslados = await obtenerTrasladosPorIds(cliente, ids);
+    const trasladosPorId = new Map(traslados.map((traslado) => [traslado.id, traslado]));
     return pasaportes.map((pasaporte) => ({
       pasaporte,
       traslado: pasaporte.traslado_id ? trasladosPorId.get(pasaporte.traslado_id) ?? null : null

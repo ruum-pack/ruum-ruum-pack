@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { tienePermisoAdmin } from "@ruum/api/services";
 import { completarExportacionAdmin, registrarExportacionAdmin } from "@ruum/api/operations";
+import { listarPagosParaExportacion } from "@ruum/api/billing";
 import { crearClienteServidor } from "../../../../lib/supabase-server";
 
 const LIMITE_FILAS=10_000;
@@ -44,12 +45,7 @@ export async function GET(request:Request){
 
  let csv="";
  try{
-  let query=cliente.from("pagos").select("id,traslado_id,monto,estado,registrado_en");
-  if(desde||hastaLimitado){
-   query=query.gte("registrado_en",desde.toISOString()).lte("registrado_en",hastaLimitado.toISOString());
-  }
-  const {data,error}=await query.order("registrado_en",{ascending:false}).limit(LIMITE_FILAS);
-  if(error)throw error; const filas=data??[]; csv=["id,traslado_id,monto,estado,registrado_en",...filas.map(f=>[f.id,f.traslado_id,f.monto,f.estado,f.registrado_en].map(celda).join(","))].join("\n");
+  const filas=await listarPagosParaExportacion(cliente,{desdeIso:desde.toISOString(),hastaIso:hastaLimitado.toISOString(),limite:LIMITE_FILAS}); csv=["id,traslado_id,monto,estado,registrado_en",...filas.map(f=>[f.id,f.traslado_id,f.monto,f.estado,f.registrado_en].map(celda).join(","))].join("\n");
   const hash=createHash("sha256").update(csv).digest("hex");
   try{
     await completarExportacionAdmin(cliente,{id:registroId as string,filas:filas.length,hash});

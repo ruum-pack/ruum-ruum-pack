@@ -1,3 +1,4 @@
+import { guardarFotoEvidenciaSincronizada } from "@ruum/api/custody";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
 import { createLogger, errorCode } from "@ruum/shared/utils";
@@ -458,9 +459,10 @@ export async function sincronizarColaEvidencia(
       throw uploadError;
     }
 
-    const { error: evidenciaError } = await withTimeout(
-      cliente.from("evidencia_fotos").upsert(
-        {
+    let evidenciaError: unknown | null = null;
+    try {
+      await withTimeout(
+        guardarFotoEvidenciaSincronizada(cliente, {
           id: item.localId,
           traslado_id: item.trasladoId,
           tipo: item.tipo,
@@ -471,12 +473,13 @@ export async function sincronizarColaEvidencia(
           lat: item.lat ?? null,
           lng: item.lng ?? null,
           sincronizada: true,
-        },
-        { onConflict: "id" }
-      ) as unknown as Promise<{ error: unknown | null }>,
-      TIMEOUT_UPSERT_MS,
-      `evidence_upsert:${item.localId}`
-    );
+        }),
+        TIMEOUT_UPSERT_MS,
+        `evidence_upsert:${item.localId}`
+      );
+    } catch (error) {
+      evidenciaError = error;
+    }
 
     if (evidenciaError) {
       const actualizado = await registrarIntentoFallido(item, evidenciaError);

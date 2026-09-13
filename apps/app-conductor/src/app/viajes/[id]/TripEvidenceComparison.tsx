@@ -7,6 +7,7 @@ import type { Database } from "@ruum/shared/types";
 import type { InspeccionEvidencia } from "./evidencia/evidence-requirements";
 import { EvidenceComparisonDisplay } from "./evidencia/EvidenceComparisonDisplay";
 import type { ResultadosComparacion } from "./evidencia/useEvidenceComparison";
+import { obtenerInspeccionTraslado } from "@ruum/api/drivers";
 
 type InspeccionRow = Database["public"]["Tables"]["evidencia_inspecciones"]["Row"];
 
@@ -160,22 +161,12 @@ export function TripEvidenceComparison({ trasladoId }: TripEvidenceComparisonPro
         const cliente = crearClienteNavegador();
 
         const [inicialData, finalData] = await Promise.all([
-          cliente
-            .from("evidencia_inspecciones")
-            .select("*")
-            .eq("traslado_id", trasladoId)
-            .eq("tipo", "inicial")
-            .maybeSingle(),
-          cliente
-            .from("evidencia_inspecciones")
-            .select("*")
-            .eq("traslado_id", trasladoId)
-            .eq("tipo", "final")
-            .maybeSingle()
+          obtenerInspeccionTraslado(cliente, trasladoId, "inicial"),
+          obtenerInspeccionTraslado(cliente, trasladoId, "final")
         ]);
 
-        const evidenciaInicial = dataToInspeccion(inicialData.data);
-        const evidenciaFinal = dataToInspeccion(finalData.data);
+        const evidenciaInicial = dataToInspeccion(inicialData);
+        const evidenciaFinal = dataToInspeccion(finalData);
 
         setInicial(evidenciaInicial);
         setFinal(evidenciaFinal);

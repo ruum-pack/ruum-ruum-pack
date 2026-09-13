@@ -3,6 +3,7 @@ import type { Database } from "@ruum/shared/types";
 import { normalizarError, tienePermisoAdmin } from "@ruum/api/services";
 import { crearClienteServidor } from "../../../../lib/supabase-server";
 import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
+import { crearPerfilAdminService, obtenerActorAdminService, registrarAuditoriaInvitacionAdminService, eliminarPerfilAdminService } from "@ruum/api/identity";
 
 type RolAdminOperativo = Database["public"]["Enums"]["rol_admin_operativo"];
 
@@ -126,46 +127,29 @@ export async function POST(request: Request) {
     }
     if (!cuenta.user?.id) throw new Error("Auth no devolvio el usuario creado.");
 
-    const { data: admin, error: errorAdmin } = await serviceRole
-      .from("admins")
-      .insert({
-        auth_user_id: cuenta.user.id,
-        nombre,
-        rol_operativo: rol
-      })
-      .select("id,nombre,rol_operativo,creado_en")
-      .single();
-    if (errorAdmin) {
+    let admin;
+    try {
+      admin = await crearPerfilAdminService(serviceRole, { auth_user_id: cuenta.user.id, nombre, rol_operativo: rol });
+    } catch (errorAdmin) {
       await serviceRole.auth.admin.deleteUser(cuenta.user.id);
-      if (errorAdmin.code === "23505") {
+      if (typeof errorAdmin === "object" && errorAdmin && "code" in errorAdmin && errorAdmin.code === "23505") {
         return NextResponse.json({ error: "ADMIN_DUPLICADO" }, { status: 409 });
       }
       throw errorAdmin;
     }
 
-    const { data: actor } = await serviceRole
-      .from("admins")
-      .select("id,rol_operativo")
-      .eq("auth_user_id", authActual.user.id)
-      .maybeSingle();
-
-    const { error: errorAuditoria } = await serviceRole.from("auditoria_admin_seguridad").insert({
-      auth_user_id: authActual.user.id,
-      admin_id: actor?.id ?? null,
-      rol: actor?.rol_operativo ?? null,
-      tipo: "mutacion",
-      recurso: "admins",
-      accion: "invitar_admin_panel",
-      motivo,
-      datos: {
-        admin_objetivo_id: admin.id,
-        rol_operativo: rol,
-        correo: "[REDACTED]",
-        auth_user_id: "[REDACTED]"
-      }
-    });
-    if (errorAuditoria) {
-      await serviceRole.from("admins").delete().eq("id", admin.id);
+    const actor = await obtenerActorAdminService(serviceRole, authActual.user.id);
+    try {
+      await registrarAuditoriaInvitacionAdminService(serviceRole, {
+        authUserId: authActual.user.id,
+        adminId: actor?.id ?? null,
+        rol: actor?.rol_operativo ?? null,
+        motivo,
+        adminObjetivoId: admin.id,
+        rolObjetivo: rol
+      });
+    } catch (errorAuditoria) {
+      await eliminarPerfilAdminService(serviceRole, admin.id);
       await serviceRole.auth.admin.deleteUser(cuenta.user.id);
       throw errorAuditoria;
     }
@@ -173,7 +157,7 @@ export async function POST(request: Request) {
     try {
       await enviarCorreoPasswordTemporal({ email, nombre, rol, passwordTemporal });
     } catch (errorCorreo) {
-      await serviceRole.from("admins").delete().eq("id", admin.id);
+      await eliminarPerfilAdminService(serviceRole, admin.id);
       await serviceRole.auth.admin.deleteUser(cuenta.user.id);
       throw errorCorreo;
     }

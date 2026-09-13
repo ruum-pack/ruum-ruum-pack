@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { crearClienteServidor } from "../../../../lib/supabase-server";
 import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
 import { normalizarError, registrarEvento, tienePermisoAdmin } from "@ruum/api/services";
+import { upsertPerfilUsuarioInvitadoService } from "@ruum/api/identity";
 
 type TipoCuenta = "personal" | "empresa";
 type PerfilEmpresa = "administrador_flota" | "usuario_final" | "finanzas";
@@ -57,20 +58,15 @@ export async function POST(request: Request) {
     if (errorInvitacion) throw errorInvitacion;
     if (!invitacion.user?.id) throw new Error("Auth no devolvio el usuario invitado.");
 
-    const { data: usuario, error: errorUsuario } = await serviceRole
-      .from("usuarios")
-      .upsert({
-        auth_user_id: invitacion.user.id,
-        tipo_cuenta: cuenta,
-        rol: rolUsuario,
-        estado_verificacion: "pendiente",
-        nombre,
-        correo_facturacion: correo,
-        metodo_pago_registrado: false
-      }, { onConflict: "auth_user_id" })
-      .select("id")
-      .single();
-    if (errorUsuario) throw errorUsuario;
+    const usuario = await upsertPerfilUsuarioInvitadoService(serviceRole, {
+      auth_user_id: invitacion.user.id,
+      tipo_cuenta: cuenta,
+      rol: rolUsuario,
+      estado_verificacion: "pendiente",
+      nombre,
+      correo_facturacion: correo,
+      metodo_pago_registrado: false
+    });
 
     await registrarEvento(cliente, "creacion_cuenta" as never, "admin", usuario.id, {
       tipo: "invitacion_auth_usuario",

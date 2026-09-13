@@ -54,3 +54,9 @@ export async function exportarEvidenciaFirmada(
     return data;
   });
 }
+
+/** FASE 6 cierre — persistencia idempotente de foto ya subida a Storage. */
+export async function guardarFotoEvidenciaSincronizada(cliente: Cliente, fila: Database["public"]["Tables"]["evidencia_fotos"]["Insert"]): Promise<void> {
+  const { error } = await cliente.from("evidencia_fotos").upsert(fila, { onConflict: "id" });
+  if (error) throw error;
+}

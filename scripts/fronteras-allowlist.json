@@ -1,0 +1,49 @@
+{
+  "app-usuario": [],
+  "app-conductor": [
+    {
+      "file": "lib/cola-offline.ts",
+      "kind": "from",
+      "max": 1,
+      "reason": "Storage directo requerido para sincronización offline de evidencia; la fila PostgREST ya se persiste vía @ruum/api/custody."
+    },
+    {
+      "file": "app/api/health/route.ts",
+      "kind": "from",
+      "max": 1,
+      "reason": "Health probe de infraestructura: verifica conectividad PostgREST sin ejecutar lógica de dominio."
+    },
+    {
+      "file": "app/viajes/[id]/CierreTrasladoDetails.tsx",
+      "kind": "from",
+      "max": 2,
+      "reason": "Uploads de comprobantes directamente a Supabase Storage; evita proxy de binarios y conserva reintentos del cliente."
+    },
+    {
+      "file": "app/viajes/[id]/SecondaryTripNavBar.tsx",
+      "kind": "from",
+      "max": 1,
+      "reason": "Upload de comprobante de gasto a Supabase Storage; metadata y gasto se persisten vía @ruum/api/drivers."
+    },
+    {
+      "file": "app/viajes/[id]/ReportarIncidencia.tsx",
+      "kind": "from",
+      "max": 1,
+      "reason": "Upload de evidencia de incidencia a Supabase Storage; la mutación de dominio permanece en @ruum/api."
+    }
+  ],
+  "panel-admin": [
+    {
+      "file": "app/usuarios/AccionesVerificacion.tsx",
+      "kind": "from",
+      "max": 1,
+      "reason": "Upload de documento de identidad directamente a Storage; validación y estado se gestionan en @ruum/api."
+    },
+    {
+      "file": "app/conductores/[id]/page.tsx",
+      "kind": "from",
+      "max": 1,
+      "reason": "Acceso directo al bucket documentos-conductor para URL/archivo; no es acceso PostgREST de dominio."
+    }
+  ]
+}

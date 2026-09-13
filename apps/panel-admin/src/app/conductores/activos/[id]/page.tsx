@@ -15,6 +15,7 @@ import {
   verificarVigenciasDocumentosConductor,
   solicitarAprobacionAdmin
 } from "@ruum/api/services";
+import { obtenerDocumentosConductorAdmin, obtenerSolicitudRecienteConductorAdmin } from "@ruum/api/drivers";
 
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];
 type DocumentoRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
@@ -128,23 +129,21 @@ export default function PaginaDetalleConductorAdmin() {
       const cliente = crearClienteNavegador();
       const c = await obtenerConductorAdmin(cliente, id);
       setConductor(c);
-      const consultarDocumentos = async () => cliente.from("documentos_conductor").select("*").eq("conductor_id", id).order("creado_en", { ascending: false });
-      const consultarSolicitud = async () => cliente.from("solicitudes_conductor").select("id").eq("conductor_id", id).order("actualizado_en", { ascending: false }).limit(1).maybeSingle();
       const [d, v, e, h, solicitud] = await Promise.all([
-        consultarDocumentos().catch(() => ({ data: [], error: null })),
+        obtenerDocumentosConductorAdmin(cliente, id).catch(() => []),
         obtenerVehiculosDeConductorAdmin(cliente, id).catch(() => []),
         obtenerEmpresaDeConductorAdmin(cliente, id).catch(() => null),
         obtenerHistorialEstatusConductorAdmin(cliente, id).catch(() => []),
         solicitudParam
-          ? Promise.resolve({ data: { id: solicitudParam }, error: null })
-          : consultarSolicitud().catch(() => ({ data: null, error: null }))
+          ? Promise.resolve({ id: solicitudParam })
+          : obtenerSolicitudRecienteConductorAdmin(cliente, id).catch(() => null)
       ]);
       void verificarVigenciasDocumentosConductor(cliente, id).catch(() => undefined);
-      if (!d.error) setDocumentos(d.data ?? []);
+      setDocumentos(d);
       setVehiculos(v);
       setEmpresa(e);
       setHistorial(h);
-      if (solicitud.data?.id) setPasaporteHref(`/conductores/${solicitud.data.id}`);
+      if (solicitud?.id) setPasaporteHref(`/conductores/${solicitud.id}`);
     } catch { setConductor(null); }
     finally { setCargando(false); }
   }, [id, solicitudParam]);

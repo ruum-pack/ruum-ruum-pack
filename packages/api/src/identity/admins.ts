@@ -19,3 +19,11 @@ export async function obtenerAdminIdParaAuditoria(cliente: Cliente): Promise<str
   }
   return admin.id;
 }
+
+export interface AdminBasico { id: string; nombre: string; rol_operativo: string | null }
+/** FASE 6 cierre — catálogo mínimo para capacidades, protegido por RLS. */
+export async function listarAdminsBasicos(cliente: Cliente): Promise<AdminBasico[]> {
+  const { data, error } = await cliente.from("admins").select("id,nombre,rol_operativo");
+  if (error) throw error;
+  return (data ?? []) as AdminBasico[];
+}

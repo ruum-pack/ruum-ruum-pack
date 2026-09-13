@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { Button } from "@ruum/ui";
 import { listarCatalogoCapacidades, listarCapacidadesAdmin, concederCapacidadAdmin, type CapacidadAdmin } from "@ruum/api/services";
+import { listarAdminsBasicos } from "@ruum/api/identity";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 import { AdminPageHeader } from "../admin-ui";
 import { AdminLoadingState, AdminErrorState, AdminDialog, AdminBadge } from "../admin-components";
@@ -34,14 +35,13 @@ export default function PaginaCapacidades() {
     try {
       const cliente = crearClienteNavegador();
       const [adminsData, catalogoData] = await Promise.all([
-        cliente.from("admins").select("id,nombre,rol_operativo").returns<AdminRow[]>(),
+        listarAdminsBasicos(cliente),
         listarCatalogoCapacidades(cliente)
       ]);
-      if (adminsData.error) throw adminsData.error;
-      setAdmins(adminsData.data ?? []);
+      setAdmins(adminsData as AdminRow[]);
       setCatalogo(catalogoData);
-      if (adminsData.data && adminsData.data.length > 0) {
-        setAdminSeleccionado((actual) => actual || adminsData.data[0].id);
+      if (adminsData.length > 0) {
+        setAdminSeleccionado((actual) => actual || adminsData[0].id);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudieron cargar los datos.");

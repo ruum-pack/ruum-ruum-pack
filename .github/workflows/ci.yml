@@ -773,3 +773,48 @@ jobs:
       - name: Stop local Supabase
         if: always()
         run: pnpm db:stop
+
+  architecture-golden-path:
+    name: Architecture golden path (F0-F15 gate)
+    needs:
+      - workspace
+      - sql-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start local Supabase
+        run: pnpm db:start
+
+      - name: Reset local database
+        run: pnpm db:reset
+
+      - name: Run F0-F15 architecture golden path
+        run: pnpm test:e2e:golden
+
+      - name: Stop local Supabase
+        if: always()
+        run: pnpm db:stop

@@ -660,3 +660,24 @@ export async function registrarCancelacionConductor(
 
   return consecuencia;
 }
+
+/** FASE 6 cierre — perfil público mínimo del conductor, protegido por RLS. */
+export async function obtenerFotoPerfilConductor(cliente: Cliente, conductorId: string): Promise<string | null> {
+  const { data, error } = await cliente.from("conductores").select("foto_perfil_url").eq("id", conductorId).maybeSingle();
+  if (error) throw error;
+  return data?.foto_perfil_url ?? null;
+}
+
+/** FASE 6 cierre — documentos del conductor visibles para su propia sesión (RLS). */
+export async function listarDocumentosConductor(cliente: Cliente, conductorId: string): Promise<DocumentoConductorRow[]> {
+  const { data, error } = await cliente.from("documentos_conductor").select("*").eq("conductor_id", conductorId).order("creado_en", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** FASE 6 cierre — ganancias de servicios cerrados desde una fecha, bajo RLS. */
+export async function listarGananciasCerradasConductorDesde(cliente: Cliente, conductorId: string, desdeIso: string) {
+  const { data, error } = await cliente.from("traslados").select("ganancia_conductor_congelada, precio_final, precio_cotizado").eq("conductor_id", conductorId).eq("estado", "servicio_cerrado").gte("cerrado_en", desdeIso);
+  if (error) throw error;
+  return data ?? [];
+}

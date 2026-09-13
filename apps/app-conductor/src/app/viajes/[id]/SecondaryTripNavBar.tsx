@@ -254,12 +254,7 @@ export function SecondaryTripNavBar({
     setErrorGasto(null);
     try {
       const cliente = crearClienteNavegador();
-      const { error: deleteError } = await cliente
-        .from("gastos_traslado")
-        .delete()
-        .eq("id", id);
-
-      if (deleteError) throw deleteError;
+      await eliminarGastoTraslado(cliente, id);
       setGastosList((prev) => prev.filter((g) => g.id !== id));
       setExitoGasto("Gasto eliminado correctamente.");
     } catch (err) {

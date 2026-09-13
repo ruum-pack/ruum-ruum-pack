@@ -3,6 +3,7 @@ import type { Database } from "@ruum/shared/types";
 import type { InspeccionEvidencia } from "./evidence-requirements";
 import { INSPECCION_INICIAL } from "./evidence-requirements";
 import { crearClienteNavegador } from "../../../../lib/supabase-browser";
+import { obtenerInspeccionTraslado } from "@ruum/api/drivers";
 
 type InspeccionRow = Database["public"]["Tables"]["evidencia_inspecciones"]["Row"];
 
@@ -69,22 +70,12 @@ export function useEvidenceComparison(trasladoId: string): EvidenciaComparada & 
       const cliente = crearClienteNavegador();
 
       const [inicialRes, finalRes] = await Promise.all([
-        cliente
-          .from("evidencia_inspecciones")
-          .select("*")
-          .eq("traslado_id", trasladoId)
-          .eq("tipo", "inicial")
-          .maybeSingle(),
-        cliente
-          .from("evidencia_inspecciones")
-          .select("*")
-          .eq("traslado_id", trasladoId)
-          .eq("tipo", "final")
-          .maybeSingle()
+        obtenerInspeccionTraslado(cliente, trasladoId, "inicial"),
+        obtenerInspeccionTraslado(cliente, trasladoId, "final")
       ]);
 
-      const evidenciaInicial = dataToInspeccion(inicialRes.data);
-      const evidenciaFinal = dataToInspeccion(finalRes.data);
+      const evidenciaInicial = dataToInspeccion(inicialRes);
+      const evidenciaFinal = dataToInspeccion(finalRes);
 
       setInicial(evidenciaInicial);
       setFinal(evidenciaFinal);

@@ -15,7 +15,7 @@ export type BorradorSolicitud = Pick<
   "datos_personales" | "domicilio" | "licencia" | "contacto_emergencia" | "paso_actual"
 >;
 
-export type DocumentoSolicitud = Pick<DocumentoRow, "tipo" | "estado" | "es_actual">;
+export type DocumentoSolicitud = DocumentoRow;
 
 export type ConsentimientoSolicitud = Pick<ConsentimientoRow, "tipo_documento" | "aceptado_en">;
 
@@ -38,7 +38,7 @@ export async function listarDocumentosSolicitud(
 ): Promise<DocumentoSolicitud[]> {
   const { data, error } = await cliente
     .from("documentos_conductor")
-    .select("tipo,estado,es_actual")
+    .select("*")
     .eq("solicitud_id", solicitudId)
     .eq("es_actual", true);
   if (error) throw error;

@@ -333,3 +333,10 @@ export interface DocumentoEmpresaAdmin {
   vigente_hasta?: string;
   notas?: string;
 }
+
+/** FASE 6 cierre — empresa visible para el usuario autenticado (RLS). */
+export async function obtenerEmpresaVisible(cliente: Cliente, empresaId: string): Promise<EmpresaRow | null> {
+  const { data, error } = await cliente.from("empresas").select("*").eq("id", empresaId).maybeSingle();
+  if (error) throw error;
+  return data;
+}

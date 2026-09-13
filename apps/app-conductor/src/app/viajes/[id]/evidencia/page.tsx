@@ -22,6 +22,7 @@ import { useEvidenceQueue } from "./useEvidenceQueue";
 import { fotoSrc } from "./evidence-requirements";
 import { SecondaryTripNavBar } from "../SecondaryTripNavBar";
 import { useLiveRegion } from "../../../../components/LiveRegionProvider";
+import { obtenerInspeccionTraslado, guardarInspeccionTraslado } from "@ruum/api/drivers";
 
 type PasaporteDigitalRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = "pendiente_de_conductor" | "conductor_asignado" | "conductor_en_camino_al_origen" | "conductor_en_punto_de_recoleccion" | "verificacion_vehiculo_en_proceso" | "evidencia_inicial_en_proceso" | "traslado_en_curso" | "llegada_a_destino" | "evidencia_final_en_proceso" | "servicio_cerrado";
@@ -105,14 +106,7 @@ export default function PaginaEvidencia() {
   // Load inspection from database
   const loadInspeccion = useCallback(async (tipoEvidencia: TipoEvidencia) => {
     const cliente = crearClienteNavegador();
-    const { data, error } = await cliente
-      .from("evidencia_inspecciones")
-      .select("*")
-      .eq("traslado_id", id)
-      .eq("tipo", tipoEvidencia)
-      .maybeSingle();
-
-    if (error) throw error;
+    const data = await obtenerInspeccionTraslado(cliente, id, tipoEvidencia);
     if (data) {
       if (data.kilometraje !== null) {
         setKilometraje(data.kilometraje.toLocaleString("es-MX"));
@@ -313,8 +307,7 @@ export default function PaginaEvidencia() {
 
     try {
       const cliente = crearClienteNavegador();
-      const { error: upsertError } = await cliente.from("evidencia_inspecciones").upsert(
-        {
+      await guardarInspeccionTraslado(cliente, {
           traslado_id: id,
           tipo,
           combustible: getFuelText(gasolinaSegments),
@@ -326,11 +319,7 @@ export default function PaginaEvidencia() {
           placa_delantera: placaDelantera,
           placa_trasera: placaTrasera,
           notas: notas.trim() || null
-        },
-        { onConflict: "traslado_id,tipo" }
-      );
-
-      if (upsertError) throw upsertError;
+        });
       setAvisoExito("Borrador guardado exitosamente.");
     } catch (err) {
       setError(traducirErrorOperativo(err, "No pudimos guardar el borrador."));
@@ -385,8 +374,7 @@ export default function PaginaEvidencia() {
       // First save current inspection
       const cleanKilometraje = Number(kilometraje.replace(/[^0-9]/g, ""));
       const cliente = crearClienteNavegador();
-      const { error: upsertError } = await cliente.from("evidencia_inspecciones").upsert(
-        {
+      await guardarInspeccionTraslado(cliente, {
           traslado_id: id,
           tipo,
           combustible: getFuelText(gasolinaSegments),
@@ -398,11 +386,7 @@ export default function PaginaEvidencia() {
           placa_delantera: placaDelantera,
           placa_trasera: placaTrasera,
           notas: notas.trim() || null
-        },
-        { onConflict: "traslado_id,tipo" }
-      );
-
-      if (upsertError) throw upsertError;
+        });
 
       // Call API to complete evidence
       const estadoEsperado = tipo === "inicial" ? "evidencia_inicial_en_proceso" : "evidencia_final_en_proceso";

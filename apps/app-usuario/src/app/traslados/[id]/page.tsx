@@ -615,14 +615,9 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
       // `pasaporte.usuario_id` referencia public.usuarios.id; no es el mismo
       // UUID que auth.users.id. Resolver primero el perfil evita rechazar
       // traslados legítimos como "no encontrados".
-      const { data: perfil, error: errorPerfil } = await clienteAuth
-        .from("usuarios")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .maybeSingle();
-
-      if (errorPerfil) throw errorPerfil;
-      if (!perfil || perfil.id !== pasaporte.usuario_id) {
+      const { obtenerUsuarioIdPorAuth } = await import("@ruum/api/identity");
+      const perfilId = await obtenerUsuarioIdPorAuth(clienteAuth, user.id);
+      if (!perfilId || perfilId !== pasaporte.usuario_id) {
         // Tratar como no encontrado para no filtrar existencia (IDOR)
         return (
           <main className="user-v2-scope user-v2-page user-v2-secondary-screen">

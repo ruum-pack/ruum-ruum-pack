@@ -442,3 +442,11 @@ export async function activarConductorAdmin(cliente: Cliente, conductorId: strin
     accion: "activacion_conductor"
   });
 }
+
+/** FASE 6 cierre — solicitud más reciente asociada a un conductor. */
+export async function obtenerSolicitudRecienteConductorAdmin(cliente: Cliente, conductorId: string): Promise<{ id: string } | null> {
+  await assertAdminPermission(cliente, "conductores:leer");
+  const { data, error } = await cliente.from("solicitudes_conductor").select("id").eq("conductor_id", conductorId).order("actualizado_en", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw error;
+  return data;
+}
