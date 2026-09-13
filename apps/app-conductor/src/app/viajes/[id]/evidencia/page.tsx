@@ -776,7 +776,7 @@ export default function PaginaEvidencia() {
                 </span>
                 <div className="flex items-center gap-1.5">
                   {gasolinaSegments > 0 && (
-                    <span className="font-display text-[8px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                    <span className="font-display text-[8px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
                       ✓ REGISTRADO
                     </span>
                   )}
