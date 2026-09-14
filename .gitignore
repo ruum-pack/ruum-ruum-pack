@@ -43,3 +43,10 @@ pnpm-debug.log*
 .vscode/
 .claude/
 Nueva carpeta/
+
+# Artefactos visuales y snapshots locales: no forman parte del código fuente.
+artifacts/
+artifacts-*.png
+apps/*/artifacts/
+apps/panel-admin/artifacts*
+C__inv_fronteras.*

@@ -8,16 +8,21 @@ import { join } from "node:path";
  * (`../app-usuario/...`) para no romper entornos ya generados.
  * Nunca depende de otra app en deploys por app (standalone/Vercel).
  */
-const CANDIDATOS = [
-  join(process.cwd(), "public", "data", "codigos-postales"),
-  join(process.cwd(), "..", "app-usuario", "public", "data", "codigos-postales"),
-];
+function candidatos(): string[] {
+  // Se calculan en cada llamada (no en la carga del módulo) para no congelar
+  // un cwd distinto al de ejecución (tests, standalone, workers).
+  return [
+    join(process.cwd(), "public", "data", "codigos-postales"),
+    join(process.cwd(), "..", "app-usuario", "public", "data", "codigos-postales"),
+  ];
+}
 
 export function dirDatosCP(): string {
-  const encontrado = CANDIDATOS.find((dir) => existsSync(dir));
+  const rutas = candidatos();
+  const encontrado = rutas.find((dir) => existsSync(dir));
   if (!encontrado) {
     throw new Error(
-      `Datos de códigos postales no encontrados (buscado en: ${CANDIDATOS.join(" | ")}). Ejecuta pnpm cp:generar.`,
+      `Datos de códigos postales no encontrados (buscado en: ${rutas.join(" | ")}). Ejecuta pnpm cp:generar.`,
     );
   }
   return encontrado;

@@ -93,6 +93,10 @@ jobs:
       - name: Security scanner regression tests (P0 SEC-006)
         run: pnpm test:security
 
+      - name: Audit dependencias (report-only — baseline 57 vulns 2026-09-14, endurecer a bloqueante tras triage)
+        continue-on-error: true
+        run: pnpm audit:deps
+
       - name: Assert CSP (SEC-002 — bloqueante, sin unsafe-eval en prod)
         run: pnpm --filter @ruum/app-conductor assert:csp
 
@@ -134,6 +138,9 @@ jobs:
 
       - name: App conductor tests
         run: pnpm --filter @ruum/app-conductor test
+
+      - name: Panel admin unit tests
+        run: pnpm --filter @ruum/panel-admin test
 
       - name: App conductor coverage (P0 gate — 30/30 bloqueante)
         run: pnpm --filter @ruum/app-conductor test:coverage
