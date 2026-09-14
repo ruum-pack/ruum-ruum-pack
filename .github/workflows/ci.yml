@@ -147,7 +147,7 @@ jobs:
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: app-conductor-coverage
           retention-days: 14
@@ -266,7 +266,7 @@ jobs:
 
       - name: Upload Playwright evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: app-conductor-critical-e2e
           retention-days: 14
@@ -372,7 +372,7 @@ jobs:
           sha256sum "$APK" | tee apps/app-conductor/android/app/build/outputs/apk/release/SHA256SUMS.txt
 
       - name: Upload signed APK evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: app-conductor-signed-release
           # Excepción release: APK firmada se conserva 90 días, no contiene PII de tests
@@ -454,7 +454,7 @@ jobs:
 
       - name: Upload Playwright evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: panel-admin-smoke-evidence
           retention-days: 14
@@ -518,7 +518,7 @@ jobs:
 
       - name: Upload k6 results
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: panel-admin-k6-results
           retention-days: 14
@@ -631,7 +631,7 @@ jobs:
 
       - name: Upload accessibility artifacts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: app-conductor-accessibility
           retention-days: 14
@@ -736,7 +736,7 @@ jobs:
 
       - name: Upload Lighthouse artifacts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: app-conductor-lighthouse
           retention-days: 14
