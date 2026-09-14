@@ -12,7 +12,7 @@
     "test:lighthouse": "lhci autorun",
     "typecheck": "tsc --noEmit",
     "predev": "node ../../scripts/validate-env.mjs panel-admin",
-    "prebuild": "node ../../scripts/validate-env.mjs panel-admin; node scripts/assert-csp.mjs",
+    "prebuild": "node ../../scripts/validate-env.mjs panel-admin && node scripts/assert-csp.mjs",
     "validate:env": "node ../../scripts/validate-env.mjs panel-admin",
     "assert:csp": "node scripts/assert-csp.mjs",
     "analyze:bundle": "ANALYZE=true next build"

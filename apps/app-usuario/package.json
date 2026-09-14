@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:lighthouse": "lhci autorun",
     "predev": "node ../../scripts/validate-env.mjs app-usuario",
-    "prebuild": "node ../../scripts/validate-env.mjs app-usuario; node scripts/assert-csp.mjs",
+    "prebuild": "node ../../scripts/validate-env.mjs app-usuario && node scripts/assert-csp.mjs",
     "validate:env": "node ../../scripts/validate-env.mjs app-usuario",
     "assert:csp": "node scripts/assert-csp.mjs",
     "analyze:bundle": "ANALYZE=true next build"
