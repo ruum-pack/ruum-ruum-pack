@@ -10,7 +10,7 @@ import {
 } from "@ruum/api/services";
 import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
 import { limpiarCanalesSeguros } from "@ruum/shared/utils";
-import { Aviso, EstadoBadge, PassportCard } from "@ruum/ui";
+import { Aviso, EstadoBadge, MapaEstatico, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 import { SkeletonMapa } from "../../components/SkeletonMapa";
@@ -214,14 +214,13 @@ export function SeguimientoTrasladoTiempoReal({
         </div>
 
         {mapaUrl ? (
-          <div className="mt-5 overflow-hidden rounded-lg border border-ink/10 bg-ink/5">
+          <div className="relative mt-5 h-72 overflow-hidden rounded-lg border border-ink/10 bg-ink/5">
             {!mapaCargado && <SkeletonMapa className="h-72 rounded-lg" />}
-            {/* eslint-disable-next-line @next/next/no-img-element -- Mapa estático generado por Mapbox para render ligero. */}
-            <img
+            <MapaEstatico
               src={mapaUrl}
               alt="Mapa con la ruta y la última ubicación del conductor"
               onLoad={() => actualizar({ mapaCargadoUrl: mapaUrl })}
-              className={mapaCargado ? "h-72 w-full object-cover" : "hidden"}
+              className={mapaCargado ? "object-cover" : "hidden"}
             />
           </div>
         ) : (

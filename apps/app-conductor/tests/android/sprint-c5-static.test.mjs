@@ -5,6 +5,7 @@ assert(!read("src/app/cuenta/datos-bancarios/page.tsx").includes("window.confirm
 assert(read("src/components/ConfirmDialog.tsx").includes('role="alertdialog"'));
 assert(!read("src/app/globals.css").includes('[class*="sm:'));
 assert(!/#[0-9a-f]{3,8}/i.test([...walk(path.join(root,"src"))].filter(p=>/\.(tsx?|css)$/.test(p)).map(p=>fs.readFileSync(p,"utf8")).join("\n")));
-assert(read("src/lib/observability.ts").includes("FORBIDDEN"));
+assert(read("src/lib/observability.ts").includes("@ruum/api/observability"));
+assert(read("../../packages/api/src/observability/index.ts").includes("FORBIDDEN"));
 console.log("Sprint C5 static checks: PASS");
 function* walk(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const p=path.join(dir,e.name); if(e.isDirectory()) yield* walk(p); else yield p;}}

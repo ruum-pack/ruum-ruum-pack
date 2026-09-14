@@ -1,4 +1,16 @@
+/**
+ * Fachada: la implementación vive en `@ruum/api/observability` (fuente única
+ * para conductor y usuario). Sanitización reforzada (claves + valores) y
+ * mirror Sentry con etiqueta `operational`.
+ *
+ * Nota: a diferencia de la versión anterior, no hay pre-check de sesión —
+ * el RPC decide; si no hay sesión el error se captura en silencio igual que
+ * antes. Ver `test/observability.test.ts`.
+ */
+import { crearRecordOperationalEvent, type OperationalSeverity } from "@ruum/api/observability";
 import { crearClienteNavegador } from "./supabase-browser";
+
+export type { OperationalSeverity };
 
 export type OperationalEvent =
   | "startup_failure"
@@ -12,57 +24,12 @@ export type OperationalEvent =
   | "native_crash"
   | "session_force_logout";
 
-export type OperationalSeverity = "info" | "warning" | "error";
+const record = crearRecordOperationalEvent({ etiquetaSentry: "operational", crearCliente: crearClienteNavegador });
 
-const FORBIDDEN = /curp|clabe|cuenta|tarjeta|token|signed|photo|foto|url/i;
-
-function appVersion(): string {
-  return process.env.NEXT_PUBLIC_APP_VERSION?.trim() || "1.0.0";
-}
-
-function sanitize(input: Record<string, unknown> = {}): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(input)
-      .filter(([k]) => !FORBIDDEN.test(k))
-      .map(([k, v]) => [k, typeof v === "string" ? v.slice(0, 240) : v])
-  );
-}
-
-/**
- * P0.3 — Observabilidad producción.
- * - Versionado dinámico desde NEXT_PUBLIC_APP_VERSION (no hardcode).
- * - Sanitiza PII, añade ruta y severidad.
- * - No rompe operación si Supabase no está configurado.
- */
-export async function recordOperationalEvent(
+export function recordOperationalEvent(
   type: OperationalEvent,
   details: Record<string, unknown> = {},
   severity: OperationalSeverity = "error"
-) {
-  try {
-    const client = crearClienteNavegador();
-    const { data: sessionData } = await client.auth.getSession();
-    if (!sessionData?.session) {
-      // El RPC en base de datos requiere rol autenticado; si no hay sesión activa omitir la llamada RPC
-      return;
-    }
-    const ruta = typeof window !== "undefined" ? window.location.pathname.slice(0, 120) : undefined;
-    const { registrarEventoOperativoApp } = await import("@ruum/api/operations");
-    await registrarEventoOperativoApp(client, {
-      tipo: type,
-      versionApp: appVersion(),
-      detalle: sanitize({ ...details, severity, ruta, timestamp: new Date().toISOString() })
-    });
-  } catch {
-    /* observability must never break operation */
-  }
-  // Mirror a Sentry si está configurado (no-op si no existe DSN)
-  try {
-    const w = typeof window !== "undefined" ? (window as unknown as { Sentry?: { captureMessage: (msg: string, opts: unknown) => void } }) : null;
-    if (w?.Sentry?.captureMessage) {
-      w.Sentry.captureMessage(`[operational:${type}]`, { level: severity, extra: details });
-    }
-  } catch {
-    /* ignore */
-  }
+): Promise<void> {
+  return record(type, details, severity);
 }

@@ -62,6 +62,24 @@
       "@ruum/api/obs": [
         "../../packages/api/src/obs/index.ts"
       ],
+      "@ruum/api/next-server": [
+        "../../packages/api/src/next-server/index.ts"
+      ],
+      "@ruum/api/next-browser": [
+        "../../packages/api/src/next-browser/index.ts"
+      ],
+      "@ruum/api/observability": [
+        "../../packages/api/src/observability/index.ts"
+      ],
+      "@ruum/api/feature-flags": [
+        "../../packages/api/src/feature-flags/index.ts"
+      ],
+      "@ruum/api/capacitor": [
+        "../../packages/api/src/capacitor/index.ts"
+      ],
+      "@ruum/api/ubicacion": [
+        "../../packages/api/src/ubicacion/index.ts"
+      ],
       "@ruum/shared": [
         "../../packages/shared/src/index.ts"
       ],

@@ -4,7 +4,7 @@ import type { Database } from "@ruum/shared/types";
 import { createLogger, errorCode } from "@ruum/shared/utils";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "./supabase-browser";
 import { withTimeout } from "./with-timeout";
-import { pLimit } from "./p-limit";
+import { pLimit } from "@ruum/shared/utils";
 
 // PERF-004 — timeouts + rate limit para sync offline
 const TIMEOUT_UPLOAD_MS = 15_000;

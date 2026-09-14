@@ -511,7 +511,15 @@ export async function obtenerAlertasVencimientoConductores(
     .lte("expira_en", fechaLimite.toISOString())
     .gte("expira_en", new Date().toISOString());
   if (error) throw error;
-  return (data ?? []).map((d: any) => ({
+  interface DocumentoConductorNombre {
+    conductor_id: string;
+    id: string;
+    tipo: string;
+    // Garantizado non-null por el filtro `.not("expira_en", "is", null)` del query.
+    expira_en: string;
+    conductores: { nombre: string } | null;
+  }
+  return ((data ?? []) as DocumentoConductorNombre[]).map((d) => ({
     conductor_id: d.conductor_id,
     conductor_nombre: d.conductores?.nombre ?? "Desconocido",
     tipo_documento: d.tipo,
@@ -534,7 +542,12 @@ export async function verificarVigenciasDocumentosConductor(
 }> {
   const docs = await obtenerDocumentosConductorAdmin(cliente, conductorId);
   const obligatorios = ["licencia_frente", "licencia_reverso", "identificacion_oficial"] as const;
-  const resultado: any = {};
+  type TipoObligatorio = (typeof obligatorios)[number];
+  const resultado: Record<TipoObligatorio, { vigente: boolean; expira_en: string | null }> = {
+    licencia_frente: { vigente: false, expira_en: null },
+    licencia_reverso: { vigente: false, expira_en: null },
+    identificacion_oficial: { vigente: false, expira_en: null }
+  };
   for (const tipo of obligatorios) {
     const doc = docs.find((d) => d.tipo === tipo && d.estado === "aprobado");
     if (!doc) {

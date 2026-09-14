@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MapaEstatico } from "@ruum/ui";
 import { validarDimensionesMinimasImagen } from "@ruum/shared/utils";
 import { enmascararNombreArchivo } from "../cuenta/datos-sensibles";
 import type { EstadoDocumento } from "./registration-types";
@@ -171,8 +172,7 @@ export function DocumentUploadField({
         <div className="flex w-full max-w-full min-w-0 flex-col gap-3 rounded-[10px] border border-dashed border-border-strong bg-surface-elevated/30 p-3 transition-all hover:border-route-action sm:flex-row sm:items-center">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {previewUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- preview local de un File antes de subir, next/image no soporta blob: directamente
-              <img src={previewUrl} alt="" className="size-11 shrink-0 rounded-lg object-cover ring-1 ring-border" loading="lazy" decoding="async" />
+              <MapaEstatico src={previewUrl} alt="" width={44} height={44} className="shrink-0 rounded-lg object-cover ring-1 ring-border" />
             ) : (
               <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-surface-elevated font-body text-xs font-semibold text-text-tertiary" aria-hidden>
                 PDF

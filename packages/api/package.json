@@ -18,7 +18,13 @@
     "./claims": "./src/claims/index.ts",
     "./billing": "./src/billing/index.ts",
     "./sla": "./src/sla/index.ts",
-    "./obs": "./src/obs/index.ts"
+    "./obs": "./src/obs/index.ts",
+    "./next-server": "./src/next-server/index.ts",
+    "./next-browser": "./src/next-browser/index.ts",
+    "./observability": "./src/observability/index.ts",
+    "./feature-flags": "./src/feature-flags/index.ts",
+    "./capacitor": "./src/capacitor/index.ts",
+    "./ubicacion": "./src/ubicacion/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
@@ -33,8 +39,11 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "vitest": "^2.1.9",
+    "vitest": "^2.1.8",
     "typescript": "^5.7.2",
-    "@types/node": "^22.10.0"
+    "@types/node": "^22.10.0",
+    "next": "15.5.23",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/geolocation": "^8.2.0"
   }
 }

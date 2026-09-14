@@ -15,5 +15,6 @@ export * from "./EstadoStepper";
 export * from "./Card";
 export * from "./PassportCard";
 export * from "./Chat";
+export * from "./MapaEstatico";
 export * from "./estado-visual";
 export * from "./etapas";

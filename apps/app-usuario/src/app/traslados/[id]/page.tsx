@@ -19,7 +19,7 @@ import {
   obtenerTrasladoConRelaciones,
   obtenerVehiculoTraslado
 } from "@ruum/api/transfers";
-import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
+import { Aviso, EstadoBadge, EstadoStepper, MapaEstatico, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_INCIDENCIA, ETIQUETA_TIPO_VEHICULO, MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
 import type { Database } from "@ruum/shared/types";

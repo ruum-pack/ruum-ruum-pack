@@ -15,10 +15,11 @@
  * Uso:
  *   node generar-codigos-postales-mx.mjs <ruta-json-sepomex> <dir-salida> [...dirs-salida-extra]
  *
- * Ejemplo (copia el resultado a las dos apps que lo consumen):
+ * Ejemplo (copia el resultado a las dos apps que lo consumen —
+ * ver `cp:generar` en el package.json raíz):
  *   node generar-codigos-postales-mx.mjs ./cp_mexico_full.json \
- *     ../../apps/app-conductor/public/data/codigos-postales \
- *     ../../apps/app-usuario/public/data/codigos-postales
+ *     ../../apps/app-usuario/public/data/codigos-postales \
+ *     ../../apps/panel-admin/public/data/codigos-postales
  */
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

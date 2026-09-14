@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@ruum/shared/types";
+import type { Database, Json } from "@ruum/shared/types";
 import { assertAdminAnyPermission, assertAdminPermission } from "../services/permisos-admin";
 import { registrarEvento } from "../services/auditoria";
 
@@ -237,7 +237,7 @@ export async function actualizarVehiculoAdmin(
   if (versionEsperada !== undefined) {
     const { data: rpcData, error: rpcError } = await cliente.rpc("admin_actualizar_vehiculo", {
       p_vehiculo_id: vehiculoId,
-      p_datos: datosValidados as any,
+      p_datos: datosValidados as unknown as Json,
       p_version_esperada: versionEsperada
     });
     if (rpcError) {

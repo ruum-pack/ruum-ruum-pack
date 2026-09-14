@@ -349,14 +349,23 @@ importers:
         specifier: ^3.24.1
         version: 3.25.76
     devDependencies:
+      '@capacitor/core':
+        specifier: ^8.4.1
+        version: 8.4.1
+      '@capacitor/geolocation':
+        specifier: ^8.2.0
+        version: 8.2.0(@capacitor/core@8.4.1)
       '@types/node':
         specifier: ^22.10.0
         version: 22.20.0
+      next:
+        specifier: 15.5.23
+        version: 15.5.23(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.20.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
       vitest:
-        specifier: ^2.1.9
+        specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.0)(@vitest/ui@2.1.9)(jsdom@30.0.1)(lightningcss@1.32.0)(terser@5.49.0)
 
   packages/shared:

@@ -1,20 +1,20 @@
-import { crearClienteNavegador } from "./supabase-browser";
-
 /**
  * P1 Observabilidad App Usuario
- * Eventos prioritarios:
- * - login
- * - callback Auth
- * - recuperación
- * - cotización
- * - geocodificación
- * - Stripe (Elements / Payment Intents)
- * - creación de traslado
- * - errores Supabase
  *
- * Regla de seguridad estricta: NUNCA enviar passwords, tokens, JWT, service roles,
- * documentos, números de tarjeta ni PII innecesaria.
+ * Fachada: la implementación vive en `@ruum/api/observability` (fuente única
+ * para conductor y usuario). Eventos y severidades propios de usuario; el
+ * contrato (sanitizeDetails, firma de recordOperationalEvent, etiqueta
+ * Sentry `usuario`) se conserva intacto — ver `test/observability-usuario.test.ts`.
  */
+import {
+  crearRecordOperationalEvent,
+  sanitizeDetails,
+  type OperationalSeverity
+} from "@ruum/api/observability";
+import { crearClienteNavegador } from "./supabase-browser";
+
+export { sanitizeDetails };
+export type { OperationalSeverity };
 
 export type UsuarioOperationalEvent =
   | "login_failure"
@@ -34,70 +34,12 @@ export type UsuarioOperationalEvent =
   | "supabase_error"
   | "startup_failure";
 
-export type OperationalSeverity = "info" | "warning" | "error";
+const record = crearRecordOperationalEvent({ etiquetaSentry: "usuario", crearCliente: crearClienteNavegador });
 
-const FORBIDDEN_KEYS = /password|token|jwt|service_role|secret|curp|clabe|cuenta|tarjeta|cvv|documento|foto|url_firmada|auth_header|bearer/i;
-const SENSITIVE_VALUES_PATTERN = /eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}|bearer\s+[a-zA-Z0-9_\-\.]+|sk_(?:live|test)_[a-zA-Z0-9]+/i;
-
-function appVersion(): string {
-  return process.env.NEXT_PUBLIC_APP_VERSION?.trim() || "1.0.0";
-}
-
-export function sanitizeDetails(input: Record<string, unknown> = {}): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(input)
-      .filter(([k]) => !FORBIDDEN_KEYS.test(k))
-      .map(([k, v]) => {
-        if (typeof v === "string") {
-          if (SENSITIVE_VALUES_PATTERN.test(v)) {
-            return [k, "[REDACTED_SECRET]"];
-          }
-          return [k, v.slice(0, 240)];
-        }
-        if (typeof v === "object" && v !== null && !Array.isArray(v)) {
-          return [k, sanitizeDetails(v as Record<string, unknown>)];
-        }
-        return [k, v];
-      })
-  );
-}
-
-export async function recordOperationalEvent(
+export function recordOperationalEvent(
   type: UsuarioOperationalEvent,
   details: Record<string, unknown> = {},
   severity: OperationalSeverity = "error"
-) {
-  const sanitized = sanitizeDetails({
-    ...details,
-    severity,
-    ruta: typeof window !== "undefined" && typeof window.location?.pathname === "string"
-      ? window.location.pathname.slice(0, 120)
-      : undefined,
-    timestamp: new Date().toISOString()
-  });
-
-  try {
-    const client = crearClienteNavegador();
-    const { registrarEventoOperativoApp } = await import("@ruum/api/operations");
-    await registrarEventoOperativoApp(client, {
-      tipo: type,
-      versionApp: appVersion(),
-      detalle: sanitized
-    });
-  } catch {
-    /* observability must never break operation */
-  }
-
-  // Mirror seguro a Sentry si está disponible en cliente
-  try {
-    const w = typeof window !== "undefined" ? (window as unknown as { Sentry?: { captureMessage: (msg: string, opts: unknown) => void; captureException: (err: unknown, opts: unknown) => void } }) : null;
-    if (w?.Sentry?.captureMessage) {
-      w.Sentry.captureMessage(`[usuario:${type}]`, {
-        level: severity,
-        extra: sanitized
-      });
-    }
-  } catch {
-    /* ignore */
-  }
+): Promise<void> {
+  return record(type, details, severity);
 }

@@ -11,7 +11,7 @@ export interface CanalSuscribible {
 }
 
 export interface ClienteConRemoveChannel {
-  removeChannel(channel: any): Promise<any>;
+  removeChannel(channel: unknown): Promise<unknown>;
 }
 
 /**
@@ -59,7 +59,7 @@ export function suscribirCanalSeguro<C extends CanalSuscribible = CanalSuscribib
  */
 export async function limpiarCanalesSeguros(
   cliente: ClienteConRemoveChannel,
-  canales: Array<any>
+  canales: Array<unknown>
 ): Promise<void> {
   const validos = canales.filter((c) => c != null);
   if (validos.length === 0) return;

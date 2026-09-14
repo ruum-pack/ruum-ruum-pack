@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Aviso } from "@ruum/ui";
+import { Aviso, MapaEstatico } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { AnguloEvidencia, Database, FotoEvidencia, TipoEvidencia } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
@@ -657,8 +657,7 @@ export default function PaginaEvidencia() {
                 >
                   {src ? (
                     <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={src} alt={`Foto ${label.toLowerCase()}`} className="absolute inset-0 h-full w-full object-cover" />
+                      <MapaEstatico src={src} alt={`Foto ${label.toLowerCase()}`} className="object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" aria-hidden />
                       <span className={`absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shadow-md ${sincronizada ? "bg-signal text-slate-950" : "bg-amber-500 text-white"}`}>
                         {sincronizada ? "✓" : "↻"}

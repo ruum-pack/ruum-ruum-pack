@@ -9,7 +9,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:unit": "turbo run test --filter=./packages/*",
-    "cp:generar": "node scripts/generar-codigos-postales.mjs cp_mexico_full.json apps/app-usuario/public/data/codigos-postales; node scripts/generar-codigos-postales.mjs cp_mexico_full.json apps/panel-admin/public/data/codigos-postales",
+    "cp:generar": "node packages/shared/scripts/generar-codigos-postales-mx.mjs cp_mexico_full.json apps/app-usuario/public/data/codigos-postales apps/panel-admin/public/data/codigos-postales",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",

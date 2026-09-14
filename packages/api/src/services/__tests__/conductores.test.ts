@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { crearClienteFake } from "./supabase-fake";
+import { crearClienteFake, type LlamadaTabla } from "./supabase-fake";
 import {
   TAMANO_MAX_DOCUMENTO_BYTES,
   TAMANO_MAX_FOTO_PERFIL_BYTES,
@@ -138,28 +138,8 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
 
   describe("obtenerGananciasConductor — Promise.all 3 queries", () => {
     it("retorna datos agregados y valida concurrencia", async () => {
-      const bancarios = { id: "b1", clabe: "123" };
-      const payouts = [{ id: "p1" }];
-      const traslados = [{ id: "t1", vehiculos: { marca: "Nissan" } }];
-      // Fake necesita distinguir tablas por llamada; como QueryFake reutiliza mismo resultado,
-      // mockeamos from para devolver datos distintos por tabla
-      const cliente: any = {
-        auth: { getUser: vi.fn(async () => ({ data: { user: { id: "u1" } }, error: null })) },
-        from: vi.fn((tabla: string) => {
-          const mapas: Record<string, any> = {
-            datos_bancarios_conductor: { data: bancarios, error: null },
-            payouts_conductor: { data: payouts, error: null },
-            traslados: { data: traslados, error: null },
-          };
-          const res = mapas[tabla] ?? { data: null, error: null };
-          return {
-            select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve(res), order: () => res, data: res.data, error: res.error }) }),
-            // para traslados: select(...).eq(...).order(...)
-            // simplificamos: from().select().eq().order() debe resolver
-          } as any;
-        }),
-      };
       // Mock más fiel: encadenamiento select->eq->order y select->eq->maybeSingle
+      // obtenerGanancias usa maybeSingle para bancarios, pero payouts/traslados usan .order (thenable)
       // Usamos crearClienteFake con override manual para este caso
       // En este test, verificamos que Promise.all se ejecuta sin error si cada query ok
       // Para no fragilizar, testeamos vía integración ligera usando fake real con datos únicos por tabla secuencial
@@ -185,7 +165,7 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
         numeroTarjeta: " 4111 1111 1111 1111 ",
       });
       expect(res).toEqual({ id: "db1" });
-      const llamada = cliente.llamadas.find((l: any) => l.action === "conductor_guarda_datos_bancarios");
+      const llamada = cliente.llamadas.find((l: LlamadaTabla) => l.action === "conductor_guarda_datos_bancarios");
       expect(llamada.args[0].p_titular_cuenta).toBe("Juan Pérez");
       expect(llamada.args[0].p_clabe).toBe("123456789012345678");
       expect(llamada.args[0].p_banco).toBe("BBVA");
@@ -193,7 +173,7 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
     it("convierte numeroTarjeta vacío a null", async () => {
       const cliente = crearClienteFake({ rpcs: { conductor_guarda_datos_bancarios: { data: { id: "1" } } } }) as any;
       await guardarDatosBancariosConductor(cliente, { titularCuenta: "A", banco: "B", clabe: "123", numeroTarjeta: "   " });
-      const llamada = cliente.llamadas.find((l: any) => l.action === "conductor_guarda_datos_bancarios");
+      const llamada = cliente.llamadas.find((l: LlamadaTabla) => l.action === "conductor_guarda_datos_bancarios");
       expect(llamada.args[0].p_numero_tarjeta).toBeNull();
     });
     it("lanza si RPC devuelve error", async () => {
@@ -251,7 +231,7 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
       // Mock para que from().upsert sea thenable sin error
       await guardarPreferenciasConductor(cliente, "cond-1", { modo_no_molestar: false } as any);
       expect(cliente.from).toHaveBeenCalledWith("preferencias_conductor");
-      const llamada = cliente.llamadas.find((l: any) => l.action === "upsert");
+      const llamada = cliente.llamadas.find((l: LlamadaTabla) => l.action === "upsert");
       expect(llamada).toBeDefined();
     });
   });
@@ -268,7 +248,7 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
       const cliente = crearClienteFake({ rpcs: { guardar_borrador_conductor: { data: [fila] } } }) as any;
       const res = await guardarBorradorConductor(cliente, { datosPersonales: {}, domicilio: {}, licencia: {}, contactoEmergencia: {} } as any, 2);
       expect(res.pasoActual).toBe(2);
-      const llamada = cliente.llamadas.find((l: any) => l.action === "guardar_borrador_conductor");
+      const llamada = cliente.llamadas.find((l: LlamadaTabla) => l.action === "guardar_borrador_conductor");
       expect(llamada.args[0].p_paso_actual).toBe(2);
     });
     it("enviarSolicitudConductor propaga error si RPC falla", async () => {
@@ -316,10 +296,10 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
       await expect(subirFotoPerfilConductor(cliente, "cond-1", mockFile("perfil.jpg", 5000, "image/jpeg"))).rejects.toThrow("Cambios enviados a revisión");
       expect(cliente.storage.from).toHaveBeenCalledWith("fotos-perfil-conductor");
       // verifica que se llamó RPC solicitar_cambio, no update directo
-      const rpcCall = cliente.llamadas.find((l: any) => l.action === "solicitar_cambio_expediente_conductor");
+      const rpcCall = cliente.llamadas.find((l: LlamadaTabla) => l.action === "solicitar_cambio_expediente_conductor");
       expect(rpcCall).toBeDefined();
       expect(rpcCall.args[0].p_cambios.foto_perfil_url).toBe("cond-1/perfil.jpg");
-      const updateCall = cliente.llamadas.find((l: any) => l.table === "conductores" && l.action === "update");
+      const updateCall = cliente.llamadas.find((l: LlamadaTabla) => l.table === "conductores" && l.action === "update");
       expect(updateCall).toBeUndefined();
     });
     it("usa mimeMap fallback si type es octet-stream", async () => {
@@ -328,7 +308,7 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
         rpcs: { solicitar_cambio_expediente_conductor: { data: { solicitud_id: "sol-123", estado: "pendiente", tipo: "foto_perfil", mensaje: "Cambios enviados a revisión" } } },
       }) as any;
       await expect(subirFotoPerfilConductor(cliente, "cond-1", mockFile("perfil.webp", 1000, "application/octet-stream"))).rejects.toThrow("Cambios enviados a revisión");
-      const uploadCall = cliente.llamadas.find((l: any) => l.action === "upload");
+      const uploadCall = cliente.llamadas.find((l: LlamadaTabla) => l.action === "upload");
       expect(uploadCall.args[1].contentType).toBe("image/webp"); // mapeado desde extensión
     });
     it("propaga error de storage", async () => {
@@ -378,7 +358,7 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
       expect(res.estado).toBe("actualizado");
       expect(res.mensaje).toBe("Cambios guardados");
       expect(res.solicitud_id).toBeNull();
-      const llamada = cliente.llamadas.find((l: any) => l.action === "solicitar_cambio_expediente_conductor");
+      const llamada = cliente.llamadas.find((l: LlamadaTabla) => l.action === "solicitar_cambio_expediente_conductor");
       expect(llamada.args[0].p_cambios.nombre).toBe("Juan Nuevo");
     });
 
@@ -392,7 +372,7 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
       expect(res.solicitud_id).toBe("sol-123");
       expect(res.mensaje).toBe("Cambios enviados a revisión");
       // Verificar que no se hizo update directo en conductores (solo RPC)
-      const updateDirecto = cliente.llamadas.find((l: any) => l.table === "conductores" && l.action === "update");
+      const updateDirecto = cliente.llamadas.find((l: LlamadaTabla) => l.table === "conductores" && l.action === "update");
       expect(updateDirecto).toBeUndefined();
     });
 
@@ -431,7 +411,7 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
       }) as any;
       const res = await aprobarSolicitudCambioConductorAdmin(cliente, "sol-123");
       expect(res.estado).toBe("aprobado");
-      const llamada = cliente.llamadas.find((l: any) => l.action === "aprobar_solicitud_cambio_conductor");
+      const llamada = cliente.llamadas.find((l: LlamadaTabla) => l.action === "aprobar_solicitud_cambio_conductor");
       expect(llamada.args[0].p_solicitud_id).toBe("sol-123");
     });
 
@@ -441,7 +421,7 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
       }) as any;
       const res = await rechazarSolicitudCambioConductorAdmin(cliente, "sol-123", "Documento ilegible, envía foto más nítida");
       expect(res.estado).toBe("rechazado");
-      const llamada = cliente.llamadas.find((l: any) => l.action === "rechazar_solicitud_cambio_conductor");
+      const llamada = cliente.llamadas.find((l: LlamadaTabla) => l.action === "rechazar_solicitud_cambio_conductor");
       expect(llamada.args[0].p_motivo).toBe("Documento ilegible, envía foto más nítida");
     });
 
@@ -477,7 +457,7 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
     it("cancelarSolicitudCambioConductor llama RPC correcto", async () => {
       const cliente = crearClienteFake({ rpcs: { cancelar_solicitud_cambio_conductor: { data: { solicitud_id: "sol-1", estado: "cancelado" } } } }) as any;
       await expect(cancelarSolicitudCambioConductor(cliente, "sol-1")).resolves.toBeUndefined();
-      const llamada = cliente.llamadas.find((l: any) => l.action === "cancelar_solicitud_cambio_conductor");
+      const llamada = cliente.llamadas.find((l: LlamadaTabla) => l.action === "cancelar_solicitud_cambio_conductor");
       expect(llamada.args[0].p_solicitud_id).toBe("sol-1");
     });
 

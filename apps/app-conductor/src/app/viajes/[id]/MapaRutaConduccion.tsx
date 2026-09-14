@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MapaEstatico } from "@ruum/ui";
 import { obtenerUbicacionActual } from "@/lib/ubicacion";
 import {
   construirUrlMapaRutaConduccion,
@@ -73,13 +74,10 @@ export function MapaRutaConduccion({ origen, destino }: MapaRutaConduccionProps)
 
   return (
     <div className="h-44 w-full rounded-xl border border-border/30 overflow-hidden relative">
-      {/* eslint-disable-next-line @next/next/no-img-element -- imagen estática externa de Mapbox */}
-      <img
+      <MapaEstatico
         src={urlMapa}
         alt="Mapa del trayecto desde origen hasta el destino del traslado"
-        className="w-full h-full object-cover"
-        loading="lazy"
-        decoding="async"
+        className="object-cover"
         sizes="(max-width: 767px) 100vw, 400px"
       />
     </div>

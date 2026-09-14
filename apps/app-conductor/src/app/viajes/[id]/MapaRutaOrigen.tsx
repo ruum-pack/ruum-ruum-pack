@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MapaEstatico } from "@ruum/ui";
 import { obtenerUbicacionActual } from "@/lib/ubicacion";
 import { construirUrlMapaRutaOrigen, tieneMapboxConfigurado, type PuntoMapa } from "@/lib/mapbox-rutas";
 
@@ -49,14 +50,13 @@ export function MapaRutaOrigen({ destino }: MapaRutaOrigenProps) {
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- imagen remota de Mapbox Static API, no un asset local optimizable.
-    <img
-      src={urlMapa}
-      alt="Mapa de la ruta hacia el punto de recolección"
-      className="h-40 w-full rounded-xl border border-border object-cover"
-      loading="lazy"
-      decoding="async"
-      sizes="(max-width: 767px) 100vw, 400px"
-    />
+    <div className="relative h-40 w-full overflow-hidden rounded-xl border border-border">
+      <MapaEstatico
+        src={urlMapa}
+        alt="Mapa de la ruta hacia el punto de recolección"
+        className="object-cover"
+        sizes="(max-width: 767px) 100vw, 400px"
+      />
+    </div>
   );
 }

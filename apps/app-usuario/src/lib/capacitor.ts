@@ -1,6 +1,5 @@
-import { Capacitor } from "@capacitor/core";
-
-/** true solo dentro del shell nativo (Android/iOS empacado); false en navegador. */
-export function esNativo(): boolean {
-  return Capacitor.isNativePlatform();
-}
+/**
+ * Fachada: la implementación vive en `@ruum/api/capacitor` (fuente única).
+ * Se conserva esta ruta para no romper call sites ni mocks de tests.
+ */
+export { esNativo } from "@ruum/api/capacitor";

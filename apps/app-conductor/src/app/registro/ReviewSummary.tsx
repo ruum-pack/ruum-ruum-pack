@@ -1,4 +1,5 @@
 import { useMemo, useEffect } from "react";
+import { MapaEstatico } from "@ruum/ui";
 import { enmascararNombreArchivo } from "../cuenta/datos-sensibles";
 
 export function ReviewSummary({ titulo, valores, onEditar }: { titulo: string; valores: Array<string | undefined>; onEditar?: () => void }) {
@@ -48,12 +49,12 @@ export function DocumentoPreview({ archivo }: { archivo: File | null }) {
   return (
     <div className="flex items-center gap-2">
       {previewUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- preview local de un File antes de subir, next/image no soporta blob: directamente
-        <img
+        <MapaEstatico
           src={previewUrl}
           alt=""
-          className="size-10 shrink-0 rounded-lg object-cover ring-1 ring-border"
-          loading="lazy"
+          width={40}
+          height={40}
+          className="shrink-0 rounded-lg object-cover ring-1 ring-border"
         />
       ) : (
         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-elevated font-body text-xs font-semibold text-text-secondary" aria-hidden>
