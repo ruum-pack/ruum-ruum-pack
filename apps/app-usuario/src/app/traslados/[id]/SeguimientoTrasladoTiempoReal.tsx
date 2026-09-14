@@ -12,9 +12,9 @@ import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
 import { limpiarCanalesSeguros } from "@ruum/shared/utils";
 import { Aviso, EstadoBadge, PassportCard } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 import { SkeletonMapa } from "../../components/SkeletonMapa";
-import { useTrasladoRealtime } from "../../../state/AppStateProvider";
+import { useTrasladoRealtime } from "@/state/AppStateProvider";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 

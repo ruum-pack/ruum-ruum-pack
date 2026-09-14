@@ -6,7 +6,7 @@ import { Aviso, Button, Field } from "@ruum/ui";
 import { ETIQUETA_TIPO_INCIDENCIA } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { reportarIncidencia } from "@ruum/api/services";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 
 type TipoIncidencia = Database["public"]["Enums"]["tipo_incidencia"];
 type MomentoIncidencia = Database["public"]["Enums"]["momento_incidencia"];

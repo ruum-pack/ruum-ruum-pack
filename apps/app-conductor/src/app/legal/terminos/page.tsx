@@ -1,5 +1,5 @@
 import Link from "next/link";
-import appVersion from "../../../../../../config/app-version.json";
+import appVersion from "@ruum/app-version";
 
 export const metadata = {
   title: "Términos y condiciones — Ruum Ruum Conductor"

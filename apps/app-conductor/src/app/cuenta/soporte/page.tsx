@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card } from "@ruum/ui";
-import { CONTACTOS_SOPORTE_CONDUCTOR } from "../../../lib/contactos-soporte";
+import { CONTACTOS_SOPORTE_CONDUCTOR } from "@/lib/contactos-soporte";
 import { CuentaHeader } from "../CuentaHeader";
 
 export default function PaginaSoporteCuenta() {

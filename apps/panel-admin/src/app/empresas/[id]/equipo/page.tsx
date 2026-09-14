@@ -23,9 +23,9 @@ import {
   listarSucursales,
   removerMiembro
 } from "@ruum/api/services";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
-import { AdminPageHeader } from "../../../admin-ui";
-import { AdminEmptyState, AdminErrorState, AdminLoadingState } from "../../../admin-components";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
+import { AdminPageHeader } from "@/app/admin-ui";
+import { AdminEmptyState, AdminErrorState, AdminLoadingState } from "@/app/admin-components";
 
 export default function PaginaEquipoEmpresa() {
   const { id } = useParams<{ id: string }>();

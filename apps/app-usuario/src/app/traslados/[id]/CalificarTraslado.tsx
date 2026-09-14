@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@ruum/ui";
 import { MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { crearCalificacion } from "@ruum/api/services";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 
 export function CalificarTraslado({
   trasladoId,

@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { calcularRutaMapbox, calcularRutaMapboxConParadas, geocodificarDireccion } from "../../../../lib/mapbox";
+import { calcularRutaMapbox, calcularRutaMapboxConParadas, geocodificarDireccion } from "@/lib/mapbox";
 
 export function useGeocodificacion() {
   // useCallback con deps vacías: geocodificarRuta debe mantener la misma

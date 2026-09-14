@@ -3,7 +3,7 @@ import React, { memo, useMemo } from "react";
 import { Field, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { PrevisualizacionTarifa } from "@ruum/api/services";
-import { MARCAS_CATALOGO } from "../../../../lib/catalogo-vehiculos";
+import { MARCAS_CATALOGO } from "@/lib/catalogo-vehiculos";
 import { CONDICIONES_VEHICULO, ESTADOS_GENERALES_VEHICULO } from "../constants";
 import type { CondicionVehiculo, DatosFormulario, ErroresFormulario, TransmisionVehiculo, VehiculoGuardado } from "../types";
 

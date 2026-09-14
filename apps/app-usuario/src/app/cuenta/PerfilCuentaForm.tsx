@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Aviso, Button, Field } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
-import { actualizarPerfilUsuario, subirFotoPerfil } from "@ruum/api/services";
+import { actualizarPerfilUsuario, obtenerUrlFotoPerfilUsuario, subirFotoPerfil } from "@ruum/api/services";
 import { consultarCodigoPostalMx } from "../../lib/codigos-postales";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
@@ -77,11 +77,12 @@ function domicilioCompleto({
     .join(", ");
 }
 
-export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
+export function PerfilCuentaForm({ usuario, fotoUrlInicial }: { usuario: Usuario; fotoUrlInicial?: string | null }) {
   const nombreInicial = separarNombreApellido(usuario.nombre);
   const [nombre, setNombre] = useState(nombreInicial.nombre);
   const [apellido, setApellido] = useState(nombreInicial.apellido);
-  const [fotoUrl, setFotoUrl] = useState(usuario.foto_url ?? "");
+  const [fotoPath, setFotoPath] = useState(usuario.foto_url ?? "");
+  const [fotoUrl, setFotoUrl] = useState(fotoUrlInicial ?? "");
   const [telefono, setTelefono] = useState(telefonoLocalMx(usuario.telefono));
   const [pais, setPais] = useState(usuario.pais ?? "México");
   const [estado, setEstado] = useState(usuario.estado ?? "");
@@ -175,7 +176,7 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
     try {
       await actualizarPerfilUsuario(crearClienteNavegador(), {
         nombre: nombreCompleto(nombre, apellido),
-        foto_url: fotoUrl.trim() || null,
+        foto_url: fotoPath.trim() || null,
         telefono: telefonoMx(telefono),
         pais: pais.trim() || "México",
         estado: estado.trim(),
@@ -212,8 +213,10 @@ export function PerfilCuentaForm({ usuario }: { usuario: Usuario }) {
 
     setSubiendoFoto(true);
     try {
-      const nuevaFotoUrl = await subirFotoPerfil(crearClienteNavegador(), archivo);
-      setFotoUrl(nuevaFotoUrl);
+      const cliente = crearClienteNavegador();
+      const nuevaFotoPath = await subirFotoPerfil(cliente, archivo);
+      setFotoPath(nuevaFotoPath);
+      setFotoUrl(await obtenerUrlFotoPerfilUsuario(cliente, nuevaFotoPath) ?? "");
       setMensaje({ tono: "info", texto: "Fotografía actualizada." });
     } catch (err) {
       setMensaje({ tono: "danger", texto: err instanceof Error ? err.message : "No pudimos subir la fotografía." });

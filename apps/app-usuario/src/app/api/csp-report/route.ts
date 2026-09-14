@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MAX_BODY, rateLimit } from "../../../lib/csp-rate-limit";
+import { MAX_BODY, rateLimit } from "@/lib/csp-rate-limit";
 
 function ipDeRequest(req: NextRequest): string {
   const xf = req.headers.get("x-forwarded-for");

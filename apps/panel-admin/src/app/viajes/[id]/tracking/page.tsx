@@ -13,9 +13,9 @@ import {
   type PuntoTracking,
   type SaludTracking
 } from "@ruum/api/tracking";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
-import { AdminPageHeader } from "../../../admin-ui";
-import { AdminEmptyState, AdminErrorState, AdminLoadingState } from "../../../admin-components";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
+import { AdminPageHeader } from "@/app/admin-ui";
+import { AdminEmptyState, AdminErrorState, AdminLoadingState } from "@/app/admin-components";
 
 function fechaCorta(iso: string | null | undefined) {
   if (!iso) return "—";

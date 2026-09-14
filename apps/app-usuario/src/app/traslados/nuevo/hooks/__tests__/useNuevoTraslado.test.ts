@@ -2,9 +2,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React from "react";
-import { AppStateProvider } from "../../../../../state/AppStateProvider";
+import { AppStateProvider } from "@/state/AppStateProvider";
 import { haCambiadoTarifa, generarTarifaSnapshot, CAMPOS_PASO_TARIFA } from "../../tarifa-gate";
-import { guardarBorradorTrasladoLocal, leerBorradorTrasladoLocal, limpiarBorradorTrasladoLocal } from "../../../../../lib/borrador-traslado";
+import { guardarBorradorTrasladoLocal, leerBorradorTrasladoLocal, limpiarBorradorTrasladoLocal } from "@/lib/borrador-traslado";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 // Mock supabase y servicios para evitar red
-vi.mock("../../../../../lib/supabase-browser", () => ({
+vi.mock("@/lib/supabase-browser", () => ({
   crearClienteNavegador: vi.fn(() => ({})),
   tieneSupabaseConfigurado: vi.fn(() => false),
 }));
@@ -23,10 +23,10 @@ vi.mock("@ruum/api/services", () => ({
   previsualizarTarifaUsuario: vi.fn(async () => null),
   aceptarCotizacionUsuario: vi.fn(),
 }));
-vi.mock("../../../../../lib/codigos-postales", () => ({
+vi.mock("@/lib/codigos-postales", () => ({
   consultarCodigoPostalMx: vi.fn(async () => null),
 }));
-vi.mock("../../../../../lib/mapbox", () => ({
+vi.mock("@/lib/mapbox", () => ({
   esErrorConfiguracionMapbox: vi.fn(() => false),
   mensajeErrorMapbox: vi.fn((e: unknown) => String(e)),
   sugerirDireccionesAutocomplete: vi.fn(async () => []),
@@ -35,7 +35,7 @@ vi.mock("../../../../../lib/mapbox", () => ({
   calcularRutaMapbox: vi.fn(async () => null),
   geocodificarDireccion: vi.fn(async () => null),
 }));
-vi.mock("../../../../../lib/catalogo-vehiculos", async (orig) => {
+vi.mock("@/lib/catalogo-vehiculos", async (orig) => {
   const mod = (await orig()) as Record<string, unknown>;
   return { ...mod, modelosPorMarca: vi.fn(() => ["Versa", "Sentra"]), resumenClasificacionVehiculo: vi.fn(() => "Sedan"), clasificacionesPorVehiculo: vi.fn(() => []), tipoSugeridoParaVehiculo: vi.fn(() => "sedan") };
 });

@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import type { Database, Json } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 import {
   obtenerConductorAdmin,
   actualizarConductorAdmin,

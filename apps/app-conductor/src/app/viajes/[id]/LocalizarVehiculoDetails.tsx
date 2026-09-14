@@ -7,11 +7,11 @@ import { Aviso } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
 import { EmergencyPanel } from "./EmergencyPanel";
-import { ConductorStatusBadge } from "../../../components/v2/ConductorUI";
+import { ConductorStatusBadge } from "@/components/v2/ConductorUI";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];

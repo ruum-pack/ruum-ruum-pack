@@ -4,12 +4,12 @@
   "scripts": {
     "prepare": "node scripts/prepare-husky.mjs",
     "dev": "turbo run dev",
-    "build": "pnpm -r --workspace-concurrency=1 --filter \"./packages/*\" --filter \"./apps/*\" run build",
+    "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:unit": "turbo run test --filter=./packages/*",
-    "cp:generar": "node scripts/generar-codigos-postales.mjs",
+    "cp:generar": "node scripts/generar-codigos-postales.mjs cp_mexico_full.json apps/app-usuario/public/data/codigos-postales; node scripts/generar-codigos-postales.mjs cp_mexico_full.json apps/panel-admin/public/data/codigos-postales",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
@@ -33,6 +33,8 @@
     "check:fronteras": "node scripts/check-fronteras.mjs",    "test:sql:rls": "supabase test db supabase/test/rt42_rls_admin_roles.test.sql",
     "test:sql:concurrencia": "supabase test db supabase/test/rt43_concurrencia_operadores.test.sql",
     "scan:secrets": "node scripts/scan-secrets.mjs",
+    "check:supabase-security": "node scripts/check-supabase-security.mjs",
+    "check:supabase-drift": "node scripts/check-supabase-drift.mjs",
     "test:security": "node --test tests/security/scan-secrets.test.mjs",
     "test:ui": "vitest --ui"
   },
@@ -42,7 +44,7 @@
     "@playwright/test": "^1.51.1",
     "@storybook/addon-a11y": "^10.5.2",
     "@types/node": "^22.10.0",
-    "@vitest/ui": "^4.1.10",
+    "@vitest/ui": "^2.1.9",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "turbo": "^2.10.5",
     "typescript": "^5.7.2"

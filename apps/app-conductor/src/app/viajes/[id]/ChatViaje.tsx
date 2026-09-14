@@ -6,7 +6,7 @@ import { MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { chatDisponible } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import { obtenerMensajes, enviarMensaje, suscribirseAMensajes } from "@ruum/api/services";
 import { MENSAJES_RAPIDOS_CONTACTO } from "./quick-messages";
 

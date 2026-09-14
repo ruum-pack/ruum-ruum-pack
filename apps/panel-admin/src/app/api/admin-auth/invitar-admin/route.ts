@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { Database } from "@ruum/shared/types";
 import { normalizarError, tienePermisoAdmin } from "@ruum/api/services";
-import { crearClienteServidor } from "../../../../lib/supabase-server";
-import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
+import { crearClienteServidor } from "@/lib/supabase-server";
+import { crearClienteServiceRole } from "@/lib/supabase-service-role";
 import { crearPerfilAdminService, obtenerActorAdminService, registrarAuditoriaInvitacionAdminService, eliminarPerfilAdminService } from "@ruum/api/identity";
 
 type RolAdminOperativo = Database["public"]["Enums"]["rol_admin_operativo"];

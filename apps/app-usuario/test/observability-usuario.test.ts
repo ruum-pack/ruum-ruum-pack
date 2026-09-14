@@ -41,7 +41,7 @@ describe("PR-13 — Observabilidad App Usuario (observability.ts)", () => {
     it("elimina claves prohibidas (passwords, tokens, JWT, service_role, cvv, tarjetas, documentos)", () => {
       const payloadSensible = {
         evento: "login_intent",
-        password: "super-secret-password-123",
+        password: "E2E_DUMMY_PASSWORD_123",
         token: "session_token_xyz",
         jwt: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy",
         service_role_key: "secret-service-role",

@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams("email=ana%40ejemplo.com")
 }));
 
-vi.mock("../../../lib/supabase-browser", () => ({
+vi.mock("@/lib/supabase-browser", () => ({
   crearClienteNavegador: vi.fn(() => ({
     auth: { verifyOtp: mocks.verifyOtp, resend: mocks.resend }
   }))

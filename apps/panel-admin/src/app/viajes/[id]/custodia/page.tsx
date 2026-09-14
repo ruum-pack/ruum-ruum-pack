@@ -5,9 +5,9 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@ruum/ui";
 import { obtenerReporteCustodia, type EventoCustodia, type ReporteCustodia } from "@ruum/api/custody";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
-import { AdminPageHeader } from "../../../admin-ui";
-import { AdminEmptyState, AdminErrorState, AdminLoadingState } from "../../../admin-components";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
+import { AdminPageHeader } from "@/app/admin-ui";
+import { AdminEmptyState, AdminErrorState, AdminLoadingState } from "@/app/admin-components";
 
 function fechaCorta(iso: string | null | undefined) {
   if (!iso) return "—";

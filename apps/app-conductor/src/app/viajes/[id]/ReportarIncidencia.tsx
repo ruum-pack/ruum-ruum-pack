@@ -7,7 +7,7 @@ import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { activarSoporteEmergenciaConductor, reportarIncidencia } from "@ruum/api/services";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 
 type TipoIncidencia = Database["public"]["Enums"]["tipo_incidencia"];
 type MomentoIncidencia = Database["public"]["Enums"]["momento_incidencia"];

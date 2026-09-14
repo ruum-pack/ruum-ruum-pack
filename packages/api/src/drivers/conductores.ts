@@ -665,7 +665,28 @@ export async function registrarCancelacionConductor(
 export async function obtenerFotoPerfilConductor(cliente: Cliente, conductorId: string): Promise<string | null> {
   const { data, error } = await cliente.from("conductores").select("foto_perfil_url").eq("id", conductorId).maybeSingle();
   if (error) throw error;
-  return data?.foto_perfil_url ?? null;
+  const valor = data?.foto_perfil_url ?? null;
+  if (!valor) return null;
+  const ruta = rutaFotoPerfilConductor(valor, conductorId);
+  if (!ruta) return null;
+  const { data: firmada, error: errorUrl } = await cliente.storage
+    .from("fotos-perfil-conductor")
+    .createSignedUrl(ruta, 1800);
+  if (errorUrl) throw errorUrl;
+  return firmada.signedUrl;
+}
+
+function rutaFotoPerfilConductor(valor: string, conductorId: string): string | null {
+  const rutaEsperada = new RegExp(`^${conductorId}/perfil\\.(?:jpe?g|png|webp)$`, "i");
+  if (rutaEsperada.test(valor)) return valor;
+  try {
+    const url = new URL(valor);
+    const prefijo = `/storage/v1/object/public/fotos-perfil-conductor/${conductorId}/`;
+    const nombre = url.pathname.startsWith(prefijo) ? url.pathname.slice(prefijo.length) : "";
+    return /^[^/]+\\.(?:jpe?g|png|webp)$/i.test(nombre) ? `${conductorId}/${nombre}` : null;
+  } catch {
+    return null;
+  }
 }
 
 /** FASE 6 cierre — documentos del conductor visibles para su propia sesión (RLS). */

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { tienePermisoAdmin } from "@ruum/api/services";
 import { completarExportacionAdmin, registrarExportacionAdmin } from "@ruum/api/operations";
 import { listarPagosParaExportacion } from "@ruum/api/billing";
-import { crearClienteServidor } from "../../../../lib/supabase-server";
+import { crearClienteServidor } from "@/lib/supabase-server";
 
 const LIMITE_FILAS=10_000;
 const DIAS_MAX=90;

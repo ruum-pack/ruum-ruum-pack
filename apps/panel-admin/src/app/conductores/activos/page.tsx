@@ -6,7 +6,7 @@ import { Aviso } from "@ruum/ui";
 import { AdminPageHeader } from "../../admin-ui";
 import { AdminButton } from "../../admin-components";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 import {
   listarConductoresAdminPaginados,
   type PaginacionConductores

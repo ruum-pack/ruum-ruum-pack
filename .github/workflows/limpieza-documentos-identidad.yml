@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: limpieza-documentos-identidad-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -16,6 +16,10 @@ jobs:
   limpiar:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    environment: production
+    concurrency:
+      group: limpieza-documentos-identidad-production
+      cancel-in-progress: false
     steps:
       - name: Procesar PII pendiente de eliminación
         env:

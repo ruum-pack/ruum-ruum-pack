@@ -1,7 +1,7 @@
 "use client";
 import { memo } from "react";
 import { Field } from "@ruum/ui";
-import type { DatosCodigoPostal } from "../../../../lib/codigos-postales";
+import type { DatosCodigoPostal } from "@/lib/codigos-postales";
 
 export interface CampoCodigoPostalProps {
   id?: string;

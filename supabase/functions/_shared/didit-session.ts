@@ -30,20 +30,36 @@ export function esFotoPerfilDiditValida(
   supabaseUrl: string,
   authUserId: string,
 ): boolean {
-  if (!fotoUrl || !supabaseUrl || !authUserId) return false;
+  return rutaFotoPerfilDidit(fotoUrl, supabaseUrl, authUserId) !== null;
+}
+
+/** Acepta la ruta privada nueva y URLs públicas legadas, siempre del mismo
+ * usuario/proyecto. La ruta devuelta se puede firmar con service_role. */
+export function rutaFotoPerfilDidit(
+  fotoUrl: string | null | undefined,
+  supabaseUrl: string,
+  authUserId: string,
+): string | null {
+  if (!fotoUrl || !supabaseUrl || !authUserId) return null;
+
+  const nombreValido = (nombre: string) =>
+    /^[^/]+\.(?:jpe?g|png|webp)$/i.test(nombre) ? `${authUserId}/${nombre}` : null;
+  const rutaDirecta = new RegExp(`^${authUserId}/([^/]+\\.(?:jpe?g|png|webp))$`, "i").exec(fotoUrl);
+  if (rutaDirecta) return nombreValido(rutaDirecta[1]);
 
   try {
     const base = new URL(supabaseUrl);
     const candidata = new URL(fotoUrl);
-    const prefijo = `/storage/v1/object/public/fotos-perfil/${authUserId}/`;
-    const nombre = candidata.pathname.slice(prefijo.length);
-
-    return candidata.protocol === base.protocol &&
-      candidata.origin === base.origin &&
-      candidata.pathname.startsWith(prefijo) &&
-      /^[^/]+\.(?:jpe?g|png|webp)$/i.test(nombre);
+    if (candidata.protocol !== base.protocol || candidata.origin !== base.origin) return null;
+    const prefijos = [
+      `/storage/v1/object/public/fotos-perfil/${authUserId}/`,
+      `/storage/v1/object/sign/fotos-perfil/${authUserId}/`,
+    ];
+    const prefijo = prefijos.find((valor) => candidata.pathname.startsWith(valor));
+    if (!prefijo) return null;
+    return nombreValido(candidata.pathname.slice(prefijo.length));
   } catch {
-    return false;
+    return null;
   }
 }
 

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@ruum/ui";
 import { formatearPrecio } from "@ruum/shared/utils";
 import { PagoStripe } from "../../PagoStripe";
-import { useTrasladoRealtime } from "../../../state/AppStateProvider";
+import { useTrasladoRealtime } from "@/state/AppStateProvider";
 
 export interface PagoTrasladoProps {
   trasladoId: string;

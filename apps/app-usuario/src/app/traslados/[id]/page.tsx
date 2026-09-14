@@ -23,7 +23,7 @@ import { Aviso, EstadoBadge, EstadoStepper, PassportCard } from "@ruum/ui";
 import { ETIQUETA_TIPO_INCIDENCIA, ETIQUETA_TIPO_VEHICULO, MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { ETIQUETA_ESTADO_TRASLADO } from "@ruum/shared/states";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteServidor } from "../../../lib/supabase-server";
+import { crearClienteServidor } from "@/lib/supabase-server";
 import { ChatTraslado } from "./ChatTraslado";
 import { ReportarIncidenciaUsuario } from "./ReportarIncidencia";
 import { CancelarTraslado } from "./CancelarTraslado";
@@ -231,7 +231,7 @@ async function obtenerDatos(id: string) {
   }
 
   try {
-    const { crearClienteServidor } = await import("../../../lib/supabase-server");
+    const { crearClienteServidor } = await import("@/lib/supabase-server");
     const cliente = await crearClienteServidor();
 
     // 1. Intentar obtener el pasaporte digital desde la vista oficial
@@ -583,7 +583,7 @@ export default async function PaginaTraslado({ params }: { params: Promise<{ id:
   // R2 defense-in-depth: verificar que el traslado pertenece al usuario autenticado (RLS puede fallar)
   if (pasaporte?.usuario_id) {
     try {
-      const { crearClienteServidor: crearClienteAuth } = await import("../../../lib/supabase-server");
+      const { crearClienteServidor: crearClienteAuth } = await import("@/lib/supabase-server");
       const clienteAuth = await crearClienteAuth();
       const {
         data: { user },

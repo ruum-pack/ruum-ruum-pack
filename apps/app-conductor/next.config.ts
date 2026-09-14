@@ -1,16 +1,16 @@
 import type { NextConfig } from "next";
+import {
+  buildCspEstatico,
+  CSP_PRESETS,
+  IMAGES_REMOTE_PATTERNS,
+  IMAGE_FORMATS,
+} from "@ruum/shared/seguridad";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@ruum/shared", "@ruum/ui", "@ruum/api"],
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "*.supabase.co",
-        pathname: "/**"
-      }
-    ],
-    formats: ["image/avif", "image/webp"],
+    remotePatterns: [...IMAGES_REMOTE_PATTERNS],
+    formats: [...IMAGE_FORMATS],
     deviceSizes: [320, 420, 640, 750, 828, 1080, 1200],
     imageSizes: [16, 32, 48, 64, 96, 128, 256]
   },
@@ -24,42 +24,14 @@ const nextConfig: NextConfig = {
     const isStaging = process.env.NEXT_PUBLIC_RUUM_AMBIENTE === "staging";
     // P2 CSP — prod sin unsafe-eval, dev con unsafe-eval para HMR
     // SEC-002 (P1): next.config es fallback para requests sin middleware (estáticos/_next).
-    // Middleware (src/middleware.ts) es autoritativo y genera nonce por request:
-    //   script-src 'self' 'nonce-{random}' 'strict-dynamic' https://*.sentry.io
-    //   style-src  'self' 'unsafe-inline' 'nonce-{random}'  (deuda P2 hasta 2026-11-01)
-    // next.config mantiene fallback compatible con navegadores sin nonce/strict-dynamic:
-    //   script-src conserva 'strict-dynamic' (sin unsafe-inline); style-src mantiene 'unsafe-inline' como fallback.
-    // Ver CSP_DEUDA_P2.md y scripts/assert-csp.mjs — CI bloquea si next.config reintroduce unsafe-eval.
+    // Middleware (src/middleware.ts) es autoritativo y genera nonce por request.
+    // Fuente única: @ruum/shared/seguridad (buildCsp/buildCspEstatico/CSP_PRESETS).
+    // Ver CSP_DEUDA_P2.md y scripts/assert-csp.mjs — CI bloquea si el fallback
+    // reintroduce unsafe-eval o unsafe-inline en script-src de prod.
     // SEC-003: CSP_STRICT_STYLES=true elimina unsafe-inline de style-src (validación 2026-11-01)
-    const strictStyles = process.env.CSP_STRICT_STYLES === "true" || process.env.NEXT_PUBLIC_CSP_STRICT_STYLES === "true";
-    const cspProd = [
-      "default-src 'self'",
-      "script-src 'self' 'strict-dynamic' https://*.sentry.io",
-      strictStyles ? "style-src 'self'" : "style-src 'self' 'unsafe-inline'",
-      "connect-src 'self' https://*.supabase.co https://*.mapbox.com https://*.sentry.io https://*.didit.me https://verify.didit.me",
-      "img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com https://*.didit.me https://verify.didit.me",
-      "font-src 'self' data:",
-      "frame-src 'self' https://verify.didit.me https://*.didit.me",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-      "worker-src 'self' blob:"
-    ].join("; ");
-    const cspDev = [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io",
-      "style-src 'self' 'unsafe-inline'",
-      "connect-src 'self' https://*.supabase.co https://*.mapbox.com https://*.sentry.io https://*.didit.me https://verify.didit.me ws: wss: http://localhost:* http://127.0.0.1:*",
-      "img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com https://*.didit.me https://verify.didit.me",
-      "font-src 'self' data:",
-      "frame-src 'self' https://verify.didit.me https://*.didit.me",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-      "worker-src 'self' blob:"
-    ].join("; ");
+    const cspProd = buildCspEstatico(true, CSP_PRESETS.conductor);
+    // cspDev mantiene unsafe-inline/unsafe-eval para HMR (solo non-prod)
+    const cspDev = buildCspEstatico(false, CSP_PRESETS.conductor);
     const csp = isProd ? cspProd : cspDev;
     const headersForAll: Array<{ key: string; value: string }> = [
       { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },

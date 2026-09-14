@@ -1,5 +1,5 @@
 import type { Database } from "@ruum/shared/types";
-import { obtenerConductorActual } from "@ruum/api/services";
+import { obtenerConductorActual, obtenerUrlFotoPerfilConductor } from "@ruum/api/services";
 import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../lib/supabase-browser";
 
 export type ConductorCuenta = Database["public"]["Tables"]["conductores"]["Row"] & {
@@ -12,10 +12,12 @@ export async function cargarConductorCuenta(): Promise<ConductorCuenta | null> {
   const cliente = crearClienteNavegador();
   const conductor = await obtenerConductorActual(cliente);
   if (!conductor) return null;
+  const fotoPerfilUrl = await obtenerUrlFotoPerfilConductor(cliente, conductor.id, conductor.foto_perfil_url);
   const { data: sesion } = await cliente.auth.getUser();
   const user = sesion.user;
   return {
     ...conductor,
+    foto_perfil_url: fotoPerfilUrl,
     email: user?.email ?? null,
     new_email: (user as { new_email?: string | null })?.new_email ?? null
   };

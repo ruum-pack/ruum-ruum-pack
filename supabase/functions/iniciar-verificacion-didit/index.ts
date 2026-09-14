@@ -11,8 +11,10 @@ import {
   detalleRespuestaDidit,
   esUrlHospedadaDiditValida,
   obtenerRetratoDidit,
+  rutaFotoPerfilDidit,
   urlSesionDidit,
 } from "../_shared/didit-session.ts";
+import { consumirRateLimit } from "../_shared/rate-limit.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -23,10 +25,10 @@ const CORS = {
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function json(body: Record<string, unknown>, status = 200) {
+function json(body: Record<string, unknown>, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, "Content-Type": "application/json" },
+    headers: { ...CORS, ...extraHeaders, "Content-Type": "application/json" },
   });
 }
 
@@ -53,21 +55,9 @@ Deno.serve(async (req) => {
 
   const url = Deno.env.get("SUPABASE_URL") ?? "";
   const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const diditApiKey = Deno.env.get("DIDIT_API_KEY") ?? "";
-  const diditWorkflowId = Deno.env.get("DIDIT_WORKFLOW_ID") ?? "";
-  const callbackUrl = Deno.env.get("DIDIT_CALLBACK_URL") ?? "";
-  if (!url || !anon || !serviceKey || !diditApiKey || !diditWorkflowId) {
-    return json(
-      { error: "El servicio de verificación no está configurado." },
-      500,
-    );
-  }
-  if (!UUID.test(diditWorkflowId)) {
-    return json({ error: "DIDIT_WORKFLOW_ID no tiene un UUID válido." }, 500);
-  }
-  if (callbackUrl && !esCallbackValido(callbackUrl)) {
-    return json({ error: "DIDIT_CALLBACK_URL no es una URL válida." }, 500);
+  if (!url || !anon) {
+    console.error("iniciar-verificacion-didit: configuración base ausente");
+    return json({ error: "Servicio temporalmente no disponible." }, 503);
   }
 
   let body: Record<string, unknown>;
@@ -88,12 +78,18 @@ Deno.serve(async (req) => {
   const usuario = createClient(url, anon, {
     global: { headers: { Authorization: authorization } },
   });
-  const servicio = createClient(url, serviceKey);
 
   const { data: sesion, error: errorSesion } = await usuario.auth.getUser();
   if (errorSesion || !sesion.user) {
     return json({ error: "La sesión no es válida." }, 401);
   }
+
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!serviceKey) {
+    console.error("iniciar-verificacion-didit: SUPABASE_SERVICE_ROLE_KEY ausente");
+    return json({ error: "Servicio temporalmente no disponible." }, 503);
+  }
+  const servicio = createClient(url, serviceKey);
 
   const solicitudId = body.solicitud_id ? String(body.solicitud_id) : "";
   const esFlujoUsuario = !solicitudId || body.tipo === "usuario";
@@ -163,13 +159,37 @@ Deno.serve(async (req) => {
       .in("estado", ["pendiente", "en_revision"]);
   }
 
+  // La propiedad/sesión ya fue comprobada arriba. Así un intento sobre una
+  // solicitud ajena no consume el cupo ni revela el estado de Didit.
+  try {
+    const limite = await consumirRateLimit(servicio, "iniciar-verificacion-didit", sesion.user.id, 3, 900);
+    if (!limite.permitido) {
+      return json({ error: "Demasiados intentos. Espera unos minutos y vuelve a probar." }, 429, { "Retry-After": String(limite.reintentarEn) });
+    }
+  } catch (error) {
+    console.error("iniciar-verificacion-didit: rate limit no disponible", error instanceof Error ? error.message : error);
+    return json({ error: "Servicio temporalmente no disponible." }, 503);
+  }
+
+  const diditApiKey = Deno.env.get("DIDIT_API_KEY") ?? "";
+  const diditWorkflowId = Deno.env.get("DIDIT_WORKFLOW_ID") ?? "";
+  const callbackUrl = Deno.env.get("DIDIT_CALLBACK_URL") ?? "";
+  if (!diditApiKey || !diditWorkflowId || !UUID.test(diditWorkflowId) || (callbackUrl && !esCallbackValido(callbackUrl))) {
+    console.error("iniciar-verificacion-didit: configuración Didit ausente o inválida");
+    return json({ error: "Servicio temporalmente no disponible." }, 503);
+  }
+
   let portraitImage: string | null = null;
   if (esFlujoUsuario) {
-    portraitImage = await obtenerRetratoDidit(
-      fotoPerfilUrl,
-      url,
-      sesion.user.id,
-    );
+    const rutaFoto = rutaFotoPerfilDidit(fotoPerfilUrl, url, sesion.user.id);
+    if (rutaFoto) {
+      const { data: fotoFirmada, error: errorFoto } = await servicio.storage
+        .from("fotos-perfil")
+        .createSignedUrl(rutaFoto, 60);
+      if (!errorFoto && fotoFirmada?.signedUrl) {
+        portraitImage = await obtenerRetratoDidit(fotoFirmada.signedUrl, url, sesion.user.id);
+      }
+    }
   }
 
   const payloadDidit = construirPayloadSesionDidit({

@@ -9,9 +9,9 @@ import {
   registrarInteraccionPanelEmergenciaConductor,
   reportarIncidencia
 } from "@ruum/api/services";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
-import { CONTACTOS_SOPORTE_CONDUCTOR } from "../../../lib/contactos-soporte";
-import { obtenerUbicacionActual } from "../../../lib/ubicacion";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
+import { CONTACTOS_SOPORTE_CONDUCTOR } from "@/lib/contactos-soporte";
+import { obtenerUbicacionActual } from "@/lib/ubicacion";
 
 type AccionPanel = "llamar_911" | "contactar_soporte" | "compartir_ubicacion" | "reportar_accidente" | "no_puedo_continuar";
 const logger = createLogger("emergency_panel");

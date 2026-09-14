@@ -7,9 +7,9 @@ import { Button } from "@ruum/ui";
 import { getOperation } from "@ruum/api/services";
 import { obtenerFinanzasOperacion, type FinanzasOperacion } from "@ruum/api/billing";
 import type { Operacion } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
-import { AdminPageHeader } from "../../../admin-ui";
-import { AdminEmptyState, AdminErrorState, AdminLoadingState } from "../../../admin-components";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
+import { AdminPageHeader } from "@/app/admin-ui";
+import { AdminEmptyState, AdminErrorState, AdminLoadingState } from "@/app/admin-components";
 
 function formatoMxn(n: number): string {
   return `$${n.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN`;

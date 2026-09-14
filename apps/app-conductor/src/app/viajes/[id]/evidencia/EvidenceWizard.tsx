@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Aviso, Button } from "@ruum/ui";
 import { MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
-import { RegistroViajeActivo } from "../../../ViajeActivoContext";
+import { RegistroViajeActivo } from "@/app/ViajeActivoContext";
 import { EvidenceCaptureStep } from "./EvidenceCaptureStep";
 import { EvidenceChecklist } from "./EvidenceChecklist";
 import { EvidenceReview } from "./EvidenceReview";

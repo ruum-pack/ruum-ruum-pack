@@ -9,9 +9,6 @@ dist
 !.env.*.example
 supabase/.branches
 supabase/.temp
-apps/supabase/
-supabase/supabase/
-packages/packages/
 coverage
 test-results
 playwright-report
@@ -29,6 +26,9 @@ backups/
 **/android/capacitor-cordova-android-plugins/build
 *.keystore
 *.jks
+**/release.keystore
+**/google-services.json
+!**/google-services.json.example
 
 # Artefactos de trabajo, logs locales y scratch (H7)
 work/
@@ -43,4 +43,3 @@ pnpm-debug.log*
 .vscode/
 .claude/
 Nueva carpeta/
-"Nueva carpeta"/

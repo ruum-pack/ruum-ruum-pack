@@ -1,0 +1,28 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
+/**
+ * Directorio de shards de códigos postales para el panel-admin.
+ * Fuente propia primero (`apps/panel-admin/public/data/codigos-postales`,
+ * generada con `pnpm cp:generar`); fallback legacy al monorepo local
+ * (`../app-usuario/...`) para no romper entornos ya generados.
+ * Nunca depende de otra app en deploys por app (standalone/Vercel).
+ */
+const CANDIDATOS = [
+  join(process.cwd(), "public", "data", "codigos-postales"),
+  join(process.cwd(), "..", "app-usuario", "public", "data", "codigos-postales"),
+];
+
+export function dirDatosCP(): string {
+  const encontrado = CANDIDATOS.find((dir) => existsSync(dir));
+  if (!encontrado) {
+    throw new Error(
+      `Datos de códigos postales no encontrados (buscado en: ${CANDIDATOS.join(" | ")}). Ejecuta pnpm cp:generar.`,
+    );
+  }
+  return encontrado;
+}
+
+export function rutaShardCP(prefijo: string): string {
+  return join(dirDatosCP(), `${prefijo}.json`);
+}

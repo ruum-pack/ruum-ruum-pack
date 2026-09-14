@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { obtenerUbicacionActual } from "../../../lib/ubicacion";
+import { obtenerUbicacionActual } from "@/lib/ubicacion";
 import {
   construirUrlMapaRutaConduccion,
   tieneMapboxConfigurado,
   type PuntoMapa
-} from "../../../lib/mapbox-rutas";
+} from "@/lib/mapbox-rutas";
 
 export interface MapaRutaConduccionProps {
   origen: PuntoMapa;

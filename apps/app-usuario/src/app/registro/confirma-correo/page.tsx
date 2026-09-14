@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Aviso } from "@ruum/ui";
 import { traducirErrorAuth } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
-import { registrarEventoUx } from "../../../lib/analytics";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
+import { registrarEventoUx } from "@/lib/analytics";
 import { botonAzul, botonContorno, LogoRuum, PantallaPublica } from "../../experiencia-publica";
 import {
   CLAVE_CORREO_CONFIRMACION,
@@ -14,7 +14,7 @@ import {
   crearRedirectConfirmacion,
   normalizarCorreoRegistro,
   soloDigitos
-} from "../../../lib/registro-usuario";
+} from "@/lib/registro-usuario";
 
 const COOLDOWN_SEGUNDOS = 60;
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Aviso } from "@ruum/ui";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import type { Database } from "@ruum/shared/types";
 import type { InspeccionEvidencia } from "./evidencia/evidence-requirements";
 import { EvidenceComparisonDisplay } from "./evidencia/EvidenceComparisonDisplay";

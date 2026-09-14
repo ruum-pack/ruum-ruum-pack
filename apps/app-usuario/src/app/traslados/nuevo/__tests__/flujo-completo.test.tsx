@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
-import { AppStateProvider } from "../../../../state/AppStateProvider";
+import { AppStateProvider } from "@/state/AppStateProvider";
 
 // Mocks para evitar red real
 vi.mock("next/navigation", async (importOriginal) => {
@@ -16,7 +16,7 @@ vi.mock("next/navigation", async (importOriginal) => {
     useSearchParams: () => new URLSearchParams(),
   };
 });
-vi.mock("../../../../../lib/supabase-browser", () => ({
+vi.mock("@/lib/supabase-browser", () => ({
   crearClienteNavegador: vi.fn(() => ({ auth: { getUser: vi.fn(async () => ({ data: { user: null } })) }, from: vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: null, error: null })) })) })) })), rpc: vi.fn(async () => ({ data: null, error: null })) })),
   tieneSupabaseConfigurado: vi.fn(() => false),
 }));
@@ -27,10 +27,10 @@ vi.mock("@ruum/api/services", () => ({
   previsualizarTarifaUsuario: vi.fn(async () => ({ disponible: true, tarifa: 500 })),
   aceptarCotizacionUsuario: vi.fn(async () => ({})),
 }));
-vi.mock("../../../../../lib/codigos-postales", () => ({
+vi.mock("@/lib/codigos-postales", () => ({
   consultarCodigoPostalMx: vi.fn(async (cp: string) => (cp === "06700" ? { estado: "CDMX", ciudades: ["CDMX"], colonias: ["Roma"] } : cp === "11560" ? { estado: "CDMX", ciudades: ["CDMX"], colonias: ["Polanco"] } : null)),
 }));
-vi.mock("../../../../../lib/mapbox", () => ({
+vi.mock("@/lib/mapbox", () => ({
   esErrorConfiguracionMapbox: vi.fn(() => false),
   mensajeErrorMapbox: vi.fn(() => "mock"),
   sugerirDireccionesAutocomplete: vi.fn(async () => []),

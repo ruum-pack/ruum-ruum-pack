@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { recordOperationalEvent } from "../../../lib/observability";
+import { recordOperationalEvent } from "@/lib/observability";
 
 export default function ErrorDetalleViaje({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {

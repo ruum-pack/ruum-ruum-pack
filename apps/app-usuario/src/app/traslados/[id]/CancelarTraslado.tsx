@@ -7,7 +7,7 @@ import { MENSAJES_CLAVE_UX } from "@ruum/shared/constants";
 import { calcularCargoCancelacion } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
 import { cancelarTraslado, usuarioPuedeCancelar } from "@ruum/api/services";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 

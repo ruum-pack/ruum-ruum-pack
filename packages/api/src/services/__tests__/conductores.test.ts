@@ -318,7 +318,7 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
       // verifica que se llamó RPC solicitar_cambio, no update directo
       const rpcCall = cliente.llamadas.find((l: any) => l.action === "solicitar_cambio_expediente_conductor");
       expect(rpcCall).toBeDefined();
-      expect(rpcCall.args[0].p_cambios.foto_perfil_url).toContain("https://cdn.test");
+      expect(rpcCall.args[0].p_cambios.foto_perfil_url).toBe("cond-1/perfil.jpg");
       const updateCall = cliente.llamadas.find((l: any) => l.table === "conductores" && l.action === "update");
       expect(updateCall).toBeUndefined();
     });
@@ -347,7 +347,7 @@ describe("conductores — P0 scaffold (auditoría integral)", () => {
       // Para este caso, aunque foto es sensible, si el RPC lo considerara no sensible (mock), debe retornar url
       // Pero en producción foto siempre es pendiente; este test verifica el branch actualizado
       const url = await subirFotoPerfilConductor(cliente, "cond-1", mockFile("perfil.jpg", 5000, "image/jpeg"));
-      expect(url).toContain("https://cdn.test");
+      expect(url).toContain("/storage/v1/object/sign/fotos-perfil-conductor/cond-1/perfil.jpg");
     });
   });
 

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { recordOperationalEvent } from "../../../../lib/observability";
+import { recordOperationalEvent } from "@/lib/observability";
 
 export default function ErrorEvidencia({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const { id } = useParams<{ id: string }>();

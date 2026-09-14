@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { obtenerPasaporteDigital } from "@ruum/api/services";
-import { crearClienteServidor } from "../../../../lib/supabase-server";
-import { EstadoError } from "../../../EstadoError";
+import { crearClienteServidor } from "@/lib/supabase-server";
+import { EstadoError } from "@/app/EstadoError";
 import { TripDetailsTabs } from "./TripDetailsTabs";
 
 export const metadata: Metadata = {

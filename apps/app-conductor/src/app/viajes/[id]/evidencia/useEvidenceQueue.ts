@@ -3,15 +3,15 @@
 import { useCallback, useState } from "react";
 import type { AnguloEvidencia, FotoEvidencia, TipoEvidencia } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { obtenerUbicacionActual } from "../../../../lib/ubicacion";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
+import { obtenerUbicacionActual } from "@/lib/ubicacion";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 import {
   contarColaEvidencia,
   encolarEvidencia,
   type ItemColaEvidencia,
   leerColaEvidenciaDeTraslado,
   sincronizarColaEvidencia
-} from "../../../../lib/cola-offline";
+} from "@/lib/cola-offline";
 
 export function itemColaAFotoEvidencia(item: ItemColaEvidencia): FotoEvidencia {
   return {

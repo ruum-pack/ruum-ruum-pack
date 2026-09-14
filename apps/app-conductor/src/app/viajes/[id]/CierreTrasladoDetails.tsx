@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import { avanzarEstadoTraslado, extraerRutaComprobante, resolverUrlEvidencia } from "@ruum/api/services";
 import {
   eliminarGastoTraslado,
@@ -15,7 +15,7 @@ import {
   registrarGastoTraslado
 } from "@ruum/api/drivers";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
-import { ConductorStatusBadge } from "../../../components/v2/ConductorUI";
+import { ConductorStatusBadge } from "@/components/v2/ConductorUI";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];

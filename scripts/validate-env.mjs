@@ -20,25 +20,6 @@ if (!process.env.NEXT_PUBLIC_APP_VERSION) {
   }
 }
 
-// Intentar cargar variables faltantes desde .env.example en Vercel (solo desarrollo/preview)
-if (process.env.VERCEL && !prod) {
-  try {
-    const appPath = app !== "workspace" ? path.join(__dirname, `../apps/${app}/.env.example`) : null;
-    if (appPath && fs.existsSync(appPath)) {
-      const exampleEnv = fs.readFileSync(appPath, "utf-8");
-      for (const line of exampleEnv.split("\n")) {
-        const match = line.match(/^([^=]+)=/);
-        if (match && !process.env[match[1]]?.trim()) {
-          // Usar valor dummy para development si no está configurado
-          process.env[match[1]] = `__VERCEL_PREVIEW_${match[1]}__`;
-        }
-      }
-    }
-  } catch (e) {
-    // Ignorar errores
-  }
-}
-
 const requiredByApp = {
   "panel-admin": ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
   "app-conductor": [
@@ -54,20 +35,22 @@ const required = requiredByApp[app] ?? [...new Set(Object.values(requiredByApp).
 const missing = required.filter((name) => !process.env[name]?.trim());
 const demo = process.env.NEXT_PUBLIC_PANEL_ADMIN_DEMO === "true";
 const invalid = [];
-if (prod && demo) invalid.push("NEXT_PUBLIC_PANEL_ADMIN_DEMO no puede ser true en producción");
-if (prod && missing.length) invalid.push(`faltan variables: ${missing.join(", ")}`);
+const hostedBuild = prod || Boolean(process.env.VERCEL);
+const localProduction = process.env.RUUM_LOCAL_PRODUCTION === "true";
+if (hostedBuild && demo) invalid.push("NEXT_PUBLIC_PANEL_ADMIN_DEMO no puede ser true en producción");
+if (hostedBuild && missing.length) invalid.push(`faltan variables: ${missing.join(", ")}`);
 for (const name of required.filter((n) => n.includes("SUPABASE_URL"))) {
   const value = process.env[name];
-  if (value && !/^https:\/\//.test(value) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(value) && !value.startsWith("__VERCEL")) 
+  if (value && !/^https:\/\//.test(value) && !(localProduction && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(value)))
     invalid.push(`${name} debe usar https://`);
 }
 const isCi = Boolean(process.env.CI || process.env.GITHUB_ACTIONS);
-if (prod) {
+if (hostedBuild) {
   for (const name of ["NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_SUPABASE_URL"]) {
     const v = process.env[name];
     const isLocalhostHttp = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(v || "");
-    // CI permite http localhost para builds de staging / preview; prod real exige https
-    if (v && !/^https:\/\//.test(v) && !(isCi && isLocalhostHttp)) invalid.push(`${name} debe usar https:// en producción`);
+    // Solo el Compose local puede usar HTTP de localhost; producción/preview real exige HTTPS.
+    if (v && !/^https:\/\//.test(v) && !(localProduction && isLocalhostHttp)) invalid.push(`${name} debe usar https:// en producción`);
   }
   const mapbox = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   if (mapbox && !/^pk\./.test(mapbox)) invalid.push("NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN debe empezar con pk.");

@@ -1,6 +1,6 @@
 # Dockerfile para DESARROLLO - con hot-reload para Next.js
 # Este archivo está optimizado para desarrollo local con volúmenes montados
-# Usa shamefully-hoist para tener node_modules centralizado
+# Usa el layout aislado de pnpm para mantener las dependencias por workspace
 # syntax=docker/dockerfile:1
 
 ARG NODE_VERSION=24
@@ -9,7 +9,7 @@ ARG PNPM_VERSION=10.0.0
 ################################################################################
 # Stage: Desarrollo
 ################################################################################
-FROM node:${NODE_VERSION}-alpine as dev
+FROM node:${NODE_VERSION}-alpine AS dev
 
 ARG PNPM_VERSION=10.0.0
 
@@ -18,9 +18,6 @@ WORKDIR /app
 # Configurar pnpm
 RUN --mount=type=cache,target=/root/.npm \
     npm install -g pnpm@${PNPM_VERSION}
-
-# Crear .npmrc con shamefully-hoist para node_modules centralizado
-RUN echo "shamefully-hoist=true" > .npmrc
 
 # Copiar archivos de configuración del workspace
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -31,21 +28,12 @@ COPY packages/ ./packages/
 COPY scripts/ ./scripts/
 
 # Instalar TODAS las dependencias del monorepo
-# Con shamefully-hoist, todas las dependencias van a /app/node_modules
+# pnpm conserva las dependencias por workspace en el layout aislado
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
 # Copiar archivos de configuración adicionales
 COPY turbo.json tsconfig.json deno.json deno.lock ./
-
-# Crear directorios para las apps (necesario para los volúmenes)
-RUN mkdir -p apps/app-conductor apps/app-usuario apps/panel-admin
-
-# Crear symlinks para node_modules de cada app apuntando a node_modules raiz
-# Esto permite que Next.js encuentre las dependencias
-RUN ln -sf /app/node_modules /app/apps/app-conductor/node_modules && \
-    ln -sf /app/node_modules /app/apps/app-usuario/node_modules && \
-    ln -sf /app/node_modules /app/apps/panel-admin/node_modules
 
 # Exponer puertos
 EXPOSE 3000 3001 3002

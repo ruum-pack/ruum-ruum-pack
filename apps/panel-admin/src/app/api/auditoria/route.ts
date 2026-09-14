@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { crearClienteServidor } from "../../../lib/supabase-server";
+import { crearClienteServidor } from "@/lib/supabase-server";
 import { normalizarError, tienePermisoAdmin } from "@ruum/api/services";
 import { listarAuditoriaSeguridad, listarExportacionesAdmin } from "@ruum/api/operations";
 

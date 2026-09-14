@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verificarConexionDb, verificarRpcSupabase } from "@ruum/api/operations";
-import { crearClienteServidor } from "../../../lib/supabase-server";
+import { crearClienteServidor } from "@/lib/supabase-server";
 
 const VERSION = process.env.APP_VERSION || "0.0.1-local";
 const NOMBRE_SERVICIO = "panel-admin";

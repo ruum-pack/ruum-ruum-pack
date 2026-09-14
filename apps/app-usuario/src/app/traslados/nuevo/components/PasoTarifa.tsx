@@ -2,7 +2,7 @@
 import React, { memo } from "react";
 import { Button, PassportCard } from "@ruum/ui";
 import type { PrevisualizacionTarifa } from "@ruum/api/services";
-import { MARCAS_CATALOGO } from "../../../../lib/catalogo-vehiculos";
+import { MARCAS_CATALOGO } from "@/lib/catalogo-vehiculos";
 import { CONDICIONES_VEHICULO, SLOTS_HORARIOS, type PrefijoDomicilio } from "../constants";
 import type { CondicionVehiculo, DatosFormulario, ErroresFormulario } from "../types";
 

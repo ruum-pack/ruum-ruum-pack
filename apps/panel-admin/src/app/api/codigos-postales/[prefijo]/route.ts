@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { NextResponse } from "next/server";
+import { rutaShardCP } from "@/lib/datos-cp";
 
 const PREFIJO_VALIDO = /^\d{2}$/;
 
@@ -11,8 +11,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pre
   }
 
   try {
-    const ruta = join(process.cwd(), "..", "app-usuario", "public", "data", "codigos-postales", `${prefijo}.json`);
-    const contenido = await readFile(ruta, "utf8");
+    const contenido = await readFile(rutaShardCP(prefijo), "utf8");
     return new NextResponse(contenido, {
       headers: {
         "content-type": "application/json; charset=utf-8",

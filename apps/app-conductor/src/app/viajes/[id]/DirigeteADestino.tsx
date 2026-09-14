@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { NextOperationalAction } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
-import { distanciaMetrosEntre, obtenerUbicacionActual } from "../../../lib/ubicacion";
-import { createNavigationOptions } from "../../../lib/navigation-launcher";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
+import { distanciaMetrosEntre, obtenerUbicacionActual } from "@/lib/ubicacion";
+import { createNavigationOptions } from "@/lib/navigation-launcher";
 import { confirmarLlegadaDestino } from "@ruum/api/services";
 import { NavigationLauncher } from "./NavigationLauncher";
 

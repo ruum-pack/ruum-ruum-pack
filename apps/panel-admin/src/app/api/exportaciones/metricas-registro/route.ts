@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { Json } from "@ruum/shared/types";
 import { obtenerMetricasRegistroConductor, tienePermisoAdmin } from "@ruum/api/services";
 import { completarExportacionAdmin, registrarExportacionAdmin } from "@ruum/api/operations";
-import { crearClienteServidor } from "../../../../lib/supabase-server";
+import { crearClienteServidor } from "@/lib/supabase-server";
 
 const DIAS_MAX=90;
 

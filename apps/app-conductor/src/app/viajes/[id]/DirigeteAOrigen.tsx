@@ -6,9 +6,9 @@ import { NextOperationalAction } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
-import { distanciaMetrosEntre, obtenerUbicacionActual } from "../../../lib/ubicacion";
-import { createNavigationOptions } from "../../../lib/navigation-launcher";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
+import { distanciaMetrosEntre, obtenerUbicacionActual } from "@/lib/ubicacion";
+import { createNavigationOptions } from "@/lib/navigation-launcher";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
 import { NavigationLauncher } from "./NavigationLauncher";
 

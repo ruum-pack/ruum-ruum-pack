@@ -18,7 +18,7 @@ import {
 } from "@ruum/api/services";
 import { AdminBadge, AdminButton } from "../../admin-components";
 import { AdminPageHeader } from "../../admin-ui";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 
 type DocumentoRow = Database["public"]["Tables"]["documentos_conductor"]["Row"];
 type ConductorRow = Database["public"]["Tables"]["conductores"]["Row"];

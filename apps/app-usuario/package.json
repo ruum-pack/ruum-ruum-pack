@@ -4,13 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
+    "start": "next start -p 3000",
     "build": "next build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:lighthouse": "lhci autorun",
     "predev": "node ../../scripts/validate-env.mjs app-usuario",
-    "prebuild": "node ../../scripts/validate-env.mjs app-usuario",
-    "validate:env": "node ../../scripts/validate-env.mjs app-usuario"
+    "prebuild": "node ../../scripts/validate-env.mjs app-usuario; node scripts/assert-csp.mjs",
+    "validate:env": "node ../../scripts/validate-env.mjs app-usuario",
+    "assert:csp": "node scripts/assert-csp.mjs",
+    "analyze:bundle": "ANALYZE=true next build"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
@@ -20,7 +24,7 @@
     "@ruum/api": "workspace:*",
     "@ruum/shared": "workspace:*",
     "@ruum/ui": "workspace:*",
-    "@sentry/nextjs": "^9",
+    "@sentry/nextjs": "^10.70.0",
     "@stripe/react-stripe-js": "^6.6.0",
     "@stripe/stripe-js": "^9.8.0",
     "@supabase/supabase-js": "^2.47.0",
@@ -34,6 +38,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.4.1",
     "@eslint/eslintrc": "^3.3.6",
+    "@lhci/cli": "^0.14.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
@@ -41,11 +46,11 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "eslint": "^9.15.0",
+    "eslint": "^9.39.4",
     "eslint-config-next": "15.5.23",
     "jsdom": "^30.0.1",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.9"
   }
 }

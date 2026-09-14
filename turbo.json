@@ -4,14 +4,22 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": [
+        "NODE_ENV",
+        "VERCEL*",
+        "CI",
+        "NEXT_PUBLIC_*",
+        "SENTRY_*",
+        "CSP_STRICT_STYLES"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
-    "lint": { "dependsOn": ["^build"] },
-    "typecheck": { "dependsOn": ["^build"] },
-    "test": { "dependsOn": ["^build"] }
+    "lint": {},
+    "typecheck": {},
+    "test": {}
   }
 }

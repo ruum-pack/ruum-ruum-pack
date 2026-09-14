@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteServidor } from "../../../../lib/supabase-server";
-import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
+import { crearClienteServidor } from "@/lib/supabase-server";
+import { crearClienteServiceRole } from "@/lib/supabase-service-role";
 import { actualizarEstadoCuentaUsuario, obtenerAuthUserIdRecursoService } from "@ruum/api/identity";
 import { normalizarError, registrarEvento, tienePermisoAdmin, type PermisoAdmin } from "@ruum/api/services";
 

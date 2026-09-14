@@ -4,18 +4,23 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3002",
+    "start": "next start -p 3002",
     "build": "next build",
     "lint": "eslint .",
     "test:smoke": "playwright test",
+    "test:lighthouse": "lhci autorun",
     "typecheck": "tsc --noEmit",
     "predev": "node ../../scripts/validate-env.mjs panel-admin",
-    "prebuild": "node ../../scripts/validate-env.mjs panel-admin",
-    "validate:env": "node ../../scripts/validate-env.mjs panel-admin"
+    "prebuild": "node ../../scripts/validate-env.mjs panel-admin; node scripts/assert-csp.mjs",
+    "validate:env": "node ../../scripts/validate-env.mjs panel-admin",
+    "assert:csp": "node scripts/assert-csp.mjs",
+    "analyze:bundle": "ANALYZE=true next build"
   },
   "dependencies": {
     "@ruum/api": "workspace:*",
     "@ruum/shared": "workspace:*",
     "@ruum/ui": "workspace:*",
+    "@sentry/nextjs": "^10.70.0",
     "@supabase/supabase-js": "^2.47.0",
     "mapbox-gl": "^3.26.0",
     "next": "15.5.23",
@@ -24,12 +29,13 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",
+    "@lhci/cli": "^0.14.0",
     "@playwright/test": "^1.51.1",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "eslint": "^9.15.0",
+    "eslint": "^9.39.4",
     "eslint-config-next": "15.5.23",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.2"

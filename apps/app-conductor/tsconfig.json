@@ -23,6 +23,45 @@
       "@ruum/api/supabase": [
         "../../packages/api/src/supabase/index.ts"
       ],
+      "@ruum/api/operations": [
+        "../../packages/api/src/operations/index.ts"
+      ],
+      "@ruum/api/transfers": [
+        "../../packages/api/src/transfers/index.ts"
+      ],
+      "@ruum/api/drivers": [
+        "../../packages/api/src/drivers/index.ts"
+      ],
+      "@ruum/api/organizations": [
+        "../../packages/api/src/organizations/index.ts"
+      ],
+      "@ruum/api/vehicles": [
+        "../../packages/api/src/vehicles/index.ts"
+      ],
+      "@ruum/api/identity": [
+        "../../packages/api/src/identity/index.ts"
+      ],
+      "@ruum/api/custody": [
+        "../../packages/api/src/custody/index.ts"
+      ],
+      "@ruum/api/tracking": [
+        "../../packages/api/src/tracking/index.ts"
+      ],
+      "@ruum/api/incidents": [
+        "../../packages/api/src/incidents/index.ts"
+      ],
+      "@ruum/api/claims": [
+        "../../packages/api/src/claims/index.ts"
+      ],
+      "@ruum/api/billing": [
+        "../../packages/api/src/billing/index.ts"
+      ],
+      "@ruum/api/sla": [
+        "../../packages/api/src/sla/index.ts"
+      ],
+      "@ruum/api/obs": [
+        "../../packages/api/src/obs/index.ts"
+      ],
       "@ruum/shared": [
         "../../packages/shared/src/index.ts"
       ],
@@ -31,6 +70,9 @@
       ],
       "@ruum/ui": [
         "../../packages/ui/src/components/index.ts"
+      ],
+      "@ruum/app-version": [
+        "../../config/app-version.json"
       ]
     },
     "allowJs": true,

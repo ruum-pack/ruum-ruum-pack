@@ -20,8 +20,12 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_APP_URL=http://localhost:3001
+      # Compose local usa HTTP deliberadamente; no habilitar esta excepción en producción real.
+      - RUUM_LOCAL_PRODUCTION=true
+      - PORT=3001
+      - NEXT_PUBLIC_APP_URL=${APP_CONDUCTOR_URL:-http://localhost:3001}
       - NEXT_TELEMETRY_DISABLED=1
+    command: ["pnpm", "--filter", "@ruum/app-conductor", "start"]
     restart: unless-stopped
     networks:
       - ruum-network
@@ -36,8 +40,11 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - RUUM_LOCAL_PRODUCTION=true
+      - PORT=3000
+      - NEXT_PUBLIC_APP_URL=${APP_USUARIO_URL:-http://localhost:3000}
       - NEXT_TELEMETRY_DISABLED=1
+    command: ["pnpm", "--filter", "@ruum/app-usuario", "start"]
     restart: unless-stopped
     networks:
       - ruum-network
@@ -52,8 +59,11 @@ services:
       - "3002:3002"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_APP_URL=http://localhost:3002
+      - RUUM_LOCAL_PRODUCTION=true
+      - PORT=3002
+      - NEXT_PUBLIC_APP_URL=${PANEL_ADMIN_URL:-http://localhost:3002}
       - NEXT_TELEMETRY_DISABLED=1
+    command: ["pnpm", "--filter", "@ruum/panel-admin", "start"]
     restart: unless-stopped
     networks:
       - ruum-network
@@ -61,4 +71,3 @@ services:
 networks:
   ruum-network:
     driver: bridge
-

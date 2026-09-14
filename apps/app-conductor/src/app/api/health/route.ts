@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { crearClienteServidor } from "../../../lib/supabase-server";
+import { crearClienteServidor } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

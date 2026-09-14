@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { obtenerPasaporteDigital } from "@ruum/api/services";
-import { crearClienteServidor } from "../../../lib/supabase-server";
+import { crearClienteServidor } from "@/lib/supabase-server";
 import { EstadoError } from "../../EstadoError";
 import { TripOpportunityDetails } from "./TripOpportunityDetails";
 import { LocalizarVehiculoDetails } from "./LocalizarVehiculoDetails";

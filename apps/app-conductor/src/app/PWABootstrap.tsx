@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import { createLogger } from "@ruum/shared/utils";
+
+const logger = createLogger("pwa");
 
 /**
  * Componente para registrar el Service Worker y manejar actualizaciones PWA
@@ -21,7 +24,7 @@ export function PWABootstrap() {
             scope: "/",
           });
           
-          console.log("[PWA] Service Worker registrado:", registration.scope);
+          logger.info("service_worker_registered", { scope: registration.scope });
           
           // Manejar actualizaciones
           registration.onupdatefound = () => {
@@ -30,7 +33,7 @@ export function PWABootstrap() {
             if (installingWorker) {
               installingWorker.onstatechange = () => {
                 if (installingWorker.state === "installed") {
-                  console.log("[PWA] Nueva versión disponible");
+                  logger.info("service_worker_update_available");
                   // Mostrar notificación al usuario
                   showUpdateNotification();
                 }
@@ -46,7 +49,7 @@ export function PWABootstrap() {
           // Limpiar al desmontar
           return () => clearInterval(checkForUpdates);
         } catch (error) {
-          console.error("[PWA] Error registrando Service Worker:", error);
+          logger.error("service_worker_registration_failed", { error }, "unexpected_exception");
         }
       };
       

@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 
 const mockGetUser = vi.fn();
 
-vi.mock("../../../lib/supabase-server", () => ({
+vi.mock("@/lib/supabase-server", () => ({
   crearClienteServidor: vi.fn(async () => ({
     auth: { getUser: mockGetUser },
   })),

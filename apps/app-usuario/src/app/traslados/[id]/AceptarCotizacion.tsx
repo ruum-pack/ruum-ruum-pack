@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { aceptarCotizacionUsuario } from "@ruum/api/services";
 import { Aviso, Button } from "@ruum/ui";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
-import { useTrasladoRealtime } from "../../../state/AppStateProvider";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
+import { useTrasladoRealtime } from "@/state/AppStateProvider";
 
 export function AceptarCotizacion({
   trasladoId,

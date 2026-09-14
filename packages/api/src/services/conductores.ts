@@ -253,6 +253,39 @@ async function obtenerConductorIdActual(cliente: Cliente): Promise<string> {
   return conductor.id;
 }
 
+function rutaFotoPerfilConductor(valor: string, conductorId: string): string | null {
+  const rutaEsperada = new RegExp(`^${conductorId}/perfil\\.(?:jpe?g|png|webp)$`, "i");
+  if (rutaEsperada.test(valor)) return valor;
+  try {
+    const url = new URL(valor);
+    const prefijos = [
+      `/storage/v1/object/public/fotos-perfil-conductor/${conductorId}/`,
+      `/storage/v1/object/sign/fotos-perfil-conductor/${conductorId}/`,
+    ];
+    const prefijo = prefijos.find((valorPrefijo) => url.pathname.startsWith(valorPrefijo));
+    if (!prefijo) return null;
+    const nombre = url.pathname.slice(prefijo.length);
+    return /^[^/]+\.(?:jpe?g|png|webp)$/i.test(nombre) ? `${conductorId}/${nombre}` : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function obtenerUrlFotoPerfilConductor(
+  cliente: Cliente,
+  conductorId: string,
+  valor: string | null | undefined,
+  expiracionSegundos = 1800,
+): Promise<string | null> {
+  const actual = await obtenerConductorIdActual(cliente);
+  if (actual !== conductorId || !valor) return null;
+  const ruta = rutaFotoPerfilConductor(valor, conductorId);
+  if (!ruta) return null;
+  const { data, error } = await cliente.storage.from("fotos-perfil-conductor").createSignedUrl(ruta, expiracionSegundos);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
 type TrasladoRow = Database["public"]["Tables"]["traslados"]["Row"];
 type VehiculoRow = Database["public"]["Tables"]["vehiculos"]["Row"];
 
@@ -697,12 +730,15 @@ export async function subirFotoPerfilConductor(cliente: Cliente, conductorId: st
 
   if (errorSubida) throw errorSubida;
 
-  const { data } = cliente.storage.from("fotos-perfil-conductor").getPublicUrl(path);
-  const fotoUrl = `${data.publicUrl}?v=${Date.now()}`;
+  const { data: fotoFirmada, error: errorUrl } = await cliente.storage
+    .from("fotos-perfil-conductor")
+    .createSignedUrl(path, 1800);
+  if (errorUrl) throw errorUrl;
+  const fotoUrl = fotoFirmada.signedUrl;
   // PR-04: foto es dato sensible (identidad) — requiere revisión operativa
   // Se sube a storage pero la URL no se persiste en conductores hasta aprobación.
   // Crear solicitud pendiente y devolver URL para preview; UI debe mostrar mensaje de revisión.
-  const resultado = await solicitarCambioExpedienteConductor(cliente, { foto_perfil_url: fotoUrl });
+  const resultado = await solicitarCambioExpedienteConductor(cliente, { foto_perfil_url: path });
   if (resultado.estado === "pendiente") {
     // Lanzamos error controlado que la UI interpretará como "enviado a revisión" (mantiene foto aprobada intacta)
     const err = new Error(resultado.mensaje + " La fotografía será visible tras aprobación operativa.");

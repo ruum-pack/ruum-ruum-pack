@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { crearClienteServidor } from "../../../lib/supabase-server";
+import { crearClienteServidor } from "@/lib/supabase-server";
 import { esquemaSolicitudTraslado } from "@ruum/shared/validacion";
 
 // Sec3: validación servidor del wizard — rechazar si paso < 4 (PASOS.length = 4)

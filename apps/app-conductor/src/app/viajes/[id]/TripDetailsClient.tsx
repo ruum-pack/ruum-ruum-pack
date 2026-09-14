@@ -12,9 +12,9 @@ import { Aviso } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
-import { getTripPresentation } from "../../../lib/trip-presentation";
+import { getTripPresentation } from "@/lib/trip-presentation";
 import { formatearDuracion } from "../trips-utils";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];

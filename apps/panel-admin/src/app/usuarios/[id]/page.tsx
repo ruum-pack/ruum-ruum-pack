@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Aviso } from "@ruum/ui";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 import { AdminBadge, AdminDialog, AdminDrawer } from "../../admin-components";
 import {
   obtenerUsuarioAdmin, actualizarUsuarioAdmin,

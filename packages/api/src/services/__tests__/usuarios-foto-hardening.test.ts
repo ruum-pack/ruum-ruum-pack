@@ -161,7 +161,7 @@ describe("PR-09 Hardening Storage Usuario — Validación server-side", () => {
       const file = jpgFile("MiFotoOriginal_HEIC.jpg", 1024);
       // Necesitamos que validar pase, usaremos un jpg válido con nombre que contiene HEIC pero ext es jpg
       const url = await subirFotoPerfil(cliente, file);
-      expect(url).toContain("https://cdn.test");
+      expect(url).toContain("/storage/v1/object/sign/fotos-perfil/user-uuid-123/perfil.jpg");
       const uploadCall = (cliente as { llamadas: { table: string; action: string; args: unknown[] }[] }).llamadas.find((l) => l.table === "storage:fotos-perfil" && l.action === "upload");
       expect(uploadCall).toBeDefined();
       expect(uploadCall!.args[0]).toBe("user-uuid-123/perfil.jpg"); // path basado en identidad, nombre interno

@@ -2,7 +2,7 @@
 import { memo } from "react";
 import Link from "next/link";
 import { Button, PassportCard, Aviso } from "@ruum/ui";
-import { PagoStripe } from "../../../PagoStripe";
+import { PagoStripe } from "@/app/PagoStripe";
 
 export interface PasoPagoProps {
   trasladoCreado: {

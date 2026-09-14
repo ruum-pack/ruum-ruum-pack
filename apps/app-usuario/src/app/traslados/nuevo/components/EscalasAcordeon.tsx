@@ -2,7 +2,7 @@
 
 import React, { memo, useEffect, useRef, useState } from "react";
 import { Field } from "@ruum/ui";
-import { sugerirDireccionesAutocomplete, type SugerenciaDireccion } from "../../../../lib/mapbox";
+import { sugerirDireccionesAutocomplete, type SugerenciaDireccion } from "@/lib/mapbox";
 import type { ParadaForm, TipoTareaForm } from "../types";
 
 const TIPOS_TAREA: Array<{ valor: TipoTareaForm; etiqueta: string }> = [

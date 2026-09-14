@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TipoCuenta, TipoVehiculo, Usuario } from "@ruum/shared/types";
 import { determinarMomentoPago, calcularCargoCancelacion } from "@ruum/shared/rules";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 import {
   crearTraslado,
   listarVehiculosDeUsuario,
@@ -14,33 +14,33 @@ import {
   aceptarCotizacionUsuario,
   type PrevisualizacionTarifa
 } from "@ruum/api/services";
-import { registrarEventoUx, iniciarFlujoTraslado, registrarPasoIniciado, registrarPasoCompletado, registrarAbandono } from "../../../../lib/analytics";
-import { consultarCodigoPostalMx, type DatosCodigoPostal } from "../../../../lib/codigos-postales";
+import { registrarEventoUx, iniciarFlujoTraslado, registrarPasoIniciado, registrarPasoCompletado, registrarAbandono } from "@/lib/analytics";
+import { consultarCodigoPostalMx, type DatosCodigoPostal } from "@/lib/codigos-postales";
 import {
   esErrorConfiguracionMapbox,
   mensajeErrorMapbox,
   sugerirDireccionesAutocomplete,
   sugerirDireccionesPorCodigoPostal,
   tieneMapboxConfigurado
-} from "../../../../lib/mapbox";
+} from "@/lib/mapbox";
 import {
   clasificacionesPorVehiculo,
   modelosPorMarca,
   resumenClasificacionVehiculo,
   tipoSugeridoParaVehiculo
-} from "../../../../lib/catalogo-vehiculos";
+} from "@/lib/catalogo-vehiculos";
 import {
   guardarBorradorTrasladoLocal,
   leerBorradorTrasladoLocal,
   limpiarBorradorTrasladoLocal,
   type BorradorTrasladoLocal
-} from "../../../../lib/borrador-traslado";
+} from "@/lib/borrador-traslado";
 import { esquemaSolicitudTraslado, erroresFormulario } from "../schema";
 import { CAMPOS_PASO_TARIFA, codigoPostalCompleto, generarTarifaSnapshot, haCambiadoTarifa } from "../tarifa-gate";
 import { construirPayloadCreacion, type CoordenadasTraslado, type CoordenadasParada } from "../adapters";
 import { useGeocodificacion } from "./useGeocodificacion";
-import { useNuevoTrasladoState, useTrasladoRealtime } from "../../../../state/AppStateProvider";
-import type { NuevoTrasladoState, RutaEstimacion, TrasladoCreado } from "../../../../state/app-state";
+import { useNuevoTrasladoState, useTrasladoRealtime } from "@/state/AppStateProvider";
+import type { NuevoTrasladoState, RutaEstimacion, TrasladoCreado } from "@/state/app-state";
 import {
   CAMPOS_PASO_RUTA,
   CAMPOS_PASO_VEHICULO,

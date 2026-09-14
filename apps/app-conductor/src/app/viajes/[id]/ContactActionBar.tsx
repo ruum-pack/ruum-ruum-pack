@@ -5,8 +5,8 @@ import { Aviso, Button } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import { crearLlamadaEnmascarada, enviarMensaje } from "@ruum/api/services";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
-import { CONTACTOS_SOPORTE_CONDUCTOR } from "../../../lib/contactos-soporte";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
+import { CONTACTOS_SOPORTE_CONDUCTOR } from "@/lib/contactos-soporte";
 import { MENSAJES_RAPIDOS_CONTACTO } from "./quick-messages";
 
 export type ContactRole = "origen" | "destino" | "soporte";

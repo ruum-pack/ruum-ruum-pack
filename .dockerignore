@@ -37,7 +37,7 @@ Thumbs.db
 # Environment files (but keep .env.example for reference)
 **/.env
 **/.env.*
-!.env.example
+!**/.env.example
 
 # Test coverage
 **/coverage

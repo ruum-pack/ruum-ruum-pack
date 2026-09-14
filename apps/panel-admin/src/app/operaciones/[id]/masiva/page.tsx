@@ -22,9 +22,9 @@ import {
 } from "@ruum/api/services";
 import { listarUsuariosAdmin } from "@ruum/api/identity";
 import type { Database, Operacion, SucursalEmpresa } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
-import { AdminPageHeader } from "../../../admin-ui";
-import { AdminEmptyState, AdminErrorState, AdminLoadingState } from "../../../admin-components";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
+import { AdminPageHeader } from "@/app/admin-ui";
+import { AdminEmptyState, AdminErrorState, AdminLoadingState } from "@/app/admin-components";
 
 type UsuarioRow = Database["public"]["Tables"]["usuarios"]["Row"];
 

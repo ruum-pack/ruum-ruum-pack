@@ -1,5 +1,5 @@
 import { Aviso } from "@ruum/ui";
-import { NavegacionUsuario } from "../../../NavegacionUsuario";
+import { NavegacionUsuario } from "@/app/NavegacionUsuario";
 
 export function EstadoCreacion({ resultado, volver }: { resultado: { ok: boolean; mensaje: string }; volver: () => void }) {
   return <main className="user-v2-scope user-v2-page user-v2-secondary-screen">

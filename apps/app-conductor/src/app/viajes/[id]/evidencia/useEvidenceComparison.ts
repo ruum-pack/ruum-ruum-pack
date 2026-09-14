@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Database } from "@ruum/shared/types";
 import type { InspeccionEvidencia } from "./evidence-requirements";
 import { INSPECCION_INICIAL } from "./evidence-requirements";
-import { crearClienteNavegador } from "../../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import { obtenerInspeccionTraslado } from "@ruum/api/drivers";
 
 type InspeccionRow = Database["public"]["Tables"]["evidencia_inspecciones"]["Row"];

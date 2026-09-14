@@ -326,13 +326,7 @@ async function globalSetup(config: FullConfig) {
   loadDotenv({ path: path.resolve(projectRoot, '.env.test'), override: true });
   loadDotenv({ path: path.resolve(projectRoot, 'scratch/.env.test'), override: true });
 
-  // Debug: Verificar que las variables se cargaron
-  if (!process.env.PLAYWRIGHT_E2E_CONDUCTOR_EMAIL) {
-    console.error('[DEBUG] projectRoot:', projectRoot);
-    console.error('[DEBUG] process.cwd():', process.cwd());
-    console.error('[DEBUG] PLAYWRIGHT_E2E_CONDUCTOR_EMAIL:', process.env.PLAYWRIGHT_E2E_CONDUCTOR_EMAIL);
-    console.error('[DEBUG] E2E_CONDUCTOR_EMAIL:', process.env.E2E_CONDUCTOR_EMAIL);
-  }
+  // (Sin logs de depuración: las variables pueden contener secretos.)
 
   const supabaseUrl = requiredEnv("PLAYWRIGHT_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL");
   const serviceRoleKey = requiredEnv("PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE_KEY");

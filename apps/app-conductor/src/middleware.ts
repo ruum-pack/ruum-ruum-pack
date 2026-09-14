@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { crearClienteServidor } from "@ruum/api/supabase";
+import { buildCsp, CSP_PRESETS } from "@ruum/shared/seguridad";
 
 const RUTAS_PUBLICAS_CONDUCTOR = [
   "/login",
@@ -31,42 +32,14 @@ function esRutaPublicaConductor(pathname: string): boolean {
  * 3. Gate de autenticación: rutas protegidas sin sesión → /login?next=...
  * 4. Redirección inversa: sesión válida en /login|/registro → /panel.
  */
-function buildCsp(nonce: string, isProd: boolean, isStaging: boolean) {
-  const scriptSrc = isProd
-    ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.sentry.io`
-    : `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io`;
-  // SEC-003: flag para eliminar unsafe-inline de style-src en prod (objetivo 2026-11-01)
-  // Cuando CSP_STRICT_STYLES=true, style-src queda solo con nonce (sin unsafe-inline)
-  // Validar 1 semana en staging report-only antes de activar en prod.
-  // FIX P1: en dev, 'unsafe-inline' se ignora si hay nonce, bloqueando estilos inyectados por Next/styled-jsx.
-  // En dev no usar nonce para style-src, solo 'unsafe-inline'.
-  const strictStyles = process.env.CSP_STRICT_STYLES === "true" || process.env.NEXT_PUBLIC_CSP_STRICT_STYLES === "true";
-  const styleSrc = isProd
-    ? strictStyles
-      ? `style-src 'self' 'nonce-${nonce}'`
-      : `style-src 'self' 'nonce-${nonce}'`
-    : `style-src 'self' 'unsafe-inline'`;
-  const base = [
-    "default-src 'self'",
-    scriptSrc,
-    styleSrc,
-    "connect-src 'self' https://*.supabase.co https://*.mapbox.com https://*.sentry.io https://*.didit.me https://verify.didit.me" + (isProd ? "" : " ws: wss: http://localhost:* http://127.0.0.1:*"),
-    "img-src 'self' data: blob: https://*.supabase.co https://*.mapbox.com https://*.didit.me https://verify.didit.me",
-    "font-src 'self' data:",
-    "frame-src 'self' https://verify.didit.me https://*.didit.me",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-    "worker-src 'self' blob:"
-  ].join("; ");
-  return base;
+function buildCspConductor(nonce: string, isProd: boolean) {
+  return buildCsp({ nonce, isProd, extras: CSP_PRESETS.conductor });
 }
 
 function applyCspHeaders(res: NextResponse, nonce: string) {
   const isProd = process.env.NODE_ENV === "production";
   const isStaging = process.env.NEXT_PUBLIC_RUUM_AMBIENTE === "staging";
-  const csp = buildCsp(nonce, isProd, isStaging);
+  const csp = buildCspConductor(nonce, isProd);
   res.headers.set("Content-Security-Policy", csp);
   res.headers.set("x-nonce", nonce);
   if (isStaging) {

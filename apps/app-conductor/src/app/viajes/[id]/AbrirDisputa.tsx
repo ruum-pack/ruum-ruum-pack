@@ -6,7 +6,7 @@ import { abrirDisputa } from "@ruum/api/services";
 import { ETIQUETA_TIPO_DISPUTA, GLOSARIO_OPERATIVO, MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 
 type TipoDisputa = Database["public"]["Enums"]["tipo_disputa"];
 

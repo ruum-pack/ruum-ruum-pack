@@ -10,7 +10,7 @@ import { resumenClasificacionVehiculo } from "@ruum/shared/catalogos";
 import { ETIQUETA_ESTADO_TRASLADO, TRANSICIONES } from "@ruum/shared/states";
 import { suscribirCanalSeguro } from "@ruum/shared/utils";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 import {
   obtenerPasaporteDigital,
   listarConductoresAdmin,
@@ -30,7 +30,7 @@ import {
   type FinanzasTrasladoAdmin,
   type TrazabilidadMasivaTraslado
 } from "@ruum/api/services";
-import { obtenerRutaMapbox, tieneMapboxConfigurado } from "../../../lib/mapbox-rutas";
+import { obtenerRutaMapbox, tieneMapboxConfigurado } from "@/lib/mapbox-rutas";
 import { obtenerVersionTraslado } from "@ruum/api/transfers";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];

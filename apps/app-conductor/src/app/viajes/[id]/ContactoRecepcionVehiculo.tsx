@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { NextOperationalAction } from "@ruum/ui";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import { avanzarEstadoTraslado } from "@ruum/api/services";
 
 export interface ContactoRecepcionVehiculoProps {

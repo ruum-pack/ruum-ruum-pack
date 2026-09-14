@@ -5,7 +5,7 @@ import { Aviso, Card } from "@ruum/ui";
 import { obtenerConfiguracionConductor, subirDocumentoConductor, type TipoDocumentoConductor } from "@ruum/api/services";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import { CuentaHeader } from "../CuentaHeader";
 import { cargarConductorCuenta, type ConductorCuenta } from "../cuenta-utils";
 import { DatosSensiblesInfo } from "../datos-sensibles";

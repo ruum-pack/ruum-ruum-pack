@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button, Aviso } from "@ruum/ui";
 import { NavegacionUsuario } from "../../NavegacionUsuario";
 import { PASOS } from "./constants";
-import { formatearTiempoRelativoBorrador } from "../../../lib/borrador-traslado";
+import { formatearTiempoRelativoBorrador } from "@/lib/borrador-traslado";
 import { useNuevoTraslado } from "./hooks/useNuevoTraslado";
 
 import { EstadoCreacion } from "./components/EstadoCreacion";

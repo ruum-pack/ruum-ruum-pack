@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { createNavigationOptions, type NavigationOption, type NavigationTarget } from "../../../lib/navigation-launcher";
+import { createNavigationOptions, type NavigationOption, type NavigationTarget } from "@/lib/navigation-launcher";
 
 function abrirNavegacion(option: NavigationOption) {
   if (!option.nativeHref || typeof window === "undefined") return;

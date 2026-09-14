@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Aviso, Button } from "@ruum/ui";
 import { consultarCodigoPostalMx } from "@ruum/shared/utils";
 import { validarRegistroConductor, type CampoRegistroConductor } from "@ruum/shared/validacion";
-import { crearClienteNavegador } from "../../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import { crearConductorAdmin, type ConductorCrearAdmin } from "@ruum/api/services";
 
 const TIPOS_LICENCIA = [
@@ -132,7 +132,7 @@ export default function PaginaNuevoConductor() {
       curp: datos.curp,
       telefono: datos.telefono,
       email: datos.correo,
-      password: "Temporal7",
+      password: "Temporal77",
       codigoPostal: datos.codigo_postal,
       estado: datos.estado_residencia,
       ciudad: datos.ciudad_municipio,

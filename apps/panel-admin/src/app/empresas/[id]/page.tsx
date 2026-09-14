@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { Aviso } from "@ruum/ui";
 import { listarEmpresasAdmin, type DatosEmpresasAdmin } from "@ruum/api/services";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 import { AdminPageHeader, AdminPanel } from "../../admin-ui";
 import { AdminBadge, AdminButton, AdminEmptyState, AdminErrorState, AdminLoadingState, AdminTabs } from "../../admin-components";
 

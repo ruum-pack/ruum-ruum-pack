@@ -14,7 +14,7 @@ import {
   updateOperation,
   type TrasladoDeOperacion
 } from "@ruum/api/services";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 import { AdminPageHeader } from "../../admin-ui";
 import { AdminEmptyState, AdminErrorState, AdminLoadingState } from "../../admin-components";
 import { TRANSICIONES_OPERACION } from "@ruum/shared/types";

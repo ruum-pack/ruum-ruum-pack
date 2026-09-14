@@ -8,9 +8,9 @@ import { Aviso } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { AnguloEvidencia, Database, FotoEvidencia, TipoEvidencia } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../../lib/supabase-browser";
-import { esNativo } from "../../../../lib/capacitor";
-import { capturarFoto, seleccionarFotoGaleria, comprimirDataUrl, evaluarNitidez } from "../../../../lib/camara";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
+import { esNativo } from "@/lib/capacitor";
+import { capturarFoto, seleccionarFotoGaleria, comprimirDataUrl, evaluarNitidez } from "@/lib/camara";
 import {
   obtenerPasaporteDigital,
   obtenerEvidenciaDeTraslado,
@@ -21,7 +21,7 @@ import {
 import { useEvidenceQueue } from "./useEvidenceQueue";
 import { fotoSrc } from "./evidence-requirements";
 import { SecondaryTripNavBar } from "../SecondaryTripNavBar";
-import { useLiveRegion } from "../../../../components/LiveRegionProvider";
+import { useLiveRegion } from "@/components/LiveRegionProvider";
 import { obtenerInspeccionTraslado, guardarInspeccionTraslado } from "@ruum/api/drivers";
 
 type PasaporteDigitalRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];

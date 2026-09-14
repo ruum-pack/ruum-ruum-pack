@@ -1,13 +1,13 @@
 "use client";
 
-import { ConfirmDialog } from "../../../components/ConfirmDialog";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 import { useEffect, useState } from "react";
 import { Aviso, Button, Field, FinancialCard } from "@ruum/ui";
 import { guardarDatosBancariosConductor, obtenerGananciasConductor } from "@ruum/api/services";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import { CuentaHeader } from "../CuentaHeader";
 import { cargarConductorCuenta } from "../cuenta-utils";
 import { DatosSensiblesInfo, DatosSensiblesTooltip, enmascararUltimos } from "../datos-sensibles";

@@ -1,10 +1,10 @@
 "use client";
 import React, { memo, useCallback } from "react";
 import { Button, Field, PassportCard } from "@ruum/ui";
-import { esNativo } from "../../../../lib/capacitor";
-import { obtenerUbicacionActual } from "../../../../lib/ubicacion";
-import type { DatosCodigoPostal } from "../../../../lib/codigos-postales";
-import type { sugerirDireccionesAutocomplete } from "../../../../lib/mapbox";
+import { esNativo } from "@/lib/capacitor";
+import { obtenerUbicacionActual } from "@/lib/ubicacion";
+import type { DatosCodigoPostal } from "@/lib/codigos-postales";
+import type { sugerirDireccionesAutocomplete } from "@/lib/mapbox";
 import { CampoCodigoPostal } from "./CampoCodigoPostal";
 import { EscalasAcordeon } from "./EscalasAcordeon";
 import { formatearDistancia, formatearTiempo, type PrefijoDomicilio } from "../constants";

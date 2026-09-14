@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ETIQUETA_TIPO_VEHICULO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador } from "../../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import { formatearDuracion, nombreVehiculo } from "../../trips-utils";
 import { obtenerDatosOperativosTraslado } from "@ruum/api/transfers";
 import { obtenerContactoUsuarioVisible } from "@ruum/api/identity";

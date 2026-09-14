@@ -1,7 +1,7 @@
 import type { FotoEvidencia } from "@ruum/shared/types";
 import type { EvidenceRequirement } from "./evidence-requirements";
 import { EvidencePreview } from "./EvidencePreview";
-import { ConductorButton } from "../../../../components/v2/ConductorUI";
+import { ConductorButton } from "@/components/v2/ConductorUI";
 
 function VehicleSilhouette({ label }: { label: string }) {
   return (

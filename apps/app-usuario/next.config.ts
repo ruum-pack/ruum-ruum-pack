@@ -1,24 +1,18 @@
 import type { NextConfig } from "next";
-import { buildCspEstatico, HSTS_HEADER, PERMISSIONS_POLICY } from "./src/lib/csp";
+import {
+  buildCspEstatico,
+  HSTS_HEADER,
+  PERMISSIONS_POLICY,
+  IMAGES_REMOTE_PATTERNS,
+  IMAGE_FORMATS,
+} from "./src/lib/csp";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@ruum/shared", "@ruum/ui", "@ruum/api"],
-  // Nunca configuramos ESLint en este proyecto (la validación real se apoya
-  // en tsc, no en linting — ver README, "Por qué este repo no repite los
-  // errores de la sesión anterior"). Sin esto, `next build` intenta abrir un
-  // asistente interactivo para configurar ESLint cuando corre en una
-  // terminal con TTY (como PowerShell) en vez de un pipeline no interactivo
-  // — ese asistente se queda esperando una respuesta que nunca llega.
-  eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "**.supabase.co" },
-      { protocol: "https", hostname: "**.supabase.in" },
-      { protocol: "https", hostname: "**.mapbox.com" },
-      { protocol: "https", hostname: "**.didit.me" },
-      { protocol: "https", hostname: "**.stripe.com" },
-    ],
+    remotePatterns: [...IMAGES_REMOTE_PATTERNS],
+    formats: [...IMAGE_FORMATS],
   },
   async headers() {
     const isProd = process.env.NODE_ENV === "production";

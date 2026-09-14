@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ReportarIncidencia } from "./ReportarIncidencia";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import type { Database } from "@ruum/shared/types";
 import { Aviso } from "@ruum/ui";
 import { extraerRutaComprobante, resolverUrlEvidencia } from "@ruum/api/services";

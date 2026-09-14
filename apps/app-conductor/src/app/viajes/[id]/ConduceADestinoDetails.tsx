@@ -7,15 +7,15 @@ import { Aviso } from "@ruum/ui";
 import { TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
 import { traducirErrorOperativo } from "@ruum/shared/utils";
-import { crearClienteNavegador } from "../../../lib/supabase-browser";
+import { crearClienteNavegador } from "@/lib/supabase-browser";
 import { avanzarEstadoTraslado, confirmarLlegadaDestino, obtenerPasaporteDigital } from "@ruum/api/services";
-import { createNavigationOptions, type NavigationOption } from "../../../lib/navigation-launcher";
+import { createNavigationOptions, type NavigationOption } from "@/lib/navigation-launcher";
 import { formatearDuracion, nombreVehiculo } from "../trips-utils";
 import { MapaRutaConduccion } from "./MapaRutaConduccion";
 import { SecondaryTripNavBar } from "./SecondaryTripNavBar";
 import { EmergencyPanel } from "./EmergencyPanel";
 import { StickyTripActions } from "./StickyTripActions";
-import { ConductorStatusBadge } from "../../../components/v2/ConductorUI";
+import { ConductorStatusBadge } from "@/components/v2/ConductorUI";
 
 type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row"];
 

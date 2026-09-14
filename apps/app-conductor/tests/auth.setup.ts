@@ -35,14 +35,11 @@ setup("autenticar conductor", async ({ page, context }) => {
   const password = process.env.PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD;
   
   if (!email || !password) {
-    console.error(`[auth.setup] ❌ Credenciales faltantes: EMAIL=${email}, PASSWORD=${password ? '***' : 'undefined'}`);
+    console.error(`[auth.setup] ❌ Credenciales de autenticación no configuradas en CI`);
     throw new Error('Credenciales de autenticación no configuradas en CI');
   }
 
-  console.log(`[auth.setup] 🔥 Iniciando autenticación REAL en CI`);
-  console.log(`[auth.setup] 📧 Email: ${email}`);
-  console.log(`[auth.setup] 🔑 Password: ${password.substring(0, 3)}...`);
-  console.log(`[auth.setup] 🌐 Supabase URL: ${process.env.PLAYWRIGHT_SUPABASE_URL}`);
+  console.log(`[auth.setup] Iniciando autenticación en CI (credenciales enmascaradas)`);
 
   // 1. Si ya existe un archivo de sesión con cookies válidas, reutilizarlo
   const resolvedPath = resolve(process.cwd(), AUTH_STATE_PATH);

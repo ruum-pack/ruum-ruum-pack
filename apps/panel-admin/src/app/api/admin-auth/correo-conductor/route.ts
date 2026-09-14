@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { crearClienteServidor } from "../../../../lib/supabase-server";
-import { crearClienteServiceRole } from "../../../../lib/supabase-service-role";
+import { crearClienteServidor } from "@/lib/supabase-server";
+import { crearClienteServiceRole } from "@/lib/supabase-service-role";
 import { normalizarError, tienePermisoAdmin } from "@ruum/api/services";
 import { obtenerAuthUserIdSolicitudConductorService } from "@ruum/api/identity";
 

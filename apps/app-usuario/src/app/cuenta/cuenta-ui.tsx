@@ -15,6 +15,7 @@ export type PasaporteRow = Database["public"]["Views"]["pasaporte_digital"]["Row
 
 export interface CuentaReal {
   usuario: Usuario;
+  fotoPerfilUrl: string | null;
   vehiculos: Vehiculo[];
   empresa: Empresa | null;
   historialEmpresa: PasaporteRow[];
@@ -56,12 +57,14 @@ export async function obtenerCuenta(): Promise<CuentaReal | null> {
 
   try {
     const { crearClienteServidor } = await import("../../lib/supabase-server");
-    const { listarTrasladosDeEmpresa, obtenerUsuarioActual } = await import("@ruum/api/services");
+    const { listarTrasladosDeEmpresa, obtenerUrlFotoPerfilUsuario, obtenerUsuarioActual } = await import("@ruum/api/services");
     const { listarVehiculosDeUsuario } = await import("@ruum/api/vehicles");
     const { obtenerEmpresaVisible } = await import("@ruum/api/organizations");
     const cliente = await crearClienteServidor();
     const usuario = await obtenerUsuarioActual(cliente);
     if (!usuario) return null;
+
+    const fotoPerfilUrl = await obtenerUrlFotoPerfilUsuario(cliente, usuario.foto_url);
 
     const [vehiculos, empresa] = await Promise.all([
       listarVehiculosDeUsuario(cliente, usuario.id),
@@ -75,6 +78,7 @@ export async function obtenerCuenta(): Promise<CuentaReal | null> {
 
     return {
       usuario,
+      fotoPerfilUrl,
       vehiculos,
       empresa,
       historialEmpresa
@@ -195,7 +199,7 @@ export function AvisoSinSesion() {
   );
 }
 
-export function HeaderCuenta({ usuario }: { usuario?: Usuario }) {
+export function HeaderCuenta({ usuario, fotoUrl }: { usuario?: Usuario; fotoUrl?: string | null }) {
   return (
     <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -214,8 +218,8 @@ export function HeaderCuenta({ usuario }: { usuario?: Usuario }) {
       </div>
       {usuario && (
         <div className="flex items-center gap-3 sm:hidden">
-          {usuario.foto_url ? (
-            <Image src={usuario.foto_url} alt="Foto de perfil" width={48} height={48} className="size-12 rounded-full object-cover" />
+          {fotoUrl ? (
+            <Image src={fotoUrl} alt="Foto de perfil" width={48} height={48} className="size-12 rounded-full object-cover" />
           ) : (
             <div className="flex size-12 items-center justify-center rounded-full bg-route-action/15 font-display text-sm font-bold text-route-action border border-route-action/30">
               {iniciales(usuario.nombre)}
@@ -231,13 +235,13 @@ export function HeaderCuenta({ usuario }: { usuario?: Usuario }) {
   );
 }
 
-export function HeroCuenta({ usuario }: { usuario: Usuario }) {
+export function HeroCuenta({ usuario, fotoUrl }: { usuario: Usuario; fotoUrl?: string | null }) {
   return (
     <section className="mb-6">
       <PassportCard>
         <div className="flex flex-col items-center gap-4 sm:flex-row">
-          {usuario.foto_url ? (
-            <Image src={usuario.foto_url} alt="Foto de perfil" width={80} height={80} className="size-16 rounded-full object-cover sm:size-20" />
+          {fotoUrl ? (
+            <Image src={fotoUrl} alt="Foto de perfil" width={80} height={80} className="size-16 rounded-full object-cover sm:size-20" />
           ) : (
             <div className="flex size-16 items-center justify-center rounded-full bg-route-soft font-display text-lg font-bold text-route-dark sm:size-20 sm:text-2xl">
               {iniciales(usuario.nombre)}
@@ -299,7 +303,7 @@ export function LayoutCuenta({ cuenta, children }: { cuenta: CuentaReal; childre
     <main className="user-v2-scope user-v2-page user-v2-secondary-screen">
       <NavegacionUsuario variante="claro" />
       <div className="user-v2-content user-v2-content--wide py-10 sm:py-14">
-        <HeaderCuenta usuario={cuenta.usuario} />
+        <HeaderCuenta usuario={cuenta.usuario} fotoUrl={cuenta.fotoPerfilUrl} />
         <NavegacionCuenta usuario={cuenta.usuario} />
         {children}
       </div>
@@ -307,13 +311,13 @@ export function LayoutCuenta({ cuenta, children }: { cuenta: CuentaReal; childre
   );
 }
 
-export function SeccionPerfil({ usuario }: { usuario: Usuario }) {
+export function SeccionPerfil({ usuario, fotoUrl }: { usuario: Usuario; fotoUrl?: string | null }) {
   return (
     <Seccion titulo="Perfil del usuario" descripcion="Datos visibles y de contacto de la cuenta.">
       <div className="flex flex-col gap-6">
         <div id="informacion-personal" className="flex items-center gap-4 scroll-mt-28">
-          {usuario.foto_url ? (
-            <Image src={usuario.foto_url} alt="Foto de perfil" width={80} height={80} className="size-20 rounded-full object-cover" />
+          {fotoUrl ? (
+            <Image src={fotoUrl} alt="Foto de perfil" width={80} height={80} className="size-20 rounded-full object-cover" />
           ) : (
             <div className="flex size-20 items-center justify-center rounded-full bg-ink font-display text-2xl text-mist">
               {iniciales(usuario.nombre)}
@@ -328,7 +332,7 @@ export function SeccionPerfil({ usuario }: { usuario: Usuario }) {
           </div>
         </div>
         <div id="contacto" className="scroll-mt-28">
-          <PerfilCuentaForm usuario={usuario} />
+          <PerfilCuentaForm usuario={usuario} fotoUrlInicial={fotoUrl} />
         </div>
         <div id="acceso" className="rounded-lg border border-ink/10 px-4 py-4 scroll-mt-28">
           <p className="font-body text-sm font-semibold">Verificación de identidad</p>

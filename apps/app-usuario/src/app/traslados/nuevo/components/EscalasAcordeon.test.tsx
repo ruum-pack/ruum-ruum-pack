@@ -8,7 +8,7 @@ import type { ParadaForm } from "../types";
 
 const sugerirDireccionesMock = vi.hoisted(() => vi.fn());
 
-vi.mock("../../../../lib/mapbox", () => ({
+vi.mock("@/lib/mapbox", () => ({
   sugerirDireccionesAutocomplete: sugerirDireccionesMock,
 }));
 

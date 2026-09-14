@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createNavigationOptions, type NavigationTarget, type NavigationOption } from "../../../lib/navigation-launcher";
+import { createNavigationOptions, type NavigationTarget, type NavigationOption } from "@/lib/navigation-launcher";
 
 function abrirNavegacion(option: NavigationOption) {
   if (!option.nativeHref || typeof window === "undefined") return;

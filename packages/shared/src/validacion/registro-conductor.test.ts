@@ -91,13 +91,14 @@ describe("diasParaVencerLicencia", () => {
 });
 
 describe("validarRegistroConductor", () => {
+  const E2E_DUMMY_PASSWORD = "E2E_DUMMY_Pass2026";
   const datosValidos = {
     nombre: "Juan",
     apellidos: "Gómez Cruz",
     curp: "GOMC900101HDFRRL09",
     telefono: "5512345678",
     email: "juan@example.com",
-    password: "Carretera2026",
+    password: E2E_DUMMY_PASSWORD,
     codigoPostal: "52104",
     estado: "México",
     ciudad: "San Mateo Atenco",
@@ -120,5 +121,18 @@ describe("validarRegistroConductor", () => {
     const errores = validarRegistroConductor({ ...datosValidos, curp: "XX", telefono: "12" });
     expect(Object.keys(errores).sort()).toEqual(["curp", "telefono"]);
     expect(errores.telefono).toContain("10 dígitos");
+  });
+
+  it("rechaza contraseñas de menos de 8 caracteres según política supabase/config.toml", () => {
+    const erroresCorto = validarRegistroConductor({ ...datosValidos, password: "Abc1" });
+    expect(erroresCorto.password).toContain("al menos 8 caracteres");
+
+    const errores7Chars = validarRegistroConductor({ ...datosValidos, password: "Abc1234" });
+    expect(errores7Chars.password).toContain("al menos 8 caracteres");
+  });
+
+  it("acepta contraseñas dummy de validación que cumplen longitud >= 8 (ej: Temporal77)", () => {
+    const errores = validarRegistroConductor({ ...datosValidos, password: "Temporal77" });
+    expect(errores.password).toBeUndefined();
   });
 });

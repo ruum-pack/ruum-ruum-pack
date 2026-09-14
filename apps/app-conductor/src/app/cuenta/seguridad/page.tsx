@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Aviso, Card } from "@ruum/ui";
 import { CuentaHeader } from "../CuentaHeader";
-import { useCerrarSesion } from "../../../lib/use-cerrar-sesion";
+import { useCerrarSesion } from "@/lib/use-cerrar-sesion";
 
 export default function PaginaSeguridadCuenta() {
   const { cerrarSesion, cerrandoSesion, errorCerrarSesion } = useCerrarSesion();

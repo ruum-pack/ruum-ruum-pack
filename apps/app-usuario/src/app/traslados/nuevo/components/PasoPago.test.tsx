@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PasoPago } from "./PasoPago";
 
-vi.mock("../../../PagoStripe", () => ({
+vi.mock("@/app/PagoStripe", () => ({
   PagoStripe: ({ trasladoId, monto }: { trasladoId: string; monto: number }) => (
     <button type="button">Pagar {trasladoId} {monto}</button>
   )

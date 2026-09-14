@@ -1,7 +1,7 @@
 "use client";
 import { MENSAJE_EVIDENCIA_SINCRONIZANDO } from "@ruum/shared/constants";
 import { useEvidenceWizard } from "./EvidenceContext";
-import { ConductorFeedback } from "../../../../components/v2/ConductorUI";
+import { ConductorFeedback } from "@/components/v2/ConductorUI";
 
 export function EvidenceSyncStatus() {
   const { pendientesSubida, sincronizando, etiquetasFaltantes: missing, registroCompleto: complete } = useEvidenceWizard();

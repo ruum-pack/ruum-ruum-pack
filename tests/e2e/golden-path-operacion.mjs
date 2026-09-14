@@ -57,11 +57,13 @@ const rpcSvc = (fn, args) =>
 const svc = (path, opts = {}) =>
   api(path, { ...opts, token: SERVICE, key: SERVICE });
 
+const E2E_DUMMY_PASSWORD = "E2E_DUMMY_Pass15!";
+
 async function crearAuth(email) {
   const res = await fetch(`${URL}/auth/v1/admin/users`, {
     method: "POST",
     headers: { ...HEADERS_SVC, "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password: "Golden-15-ok", email_confirm: true })
+    body: JSON.stringify({ email, password: E2E_DUMMY_PASSWORD, email_confirm: true })
   });
   if (!res.ok) throw new Error(`admin users -> ${res.status}: ${(await res.text()).slice(0, 200)}`);
   return (await res.json()).id;
@@ -71,7 +73,7 @@ async function signIn(email) {
   const res = await fetch(`${URL}/auth/v1/token?grant_type=password`, {
     method: "POST",
     headers: { apikey: ANON, "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password: "Golden-15-ok" })
+    body: JSON.stringify({ email, password: E2E_DUMMY_PASSWORD })
   });
   if (!res.ok) throw new Error(`sign-in ${email} -> ${res.status}`);
   return (await res.json()).access_token;

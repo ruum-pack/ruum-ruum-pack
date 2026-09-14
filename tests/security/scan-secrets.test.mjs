@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { resolve, join } from "node:path";
 import { execFileSync } from "node:child_process";
+import { writeFileSync, unlinkSync, existsSync } from "node:fs";
 import {
   scanDir,
   scanFile,
@@ -19,6 +20,7 @@ const POSITIVE_DIR = join(FIXTURES_DIR, "test-secret-positive");
 const NEGATIVE_DIR = join(FIXTURES_DIR, "test-secret-negative");
 
 test("scan:secrets — Detecta secretos falsos en test-secret-positive", () => {
+  process.env.SCAN_DENIED_PASSWORDS = "CompromisedTestPass2026!";
   const hallazgos = scanDir(POSITIVE_DIR);
   assert.ok(hallazgos.length >= 6, `Se esperaban múltiples hallazgos, se encontraron: ${hallazgos.length}`);
 
@@ -123,7 +125,7 @@ test("scan:secrets — esValorPlaceholder reconoce patrones válidos y rechaza s
   assert.equal(esValorPlaceholder("sk_live_51AbcDefGhIjKlMnOpQrStUvWxYz1234567890"), false);
   assert.equal(esValorPlaceholder("whsec_abcdef1234567890abcdef1234567890"), false);
   assert.equal(esValorPlaceholder("re_12345678_abcdefghijklmnopqrstuvwxyz"), false);
-  assert.equal(esValorPlaceholder("SeguraE2E2026!"), false);
+  assert.equal(esValorPlaceholder("CompromisedTestPass2026!"), false);
 });
 
 test("scan:secrets — esJwtServiceRole detecta payload service_role decodificado", () => {
@@ -143,7 +145,7 @@ test("scan:secrets — esJwtServiceRole detecta payload service_role decodificad
   assert.equal(esJwtServiceRole(jwtUser), false);
 });
 
-test("scan:secrets — debeInspeccionarArchivo cubre .env*, .key, .pem y extensiones críticas", () => {
+test("scan:secrets — debeInspeccionarArchivo cubre .env*, .key, .pem, Dockerfile, toml, gradle, properties y extensiones críticas", () => {
   // Archivos que DEBEN ser inspeccionados (sin punto ciego)
   assert.equal(debeInspeccionarArchivo(".env"), true);
   assert.equal(debeInspeccionarArchivo(".env.local"), true);
@@ -154,11 +156,39 @@ test("scan:secrets — debeInspeccionarArchivo cubre .env*, .key, .pem y extensi
   assert.equal(debeInspeccionarArchivo("private.key"), true);
   assert.equal(debeInspeccionarArchivo("route.ts"), true);
   assert.equal(debeInspeccionarArchivo("index.js"), true);
+  assert.equal(debeInspeccionarArchivo("scan-secrets.mjs"), true, "El scanner no debe auto-excluirse");
+
+  // Nuevas coberturas requeridas: Dockerfile*, *.toml, *.gradle, *.properties, google-services.json
+  assert.equal(debeInspeccionarArchivo("Dockerfile"), true);
+  assert.equal(debeInspeccionarArchivo("Dockerfile.dev"), true);
+  assert.equal(debeInspeccionarArchivo("Dockerfile.production"), true);
+  assert.equal(debeInspeccionarArchivo("config.toml"), true);
+  assert.equal(debeInspeccionarArchivo("build.gradle"), true);
+  assert.equal(debeInspeccionarArchivo("local.properties"), true);
+  assert.equal(debeInspeccionarArchivo("google-services.json"), true);
 
   // Archivos y extensiones excluidos
   assert.equal(debeInspeccionarArchivo("pnpm-lock.yaml"), false);
   assert.equal(debeInspeccionarArchivo("image.png"), false);
   assert.equal(debeInspeccionarArchivo("document.pdf"), false);
+});
+
+test("scan:secrets — Detecta múltiples secretos en la misma línea usando matchAll con regex g", () => {
+  const tmpFile = join(FIXTURES_DIR, "temp-multi-secrets.ts");
+  try {
+    writeFileSync(
+      tmpFile,
+      'const key1 = "sk_live_51AbcDefGhIjKlMnOpQrStUvWxYz1234567890"; const key2 = "sk_live_52AbcDefGhIjKlMnOpQrStUvWxYz0987654321";\n'
+    );
+    const hallazgos = scanFile(tmpFile);
+    assert.equal(hallazgos.length, 2, `Se esperaban 2 secretos en la misma línea, se obtuvieron: ${hallazgos.length}`);
+    assert.equal(hallazgos[0].linea, 1);
+    assert.equal(hallazgos[1].linea, 1);
+    assert.ok(hallazgos[0].label.includes("Stripe API Key de producción"));
+    assert.ok(hallazgos[1].label.includes("Stripe API Key de producción"));
+  } finally {
+    if (existsSync(tmpFile)) unlinkSync(tmpFile);
+  }
 });
 
 test("scan:secrets — enmascarar oculta información confidencial", () => {

@@ -37,7 +37,6 @@ const ARCHIVOS_EXCLUIDOS = new Set([
   "package-lock.json",
   "yarn.lock",
   "deno.lock",
-  "scan-secrets.mjs",
   "scan-secrets.test.mjs",
   "resultados.json",
   "reporte.txt",
@@ -57,14 +56,22 @@ const EXTENSIONES_VALIDAS = new Set([
   ".ts", ".tsx", ".js", ".mjs", ".cjs",
   ".json", ".yml", ".yaml",
   ".sql", ".sh", ".bash", ".zsh",
-  ".pem", ".key", ".env", ".md", ".txt"
+  ".pem", ".key", ".env", ".md", ".txt",
+  ".toml", ".gradle", ".properties"
 ]);
 
-// Passwords conocidas / comprometidas en historial
-const PASSWORDS_CONOCIDAS_E2E = [
-  "SeguraE2E2026!",
-  "RuumE2E-owner-2026!"
-];
+// Nombres individuales de archivos sensibles inspeccionados
+const NOMBRES_EXACTOS_VALIDOS = new Set([
+  "google-services.json"
+]);
+
+// Passwords conocidas / denylist cargadas desde variable de entorno de test o CI (nunca hardcodeadas en código)
+export function obtenerPasswordsDenylist() {
+  return (process.env.SCAN_DENIED_PASSWORDS || "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
 
 // Comprueba si un valor es un placeholder de prueba / plantilla permitido
 export function esValorPlaceholder(valor) {
@@ -125,7 +132,10 @@ export function esValorPlaceholder(valor) {
     /^your-e2e/i,
     /^your-api-key/i,
     /^your-resend/i,
-    /^your-stripe/i
+    /^your-stripe/i,
+    /^MISSING/i,
+    /^unset/i,
+    /^not[-_]?set/i
   ];
 
   return patronesPlaceholder.some((regex) => regex.test(v));
@@ -184,6 +194,18 @@ export function debeInspeccionarArchivo(nombreArchivo) {
   const ext = extname(nombreArchivo).toLowerCase();
   if (EXTENSIONES_BINARIAS.has(ext)) return false;
 
+  const nombreLower = nombreArchivo.toLowerCase();
+
+  // Inspeccionar Dockerfile y sus variantes (Dockerfile, Dockerfile.dev, Dockerfile.prod, etc.)
+  if (nombreLower.startsWith("dockerfile")) {
+    return true;
+  }
+
+  // Inspeccionar archivos por nombre exacto conocido sensible
+  if (NOMBRES_EXACTOS_VALIDOS.has(nombreLower) || NOMBRES_EXACTOS_VALIDOS.has(nombreArchivo)) {
+    return true;
+  }
+
   // Inspeccionar explícitamente archivos .env* o con extensiones de texto / clave
   if (
     nombreArchivo === ".env" ||
@@ -201,10 +223,21 @@ function esLineaComentario(line, filePath) {
   const trimmed = line.trim();
   if (!trimmed) return true;
   if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) return true;
-  // En archivos .env, .sh, .yml, .yaml, comentarios inician con #
+  // En archivos .env, .sh, .yml, .yaml, .toml, .properties y Dockerfile, comentarios inician con #
   const ext = extname(filePath).toLowerCase();
   const base = basename(filePath).toLowerCase();
-  if (base.startsWith(".env") || ext === ".sh" || ext === ".yml" || ext === ".yaml" || ext === ".conf") {
+  if (
+    base.startsWith(".env") ||
+    base.startsWith("dockerfile") ||
+    ext === ".sh" ||
+    ext === ".bash" ||
+    ext === ".zsh" ||
+    ext === ".yml" ||
+    ext === ".yaml" ||
+    ext === ".conf" ||
+    ext === ".toml" ||
+    ext === ".properties"
+  ) {
     if (trimmed.startsWith("#")) return true;
   }
   return false;
@@ -214,42 +247,42 @@ function esLineaComentario(line, filePath) {
 export const PATRONES_SECRETOS = [
   // 1. Stripe Live / Restricted Keys
   {
-    regex: /\b(sk_live_[0-9a-zA-Z]{20,}|rk_live_[0-9a-zA-Z]{20,})\b/,
+    regex: /\b(sk_live_[0-9a-zA-Z]{20,}|rk_live_[0-9a-zA-Z]{20,})\b/g,
     nivel: "error",
     label: "Stripe API Key de producción (live) hardcodeada",
     validar: (match) => !esValorPlaceholder(match[0])
   },
   // 2. Stripe Test Keys (no placeholder)
   {
-    regex: /\b(sk_test_[0-9a-zA-Z]{20,}|rk_test_[0-9a-zA-Z]{20,})\b/,
+    regex: /\b(sk_test_[0-9a-zA-Z]{20,}|rk_test_[0-9a-zA-Z]{20,})\b/g,
     nivel: "error",
     label: "Stripe Secret Key de prueba hardcodeada con valor simulado o real",
     validar: (match, _line, esEjemplo) => !esEjemplo && !esValorPlaceholder(match[0])
   },
   // 3. Stripe Webhook Secret
   {
-    regex: /\b(whsec_[0-9a-zA-Z]{20,})\b/,
+    regex: /\b(whsec_[0-9a-zA-Z]{20,})\b/g,
     nivel: "error",
     label: "Stripe Webhook Secret hardcodeado",
     validar: (match, _line, esEjemplo) => !esEjemplo && !esValorPlaceholder(match[0])
   },
   // 4. Resend API Key
   {
-    regex: /\b(re_[0-9a-zA-Z_]{20,})\b/,
+    regex: /\b(re_[0-9a-zA-Z_]{20,})\b/g,
     nivel: "error",
     label: "Resend API Key hardcodeada",
     validar: (match, _line, esEjemplo) => !esEjemplo && !esValorPlaceholder(match[0])
   },
   // 5. Mapbox Secret Token (sk.eyJ...)
   {
-    regex: /\b(sk\.eyJ[0-9a-zA-Z_-]{20,})\b/,
+    regex: /\b(sk\.eyJ[0-9a-zA-Z_-]{20,})\b/g,
     nivel: "error",
     label: "Mapbox Secret Token hardcodeado",
     validar: (match, _line, esEjemplo) => !esEjemplo && !esValorPlaceholder(match[0])
   },
   // 6. Clave Privada RSA / EC / DSA / OpenSSH
   {
-    regex: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----/,
+    regex: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----/g,
     nivel: "error",
     label: "Clave privada hardcodeada",
     validar: (_match, rawLine, esEjemplo) => {
@@ -266,7 +299,7 @@ export const PATRONES_SECRETOS = [
   },
   // 7. Asignaciones de service_role en env o código
   {
-    regex: /(?:SUPABASE_SERVICE_ROLE_KEY|PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY)\s*[:=]\s*['"]?([^'"\s#;]+)['"]?/i,
+    regex: /(?:SUPABASE_SERVICE_ROLE_KEY|PLAYWRIGHT_SUPABASE_SERVICE_ROLE_KEY)\s*[:=]\s*['"]?([^'"\s#;]+)['"]?/gi,
     nivel: "error",
     label: "Supabase Service Role Key asignada hardcodeada",
     validar: (match, _line, esEjemplo) => {
@@ -278,7 +311,7 @@ export const PATRONES_SECRETOS = [
   },
   // 8. Asignaciones de secretos de proveedores
   {
-    regex: /(?:STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|RESEND_API_KEY|MAPBOX_SECRET_TOKEN)\s*[:=]\s*['"]?([^'"\s#;]+)['"]?/i,
+    regex: /(?:STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|RESEND_API_KEY|MAPBOX_SECRET_TOKEN)\s*[:=]\s*['"]?([^'"\s#;]+)['"]?/gi,
     nivel: "error",
     label: "Secreto de proveedor (Stripe/Resend/Mapbox) asignado hardcodeado",
     validar: (match, _line, esEjemplo) => {
@@ -288,16 +321,23 @@ export const PATRONES_SECRETOS = [
       return val.length >= 10;
     }
   },
-  // 9. Contraseñas conocidas y comprometidas E2E
+  // 9. Contraseñas conocidas y comprometidas E2E (cargadas dinámicamente vía variable de entorno)
   {
-    regex: new RegExp(`(?:^|[^a-zA-Z0-9_])(${PASSWORDS_CONOCIDAS_E2E.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join("|")})(?:[^a-zA-Z0-9_]|$)`),
+    get regex() {
+      const denylist = obtenerPasswordsDenylist();
+      if (denylist.length === 0) return null;
+      return new RegExp(
+        `(?<=^|[^a-zA-Z0-9_])(${denylist.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?=[^a-zA-Z0-9_]|$)`,
+        "g"
+      );
+    },
     nivel: "error",
     label: "Contraseña conocida de pruebas E2E expuesta",
     validar: (_match, _line, esEjemplo) => !esEjemplo
   },
   // 10. Asignaciones de contraseñas no-placeholder en archivos no-ejemplo
   {
-    regex: /(?:PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD|PLAYWRIGHT_E2E_OWNER_PASSWORD|TEST_DRIVER_PASSWORD|TEST_PASSWORD)\s*[:=]\s*['"]?([^'"\s#;]+)['"]?/i,
+    regex: /(?:PLAYWRIGHT_E2E_CONDUCTOR_PASSWORD|PLAYWRIGHT_E2E_OWNER_PASSWORD|TEST_DRIVER_PASSWORD|TEST_PASSWORD)\s*[:=]\s*['"]?([^'"\s#;]+)['"]?/gi,
     nivel: "error",
     label: "Contraseña E2E hardcodeada con valor real",
     validar: (match, _line, esEjemplo) => {
@@ -341,8 +381,17 @@ export function scanFile(filePath) {
 
       // 2. Chequeo de patrones configurados
       for (const patron of PATRONES_SECRETOS) {
-        const match = rawLine.match(patron.regex);
-        if (match) {
+        const baseRegex = patron.regex;
+        if (!baseRegex) continue;
+
+        // Asegurar flag global 'g' para matchAll y reiniciar búsqueda por línea
+        const regexGlobal = new RegExp(
+          baseRegex.source,
+          baseRegex.flags.includes("g") ? baseRegex.flags : baseRegex.flags + "g"
+        );
+
+        const matches = rawLine.matchAll(regexGlobal);
+        for (const match of matches) {
           const esValido = patron.validar ? patron.validar(match, rawLine, esEjemplo, rawLine) : true;
           if (esValido) {
             hallazgos.push({

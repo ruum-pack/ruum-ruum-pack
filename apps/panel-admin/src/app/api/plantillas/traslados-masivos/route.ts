@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
 import { CATALOGO_VEHICULOS, type VehiculoCatalogo } from "@ruum/shared/catalogos";
+import { dirDatosCP } from "@/lib/datos-cp";
 
 type Celda = string | number | null | undefined;
 
@@ -119,7 +120,7 @@ function dataValidation(columna: string, formula: string) {
 }
 
 function cargarCodigosPostales() {
-  const dir = join(process.cwd(), "..", "app-usuario", "public", "data", "codigos-postales");
+  const dir = dirDatosCP();
   const filas: Array<[string, string, string, string, string]> = [];
   for (const archivo of readdirSync(dir).filter((nombre) => nombre.endsWith(".json"))) {
     const shard = JSON.parse(readFileSync(join(dir, archivo), "utf8")) as Record<string, { estado: string; ciudades: string[]; colonias: string[] }>;

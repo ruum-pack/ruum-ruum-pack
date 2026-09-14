@@ -23,14 +23,14 @@ import {
   type FilaTrasladoMasivoNormalizada,
   type ResultadoCargaTrasladosMasivos
 } from "@ruum/api/services";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
-import { consultarCodigoPostalMx } from "../../../lib/codigos-postales";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
+import { consultarCodigoPostalMx } from "@/lib/codigos-postales";
 import {
   calcularRutaMapbox,
   geocodificarDireccion,
   mensajeErrorMapbox,
   tieneMapboxConfigurado
-} from "../../../lib/mapbox";
+} from "@/lib/mapbox";
 
 interface FilaPrevalidada {
   numero: number;

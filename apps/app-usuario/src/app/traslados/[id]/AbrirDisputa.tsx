@@ -5,7 +5,7 @@ import { Button } from "@ruum/ui";
 import { abrirDisputa } from "@ruum/api/services";
 import { ETIQUETA_TIPO_DISPUTA, MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 
 type TipoDisputa = Database["public"]["Enums"]["tipo_disputa"];
 

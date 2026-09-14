@@ -4,6 +4,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { TAMANO_MAXIMO, validarDocumento } from "./validacion.ts";
 import { leerFormularioLimitado } from "../_shared/multipart-limitado.ts";
+import { consumirRateLimit } from "../_shared/rate-limit.ts";
 
 const BUCKET="documentos-conductor";
 const TIPOS=new Set(["licencia_frente","licencia_reverso","identificacion_oficial","constancia_situacion_fiscal","documento_operativo"]);
@@ -23,8 +24,8 @@ function codigoSeguro(error:unknown) {
   return "desconocido";
 }
 
-function json(body:Record<string,unknown>,status=200) {
-  return new Response(JSON.stringify(body),{status,headers:{...CORS,"Content-Type":"application/json"}});
+function json(body:Record<string,unknown>,status=200,extraHeaders:Record<string,string>={}) {
+  return new Response(JSON.stringify(body),{status,headers:{...CORS,...extraHeaders,"Content-Type":"application/json"}});
 }
 
 Deno.serve(async(req)=>{
@@ -34,13 +35,30 @@ Deno.serve(async(req)=>{
   if(!authorization) return json({error:"Inicia sesión para subir documentos."},401);
   const url=Deno.env.get("SUPABASE_URL")??"";
   const anon=Deno.env.get("SUPABASE_ANON_KEY")??"";
-  const serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??"";
-  if(!url||!anon||!serviceKey) return json({error:"El servicio documental no está configurado."},500);
+  if(!url||!anon) {
+    console.error("validar-documento-conductor: configuración base ausente");
+    return json({error:"Servicio temporalmente no disponible."},503);
+  }
 
   const usuario=createClient(url,anon,{global:{headers:{Authorization:authorization}}});
-  const servicio=createClient(url,serviceKey);
   const {data:sesion,error:errorSesion}=await usuario.auth.getUser();
   if(errorSesion||!sesion.user) return json({error:"La sesión no es válida."},401);
+
+  const serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??"";
+  if(!serviceKey) {
+    console.error("validar-documento-conductor: SUPABASE_SERVICE_ROLE_KEY ausente");
+    return json({error:"Servicio temporalmente no disponible."},503);
+  }
+  const servicio=createClient(url,serviceKey);
+  try {
+    const limite=await consumirRateLimit(servicio,"validar-documento-conductor",sesion.user.id,10,600);
+    if(!limite.permitido) {
+      return json({error:"Demasiados intentos. Espera unos minutos y vuelve a probar."},429,{"Retry-After":String(limite.reintentarEn)});
+    }
+  } catch(error) {
+    console.error("validar-documento-conductor: rate limit no disponible",error instanceof Error?error.message:error);
+    return json({error:"Servicio temporalmente no disponible."},503);
+  }
 
   let form:FormData;
   try { form=await leerFormularioLimitado(req,TAMANO_MAXIMO); }

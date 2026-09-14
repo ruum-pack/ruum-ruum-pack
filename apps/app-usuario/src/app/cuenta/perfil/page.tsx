@@ -7,7 +7,7 @@ export default async function PaginaPerfilCuenta() {
 
   return (
     <LayoutCuenta cuenta={cuenta}>
-      <SeccionPerfil usuario={cuenta.usuario} />
+      <SeccionPerfil usuario={cuenta.usuario} fotoUrl={cuenta.fotoPerfilUrl} />
     </LayoutCuenta>
   );
 }

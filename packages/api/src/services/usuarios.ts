@@ -105,6 +105,35 @@ export async function actualizarPerfilUsuario(cliente: Cliente, datos: PerfilUsu
   return data;
 }
 
+function rutaFotoPerfilUsuario(valor: string | null | undefined, authUserId: string): string | null {
+  if (!valor) return null;
+  const rutaEsperada = new RegExp(`^${authUserId}/perfil\\.(?:jpe?g|png|webp)$`, "i");
+  if (rutaEsperada.test(valor)) return valor;
+  try {
+    const url = new URL(valor);
+    const prefijo = `/storage/v1/object/public/fotos-perfil/${authUserId}/`;
+    const nombre = url.pathname.startsWith(prefijo) ? url.pathname.slice(prefijo.length) : "";
+    return /^[^/]+\\.(?:jpe?g|png|webp)$/i.test(nombre) ? `${authUserId}/${nombre}` : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Convierte la ruta persistida (o una URL pública legada) en URL efímera. */
+export async function obtenerUrlFotoPerfilUsuario(
+  cliente: Cliente,
+  valor: string | null | undefined,
+  expiracionSegundos = 1800,
+): Promise<string | null> {
+  const { data: sesion } = await cliente.auth.getUser();
+  if (!sesion.user) return null;
+  const ruta = rutaFotoPerfilUsuario(valor, sesion.user.id);
+  if (!ruta) return null;
+  const { data, error } = await cliente.storage.from("fotos-perfil").createSignedUrl(ruta, expiracionSegundos);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
 export type FacturacionActualizable = {
   rfc: string | null;
   razon_social: string | null;
@@ -207,11 +236,8 @@ export async function subirFotoPerfil(cliente: Cliente, archivo: File): Promise<
   const path = `${sesion.user.id}/perfil.${validado.extension}`;
   const foto = await subirArchivoPerfil(cliente, "fotos-perfil", path, archivo, validado.mime);
 
-  const { data } = cliente.storage.from(foto.bucket).getPublicUrl(foto.path);
-  const fotoUrl = `${data.publicUrl}?v=${Date.now()}`;
-
-  await actualizarPerfilUsuario(cliente, { foto_url: fotoUrl } as PerfilUsuarioActualizable);
-  return fotoUrl;
+  await actualizarPerfilUsuario(cliente, { foto_url: foto.path } as PerfilUsuarioActualizable);
+  return (await obtenerUrlFotoPerfilUsuario(cliente, foto.path)) ?? foto.path;
 }
 
 async function subirArchivoPerfil(
@@ -505,4 +531,3 @@ export async function registrarConsentimientoUsuario(
 
   return { version, aceptado_en: aceptado };
 }
-

@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { crearClienteServidor } from "@ruum/api/supabase";
 import {
+  buildCspPanel,
+  HSTS_HEADER,
+  PERMISSIONS_POLICY,
+} from "./lib/csp";
+import {
   obtenerAdminSesion,
   registrarAccesoDenegado,
   verificarPermisoRuta
@@ -29,12 +34,41 @@ import { normalizarRolAdmin, puedeVerRuta, obtenerCapacidadParaRuta } from "./li
 
 const RUTAS_PUBLICAS = ["/login", "/theme-init.js"];
 
+/**
+ * Aplica CSP con nonce + HSTS + headers de seguridad a la respuesta.
+ * Fuente: @ruum/shared/seguridad vía ./lib/csp (SEC-002).
+ */
+function applySecurityHeadersPanel(res: NextResponse, nonce: string): NextResponse {
+  const isProd = process.env.NODE_ENV === "production";
+  const isStaging = process.env.NEXT_PUBLIC_RUUM_AMBIENTE === "staging";
+  res.headers.set("Content-Security-Policy", buildCspPanel(nonce, isProd));
+  if (isStaging) {
+    res.headers.set(
+      "Content-Security-Policy-Report-Only",
+      `${buildCspPanel(nonce, isProd)}; report-uri /api/csp-report; report-to csp-endpoint`,
+    );
+  }
+  res.headers.set("x-nonce", nonce);
+  res.headers.set("X-Frame-Options", "DENY");
+  res.headers.set("X-Content-Type-Options", "nosniff");
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.headers.set("Permissions-Policy", PERMISSIONS_POLICY);
+  if (isProd) {
+    res.headers.set("Strict-Transport-Security", HSTS_HEADER);
+  }
+  return res;
+}
+
 function esRutaPublica(pathname: string): boolean {
   return RUTAS_PUBLICAS.some((ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`));
 }
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("x-nonce", nonce);
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -49,13 +83,13 @@ export async function middleware(request: NextRequest) {
       modoDemo,
       supabaseConfigurado: Boolean(url && anonKey)
     });
-    return new NextResponse("Configuración de producción incompleta", { status: 503 });
+    return applySecurityHeadersPanel(new NextResponse("Configuración de producción incompleta", { status: 503 }), nonce);
   }
 
   // Demo solo se permite explícitamente fuera de producción.
   if (!url || !anonKey) {
-    if (!modoDemo) return new NextResponse("Supabase no está configurado", { status: 503 });
-    return response;
+    if (!modoDemo) return applySecurityHeadersPanel(new NextResponse("Supabase no está configurado", { status: 503 }), nonce);
+    return applySecurityHeadersPanel(response, nonce);
   }
 
   const supabase = crearClienteServidor(url, anonKey, {
@@ -65,6 +99,7 @@ export async function middleware(request: NextRequest) {
     setAll(cookiesToSet) {
       cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
       response = NextResponse.next({ request });
+      response.headers.set("x-nonce", nonce);
       cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
     }
   });
@@ -83,15 +118,15 @@ export async function middleware(request: NextRequest) {
     if (user) {
       const adminSesion = await obtenerAdminSesion(supabase, user.id).catch(() => null);
       if (adminSesion) {
-        return NextResponse.redirect(new URL("/", request.url));
+        return applySecurityHeadersPanel(NextResponse.redirect(new URL("/", request.url)), nonce);
       }
     }
-    return response;
+    return applySecurityHeadersPanel(response, nonce);
   }
 
   // Ruta protegida sin sesión -> a login.
   if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return applySecurityHeadersPanel(NextResponse.redirect(new URL("/login", request.url)), nonce);
   }
 
   // Ruta protegida con sesión pero SIN fila en admins -> no autorizado.
@@ -107,7 +142,7 @@ export async function middleware(request: NextRequest) {
     await supabase.auth.signOut();
     const destino = new URL("/login", request.url);
     destino.searchParams.set("error", "no_autorizado");
-    return NextResponse.redirect(destino);
+    return applySecurityHeadersPanel(NextResponse.redirect(destino), nonce);
   }
 
   const rol = normalizarRolAdmin(admin.rol_operativo);
@@ -125,7 +160,7 @@ export async function middleware(request: NextRequest) {
     }).catch(() => undefined);
     const destino = new URL("/sin-permiso", request.url);
     destino.searchParams.set("ruta", pathname);
-    return NextResponse.redirect(destino);
+    return applySecurityHeadersPanel(NextResponse.redirect(destino), nonce);
   }
 
   // Verificación de capacidad efectiva (incluye overrides de admin_capacidades)
@@ -147,11 +182,11 @@ export async function middleware(request: NextRequest) {
       }).catch(() => undefined);
       const destino = new URL("/sin-permiso", request.url);
       destino.searchParams.set("ruta", pathname);
-      return NextResponse.redirect(destino);
+      return applySecurityHeadersPanel(NextResponse.redirect(destino), nonce);
     }
   }
 
-  return response;
+  return applySecurityHeadersPanel(response, nonce);
 }
 
 export const config = {

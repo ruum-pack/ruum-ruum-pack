@@ -5,9 +5,9 @@ import { Chat, Button, Aviso } from "@ruum/ui";
 import { MENSAJES_CLAVE_UX, TEXTOS_CARGANDO } from "@ruum/shared/constants";
 import { chatDisponible } from "@ruum/shared/rules";
 import type { Database } from "@ruum/shared/types";
-import { crearClienteNavegador, tieneSupabaseConfigurado } from "../../../lib/supabase-browser";
+import { crearClienteNavegador, tieneSupabaseConfigurado } from "@/lib/supabase-browser";
 import { obtenerMensajes, enviarMensaje, suscribirseAMensajes, crearLlamadaEnmascarada } from "@ruum/api/services";
-import { useTrasladoRealtime } from "../../../state/AppStateProvider";
+import { useTrasladoRealtime } from "@/state/AppStateProvider";
 
 type EstadoTraslado = Database["public"]["Enums"]["estado_traslado"];
 

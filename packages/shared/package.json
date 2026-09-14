@@ -10,18 +10,19 @@
     "./states": "./src/states/index.ts",
     "./constants": "./src/constants/index.ts",
     "./utils": "./src/utils/index.ts",
+    "./seguridad": "./src/seguridad/index.ts",
     "./validacion": "./src/validacion/index.ts",
     "./catalogos": "./src/catalogos/index.ts"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.9"
   },
   "dependencies": {
     "zod": "^3.24.1"

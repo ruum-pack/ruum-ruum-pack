@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { POST, GET, HEAD } from "./route";
-import { MAX_BODY, __clearCspRateLimitForTest } from "../../../lib/csp-rate-limit";
+import { MAX_BODY, __clearCspRateLimitForTest } from "@/lib/csp-rate-limit";
 
 describe("R14 csp-report — rate-limit distribuido + límites", () => {
   beforeEach(() => {
