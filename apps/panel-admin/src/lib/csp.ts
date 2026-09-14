@@ -10,8 +10,8 @@ export {
   HSTS_HEADER,
   IMAGES_REMOTE_PATTERNS,
   IMAGE_FORMATS,
-} from "@ruum/shared/seguridad";
-import { buildCsp, CSP_PRESETS } from "@ruum/shared/seguridad";
+} from "../../../../packages/shared/src/seguridad";
+import { buildCsp, CSP_PRESETS } from "../../../../packages/shared/src/seguridad";
 
 /** CSP dinámico con nonce (middleware). Prod: nonce + strict-dynamic. */
 export function buildCspPanel(nonce: string, isProd: boolean): string {
