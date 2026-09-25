@@ -15,9 +15,8 @@ function temaActual(): TemaAdmin {
 }
 
 export function SelectorTemaAdmin() {
-  const [tema, setTema] = useState<TemaAdmin>(() => (
-    typeof window === "undefined" ? "light" : temaActual()
-  ));
+  // El primer render debe coincidir con el servidor; el efecto lee el tema guardado.
+  const [tema, setTema] = useState<TemaAdmin>("light");
 
   useEffect(() => {
     setTema(temaActual());

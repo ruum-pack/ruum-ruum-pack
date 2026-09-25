@@ -81,7 +81,7 @@ export function NavegacionUsuario({ variante = "oscuro" }: { variante?: Variante
         role="banner"
         className={esClaro
           ? "user-v2-shell-header"
-          : "sticky top-0 z-30 w-full border-b border-[#1C2A3E]/40 bg-[#070D18]/90 pt-[env(safe-area-inset-top)] backdrop-blur-md"}
+          : "sticky top-0 z-30 w-full border-b border-white/10 bg-[var(--ruum-navy)] pt-[env(safe-area-inset-top)] backdrop-blur-md"}
       >
         <div className={esClaro ? "user-v2-shell-inner" : "mx-auto flex w-full max-w-[430px] items-center justify-between px-4 py-3"}>
           <Link href="/" className="group flex select-none items-center gap-2.5" aria-label="Ir al inicio de Ruum Ruum">
@@ -103,7 +103,7 @@ export function NavegacionUsuario({ variante = "oscuro" }: { variante?: Variante
               aria-label="Notificaciones"
             >
               <IconoCampana />
-              <span className={esClaro ? "user-v2-shell-notification-dot" : "absolute right-[7px] top-[6px] size-2 rounded-full border-2 border-white bg-[#FFC400]"} />
+              <span className={esClaro ? "user-v2-shell-notification-dot" : "absolute right-[7px] top-[6px] size-2 rounded-full border-2 border-white bg-[var(--ruum-teal)]"} />
             </Link>
             {esClaro ? (
               <Link href="/cuenta" className="user-v2-shell-account" aria-label="Cuenta">
@@ -111,7 +111,7 @@ export function NavegacionUsuario({ variante = "oscuro" }: { variante?: Variante
                 <span>Cuenta</span>
               </Link>
             ) : (
-              <Link href="/cuenta" className="flex size-9 items-center justify-center rounded-full border border-slate-600/80 text-slate-300 hover:border-[#FFC400] hover:text-white" aria-label="Mi cuenta">
+              <Link href="/cuenta" className="flex size-11 items-center justify-center rounded-full border border-white/25 text-slate-200 hover:border-[var(--ruum-teal)] hover:text-white focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[var(--ruum-focus)]" aria-label="Mi cuenta">
                 <IconoCuenta className="size-5" />
               </Link>
             )}
@@ -124,7 +124,7 @@ export function NavegacionUsuario({ variante = "oscuro" }: { variante?: Variante
         aria-label="Navegación principal"
         className={esClaro
           ? "user-v2-shell-nav"
-          : "fixed inset-x-0 bottom-0 z-40 border-t border-[#1C2A3E]/60 bg-[#070D18]/95 pb-[max(10px,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_30px_rgba(0,0,0,0.6)] backdrop-blur-md"}
+          : "fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[var(--ruum-navy)] pb-[max(10px,env(safe-area-inset-bottom))] pt-1.5 shadow-[var(--ruum-elevation-2)] backdrop-blur-md"}
       >
         <div className={esClaro ? "user-v2-shell-nav-inner" : "mx-auto w-full max-w-[430px] px-2"}>
           <div className="grid grid-cols-4 items-center">
@@ -138,9 +138,9 @@ export function NavegacionUsuario({ variante = "oscuro" }: { variante?: Variante
                   className={esClaro ? "user-v2-nav-link group select-none" : "group relative flex min-h-[53px] flex-col items-center justify-center gap-1 py-1.5 select-none"}
                 >
                   {esClaro && <span className={`user-v2-nav-indicator ${activo ? "is-active" : ""}`} aria-hidden="true" />}
-                  {!esClaro && activo && <span className="absolute bottom-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-[#FFC400]" />}
-                  <destino.Icono className={esClaro ? "size-[22px] transition-colors" : `size-[22px] transition-colors ${activo ? "text-[#FFC400]" : "text-[#8E9CAE]"}`} />
-                  <span className={esClaro ? "transition-colors" : `font-body text-[10px] leading-none tracking-tight transition-colors ${activo ? "font-bold text-[#FFC400]" : "font-medium text-[#8E9CAE]"}`}>
+                  {!esClaro && activo && <span className="absolute inset-x-8 top-0 h-[3px] rounded-b-full bg-[var(--ruum-teal)]" />}
+                  <destino.Icono className={esClaro ? "size-[22px] transition-colors" : `size-[22px] transition-colors ${activo ? "text-[var(--ruum-teal)]" : "text-[#A9BCD3]"}`} />
+                  <span className={esClaro ? "transition-colors" : `font-body text-xs leading-none tracking-tight transition-colors ${activo ? "font-bold text-[var(--ruum-teal)]" : "font-medium text-[#A9BCD3]"}`}>
                     {destino.etiqueta}
                   </span>
                 </Link>

@@ -1,0 +1,26 @@
+{
+  "perfil": {
+    "nombre": "Ruum Ruum",
+    "avatar": "símbolo RR solo",
+    "descripcion": "Traslado vehicular con conductores certificados, evidencia y seguimiento. Cobertura inicial: CDMX, Valle de Toluca y rutas regionales."
+  },
+  "saludo": {
+    "texto": "Hola, somos Ruum Ruum. Coordinamos traslados de vehículos con conductores certificados, evidencia y seguimiento. Para cotizar, cuéntanos: colonia o ciudad de origen y destino; marca, modelo y año; fecha y horario; contacto en origen y en destino; si eres particular o empresa. Al continuar aceptas nuestro aviso de privacidad.",
+    "botones": ["Cotizar un traslado", "Soy empresa", "Hablar con una persona"]
+  },
+  "fueraDeHorario": "Gracias por escribir a Ruum Ruum. Estamos fuera de horario y te respondemos a partir de las [hora]. Si tienes un traslado en curso y necesitas ayuda urgente, llama al [teléfono de emergencia].",
+  "respuestasRapidas": [
+    { "id": "cotizacion-confirmada", "texto": "Recibimos tu solicitud y abrimos el folio [folio]. Esta es tu cotización; confírmala para continuar." },
+    { "id": "evidencia-inicial", "texto": "Documentamos el estado de tu vehículo antes de salir. Ya puedes seguir tu traslado con el folio [folio]." },
+    { "id": "retraso", "texto": "Tu conductor lleva [n] minutos de retraso por [causa]. Nueva llegada estimada: [hora]." },
+    { "id": "entrega-reporte", "texto": "Entregamos y documentamos el estado final. Recibes el reporte completo del traslado [folio]." },
+    { "id": "datos-faltantes", "texto": "Para continuar nos falta [dato]. Sin él no se puede [paso]. ¿Nos lo compartes?" }
+  ],
+  "catalogo": [
+    { "id": "urbano", "nombre": "Traslado urbano", "descripcion": "Dentro de la ciudad, con evidencia inicial y final." },
+    { "id": "interurbano", "nombre": "Traslado interurbano", "descripcion": "Entre ciudades cercanas, con seguimiento durante el trayecto." },
+    { "id": "interestatal", "nombre": "Traslado interestatal", "descripcion": "Entre estados, con reporte completo y firma." },
+    { "id": "conductor", "nombre": "Quiero ser conductor", "descripcion": "Certificación, niveles y asignación con criterios conocidos." },
+    { "id": "persona", "nombre": "Hablar con una persona", "descripcion": "Soporte humano mientras hay traslado en curso." }
+  ]
+}

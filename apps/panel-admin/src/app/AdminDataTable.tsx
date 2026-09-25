@@ -230,7 +230,7 @@ export function AdminDataTable<T>({
                   <td className="px-4 py-3 text-right" data-label="Acciones">
                     <details className="group relative inline-flex">
                       <summary
-                        className="grid size-9 cursor-pointer list-none place-items-center rounded-full border border-ink/15 bg-surface-primary font-mono-ruum text-lg leading-none text-text-secondary transition hover:border-status-info/35 hover:bg-status-info-soft hover:text-status-info group-open:border-status-info/35 group-open:bg-status-info-soft group-open:text-status-info"
+                        className="grid size-11 cursor-pointer list-none place-items-center rounded-full border border-ink/15 bg-surface-primary font-mono-ruum text-lg leading-none text-text-secondary transition hover:border-status-info/35 hover:bg-status-info-soft hover:text-status-info focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-[var(--ruum-focus)] group-open:border-status-info/35 group-open:bg-status-info-soft group-open:text-status-info"
                         aria-label={`Abrir acciones de ${rowId}`}
                       >
                         ⋮

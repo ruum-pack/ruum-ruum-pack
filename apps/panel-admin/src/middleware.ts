@@ -67,6 +67,8 @@ export async function middleware(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  // Next extrae el nonce de la CSP de la petición para sus scripts de hidratación.
+  requestHeaders.set("Content-Security-Policy", buildCspPanel(nonce, process.env.NODE_ENV === "production"));
   let response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("x-nonce", nonce);
 
@@ -98,7 +100,9 @@ export async function middleware(request: NextRequest) {
     },
     setAll(cookiesToSet) {
       cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-      response = NextResponse.next({ request });
+      // Conservar CSP/nonce y propagar también las cookies recién renovadas.
+      requestHeaders.set("cookie", request.cookies.toString());
+      response = NextResponse.next({ request: { headers: requestHeaders } });
       response.headers.set("x-nonce", nonce);
       cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
     }

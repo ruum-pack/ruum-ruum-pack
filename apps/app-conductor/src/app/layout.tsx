@@ -5,6 +5,7 @@ import { TextInputUppercaseBridge } from "@ruum/ui";
 import "./globals.css";
 import { NavegacionConductor } from "./NavegacionConductor";
 import { ViajeActivoProvider } from "./ViajeActivoContext";
+import { ModoCalleActivador } from "./ModoCalleActivador";
 import { LiveRegionProvider } from "../components/LiveRegionProvider";
 import { ErrorBoundaryConductor } from "../components/ErrorBoundaryConductor";
 import { VersionGate } from "./VersionGate";
@@ -70,6 +71,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <ViajeActivoProvider>
               <SincronizadorEvidenciaOffline />
               <NavegacionConductor />
+              <ModoCalleActivador />
               <EstadoSincronizacionGlobal />
               <EstadoTrackingGlobal />
               <PushNotificationsBootstrap />

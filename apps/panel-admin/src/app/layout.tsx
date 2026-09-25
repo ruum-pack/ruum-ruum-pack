@@ -7,6 +7,7 @@ import { BarraLateral } from "./BarraLateral";
 import { NavegacionAdminMovil } from "./NavegacionAdminMovil";
 import { BarraSuperiorAdmin } from "./BarraSuperiorAdmin";
 import Script from "next/script";
+import { headers } from "next/headers";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -33,11 +34,13 @@ export const metadata: Metadata = {
   description: "Seguimiento operativo, evidencia documentada y trazabilidad de cada traslado."
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // headers() fuerza renderizado por petición: el nonce no puede prerenderizarse.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <Script src="/theme-init.js" strategy="beforeInteractive" />
+        <Script src="/theme-init.js" strategy="beforeInteractive" nonce={nonce} />
       </head>
       <body className={`${montserrat.variable} ${inter.variable} ${plexMono.variable} admin-v2-shell min-h-screen`}>
         <a href="#contenido-principal" className="ruum-skip-link">Saltar al contenido principal</a>

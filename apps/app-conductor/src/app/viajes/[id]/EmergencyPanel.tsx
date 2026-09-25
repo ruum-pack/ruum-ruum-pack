@@ -237,15 +237,15 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
   }
 
   return (
-    <section id="emergencia" className="mt-6 rounded-lg border border-danger-action bg-danger-soft px-4 py-4">
+    <section id="emergencia" aria-label="Seguridad" className="mt-6 rounded-[20px] border border-[var(--ruum-emergency)]/40 bg-[var(--ruum-emergency-bg)] px-4 py-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-body text-sm font-semibold text-danger-action">Emergencia</p>
-          <p className="mt-1 font-body text-sm text-text-primary">
-            Abre opciones seguras para pedir ayuda, compartir ubicación o reportar un problema crítico.
+          <p className="font-body text-sm font-semibold text-[var(--ruum-emergency-text)]">Seguridad</p>
+          <p className="mt-1 font-body text-[17px] leading-6 text-[var(--ruum-navy)]">
+            Al enviar, soporte recibe tu ubicación, se abre un folio y te responde una persona.
           </p>
         </div>
-        <Button variant="emergency" className="min-h-12 w-full sm:w-auto" onClick={abrirPanel}>
+        <Button variant="emergency" className="min-h-[var(--ruum-button-height-street)] w-full text-[17px] sm:w-auto" onClick={abrirPanel}>
           Abrir emergencia
         </Button>
       </div>
@@ -286,10 +286,10 @@ export function EmergencyPanel({ trasladoId }: { trasladoId: string }) {
                     onClick={() => void seleccionar(opcion.id)}
                     disabled={Boolean(procesando)}
                     className={[
-                      "min-h-16 rounded-xl border px-4 py-3 text-left transition disabled:cursor-wait disabled:text-disabled",
+                      "min-h-[var(--ruum-button-height-street)] rounded-xl border px-4 py-3 text-left text-[17px] transition disabled:cursor-wait disabled:text-disabled",
                       "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger-action",
                       es911
-                        ? "border-danger-action bg-danger-action text-white shadow-[0_10px_28px_rgba(179,38,38,0.24)]"
+                        ? "border-[var(--ruum-emergency)] bg-[var(--ruum-emergency)] text-white shadow-[0_10px_28px_rgba(179,38,38,0.24)]"
                         : "border-border bg-surface text-text-primary hover:border-route-action hover:bg-route-soft"
                     ].join(" ")}
                   >

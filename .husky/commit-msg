@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# P0: exige Conventional Commits
+node scripts/validate-commit-msg.mjs "$1"

@@ -1408,10 +1408,10 @@ function VehiculoOperativo({ traslado }: { traslado: PasaporteRow }) {
 
 function KpiOperativo({ etiqueta, valor, detalle, tono, onClick }: { etiqueta: string; valor: number; detalle: string; tono: "riesgo" | "atencion" | "info" | "critico"; onClick: () => void }) {
   const clases = {
-    riesgo: "border-[#8F3D32]/25 bg-[#8F3D32]/10 text-[#B85C4D]",
-    atencion: "border-[#B9802A]/25 bg-[#B9802A]/10 text-[#B9802A]",
+    riesgo: "border-[var(--ruum-error)]/25 bg-[var(--ruum-error-bg)] text-[var(--ruum-error-text)]",
+    atencion: "border-[var(--ruum-warning)]/25 bg-[var(--ruum-warning-bg)] text-[var(--ruum-warning-text)]",
     info: "border-status-info/25 bg-status-info-soft text-status-info",
-    critico: "border-[#B44545]/25 bg-[#B44545]/10 text-[#C45A5A]"
+    critico: "border-[var(--ruum-emergency)]/25 bg-[var(--ruum-emergency-bg)] text-[var(--ruum-emergency-text)]"
   }[tono];
   return (
     <button type="button" onClick={onClick} className="rounded-lg border border-border-default bg-surface-primary p-4 text-left shadow-[var(--ruum-shadow-1)] transition hover:border-status-info/35 hover:bg-surface-secondary">
@@ -1455,7 +1455,7 @@ function EstadoOperativo({ estado }: { estado: EstadoTraslado | null }) {
   if (!estado) return <span className="text-text-tertiary">Sin estado</span>;
   const critico = estado === "pendiente_de_conductor" || estado === "incidencia_reportada" || estado === "traslado_fallido" || estado === "servicio_cancelado";
   return (
-    <span className={critico ? "inline-flex items-center gap-2 rounded-full border border-[#8F3D32]/25 bg-[#8F3D32]/10 px-2 py-1 text-[#B85C4D]" : "inline-flex items-center gap-2"}>
+    <span className={critico ? "inline-flex items-center gap-2 rounded-full border border-[var(--ruum-error)]/25 bg-[var(--ruum-error-bg)] px-2 py-1 text-[var(--ruum-error-text)]" : "inline-flex items-center gap-2"}>
       {critico && <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />}
       <EstadoBadge estado={estado} />
     </span>

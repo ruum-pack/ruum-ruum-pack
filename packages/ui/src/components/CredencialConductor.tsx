@@ -1,6 +1,5 @@
 import React from "react";
-import { LogoMarca } from "./LogoMarca";
-import { SelloConductor } from "./SelloConductor";
+import { SimboloVectorial } from "./LogoMarca";
 
 export interface CredencialConductorProps {
   nombreConductor: string;
@@ -14,9 +13,10 @@ export interface CredencialConductorProps {
 }
 
 /**
- * Credencial Oficial de Conductor Certificado Ruum Ruum
- * Conforme a la Página 32 del Brand Book Ruum Ruum V1.
- * Transmite control operativo, certificación e identidad institucional.
+ * Credencial de Conductor Certificado V1.0 (Libro de Marca V2.1 cap. 12 + 30.3).
+ * - Sello = símbolo RR solo (72px mínimo). Nivel en chip separado.
+ * - Navy #0A2342 + teal-deep etiquetas. Sin fondos oscuros grandes en impresión.
+ * - Solo conductores con certificación vigente.
  */
 export function CredencialConductor({
   nombreConductor,
@@ -24,82 +24,78 @@ export function CredencialConductor({
   vigencia,
   fotoUrl,
   telefonoOperativo = "+52 55 1234 5678",
-  nivelCertificacion = "Certificado Nivel 1",
+  nivelCertificacion = "Nivel 1 · Básico",
   className = ""
 }: CredencialConductorProps) {
   return (
     <div
-      className={`relative w-full max-w-sm overflow-hidden rounded-2xl border border-[#FFC400]/30 bg-[#151515] p-5 text-white shadow-2xl ${className}`}
-      style={{
-        backgroundImage: "radial-gradient(circle at 90% 10%, rgba(255, 196, 0, 0.08), transparent 45%)"
-      }}
+      className={`relative w-full max-w-sm overflow-hidden rounded-[20px] border border-[var(--ruum-border)] bg-white p-5 text-[var(--ruum-navy)] shadow-[var(--ruum-elevation-2)] ${className}`}
     >
-      {/* Cabecera institucional */}
-      <div className="flex items-start justify-between border-b border-white/10 pb-4">
-        <LogoMarca variante="horizontal" tema="oscuro" tamano={30} />
-        <SelloConductor compacto tema="dorado" />
+      {/* Cabecera institucional: lockup + sello (símbolo solo) */}
+      <div className="flex items-start justify-between gap-3 border-b border-[var(--ruum-border)] pb-4">
+        <div>
+          <p className="font-body text-sm font-extrabold tracking-tight">Ruum Ruum</p>
+          <p className="font-body text-[11px] font-medium uppercase tracking-wider text-[var(--ruum-teal-deep)]">
+            Conductores certificados
+          </p>
+        </div>
+        <SimboloVectorial tamano={72} tema="claro" />
       </div>
 
-      {/* Cuerpo de la credencial */}
+      {/* Cuerpo */}
       <div className="mt-5 flex gap-4">
-        {/* Foto o avatar */}
-        <div className="relative size-24 shrink-0 overflow-hidden rounded-xl border-2 border-[#FFC400] bg-[#1a2230]">
+        <div className="relative size-24 shrink-0 overflow-hidden rounded-[12px] border border-[var(--ruum-teal-deep)] bg-[var(--ruum-neutral-bg)]">
           {fotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={fotoUrl} alt={nombreConductor} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center text-white/50">
-              <svg className="size-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex h-full w-full flex-col items-center justify-center text-[var(--ruum-muted)]">
+              <svg className="size-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
           )}
-          <span className="absolute bottom-0 inset-x-0 bg-[#FFC400] py-0.5 text-center font-display text-[9px] font-black uppercase text-[#151515]">
-            VALIDADO
+          <span className="absolute inset-x-0 bottom-0 bg-[var(--ruum-teal-deep)] py-0.5 text-center font-body text-[9px] font-bold uppercase text-white">
+            Validado
           </span>
         </div>
 
-        {/* Datos del conductor */}
-        <div className="flex flex-1 flex-col justify-center">
-          <span className="font-body text-[10px] font-semibold uppercase tracking-wider text-[#FFC400]">
+        <div className="flex min-w-0 flex-1 flex-col justify-center">
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[var(--ruum-action-bg)] px-2.5 py-1 font-body text-[11px] font-semibold text-[var(--ruum-action-text)]">
             {nivelCertificacion}
           </span>
-          <h3 className="mt-0.5 font-display text-base font-bold leading-tight text-white">
-            {nombreConductor}
-          </h3>
-          <div className="mt-2 space-y-0.5 font-body text-xs text-[#B7C2D4]">
+          <h3 className="mt-1.5 font-body text-base font-bold leading-tight">{nombreConductor}</h3>
+          <div className="mt-2 space-y-0.5 font-body text-xs tabular-nums">
             <p>
-              <span className="text-[#8B98AD]">Folio:</span> <span className="font-mono-ruum font-semibold text-white">{folioInterno}</span>
+              <span className="text-[var(--ruum-muted)]">Folio:</span>{" "}
+              <span className="font-semibold">{folioInterno}</span>
             </p>
             <p>
-              <span className="text-[#8B98AD]">Vigencia:</span> <span className="font-medium text-white">{vigencia}</span>
+              <span className="text-[var(--ruum-muted)]">Vigencia:</span>{" "}
+              <span className="font-medium">{vigencia}</span>
             </p>
           </div>
         </div>
       </div>
 
-      {/* Pie de credencial con validación */}
-      <div className="mt-5 rounded-xl border border-white/5 bg-white/5 p-3">
-        <div className="flex items-center justify-between">
+      <div className="mt-5 rounded-[12px] border border-[var(--ruum-border)] bg-[var(--ruum-neutral-bg)] p-3">
+        <div className="flex items-center justify-between gap-3">
           <div className="space-y-0.5">
-            <span className="block font-body text-[10px] uppercase text-[#8B98AD]">Atención Operativa</span>
-            <span className="font-mono-ruum text-xs font-semibold text-white">{telefonoOperativo}</span>
-          </div>
-          <div className="text-right">
-            <span className="inline-flex items-center gap-1 rounded bg-[#FFC400]/10 px-2 py-1 font-body text-[10px] font-semibold text-[#FFC400]">
-              <span className="size-1.5 rounded-full bg-[#FFC400]" />
-              Activo en Plataforma
+            <span className="block font-body text-[10px] font-semibold uppercase tracking-wider text-[var(--ruum-teal-deep)]">
+              Soporte Ruum Ruum
             </span>
+            <span className="font-body text-xs font-semibold tabular-nums">{telefonoOperativo}</span>
           </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--ruum-success)]/30 bg-[var(--ruum-success-bg)] px-2 py-1 font-body text-[10px] font-semibold text-[var(--ruum-success-text)]">
+            <span className="size-1.5 rounded-full bg-[var(--ruum-success)]" aria-hidden />
+            Certificación vigente
+          </span>
         </div>
       </div>
 
-      {/* Lema oficial */}
-      <div className="mt-3 text-center">
-        <p className="font-body text-[10px] font-semibold uppercase tracking-widest text-[#FFC400]">
-          Seguridad · Evidencia · Trazabilidad
-        </p>
-      </div>
+      <p className="mt-3 text-center font-body text-[10px] font-semibold uppercase tracking-widest text-[var(--ruum-muted)]">
+        Seguridad · Evidencia · Trazabilidad
+      </p>
     </div>
   );
 }

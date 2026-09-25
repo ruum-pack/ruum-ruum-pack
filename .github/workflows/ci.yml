@@ -93,8 +93,7 @@ jobs:
       - name: Security scanner regression tests (P0 SEC-006)
         run: pnpm test:security
 
-      - name: Audit dependencias (report-only — baseline 57 vulns 2026-09-14, endurecer a bloqueante tras triage)
-        continue-on-error: true
+      - name: Audit dependencias (bloqueante high/critical — P0; moderate solo aviso en review)
         run: pnpm audit:deps
 
       - name: Assert CSP (SEC-002 — bloqueante, sin unsafe-eval en prod)

@@ -112,22 +112,20 @@ jobs:
       - name: Run Axe CLI audit
         run: |
           mkdir -p apps/app-conductor/results
-          # Axe CLI puede salir con código !=0 cuando encuentra violaciones; no debe fallar el job en CI dummy
-          # Solo se exige que el reporte se genere; las violaciones se reportan como artefacto y se validan en Playwright con política
-          pnpm --filter @ruum/app-conductor exec axe http://localhost:3001 --save results/axe-report.json || true
-          if [ -f apps/app-conductor/results/axe-report.json ]; then
-            echo "Axe report generated:"
-            cat apps/app-conductor/results/axe-report.json | head -c 2000; echo
-            node -e "
-              const r=require('./apps/app-conductor/results/axe-report.json');
-              const v=(r.violations||[]).filter(x=>x.impact==='critical'||x.impact==='serious');
-              if(v.length>0){console.warn('Axe found',v.length,'critical/serious violations (report only, not failing in CI dummy)'); v.slice(0,5).forEach(x=>console.warn(' -',x.id, x.impact, x.help));}
-              else {console.log('No critical axe violations');}
-            "
-          else
-            echo "::warning::No axe report found at apps/app-conductor/results/axe-report.json — creando reporte vacío para no bloquear CI"
-            echo '{"violations":[]}' > apps/app-conductor/results/axe-report.json
+          # P0: bloqueante en critical/serious. Falla si no hay reporte o hay violaciones altas.
+          pnpm --filter @ruum/app-conductor exec axe http://localhost:3001 --save results/axe-report.json
+          if [ ! -f apps/app-conductor/results/axe-report.json ]; then
+            echo "::error::No se generó el reporte axe — falla bloqueante P0"
+            exit 1
           fi
+          echo "Axe report generated:"
+          cat apps/app-conductor/results/axe-report.json | head -c 2000; echo
+          node -e "
+            const r=require('./apps/app-conductor/results/axe-report.json');
+            const v=(r.violations||[]).filter(x=>x.impact==='critical'||x.impact==='serious');
+            if(v.length>0){console.error('Axe bloqueante P0:',v.length,'violaciones critical/serious'); v.slice(0,10).forEach(x=>console.error(' -',x.id, x.impact, x.help)); process.exit(1);}
+            else {console.log('No critical axe violations');}
+          "
 
       - name: Stop server
         if: always()

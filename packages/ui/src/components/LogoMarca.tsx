@@ -63,13 +63,15 @@ function ImagenLogoHeader({
 }
 
 /**
- * Monograma vectorial oficial Ruum Ruum:
- * Símbolo RR + Línea amarilla de ruta (#FFC400) + Punto de origen + Punto de destino + Check de confirmación.
+ * Monograma vectorial oficial Ruum Ruum V1.0 (Libro de Marca V2.1 cap. 10):
+ * RR entrelazado bold con inclinación + corte central (carretera) + swoosh
+ * turquesa 00D1D1 que termina en pin de entrega. Movimiento + Destino + Confianza.
+ * El nombre en el logotipo es dibujo vectorial; este SVG es el maestro en código.
  */
 export function SimboloVectorial({
   tamano = 36,
   tema = "auto",
-  colorDestino = "#FFC400",
+  colorDestino = "#00D1D1",
   className = "",
   ...props
 }: SVGProps<SVGSVGElement> & {
@@ -81,65 +83,66 @@ export function SimboloVectorial({
   const esClaro = tema === "claro";
   const esMono = tema === "monocromatico";
 
-  const colorFondo = esClaro ? "#FFFFFF" : tema === "auto" ? "var(--ruum-canvas, #FFFFFF)" : "#0D2B5E";
-  const colorBorde = esMono ? (esClaro ? "#0D2B5E" : "#FFFFFF") : "#00C2B8";
-  const colorLetras = esMono ? (esClaro ? "#0D2B5E" : "#FFFFFF") : esClaro ? "#0D2B5E" : tema === "auto" ? "var(--ruum-text-primary, #0D2B5E)" : "#FFFFFF";
-  const colorRuta = esMono ? (esClaro ? "#0D2B5E" : "#FFFFFF") : "#00C2B8";
-  const colorPuntoFin = esMono ? (esClaro ? "#0D2B5E" : "#FFFFFF") : colorDestino;
+  const navy = "#0A2342";
+  const teal = "#00D1D1";
+  const white = "#FFFFFF";
+  const colorFondo = esMono
+    ? "none"
+    : esClaro
+      ? white
+      : tema === "auto"
+        ? "var(--ruum-canvas, #FFFFFF)"
+        : navy;
+  const colorRR = esMono ? (esClaro ? navy : white) : esClaro ? navy : tema === "auto" ? `var(--ruum-navy, ${navy})` : white;
+  const colorSwoosh = esMono ? colorRR : teal;
+  const colorPin = esMono ? colorRR : colorDestino;
+  const showFondo = !esMono;
 
   return (
     <svg
       width={tamano}
       height={tamano}
-      viewBox="0 0 64 64"
+      viewBox="0 0 72 72"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label="Símbolo oficial Ruum Ruum"
+      aria-label="Símbolo oficial Ruum Ruum — RR entrelazado con ruta y pin de entrega"
       className={`shrink-0 ${className}`}
       {...props}
     >
-      {/* Fondo circular institucional V2 */}
-      <circle cx="32" cy="32" r="30" fill={colorFondo} />
-      <circle cx="32" cy="32" r="28" stroke={colorBorde} strokeWidth="2.5" strokeOpacity={esMono ? "1" : "0.9"} />
-
-      {/* Monograma RR institucional V2 */}
-      <text
-        x="15"
-        y="38"
-        fill={colorLetras}
-        fontFamily="Inter, Montserrat, system-ui, sans-serif"
-        fontSize="19"
-        fontWeight="800"
-        letterSpacing="-1.5"
-      >
-        RR
-      </text>
-
-      {/* Ruta turquesa V2 que cruza el monograma */}
+      {showFondo && <circle cx="36" cy="36" r="34" fill={colorFondo} />}
+      {/* RR entrelazado: bloque bold con inclinación hacia adelante */}
+      <g transform="skewX(-6)">
+        <text
+          x="12"
+          y="47"
+          fill={colorRR}
+          fontFamily="Inter, Arial, sans-serif"
+          fontSize="30"
+          fontWeight="800"
+          letterSpacing="-4"
+        >
+          RR
+        </text>
+      </g>
+      {/* Corte central = carretera */}
+      <path d="M33 12 L39 12 L31 60 L25 60 Z" fill={showFondo ? colorFondo : white} opacity={esMono ? 0 : 1} aria-hidden />
+      {/* Swoosh turquesa: ruta en movimiento */}
       <path
-        d="M13 46 C 22 30, 31 50, 40 32 C 44 24, 48 24, 52 27"
+        d="M31 8 C 33 22, 40 34, 52 44 C 56 47, 59 49, 61 50"
         fill="none"
-        stroke={colorRuta}
+        stroke={colorSwoosh}
         strokeWidth="4.5"
         strokeLinecap="round"
       />
-
-      {/* Punto de origen */}
-      <circle cx="13" cy="46" r="4" fill={colorFondo} stroke={colorRuta} strokeWidth="2.5" />
-
-      {/* Punto de destino */}
-      <circle cx="52" cy="27" r="4" fill={colorPuntoFin} stroke={colorFondo} strokeWidth="1.5" />
-
-      {/* Check de confirmación y entrega */}
-      <path
-        d="M42 44 L48 50 L56 38"
-        fill="none"
-        stroke={colorRuta}
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      {/* Pin de entrega al final de la ruta */}
+      <g transform="translate(57, 42)">
+        <path
+          d="M8 0 a8 8 0 1 0 0.01 0 M8 14.5 L3.5 8.2 a5.2 5.2 0 1 1 9 0 Z"
+          fill={colorPin}
+        />
+        <circle cx="8" cy="8" r="2.6" fill={showFondo ? colorFondo : white} />
+      </g>
     </svg>
   );
 }
@@ -162,22 +165,22 @@ export function LogoMarca({
   color = "signal",
   className = ""
 }: LogoMarcaProps) {
-  const colorDestino = color === "route" ? "#1677FF" : color === "control" ? "#13B89B" : "#00C2B8";
+  const colorDestino = color === "route" ? "#0066FF" : color === "control" ? "#16805A" : "#00D1D1";
   const esClaro = tema === "claro";
 
-  const colorTextoSecundario = esClaro ? "text-[#5F7192]" : tema === "auto" ? "text-text-secondary" : "text-[#C7D5E7]";
-  const colorTextoRespaldo = esClaro ? "text-[#5F7192]/80" : tema === "auto" ? "text-text-tertiary" : "text-[#A9BCD3]";
+  const colorTextoSecundario = esClaro ? "text-[#566889]" : tema === "auto" ? "text-text-secondary" : "text-[#C7D5E7]";
+  const colorTextoRespaldo = esClaro ? "text-[#566889]/80" : tema === "auto" ? "text-text-tertiary" : "text-[#A9BCD3]";
 
-  // Símbolo independiente o avatar
+  // Símbolo independiente o avatar (cap. 12: símbolo 50-60% ancho, radio ≈24%, sin nombre ni firma)
   if (variante === "simbolo" || variante === "avatar") {
     const tamanoSimbolo = tamano ?? (variante === "avatar" ? 44 : 32);
     return (
       <div
         className={`inline-flex items-center justify-center ${
-          variante === "avatar" ? "rounded-xl bg-[#08182E] p-1.5 shadow-md" : ""
+          variante === "avatar" ? "rounded-[24%] bg-white p-1.5 shadow-md ring-1 ring-black/5" : ""
         } ${className}`}
       >
-        <SimboloVectorial tamano={tamanoSimbolo} tema={variante === "avatar" ? "oscuro" : tema} colorDestino={colorDestino} />
+        <SimboloVectorial tamano={tamanoSimbolo} tema={variante === "avatar" ? "claro" : tema} colorDestino={colorDestino} />
       </div>
     );
   }

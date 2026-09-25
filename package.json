@@ -33,7 +33,7 @@
     "check:fronteras": "node scripts/check-fronteras.mjs",    "test:sql:rls": "supabase test db supabase/test/rt42_rls_admin_roles.test.sql",
     "test:sql:concurrencia": "supabase test db supabase/test/rt43_concurrencia_operadores.test.sql",
     "scan:secrets": "node scripts/scan-secrets.mjs",
-    "audit:deps": "pnpm audit --audit-level=moderate",
+    "audit:deps": "pnpm audit --audit-level=high",
     "check:supabase-security": "node scripts/check-supabase-security.mjs",
     "check:supabase-drift": "node scripts/check-supabase-drift.mjs",
     "test:security": "node --test tests/security/scan-secrets.test.mjs",

@@ -46,10 +46,10 @@ export function Button({ variant = "primary", icon, loading = false, disabled, c
   return (
     <button
       className={[
-        "inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-xl px-5 py-3",
-        "font-display text-sm font-bold leading-5 transition-[background-color,border-color,box-shadow,transform] duration-150",
+        "inline-flex min-h-[var(--ruum-button-height)] min-w-[var(--ruum-touch)] items-center justify-center gap-2 rounded-[14px] px-5 py-3",
+        "font-display text-base font-semibold leading-6 transition-[background-color,border-color,box-shadow,transform] duration-[var(--ruum-motion-micro)]",
         "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2",
-        "disabled:cursor-not-allowed disabled:transform-none disabled:border-border disabled:bg-surface-elevated disabled:text-disabled disabled:shadow-none",
+        "disabled:cursor-not-allowed disabled:transform-none disabled:border-[var(--ruum-border)] disabled:bg-[var(--ruum-neutral-bg)] disabled:text-[var(--ruum-muted)] disabled:shadow-none",
         ESTILOS[variant],
         className
       ].join(" ")}

@@ -2,20 +2,17 @@
 /// <reference lib="dom" />
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  BUCKET_DOCUMENTOS_IDENTIDAD,
+  LIMITE_RECLAMO_LIMPIEZA,
+  codigoSeguro,
+  requiereAlertaEliminacion,
+} from "./logica.ts";
 
-const BUCKET = "documentos-identidad";
+const BUCKET = BUCKET_DOCUMENTOS_IDENTIDAD;
 
 function json(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
-}
-
-function codigoSeguro(error: unknown) {
-  if (!error || typeof error !== "object") return "desconocido";
-  const valor = error as { code?: unknown; status?: unknown; name?: unknown };
-  if (typeof valor.code === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(valor.code)) return valor.code;
-  if (typeof valor.status === "number") return `http_${valor.status}`;
-  if (typeof valor.name === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(valor.name)) return valor.name;
-  return "desconocido";
 }
 
 Deno.serve(async (req) => {
@@ -27,7 +24,7 @@ Deno.serve(async (req) => {
 
   const servicio = createClient(url, serviceKey, { auth: { persistSession: false } });
   const { data: pendientes, error: errorReclamo } = await servicio
-    .rpc("reclamar_limpieza_documentos_identidad", { p_limite: 50 });
+    .rpc("reclamar_limpieza_documentos_identidad", { p_limite: LIMITE_RECLAMO_LIMPIEZA });
   if (errorReclamo) {
     console.error("Error reclamando limpieza de identidad", { codigo: codigoSeguro(errorReclamo) });
     return json({ error: "No fue posible iniciar la limpieza." }, 500);
@@ -49,7 +46,7 @@ Deno.serve(async (req) => {
     }
 
     pendientesError += 1;
-    const requiereAlerta = documento.intento >= 5;
+    const requiereAlerta = requiereAlertaEliminacion(documento.intento);
     if (requiereAlerta) escalados += 1;
     await servicio.from("documentos_identidad_usuario").update({
       error_eliminacion: codigoSeguro(error),

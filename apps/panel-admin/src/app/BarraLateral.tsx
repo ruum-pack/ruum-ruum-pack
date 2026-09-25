@@ -349,7 +349,7 @@ export function BarraLateral() {
                     aria-label={s.etiqueta}
                     aria-current={activo ? "page" : undefined}
                     className={[
-                      "relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 font-body text-sm font-medium transition-colors",
+                      "relative flex min-h-[44px] items-center gap-2.5 rounded-lg px-2 py-1.5 font-body text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-[var(--ruum-focus)]",
                       activo ? "bg-signal text-ink" : "text-text-secondary hover:bg-white/8 hover:text-mist",
                     ].join(" ")}
                   >

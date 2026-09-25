@@ -1,0 +1,136 @@
+/**
+ * Ruum Ruum — Design Tokens v1.0 (Libro de Marca V2.1, cap. 13 / 26)
+ * Fuente única: design-system/tokens/tokens.json
+ * Proporción: 60% Navy / 30% Blanco / 8% Teal / 2% Estados
+ *
+ * Reglas:
+ * - Nunca hardcodear. Todo color/tamaño/espaciado viene de aquí.
+ * - Teal brillante 00D1D1 SOLO gráfico (ruta/swoosh/pin). Texto/botón usa teal-deep.
+ * - Blanco SOLO sobre navy / teal-deep / azul acción. Nunca sobre teal brillante.
+ * - Degradado CTA = único con texto encima. Degradado route = solo gráfico.
+ */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* ——— Color maestros ——— */
+  --ruum-navy: #0a2342;
+  --ruum-teal: #00d1d1;
+  --ruum-teal-deep: #008b8b;
+  --ruum-blue: #0066ff;
+  --ruum-action: #0066ff;
+  --ruum-surface-brand: #e8eef4;
+  --ruum-white: #ffffff;
+  --ruum-muted: #566889;
+  --ruum-border-input: #7a8dae;
+  --ruum-border: #e6f0ff;
+  --ruum-warning: #f5b400;
+  --ruum-success: #16805a;
+  --ruum-error: #c23648;
+  --ruum-emergency: #b3261e;
+
+  /* ——— Fondos/textos de estado (chips, alertas) ——— */
+  --ruum-neutral-bg: #eef2f8;
+  --ruum-neutral-text: #566889;
+  --ruum-action-bg: #e8f0fe;
+  --ruum-action-text: #1461e0;
+  --ruum-warning-bg: #fff4d6;
+  --ruum-warning-text: #7a4f00;
+  --ruum-success-bg: #e6f6ee;
+  --ruum-success-text: #0f6b48;
+  --ruum-error-bg: #fdecef;
+  --ruum-error-text: #c23648;
+  --ruum-emergency-bg: #fdecef;
+  --ruum-emergency-text: #b3261e;
+
+  /* ——— Degradados ——— */
+  --ruum-gradient-cta: linear-gradient(90deg, #008b8b 0%, #0066ff 100%);
+  --ruum-gradient-route: linear-gradient(90deg, #00d1d1 0%, #0066ff 100%);
+
+  /* ——— Tipografía ——— */
+  --ruum-font-family: "Inter", Arial, Calibri, sans-serif;
+  --ruum-font-display: 40px;
+  --ruum-font-h1: 32px;
+  --ruum-font-h2: 24px;
+  --ruum-font-h3: 18px;
+  --ruum-font-body: 16px;
+  --ruum-font-small: 14px;
+  --ruum-font-caption: 12px;
+  --ruum-font-regular: 400;
+  --ruum-font-medium: 500;
+  --ruum-font-semibold: 600;
+  --ruum-font-bold: 700;
+  --ruum-font-extrabold: 800;
+
+  /* ——— Espaciado (base 8, micro 4) ——— */
+  --ruum-space-4: 4px;
+  --ruum-space-8: 8px;
+  --ruum-space-12: 12px;
+  --ruum-space-16: 16px;
+  --ruum-space-20: 20px;
+  --ruum-space-24: 24px;
+  --ruum-space-32: 32px;
+  --ruum-space-40: 40px;
+  --ruum-space-48: 48px;
+
+  /* ——— Radios ——— */
+  --ruum-radius-sm: 8px;
+  --ruum-radius-md: 12px;
+  --ruum-radius-lg: 16px;
+  --ruum-radius-xl: 24px;
+  --ruum-radius-full: 999px;
+  --ruum-radius-button: 14px;
+  --ruum-radius-card: 20px;
+  --ruum-radius-field: 12px;
+
+  /* ——— Elevación (una sola capa, sin brillos) ——— */
+  --ruum-elevation-1: 0 2px 10px rgba(13, 43, 94, 0.05);
+  --ruum-elevation-2: 0 8px 24px rgba(13, 43, 94, 0.1);
+
+  /* ——— Tamaños táctiles ——— */
+  --ruum-touch: 44px;
+  --ruum-touch-street: 56px;
+  --ruum-button-height: 52px;
+  --ruum-button-height-street: 56px;
+  --ruum-input-height: 48px;
+
+  /* ——— Movimiento ——— */
+  --ruum-motion-micro: 150ms;
+  --ruum-motion-transition: 250ms;
+  --ruum-motion-easing: ease-out;
+
+  /* ——— Mapeo semántico light (compat con --ruum-*) ——— */
+  --ruum-primary: #0a2342;
+  --ruum-canvas: #ffffff;
+  --ruum-surface: #ffffff;
+  --ruum-surface-elevated: #e8eef4;
+  --ruum-surface-subtle: #eef2f8;
+  --ruum-surface-strong: #0a2342;
+  --ruum-text: #0a2342;
+  --ruum-text-primary: #0a2342;
+  --ruum-text-secondary: #566889;
+  --ruum-text-tertiary: #566889;
+  --ruum-text-disabled: #7a8dae;
+  --ruum-focus: #0066ff;
+  --ruum-focus-ring: rgba(0, 102, 255, 0.24);
+  --ruum-action-primary: #0066ff;
+  --ruum-action-primary-hover: #0052cc;
+  --ruum-action-primary-active: #0043a8;
+  --ruum-on-primary: #ffffff;
+  --ruum-on-danger: #ffffff;
+  --ruum-overlay: rgba(10, 35, 66, 0.6);
+  --ruum-route: #0066ff;
+  --ruum-route-hover: #0052cc;
+  --ruum-route-active: #0043a8;
+  --ruum-shadow-1: var(--ruum-elevation-1);
+  --ruum-shadow-2: var(--ruum-elevation-2);
+  --ruum-gradient-action: var(--ruum-gradient-cta);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ruum-motion-micro: 0.01ms;
+    --ruum-motion-transition: 0.01ms;
+  }
+}

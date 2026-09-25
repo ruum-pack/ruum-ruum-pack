@@ -124,29 +124,29 @@ export default async function PaginaInicio({
     redirect("/login");
   }
 
-  // Experiencia Pública / Landing Page Inicial (Brand Book Ruum Ruum V1 · Página 28)
+  // Experiencia Pública / Landing (Libro de Marca V2.1 cap. 32)
   return (
-    <div className="min-h-screen bg-[#151515] text-[#F8F8F5]">
+    <div className="min-h-screen bg-[var(--ruum-navy)] text-white">
       {/* Barra de Navegación Pública */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#151515]/90 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[var(--ruum-navy)]/95 pt-[env(safe-area-inset-top)] backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
           <LogoMarca variante="horizontal" tema="oscuro" tamano={34} />
           <div className="flex items-center gap-3">
             <Link
               href="#como-funciona"
-              className="hidden sm:inline-flex rounded-lg px-3 py-2 font-display text-xs font-semibold text-[#8B98AD] transition hover:text-white"
+              className="hidden sm:inline-flex rounded-lg px-3 py-2 font-body text-xs font-semibold text-[#A9BCD3] transition hover:text-white"
             >
               Cómo funciona
             </Link>
             <Link
               href="/login"
-              className="rounded-lg px-3.5 py-2 font-display text-xs font-semibold text-[#F8F8F5] transition hover:text-[#FFC400]"
+              className="rounded-lg px-3.5 py-2 font-body text-xs font-semibold text-white transition hover:text-[var(--ruum-teal)]"
             >
               Iniciar sesión
             </Link>
             <Link
               href="/registro"
-              className="rounded-lg bg-[#FFC400] px-4 py-2 font-display text-xs font-bold text-[#151515] shadow-sm transition hover:bg-[#e0ac00]"
+              className="ruum-button-primary rounded-[14px] px-4 py-2 font-body text-xs font-semibold text-white shadow-sm transition"
             >
               Crear cuenta
             </Link>
@@ -165,12 +165,12 @@ export default async function PaginaInicio({
             sizes="100vw"
             className="object-cover object-center"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#151515] via-[#151515]/70 to-transparent" />
+          <div className="absolute inset-0 bg-[var(--ruum-navy)]/60" />
         </div>
 
         <div className="relative mx-auto max-w-4xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#FFC400]/40 bg-[#FFC400]/10 px-3.5 py-1 text-xs font-semibold text-[#FFC400] mb-6">
-            <span className="size-2 rounded-full bg-[#FFC400] animate-pulse" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--ruum-teal)]/40 bg-[var(--ruum-teal)]/10 px-3.5 py-1 text-xs font-semibold text-[var(--ruum-teal)] mb-6">
+            <span className="size-2 rounded-full bg-[var(--ruum-teal)] animate-pulse" />
             Traslado vehicular con conductores certificados
           </div>
 
@@ -178,9 +178,9 @@ export default async function PaginaInicio({
             Seguridad, evidencia y trazabilidad en cada viaje.
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl font-body text-base text-[#B7C2D4] sm:text-lg">
-            No movemos vehículos a ciegas. Cuidamos tu vehículo antes, durante y después del traslado
-            mediante conductores certificados, evidencia documentada y seguimiento en tiempo real.
+          <p className="mx-auto mt-6 max-w-2xl font-body text-base text-[#C7D5E7] sm:text-lg">
+            Sabes quién lleva tu auto y qué evidencia queda de cada etapa: conductores certificados,
+            evidencia documentada y seguimiento durante el trayecto.
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -211,7 +211,7 @@ export default async function PaginaInicio({
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="grid gap-10 md:grid-cols-2 md:items-center">
             <div>
-              <span className="font-display text-xs font-bold uppercase tracking-wider text-[#FFC400]">
+              <span className="font-body text-xs font-bold uppercase tracking-wider text-[var(--ruum-teal)]">
                 Esencia de marca
               </span>
               <h2 className="mt-2 font-display text-2xl font-black text-white sm:text-3xl">
@@ -225,12 +225,12 @@ export default async function PaginaInicio({
                 claridad sobre quién lo conduce. Ruum Ruum convierte el traslado vehicular en un proceso profesional documentado.
               </p>
               <div className="mt-6">
-                <SelloConductor compacto tema="dorado" />
+                <SelloConductor compacto tema="certificado" />
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-[#151515] p-6 shadow-xl">
-              <h3 className="font-display text-lg font-bold text-[#FFC400]">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl">
+              <h3 className="font-display text-lg font-bold text-[var(--ruum-teal)]">
                 Idea Central
               </h3>
               <p className="mt-2 font-display text-xl font-bold text-white">
@@ -250,14 +250,14 @@ export default async function PaginaInicio({
       <section id="como-funciona" className="border-b border-white/10 py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="text-center">
-            <span className="font-display text-xs font-bold uppercase tracking-wider text-[#FFC400]">
+            <span className="font-display text-xs font-bold uppercase tracking-wider text-[var(--ruum-teal)]">
               Protocolo Operativo
             </span>
             <h2 className="mt-2 font-display text-2xl font-black text-white sm:text-3xl">
               ¿Cómo funciona cada traslado?
             </h2>
-            <p className="mx-auto mt-3 max-w-2xl font-body text-sm text-[#B7C2D4]">
-              Cada viaje cumple un protocolo riguroso de principio a fin, garantizando evidencia y trazabilidad.
+            <p className="mx-auto mt-3 max-w-2xl font-body text-sm text-[#C7D5E7]">
+              Cada traslado tiene folio, ruta y evidencia: tres pasos visibles de principio a fin.
             </p>
           </div>
 
@@ -265,13 +265,13 @@ export default async function PaginaInicio({
             {IDENTIDAD_MARCA.pasosProtocolo.map((item) => (
               <div
                 key={item.paso}
-                className="relative rounded-xl border border-white/10 bg-[#151b26] p-5 transition hover:border-[#FFC400]/50"
+                className="relative rounded-xl border border-white/10 bg-white/5 p-5 transition hover:border-[var(--ruum-teal)]/50"
               >
                 <div className="flex items-center justify-between">
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-[#FFC400] font-display text-sm font-black text-[#151515]">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-[var(--ruum-teal-deep)] font-display text-sm font-black text-white">
                     {item.paso}
                   </span>
-                  <span className="font-mono-ruum text-[10px] text-[#5F6368]">FASE {item.paso}</span>
+                  <span className="font-mono-ruum text-xs text-[#A9BCD3]">FASE {item.paso}</span>
                 </div>
                 <h3 className="mt-4 font-display text-base font-bold text-white">
                   {item.titulo}
@@ -289,7 +289,7 @@ export default async function PaginaInicio({
       <section className="border-b border-white/10 bg-[#121721] py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="text-center">
-            <span className="font-display text-xs font-bold uppercase tracking-wider text-[#FFC400]">
+            <span className="font-display text-xs font-bold uppercase tracking-wider text-[var(--ruum-teal)]">
               Ventajas Ruum Ruum
             </span>
             <h2 className="mt-2 font-display text-2xl font-black text-white sm:text-3xl">
@@ -299,8 +299,8 @@ export default async function PaginaInicio({
 
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {IDENTIDAD_MARCA.diferenciadores.map((dif, idx) => (
-              <div key={idx} className="rounded-xl border border-white/10 bg-[#151515] p-5">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-[#FFC400]/15 text-[#FFC400]">
+              <div key={idx} className="rounded-xl border border-white/10 bg-white/5 p-5">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-[var(--ruum-teal)]/15 text-[var(--ruum-teal)]">
                   <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                   </svg>
@@ -313,8 +313,8 @@ export default async function PaginaInicio({
                 </p>
               </div>
             ))}
-            <div className="rounded-xl border border-[#FFC400]/30 bg-[#FFC400]/10 p-5 flex flex-col justify-center">
-              <h3 className="font-display text-base font-bold text-[#FFC400]">
+            <div className="rounded-xl border border-[var(--ruum-teal)]/30 bg-[var(--ruum-teal)]/10 p-5 flex flex-col justify-center">
+              <h3 className="font-display text-base font-bold text-[var(--ruum-teal)]">
                 Atención y Cotización
               </h3>
               <p className="mt-2 font-body text-xs text-[#F8F8F5]">
@@ -328,9 +328,9 @@ export default async function PaginaInicio({
       {/* 5. MANIFIESTO Y CIERRE INSTITUCIONAL (Páginas 35 & 36) */}
       <section className="px-4 py-16 text-center sm:px-6 sm:py-24">
         <div className="mx-auto max-w-3xl">
-          <SelloConductor tamano="md" tema="dorado" className="mx-auto mb-6" />
+          <SelloConductor tamano="md" tema="certificado" className="mx-auto mb-6" />
           <h2 className="font-display text-2xl font-black text-white sm:text-3xl">
-            No entregues tu auto a ciegas. Un traslado serio deja evidencia.
+            Sabes quién lleva tu auto y qué evidencia queda de cada etapa.
           </h2>
           <p className="mt-4 font-body text-sm leading-relaxed text-[#B7C2D4] sm:text-base">
             {IDENTIDAD_MARCA.manifiesto}
@@ -344,6 +344,54 @@ export default async function PaginaInicio({
               Iniciar sesión
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* EVIDENCIA (cap. 28: el reporte es la prueba visible) */}
+      <section className="border-t border-white/10 bg-white px-4 py-16 text-[var(--ruum-navy)] sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-center font-body text-xs font-bold uppercase tracking-wider text-[var(--ruum-teal-deep)]">
+            Evidencia
+          </p>
+          <h2 className="mt-2 text-center font-body text-2xl font-bold sm:text-3xl">
+            Cada traslado deja reporte, folio y firma
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-center font-body text-sm text-[var(--ruum-muted)]">
+            Ejemplo ilustrativo con datos ficticios. El cliente recibe este paquete al cierre.
+          </p>
+          <dl className="mx-auto mt-8 grid max-w-3xl gap-4 rounded-[20px] border border-[var(--ruum-border)] bg-[var(--ruum-neutral-bg)] p-5 sm:grid-cols-2">
+            <div><dt className="font-body text-xs font-semibold uppercase tracking-wider text-[var(--ruum-teal-deep)]">Folio</dt><dd className="font-body text-sm font-bold tabular-nums">RR-2026-0001</dd></div>
+            <div><dt className="font-body text-xs font-semibold uppercase tracking-wider text-[var(--ruum-teal-deep)]">Ruta</dt><dd className="font-body text-sm">CDMX → Toluca</dd></div>
+            <div><dt className="font-body text-xs font-semibold uppercase tracking-wider text-[var(--ruum-teal-deep)]">Conductor</dt><dd className="font-body text-sm">Conductor certificado · Nivel 2</dd></div>
+            <div><dt className="font-body text-xs font-semibold uppercase tracking-wider text-[var(--ruum-teal-deep)]">Evidencia</dt><dd className="font-body text-sm">Fotos, odómetro, combustible y firma al recoger y entregar</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      {/* FORMULARIO B2B (cap. 29: usted, formal, solo promesas verificables) */}
+      <section id="empresas" className="border-t border-white/10 px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="font-body text-xs font-bold uppercase tracking-wider text-[var(--ruum-teal)]">Empresas</p>
+          <h2 className="mt-2 font-body text-2xl font-bold text-white sm:text-3xl">
+            Cada unidad, documentada de origen a destino
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl font-body text-sm text-[#C7D5E7]">
+            Solicite su propuesta. Le respondemos con alcance, duración y siguiente paso.
+          </p>
+          <form
+            className="mx-auto mt-8 grid max-w-xl gap-3 rounded-[20px] border border-white/10 bg-white/5 p-5 text-left"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <label className="font-body text-[13px] font-semibold text-white" htmlFor="b2b-nombre">Nombre y empresa</label>
+            <input id="b2b-nombre" name="nombre" required autoComplete="name" className="min-h-[48px] rounded-[12px] border border-white/20 bg-white px-3.5 py-2.5 font-body text-base text-[var(--ruum-navy)]" />
+            <label className="font-body text-[13px] font-semibold text-white" htmlFor="b2b-correo">Correo de trabajo</label>
+            <input id="b2b-correo" name="correo" type="email" required autoComplete="email" className="min-h-[48px] rounded-[12px] border border-white/20 bg-white px-3.5 py-2.5 font-body text-base text-[var(--ruum-navy)]" />
+            <label className="font-body text-[13px] font-semibold text-white" htmlFor="b2b-mensaje">¿Qué necesita mover?</label>
+            <textarea id="b2b-mensaje" name="mensaje" rows={3} className="min-h-[112px] rounded-[12px] border border-white/20 bg-white px-3.5 py-2.5 font-body text-base text-[var(--ruum-navy)]" />
+            <button type="submit" className="ruum-button-primary mt-2 inline-flex min-h-[52px] items-center justify-center rounded-[14px] px-6 font-body text-base font-semibold text-white">
+              Solicitar propuesta
+            </button>
+          </form>
         </div>
       </section>
 
